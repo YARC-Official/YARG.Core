@@ -10,901 +10,901 @@ using YARG.Core.IO;
 
 namespace StbImageSharp
 {
-	unsafe partial class StbImage
-	{
-		public static readonly uint[] stbi__bmask =
-			{ 0, 1, 3, 7, 15, 31, 63, 127, 255, 511, 1023, 2047, 4095, 8191, 16383, 32767, 65535 };
+    public static unsafe partial class StbImage
+    {
+        private static readonly uint[] stbi__bmask =
+            { 0, 1, 3, 7, 15, 31, 63, 127, 255, 511, 1023, 2047, 4095, 8191, 16383, 32767, 65535 };
 
-		public static readonly int[] stbi__jbias =
-			{ 0, -1, -3, -7, -15, -31, -63, -127, -255, -511, -1023, -2047, -4095, -8191, -16383, -32767 };
+        private static readonly int[] stbi__jbias =
+            { 0, -1, -3, -7, -15, -31, -63, -127, -255, -511, -1023, -2047, -4095, -8191, -16383, -32767 };
 
-		public static readonly byte[] stbi__jpeg_dezigzag =
-		{
-			0, 1, 8, 16, 9, 2, 3, 10, 17, 24, 32, 25, 18, 11, 4, 5, 12, 19, 26, 33, 40, 48, 41, 34, 27, 20, 13, 6, 7,
-			14, 21, 28, 35, 42, 49, 56, 57, 50, 43, 36, 29, 22, 15, 23, 30, 37, 44, 51, 58, 59, 52, 45, 38, 31, 39, 46,
-			53, 60, 61, 54, 47, 55, 62, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63
-		};
+        private static readonly byte[] stbi__jpeg_dezigzag =
+        {
+            0, 1, 8, 16, 9, 2, 3, 10, 17, 24, 32, 25, 18, 11, 4, 5, 12, 19, 26, 33, 40, 48, 41, 34, 27, 20, 13, 6, 7,
+            14, 21, 28, 35, 42, 49, 56, 57, 50, 43, 36, 29, 22, 15, 23, 30, 37, 44, 51, 58, 59, 52, 45, 38, 31, 39, 46,
+            53, 60, 61, 54, 47, 55, 62, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63
+        };
 
-		public static bool stbi__jpeg_test(stbi__context* s)
-		{
-			bool r;
+        private static bool stbi__jpeg_test(stbi__context* s)
+        {
+            bool r;
             var j = (stbi__jpeg*) Marshal.AllocHGlobal(sizeof(stbi__jpeg));
-			j->s = s;
-			stbi__setup_jpeg(j);
-			r = stbi__decode_jpeg_header(j, STBI__SCAN_TYPE);
-			stbi__rewind(s);
+            j->s = s;
+            stbi__setup_jpeg(j);
+            r = stbi__decode_jpeg_header(j, STBI__SCAN_TYPE);
+            stbi__rewind(s);
             Marshal.FreeHGlobal((IntPtr)j);
-			return r;
-		}
+            return r;
+        }
 
-		public static bool stbi__jpeg_load(stbi__context* s, int* x, int* y, int* comp, stbi__result_info* ri, out FixedArray<byte> result)
-		{
+        private static bool stbi__jpeg_load(stbi__context* s, int* x, int* y, int* comp, stbi__result_info* ri, out FixedArray<byte> result)
+        {
             result = FixedArray<byte>.Null;
             var j = (stbi__jpeg*) Marshal.AllocHGlobal(sizeof(stbi__jpeg));
             if (j == null)
                 return false;
-			j->s = s;
-			stbi__setup_jpeg(j);
+            j->s = s;
+            stbi__setup_jpeg(j);
 
-			bool success = load_jpeg_image(j, x, y, comp, out result);
+            bool success = load_jpeg_image(j, x, y, comp, out result);
             Marshal.FreeHGlobal((IntPtr) j);
             return success;
         }
 
-		public static bool stbi__build_huffman(stbi__huffman* h, int* count)
-		{
-			var i = 0;
-			var j = 0;
-			var k = 0;
-			uint code = 0;
-			for (i = 0; i < 16; ++i)
-			{
-				for (j = 0; j < count[i]; ++j)
-				{
-					h->size[k++] = (byte)(i + 1);
-					if (k >= 257)
-						return false;
-				}
-			}
+        private static bool stbi__build_huffman(stbi__huffman* h, int* count)
+        {
+            var i = 0;
+            var j = 0;
+            var k = 0;
+            uint code = 0;
+            for (i = 0; i < 16; ++i)
+            {
+                for (j = 0; j < count[i]; ++j)
+                {
+                    h->size[k++] = (byte)(i + 1);
+                    if (k >= 257)
+                        return false;
+                }
+            }
 
-			h->size[k] = 0;
-			code = 0;
-			k = 0;
-			for (j = 1; j <= 16; ++j)
-			{
-				h->delta[j] = (int)(k - code);
-				if (h->size[k] == j)
-				{
-					while (h->size[k] == j)
-						h->code[k++] = (ushort)code++;
+            h->size[k] = 0;
+            code = 0;
+            k = 0;
+            for (j = 1; j <= 16; ++j)
+            {
+                h->delta[j] = (int)(k - code);
+                if (h->size[k] == j)
+                {
+                    while (h->size[k] == j)
+                        h->code[k++] = (ushort)code++;
 
-					if (code - 1 >= 1u << j)
-						return false;
-				}
+                    if (code - 1 >= 1u << j)
+                        return false;
+                }
 
-				h->maxcode[j] = code << (16 - j);
-				code <<= 1;
-			}
+                h->maxcode[j] = code << (16 - j);
+                code <<= 1;
+            }
 
-			h->maxcode[j] = 0xffffffff;
-			CRuntime.memset(h->fast, 255, (ulong)(1 << 9));
-			for (i = 0; i < k; ++i)
-			{
-				int s = h->size[i];
-				if (s <= 9)
-				{
-					var c = h->code[i] << (9 - s);
-					var m = 1 << (9 - s);
-					for (j = 0; j < m; ++j)
-						h->fast[c + j] = (byte)i;
-				}
-			}
+            h->maxcode[j] = 0xffffffff;
+            CRuntime.memset(h->fast, 255, (ulong)(1 << 9));
+            for (i = 0; i < k; ++i)
+            {
+                int s = h->size[i];
+                if (s <= 9)
+                {
+                    var c = h->code[i] << (9 - s);
+                    var m = 1 << (9 - s);
+                    for (j = 0; j < m; ++j)
+                        h->fast[c + j] = (byte)i;
+                }
+            }
 
-			return true;
-		}
+            return true;
+        }
 
-		public static void stbi__build_fast_ac(short* fast_ac, stbi__huffman* h)
-		{
-			var i = 0;
-			for (i = 0; i < 1 << 9; ++i)
-			{
-				var fast = h->fast[i];
-				fast_ac[i] = 0;
-				if (fast < 255)
-				{
-					int rs = h->values[fast];
-					var run = (rs >> 4) & 15;
-					var magbits = rs & 15;
-					int len = h->size[fast];
-					if (magbits != 0 && len + magbits <= 9)
-					{
-						var k = ((i << len) & ((1 << 9) - 1)) >> (9 - magbits);
-						var m = 1 << (magbits - 1);
-						if (k < m)
-							k += (int)((~0U << magbits) + 1);
-						if (k >= -128 && k <= 127)
-							fast_ac[i] = (short)(k * 256 + run * 16 + len + magbits);
-					}
-				}
-			}
-		}
+        private static void stbi__build_fast_ac(short* fast_ac, stbi__huffman* h)
+        {
+            var i = 0;
+            for (i = 0; i < 1 << 9; ++i)
+            {
+                var fast = h->fast[i];
+                fast_ac[i] = 0;
+                if (fast < 255)
+                {
+                    int rs = h->values[fast];
+                    var run = (rs >> 4) & 15;
+                    var magbits = rs & 15;
+                    int len = h->size[fast];
+                    if (magbits != 0 && len + magbits <= 9)
+                    {
+                        var k = ((i << len) & ((1 << 9) - 1)) >> (9 - magbits);
+                        var m = 1 << (magbits - 1);
+                        if (k < m)
+                            k += (int)((~0U << magbits) + 1);
+                        if (k >= -128 && k <= 127)
+                            fast_ac[i] = (short)(k * 256 + run * 16 + len + magbits);
+                    }
+                }
+            }
+        }
 
-		public static void stbi__grow_buffer_unsafe(stbi__jpeg* j)
-		{
-			do
-			{
-				var b = (uint)(j->nomore != 0 ? 0 : stbi__get8(j->s));
-				if (b == 0xff)
-				{
-					int c = stbi__get8(j->s);
-					while (c == 0xff)
-						c = stbi__get8(j->s);
+        private static void stbi__grow_buffer_unsafe(stbi__jpeg* j)
+        {
+            do
+            {
+                var b = (uint)(j->nomore != 0 ? 0 : stbi__get8(j->s));
+                if (b == 0xff)
+                {
+                    int c = stbi__get8(j->s);
+                    while (c == 0xff)
+                        c = stbi__get8(j->s);
 
-					if (c != 0)
-					{
-						j->marker = (byte)c;
-						j->nomore = 1;
-						return;
-					}
-				}
+                    if (c != 0)
+                    {
+                        j->marker = (byte)c;
+                        j->nomore = 1;
+                        return;
+                    }
+                }
 
-				j->code_buffer |= b << (24 - j->code_bits);
-				j->code_bits += 8;
-			} while (j->code_bits <= 24);
-		}
+                j->code_buffer |= b << (24 - j->code_bits);
+                j->code_bits += 8;
+            } while (j->code_bits <= 24);
+        }
 
-		public static int stbi__jpeg_huff_decode(stbi__jpeg* j, stbi__huffman* h)
-		{
-			uint temp = 0;
-			var c = 0;
-			var k = 0;
-			if (j->code_bits < 16)
-				stbi__grow_buffer_unsafe(j);
-			c = (int)((j->code_buffer >> (32 - 9)) & ((1 << 9) - 1));
-			k = h->fast[c];
-			if (k < 255)
-			{
-				int s = h->size[k];
-				if (s > j->code_bits)
-					return -1;
-				j->code_buffer <<= s;
-				j->code_bits -= s;
-				return h->values[k];
-			}
+        private static int stbi__jpeg_huff_decode(stbi__jpeg* j, stbi__huffman* h)
+        {
+            uint temp = 0;
+            var c = 0;
+            var k = 0;
+            if (j->code_bits < 16)
+                stbi__grow_buffer_unsafe(j);
+            c = (int)((j->code_buffer >> (32 - 9)) & ((1 << 9) - 1));
+            k = h->fast[c];
+            if (k < 255)
+            {
+                int s = h->size[k];
+                if (s > j->code_bits)
+                    return -1;
+                j->code_buffer <<= s;
+                j->code_bits -= s;
+                return h->values[k];
+            }
 
-			temp = j->code_buffer >> 16;
-			for (k = 9 + 1; ; ++k)
-				if (temp < h->maxcode[k])
-					break;
+            temp = j->code_buffer >> 16;
+            for (k = 9 + 1; ; ++k)
+                if (temp < h->maxcode[k])
+                    break;
 
-			if (k == 17)
-			{
-				j->code_bits -= 16;
-				return -1;
-			}
+            if (k == 17)
+            {
+                j->code_bits -= 16;
+                return -1;
+            }
 
-			if (k > j->code_bits)
-				return -1;
-			c = (int)(((j->code_buffer >> (32 - k)) & stbi__bmask[k]) + h->delta[k]);
-			if (c < 0 || c >= 256)
-				return -1;
-			j->code_bits -= k;
-			j->code_buffer <<= k;
-			return h->values[c];
-		}
+            if (k > j->code_bits)
+                return -1;
+            c = (int)(((j->code_buffer >> (32 - k)) & stbi__bmask[k]) + h->delta[k]);
+            if (c < 0 || c >= 256)
+                return -1;
+            j->code_bits -= k;
+            j->code_buffer <<= k;
+            return h->values[c];
+        }
 
-		public static int stbi__extend_receive(stbi__jpeg* j, int n)
-		{
-			uint k = 0;
-			var sgn = 0;
-			if (j->code_bits < n)
-				stbi__grow_buffer_unsafe(j);
-			if (j->code_bits < n)
-				return 0;
-			sgn = (int)(j->code_buffer >> 31);
-			k = CRuntime._lrotl(j->code_buffer, n);
-			j->code_buffer = k & ~stbi__bmask[n];
-			k &= stbi__bmask[n];
-			j->code_bits -= n;
-			return (int)(k + (stbi__jbias[n] & (sgn - 1)));
-		}
+        private static int stbi__extend_receive(stbi__jpeg* j, int n)
+        {
+            uint k = 0;
+            var sgn = 0;
+            if (j->code_bits < n)
+                stbi__grow_buffer_unsafe(j);
+            if (j->code_bits < n)
+                return 0;
+            sgn = (int)(j->code_buffer >> 31);
+            k = CRuntime._lrotl(j->code_buffer, n);
+            j->code_buffer = k & ~stbi__bmask[n];
+            k &= stbi__bmask[n];
+            j->code_bits -= n;
+            return (int)(k + (stbi__jbias[n] & (sgn - 1)));
+        }
 
-		public static int stbi__jpeg_get_bits(stbi__jpeg* j, int n)
-		{
-			uint k = 0;
-			if (j->code_bits < n)
-				stbi__grow_buffer_unsafe(j);
-			if (j->code_bits < n)
-				return 0;
-			k = CRuntime._lrotl(j->code_buffer, n);
-			j->code_buffer = k & ~stbi__bmask[n];
-			k &= stbi__bmask[n];
-			j->code_bits -= n;
-			return (int)k;
-		}
+        private static int stbi__jpeg_get_bits(stbi__jpeg* j, int n)
+        {
+            uint k = 0;
+            if (j->code_bits < n)
+                stbi__grow_buffer_unsafe(j);
+            if (j->code_bits < n)
+                return 0;
+            k = CRuntime._lrotl(j->code_buffer, n);
+            j->code_buffer = k & ~stbi__bmask[n];
+            k &= stbi__bmask[n];
+            j->code_bits -= n;
+            return (int)k;
+        }
 
-		public static int stbi__jpeg_get_bit(stbi__jpeg* j)
-		{
-			uint k = 0;
-			if (j->code_bits < 1)
-				stbi__grow_buffer_unsafe(j);
-			if (j->code_bits < 1)
-				return 0;
-			k = j->code_buffer;
-			j->code_buffer <<= 1;
-			--j->code_bits;
-			return (int)(k & 0x80000000);
-		}
+        private static int stbi__jpeg_get_bit(stbi__jpeg* j)
+        {
+            uint k = 0;
+            if (j->code_bits < 1)
+                stbi__grow_buffer_unsafe(j);
+            if (j->code_bits < 1)
+                return 0;
+            k = j->code_buffer;
+            j->code_buffer <<= 1;
+            --j->code_bits;
+            return (int)(k & 0x80000000);
+        }
 
-		public static bool stbi__jpeg_decode_block(stbi__jpeg* j, short* data, stbi__huffman* hdc, stbi__huffman* hac, short* fac, int b, ushort* dequant)
-		{
-			var diff = 0;
-			var dc = 0;
-			var k = 0;
-			var t = 0;
-			if (j->code_bits < 16)
-				stbi__grow_buffer_unsafe(j);
-			t = stbi__jpeg_huff_decode(j, hdc);
-			if (t < 0 || t > 15)
-				return false;
-			CRuntime.memset(data, 0, (ulong)(64 * sizeof(short)));
+        private static bool stbi__jpeg_decode_block(stbi__jpeg* j, short* data, stbi__huffman* hdc, stbi__huffman* hac, short* fac, int b, ushort* dequant)
+        {
+            var diff = 0;
+            var dc = 0;
+            var k = 0;
+            var t = 0;
+            if (j->code_bits < 16)
+                stbi__grow_buffer_unsafe(j);
+            t = stbi__jpeg_huff_decode(j, hdc);
+            if (t < 0 || t > 15)
+                return false;
+            CRuntime.memset(data, 0, (ulong)(64 * sizeof(short)));
             var img_comp = &j->img_comp_0 + b;
             diff = t != 0 ? stbi__extend_receive(j, t) : 0;
-			if (stbi__addints_valid(img_comp->dc_pred, diff) == 0)
-				return false;
-			dc = img_comp->dc_pred + diff;
+            if (stbi__addints_valid(img_comp->dc_pred, diff) == 0)
+                return false;
+            dc = img_comp->dc_pred + diff;
             img_comp->dc_pred = dc;
-			if (stbi__mul2shorts_valid(dc, dequant[0]) == 0)
-				return false;
-			data[0] = (short)(dc * dequant[0]);
-			k = 1;
-			do
-			{
-				uint zig = 0;
-				var c = 0;
-				var r = 0;
-				var s = 0;
-				if (j->code_bits < 16)
-					stbi__grow_buffer_unsafe(j);
-				c = (int)((j->code_buffer >> (32 - 9)) & ((1 << 9) - 1));
-				r = fac[c];
-				if (r != 0)
-				{
-					k += (r >> 4) & 15;
-					s = r & 15;
-					if (s > j->code_bits)
-						return false;
-					j->code_buffer <<= s;
-					j->code_bits -= s;
-					zig = stbi__jpeg_dezigzag[k++];
-					data[zig] = (short)((r >> 8) * dequant[zig]);
-				}
-				else
-				{
-					var rs = stbi__jpeg_huff_decode(j, hac);
-					if (rs < 0)
-						return false;
-					s = rs & 15;
-					r = rs >> 4;
-					if (s == 0)
-					{
-						if (rs != 0xf0)
-							break;
-						k += 16;
-					}
-					else
-					{
-						k += r;
-						zig = stbi__jpeg_dezigzag[k++];
-						data[zig] = (short)(stbi__extend_receive(j, s) * dequant[zig]);
-					}
-				}
-			} while (k < 64);
+            if (stbi__mul2shorts_valid(dc, dequant[0]) == 0)
+                return false;
+            data[0] = (short)(dc * dequant[0]);
+            k = 1;
+            do
+            {
+                uint zig = 0;
+                var c = 0;
+                var r = 0;
+                var s = 0;
+                if (j->code_bits < 16)
+                    stbi__grow_buffer_unsafe(j);
+                c = (int)((j->code_buffer >> (32 - 9)) & ((1 << 9) - 1));
+                r = fac[c];
+                if (r != 0)
+                {
+                    k += (r >> 4) & 15;
+                    s = r & 15;
+                    if (s > j->code_bits)
+                        return false;
+                    j->code_buffer <<= s;
+                    j->code_bits -= s;
+                    zig = stbi__jpeg_dezigzag[k++];
+                    data[zig] = (short)((r >> 8) * dequant[zig]);
+                }
+                else
+                {
+                    var rs = stbi__jpeg_huff_decode(j, hac);
+                    if (rs < 0)
+                        return false;
+                    s = rs & 15;
+                    r = rs >> 4;
+                    if (s == 0)
+                    {
+                        if (rs != 0xf0)
+                            break;
+                        k += 16;
+                    }
+                    else
+                    {
+                        k += r;
+                        zig = stbi__jpeg_dezigzag[k++];
+                        data[zig] = (short)(stbi__extend_receive(j, s) * dequant[zig]);
+                    }
+                }
+            } while (k < 64);
 
-			return true;
-		}
+            return true;
+        }
 
-		public static bool stbi__jpeg_decode_block_prog_dc(stbi__jpeg* j, short* data, stbi__huffman* hdc, int b)
-		{
-			var diff = 0;
-			var dc = 0;
-			var t = 0;
-			if (j->spec_end != 0)
-				return false;
-			if (j->code_bits < 16)
-				stbi__grow_buffer_unsafe(j);
-			if (j->succ_high == 0)
-			{
-				CRuntime.memset(data, 0, (ulong)(64 * sizeof(short)));
-				t = stbi__jpeg_huff_decode(j, hdc);
-				if (t < 0 || t > 15)
-					return false;
+        private static bool stbi__jpeg_decode_block_prog_dc(stbi__jpeg* j, short* data, stbi__huffman* hdc, int b)
+        {
+            var diff = 0;
+            var dc = 0;
+            var t = 0;
+            if (j->spec_end != 0)
+                return false;
+            if (j->code_bits < 16)
+                stbi__grow_buffer_unsafe(j);
+            if (j->succ_high == 0)
+            {
+                CRuntime.memset(data, 0, (ulong)(64 * sizeof(short)));
+                t = stbi__jpeg_huff_decode(j, hdc);
+                if (t < 0 || t > 15)
+                    return false;
                 var img_comp = &j->img_comp_0 + b;
-				diff = t != 0 ? stbi__extend_receive(j, t) : 0;
-				if (stbi__addints_valid(img_comp->dc_pred, diff) == 0)
-					return false;
-				dc = img_comp->dc_pred + diff;
-				img_comp->dc_pred = dc;
-				if (stbi__mul2shorts_valid(dc, 1 << j->succ_low) == 0)
-					return false;
-				data[0] = (short)(dc * (1 << j->succ_low));
-			}
-			else
-			{
-				if (stbi__jpeg_get_bit(j) != 0)
-					data[0] += (short)(1 << j->succ_low);
-			}
+                diff = t != 0 ? stbi__extend_receive(j, t) : 0;
+                if (stbi__addints_valid(img_comp->dc_pred, diff) == 0)
+                    return false;
+                dc = img_comp->dc_pred + diff;
+                img_comp->dc_pred = dc;
+                if (stbi__mul2shorts_valid(dc, 1 << j->succ_low) == 0)
+                    return false;
+                data[0] = (short)(dc * (1 << j->succ_low));
+            }
+            else
+            {
+                if (stbi__jpeg_get_bit(j) != 0)
+                    data[0] += (short)(1 << j->succ_low);
+            }
 
-			return true;
-		}
+            return true;
+        }
 
-		public static bool stbi__jpeg_decode_block_prog_ac(stbi__jpeg* j, short* data, stbi__huffman* hac, short* fac)
-		{
-			var k = 0;
-			if (j->spec_start == 0)
-				return false;
-			if (j->succ_high == 0)
-			{
-				var shift = j->succ_low;
-				if (j->eob_run != 0)
-				{
-					--j->eob_run;
-					return true;
-				}
+        private static bool stbi__jpeg_decode_block_prog_ac(stbi__jpeg* j, short* data, stbi__huffman* hac, short* fac)
+        {
+            var k = 0;
+            if (j->spec_start == 0)
+                return false;
+            if (j->succ_high == 0)
+            {
+                var shift = j->succ_low;
+                if (j->eob_run != 0)
+                {
+                    --j->eob_run;
+                    return true;
+                }
 
-				k = j->spec_start;
-				do
-				{
-					uint zig = 0;
-					var c = 0;
-					var r = 0;
-					var s = 0;
-					if (j->code_bits < 16)
-						stbi__grow_buffer_unsafe(j);
-					c = (int)((j->code_buffer >> (32 - 9)) & ((1 << 9) - 1));
-					r = fac[c];
-					if (r != 0)
-					{
-						k += (r >> 4) & 15;
-						s = r & 15;
-						if (s > j->code_bits)
-							return false;
-						j->code_buffer <<= s;
-						j->code_bits -= s;
-						zig = stbi__jpeg_dezigzag[k++];
-						data[zig] = (short)((r >> 8) * (1 << shift));
-					}
-					else
-					{
-						var rs = stbi__jpeg_huff_decode(j, hac);
-						if (rs < 0)
-							return false;
-						s = rs & 15;
-						r = rs >> 4;
-						if (s == 0)
-						{
-							if (r < 15)
-							{
-								j->eob_run = 1 << r;
-								if (r != 0)
-									j->eob_run += stbi__jpeg_get_bits(j, r);
-								--j->eob_run;
-								break;
-							}
+                k = j->spec_start;
+                do
+                {
+                    uint zig = 0;
+                    var c = 0;
+                    var r = 0;
+                    var s = 0;
+                    if (j->code_bits < 16)
+                        stbi__grow_buffer_unsafe(j);
+                    c = (int)((j->code_buffer >> (32 - 9)) & ((1 << 9) - 1));
+                    r = fac[c];
+                    if (r != 0)
+                    {
+                        k += (r >> 4) & 15;
+                        s = r & 15;
+                        if (s > j->code_bits)
+                            return false;
+                        j->code_buffer <<= s;
+                        j->code_bits -= s;
+                        zig = stbi__jpeg_dezigzag[k++];
+                        data[zig] = (short)((r >> 8) * (1 << shift));
+                    }
+                    else
+                    {
+                        var rs = stbi__jpeg_huff_decode(j, hac);
+                        if (rs < 0)
+                            return false;
+                        s = rs & 15;
+                        r = rs >> 4;
+                        if (s == 0)
+                        {
+                            if (r < 15)
+                            {
+                                j->eob_run = 1 << r;
+                                if (r != 0)
+                                    j->eob_run += stbi__jpeg_get_bits(j, r);
+                                --j->eob_run;
+                                break;
+                            }
 
-							k += 16;
-						}
-						else
-						{
-							k += r;
-							zig = stbi__jpeg_dezigzag[k++];
-							data[zig] = (short)(stbi__extend_receive(j, s) * (1 << shift));
-						}
-					}
-				} while (k <= j->spec_end);
-			}
-			else
-			{
-				var bit = (short)(1 << j->succ_low);
-				if (j->eob_run != 0)
-				{
-					--j->eob_run;
-					for (k = j->spec_start; k <= j->spec_end; ++k)
-					{
-						var p = &data[stbi__jpeg_dezigzag[k]];
-						if (*p != 0)
-							if (stbi__jpeg_get_bit(j) != 0)
-								if ((*p & bit) == 0)
-								{
-									if (*p > 0)
-										*p += bit;
-									else
-										*p -= bit;
-								}
-					}
-				}
-				else
-				{
-					k = j->spec_start;
-					do
-					{
-						var r = 0;
-						var s = 0;
-						var rs = stbi__jpeg_huff_decode(j, hac);
-						if (rs < 0)
-							return false;
-						s = rs & 15;
-						r = rs >> 4;
-						if (s == 0)
-						{
-							if (r < 15)
-							{
-								j->eob_run = (1 << r) - 1;
-								if (r != 0)
-									j->eob_run += stbi__jpeg_get_bits(j, r);
-								r = 64;
-							}
-						}
-						else
-						{
-							if (s != 1)
-								return false;
-							if (stbi__jpeg_get_bit(j) != 0)
-								s = bit;
-							else
-								s = -bit;
-						}
+                            k += 16;
+                        }
+                        else
+                        {
+                            k += r;
+                            zig = stbi__jpeg_dezigzag[k++];
+                            data[zig] = (short)(stbi__extend_receive(j, s) * (1 << shift));
+                        }
+                    }
+                } while (k <= j->spec_end);
+            }
+            else
+            {
+                var bit = (short)(1 << j->succ_low);
+                if (j->eob_run != 0)
+                {
+                    --j->eob_run;
+                    for (k = j->spec_start; k <= j->spec_end; ++k)
+                    {
+                        var p = &data[stbi__jpeg_dezigzag[k]];
+                        if (*p != 0)
+                            if (stbi__jpeg_get_bit(j) != 0)
+                                if ((*p & bit) == 0)
+                                {
+                                    if (*p > 0)
+                                        *p += bit;
+                                    else
+                                        *p -= bit;
+                                }
+                    }
+                }
+                else
+                {
+                    k = j->spec_start;
+                    do
+                    {
+                        var r = 0;
+                        var s = 0;
+                        var rs = stbi__jpeg_huff_decode(j, hac);
+                        if (rs < 0)
+                            return false;
+                        s = rs & 15;
+                        r = rs >> 4;
+                        if (s == 0)
+                        {
+                            if (r < 15)
+                            {
+                                j->eob_run = (1 << r) - 1;
+                                if (r != 0)
+                                    j->eob_run += stbi__jpeg_get_bits(j, r);
+                                r = 64;
+                            }
+                        }
+                        else
+                        {
+                            if (s != 1)
+                                return false;
+                            if (stbi__jpeg_get_bit(j) != 0)
+                                s = bit;
+                            else
+                                s = -bit;
+                        }
 
-						while (k <= j->spec_end)
-						{
-							var p = &data[stbi__jpeg_dezigzag[k++]];
-							if (*p != 0)
-							{
-								if (stbi__jpeg_get_bit(j) != 0)
-									if ((*p & bit) == 0)
-									{
-										if (*p > 0)
-											*p += bit;
-										else
-											*p -= bit;
-									}
-							}
-							else
-							{
-								if (r == 0)
-								{
-									*p = (short)s;
-									break;
-								}
+                        while (k <= j->spec_end)
+                        {
+                            var p = &data[stbi__jpeg_dezigzag[k++]];
+                            if (*p != 0)
+                            {
+                                if (stbi__jpeg_get_bit(j) != 0)
+                                    if ((*p & bit) == 0)
+                                    {
+                                        if (*p > 0)
+                                            *p += bit;
+                                        else
+                                            *p -= bit;
+                                    }
+                            }
+                            else
+                            {
+                                if (r == 0)
+                                {
+                                    *p = (short)s;
+                                    break;
+                                }
 
-								--r;
-							}
-						}
-					} while (k <= j->spec_end);
-				}
-			}
+                                --r;
+                            }
+                        }
+                    } while (k <= j->spec_end);
+                }
+            }
 
-			return true;
-		}
+            return true;
+        }
 
-		public static void stbi__idct_block(byte* _out_, int out_stride, short* data)
-		{
-			var i = 0;
-			var val = stackalloc int[64];
-			var v = val;
-			byte* o;
-			var d = data;
-			for (i = 0; i < 8; ++i, ++d, ++v)
-				if (d[8] == 0 && d[16] == 0 && d[24] == 0 && d[32] == 0 && d[40] == 0 && d[48] == 0 && d[56] == 0)
-				{
-					var dcterm = d[0] * 4;
-					v[0] = v[8] = v[16] = v[24] = v[32] = v[40] = v[48] = v[56] = dcterm;
-				}
-				else
-				{
-					var t0 = 0;
-					var t1 = 0;
-					var t2 = 0;
-					var t3 = 0;
-					var p1 = 0;
-					var p2 = 0;
-					var p3 = 0;
-					var p4 = 0;
-					var p5 = 0;
-					var x0 = 0;
-					var x1 = 0;
-					var x2 = 0;
-					var x3 = 0;
-					p2 = d[16];
-					p3 = d[48];
-					p1 = (p2 + p3) * (int)(0.5411961f * 4096 + 0.5);
-					t2 = p1 + p3 * (int)(-1.847759065f * 4096 + 0.5);
-					t3 = p1 + p2 * (int)(0.765366865f * 4096 + 0.5);
-					p2 = d[0];
-					p3 = d[32];
-					t0 = (p2 + p3) * 4096;
-					t1 = (p2 - p3) * 4096;
-					x0 = t0 + t3;
-					x3 = t0 - t3;
-					x1 = t1 + t2;
-					x2 = t1 - t2;
-					t0 = d[56];
-					t1 = d[40];
-					t2 = d[24];
-					t3 = d[8];
-					p3 = t0 + t2;
-					p4 = t1 + t3;
-					p1 = t0 + t3;
-					p2 = t1 + t2;
-					p5 = (p3 + p4) * (int)(1.175875602f * 4096 + 0.5);
-					t0 = t0 * (int)(0.298631336f * 4096 + 0.5);
-					t1 = t1 * (int)(2.053119869f * 4096 + 0.5);
-					t2 = t2 * (int)(3.072711026f * 4096 + 0.5);
-					t3 = t3 * (int)(1.501321110f * 4096 + 0.5);
-					p1 = p5 + p1 * (int)(-0.899976223f * 4096 + 0.5);
-					p2 = p5 + p2 * (int)(-2.562915447f * 4096 + 0.5);
-					p3 = p3 * (int)(-1.961570560f * 4096 + 0.5);
-					p4 = p4 * (int)(-0.390180644f * 4096 + 0.5);
-					t3 += p1 + p4;
-					t2 += p2 + p3;
-					t1 += p2 + p4;
-					t0 += p1 + p3;
-					x0 += 512;
-					x1 += 512;
-					x2 += 512;
-					x3 += 512;
-					v[0] = (x0 + t3) >> 10;
-					v[56] = (x0 - t3) >> 10;
-					v[8] = (x1 + t2) >> 10;
-					v[48] = (x1 - t2) >> 10;
-					v[16] = (x2 + t1) >> 10;
-					v[40] = (x2 - t1) >> 10;
-					v[24] = (x3 + t0) >> 10;
-					v[32] = (x3 - t0) >> 10;
-				}
+        private static void stbi__idct_block(byte* _out_, int out_stride, short* data)
+        {
+            var i = 0;
+            var val = stackalloc int[64];
+            var v = val;
+            byte* o;
+            var d = data;
+            for (i = 0; i < 8; ++i, ++d, ++v)
+                if (d[8] == 0 && d[16] == 0 && d[24] == 0 && d[32] == 0 && d[40] == 0 && d[48] == 0 && d[56] == 0)
+                {
+                    var dcterm = d[0] * 4;
+                    v[0] = v[8] = v[16] = v[24] = v[32] = v[40] = v[48] = v[56] = dcterm;
+                }
+                else
+                {
+                    var t0 = 0;
+                    var t1 = 0;
+                    var t2 = 0;
+                    var t3 = 0;
+                    var p1 = 0;
+                    var p2 = 0;
+                    var p3 = 0;
+                    var p4 = 0;
+                    var p5 = 0;
+                    var x0 = 0;
+                    var x1 = 0;
+                    var x2 = 0;
+                    var x3 = 0;
+                    p2 = d[16];
+                    p3 = d[48];
+                    p1 = (p2 + p3) * (int)(0.5411961f * 4096 + 0.5);
+                    t2 = p1 + p3 * (int)(-1.847759065f * 4096 + 0.5);
+                    t3 = p1 + p2 * (int)(0.765366865f * 4096 + 0.5);
+                    p2 = d[0];
+                    p3 = d[32];
+                    t0 = (p2 + p3) * 4096;
+                    t1 = (p2 - p3) * 4096;
+                    x0 = t0 + t3;
+                    x3 = t0 - t3;
+                    x1 = t1 + t2;
+                    x2 = t1 - t2;
+                    t0 = d[56];
+                    t1 = d[40];
+                    t2 = d[24];
+                    t3 = d[8];
+                    p3 = t0 + t2;
+                    p4 = t1 + t3;
+                    p1 = t0 + t3;
+                    p2 = t1 + t2;
+                    p5 = (p3 + p4) * (int)(1.175875602f * 4096 + 0.5);
+                    t0 = t0 * (int)(0.298631336f * 4096 + 0.5);
+                    t1 = t1 * (int)(2.053119869f * 4096 + 0.5);
+                    t2 = t2 * (int)(3.072711026f * 4096 + 0.5);
+                    t3 = t3 * (int)(1.501321110f * 4096 + 0.5);
+                    p1 = p5 + p1 * (int)(-0.899976223f * 4096 + 0.5);
+                    p2 = p5 + p2 * (int)(-2.562915447f * 4096 + 0.5);
+                    p3 = p3 * (int)(-1.961570560f * 4096 + 0.5);
+                    p4 = p4 * (int)(-0.390180644f * 4096 + 0.5);
+                    t3 += p1 + p4;
+                    t2 += p2 + p3;
+                    t1 += p2 + p4;
+                    t0 += p1 + p3;
+                    x0 += 512;
+                    x1 += 512;
+                    x2 += 512;
+                    x3 += 512;
+                    v[0] = (x0 + t3) >> 10;
+                    v[56] = (x0 - t3) >> 10;
+                    v[8] = (x1 + t2) >> 10;
+                    v[48] = (x1 - t2) >> 10;
+                    v[16] = (x2 + t1) >> 10;
+                    v[40] = (x2 - t1) >> 10;
+                    v[24] = (x3 + t0) >> 10;
+                    v[32] = (x3 - t0) >> 10;
+                }
 
-			for (i = 0, v = val, o = _out_; i < 8; ++i, v += 8, o += out_stride)
-			{
-				var t0 = 0;
-				var t1 = 0;
-				var t2 = 0;
-				var t3 = 0;
-				var p1 = 0;
-				var p2 = 0;
-				var p3 = 0;
-				var p4 = 0;
-				var p5 = 0;
-				var x0 = 0;
-				var x1 = 0;
-				var x2 = 0;
-				var x3 = 0;
-				p2 = v[2];
-				p3 = v[6];
-				p1 = (p2 + p3) * (int)(0.5411961f * 4096 + 0.5);
-				t2 = p1 + p3 * (int)(-1.847759065f * 4096 + 0.5);
-				t3 = p1 + p2 * (int)(0.765366865f * 4096 + 0.5);
-				p2 = v[0];
-				p3 = v[4];
-				t0 = (p2 + p3) * 4096;
-				t1 = (p2 - p3) * 4096;
-				x0 = t0 + t3;
-				x3 = t0 - t3;
-				x1 = t1 + t2;
-				x2 = t1 - t2;
-				t0 = v[7];
-				t1 = v[5];
-				t2 = v[3];
-				t3 = v[1];
-				p3 = t0 + t2;
-				p4 = t1 + t3;
-				p1 = t0 + t3;
-				p2 = t1 + t2;
-				p5 = (p3 + p4) * (int)(1.175875602f * 4096 + 0.5);
-				t0 = t0 * (int)(0.298631336f * 4096 + 0.5);
-				t1 = t1 * (int)(2.053119869f * 4096 + 0.5);
-				t2 = t2 * (int)(3.072711026f * 4096 + 0.5);
-				t3 = t3 * (int)(1.501321110f * 4096 + 0.5);
-				p1 = p5 + p1 * (int)(-0.899976223f * 4096 + 0.5);
-				p2 = p5 + p2 * (int)(-2.562915447f * 4096 + 0.5);
-				p3 = p3 * (int)(-1.961570560f * 4096 + 0.5);
-				p4 = p4 * (int)(-0.390180644f * 4096 + 0.5);
-				t3 += p1 + p4;
-				t2 += p2 + p3;
-				t1 += p2 + p4;
-				t0 += p1 + p3;
-				x0 += 65536 + (128 << 17);
-				x1 += 65536 + (128 << 17);
-				x2 += 65536 + (128 << 17);
-				x3 += 65536 + (128 << 17);
-				o[0] = stbi__clamp((x0 + t3) >> 17);
-				o[7] = stbi__clamp((x0 - t3) >> 17);
-				o[1] = stbi__clamp((x1 + t2) >> 17);
-				o[6] = stbi__clamp((x1 - t2) >> 17);
-				o[2] = stbi__clamp((x2 + t1) >> 17);
-				o[5] = stbi__clamp((x2 - t1) >> 17);
-				o[3] = stbi__clamp((x3 + t0) >> 17);
-				o[4] = stbi__clamp((x3 - t0) >> 17);
-			}
-		}
+            for (i = 0, v = val, o = _out_; i < 8; ++i, v += 8, o += out_stride)
+            {
+                var t0 = 0;
+                var t1 = 0;
+                var t2 = 0;
+                var t3 = 0;
+                var p1 = 0;
+                var p2 = 0;
+                var p3 = 0;
+                var p4 = 0;
+                var p5 = 0;
+                var x0 = 0;
+                var x1 = 0;
+                var x2 = 0;
+                var x3 = 0;
+                p2 = v[2];
+                p3 = v[6];
+                p1 = (p2 + p3) * (int)(0.5411961f * 4096 + 0.5);
+                t2 = p1 + p3 * (int)(-1.847759065f * 4096 + 0.5);
+                t3 = p1 + p2 * (int)(0.765366865f * 4096 + 0.5);
+                p2 = v[0];
+                p3 = v[4];
+                t0 = (p2 + p3) * 4096;
+                t1 = (p2 - p3) * 4096;
+                x0 = t0 + t3;
+                x3 = t0 - t3;
+                x1 = t1 + t2;
+                x2 = t1 - t2;
+                t0 = v[7];
+                t1 = v[5];
+                t2 = v[3];
+                t3 = v[1];
+                p3 = t0 + t2;
+                p4 = t1 + t3;
+                p1 = t0 + t3;
+                p2 = t1 + t2;
+                p5 = (p3 + p4) * (int)(1.175875602f * 4096 + 0.5);
+                t0 = t0 * (int)(0.298631336f * 4096 + 0.5);
+                t1 = t1 * (int)(2.053119869f * 4096 + 0.5);
+                t2 = t2 * (int)(3.072711026f * 4096 + 0.5);
+                t3 = t3 * (int)(1.501321110f * 4096 + 0.5);
+                p1 = p5 + p1 * (int)(-0.899976223f * 4096 + 0.5);
+                p2 = p5 + p2 * (int)(-2.562915447f * 4096 + 0.5);
+                p3 = p3 * (int)(-1.961570560f * 4096 + 0.5);
+                p4 = p4 * (int)(-0.390180644f * 4096 + 0.5);
+                t3 += p1 + p4;
+                t2 += p2 + p3;
+                t1 += p2 + p4;
+                t0 += p1 + p3;
+                x0 += 65536 + (128 << 17);
+                x1 += 65536 + (128 << 17);
+                x2 += 65536 + (128 << 17);
+                x3 += 65536 + (128 << 17);
+                o[0] = stbi__clamp((x0 + t3) >> 17);
+                o[7] = stbi__clamp((x0 - t3) >> 17);
+                o[1] = stbi__clamp((x1 + t2) >> 17);
+                o[6] = stbi__clamp((x1 - t2) >> 17);
+                o[2] = stbi__clamp((x2 + t1) >> 17);
+                o[5] = stbi__clamp((x2 - t1) >> 17);
+                o[3] = stbi__clamp((x3 + t0) >> 17);
+                o[4] = stbi__clamp((x3 - t0) >> 17);
+            }
+        }
 
-		public static byte stbi__get_marker(stbi__jpeg* j)
-		{
-			byte x = 0;
-			if (j->marker != 0xff)
-			{
-				x = j->marker;
-				j->marker = 0xff;
-				return x;
-			}
+        private static byte stbi__get_marker(stbi__jpeg* j)
+        {
+            byte x = 0;
+            if (j->marker != 0xff)
+            {
+                x = j->marker;
+                j->marker = 0xff;
+                return x;
+            }
 
-			x = stbi__get8(j->s);
-			if (x != 0xff)
-				return 0xff;
-			while (x == 0xff)
-				x = stbi__get8(j->s);
+            x = stbi__get8(j->s);
+            if (x != 0xff)
+                return 0xff;
+            while (x == 0xff)
+                x = stbi__get8(j->s);
 
-			return x;
-		}
+            return x;
+        }
 
-		public static void stbi__jpeg_reset(stbi__jpeg* j)
-		{
-			j->code_bits = 0;
-			j->code_buffer = 0;
-			j->nomore = 0;
-			j->img_comp_0.dc_pred = j->img_comp_1.dc_pred = j->img_comp_2.dc_pred = j->img_comp_3.dc_pred = 0;
-			j->marker = 0xff;
-			j->todo = j->restart_interval != 0 ? j->restart_interval : 0x7fffffff;
-			j->eob_run = 0;
-		}
+        private static void stbi__jpeg_reset(stbi__jpeg* j)
+        {
+            j->code_bits = 0;
+            j->code_buffer = 0;
+            j->nomore = 0;
+            j->img_comp_0.dc_pred = j->img_comp_1.dc_pred = j->img_comp_2.dc_pred = j->img_comp_3.dc_pred = 0;
+            j->marker = 0xff;
+            j->todo = j->restart_interval != 0 ? j->restart_interval : 0x7fffffff;
+            j->eob_run = 0;
+        }
 
-		public static bool stbi__parse_entropy_coded_data(stbi__jpeg* z)
-		{
-			stbi__jpeg_reset(z);
-			if (z->progressive == 0)
-			{
-				if (z->scan_n == 1)
-				{
-					var i = 0;
-					var j = 0;
-					var data = stackalloc short[64];
-					var n = z->order[0];
+        private static bool stbi__parse_entropy_coded_data(stbi__jpeg* z)
+        {
+            stbi__jpeg_reset(z);
+            if (z->progressive == 0)
+            {
+                if (z->scan_n == 1)
+                {
+                    var i = 0;
+                    var j = 0;
+                    var data = stackalloc short[64];
+                    var n = z->order[0];
                     var comp = &z->img_comp_0 + n;
 
                     var w = (comp->x + 7) >> 3;
-					var h = (comp->y + 7) >> 3;
-					for (j = 0; j < h; ++j)
-						for (i = 0; i < w; ++i)
-						{
-							var ha = comp->ha;
+                    var h = (comp->y + 7) >> 3;
+                    for (j = 0; j < h; ++j)
+                        for (i = 0; i < w; ++i)
+                        {
+                            var ha = comp->ha;
                             var dptr = &z->huff_dc_0 + comp->hd;
                             var aptr = &z->huff_ac_0 + ha;
                             if (!stbi__jpeg_decode_block(z, data, dptr, aptr, z->fast_ac + (ha * 512), n, z->dequant + (comp->tq * 64)))
                                 return false;
 
                             z->idct_block_kernel(comp->data + comp->w2 * j * 8 + i * 8, comp->w2,data);
-							if (--z->todo <= 0)
-							{
-								if (z->code_bits < 24)
-									stbi__grow_buffer_unsafe(z);
-								if (!(z->marker >= 0xd0 && z->marker <= 0xd7))
-									return true;
-								stbi__jpeg_reset(z);
-							}
-						}
+                            if (--z->todo <= 0)
+                            {
+                                if (z->code_bits < 24)
+                                    stbi__grow_buffer_unsafe(z);
+                                if (!(z->marker >= 0xd0 && z->marker <= 0xd7))
+                                    return true;
+                                stbi__jpeg_reset(z);
+                            }
+                        }
 
-					return true;
-				}
-				else
-				{
-					var i = 0;
-					var j = 0;
-					var k = 0;
-					var x = 0;
-					var y = 0;
-					var data = stackalloc short[64];
-					for (j = 0; j < z->img_mcu_y; ++j)
-						for (i = 0; i < z->img_mcu_x; ++i)
-						{
-							for (k = 0; k < z->scan_n; ++k)
-							{
-								var n = z->order[k];
+                    return true;
+                }
+                else
+                {
+                    var i = 0;
+                    var j = 0;
+                    var k = 0;
+                    var x = 0;
+                    var y = 0;
+                    var data = stackalloc short[64];
+                    for (j = 0; j < z->img_mcu_y; ++j)
+                        for (i = 0; i < z->img_mcu_x; ++i)
+                        {
+                            for (k = 0; k < z->scan_n; ++k)
+                            {
+                                var n = z->order[k];
                                 var comp = &z->img_comp_0 + n;
                                 for (y = 0; y < comp->v; ++y)
-									for (x = 0; x < comp->h; ++x)
-									{
-										var x2 = (i * comp->h + x) * 8;
-										var y2 = (j * comp->v + y) * 8;
-										var ha = comp->ha;
+                                    for (x = 0; x < comp->h; ++x)
+                                    {
+                                        var x2 = (i * comp->h + x) * 8;
+                                        var y2 = (j * comp->v + y) * 8;
+                                        var ha = comp->ha;
                                         var dptr = &z->huff_dc_0 + comp->hd;
                                         var aptr = &z->huff_ac_0 + ha;
                                         if (!stbi__jpeg_decode_block(z, data, dptr, aptr, z->fast_ac + (ha * 512), n, z->dequant + (comp->tq * 64)))
                                             return false;
                                         z->idct_block_kernel(comp->data + comp->w2 * y2 + x2, comp->w2,
-											data);
-									}
-							}
+                                            data);
+                                    }
+                            }
 
-							if (--z->todo <= 0)
-							{
-								if (z->code_bits < 24)
-									stbi__grow_buffer_unsafe(z);
-								if (!(z->marker >= 0xd0 && z->marker <= 0xd7))
-									return true;
-								stbi__jpeg_reset(z);
-							}
-						}
+                            if (--z->todo <= 0)
+                            {
+                                if (z->code_bits < 24)
+                                    stbi__grow_buffer_unsafe(z);
+                                if (!(z->marker >= 0xd0 && z->marker <= 0xd7))
+                                    return true;
+                                stbi__jpeg_reset(z);
+                            }
+                        }
 
-					return true;
-				}
-			}
+                    return true;
+                }
+            }
 
-			if (z->scan_n == 1)
-			{
-				var i = 0;
-				var j = 0;
-				var n = z->order[0];
+            if (z->scan_n == 1)
+            {
+                var i = 0;
+                var j = 0;
+                var n = z->order[0];
                 var comp = &z->img_comp_0 + n;
                 var w = (comp->x + 7) >> 3;
-				var h = (comp->y + 7) >> 3;
-				for (j = 0; j < h; ++j)
-					for (i = 0; i < w; ++i)
-					{
-						var data = comp->coeff + 64 * (i + j * comp->coeff_w);
-						if (z->spec_start == 0)
-						{
+                var h = (comp->y + 7) >> 3;
+                for (j = 0; j < h; ++j)
+                    for (i = 0; i < w; ++i)
+                    {
+                        var data = comp->coeff + 64 * (i + j * comp->coeff_w);
+                        if (z->spec_start == 0)
+                        {
                             var dptr = &z->huff_dc_0 + comp->hd;
                             if (!stbi__jpeg_decode_block_prog_dc(z, data, dptr, n))
                                 return false;
                         }
-						else
-						{
-							var ha = comp->ha;
+                        else
+                        {
+                            var ha = comp->ha;
                             var aptr = &z->huff_ac_0 + ha;
                             if (!stbi__jpeg_decode_block_prog_ac(z, data, aptr, z->fast_ac + (ha * 512)))
                                 return false;
                         }
 
-						if (--z->todo <= 0)
-						{
-							if (z->code_bits < 24)
-								stbi__grow_buffer_unsafe(z);
-							if (!(z->marker >= 0xd0 && z->marker <= 0xd7))
-								return true;
-							stbi__jpeg_reset(z);
-						}
-					}
+                        if (--z->todo <= 0)
+                        {
+                            if (z->code_bits < 24)
+                                stbi__grow_buffer_unsafe(z);
+                            if (!(z->marker >= 0xd0 && z->marker <= 0xd7))
+                                return true;
+                            stbi__jpeg_reset(z);
+                        }
+                    }
 
-				return true;
-			}
-			else
-			{
-				var i = 0;
-				var j = 0;
-				var k = 0;
-				var x = 0;
-				var y = 0;
-				for (j = 0; j < z->img_mcu_y; ++j)
-					for (i = 0; i < z->img_mcu_x; ++i)
-					{
-						for (k = 0; k < z->scan_n; ++k)
-						{
-							var n = z->order[k];
+                return true;
+            }
+            else
+            {
+                var i = 0;
+                var j = 0;
+                var k = 0;
+                var x = 0;
+                var y = 0;
+                for (j = 0; j < z->img_mcu_y; ++j)
+                    for (i = 0; i < z->img_mcu_x; ++i)
+                    {
+                        for (k = 0; k < z->scan_n; ++k)
+                        {
+                            var n = z->order[k];
                             var comp = &z->img_comp_0 + n;
                             for (y = 0; y < comp->v; ++y)
-								for (x = 0; x < comp->h; ++x)
-								{
-									var x2 = i * comp->h + x;
-									var y2 = j * comp->v + y;
-									var data = comp->coeff + 64 * (x2 + y2 * comp->coeff_w);
+                                for (x = 0; x < comp->h; ++x)
+                                {
+                                    var x2 = i * comp->h + x;
+                                    var y2 = j * comp->v + y;
+                                    var data = comp->coeff + 64 * (x2 + y2 * comp->coeff_w);
 
                                     var dptr = &z->huff_dc_0 + comp->hd;
                                     if (!stbi__jpeg_decode_block_prog_dc(z, data, dptr, n))
                                         return false;
                                 }
-						}
+                        }
 
-						if (--z->todo <= 0)
-						{
-							if (z->code_bits < 24)
-								stbi__grow_buffer_unsafe(z);
-							if (!(z->marker >= 0xd0 && z->marker <= 0xd7))
-								return true;
-							stbi__jpeg_reset(z);
-						}
-					}
+                        if (--z->todo <= 0)
+                        {
+                            if (z->code_bits < 24)
+                                stbi__grow_buffer_unsafe(z);
+                            if (!(z->marker >= 0xd0 && z->marker <= 0xd7))
+                                return true;
+                            stbi__jpeg_reset(z);
+                        }
+                    }
 
-				return true;
-			}
-		}
+                return true;
+            }
+        }
 
-		public static void stbi__jpeg_dequantize(short* data, ushort* dequant)
-		{
-			var i = 0;
-			for (i = 0; i < 64; ++i)
-				data[i] *= (short)dequant[i];
-		}
+        private static void stbi__jpeg_dequantize(short* data, ushort* dequant)
+        {
+            var i = 0;
+            for (i = 0; i < 64; ++i)
+                data[i] *= (short)dequant[i];
+        }
 
-		public static void stbi__jpeg_finish(stbi__jpeg* z)
-		{
-			if (z->progressive != 0)
-			{
-				var i = 0;
-				var j = 0;
-				var n = 0;
-				for (n = 0; n < z->s->img_n; ++n)
-				{
+        private static void stbi__jpeg_finish(stbi__jpeg* z)
+        {
+            if (z->progressive != 0)
+            {
+                var i = 0;
+                var j = 0;
+                var n = 0;
+                for (n = 0; n < z->s->img_n; ++n)
+                {
                     var comp = &z->img_comp_0 + n;
                     var w = (comp->x + 7) >> 3;
-					var h = (comp->y + 7) >> 3;
-					for (j = 0; j < h; ++j)
-						for (i = 0; i < w; ++i)
-						{
+                    var h = (comp->y + 7) >> 3;
+                    for (j = 0; j < h; ++j)
+                        for (i = 0; i < w; ++i)
+                        {
                             var data = comp->coeff + 64 * (i + j * comp->coeff_w);
-							stbi__jpeg_dequantize(data, z->dequant + (comp->tq * 64));
-							z->idct_block_kernel(comp->data + comp->w2 * j * 8 + i * 8, comp->w2,
-								data);
-						}
-				}
-			}
-		}
+                            stbi__jpeg_dequantize(data, z->dequant + (comp->tq * 64));
+                            z->idct_block_kernel(comp->data + comp->w2 * j * 8 + i * 8, comp->w2,
+                                data);
+                        }
+                }
+            }
+        }
 
-		public static bool stbi__process_marker(stbi__jpeg* z, int m)
-		{
-			var L = 0;
-			switch (m)
-			{
-				case 0xff:
-					return false;
-				case 0xDD:
-					if (stbi__get16be(z->s) != 4)
-						return false;
-					z->restart_interval = stbi__get16be(z->s);
-					return true;
-				case 0xDB:
-					L = stbi__get16be(z->s) - 2;
-					while (L > 0)
-					{
-						int q = stbi__get8(z->s);
-						var p = q >> 4;
-						var sixteen = p != 0 ? 1 : 0;
-						var t = q & 15;
-						var i = 0;
-						if (p != 0 && p != 1)
-							return false;
-						if (t > 3)
-							return false;
+        private static bool stbi__process_marker(stbi__jpeg* z, int m)
+        {
+            var L = 0;
+            switch (m)
+            {
+                case 0xff:
+                    return false;
+                case 0xDD:
+                    if (stbi__get16be(z->s) != 4)
+                        return false;
+                    z->restart_interval = stbi__get16be(z->s);
+                    return true;
+                case 0xDB:
+                    L = stbi__get16be(z->s) - 2;
+                    while (L > 0)
+                    {
+                        int q = stbi__get8(z->s);
+                        var p = q >> 4;
+                        var sixteen = p != 0 ? 1 : 0;
+                        var t = q & 15;
+                        var i = 0;
+                        if (p != 0 && p != 1)
+                            return false;
+                        if (t > 3)
+                            return false;
                         var dequant = z->dequant + (t * 64);
                         for (i = 0; i < 64; ++i)
                         {
                             dequant[stbi__jpeg_dezigzag[i]] = (ushort) (sixteen != 0 ? stbi__get16be(z->s) : stbi__get8(z->s));
                         }
-						L -= sixteen != 0 ? 129 : 65;
-					}
+                        L -= sixteen != 0 ? 129 : 65;
+                    }
 
-					return L == 0;
-				case 0xC4:
-					L = stbi__get16be(z->s) - 2;
-					var sizes = stackalloc int[16];
-					while (L > 0)
-					{
-						var i = 0;
-						var n = 0;
-						int q = stbi__get8(z->s);
-						var tc = q >> 4;
-						var th = q & 15;
-						if (tc > 1 || th > 3)
-							return false;
-						for (i = 0; i < 16; ++i)
-						{
-							sizes[i] = stbi__get8(z->s);
-							n += sizes[i];
-						}
-						if (n > 256)
-							return false;
+                    return L == 0;
+                case 0xC4:
+                    L = stbi__get16be(z->s) - 2;
+                    var sizes = stackalloc int[16];
+                    while (L > 0)
+                    {
+                        var i = 0;
+                        var n = 0;
+                        int q = stbi__get8(z->s);
+                        var tc = q >> 4;
+                        var th = q & 15;
+                        if (tc > 1 || th > 3)
+                            return false;
+                        for (i = 0; i < 16; ++i)
+                        {
+                            sizes[i] = stbi__get8(z->s);
+                            n += sizes[i];
+                        }
+                        if (n > 256)
+                            return false;
 
-						L -= 17;
-						if (tc == 0)
-						{
+                        L -= 17;
+                        if (tc == 0)
+                        {
                             var dptr = &z->huff_dc_0 + th;
                             if (!stbi__build_huffman(dptr, sizes))
                                 return false;
@@ -913,8 +913,8 @@ namespace StbImageSharp
                             for (i = 0; i < n; ++i)
                                 v[i] = stbi__get8(z->s);
                         }
-						else
-						{
+                        else
+                        {
                             var aptr = &z->huff_ac_0 + th;
                             if (!stbi__build_huffman(aptr, sizes))
                                 return false;
@@ -924,518 +924,518 @@ namespace StbImageSharp
                                 v[i] = stbi__get8(z->s);
                         }
 
-						if (tc != 0)
+                        if (tc != 0)
                         {
                             stbi__build_fast_ac(z->fast_ac + (th * 512), &z->huff_ac_0 + th);
                         }
-						L -= n;
-					}
+                        L -= n;
+                    }
 
-					return L == 0;
-			}
+                    return L == 0;
+            }
 
-			if (m >= 0xE0 && m <= 0xEF || m == 0xFE)
-			{
-				L = stbi__get16be(z->s);
-				if (L < 2)
-				{
-					return false;
-				}
+            if (m >= 0xE0 && m <= 0xEF || m == 0xFE)
+            {
+                L = stbi__get16be(z->s);
+                if (L < 2)
+                {
+                    return false;
+                }
 
-				L -= 2;
-				if (m == 0xE0 && L >= 5)
-				{
-					var ok = 1;
-					var i = 0;
-					for (i = 0; i < 5; ++i)
-						if (stbi__get8(z->s) != stbi__process_marker_tag[i])
-							ok = 0;
-					L -= 5;
-					if (ok != 0)
-						z->jfif = 1;
-				}
-				else if (m == 0xEE && L >= 12)
-				{
-					var ok = 1;
-					var i = 0;
-					for (i = 0; i < 6; ++i)
-						if (stbi__get8(z->s) != stbi__process_marker_tag[i])
-							ok = 0;
-					L -= 6;
-					if (ok != 0)
-					{
-						stbi__get8(z->s);
-						stbi__get16be(z->s);
-						stbi__get16be(z->s);
-						z->app14_color_transform = stbi__get8(z->s);
-						L -= 6;
-					}
-				}
+                L -= 2;
+                if (m == 0xE0 && L >= 5)
+                {
+                    var ok = 1;
+                    var i = 0;
+                    for (i = 0; i < 5; ++i)
+                        if (stbi__get8(z->s) != stbi__process_marker_tag[i])
+                            ok = 0;
+                    L -= 5;
+                    if (ok != 0)
+                        z->jfif = 1;
+                }
+                else if (m == 0xEE && L >= 12)
+                {
+                    var ok = 1;
+                    var i = 0;
+                    for (i = 0; i < 6; ++i)
+                        if (stbi__get8(z->s) != stbi__process_marker_tag[i])
+                            ok = 0;
+                    L -= 6;
+                    if (ok != 0)
+                    {
+                        stbi__get8(z->s);
+                        stbi__get16be(z->s);
+                        stbi__get16be(z->s);
+                        z->app14_color_transform = stbi__get8(z->s);
+                        L -= 6;
+                    }
+                }
 
-				stbi__skip(z->s, L);
-				return true;
-			}
+                stbi__skip(z->s, L);
+                return true;
+            }
 
-			return false;
-		}
+            return false;
+        }
 
-		public static bool stbi__process_scan_header(stbi__jpeg* z)
-		{
-			var i = 0;
-			var Ls = stbi__get16be(z->s);
-			z->scan_n = stbi__get8(z->s);
-			if (z->scan_n < 1 || z->scan_n > 4 || z->scan_n > z->s->img_n)
-				return false;
-			if (Ls != 6 + 2 * z->scan_n)
-				return false;
-			for (i = 0; i < z->scan_n; ++i)
-			{
-				int id = stbi__get8(z->s);
-				var which = 0;
-				int q = stbi__get8(z->s);
+        private static bool stbi__process_scan_header(stbi__jpeg* z)
+        {
+            var i = 0;
+            var Ls = stbi__get16be(z->s);
+            z->scan_n = stbi__get8(z->s);
+            if (z->scan_n < 1 || z->scan_n > 4 || z->scan_n > z->s->img_n)
+                return false;
+            if (Ls != 6 + 2 * z->scan_n)
+                return false;
+            for (i = 0; i < z->scan_n; ++i)
+            {
+                int id = stbi__get8(z->s);
+                var which = 0;
+                int q = stbi__get8(z->s);
                 while (which < z->s->img_n && (&z->img_comp_0)[which].id != id)
                     ++which;
-				if (which == z->s->img_n)
-					return false;
+                if (which == z->s->img_n)
+                    return false;
 
                 var comp = &z->img_comp_0 + which;
                 comp->hd = q >> 4;
-				if (comp->hd > 3)
-					return false;
+                if (comp->hd > 3)
+                    return false;
                 comp->ha = q & 15;
-				if (comp->ha > 3)
-					return false;
-				z->order[i] = which;
-			}
+                if (comp->ha > 3)
+                    return false;
+                z->order[i] = which;
+            }
 
-			{
-				var aa = 0;
-				z->spec_start = stbi__get8(z->s);
-				z->spec_end = stbi__get8(z->s);
-				aa = stbi__get8(z->s);
-				z->succ_high = aa >> 4;
-				z->succ_low = aa & 15;
-				if (z->progressive != 0)
-				{
-					if (z->spec_start > 63 || z->spec_end > 63 || z->spec_start > z->spec_end || z->succ_high > 13 ||
-						z->succ_low > 13)
-						return false;
-				}
-				else
-				{
-					if (z->spec_start != 0)
-						return false;
-					if (z->succ_high != 0 || z->succ_low != 0)
-						return false;
-					z->spec_end = 63;
-				}
-			}
+            {
+                var aa = 0;
+                z->spec_start = stbi__get8(z->s);
+                z->spec_end = stbi__get8(z->s);
+                aa = stbi__get8(z->s);
+                z->succ_high = aa >> 4;
+                z->succ_low = aa & 15;
+                if (z->progressive != 0)
+                {
+                    if (z->spec_start > 63 || z->spec_end > 63 || z->spec_start > z->spec_end || z->succ_high > 13 ||
+                        z->succ_low > 13)
+                        return false;
+                }
+                else
+                {
+                    if (z->spec_start != 0)
+                        return false;
+                    if (z->succ_high != 0 || z->succ_low != 0)
+                        return false;
+                    z->spec_end = 63;
+                }
+            }
 
-			return true;
-		}
+            return true;
+        }
 
-		public static void stbi__free_jpeg_components(stbi__jpeg* z, int ncomp)
-		{
-			var i = 0;
-			for (i = 0; i < ncomp; ++i)
-			{
+        private static void stbi__free_jpeg_components(stbi__jpeg* z, int ncomp)
+        {
+            var i = 0;
+            for (i = 0; i < ncomp; ++i)
+            {
                 var comp = &z->img_comp_0 + i;
-				if (comp->raw_data.IsAllocated)
-				{
+                if (comp->raw_data.IsAllocated)
+                {
                     comp->raw_data.Dispose();
-					comp->data = null;
-				}
+                    comp->data = null;
+                }
 
-				if (comp->raw_coeff.IsAllocated)
-				{
-					comp->raw_coeff.Dispose();
-					comp->coeff = null;
-				}
+                if (comp->raw_coeff.IsAllocated)
+                {
+                    comp->raw_coeff.Dispose();
+                    comp->coeff = null;
+                }
 
-				if (comp->linebuf != null)
-				{
-					CRuntime.free(comp->linebuf);
-					comp->linebuf = null;
-				}
-			}
-		}
+                if (comp->linebuf != null)
+                {
+                    CRuntime.free(comp->linebuf);
+                    comp->linebuf = null;
+                }
+            }
+        }
 
-		public static bool stbi__process_frame_header(stbi__jpeg* z, int scan)
-		{
-			var s = z->s;
-			var Lf = 0;
-			var p = 0;
-			var i = 0;
-			var q = 0;
-			var h_max = 1;
-			var v_max = 1;
-			var c = 0;
-			Lf = stbi__get16be(s);
-			if (Lf < 11)
-				return false;
-			p = stbi__get8(s);
-			if (p != 8)
-				return false;
-			s->img_y = (uint)stbi__get16be(s);
+        private static bool stbi__process_frame_header(stbi__jpeg* z, int scan)
+        {
+            var s = z->s;
+            var Lf = 0;
+            var p = 0;
+            var i = 0;
+            var q = 0;
+            var h_max = 1;
+            var v_max = 1;
+            var c = 0;
+            Lf = stbi__get16be(s);
+            if (Lf < 11)
+                return false;
+            p = stbi__get8(s);
+            if (p != 8)
+                return false;
+            s->img_y = (uint)stbi__get16be(s);
             if (s->img_y == 0)
                 return false;
-			s->img_x = (uint)stbi__get16be(s);
-			if (s->img_x == 0)
-				return false;
-			if (s->img_y > 1 << 24)
-				return false;
-			if (s->img_x > 1 << 24)
-				return false;
-			c = stbi__get8(s);
-			if (c != 3 && c != 1 && c != 4)
-				return false;
-			s->img_n = c;
-			for (i = 0; i < c; ++i)
-			{
+            s->img_x = (uint)stbi__get16be(s);
+            if (s->img_x == 0)
+                return false;
+            if (s->img_y > 1 << 24)
+                return false;
+            if (s->img_x > 1 << 24)
+                return false;
+            c = stbi__get8(s);
+            if (c != 3 && c != 1 && c != 4)
+                return false;
+            s->img_n = c;
+            for (i = 0; i < c; ++i)
+            {
                 var comp = &z->img_comp_0 + i;
                 comp->data = null;
-				comp->linebuf = null;
-			}
+                comp->linebuf = null;
+            }
 
-			if (Lf != 8 + 3 * s->img_n)
-				return false;
-			z->rgb = 0;
-			for (i = 0; i < s->img_n; ++i)
-			{
+            if (Lf != 8 + 3 * s->img_n)
+                return false;
+            z->rgb = 0;
+            for (i = 0; i < s->img_n; ++i)
+            {
                 var comp = &z->img_comp_0 + i;
                 comp->id = stbi__get8(s);
-				if (s->img_n == 3 && comp->id == stbi__process_frame_header_rgb[i])
-					++z->rgb;
-				q = stbi__get8(s);
-				comp->h = q >> 4;
-				if (comp->h == 0 || comp->h > 4)
-					return false;
-				comp->v = q & 15;
-				if (comp->v == 0 || comp->v > 4)
-					return false;
-				comp->tq = stbi__get8(s);
-				if (comp->tq > 3)
-					return false;
-			}
+                if (s->img_n == 3 && comp->id == stbi__process_frame_header_rgb[i])
+                    ++z->rgb;
+                q = stbi__get8(s);
+                comp->h = q >> 4;
+                if (comp->h == 0 || comp->h > 4)
+                    return false;
+                comp->v = q & 15;
+                if (comp->v == 0 || comp->v > 4)
+                    return false;
+                comp->tq = stbi__get8(s);
+                if (comp->tq > 3)
+                    return false;
+            }
 
-			if (scan != STBI__SCAN_LOAD)
-				return true;
-			if (stbi__mad3sizes_valid((int)s->img_x, (int)s->img_y, s->img_n, 0) == 0)
-				return false;
-			for (i = 0; i < s->img_n; ++i)
-			{
+            if (scan != STBI__SCAN_LOAD)
+                return true;
+            if (stbi__mad3sizes_valid((int)s->img_x, (int)s->img_y, s->img_n, 0) == 0)
+                return false;
+            for (i = 0; i < s->img_n; ++i)
+            {
                 var comp = &z->img_comp_0 + i;
                 if (comp->h > h_max)
-					h_max = comp->h;
-				if (comp->v > v_max)
-					v_max = comp->v;
-			}
+                    h_max = comp->h;
+                if (comp->v > v_max)
+                    v_max = comp->v;
+            }
 
-			for (i = 0; i < s->img_n; ++i)
-			{
+            for (i = 0; i < s->img_n; ++i)
+            {
                 var comp = &z->img_comp_0 + i;
                 if (h_max % comp->h != 0)
-					return false;
-				if (v_max % comp->v != 0)
-					return false;
-			}
+                    return false;
+                if (v_max % comp->v != 0)
+                    return false;
+            }
 
-			z->img_h_max = h_max;
-			z->img_v_max = v_max;
-			z->img_mcu_w = h_max * 8;
-			z->img_mcu_h = v_max * 8;
-			z->img_mcu_x = (int)((s->img_x + z->img_mcu_w - 1) / z->img_mcu_w);
-			z->img_mcu_y = (int)((s->img_y + z->img_mcu_h - 1) / z->img_mcu_h);
-			for (i = 0; i < s->img_n; ++i)
-			{
+            z->img_h_max = h_max;
+            z->img_v_max = v_max;
+            z->img_mcu_w = h_max * 8;
+            z->img_mcu_h = v_max * 8;
+            z->img_mcu_x = (int)((s->img_x + z->img_mcu_w - 1) / z->img_mcu_w);
+            z->img_mcu_y = (int)((s->img_y + z->img_mcu_h - 1) / z->img_mcu_h);
+            for (i = 0; i < s->img_n; ++i)
+            {
                 var comp = &z->img_comp_0 + i;
                 comp->x = (int)((s->img_x * comp->h + h_max - 1) / h_max);
-				comp->y = (int)((s->img_y * comp->v + v_max - 1) / v_max);
-				comp->w2 = z->img_mcu_x * comp->h * 8;
-				comp->h2 = z->img_mcu_y * comp->v * 8;
-				comp->coeff = null;
-				comp->raw_coeff = FixedArray<byte>.Null;
-				comp->linebuf = null;
-				if (!stbi__malloc_mad2(comp->w2, comp->h2, 15, out comp->raw_data))
+                comp->y = (int)((s->img_y * comp->v + v_max - 1) / v_max);
+                comp->w2 = z->img_mcu_x * comp->h * 8;
+                comp->h2 = z->img_mcu_y * comp->v * 8;
+                comp->coeff = null;
+                comp->raw_coeff = FixedArray<byte>.Null;
+                comp->linebuf = null;
+                if (!stbi__malloc_mad2(comp->w2, comp->h2, 15, out comp->raw_data))
                 {
                     stbi__free_jpeg_components(z, i + 1);
                     return false;
                 }
-					
-				comp->data = (byte*)(((long)comp->raw_data.Ptr + 15) & ~15);
-				if (z->progressive != 0)
-				{
-					comp->coeff_w = comp->w2 / 8;
-					comp->coeff_h = comp->h2 / 8;
-					if (!stbi__malloc_mad3(comp->w2, comp->h2, sizeof(short), 15, out comp->raw_coeff))
+                    
+                comp->data = (byte*)(((long)comp->raw_data.Ptr + 15) & ~15);
+                if (z->progressive != 0)
+                {
+                    comp->coeff_w = comp->w2 / 8;
+                    comp->coeff_h = comp->h2 / 8;
+                    if (!stbi__malloc_mad3(comp->w2, comp->h2, sizeof(short), 15, out comp->raw_coeff))
                     {
                         stbi__free_jpeg_components(z, i + 1);
                         return false;
                     }
-					comp->coeff = (short*)(((long)comp->raw_coeff.Ptr + 15) & ~15);
-				}
-			}
+                    comp->coeff = (short*)(((long)comp->raw_coeff.Ptr + 15) & ~15);
+                }
+            }
 
-			return true;
-		}
+            return true;
+        }
 
-		public static bool stbi__decode_jpeg_header(stbi__jpeg* z, int scan)
-		{
-			var m = 0;
-			z->jfif = 0;
-			z->app14_color_transform = -1;
-			z->marker = 0xff;
-			m = stbi__get_marker(z);
-			if (!(m == 0xd8))
-				return false;
-			if (scan == STBI__SCAN_TYPE)
-				return true;
-			m = stbi__get_marker(z);
-			while (!(m == 0xc0 || m == 0xc1 || m == 0xc2))
-			{
-				if (!stbi__process_marker(z, m))
-					return false;
-				m = stbi__get_marker(z);
-				while (m == 0xff)
-				{
-					if (stbi__at_eof(z->s))
+        private static bool stbi__decode_jpeg_header(stbi__jpeg* z, int scan)
+        {
+            var m = 0;
+            z->jfif = 0;
+            z->app14_color_transform = -1;
+            z->marker = 0xff;
+            m = stbi__get_marker(z);
+            if (!(m == 0xd8))
+                return false;
+            if (scan == STBI__SCAN_TYPE)
+                return true;
+            m = stbi__get_marker(z);
+            while (!(m == 0xc0 || m == 0xc1 || m == 0xc2))
+            {
+                if (!stbi__process_marker(z, m))
+                    return false;
+                m = stbi__get_marker(z);
+                while (m == 0xff)
+                {
+                    if (stbi__at_eof(z->s))
                         return false;
-					m = stbi__get_marker(z);
-				}
-			}
+                    m = stbi__get_marker(z);
+                }
+            }
 
-			z->progressive = m == 0xc2 ? 1 : 0;
+            z->progressive = m == 0xc2 ? 1 : 0;
             return stbi__process_frame_header(z, scan);
         }
 
-		public static byte stbi__skip_jpeg_junk_at_end(stbi__jpeg* j)
-		{
-			while (!stbi__at_eof(j->s))
-			{
-				var x = stbi__get8(j->s);
-				while (x == 0xff)
-				{
-					if (stbi__at_eof(j->s))
-						return 0xff;
-					x = stbi__get8(j->s);
-					if (x != 0x00 && x != 0xff)
-						return x;
-				}
-			}
+        private static byte stbi__skip_jpeg_junk_at_end(stbi__jpeg* j)
+        {
+            while (!stbi__at_eof(j->s))
+            {
+                var x = stbi__get8(j->s);
+                while (x == 0xff)
+                {
+                    if (stbi__at_eof(j->s))
+                        return 0xff;
+                    x = stbi__get8(j->s);
+                    if (x != 0x00 && x != 0xff)
+                        return x;
+                }
+            }
 
-			return 0xff;
-		}
+            return 0xff;
+        }
 
-		public static bool stbi__decode_jpeg_image(stbi__jpeg* j)
-		{
-			var m = 0;
-			for (m = 0; m < 4; m++)
-			{
+        private static bool stbi__decode_jpeg_image(stbi__jpeg* j)
+        {
+            var m = 0;
+            for (m = 0; m < 4; m++)
+            {
                 var comp = &j->img_comp_0 + m;
                 comp->raw_data = FixedArray<byte>.Null;
                 comp->raw_coeff = FixedArray<byte>.Null;
-			}
+            }
 
-			j->restart_interval = 0;
-			if (!stbi__decode_jpeg_header(j, STBI__SCAN_LOAD))
-				return false;
-			m = stbi__get_marker(j);
-			while (!(m == 0xd9))
-				if (m == 0xda)
-				{
-					if (!stbi__process_scan_header(j))
-						return false;
-					if (!stbi__parse_entropy_coded_data(j))
-						return false;
-					if (j->marker == 0xff)
-						j->marker = stbi__skip_jpeg_junk_at_end(j);
+            j->restart_interval = 0;
+            if (!stbi__decode_jpeg_header(j, STBI__SCAN_LOAD))
+                return false;
+            m = stbi__get_marker(j);
+            while (!(m == 0xd9))
+                if (m == 0xda)
+                {
+                    if (!stbi__process_scan_header(j))
+                        return false;
+                    if (!stbi__parse_entropy_coded_data(j))
+                        return false;
+                    if (j->marker == 0xff)
+                        j->marker = stbi__skip_jpeg_junk_at_end(j);
 
-					m = stbi__get_marker(j);
-					if (m >= 0xd0 && m <= 0xd7)
-						m = stbi__get_marker(j);
-				}
-				else if (m == 0xdc)
-				{
-					var Ld = stbi__get16be(j->s);
-					var NL = (uint)stbi__get16be(j->s);
-					if (Ld != 4)
-						return false;
-					if (NL != j->s->img_y)
-						return false;
-					m = stbi__get_marker(j);
-				}
-				else
-				{
+                    m = stbi__get_marker(j);
+                    if (m >= 0xd0 && m <= 0xd7)
+                        m = stbi__get_marker(j);
+                }
+                else if (m == 0xdc)
+                {
+                    var Ld = stbi__get16be(j->s);
+                    var NL = (uint)stbi__get16be(j->s);
+                    if (Ld != 4)
+                        return false;
+                    if (NL != j->s->img_y)
+                        return false;
+                    m = stbi__get_marker(j);
+                }
+                else
+                {
                     if (!stbi__process_marker(j, m))
                         return true;
-					m = stbi__get_marker(j);
-				}
+                    m = stbi__get_marker(j);
+                }
 
-			if (j->progressive != 0)
-				stbi__jpeg_finish(j);
-			return true;
-		}
+            if (j->progressive != 0)
+                stbi__jpeg_finish(j);
+            return true;
+        }
 
-		public static byte* resample_row_1(byte* _out_, byte* in_near, byte* in_far, int w, int hs)
-		{
-			return in_near;
-		}
+        private static byte* resample_row_1(byte* _out_, byte* in_near, byte* in_far, int w, int hs)
+        {
+            return in_near;
+        }
 
-		public static byte* stbi__resample_row_v_2(byte* _out_, byte* in_near, byte* in_far, int w, int hs)
-		{
-			var i = 0;
-			for (i = 0; i < w; ++i)
-				_out_[i] = (byte)((3 * in_near[i] + in_far[i] + 2) >> 2);
+        private static byte* stbi__resample_row_v_2(byte* _out_, byte* in_near, byte* in_far, int w, int hs)
+        {
+            var i = 0;
+            for (i = 0; i < w; ++i)
+                _out_[i] = (byte)((3 * in_near[i] + in_far[i] + 2) >> 2);
 
-			return _out_;
-		}
+            return _out_;
+        }
 
-		public static byte* stbi__resample_row_h_2(byte* _out_, byte* in_near, byte* in_far, int w, int hs)
-		{
-			var i = 0;
-			var input = in_near;
-			if (w == 1)
-			{
-				_out_[0] = _out_[1] = input[0];
-				return _out_;
-			}
+        private static byte* stbi__resample_row_h_2(byte* _out_, byte* in_near, byte* in_far, int w, int hs)
+        {
+            var i = 0;
+            var input = in_near;
+            if (w == 1)
+            {
+                _out_[0] = _out_[1] = input[0];
+                return _out_;
+            }
 
-			_out_[0] = input[0];
-			_out_[1] = (byte)((input[0] * 3 + input[1] + 2) >> 2);
-			for (i = 1; i < w - 1; ++i)
-			{
-				var n = 3 * input[i] + 2;
-				_out_[i * 2 + 0] = (byte)((n + input[i - 1]) >> 2);
-				_out_[i * 2 + 1] = (byte)((n + input[i + 1]) >> 2);
-			}
+            _out_[0] = input[0];
+            _out_[1] = (byte)((input[0] * 3 + input[1] + 2) >> 2);
+            for (i = 1; i < w - 1; ++i)
+            {
+                var n = 3 * input[i] + 2;
+                _out_[i * 2 + 0] = (byte)((n + input[i - 1]) >> 2);
+                _out_[i * 2 + 1] = (byte)((n + input[i + 1]) >> 2);
+            }
 
-			_out_[i * 2 + 0] = (byte)((input[w - 2] * 3 + input[w - 1] + 2) >> 2);
-			_out_[i * 2 + 1] = input[w - 1];
-			return _out_;
-		}
+            _out_[i * 2 + 0] = (byte)((input[w - 2] * 3 + input[w - 1] + 2) >> 2);
+            _out_[i * 2 + 1] = input[w - 1];
+            return _out_;
+        }
 
-		public static byte* stbi__resample_row_hv_2(byte* _out_, byte* in_near, byte* in_far, int w, int hs)
-		{
-			var i = 0;
-			var t0 = 0;
-			var t1 = 0;
-			if (w == 1)
-			{
-				_out_[0] = _out_[1] = (byte)((3 * in_near[0] + in_far[0] + 2) >> 2);
-				return _out_;
-			}
+        private static byte* stbi__resample_row_hv_2(byte* _out_, byte* in_near, byte* in_far, int w, int hs)
+        {
+            var i = 0;
+            var t0 = 0;
+            var t1 = 0;
+            if (w == 1)
+            {
+                _out_[0] = _out_[1] = (byte)((3 * in_near[0] + in_far[0] + 2) >> 2);
+                return _out_;
+            }
 
-			t1 = 3 * in_near[0] + in_far[0];
-			_out_[0] = (byte)((t1 + 2) >> 2);
-			for (i = 1; i < w; ++i)
-			{
-				t0 = t1;
-				t1 = 3 * in_near[i] + in_far[i];
-				_out_[i * 2 - 1] = (byte)((3 * t0 + t1 + 8) >> 4);
-				_out_[i * 2] = (byte)((3 * t1 + t0 + 8) >> 4);
-			}
+            t1 = 3 * in_near[0] + in_far[0];
+            _out_[0] = (byte)((t1 + 2) >> 2);
+            for (i = 1; i < w; ++i)
+            {
+                t0 = t1;
+                t1 = 3 * in_near[i] + in_far[i];
+                _out_[i * 2 - 1] = (byte)((3 * t0 + t1 + 8) >> 4);
+                _out_[i * 2] = (byte)((3 * t1 + t0 + 8) >> 4);
+            }
 
-			_out_[w * 2 - 1] = (byte)((t1 + 2) >> 2);
-			return _out_;
-		}
+            _out_[w * 2 - 1] = (byte)((t1 + 2) >> 2);
+            return _out_;
+        }
 
-		public static byte* stbi__resample_row_generic(byte* _out_, byte* in_near, byte* in_far, int w, int hs)
-		{
-			var i = 0;
-			var j = 0;
-			for (i = 0; i < w; ++i)
-				for (j = 0; j < hs; ++j)
-					_out_[i * hs + j] = in_near[i];
+        private static byte* stbi__resample_row_generic(byte* _out_, byte* in_near, byte* in_far, int w, int hs)
+        {
+            var i = 0;
+            var j = 0;
+            for (i = 0; i < w; ++i)
+                for (j = 0; j < hs; ++j)
+                    _out_[i * hs + j] = in_near[i];
 
-			return _out_;
-		}
+            return _out_;
+        }
 
-		public static void stbi__YCbCr_to_RGB_row(byte* _out_, byte* y, byte* pcb, byte* pcr, int count, int step)
-		{
-			var i = 0;
-			for (i = 0; i < count; ++i)
-			{
-				var y_fixed = (y[i] << 20) + (1 << 19);
-				var r = 0;
-				var g = 0;
-				var b = 0;
-				var cr = pcr[i] - 128;
-				var cb = pcb[i] - 128;
-				r = y_fixed + cr * ((int)(1.40200f * 4096.0f + 0.5f) << 8);
-				g = (int)(y_fixed + cr * -((int)(0.71414f * 4096.0f + 0.5f) << 8) +
-						  ((cb * -((int)(0.34414f * 4096.0f + 0.5f) << 8)) & 0xffff0000));
-				b = y_fixed + cb * ((int)(1.77200f * 4096.0f + 0.5f) << 8);
-				r >>= 20;
-				g >>= 20;
-				b >>= 20;
-				if ((uint)r > 255)
-				{
-					if (r < 0)
-						r = 0;
-					else
-						r = 255;
-				}
+        private static void stbi__YCbCr_to_RGB_row(byte* _out_, byte* y, byte* pcb, byte* pcr, int count, int step)
+        {
+            var i = 0;
+            for (i = 0; i < count; ++i)
+            {
+                var y_fixed = (y[i] << 20) + (1 << 19);
+                var r = 0;
+                var g = 0;
+                var b = 0;
+                var cr = pcr[i] - 128;
+                var cb = pcb[i] - 128;
+                r = y_fixed + cr * ((int)(1.40200f * 4096.0f + 0.5f) << 8);
+                g = (int)(y_fixed + cr * -((int)(0.71414f * 4096.0f + 0.5f) << 8) +
+                          ((cb * -((int)(0.34414f * 4096.0f + 0.5f) << 8)) & 0xffff0000));
+                b = y_fixed + cb * ((int)(1.77200f * 4096.0f + 0.5f) << 8);
+                r >>= 20;
+                g >>= 20;
+                b >>= 20;
+                if ((uint)r > 255)
+                {
+                    if (r < 0)
+                        r = 0;
+                    else
+                        r = 255;
+                }
 
-				if ((uint)g > 255)
-				{
-					if (g < 0)
-						g = 0;
-					else
-						g = 255;
-				}
+                if ((uint)g > 255)
+                {
+                    if (g < 0)
+                        g = 0;
+                    else
+                        g = 255;
+                }
 
-				if ((uint)b > 255)
-				{
-					if (b < 0)
-						b = 0;
-					else
-						b = 255;
-				}
+                if ((uint)b > 255)
+                {
+                    if (b < 0)
+                        b = 0;
+                    else
+                        b = 255;
+                }
 
-				_out_[0] = (byte)r;
-				_out_[1] = (byte)g;
-				_out_[2] = (byte)b;
-				_out_[3] = 255;
-				_out_ += step;
-			}
-		}
+                _out_[0] = (byte)r;
+                _out_[1] = (byte)g;
+                _out_[2] = (byte)b;
+                _out_[3] = 255;
+                _out_ += step;
+            }
+        }
 
-		public static void stbi__setup_jpeg(stbi__jpeg* j)
-		{
-			j->idct_block_kernel = &stbi__idct_block;
-			j->YCbCr_to_RGB_kernel = &stbi__YCbCr_to_RGB_row;
-			j->resample_row_hv_2_kernel = &stbi__resample_row_hv_2;
-		}
+        private static void stbi__setup_jpeg(stbi__jpeg* j)
+        {
+            j->idct_block_kernel = &stbi__idct_block;
+            j->YCbCr_to_RGB_kernel = &stbi__YCbCr_to_RGB_row;
+            j->resample_row_hv_2_kernel = &stbi__resample_row_hv_2;
+        }
 
-		public static void stbi__cleanup_jpeg(stbi__jpeg* j)
-		{
-			stbi__free_jpeg_components(j, j->s->img_n);
-		}
+        private static void stbi__cleanup_jpeg(stbi__jpeg* j)
+        {
+            stbi__free_jpeg_components(j, j->s->img_n);
+        }
 
-		public static bool load_jpeg_image(stbi__jpeg* z, int* out_x, int* out_y, int* comp, out FixedArray<byte> result)
-		{
+        private static bool load_jpeg_image(stbi__jpeg* z, int* out_x, int* out_y, int* comp, out FixedArray<byte> result)
+        {
             result = FixedArray<byte>.Null;
             var n = 0;
-			var decode_n = 0;
-			var is_rgb = 0;
-			z->s->img_n = 0;
-			if (!stbi__decode_jpeg_image(z))
-			{
-				stbi__cleanup_jpeg(z);
-				return false;
-			}
+            var decode_n = 0;
+            var is_rgb = 0;
+            z->s->img_n = 0;
+            if (!stbi__decode_jpeg_image(z))
+            {
+                stbi__cleanup_jpeg(z);
+                return false;
+            }
 
-			n = z->s->img_n >= 3 ? 3 : 1;
+            n = z->s->img_n >= 3 ? 3 : 1;
             is_rgb = z->s->img_n == 3 && (z->rgb == 3 || (z->app14_color_transform == 0 && z->jfif == 0)) ? 1 : 0;
-			if (z->s->img_n == 3 && n < 3 && is_rgb == 0)
-				decode_n = 1;
-			else
-				decode_n = z->s->img_n;
-			if (decode_n <= 0)
-			{
-				stbi__cleanup_jpeg(z);
-				return false;
-			}
+            if (z->s->img_n == 3 && n < 3 && is_rgb == 0)
+                decode_n = 1;
+            else
+                decode_n = z->s->img_n;
+            if (decode_n <= 0)
+            {
+                stbi__cleanup_jpeg(z);
+                return false;
+            }
 
             var k = 0;
             uint i = 0;
@@ -1615,95 +1615,96 @@ namespace StbImageSharp
             return true;
         }
 
-		[StructLayout(LayoutKind.Sequential)]
-		public struct stbi__huffman
-		{
-			public fixed byte fast[512];
-			public fixed ushort code[256];
-			public fixed byte values[256];
-			public fixed byte size[257];
-			public fixed uint maxcode[18];
-			public fixed int delta[17];
-		}
+        [StructLayout(LayoutKind.Sequential)]
+        private struct stbi__huffman
+        {
+            public fixed byte fast[512];
+            public fixed ushort code[256];
+            public fixed byte values[256];
+            public fixed byte size[257];
+            public fixed uint maxcode[18];
+            public fixed int delta[17];
+        }
 
-		public struct stbi__jpeg
-		{
-			public int app14_color_transform;
-			public int code_bits;
-			public uint code_buffer;
-			public fixed ushort dequant[4 * 64];
-			public int eob_run;
-			public fixed short fast_ac[4 * 512];
-			public stbi__huffman huff_ac_0;
-			public stbi__huffman huff_ac_1;
-			public stbi__huffman huff_ac_2;
-			public stbi__huffman huff_ac_3;
-			public stbi__huffman huff_dc_0;
-			public stbi__huffman huff_dc_1;
-			public stbi__huffman huff_dc_2;
-			public stbi__huffman huff_dc_3;
-			public delegate*<byte*, int, short*, void> idct_block_kernel;
-			public unnamed1 img_comp_0;
-			public unnamed1 img_comp_1;
-			public unnamed1 img_comp_2;
-			public unnamed1 img_comp_3;
-			public int img_h_max;
-			public int img_mcu_h;
-			public int img_mcu_w;
-			public int img_mcu_x;
-			public int img_mcu_y;
-			public int img_v_max;
-			public int jfif;
-			public byte marker;
-			public int nomore;
-			public fixed int order[4];
-			public int progressive;
-			public delegate*<byte*, byte*, byte*, int, int, byte*> resample_row_hv_2_kernel;
-			public int restart_interval;
-			public int rgb;
-			public unsafe stbi__context* s;
-			public int scan_n;
-			public int spec_end;
-			public int spec_start;
-			public int succ_high;
-			public int succ_low;
-			public int todo;
-			public delegate*<byte*, byte*, byte*, byte*, int, int, void> YCbCr_to_RGB_kernel;
+        private struct stbi__jpeg
+        {
+            public int app14_color_transform;
+            public int code_bits;
+            public uint code_buffer;
+            public fixed ushort dequant[4 * 64];
+            public int eob_run;
+            public fixed short fast_ac[4 * 512];
+#pragma warning disable CS0649
+            public stbi__huffman huff_ac_0;
+            public stbi__huffman huff_ac_1;
+            public stbi__huffman huff_ac_2;
+            public stbi__huffman huff_ac_3;
+            public stbi__huffman huff_dc_0;
+            public stbi__huffman huff_dc_1;
+            public stbi__huffman huff_dc_2;
+            public stbi__huffman huff_dc_3;
+            public delegate*<byte*, int, short*, void> idct_block_kernel;
+            public unnamed1 img_comp_0;
+            public unnamed1 img_comp_1;
+            public unnamed1 img_comp_2;
+            public unnamed1 img_comp_3;
+            public int img_h_max;
+            public int img_mcu_h;
+            public int img_mcu_w;
+            public int img_mcu_x;
+            public int img_mcu_y;
+            public int img_v_max;
+            public int jfif;
+            public byte marker;
+            public int nomore;
+            public fixed int order[4];
+            public int progressive;
+            public delegate*<byte*, byte*, byte*, int, int, byte*> resample_row_hv_2_kernel;
+            public int restart_interval;
+            public int rgb;
+            public unsafe stbi__context* s;
+            public int scan_n;
+            public int spec_end;
+            public int spec_start;
+            public int succ_high;
+            public int succ_low;
+            public int todo;
+            public delegate*<byte*, byte*, byte*, byte*, int, int, void> YCbCr_to_RGB_kernel;
 
-			[StructLayout(LayoutKind.Sequential)]
-			public struct unnamed1
-			{
-				public int id;
-				public int h;
-				public int v;
-				public int tq;
-				public int hd;
-				public int ha;
-				public int dc_pred;
-				public int x;
-				public int y;
-				public int w2;
-				public int h2;
-				public byte* data;
-				public FixedArray<byte> raw_data;
-				public FixedArray<byte> raw_coeff;
-				public byte* linebuf;
-				public short* coeff;
-				public int coeff_w;
-				public int coeff_h;
-			}
-		}
+            [StructLayout(LayoutKind.Sequential)]
+            public struct unnamed1
+            {
+                public int id;
+                public int h;
+                public int v;
+                public int tq;
+                public int hd;
+                public int ha;
+                public int dc_pred;
+                public int x;
+                public int y;
+                public int w2;
+                public int h2;
+                public byte* data;
+                public FixedArray<byte> raw_data;
+                public FixedArray<byte> raw_coeff;
+                public byte* linebuf;
+                public short* coeff;
+                public int coeff_w;
+                public int coeff_h;
+            }
+        }
 
-		public struct stbi__resample
-		{
-			public int hs;
-			public byte* line0;
-			public byte* line1;
-			public delegate*<byte*, byte*, byte*, int, int, byte*> resample;
-			public int vs;
-			public int w_lores;
-			public int ypos;
-			public int ystep;
-		}
-	}
+        private struct stbi__resample
+        {
+            public int hs;
+            public byte* line0;
+            public byte* line1;
+            public delegate*<byte*, byte*, byte*, int, int, byte*> resample;
+            public int vs;
+            public int w_lores;
+            public int ypos;
+            public int ystep;
+        }
+    }
 }

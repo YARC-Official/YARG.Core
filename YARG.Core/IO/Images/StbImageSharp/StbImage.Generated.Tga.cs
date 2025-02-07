@@ -8,266 +8,266 @@ using YARG.Core.IO;
 
 namespace StbImageSharp
 {
-	unsafe partial class StbImage
-	{
-		public static int stbi__tga_test(stbi__context* s)
-		{
-			var res = 0;
-			var sz = 0;
-			var tga_color_type = 0;
-			stbi__get8(s);
-			tga_color_type = stbi__get8(s);
-			if (tga_color_type > 1)
-				goto errorEnd;
-			sz = stbi__get8(s);
-			if (tga_color_type == 1)
-			{
-				if (sz != 1 && sz != 9)
-					goto errorEnd;
-				stbi__skip(s, 4);
-				sz = stbi__get8(s);
-				if (sz != 8 && sz != 15 && sz != 16 && sz != 24 && sz != 32)
-					goto errorEnd;
-				stbi__skip(s, 4);
-			}
-			else
-			{
-				if (sz != 2 && sz != 3 && sz != 10 && sz != 11)
-					goto errorEnd;
-				stbi__skip(s, 9);
-			}
+    public static unsafe partial class StbImage
+    {
+        private static int stbi__tga_test(stbi__context* s)
+        {
+            var res = 0;
+            var sz = 0;
+            var tga_color_type = 0;
+            stbi__get8(s);
+            tga_color_type = stbi__get8(s);
+            if (tga_color_type > 1)
+                goto errorEnd;
+            sz = stbi__get8(s);
+            if (tga_color_type == 1)
+            {
+                if (sz != 1 && sz != 9)
+                    goto errorEnd;
+                stbi__skip(s, 4);
+                sz = stbi__get8(s);
+                if (sz != 8 && sz != 15 && sz != 16 && sz != 24 && sz != 32)
+                    goto errorEnd;
+                stbi__skip(s, 4);
+            }
+            else
+            {
+                if (sz != 2 && sz != 3 && sz != 10 && sz != 11)
+                    goto errorEnd;
+                stbi__skip(s, 9);
+            }
 
-			if (stbi__get16le(s) < 1)
-				goto errorEnd;
-			if (stbi__get16le(s) < 1)
-				goto errorEnd;
-			sz = stbi__get8(s);
-			if (tga_color_type == 1 && sz != 8 && sz != 16)
-				goto errorEnd;
-			if (sz != 8 && sz != 15 && sz != 16 && sz != 24 && sz != 32)
-				goto errorEnd;
-			res = 1;
-		errorEnd:;
-			stbi__rewind(s);
-			return res;
-		}
+            if (stbi__get16le(s) < 1)
+                goto errorEnd;
+            if (stbi__get16le(s) < 1)
+                goto errorEnd;
+            sz = stbi__get8(s);
+            if (tga_color_type == 1 && sz != 8 && sz != 16)
+                goto errorEnd;
+            if (sz != 8 && sz != 15 && sz != 16 && sz != 24 && sz != 32)
+                goto errorEnd;
+            res = 1;
+        errorEnd:;
+            stbi__rewind(s);
+            return res;
+        }
 
-		public static bool stbi__tga_load(stbi__context* s, int* x, int* y, int* comp, stbi__result_info* ri, out FixedArray<byte> result)
-		{
+        private static bool stbi__tga_load(stbi__context* s, int* x, int* y, int* comp, stbi__result_info* ri, out FixedArray<byte> result)
+        {
             result = FixedArray<byte>.Null;
             int tga_offset = stbi__get8(s);
-			int tga_indexed = stbi__get8(s);
-			int tga_image_type = stbi__get8(s);
-			var tga_is_RLE = 0;
-			var tga_palette_start = stbi__get16le(s);
-			var tga_palette_len = stbi__get16le(s);
-			int tga_palette_bits = stbi__get8(s);
-			var tga_x_origin = stbi__get16le(s);
-			var tga_y_origin = stbi__get16le(s);
-			var tga_width = stbi__get16le(s);
-			var tga_height = stbi__get16le(s);
-			int tga_bits_per_pixel = stbi__get8(s);
-			var tga_comp = 0;
-			var tga_rgb16 = 0;
-			int tga_inverted = stbi__get8(s);
-			var tga_palette = FixedArray<byte>.Null;
+            int tga_indexed = stbi__get8(s);
+            int tga_image_type = stbi__get8(s);
+            var tga_is_RLE = 0;
+            var tga_palette_start = stbi__get16le(s);
+            var tga_palette_len = stbi__get16le(s);
+            int tga_palette_bits = stbi__get8(s);
+            var tga_x_origin = stbi__get16le(s);
+            var tga_y_origin = stbi__get16le(s);
+            var tga_width = stbi__get16le(s);
+            var tga_height = stbi__get16le(s);
+            int tga_bits_per_pixel = stbi__get8(s);
+            var tga_comp = 0;
+            var tga_rgb16 = 0;
+            int tga_inverted = stbi__get8(s);
+            var tga_palette = FixedArray<byte>.Null;
             var i = 0;
-			var j = 0;
-			var raw_data = stackalloc byte[4];
-			raw_data[0] = 0;
-			raw_data[1] = 0;
-			raw_data[2] = 0;
-			raw_data[3] = 0;
-			var RLE_count = 0;
-			var RLE_repeating = 0;
-			var read_next_pixel = 1;
-			if (tga_height > 1 << 24)
-				return false;
-			if (tga_width > 1 << 24)
-				return false;
-			if (tga_image_type >= 8)
-			{
-				tga_image_type -= 8;
-				tga_is_RLE = 1;
-			}
+            var j = 0;
+            var raw_data = stackalloc byte[4];
+            raw_data[0] = 0;
+            raw_data[1] = 0;
+            raw_data[2] = 0;
+            raw_data[3] = 0;
+            var RLE_count = 0;
+            var RLE_repeating = 0;
+            var read_next_pixel = 1;
+            if (tga_height > 1 << 24)
+                return false;
+            if (tga_width > 1 << 24)
+                return false;
+            if (tga_image_type >= 8)
+            {
+                tga_image_type -= 8;
+                tga_is_RLE = 1;
+            }
 
-			tga_inverted = 1 - ((tga_inverted >> 5) & 1);
-			if (tga_indexed != 0)
-				tga_comp = stbi__tga_get_comp(tga_palette_bits, 0, &tga_rgb16);
-			else
-				tga_comp = stbi__tga_get_comp(tga_bits_per_pixel, tga_image_type == 3 ? 1 : 0, &tga_rgb16);
-			if (tga_comp == 0)
-				return false;
-			*x = tga_width;
-			*y = tga_height;
-			if (comp != null)
-				*comp = tga_comp;
-			if (stbi__mad3sizes_valid(tga_width, tga_height, tga_comp, 0) == 0)
-				return false;
-			if (!stbi__malloc_mad3(tga_width, tga_height, tga_comp, 0, out result))
-				return false;
-			stbi__skip(s, tga_offset);
-			if (tga_indexed == 0 && tga_is_RLE == 0 && tga_rgb16 == 0)
-			{
-				for (i = 0; i < tga_height; ++i)
-				{
-					var row = tga_inverted != 0 ? tga_height - i - 1 : i;
-					var tga_row = result.Ptr + row * tga_width * tga_comp;
-					stbi__getn(s, tga_row, tga_width * tga_comp);
-				}
-			}
-			else
-			{
-				if (tga_indexed != 0)
-				{
-					if (tga_palette_len == 0)
-					{
-						result.Dispose();
-						return false;
-					}
+            tga_inverted = 1 - ((tga_inverted >> 5) & 1);
+            if (tga_indexed != 0)
+                tga_comp = stbi__tga_get_comp(tga_palette_bits, 0, &tga_rgb16);
+            else
+                tga_comp = stbi__tga_get_comp(tga_bits_per_pixel, tga_image_type == 3 ? 1 : 0, &tga_rgb16);
+            if (tga_comp == 0)
+                return false;
+            *x = tga_width;
+            *y = tga_height;
+            if (comp != null)
+                *comp = tga_comp;
+            if (stbi__mad3sizes_valid(tga_width, tga_height, tga_comp, 0) == 0)
+                return false;
+            if (!stbi__malloc_mad3(tga_width, tga_height, tga_comp, 0, out result))
+                return false;
+            stbi__skip(s, tga_offset);
+            if (tga_indexed == 0 && tga_is_RLE == 0 && tga_rgb16 == 0)
+            {
+                for (i = 0; i < tga_height; ++i)
+                {
+                    var row = tga_inverted != 0 ? tga_height - i - 1 : i;
+                    var tga_row = result.Ptr + row * tga_width * tga_comp;
+                    stbi__getn(s, tga_row, tga_width * tga_comp);
+                }
+            }
+            else
+            {
+                if (tga_indexed != 0)
+                {
+                    if (tga_palette_len == 0)
+                    {
+                        result.Dispose();
+                        return false;
+                    }
 
-					stbi__skip(s, tga_palette_start);
+                    stbi__skip(s, tga_palette_start);
                     if (!stbi__malloc_mad2(tga_palette_len, tga_comp, 0, out tga_palette))
-					{
-						result.Dispose();
-						return false;
-					}
+                    {
+                        result.Dispose();
+                        return false;
+                    }
 
-					if (tga_rgb16 != 0)
-					{
-						var pal_entry = tga_palette.Ptr;
-						for (i = 0; i < tga_palette_len; ++i)
-						{
-							stbi__tga_read_rgb16(s, pal_entry);
-							pal_entry += tga_comp;
-						}
-					}
-					else if (stbi__getn(s, tga_palette.Ptr, tga_palette_len * tga_comp) == 0)
-					{
-						result.Dispose();
-						tga_palette.Dispose();
-						return false;
-					}
-				}
+                    if (tga_rgb16 != 0)
+                    {
+                        var pal_entry = tga_palette.Ptr;
+                        for (i = 0; i < tga_palette_len; ++i)
+                        {
+                            stbi__tga_read_rgb16(s, pal_entry);
+                            pal_entry += tga_comp;
+                        }
+                    }
+                    else if (stbi__getn(s, tga_palette.Ptr, tga_palette_len * tga_comp) == 0)
+                    {
+                        result.Dispose();
+                        tga_palette.Dispose();
+                        return false;
+                    }
+                }
 
-				for (i = 0; i < tga_width * tga_height; ++i)
-				{
-					if (tga_is_RLE != 0)
-					{
-						if (RLE_count == 0)
-						{
-							int RLE_cmd = stbi__get8(s);
-							RLE_count = 1 + (RLE_cmd & 127);
-							RLE_repeating = RLE_cmd >> 7;
-							read_next_pixel = 1;
-						}
-						else if (RLE_repeating == 0)
-						{
-							read_next_pixel = 1;
-						}
-					}
-					else
-					{
-						read_next_pixel = 1;
-					}
+                for (i = 0; i < tga_width * tga_height; ++i)
+                {
+                    if (tga_is_RLE != 0)
+                    {
+                        if (RLE_count == 0)
+                        {
+                            int RLE_cmd = stbi__get8(s);
+                            RLE_count = 1 + (RLE_cmd & 127);
+                            RLE_repeating = RLE_cmd >> 7;
+                            read_next_pixel = 1;
+                        }
+                        else if (RLE_repeating == 0)
+                        {
+                            read_next_pixel = 1;
+                        }
+                    }
+                    else
+                    {
+                        read_next_pixel = 1;
+                    }
 
-					if (read_next_pixel != 0)
-					{
-						if (tga_indexed != 0)
-						{
-							var pal_idx = tga_bits_per_pixel == 8 ? stbi__get8(s) : stbi__get16le(s);
-							if (pal_idx >= tga_palette_len)
-								pal_idx = 0;
-							pal_idx *= tga_comp;
-							for (j = 0; j < tga_comp; ++j)
-								raw_data[j] = tga_palette[pal_idx + j];
-						}
-						else if (tga_rgb16 != 0)
-						{
-							stbi__tga_read_rgb16(s, raw_data);
-						}
-						else
-						{
-							for (j = 0; j < tga_comp; ++j)
-								raw_data[j] = stbi__get8(s);
-						}
+                    if (read_next_pixel != 0)
+                    {
+                        if (tga_indexed != 0)
+                        {
+                            var pal_idx = tga_bits_per_pixel == 8 ? stbi__get8(s) : stbi__get16le(s);
+                            if (pal_idx >= tga_palette_len)
+                                pal_idx = 0;
+                            pal_idx *= tga_comp;
+                            for (j = 0; j < tga_comp; ++j)
+                                raw_data[j] = tga_palette[pal_idx + j];
+                        }
+                        else if (tga_rgb16 != 0)
+                        {
+                            stbi__tga_read_rgb16(s, raw_data);
+                        }
+                        else
+                        {
+                            for (j = 0; j < tga_comp; ++j)
+                                raw_data[j] = stbi__get8(s);
+                        }
 
-						read_next_pixel = 0;
-					}
+                        read_next_pixel = 0;
+                    }
 
-					for (j = 0; j < tga_comp; ++j)
-						result[i * tga_comp + j] = raw_data[j];
-					--RLE_count;
-				}
+                    for (j = 0; j < tga_comp; ++j)
+                        result[i * tga_comp + j] = raw_data[j];
+                    --RLE_count;
+                }
 
-				if (tga_inverted != 0)
-					for (j = 0; j * 2 < tga_height; ++j)
-					{
-						var index1 = j * tga_width * tga_comp;
-						var index2 = (tga_height - 1 - j) * tga_width * tga_comp;
-						for (i = tga_width * tga_comp; i > 0; --i)
-						{
-							var temp = result[index1];
-							result[index1] = result[index2];
-							result[index2] = temp;
-							++index1;
-							++index2;
-						}
-					}
+                if (tga_inverted != 0)
+                    for (j = 0; j * 2 < tga_height; ++j)
+                    {
+                        var index1 = j * tga_width * tga_comp;
+                        var index2 = (tga_height - 1 - j) * tga_width * tga_comp;
+                        for (i = tga_width * tga_comp; i > 0; --i)
+                        {
+                            var temp = result[index1];
+                            result[index1] = result[index2];
+                            result[index2] = temp;
+                            ++index1;
+                            ++index2;
+                        }
+                    }
 
-				tga_palette.Dispose();
-			}
+                tga_palette.Dispose();
+            }
 
-			if (tga_comp >= 3 && tga_rgb16 == 0)
-			{
-				var tga_pixel = result.Ptr;
-				for (i = 0; i < tga_width * tga_height; ++i)
-				{
-					var temp = tga_pixel[0];
-					tga_pixel[0] = tga_pixel[2];
-					tga_pixel[2] = temp;
-					tga_pixel += tga_comp;
-				}
-			}
+            if (tga_comp >= 3 && tga_rgb16 == 0)
+            {
+                var tga_pixel = result.Ptr;
+                for (i = 0; i < tga_width * tga_height; ++i)
+                {
+                    var temp = tga_pixel[0];
+                    tga_pixel[0] = tga_pixel[2];
+                    tga_pixel[2] = temp;
+                    tga_pixel += tga_comp;
+                }
+            }
 
             bool success = true;
-			tga_palette_start = tga_palette_len = tga_palette_bits = tga_x_origin = tga_y_origin = 0;
-			return success;
-		}
+            tga_palette_start = tga_palette_len = tga_palette_bits = tga_x_origin = tga_y_origin = 0;
+            return success;
+        }
 
-		public static int stbi__tga_get_comp(int bits_per_pixel, int is_grey, int* is_rgb16)
-		{
-			if (is_rgb16 != null)
-				*is_rgb16 = 0;
-			switch (bits_per_pixel)
-			{
-				case 8:
-					return STBI_GREY;
-				case 16:
-				case 15:
-					if (bits_per_pixel == 16 && is_grey != 0)
-						return STBI_GREY_ALPHA;
-					if (is_rgb16 != null)
-						*is_rgb16 = 1;
-					return STBI_RGB;
-				case 24:
-				case 32:
-					return bits_per_pixel / 8;
-				default:
-					return 0;
-			}
-		}
+        private static int stbi__tga_get_comp(int bits_per_pixel, int is_grey, int* is_rgb16)
+        {
+            if (is_rgb16 != null)
+                *is_rgb16 = 0;
+            switch (bits_per_pixel)
+            {
+                case 8:
+                    return STBI_GREY;
+                case 16:
+                case 15:
+                    if (bits_per_pixel == 16 && is_grey != 0)
+                        return STBI_GREY_ALPHA;
+                    if (is_rgb16 != null)
+                        *is_rgb16 = 1;
+                    return STBI_RGB;
+                case 24:
+                case 32:
+                    return bits_per_pixel / 8;
+                default:
+                    return 0;
+            }
+        }
 
-		public static void stbi__tga_read_rgb16(stbi__context* s, byte* _out_)
-		{
-			var px = (ushort)stbi__get16le(s);
-			ushort fiveBitMask = 31;
-			var r = (px >> 10) & fiveBitMask;
-			var g = (px >> 5) & fiveBitMask;
-			var b = px & fiveBitMask;
-			_out_[0] = (byte)(r * 255 / 31);
-			_out_[1] = (byte)(g * 255 / 31);
-			_out_[2] = (byte)(b * 255 / 31);
-		}
-	}
+        private static void stbi__tga_read_rgb16(stbi__context* s, byte* _out_)
+        {
+            var px = (ushort)stbi__get16le(s);
+            ushort fiveBitMask = 31;
+            var r = (px >> 10) & fiveBitMask;
+            var g = (px >> 5) & fiveBitMask;
+            var b = px & fiveBitMask;
+            _out_[0] = (byte)(r * 255 / 31);
+            _out_[1] = (byte)(g * 255 / 31);
+            _out_[2] = (byte)(b * 255 / 31);
+        }
+    }
 }

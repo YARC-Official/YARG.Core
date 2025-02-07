@@ -10,376 +10,298 @@ using YARG.Core.IO;
 
 namespace StbImageSharp
 {
-	unsafe partial class StbImage
-	{
-		public const int STBI_DEFAULT = 0;
-		public const int STBI_GREY = 1;
-		public const int STBI_GREY_ALPHA = 2;
-		public const int STBI_RGB = 3;
-		public const int STBI_RGB_ALPHA = 4;
-		public const int STBI_ORDER_RGB = 0;
-		public const int STBI_ORDER_BGR = 1;
-		public const int STBI__SCAN_LOAD = 0;
-		public const int STBI__SCAN_TYPE = 1;
-		public const int STBI__SCAN_HEADER = 2;
-		public static int stbi__vertically_flip_on_load_global;
-		public static int stbi__vertically_flip_on_load_local;
-		public static int stbi__vertically_flip_on_load_set;
-		public static float stbi__l2h_gamma = 2.2f;
-		public static float stbi__l2h_scale = 1.0f;
-		public static float stbi__h2l_gamma_i = 1.0f / 2.2f;
-		public static float stbi__h2l_scale_i = 1.0f;
-		public static int stbi__unpremultiply_on_load_global;
-		public static int stbi__de_iphone_flag_global;
-		public static int stbi__unpremultiply_on_load_local;
-		public static int stbi__unpremultiply_on_load_set;
-		public static int stbi__de_iphone_flag_local;
-		public static int stbi__de_iphone_flag_set;
-		public static readonly byte[] stbi__process_marker_tag = { 65, 100, 111, 98, 101, 0 };
-		public static readonly byte[] stbi__process_frame_header_rgb = { 82, 71, 66 };
+    public static unsafe partial class StbImage
+    {
+        private const int STBI_DEFAULT = 0;
+        private const int STBI_GREY = 1;
+        private const int STBI_GREY_ALPHA = 2;
+        private const int STBI_RGB = 3;
+        private const int STBI_RGB_ALPHA = 4;
+        private const int STBI_ORDER_RGB = 0;
+        private const int STBI_ORDER_BGR = 1;
+        private const int STBI__SCAN_LOAD = 0;
+        private const int STBI__SCAN_TYPE = 1;
+        private const int STBI__SCAN_HEADER = 2;
+        private static float stbi__h2l_gamma_i = 1.0f / 2.2f;
+        private static float stbi__h2l_scale_i = 1.0f;
+        private static readonly byte[] stbi__process_marker_tag = { 65, 100, 111, 98, 101, 0 };
+        private static readonly byte[] stbi__process_frame_header_rgb = { 82, 71, 66 };
 
-		public static readonly byte[] stbi__compute_huffman_codes_length_dezigzag =
-			{ 16, 17, 18, 0, 8, 7, 9, 6, 10, 5, 11, 4, 12, 3, 13, 2, 14, 1, 15 };
+        private static readonly byte[] stbi__compute_huffman_codes_length_dezigzag =
+            { 16, 17, 18, 0, 8, 7, 9, 6, 10, 5, 11, 4, 12, 3, 13, 2, 14, 1, 15 };
 
-		public static readonly int[] stbi__shiftsigned_mul_table = { 0, 0xff, 0x55, 0x49, 0x11, 0x21, 0x41, 0x81, 0x01 };
-		public static readonly int[] stbi__shiftsigned_shift_table = { 0, 0, 0, 1, 0, 2, 4, 6, 0 };
+        private static readonly int[] stbi__shiftsigned_mul_table = { 0, 0xff, 0x55, 0x49, 0x11, 0x21, 0x41, 0x81, 0x01 };
+        private static readonly int[] stbi__shiftsigned_shift_table = { 0, 0, 0, 1, 0, 2, 4, 6, 0 };
 
-		public static int stbi__addsizes_valid(int a, int b)
-		{
-			if (b < 0)
-				return 0;
-			return a <= 2147483647 - b ? 1 : 0;
-		}
+        public static bool stbi__load_and_postprocess_8bit(stbi__context* s, int* x, int* y, int* comp, out FixedArray<byte> result)
+        {
+            var ri = new stbi__result_info();
+            if (!stbi__load_main(s, x, y, comp, &ri, 8, out result))
+            {
+                return false;
+            }
 
-		public static int stbi__mul2sizes_valid(int a, int b)
-		{
-			if (a < 0 || b < 0)
-				return 0;
-			if (b == 0)
-				return 1;
-			return a <= 2147483647 / b ? 1 : 0;
-		}
+            if (ri.bits_per_channel != 8)
+            {
+                result = stbi__convert_16_to_8(ref result, *x, *y, *comp);
+                ri.bits_per_channel = 8;
+            }
+            return true;
+        }
 
-		public static int stbi__mad2sizes_valid(int a, int b, int add)
-		{
-			return stbi__mul2sizes_valid(a, b) != 0 && stbi__addsizes_valid(a * b, add) != 0 ? 1 : 0;
-		}
+        private static int stbi__addsizes_valid(int a, int b)
+        {
+            if (b < 0)
+                return 0;
+            return a <= 2147483647 - b ? 1 : 0;
+        }
 
-		public static int stbi__mad3sizes_valid(int a, int b, int c, int add)
-		{
-			return stbi__mul2sizes_valid(a, b) != 0 && stbi__mul2sizes_valid(a * b, c) != 0 &&
-				   stbi__addsizes_valid(a * b * c, add) != 0
-				? 1
-				: 0;
-		}
+        private static int stbi__mul2sizes_valid(int a, int b)
+        {
+            if (a < 0 || b < 0)
+                return 0;
+            if (b == 0)
+                return 1;
+            return a <= 2147483647 / b ? 1 : 0;
+        }
 
-		public static int stbi__mad4sizes_valid(int a, int b, int c, int d, int add)
-		{
-			return stbi__mul2sizes_valid(a, b) != 0 && stbi__mul2sizes_valid(a * b, c) != 0 &&
-				   stbi__mul2sizes_valid(a * b * c, d) != 0 && stbi__addsizes_valid(a * b * c * d, add) != 0
-				? 1
-				: 0;
-		}
+        private static int stbi__mad2sizes_valid(int a, int b, int add)
+        {
+            return stbi__mul2sizes_valid(a, b) != 0 && stbi__addsizes_valid(a * b, add) != 0 ? 1 : 0;
+        }
 
-		public static bool stbi__malloc_mad2(int a, int b, int add, out FixedArray<byte> data)
-		{
-			if (stbi__mad2sizes_valid(a, b, add) == 0)
+        private static int stbi__mad3sizes_valid(int a, int b, int c, int add)
+        {
+            return stbi__mul2sizes_valid(a, b) != 0 && stbi__mul2sizes_valid(a * b, c) != 0 &&
+                   stbi__addsizes_valid(a * b * c, add) != 0
+                ? 1
+                : 0;
+        }
+
+        private static int stbi__mad4sizes_valid(int a, int b, int c, int d, int add)
+        {
+            return stbi__mul2sizes_valid(a, b) != 0 && stbi__mul2sizes_valid(a * b, c) != 0 &&
+                   stbi__mul2sizes_valid(a * b * c, d) != 0 && stbi__addsizes_valid(a * b * c * d, add) != 0
+                ? 1
+                : 0;
+        }
+
+        private static bool stbi__malloc_mad2(int a, int b, int add, out FixedArray<byte> data)
+        {
+            if (stbi__mad2sizes_valid(a, b, add) == 0)
             {
                 data = FixedArray<byte>.Null;
                 return false;
             }
             data = FixedArray<byte>.Alloc(a * b + add);
             return true;
-		}
+        }
 
-		public static bool stbi__malloc_mad3(int a, int b, int c, int add, out FixedArray<byte> data)
-		{
-			if (stbi__mad3sizes_valid(a, b, c, add) == 0)
+        private static bool stbi__malloc_mad3(int a, int b, int c, int add, out FixedArray<byte> data)
+        {
+            if (stbi__mad3sizes_valid(a, b, c, add) == 0)
             {
                 data = FixedArray<byte>.Null;
                 return false;
             }
             data = FixedArray<byte>.Alloc(a * b * c + add);
             return true;
-		}
+        }
 
-		public static bool stbi__malloc_mad4(int a, int b, int c, int d, int add, out FixedArray<byte> data)
-		{
-			if (stbi__mad4sizes_valid(a, b, c, d, add) == 0)
+        private static bool stbi__malloc_mad4(int a, int b, int c, int d, int add, out FixedArray<byte> data)
+        {
+            if (stbi__mad4sizes_valid(a, b, c, d, add) == 0)
             {
                 data = FixedArray<byte>.Null;
                 return false;
             }
             data = FixedArray<byte>.Alloc(a * b * c * d + add);
             return true;
-		}
+        }
 
-		public static int stbi__addints_valid(int a, int b)
-		{
-			if (a >= 0 != b >= 0)
-				return 1;
-			if (a < 0 && b < 0)
-				return a >= -2147483647 - 1 - b ? 1 : 0;
-			return a <= 2147483647 - b ? 1 : 0;
-		}
+        private static int stbi__addints_valid(int a, int b)
+        {
+            if (a >= 0 != b >= 0)
+                return 1;
+            if (a < 0 && b < 0)
+                return a >= -2147483647 - 1 - b ? 1 : 0;
+            return a <= 2147483647 - b ? 1 : 0;
+        }
 
-		public static int stbi__mul2shorts_valid(int a, int b)
-		{
-			if (b == 0 || b == -1)
-				return 1;
-			if (a >= 0 == b >= 0)
-				return a <= 32767 / b ? 1 : 0;
-			if (b < 0)
-				return a <= -32768 / b ? 1 : 0;
-			return a >= -32768 / b ? 1 : 0;
-		}
+        private static int stbi__mul2shorts_valid(int a, int b)
+        {
+            if (b == 0 || b == -1)
+                return 1;
+            if (a >= 0 == b >= 0)
+                return a <= 32767 / b ? 1 : 0;
+            if (b < 0)
+                return a <= -32768 / b ? 1 : 0;
+            return a >= -32768 / b ? 1 : 0;
+        }
 
-		public static bool stbi__ldr_to_hdr(ref FixedArray<byte> data, int x, int y, int comp, out FixedArray<byte> result)
-		{
-			var i = 0;
-			var k = 0;
-			var n = 0;
-			if (!data.IsAllocated)
+        private static bool stbi__load_main(stbi__context* s, int* x, int* y, int* comp, stbi__result_info* ri, int bpc, out FixedArray<byte> result)
+        {
+            CRuntime.memset(ri, 0, (ulong)sizeof(stbi__result_info));
+            ri->bits_per_channel = 8;
+            ri->channel_order = STBI_ORDER_RGB;
+            ri->num_channels = 0;
+            if (stbi__png_test(s))
+                return stbi__png_load(s, x, y, comp, ri, out result);
+            if (stbi__bmp_test(s))
+                return stbi__bmp_load(s, x, y, comp, ri, out result);
+            if (stbi__jpeg_test(s))
+                return stbi__jpeg_load(s, x, y, comp, ri, out result);
+            if (stbi__hdr_test(s))
             {
-                result = FixedArray<byte>.Null;
-                return false;
-            }
-
-			if (!stbi__malloc_mad4(x, y, comp, sizeof(float), 0, out result))
-			{
-				data.Dispose();
-				return false;
-			}
-
-            float* output = (float*) result.Ptr;
-			if ((comp & 1) != 0)
-				n = comp;
-			else
-				n = comp - 1;
-			for (i = 0; i < x * y; ++i)
-				for (k = 0; k < n; ++k)
-					output[i * comp + k] =
-						(float)(CRuntime.pow(data[i * comp + k] / 255.0f, stbi__l2h_gamma) * stbi__l2h_scale);
-
-			if (n < comp)
-				for (i = 0; i < x * y; ++i)
-					output[i * comp + n] = data[i * comp + n] / 255.0f;
-
-			data.Dispose();
-			return true;
-		}
-
-		public static bool stbi__load_main(stbi__context* s, int* x, int* y, int* comp, stbi__result_info* ri, int bpc, out FixedArray<byte> result)
-		{
-			CRuntime.memset(ri, 0, (ulong)sizeof(stbi__result_info));
-			ri->bits_per_channel = 8;
-			ri->channel_order = STBI_ORDER_RGB;
-			ri->num_channels = 0;
-			if (stbi__png_test(s))
-				return stbi__png_load(s, x, y, comp, ri, out result);
-			if (stbi__bmp_test(s))
-				return stbi__bmp_load(s, x, y, comp, ri, out result);
-			if (stbi__jpeg_test(s))
-				return stbi__jpeg_load(s, x, y, comp, ri, out result);
-			if (stbi__hdr_test(s))
-			{
                 if (!stbi__hdr_load(s, x, y, comp, ri, out result))
                 {
                     return false;
                 }
-				return stbi__hdr_to_ldr(ref result, *x, *y, *comp, out result);
-			}
-
-			if (stbi__tga_test(s) != 0)
-				return stbi__tga_load(s, x, y, comp, ri, out result);
-            result = FixedArray<byte>.Null;
-			return false;
-		}
-
-		public static FixedArray<byte> stbi__convert_16_to_8(ref FixedArray<byte> orig, int w, int h, int channels)
-		{
-			var i = 0;
-			var img_len = w * h * channels;
-            var reduced = FixedArray<byte>.Alloc(img_len);
-			for (i = 0; i < img_len; ++i)
-				reduced[i] = (byte)((orig[i] >> 8) & 0xFF);
-
-			orig.Dispose();
-			return reduced;
-		}
-
-		public static void stbi__vertical_flip(void* image, int w, int h, int bytes_per_pixel)
-		{
-			var row = 0;
-			var bytes_per_row = w * bytes_per_pixel;
-			var temp = stackalloc byte[2048];
-			var bytes = (byte*)image;
-			for (row = 0; row < h >> 1; row++)
-			{
-				var row0 = bytes + row * bytes_per_row;
-				var row1 = bytes + (h - row - 1) * bytes_per_row;
-				var bytes_left = (ulong)bytes_per_row;
-				while (bytes_left != 0)
-				{
-					var bytes_copy = bytes_left < 2048 * sizeof(byte) ? bytes_left : 2048 * sizeof(byte);
-					Unsafe.CopyBlock(temp, row0, (uint)bytes_copy);
-					Unsafe.CopyBlock(row0, row1, (uint)bytes_copy);
-                    Unsafe.CopyBlock(row1, temp, (uint)bytes_copy);
-					row0 += bytes_copy;
-					row1 += bytes_copy;
-					bytes_left -= bytes_copy;
-				}
-			}
-		}
-
-		public static bool stbi__load_and_postprocess_8bit(stbi__context* s, int* x, int* y, int* comp, out FixedArray<byte> result)
-		{
-			var ri = new stbi__result_info();
-            if (!stbi__load_main(s, x, y, comp, &ri, 8, out result))
-            {
-                return false;
+                return stbi__hdr_to_ldr(ref result, *x, *y, *comp, out result);
             }
 
-			if (ri.bits_per_channel != 8)
-			{
-				result = stbi__convert_16_to_8(ref result, *x, *y, *comp);
-				ri.bits_per_channel = 8;
-			}
+            if (stbi__tga_test(s) != 0)
+                return stbi__tga_load(s, x, y, comp, ri, out result);
+            result = FixedArray<byte>.Null;
+            return false;
+        }
 
-			if ((stbi__vertically_flip_on_load_set != 0
-				? stbi__vertically_flip_on_load_local
-				: stbi__vertically_flip_on_load_global) != 0)
-			{
-				stbi__vertical_flip(result.Ptr, *x, *y, (*comp) * sizeof(byte));
-			}
+        private static FixedArray<byte> stbi__convert_16_to_8(ref FixedArray<byte> orig, int w, int h, int channels)
+        {
+            var i = 0;
+            var img_len = w * h * channels;
+            var reduced = FixedArray<byte>.Alloc(img_len);
+            for (i = 0; i < img_len; ++i)
+                reduced[i] = (byte)((orig[i] >> 8) & 0xFF);
 
-			return true;
-		}
+            orig.Dispose();
+            return reduced;
+        }
 
-		public static int stbi__get16be(stbi__context* s)
-		{
-			int z = stbi__get8(s);
-			return (z << 8) + stbi__get8(s);
-		}
+        private static int stbi__get16be(stbi__context* s)
+        {
+            int z = stbi__get8(s);
+            return (z << 8) + stbi__get8(s);
+        }
 
-		public static uint stbi__get32be(stbi__context* s)
-		{
-			var z = (uint)stbi__get16be(s);
-			return (uint)((z << 16) + stbi__get16be(s));
-		}
+        private static uint stbi__get32be(stbi__context* s)
+        {
+            var z = (uint)stbi__get16be(s);
+            return (uint)((z << 16) + stbi__get16be(s));
+        }
 
-		public static int stbi__get16le(stbi__context* s)
-		{
-			int z = stbi__get8(s);
-			return z + (stbi__get8(s) << 8);
-		}
+        private static int stbi__get16le(stbi__context* s)
+        {
+            int z = stbi__get8(s);
+            return z + (stbi__get8(s) << 8);
+        }
 
-		public static uint stbi__get32le(stbi__context* s)
-		{
-			var z = (uint)stbi__get16le(s);
-			z += (uint)stbi__get16le(s) << 16;
-			return z;
-		}
+        private static uint stbi__get32le(stbi__context* s)
+        {
+            var z = (uint)stbi__get16le(s);
+            z += (uint)stbi__get16le(s) << 16;
+            return z;
+        }
 
-		public static byte stbi__compute_y(int r, int g, int b)
-		{
-			return (byte)((r * 77 + g * 150 + 29 * b) >> 8);
-		}
+        private static byte stbi__compute_y(int r, int g, int b)
+        {
+            return (byte)((r * 77 + g * 150 + 29 * b) >> 8);
+        }
 
-		public static byte stbi__clamp(int x)
-		{
-			if ((uint)x > 255)
-			{
-				if (x < 0)
-					return 0;
-				if (x > 255)
-					return 255;
-			}
+        private static byte stbi__clamp(int x)
+        {
+            if ((uint)x > 255)
+            {
+                if (x < 0)
+                    return 0;
+                if (x > 255)
+                    return 255;
+            }
 
-			return (byte)x;
-		}
+            return (byte)x;
+        }
 
-		public static byte stbi__blinn_8x8(byte x, byte y)
-		{
-			var t = (uint)(x * y + 128);
-			return (byte)((t + (t >> 8)) >> 8);
-		}
+        private static byte stbi__blinn_8x8(byte x, byte y)
+        {
+            var t = (uint)(x * y + 128);
+            return (byte)((t + (t >> 8)) >> 8);
+        }
 
-		public static int stbi__bitreverse16(int n)
-		{
-			n = ((n & 0xAAAA) >> 1) | ((n & 0x5555) << 1);
-			n = ((n & 0xCCCC) >> 2) | ((n & 0x3333) << 2);
-			n = ((n & 0xF0F0) >> 4) | ((n & 0x0F0F) << 4);
-			n = ((n & 0xFF00) >> 8) | ((n & 0x00FF) << 8);
-			return n;
-		}
+        private static int stbi__bitreverse16(int n)
+        {
+            n = ((n & 0xAAAA) >> 1) | ((n & 0x5555) << 1);
+            n = ((n & 0xCCCC) >> 2) | ((n & 0x3333) << 2);
+            n = ((n & 0xF0F0) >> 4) | ((n & 0x0F0F) << 4);
+            n = ((n & 0xFF00) >> 8) | ((n & 0x00FF) << 8);
+            return n;
+        }
 
-		public static int stbi__bit_reverse(int v, int bits)
-		{
-			return stbi__bitreverse16(v) >> (16 - bits);
-		}
+        private static int stbi__bit_reverse(int v, int bits)
+        {
+            return stbi__bitreverse16(v) >> (16 - bits);
+        }
 
-		public static int stbi__high_bit(uint z)
-		{
-			var n = 0;
-			if (z == 0)
-				return -1;
-			if (z >= 0x10000)
-			{
-				n += 16;
-				z >>= 16;
-			}
+        private static int stbi__high_bit(uint z)
+        {
+            var n = 0;
+            if (z == 0)
+                return -1;
+            if (z >= 0x10000)
+            {
+                n += 16;
+                z >>= 16;
+            }
 
-			if (z >= 0x00100)
-			{
-				n += 8;
-				z >>= 8;
-			}
+            if (z >= 0x00100)
+            {
+                n += 8;
+                z >>= 8;
+            }
 
-			if (z >= 0x00010)
-			{
-				n += 4;
-				z >>= 4;
-			}
+            if (z >= 0x00010)
+            {
+                n += 4;
+                z >>= 4;
+            }
 
-			if (z >= 0x00004)
-			{
-				n += 2;
-				z >>= 2;
-			}
+            if (z >= 0x00004)
+            {
+                n += 2;
+                z >>= 2;
+            }
 
-			if (z >= 0x00002)
-				n += 1;
+            if (z >= 0x00002)
+                n += 1;
 
-			return n;
-		}
+            return n;
+        }
 
-		public static int stbi__bitcount(uint a)
-		{
-			a = (a & 0x55555555) + ((a >> 1) & 0x55555555);
-			a = (a & 0x33333333) + ((a >> 2) & 0x33333333);
-			a = (a + (a >> 4)) & 0x0f0f0f0f;
-			a = a + (a >> 8);
-			a = a + (a >> 16);
-			return (int)(a & 0xff);
-		}
+        private static int stbi__bitcount(uint a)
+        {
+            a = (a & 0x55555555) + ((a >> 1) & 0x55555555);
+            a = (a & 0x33333333) + ((a >> 2) & 0x33333333);
+            a = (a + (a >> 4)) & 0x0f0f0f0f;
+            a = a + (a >> 8);
+            a = a + (a >> 16);
+            return (int)(a & 0xff);
+        }
 
-		public static int stbi__shiftsigned(uint v, int shift, int bits)
-		{
-			if (shift < 0)
-				v <<= -shift;
-			else
-				v >>= shift;
-			v >>= 8 - bits;
-			return (int)(v * stbi__shiftsigned_mul_table[bits]) >> stbi__shiftsigned_shift_table[bits];
-		}
+        private static int stbi__shiftsigned(uint v, int shift, int bits)
+        {
+            if (shift < 0)
+                v <<= -shift;
+            else
+                v >>= shift;
+            v >>= 8 - bits;
+            return (int)(v * stbi__shiftsigned_mul_table[bits]) >> stbi__shiftsigned_shift_table[bits];
+        }
 
-		[StructLayout(LayoutKind.Sequential)]
-		public struct stbi__result_info
-		{
-			public int bits_per_channel;
-			public int num_channels;
-			public int channel_order;
-		}
-	}
+        [StructLayout(LayoutKind.Sequential)]
+        private struct stbi__result_info
+        {
+            public int bits_per_channel;
+            public int num_channels;
+            public int channel_order;
+        }
+    }
 }
