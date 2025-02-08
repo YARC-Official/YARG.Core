@@ -174,7 +174,7 @@ namespace YARG.Core.Song
                 {
                     return new ScanUnexpected(result);
                 }
-                entry._midiLastWrite = midiInfo.LastWriteTime;
+                entry._midiLastWrite = AbridgedFileInfo.NormalizedLastWrite(midiInfo);
                 entry.SetSortStrings();
                 return entry;
             }
