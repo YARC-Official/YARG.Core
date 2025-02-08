@@ -24,7 +24,7 @@ namespace YARG.Core.Song
 
         public static readonly SongMetadata Default = new()
         {
-            Name = string.Empty,
+            Name = DEFAULT_NAME,
             Artist = DEFAULT_ARTIST,
             Album = DEFAULT_ALBUM,
             Genre = DEFAULT_GENRE,
@@ -87,31 +87,31 @@ namespace YARG.Core.Song
 
         public static void FillFromIni(ref SongMetadata metadata, IniModifierCollection modifiers)
         {
-            if (modifiers.Extract("name", out string name))
+            if (modifiers.Extract("name", out string name) && name.Length > 0)
             {
                 metadata.Name = name;
             }
 
-            if (modifiers.Extract("artist", out string artist))
+            if (modifiers.Extract("artist", out string artist) && artist.Length > 0)
             {
                 metadata.Artist = artist;
             }
 
-            if (modifiers.Extract("album", out string album))
+            if (modifiers.Extract("album", out string album) && album.Length > 0)
             {
                 metadata.Album = album;
             }
 
-            if (modifiers.Extract("genre", out string genre))
+            if (modifiers.Extract("genre", out string genre) && genre.Length > 0)
             {
                 metadata.Genre = genre;
             }
 
-            if (modifiers.Extract("year", out string year))
+            if (modifiers.Extract("year", out string year) && year.Length > 0)
             {
                 metadata.Year = year;
             }
-            else if (modifiers.Extract("year_chart", out year))
+            else if (modifiers.Extract("year_chart", out year) && year.Length > 0)
             {
                 if (year.StartsWith(", "))
                 {
@@ -127,21 +127,20 @@ namespace YARG.Core.Song
                 }
             }
 
-            if (modifiers.Extract("charter", out string charter))
+            if (modifiers.Extract("charter", out string charter) || modifiers.Extract("frets", out charter))
             {
-                metadata.Charter = charter;
-            }
-            else if (modifiers.Extract("frets", out charter))
-            {
-                metadata.Charter = charter;
+                if (charter.Length > 0)
+                {
+                    metadata.Charter = charter;
+                }
             }
 
-            if (modifiers.Extract("icon", out string source))
+            if (modifiers.Extract("icon", out string source) && source.Length > 0)
             {
                 metadata.Source = source;
             }
 
-            if (modifiers.Extract("playlist", out string playlist))
+            if (modifiers.Extract("playlist", out string playlist) && playlist.Length > 0)
             {
                 metadata.Playlist = playlist;
             }
