@@ -34,7 +34,7 @@ namespace YARG.Core.Song.Cache
         /// Format is YY_MM_DD_RR: Y = year, M = month, D = day, R = revision (reset across dates, only increment
         /// if multiple cache version changes happen in a single day).
         /// </summary>
-        private const int CACHE_VERSION = 25_02_07_01;
+        private const int CACHE_VERSION = 25_02_07_02;
 
         public static ScanProgressTracker Progress => _progress;
         private static ScanProgressTracker _progress;
@@ -716,15 +716,16 @@ namespace YARG.Core.Song.Cache
                 }
                 else
                 {
+                    var nextTracker = tracker.Append(directory.Name);
                     Parallel.ForEach(collection, entry =>
                     {
                         switch (entry.Value)
                         {
                             case DirectoryInfo directory:
-                                ScanDirectory(directory, group, tracker);
+                                ScanDirectory(directory, group, nextTracker);
                                 break;
                             case FileInfo file:
-                                ScanFile(file, group, tracker);
+                                ScanFile(file, group, nextTracker);
                                 break;
                         }
                     });
