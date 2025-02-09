@@ -7,6 +7,11 @@ namespace YARG.Core.Engine.ProKeys.Engines
 {
     public class YargProKeysEngine : ProKeysEngine
     {
+        // This seems like a dupe of KeyPressTimes, but it is different.
+        // Having something that only gets updated on a press input (not release) and never
+        // gets messed with by hit logic drastically simplifies the bot.
+        private double[] _keyPressedTimes = new double[(int)ProKeysAction.Key25 + 1];
+
         public YargProKeysEngine(InstrumentDifficulty<ProKeysNote> chart, SyncTrack syncTrack,
             ProKeysEngineParameters engineParameters, bool isBot) : base(chart, syncTrack, engineParameters, isBot)
         {
@@ -29,6 +34,7 @@ namespace YARG.Core.Engine.ProKeys.Engines
                 if (gameInput.Button)
                 {
                     KeyHit = (int) action;
+                    _keyPressedTimes[(int) action] = gameInput.Time;
                 }
                 else
                 {
@@ -320,30 +326,89 @@ namespace YARG.Core.Engine.ProKeys.Engines
 
         protected override void UpdateBot(double time)
         {
-            if (!IsBot || NoteIndex >= Notes.Count)
+            float        botNoteHoldTime = NoteIndex >= Notes.Count ? 1.66f : 0.166f;
+            ProKeysNote? note = null;
+
+            if (!IsBot)
             {
                 return;
             }
 
-            var note = Notes[NoteIndex];
-
-            if (time < note.Time)
+            if (NoteIndex < Notes.Count)
             {
-                return;
+                note = Notes[NoteIndex];
             }
 
-            // Disables keys that are not in the current note
+            // Release no longer needed keys
             int key = 0;
             for (var mask = KeyMask; mask > 0; mask >>= 1)
             {
-                if ((mask & 1) == 1)
+                // Keys are not released if they are part of an active sustain
+                // or were pressed less than botNoteHoldTime in the past,
+                // unless the key is going to be pressed again this update
+                // or it is the next key to be pressed and half of the time
+                // between press and next press has already elapsed
+                bool keyProtected = false;
+                bool currentKey;
+
+                if (note is not null)
                 {
-                    MutateStateWithInput(new GameInput(note.Time, key, false));
+                    currentKey = time >= note.Time && note.Key == key;
+                }
+                else
+                {
+                    currentKey = false;
+                }
+
+                if (!currentKey)
+                {
+                    foreach (var sustain in ActiveSustains)
+                    {
+                        if (sustain.Note.Key == key)
+                        {
+                            keyProtected = true;
+                            break;
+                        }
+                    }
+
+                    if (_keyPressedTimes[key] > time - botNoteHoldTime)
+                    {
+                        keyProtected = true;
+
+                        // Release the key if the next note is on this key and
+                        // half of the time between press and the next note has elapsed
+                        if (note is not null)
+                        {
+                            foreach (var chordNote in note.AllNotes)
+                            {
+                                if (chordNote.Key == key && chordNote.Time - time < time - _keyPressedTimes[key])
+                                {
+                                    keyProtected = false;
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                }
+
+                if ((mask & 1) == 1 && (!keyProtected || currentKey))
+                {
+                    MutateStateWithInput(new GameInput(time, key, false));
                 }
 
                 key++;
             }
 
+
+            if (NoteIndex >= Notes.Count)
+            {
+                return;
+            }
+
+            if (time < note.Time)
+            {
+                return;
+            }
 
             // Press keys for current note
             foreach (var chordNote in note.AllNotes)
