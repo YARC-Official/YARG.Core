@@ -117,7 +117,7 @@ namespace YARG.Core.Song
             // Merge update MIDI
             if (_updateMidiLastWrite.HasValue)
             {
-                if (!AbridgedFileInfo.Validate(Path.Combine(_updateDirectoryAndDtaLastWrite!.Value.FullName, "songs_updates.dta"), _updateMidiLastWrite.Value))
+                if (!AbridgedFileInfo.Validate(Path.Combine(_updateDirectoryAndDtaLastWrite!.Value.FullName, "songs_updates.dta"), _updateDirectoryAndDtaLastWrite.Value.LastWriteTime))
                 {
                     return null;
                 }
