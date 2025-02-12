@@ -35,10 +35,10 @@ namespace YARG.Core.Chart
         Default,
         Dischord,
         Chorus,
-        Cool_Manual,
+        CoolManual,
         Stomp,
         Verse,
-        Warm_Manual,
+        WarmManual,
 
         // Automatic
         BigRockEnding,
@@ -60,7 +60,7 @@ namespace YARG.Core.Chart
         StrobeSlow,
         StrobeOff,
         Sweep,
-        Warm_Automatic,
+        WarmAutomatic,
 
         // Keyframe events
         KeyframeFirst,
