@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.IO;
 using Newtonsoft.Json;
 using YARG.Core.Chart;
@@ -62,11 +62,20 @@ namespace YARG.Core.Game
         /// </summary>
         public Difficulty DifficultyFallback;
 
+        [JsonProperty("HarmonyIndex")]
+        private byte _harmonyIndex;
+
         /// <summary>
         /// The harmony index, used for determining what harmony part the player selected.
         /// Does nothing if <see cref="CurrentInstrument"/> is not a harmony.
         /// </summary>
-        public byte HarmonyIndex;
+        public byte HarmonyIndex
+        {
+            // Only expose harmony index when playing harmonies, ensures consistent behavior
+            // while still allowing harmony index to persist between instrument switches
+            get => CurrentInstrument == Instrument.Harmony ? _harmonyIndex : (byte) 0;
+            set => _harmonyIndex = value;
+        }
 
         /// <summary>
         /// The currently selected modifiers as a flag.
@@ -116,7 +125,7 @@ namespace YARG.Core.Game
             CurrentInstrument = (Instrument) stream.ReadByte();
             CurrentDifficulty = (Difficulty) stream.ReadByte();
             CurrentModifiers = (Modifier) stream.Read<ulong>(Endianness.Little);
-            HarmonyIndex = stream.ReadByte();
+            _harmonyIndex = stream.ReadByte();
 
             NoteSpeed = stream.Read<float>(Endianness.Little);
             HighwayLength = stream.Read<float>(Endianness.Little);
@@ -239,7 +248,7 @@ namespace YARG.Core.Game
             writer.Write((byte) CurrentInstrument);
             writer.Write((byte) CurrentDifficulty);
             writer.Write((ulong) CurrentModifiers);
-            writer.Write(HarmonyIndex);
+            writer.Write(_harmonyIndex);
 
             writer.Write(NoteSpeed);
             writer.Write(HighwayLength);
