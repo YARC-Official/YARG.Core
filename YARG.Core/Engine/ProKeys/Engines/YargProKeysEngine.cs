@@ -350,6 +350,12 @@ namespace YARG.Core.Engine.ProKeys.Engines
             {
                 MutateStateWithInput(new GameInput(note.Time, chordNote.Key, true));
                 CheckForNoteHit();
+                // Activate Star Power if it's available
+                if (EngineStats.CanStarPowerActivate)
+                {
+                    MutateStateWithInput(new GameInput(note.Time, ProKeysAction.StarPower, true));
+                    ActivateStarPower();
+                }
             }
         }
     }
