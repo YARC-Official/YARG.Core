@@ -26,9 +26,10 @@ namespace YARG.Core.Song.Cache
 
             foreach (var entry in directory.EnumerateFileSystemInfos("*", OPTIONS))
             {
-                if (!_entries.TryAdd(entry.Name, entry))
+                string name = entry.Name.ToLowerInvariant();
+                if (!_entries.TryAdd(name, entry))
                 {
-                    dupes.Add(entry.Name);
+                    dupes.Add(name);
                 }
             }
 
