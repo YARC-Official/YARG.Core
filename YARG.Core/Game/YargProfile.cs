@@ -69,6 +69,7 @@ namespace YARG.Core.Game
         /// The harmony index, used for determining what harmony part the player selected.
         /// Does nothing if <see cref="CurrentInstrument"/> is not a harmony.
         /// </summary>
+        [JsonIgnore]
         public byte HarmonyIndex
         {
             // Only expose harmony index when playing harmonies, ensures consistent behavior
