@@ -221,6 +221,10 @@ namespace YARG.Core.Game
             {
                 vocalsPart.ConvertAllToUnpitched();
             }
+            if (IsModifierActive(Modifier.NoPercussion))
+            {
+                vocalsPart.RemoveAllPercussion();
+            }
         }
 
         public void EnsureValidInstrument()
