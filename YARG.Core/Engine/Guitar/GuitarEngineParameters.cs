@@ -11,10 +11,11 @@ namespace YARG.Core.Engine.Guitar
         public readonly double StrumLeniencySmall;
         public readonly bool InfiniteFrontEnd;
         public readonly bool AntiGhosting;
+        public readonly bool SoloTaps;
 
         public GuitarEngineParameters(HitWindowSettings hitWindow, int maxMultiplier, double spWhammyBuffer,
             double sustainDropLeniency, float[] starMultiplierThresholds, double hopoLeniency, double strumLeniency,
-            double strumLeniencySmall, bool infiniteFrontEnd, bool antiGhosting)
+            double strumLeniencySmall, bool infiniteFrontEnd, bool antiGhosting, bool soloTaps)
             : base(hitWindow, maxMultiplier, spWhammyBuffer, sustainDropLeniency, starMultiplierThresholds)
         {
             HopoLeniency = hopoLeniency;
@@ -24,6 +25,8 @@ namespace YARG.Core.Engine.Guitar
 
             InfiniteFrontEnd = infiniteFrontEnd;
             AntiGhosting = antiGhosting;
+
+            SoloTaps = soloTaps;
         }
 
         public GuitarEngineParameters(ref FixedArrayStream stream, int version)
@@ -36,6 +39,7 @@ namespace YARG.Core.Engine.Guitar
 
             InfiniteFrontEnd = stream.ReadBoolean();
             AntiGhosting = stream.ReadBoolean();
+            SoloTaps = stream.ReadBoolean();
         }
 
         public override void Serialize(BinaryWriter writer)
@@ -49,6 +53,8 @@ namespace YARG.Core.Engine.Guitar
 
             writer.Write(InfiniteFrontEnd);
             writer.Write(AntiGhosting);
+
+            writer.Write(SoloTaps);
         }
 
         public override string ToString()
@@ -57,6 +63,7 @@ namespace YARG.Core.Engine.Guitar
                 $"{base.ToString()}\n" +
                 $"Infinite front-end: {InfiniteFrontEnd}\n" +
                 $"Anti-ghosting: {AntiGhosting}\n" +
+                $"Solo taps: {SoloTaps}\n" +
                 $"Hopo leniency: {HopoLeniency}\n" +
                 $"Strum leniency: {StrumLeniency}\n" +
                 $"Strum leniency (small): {StrumLeniencySmall}\n" +
