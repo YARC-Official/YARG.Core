@@ -5,6 +5,7 @@ using YARG.Core.Chart;
 using YARG.Core.Utility;
 using YARG.Core.Extensions;
 using System.Linq;
+using YARG.Core.IO;
 
 namespace YARG.Core.Game
 {
@@ -24,7 +25,7 @@ namespace YARG.Core.Game
 
         public bool LeftyFlip;
 
-        public bool AutoConnect;
+        public int? AutoConnectOrder;
 
         public long InputCalibrationMilliseconds;
         public double InputCalibrationSeconds
@@ -82,7 +83,6 @@ namespace YARG.Core.Game
             NoteSpeed = 6;
             HighwayLength = 1;
             LeftyFlip = false;
-            AutoConnect = false;
 
             // Set preset IDs to default
             ColorProfile = Game.ColorProfile.Default.Id;
@@ -97,7 +97,7 @@ namespace YARG.Core.Game
             Id = id;
         }
 
-        public YargProfile(Stream stream)
+        public YargProfile(ref FixedArrayStream stream)
         {
             int version = stream.Read<int>(Endianness.Little);
 
@@ -116,7 +116,7 @@ namespace YARG.Core.Game
             CurrentInstrument = (Instrument) stream.ReadByte();
             CurrentDifficulty = (Difficulty) stream.ReadByte();
             CurrentModifiers = (Modifier) stream.Read<ulong>(Endianness.Little);
-            HarmonyIndex = (byte)stream.ReadByte();
+            HarmonyIndex = stream.ReadByte();
 
             NoteSpeed = stream.Read<float>(Endianness.Little);
             HighwayLength = stream.Read<float>(Endianness.Little);

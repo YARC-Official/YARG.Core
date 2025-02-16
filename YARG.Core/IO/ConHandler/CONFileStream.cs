@@ -6,240 +6,54 @@ namespace YARG.Core.IO
 {
     public sealed class CONFileStream : Stream
     {
-        private const int FIRSTBLOCK_OFFSET = 0xC000;
-        private const int BYTES_PER_BLOCK = 0x1000;
-        private const int BLOCKS_PER_SECTION = 170;
-        private const int BYTES_PER_SECTION = BLOCKS_PER_SECTION * BYTES_PER_BLOCK;
-        private const int NUM_BLOCKS_SQUARED = BLOCKS_PER_SECTION * BLOCKS_PER_SECTION;
+        public const long FIRSTBLOCK_OFFSET = 0xC000;
+        public const long BYTES_PER_BLOCK = 0x1000;
+        public const long BLOCKS_PER_SECTION = 170;
+        public const long BYTES_PER_SECTION = BLOCKS_PER_SECTION * BYTES_PER_BLOCK;
+        public const long NUM_BLOCKS_SQUARED = BLOCKS_PER_SECTION * BLOCKS_PER_SECTION;
 
-        private const int HASHBLOCK_OFFSET = 4075;
-        private const int DIST_PER_HASH = 4072;
-
-        public static FixedArray<byte> LoadFile(string file, bool isContinguous, int fileSize, int blockNum, int shift)
-        {
-            using FileStream filestream = new(file, FileMode.Open, FileAccess.Read, FileShare.Read, 1);
-            return LoadFile(filestream, isContinguous, fileSize, blockNum, shift);
-        }
-
-        public static FixedArray<byte> LoadFile(Stream filestream, bool isContinguous, int fileSize, int blockNum, int shift)
-        {
-            var data = FixedArray<byte>.Alloc(fileSize);
-            if (isContinguous)
-            {
-                long skipVal = BYTES_PER_BLOCK << shift;
-                int threshold = blockNum - blockNum % NUM_BLOCKS_SQUARED + NUM_BLOCKS_SQUARED;
-                int numBlocks = BLOCKS_PER_SECTION - blockNum % BLOCKS_PER_SECTION;
-                int readSize = BYTES_PER_BLOCK * numBlocks;
-                int offset = 0;
-
-                filestream.Seek(CalculateBlockLocation(blockNum, shift), SeekOrigin.Begin);
-                while (true)
-                {
-                    if (readSize > fileSize - offset)
-                        readSize = fileSize - offset;
-
-                    if (filestream.Read(data.Slice(offset, readSize)) != readSize)
-                    {
-                        data.Dispose();
-                        throw new Exception("Read error in CON-like subfile - Type: Contiguous");
-                    }
-
-                    offset += readSize;
-                    if (offset == fileSize)
-                        break;
-
-                    blockNum += numBlocks;
-                    numBlocks = BLOCKS_PER_SECTION;
-                    readSize = BYTES_PER_SECTION;
-
-                    int seekCount = 1;
-                    if (blockNum == BLOCKS_PER_SECTION)
-                        seekCount = 2;
-                    else if (blockNum == threshold)
-                    {
-                        if (blockNum == NUM_BLOCKS_SQUARED)
-                            seekCount = 2;
-                        ++seekCount;
-                        threshold += NUM_BLOCKS_SQUARED;
-                    }
-
-                    filestream.Seek(seekCount * skipVal, SeekOrigin.Current);
-                }
-            }
-            else
-            {
-                Span<byte> buffer = stackalloc byte[3];
-                int offset = 0;
-                while (true)
-                {
-                    long blockLocation = CalculateBlockLocation(blockNum, shift);
-
-                    int readSize = BYTES_PER_BLOCK;
-                    if (readSize > fileSize - offset)
-                        readSize = fileSize - offset;
-
-                    filestream.Seek(blockLocation, SeekOrigin.Begin);
-                    if (filestream.Read(data.Slice(offset, readSize)) != readSize)
-                    {
-                        data.Dispose();
-                        throw new Exception("Pre-Read error in CON-like subfile - Type: Split");
-                    }
-
-                    offset += readSize;
-                    if (offset == fileSize)
-                        break;
-
-                    long hashlocation = blockLocation - ((long) (blockNum % BLOCKS_PER_SECTION) * DIST_PER_HASH + HASHBLOCK_OFFSET);
-                    filestream.Seek(hashlocation, SeekOrigin.Begin);
-                    if (filestream.Read(buffer) != buffer.Length)
-                    {
-                        data.Dispose();
-                        throw new Exception("Post-Read error in CON-like subfile - Type: Split");
-                    }
-                    blockNum = buffer[0] << 16 | buffer[1] << 8 | buffer[2];
-                }
-            }
-            return data;
-        }
-
-        public static long CalculateBlockLocation(int blockNum, int shift)
-        {
-            int blockAdjust = 0;
-            if (blockNum >= BLOCKS_PER_SECTION)
-            {
-                blockAdjust += blockNum / BLOCKS_PER_SECTION + 1 << shift;
-                if (blockNum >= NUM_BLOCKS_SQUARED)
-                    blockAdjust += blockNum / NUM_BLOCKS_SQUARED + 1 << shift;
-            }
-            return FIRSTBLOCK_OFFSET + (long) (blockAdjust + blockNum) * BYTES_PER_BLOCK;
-        }
+        public const long BYTES_PER_HASH_ENTRY = 0x18;
+        public const long NEXT_BLOCK_HASH_OFFSET = 0x15;
+        public const long HASHBLOCK_OFFSET = 4075;
+        public const long DIST_PER_HASH = 4072;
 
         private readonly FileStream _filestream;
-        private readonly long _fileSize;
+        private readonly long _length;
+        private readonly long _initialOffset;
         private readonly FixedArray<byte> _dataBuffer;
         private readonly FixedArray<long> _blockLocations;
-        private readonly int _initialOffset;
 
         private long _bufferPosition;
         private long _position;
-        private long _blockIndex = 0;
-        private bool _disposedStream;
+        private long _bufferIndex = -1;
 
         public override bool CanRead => _filestream.CanRead;
         public override bool CanWrite => false;
         public override bool CanSeek => _filestream.CanSeek;
-        public override long Length => _fileSize;
+        public override long Length => _length;
 
         public override long Position
         {
             get => _position;
             set
             {
-                if (value < 0 || value > _fileSize) throw new ArgumentOutOfRangeException();
+                if (value < 0 || value > _length)
+                {
+                    throw new ArgumentOutOfRangeException();
+                }
 
                 _position = value;
-                if (value == _fileSize)
-                    return;
-
-                int truePosition = (int)(value + _initialOffset);
-                _blockIndex = truePosition / _dataBuffer.Length;
-                _bufferPosition = truePosition % _dataBuffer.Length;
-
-                long readSize = _dataBuffer.Length - _bufferPosition;
-                if (readSize > _fileSize - _position)
-                    readSize = (int)(_fileSize - _position);
-
-                if (_blockIndex < _blockLocations.Length)
+                long truePosition = _position + _initialOffset;
+                long index = truePosition / _dataBuffer.Length;
+                if (_bufferIndex != index)
                 {
-                    long offset = _blockIndex == 0 ? value : _bufferPosition;
-                    _filestream.Seek(_blockLocations[(int)_blockIndex++] + offset, SeekOrigin.Begin);
-                    var buffer = _dataBuffer.Slice(_bufferPosition, readSize);
-                    if (_filestream.Read(buffer) != readSize)
-                        throw new Exception("Seek error in CON subfile");
+                    _bufferIndex = -1;
+                }
+                else
+                {
+                    _bufferPosition = truePosition % _dataBuffer.Length;
                 }
             }
-        }
-
-        public CONFileStream(string file, bool isContinguous, int fileSize, int firstBlock, int shift)
-            : this(new FileStream(file, FileMode.Open, FileAccess.Read, FileShare.Read, 1), isContinguous, fileSize, firstBlock, shift) { }
-
-        public CONFileStream(FileStream filestream, bool isContinguous, int fileSize, int firstBlock, int shift)
-        {
-            _filestream = filestream;
-            this._fileSize = fileSize;
-
-            int block = firstBlock;
-            if (isContinguous)
-            {
-                int blockOffset = firstBlock % BLOCKS_PER_SECTION;
-                _initialOffset = blockOffset * BYTES_PER_BLOCK;
-
-                int totalSpace = fileSize + _initialOffset;
-                int numBlocks = totalSpace % BYTES_PER_SECTION == 0 ? totalSpace / BYTES_PER_SECTION : totalSpace / BYTES_PER_SECTION + 1;
-                using var blockLocations = FixedArray<long>.Alloc(numBlocks);
-
-                int blockMovement = BLOCKS_PER_SECTION - blockOffset;
-                int byteMovement = blockMovement * BYTES_PER_BLOCK;
-                int skipVal = BYTES_PER_BLOCK << shift;
-                int threshold = firstBlock - firstBlock % NUM_BLOCKS_SQUARED + NUM_BLOCKS_SQUARED;
-                long location = CalculateBlockLocation(firstBlock, shift);
-                for (int i = 0; i < numBlocks; i++)
-                {
-                    unsafe
-                    {
-                        blockLocations.Ptr[i] = location;
-                    }
-
-                    if (i < numBlocks - 1)
-                    {
-                        block += blockMovement;
-
-                        int seekCount = 1;
-                        if (block == BLOCKS_PER_SECTION)
-                            seekCount = 2;
-                        else if (block == threshold)
-                        {
-                            if (block == NUM_BLOCKS_SQUARED)
-                                seekCount = 2;
-                            ++seekCount;
-                            threshold += NUM_BLOCKS_SQUARED;
-                        }
-
-                        location += byteMovement + seekCount * skipVal;
-                        blockMovement = BLOCKS_PER_SECTION;
-                        byteMovement = BYTES_PER_SECTION;
-                    }
-                }
-                _blockLocations = blockLocations.TransferOwnership();
-                _dataBuffer = FixedArray<byte>.Alloc(BYTES_PER_SECTION);
-            }
-            else
-            {
-                int numBlocks = fileSize % BYTES_PER_BLOCK == 0 ? fileSize / BYTES_PER_BLOCK : fileSize / BYTES_PER_BLOCK + 1;
-                using var blockLocations = FixedArray<long>.Alloc(numBlocks);
-
-                Span<byte> buffer = stackalloc byte[3];
-                _initialOffset = 0;
-                for (int i = 0; i < numBlocks; i++)
-                {
-                    unsafe
-                    {
-                        long location = blockLocations.Ptr[i] = CalculateBlockLocation(block, shift);
-                        if (i < numBlocks - 1)
-                        {
-                            long hashlocation = location - ((long) (block % BLOCKS_PER_SECTION) * DIST_PER_HASH + HASHBLOCK_OFFSET);
-                            _filestream.Seek(hashlocation, SeekOrigin.Begin);
-                            if (_filestream.Read(buffer) != 3)
-                                throw new Exception("Hashblock Read error in CON subfile");
-
-                            block = buffer[0] << 16 | buffer[1] << 8 | buffer[2];
-                        }
-                    }
-                }
-                _blockLocations = blockLocations.TransferOwnership();
-                _dataBuffer = FixedArray<byte>.Alloc(BYTES_PER_BLOCK);
-            }
-            UpdateBuffer();
         }
 
         public override void Flush()
@@ -249,51 +63,44 @@ namespace YARG.Core.IO
 
         public override void SetLength(long value)
         {
-            throw new NotImplementedException();
-        }
-
-        public override int Read(byte[] buffer, int offset, int count)
-        {
-            if (offset < 0 || count < 0)
-                throw new ArgumentOutOfRangeException();
-
-            if (buffer == null)
-                throw new ArgumentNullException();
-
-            if (buffer.Length < offset + count)
-                throw new ArgumentException();
-
-            if (_position == _fileSize)
-                return 0;
-
-            long read = 0;
-            long bytesLeftInSection = _dataBuffer.Length - _bufferPosition;
-            if (bytesLeftInSection > _fileSize - (int) _position)
-                bytesLeftInSection = _fileSize - (int) _position;
-
-            while (read < count)
-            {
-                long readCount = count - read;
-                if (readCount > bytesLeftInSection)
-                    readCount = bytesLeftInSection;
-
-                Unsafe.CopyBlock(ref buffer[offset + read], ref _dataBuffer[(int)_bufferPosition], (uint) readCount);
-
-                read += readCount;
-                _position += readCount;
-                _bufferPosition += readCount;
-
-                if (_bufferPosition < _dataBuffer.Length || _position == _fileSize)
-                    break;
-
-                bytesLeftInSection = UpdateBuffer();
-            }
-            return (int)read;
+            throw new InvalidOperationException("Not allowed to set stream length");
         }
 
         public override void Write(byte[] buffer, int offset, int count)
         {
-            throw new NotImplementedException();
+            throw new InvalidOperationException("Not allowed to write to stream");
+        }
+
+        public override int Read(byte[] buffer, int offset, int count)
+        {
+            long read = 0;
+            while (read < count && _position < _length)
+            {
+                if (_bufferIndex == -1 || _bufferPosition == _dataBuffer.Length)
+                {
+                    UpdateBuffer();
+                }
+
+                long available = _dataBuffer.Length - _bufferPosition;
+                long remainingInFile = _length - _position;
+                if (available > remainingInFile)
+                {
+                    available = remainingInFile;
+                }
+
+                long amount = count - read;
+                if (amount > available)
+                {
+                    amount = available;
+                }
+
+                Unsafe.CopyBlock(ref buffer[offset + read], ref _dataBuffer[_bufferPosition], (uint) amount);
+
+                read += amount;
+                _position += amount;
+                _bufferPosition += amount;
+            }
+            return (int) read;
         }
 
         public override long Seek(long offset, SeekOrigin origin)
@@ -307,7 +114,7 @@ namespace YARG.Core.IO
                     Position += offset;
                     break;
                 case SeekOrigin.End:
-                    Position = _fileSize + offset;
+                    Position = _length + offset;
                     break;
             }
             return _position;
@@ -315,42 +122,237 @@ namespace YARG.Core.IO
 
         protected override void Dispose(bool disposing)
         {
-            if (!_disposedStream)
+            if (disposing)
             {
-                if (disposing)
-                {
-                    _filestream.Dispose();
-                    _dataBuffer.Dispose();
-                    _blockLocations.Dispose();
-                }
-                _disposedStream = true;
+                _filestream.Dispose();
+            }
+            _dataBuffer.Dispose();
+            _blockLocations.Dispose();
+        }
+
+        private void UpdateBuffer()
+        {
+            long truePosition = _position + _initialOffset;
+            long index = truePosition / _dataBuffer.Length;
+            if (index == _bufferIndex)
+            {
+                return;
+            }
+
+            _bufferIndex = index;
+            _filestream.Position = _blockLocations[index];
+            _bufferPosition = truePosition % _dataBuffer.Length;
+
+            long count = _dataBuffer.Length;
+            if (index == _blockLocations.Length - 1)
+            {
+                count = (_length - _position) + _bufferPosition;
+            }
+
+            long offset = index == 0 ? _initialOffset : 0;
+            count -= offset;
+
+            if (_filestream.Read(_dataBuffer.Slice(offset, count)) != count)
+            {
+                throw new IOException("Buffer update error");
             }
         }
 
-        private long UpdateBuffer()
+        private CONFileStream(FileStream stream, long length, long offset, ref FixedArray<byte> buffer, ref FixedArray<long> locations)
         {
-            _bufferPosition = _blockIndex == 0 ? _initialOffset : 0;
-            long readSize = _dataBuffer.Length - _bufferPosition;
-            if (readSize > _fileSize - _position)
-                readSize = _fileSize - _position;
-
-            _filestream.Seek(_blockLocations[(int)_blockIndex++], SeekOrigin.Begin);
-            var buffer = _dataBuffer.Slice(_bufferPosition, readSize);
-            if (_filestream.Read(buffer) != readSize)
-                throw new Exception("Seek error in CON subfile");
-            return readSize;
+            _filestream = stream;
+            _length = length;
+            _initialOffset = offset;
+            _dataBuffer = buffer.TransferOwnership();
+            _blockLocations = locations.TransferOwnership();
+            _bufferIndex = -1;
         }
 
-        private static int CalculateBlockNum(int blockNum, int shift)
+        public static long CalculateBlockLocation(long blockNum, int shift)
         {
-            int blockAdjust = 0;
+            long blockAdjust = 0;
             if (blockNum >= BLOCKS_PER_SECTION)
             {
-                blockAdjust += blockNum / BLOCKS_PER_SECTION + 1 << shift;
+                blockAdjust += ((blockNum / BLOCKS_PER_SECTION) + 1) << shift;
                 if (blockNum >= NUM_BLOCKS_SQUARED)
-                    blockAdjust += blockNum / NUM_BLOCKS_SQUARED + 1 << shift;
+                {
+                    blockAdjust += ((blockNum / NUM_BLOCKS_SQUARED) + 1) << shift;
+                }
             }
-            return blockAdjust + blockNum;
+            return FIRSTBLOCK_OFFSET + (blockAdjust + blockNum) * BYTES_PER_BLOCK;
+        }
+
+        public static CONFileStream CreateStream(string path, CONFileListing listing)
+        {
+            var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read, 1);
+            try
+            {
+                FixedArray<byte> dataBuffer;
+                FixedArray<long> blockLocations;
+                long initialOffset;
+
+                long currentBlock = listing.BlockOffset;
+                if (listing.IsContiguous())
+                {
+                    long blockOffset = currentBlock % BLOCKS_PER_SECTION;
+                    initialOffset = blockOffset * BYTES_PER_BLOCK;
+
+                    long totalBlocks = listing.BlockCount + blockOffset;
+                    long numSections = totalBlocks / BLOCKS_PER_SECTION;
+                    if (totalBlocks % BLOCKS_PER_SECTION > 0)
+                    {
+                        ++numSections;
+                    }
+
+                    using var contiguousLocations = FixedArray<long>.Alloc(numSections);
+                    long blockMovement = BLOCKS_PER_SECTION - blockOffset;
+                    long skipVal = BYTES_PER_BLOCK << listing.Shift;
+                    long threshold = ((currentBlock / NUM_BLOCKS_SQUARED) + 1) * NUM_BLOCKS_SQUARED;
+                    long location = CalculateBlockLocation(currentBlock, listing.Shift);
+
+                    for (int i = 0; i < numSections; ++i)
+                    {
+                        contiguousLocations[i] = location;
+                        if (i < numSections - 1)
+                        {
+                            currentBlock += blockMovement;
+
+                            long seekCount = 1;
+                            if (currentBlock == BLOCKS_PER_SECTION)
+                            {
+                                seekCount = 2;
+                            }
+                            else if (currentBlock == threshold)
+                            {
+                                seekCount = currentBlock == NUM_BLOCKS_SQUARED ? 3 : 2;
+                                threshold += NUM_BLOCKS_SQUARED;
+                            }
+
+                            location += blockMovement * BYTES_PER_BLOCK + seekCount * skipVal;
+                            blockMovement = BLOCKS_PER_SECTION;
+                        }
+                    }
+                    blockLocations = contiguousLocations.TransferOwnership();
+                    dataBuffer = FixedArray<byte>.Alloc(BYTES_PER_SECTION);
+                }
+                else
+                {
+                    initialOffset = 0;
+
+                    using var splitLocations = FixedArray<long>.Alloc(listing.BlockCount);
+                    using var hashBlock = FixedArray<byte>.Alloc(BYTES_PER_BLOCK);
+                    var hashSpan = hashBlock.Span;
+                    for (int i = 0; i < listing.BlockCount; ++i)
+                    {
+                        long location = splitLocations[i] = CalculateBlockLocation(currentBlock, listing.Shift);
+                        if (i < listing.BlockCount - 1)
+                        {
+                            long blockOffset = currentBlock % BLOCKS_PER_SECTION;
+                            long hashLocation = location - ((blockOffset + 1) * BYTES_PER_BLOCK);
+                            stream.Position = hashLocation;
+
+                            if (stream.Read(hashSpan) != BYTES_PER_BLOCK)
+                            {
+                                throw new IOException("Hashblock Read error");
+                            }
+
+                            long next_block_hash_index = blockOffset * BYTES_PER_HASH_ENTRY + NEXT_BLOCK_HASH_OFFSET;
+                            currentBlock = (long) hashBlock[next_block_hash_index] << 16 |
+                                           (long) hashBlock[next_block_hash_index + 1] << 8 |
+                                                  hashBlock[next_block_hash_index + 2];
+                        }
+                    }
+                    blockLocations = splitLocations.TransferOwnership();
+                    dataBuffer = FixedArray<byte>.Alloc(BYTES_PER_BLOCK);
+                }
+                return new CONFileStream(stream, listing.Length, initialOffset, ref dataBuffer, ref blockLocations);
+            }
+            catch
+            {
+                stream.Dispose();
+                throw;
+            }
+        }
+
+        public static FixedArray<byte> LoadFile(string path, CONFileListing listing)
+        {
+            using var filestream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read, 1);
+            return LoadFile(filestream, listing);
+        }
+
+        public static FixedArray<byte> LoadFile(Stream stream, CONFileListing listing)
+        {
+            using var data = FixedArray<byte>.Alloc(listing.Length);
+            
+            long currentBlock = listing.BlockOffset;
+            if (listing.IsContiguous())
+            {
+                long numBlocks = BLOCKS_PER_SECTION - (currentBlock % BLOCKS_PER_SECTION);
+                long readSize = BYTES_PER_BLOCK * numBlocks;
+                long remaining = listing.Length;
+                while (remaining > 0)
+                {
+                    stream.Position = CalculateBlockLocation(currentBlock, listing.Shift);
+                    if (readSize > remaining)
+                    {
+                        readSize = remaining;
+                    }
+
+                    if (stream.Read(data.Slice(listing.Length - remaining, readSize)) != readSize)
+                    {
+                        throw new Exception("Block read error in CON subfile - Continguous");
+                    }
+
+                    remaining -= readSize;
+                    currentBlock += numBlocks;
+                    numBlocks = BLOCKS_PER_SECTION;
+                    readSize = BYTES_PER_SECTION;
+                }
+            }
+            else
+            {
+                using var hashBlock = FixedArray<byte>.Alloc(BYTES_PER_BLOCK);
+                var hashSpan = hashBlock.Span;
+                unsafe
+                {
+                    byte* position = data.Ptr;
+                    for (int i = 0; i < listing.BlockCount; ++i)
+                    {
+                        long blockLocation = CalculateBlockLocation(currentBlock, listing.Shift);
+                        stream.Position = blockLocation;
+
+                        long readCount = i + 1 < listing.BlockCount ? BYTES_PER_BLOCK : listing.Length % BYTES_PER_BLOCK;
+                        if (stream.Read(new Span<byte>(position, (int)readCount)) != readCount)
+                        {
+                            throw new Exception("Block read error in CON subfile - Split");
+                        }
+                        position += readCount;
+
+                        if (i + 1 < listing.BlockCount)
+                        {
+                            long blockOffset = currentBlock % BLOCKS_PER_SECTION;
+                            long hashLocation = blockLocation - ((blockOffset + 1) * BYTES_PER_BLOCK);
+
+                            if (hashLocation < 0)
+                            {
+                                throw new Exception("Ha");
+                            }
+
+                            stream.Position = hashLocation;
+                            if (stream.Read(hashSpan) != BYTES_PER_BLOCK)
+                            {
+                                throw new Exception("Hashblock read error in CON subfile");
+                            }
+
+                            long next_block_hash_index = blockOffset * BYTES_PER_HASH_ENTRY + NEXT_BLOCK_HASH_OFFSET;
+                            currentBlock = (long) hashBlock[next_block_hash_index] << 16 |
+                                           (long) hashBlock[next_block_hash_index + 1] << 8 |
+                                                  hashBlock[next_block_hash_index + 2];
+                        }
+                    }
+                }
+            }
+            return data.TransferOwnership();
         }
     }
 }

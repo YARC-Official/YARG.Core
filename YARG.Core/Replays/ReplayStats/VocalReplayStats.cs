@@ -4,6 +4,7 @@ using System.IO;
 using System.Text;
 using YARG.Core.Engine.Vocals;
 using YARG.Core.Extensions;
+using YARG.Core.IO;
 
 namespace YARG.Core.Replays
 {
@@ -19,8 +20,8 @@ namespace YARG.Core.Replays
             NumPerfectPhrases = 0;
         }
 
-        public VocalsReplayStats(UnmanagedMemoryStream stream, int version)
-            : base(stream, version)
+        public VocalsReplayStats(ref FixedArrayStream stream, int version)
+            : base(ref stream, version)
         {
             NumPhrases = stream.Read<int>(Endianness.Little);
             NumPerfectPhrases = stream.Read<int>(Endianness.Little);

@@ -1,5 +1,6 @@
 ﻿using System.IO;
 using YARG.Core.Extensions;
+using YARG.Core.IO;
 using YARG.Core.Replays;
 
 namespace YARG.Core.Engine.ProKeys
@@ -26,8 +27,8 @@ namespace YARG.Core.Engine.ProKeys
             FatFingersIgnored = stats.FatFingersIgnored;
         }
 
-        public ProKeysStats(UnmanagedMemoryStream stream, int version)
-            : base(stream, version)
+        public ProKeysStats(ref FixedArrayStream stream, int version)
+            : base(ref stream, version)
         {
             Overhits = stream.Read<int>(Endianness.Little);
             FatFingersIgnored = stream.Read<int>(Endianness.Little);

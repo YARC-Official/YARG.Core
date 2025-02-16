@@ -1,14 +1,14 @@
 ﻿using System;
 using System.Collections.Generic;
 
-namespace YARG.Core.Song.Cache
+namespace YARG.Core.Song
 {
     [Serializable]
     public sealed class SongCache
     {
         private readonly struct DateFlippedComparer : IComparer<DateTime>
         {
-            public static readonly DateFlippedComparer COMPARER = default;
+            public static readonly DateFlippedComparer Instance = default;
             public int Compare(DateTime x, DateTime y)
             {
                 return y.CompareTo(x);
@@ -28,21 +28,13 @@ namespace YARG.Core.Song.Cache
         public readonly SortedDictionary<SortString, List<SongEntry>> Sources      = new();
 
         [NonSerialized]
-        public readonly SortedDictionary<SortString, List<SongEntry>> ArtistAlbums = new();
-        [NonSerialized]
         public readonly SortedDictionary<string,     List<SongEntry>> SongLengths  = new();
         [NonSerialized]
-        public readonly SortedDictionary<DateTime,   List<SongEntry>> DatesAdded   = new(DateFlippedComparer.COMPARER);
+        public readonly SortedDictionary<DateTime,   List<SongEntry>> DatesAdded   = new(DateFlippedComparer.Instance);
+        [NonSerialized]
+        public readonly SortedDictionary<SortString, SortedDictionary<SortString, List<SongEntry>>> ArtistAlbums = new();
 
         [NonSerialized]
         public readonly SortedDictionary<Instrument, SortedDictionary<int, List<SongEntry>>> Instruments = new();
-
-        public SongCache()
-        {
-            foreach (var ins in (Instrument[])Enum.GetValues(typeof(Instrument)))
-            {
-                Instruments.Add(ins, new SortedDictionary<int, List<SongEntry>>());
-            }
-        }
     }
 }

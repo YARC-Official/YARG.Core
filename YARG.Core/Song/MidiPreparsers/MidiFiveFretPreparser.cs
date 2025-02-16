@@ -7,7 +7,7 @@ namespace YARG.Core.Song
     /// <remarks>
     /// Note: also functions as the five lane Keys preparser
     /// </remarks>
-    public static class Midi_FiveFret_Preparser
+    internal static class Midi_FiveFret_Preparser
     {
         private const int FIVEFRET_MIN = 59;
         // Open note included
@@ -41,9 +41,10 @@ namespace YARG.Core.Song
             };
 
             var note = default(MidiNote);
-            while (track.ParseEvent())
+            var stats = default(YARGMidiTrack.Stats);
+            while (track.ParseEvent(ref stats))
             {
-                if (track.Type is MidiEventType.Note_On or MidiEventType.Note_Off)
+                if (stats.Type is MidiEventType.Note_On or MidiEventType.Note_Off)
                 {
                     track.ExtractMidiNote(ref note);
                     if (note.value < FIVEFRET_MIN || note.value > MidiPreparser_Constants.DEFAULT_MAX)
@@ -62,7 +63,7 @@ namespace YARG.Core.Song
 
                     int statusMask = 1 << (diffIndex * NUM_LANES + laneIndex);
                     // Note Ons with no velocity equates to a note Off by spec
-                    if (track.Type == MidiEventType.Note_On && note.velocity > 0)
+                    if (stats.Type == MidiEventType.Note_On && note.velocity > 0)
                     {
                         statusBitMask |= statusMask;
                     }
@@ -76,7 +77,7 @@ namespace YARG.Core.Song
                         }
                     }
                 }
-                else if (track.Type is MidiEventType.SysEx or MidiEventType.SysEx_End)
+                else if (stats.Type is MidiEventType.SysEx or MidiEventType.SysEx_End)
                 {
                     var str = track.ExtractTextOrSysEx();
                     if (str.StartsWith(SYSEXTAG) && str[SYSEX_TYPE_INDEX] == OPEN_NOTE_TYPE)
@@ -96,7 +97,7 @@ namespace YARG.Core.Song
                         }
                     }
                 }
-                else if (MidiEventType.Text <= track.Type && track.Type <= MidiEventType.Text_EnumLimit)
+                else if (MidiEventType.Text <= stats.Type && stats.Type <= MidiEventType.Text_EnumLimit)
                 {
                     var str = track.ExtractTextOrSysEx();
                     if (str.SequenceEqual(ENHANCED_STRINGS[0]) || str.SequenceEqual(ENHANCED_STRINGS[1]))

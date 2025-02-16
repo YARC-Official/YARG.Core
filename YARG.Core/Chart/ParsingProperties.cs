@@ -5,13 +5,18 @@ namespace YARG.Core.Chart
     /// <summary>
     /// The type of drums contained in the chart.
     /// </summary>
+    [Flags]
     public enum DrumsType
     {
-        FourLane,
-        ProDrums,
-        FiveLane,
-        Unknown,
-        UnknownPro,
+        Unknown = 0,
+        FourLane = 1 << 0,
+        ProDrums = 1 << 1,
+        FiveLane = 1 << 2,
+        // For scanning
+        FourOrPro = FourLane | ProDrums,
+        FourOrFive = FourLane | FiveLane,
+        ProOrFive = ProDrums | FiveLane,
+        Any = FourOrFive | FiveLane | ProDrums,
     }
 
     /// <summary>

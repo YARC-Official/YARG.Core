@@ -1,5 +1,6 @@
 ﻿using System.IO;
 using YARG.Core.Extensions;
+using YARG.Core.IO;
 using YARG.Core.Replays;
 
 namespace YARG.Core.Engine.Guitar
@@ -32,8 +33,8 @@ namespace YARG.Core.Engine.Guitar
             GhostInputs = stats.GhostInputs;
         }
 
-        public GuitarStats(UnmanagedMemoryStream stream, int version)
-            : base(stream, version)
+        public GuitarStats(ref FixedArrayStream stream, int version)
+            : base(ref stream, version)
         {
             Overstrums = stream.Read<int>(Endianness.Little);
             HoposStrummed = stream.Read<int>(Endianness.Little);

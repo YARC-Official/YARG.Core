@@ -1,5 +1,6 @@
 ﻿using System.IO;
 using YARG.Core.Extensions;
+using YARG.Core.IO;
 using YARG.Core.Replays;
 
 namespace YARG.Core.Engine
@@ -200,7 +201,7 @@ namespace YARG.Core.Engine
             Stars = stats.Stars;
         }
 
-        protected BaseStats(UnmanagedMemoryStream stream, int version)
+        protected BaseStats(ref FixedArrayStream stream, int version)
         {
             CommittedScore = stream.Read<int>(Endianness.Little);
             PendingScore = stream.Read<int>(Endianness.Little);
@@ -219,6 +220,7 @@ namespace YARG.Core.Engine
             TotalStarPowerTicks = stream.Read<uint>(Endianness.Little);
             TimeInStarPower = stream.Read<double>(Endianness.Little);
             StarPowerWhammyTicks = stream.Read<uint>(Endianness.Little);
+            StarPowerActivationCount = stream.Read<int>(Endianness.Little);
             IsStarPowerActive = stream.ReadBoolean();
 
             StarPowerPhrasesHit = stream.Read<int>(Endianness.Little);
@@ -281,6 +283,7 @@ namespace YARG.Core.Engine
             writer.Write(TotalStarPowerTicks);
             writer.Write(TimeInStarPower);
             writer.Write(StarPowerWhammyTicks);
+            writer.Write(StarPowerActivationCount);
             writer.Write(IsStarPowerActive);
 
             writer.Write(StarPowerPhrasesHit);

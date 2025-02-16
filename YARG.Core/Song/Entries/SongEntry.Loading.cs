@@ -11,7 +11,7 @@ namespace YARG.Core.Song
     {
         public readonly BackgroundType Type;
         public readonly Stream? Stream;
-        public readonly YARGImage? Image;
+        public readonly YARGImage Image;
 
         public BackgroundResult(BackgroundType type, Stream stream)
         {
@@ -19,7 +19,7 @@ namespace YARG.Core.Song
             Stream = stream;
         }
 
-        public BackgroundResult(YARGImage? image)
+        public BackgroundResult(YARGImage image)
         {
             Type = BackgroundType.Image;
             Image = image;
@@ -28,7 +28,7 @@ namespace YARG.Core.Song
         public void Dispose()
         {
             Stream?.Dispose();
-            Image?.Dispose();
+            Image.Dispose();
         }
     }
 
@@ -37,7 +37,7 @@ namespace YARG.Core.Song
         public abstract SongChart? LoadChart();
         public abstract StemMixer? LoadAudio(float speed, double volume, params SongStem[] ignoreStems);
         public abstract StemMixer? LoadPreviewAudio(float speed);
-        public abstract YARGImage? LoadAlbumData();
+        public abstract YARGImage LoadAlbumData();
         public abstract BackgroundResult? LoadBackground(BackgroundType options);
         public abstract FixedArray<byte> LoadMiloData();
     }

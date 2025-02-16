@@ -232,7 +232,7 @@ namespace YARG.Core.Chart
             return new(loader);
         }
 
-        public static SongChart FromDotChart(in ParseSettings settings, string chartText)
+        public static SongChart FromDotChart(in ParseSettings settings, ReadOnlySpan<char> chartText)
         {
             var loader = MoonSongLoader.LoadDotChart(settings, chartText);
             return new(loader);

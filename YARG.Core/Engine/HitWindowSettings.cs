@@ -1,6 +1,7 @@
 ﻿using System;
 using System.IO;
 using YARG.Core.Extensions;
+using YARG.Core.IO;
 
 namespace YARG.Core.Engine
 {
@@ -67,7 +68,7 @@ namespace YARG.Core.Engine
             _minMaxWindowRatio = MinWindow / MaxWindow;
         }
 
-        public HitWindowSettings(UnmanagedMemoryStream stream, int version)
+        public HitWindowSettings(ref FixedArrayStream stream, int version)
         {
             Scale = 1;
             MaxWindow = stream.Read<double>(Endianness.Little);

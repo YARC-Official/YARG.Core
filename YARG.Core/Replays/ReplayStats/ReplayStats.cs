@@ -5,6 +5,7 @@ using System.Text;
 using YARG.Core.Engine;
 using YARG.Core.Extensions;
 using YARG.Core.Game;
+using YARG.Core.IO;
 
 namespace YARG.Core.Replays
 {
@@ -31,7 +32,7 @@ namespace YARG.Core.Replays
             NumPauses = 0;
         }
 
-        protected ReplayStats(UnmanagedMemoryStream stream, int version)
+        protected ReplayStats(ref FixedArrayStream stream, int version)
         {
             PlayerName = stream.ReadString();
             Score = stream.Read<int>(Endianness.Little);

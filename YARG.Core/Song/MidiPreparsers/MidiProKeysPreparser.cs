@@ -2,7 +2,7 @@
 
 namespace YARG.Core.Song
 {
-    public static class Midi_ProKeys_Preparser
+    internal static class Midi_ProKeys_Preparser
     {
         private const int PROKEYS_MIN = 48;
         private const int PROKEYS_MAX = 72;
@@ -12,15 +12,16 @@ namespace YARG.Core.Song
         {
             int statusBitMask = 0;
             var note = default(MidiNote);
-            while (track.ParseEvent())
+            var stats = default(YARGMidiTrack.Stats);
+            while (track.ParseEvent(ref stats))
             {
-                if (track.Type is MidiEventType.Note_On or MidiEventType.Note_Off)
+                if (stats.Type is MidiEventType.Note_On or MidiEventType.Note_Off)
                 {
                     track.ExtractMidiNote(ref note);
                     if (PROKEYS_MIN <= note.value && note.value <= PROKEYS_MAX)
                     {
                         int statusMask = 1 << (note.value - PROKEYS_MIN);
-                        if (track.Type == MidiEventType.Note_On && note.velocity > 0)
+                        if (stats.Type == MidiEventType.Note_On && note.velocity > 0)
                         {
                             statusBitMask |= statusMask;
                         }

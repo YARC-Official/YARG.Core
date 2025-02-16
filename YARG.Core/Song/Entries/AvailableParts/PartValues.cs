@@ -26,24 +26,34 @@ namespace YARG.Core.Song
                 const int BITS_IN_BYTE = 8;
                 if (subTrack >= BITS_IN_BYTE)
                 {
-                    throw new Exception("Subtrack index out of range");
+                    throw new IndexOutOfRangeException("Subtrack out of range");
                 }
-                return ((byte) (1 << subTrack) & SubTracks) > 0;
+                return ((1 << subTrack) & SubTracks) > 0;
             }
         }
 
-        public readonly bool this[Difficulty difficulty] => this[(int) difficulty];
+        public readonly bool this[Difficulty difficulty]
+        {
+            get
+            {
+                if (difficulty < Difficulty.Beginner || difficulty > Difficulty.ExpertPlus)
+                {
+                    throw new Exception("Difficulty out of range");
+                }
+                return ((1 << (int)difficulty) & SubTracks) > 0;
+            }
+        }
 
-        public void SetSubtrack(int subTrack)
+        public void ActivateSubtrack(int subTrack)
         {
             SubTracks |= (byte) (1 << subTrack);
         }
 
-        public void SetDifficulty(Difficulty difficulty)
+        public void ActivateDifficulty(Difficulty difficulty)
         {
             Difficulties |= (DifficultyMask) (1 << (int)difficulty);
         }
 
-        public readonly bool WasParsed() { return SubTracks > 0; }
+        public readonly bool IsActive() { return SubTracks > 0; }
     }
 }

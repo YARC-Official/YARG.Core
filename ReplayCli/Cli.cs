@@ -15,6 +15,9 @@ public partial class Cli
     private string _replayPath;
     private AnalyzerMode _runMode;
 
+    private int _framesPerSecond;
+    private int _frameIndex;
+
     private ReplayInfo _replayInfo;
     private ReplayData _replayData;
 
@@ -72,6 +75,32 @@ public partial class Cli
                     if (!Directory.Exists(_songPath))
                     {
                         Console.WriteLine("ERROR: Song folder does not exist!");
+                    }
+
+                    break;
+                }
+                case "--fps":
+                case "-f":
+                {
+                    i++;
+
+                    if (!int.TryParse(args[i], out _framesPerSecond))
+                    {
+                        Console.WriteLine("ERROR: Invalid FPS value!");
+                        _framesPerSecond = 0;
+                    }
+
+                    break;
+                }
+                case "--frameindex":
+                case "-fi":
+                {
+                    i++;
+
+                    if (!int.TryParse(args[i], out _frameIndex))
+                    {
+                        Console.WriteLine("ERROR: Invalid frame index!");
+                        _frameIndex = -1;
                     }
 
                     break;

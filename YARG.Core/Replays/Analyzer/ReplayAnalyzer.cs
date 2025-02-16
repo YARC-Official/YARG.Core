@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Text;
 using YARG.Core.Chart;
 using YARG.Core.Engine;
@@ -27,22 +28,26 @@ namespace YARG.Core.Replays.Analyzer
         private readonly double _fps;
         private readonly bool   _doFrameUpdates;
 
+        private readonly int _frameNum;
+
         private readonly Random _random = new();
 
-        public ReplayAnalyzer(SongChart chart, ReplayInfo replayInfo, ReplayData replayData, double fps)
+        public ReplayAnalyzer(SongChart chart, ReplayInfo replayInfo, ReplayData replayData, double fps, int frameNum)
         {
             _chart = chart;
 
             _replayInfo = replayInfo;
             _replayData = replayData;
 
+            _frameNum = frameNum;
+
             _fps = fps;
-            _doFrameUpdates = _fps > 0;
+            _doFrameUpdates = _fps > 0 || (replayData.FrameTimes.Length != 0 && _frameNum != -1);
         }
 
-        public static AnalysisResult[] AnalyzeReplay(SongChart chart, ReplayInfo info, ReplayData data, double fps = 0)
+        public static AnalysisResult[] AnalyzeReplay(SongChart chart, ReplayInfo info, ReplayData data, double fps = 0, int frameNum = -1)
         {
-            var analyzer = new ReplayAnalyzer(chart, info, data, fps);
+            var analyzer = new ReplayAnalyzer(chart, info, data, fps, frameNum);
             return analyzer.Analyze();
         }
 
@@ -183,20 +188,48 @@ namespace YARG.Core.Replays.Analyzer
                 // If we're doing frame updates, the inputs and frame times must be
                 // "interweaved" so nothing gets queued in the future
                 int currentInput = 0;
-                foreach (var time in GenerateFrameTimes(-2, maxTime))
+                if (_replayData.FrameTimes.Length != 0)
                 {
-                    for (; currentInput < frame.Inputs.Length; currentInput++)
+                    for (int frameIndex = 0; frameIndex < _replayData.FrameTimes.Length; frameIndex++)
                     {
-                        var input = frame.Inputs[currentInput];
-                        if (input.Time > time)
+                        double time = _replayData.FrameTimes[frameIndex];
+
+                        if (frameIndex == _frameNum)
                         {
-                            break;
+                            Debugger.Break();
                         }
 
-                        engine.QueueInput(ref input);
-                    }
+                        for (; currentInput < frame.Inputs.Length; currentInput++)
+                        {
+                            var input = frame.Inputs[currentInput];
+                            if (input.Time > time)
+                            {
+                                break;
+                            }
 
-                    engine.Update(time);
+                            engine.QueueInput(ref input);
+                        }
+
+                        engine.Update(time);
+                    }
+                }
+                else
+                {
+                    foreach (var time in GenerateFrameTimes(-2, maxTime))
+                    {
+                        for (; currentInput < frame.Inputs.Length; currentInput++)
+                        {
+                            var input = frame.Inputs[currentInput];
+                            if (input.Time > time)
+                            {
+                                break;
+                            }
+
+                            engine.QueueInput(ref input);
+                        }
+
+                        engine.Update(time);
+                    }
                 }
             }
 
@@ -386,7 +419,7 @@ namespace YARG.Core.Replays.Analyzer
             FormatStat("Remaining ticks", original.StarPowerTickAmount, result.StarPowerTickAmount);
             FormatStat("Ticks from whammy", original.StarPowerWhammyTicks, result.StarPowerWhammyTicks);
             FormatStat("Time in SP", original.TimeInStarPower, result.TimeInStarPower);
-            // FormatStat("Activation count", original.StarPowerActivationCount, result.StarPowerActivationCount);
+            FormatStat("Activation count", original.StarPowerActivationCount, result.StarPowerActivationCount);
             // FormatStat("Total bars filled", original.TotalStarPowerBarsFilled, result.TotalStarPowerBarsFilled);
             FormatStat("Ended with SP active", original.IsStarPowerActive, result.IsStarPowerActive);
 
@@ -416,10 +449,11 @@ namespace YARG.Core.Replays.Analyzer
                 original.StarPowerPhrasesMissed == result.StarPowerPhrasesMissed &&
                 original.IsStarPowerActive == result.IsStarPowerActive &&
                 original.StarPowerTickAmount == result.StarPowerTickAmount &&
+                original.TotalStarPowerTicks == result.TotalStarPowerTicks &&
                 original.StarPowerWhammyTicks == result.StarPowerWhammyTicks &&
                 original.TimeInStarPower == result.TimeInStarPower &&
-                // original.StarPowerActivationCount == result.StarPowerActivationCount &&
-                // original.TotalStarPowerBarsFilled == result.TotalStarPowerBarsFilled &&
+                original.StarPowerActivationCount == result.StarPowerActivationCount &&
+                //original.TotalStarPowerBarsFilled == result.TotalStarPowerBarsFilled &&
                 original.IsStarPowerActive == result.IsStarPowerActive;
 
             bool generalPass = scoringPass && performancePass && spPass;

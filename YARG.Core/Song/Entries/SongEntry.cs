@@ -1,40 +1,13 @@
 ﻿using System;
 using System.IO;
+using YARG.Core.Chart;
 using YARG.Core.Extensions;
+using YARG.Core.IO;
 using YARG.Core.Song.Cache;
+using YARG.Core.Utility;
 
 namespace YARG.Core.Song
 {
-    public enum ScanResult
-    {
-        Success,
-        DirectoryError,
-        DuplicateFilesFound,
-        IniEntryCorruption,
-        IniNotDownloaded,
-        ChartNotDownloaded,
-        NoName,
-        NoNotes,
-        DTAError,
-        MoggError,
-        UnsupportedEncryption,
-        MissingCONMidi,
-        PossibleCorruption,
-        FailedSngLoad,
-
-        InvalidResolution,
-        InvalidResolution_Update,
-        InvalidResolution_Upgrade,
-
-        NoAudio,
-        PathTooLong,
-        MultipleMidiTrackNames,
-        MultipleMidiTrackNames_Update,
-        MultipleMidiTrackNames_Upgrade,
-
-        LooseChart_Warning,
-    }
-
     /// <summary>
     /// The type of chart file to read.
     /// </summary>
@@ -104,58 +77,69 @@ namespace YARG.Core.Song
         protected static readonly string YARGROUND_FULLNAME = "bg.yarground";
         protected static readonly Random BACKROUND_RNG = new();
 
-        public const int MINIMUM_YEAR_DIGITS = 4;
+        private SortString _name = SortString.Empty;
+        private SortString _artist = SortString.Empty;
+        private SortString _album = SortString.Empty;
+        private SortString _genre = SortString.Empty;
+        private SortString _charter = SortString.Empty;
+        private SortString _source = SortString.Empty;
+        private SortString _playlist = SortString.Empty;
+        private bool _isDuplicate = false;
 
-        public readonly SongMetadata Metadata;
-        public readonly AvailableParts Parts;
-        public readonly HashWrapper Hash;
-        public readonly LoaderSettings Settings;
+        protected SongMetadata _metadata = SongMetadata.Default;
+        protected AvailableParts _parts = AvailableParts.Default;
+        protected HashWrapper _hash = default;
+        protected LoaderSettings _settings = LoaderSettings.Default;
+        protected string _parsedYear = string.Empty;
+        protected int _yearAsNumber = int.MaxValue;
 
-        public abstract string Location { get; }
-        public abstract string DirectoryActual { get; }
         public abstract EntryType SubType { get; }
-        public abstract string Year { get; }
-        public abstract int YearAsNumber { get; }
-        public abstract ulong SongLengthMilliseconds { get; }
-        public abstract bool LoopVideo { get; }
+        public abstract string SortBasedLocation { get; }
+        public abstract string ActualLocation { get; }
 
-        public SortString Name => Metadata.Name;
-        public SortString Artist => Metadata.Artist;
-        public SortString Album => Metadata.Album;
-        public SortString Genre => Metadata.Genre;
-        public SortString Charter => Metadata.Charter;
-        public SortString Source => Metadata.Source;
-        public SortString Playlist => Metadata.Playlist;
+        public HashWrapper Hash => _hash;
+        public SortString Name => _name;
+        public SortString Artist => _artist;
+        public SortString Album => _album;
+        public SortString Genre => _genre;
+        public SortString Charter => _charter;
+        public SortString Source => _source;
+        public SortString Playlist => _playlist;
 
-        public string UnmodifiedYear => Metadata.Year;
+        public string UnmodifiedYear => _metadata.Year;
+        public string ParsedYear => _parsedYear;
+        public int YearAsNumber => _yearAsNumber;
 
-        public bool IsMaster => Metadata.IsMaster;
+        public bool IsMaster => _metadata.IsMaster;
+        public bool VideoLoop => _metadata.VideoLoop;
 
-        public int AlbumTrack => Metadata.AlbumTrack;
+        public int AlbumTrack => _metadata.AlbumTrack;
 
-        public int PlaylistTrack => Metadata.PlaylistTrack;
+        public int PlaylistTrack => _metadata.PlaylistTrack;
 
-        public string LoadingPhrase => Metadata.LoadingPhrase;
+        public string LoadingPhrase => _metadata.LoadingPhrase;
         
-        public string CreditWrittenBy => Metadata.CreditWrittenBy;
+        public string CreditWrittenBy => _metadata.CreditWrittenBy;
         
-        public string CreditPerformedBy => Metadata.CreditPerformedBy;
+        public string CreditPerformedBy => _metadata.CreditPerformedBy;
         
-        public string CreditCourtesyOf => Metadata.CreditCourtesyOf;
+        public string CreditCourtesyOf => _metadata.CreditCourtesyOf;
         
-        public string CreditAlbumCover => Metadata.CreditAlbumCover;
+        public string CreditAlbumCover => _metadata.CreditAlbumCover;
         
-        public string CreditLicense => Metadata.CreditLicense;
+        public string CreditLicense => _metadata.CreditLicense;
 
-        public long SongOffsetMilliseconds => Metadata.SongOffset;
+        public long SongLengthMilliseconds => _metadata.SongLength;
 
-        public long PreviewStartMilliseconds => Metadata.PreviewStart;
+        public long SongOffsetMilliseconds => _metadata.SongOffset;
 
-        public long PreviewEndMilliseconds => Metadata.PreviewEnd;
+        public long PreviewStartMilliseconds => _metadata.Preview.Start;
 
-        public long VideoStartTimeMilliseconds => Metadata.VideoStartTime;
+        public long PreviewEndMilliseconds => _metadata.Preview.End;
 
-        public long VideoEndTimeMilliseconds => Metadata.VideoEndTime;
+        public long VideoStartTimeMilliseconds => _metadata.Video.Start;
+
+        public long VideoEndTimeMilliseconds => _metadata.Video.End;
 
         public double SongLengthSeconds => SongLengthMilliseconds / SongMetadata.MILLISECOND_FACTOR;
 
@@ -173,20 +157,24 @@ namespace YARG.Core.Song
         {
             get
             {
-                if (Parts.HarmonyVocals[2])
+                if (_parts.HarmonyVocals[2])
                 {
                     return 3;
                 }
 
-                if (Parts.HarmonyVocals[1])
+                if (_parts.HarmonyVocals[1])
                 {
                     return 2;
                 }
-                return Parts.HarmonyVocals[0] || Parts.LeadVocals[0] ? 1 : 0;
+                return _parts.HarmonyVocals[0] || _parts.LeadVocals[0] ? 1 : 0;
             }
         }
 
-        public sbyte BandDifficulty => Parts.BandDifficulty.Intensity;
+        public sbyte BandDifficulty => _parts.BandDifficulty.Intensity;
+
+        public bool IsDuplicate => _isDuplicate;
+
+        public abstract DateTime GetLastWriteTime();
 
         public override string ToString() { return Artist + " | " + Name; }
 
@@ -196,35 +184,35 @@ namespace YARG.Core.Song
             {
                 return instrument switch
                 {
-                    Instrument.FiveFretGuitar => Parts.FiveFretGuitar,
-                    Instrument.FiveFretBass => Parts.FiveFretBass,
-                    Instrument.FiveFretRhythm => Parts.FiveFretRhythm,
-                    Instrument.FiveFretCoopGuitar => Parts.FiveFretCoopGuitar,
-                    Instrument.Keys => Parts.Keys,
+                    Instrument.FiveFretGuitar => _parts.FiveFretGuitar,
+                    Instrument.FiveFretBass => _parts.FiveFretBass,
+                    Instrument.FiveFretRhythm => _parts.FiveFretRhythm,
+                    Instrument.FiveFretCoopGuitar => _parts.FiveFretCoopGuitar,
+                    Instrument.Keys => _parts.Keys,
 
-                    Instrument.SixFretGuitar => Parts.SixFretGuitar,
-                    Instrument.SixFretBass => Parts.SixFretBass,
-                    Instrument.SixFretRhythm => Parts.SixFretRhythm,
-                    Instrument.SixFretCoopGuitar => Parts.SixFretCoopGuitar,
+                    Instrument.SixFretGuitar => _parts.SixFretGuitar,
+                    Instrument.SixFretBass => _parts.SixFretBass,
+                    Instrument.SixFretRhythm => _parts.SixFretRhythm,
+                    Instrument.SixFretCoopGuitar => _parts.SixFretCoopGuitar,
 
-                    Instrument.FourLaneDrums => Parts.FourLaneDrums,
-                    Instrument.FiveLaneDrums => Parts.FiveLaneDrums,
-                    Instrument.ProDrums => Parts.ProDrums,
+                    Instrument.FourLaneDrums => _parts.FourLaneDrums,
+                    Instrument.FiveLaneDrums => _parts.FiveLaneDrums,
+                    Instrument.ProDrums => _parts.ProDrums,
 
-                    Instrument.EliteDrums => Parts.EliteDrums,
+                    Instrument.EliteDrums => _parts.EliteDrums,
 
-                    Instrument.ProGuitar_17Fret => Parts.ProGuitar_17Fret,
-                    Instrument.ProGuitar_22Fret => Parts.ProGuitar_22Fret,
-                    Instrument.ProBass_17Fret => Parts.ProBass_17Fret,
-                    Instrument.ProBass_22Fret => Parts.ProBass_22Fret,
+                    Instrument.ProGuitar_17Fret => _parts.ProGuitar_17Fret,
+                    Instrument.ProGuitar_22Fret => _parts.ProGuitar_22Fret,
+                    Instrument.ProBass_17Fret => _parts.ProBass_17Fret,
+                    Instrument.ProBass_22Fret => _parts.ProBass_22Fret,
 
-                    Instrument.ProKeys => Parts.ProKeys,
+                    Instrument.ProKeys => _parts.ProKeys,
 
                     // Instrument.Dj => DJ,
 
-                    Instrument.Vocals => Parts.LeadVocals,
-                    Instrument.Harmony => Parts.HarmonyVocals,
-                    Instrument.Band => Parts.BandDifficulty,
+                    Instrument.Vocals => _parts.LeadVocals,
+                    Instrument.Harmony => _parts.HarmonyVocals,
+                    Instrument.Band => _parts.BandDifficulty,
 
                     _ => throw new NotImplementedException($"Unhandled instrument {instrument}!")
                 };
@@ -235,76 +223,148 @@ namespace YARG.Core.Song
         {
             return instrument switch
             {
-                Instrument.FiveFretGuitar => Parts.FiveFretGuitar.SubTracks > 0,
-                Instrument.FiveFretBass => Parts.FiveFretBass.SubTracks > 0,
-                Instrument.FiveFretRhythm => Parts.FiveFretRhythm.SubTracks > 0,
-                Instrument.FiveFretCoopGuitar => Parts.FiveFretCoopGuitar.SubTracks > 0,
-                Instrument.Keys => Parts.Keys.SubTracks > 0,
+                Instrument.FiveFretGuitar => _parts.FiveFretGuitar.IsActive(),
+                Instrument.FiveFretBass => _parts.FiveFretBass.IsActive(),
+                Instrument.FiveFretRhythm => _parts.FiveFretRhythm.IsActive(),
+                Instrument.FiveFretCoopGuitar => _parts.FiveFretCoopGuitar.IsActive(),
+                Instrument.Keys => _parts.Keys.IsActive(),
 
-                Instrument.SixFretGuitar => Parts.SixFretGuitar.SubTracks > 0,
-                Instrument.SixFretBass => Parts.SixFretBass.SubTracks > 0,
-                Instrument.SixFretRhythm => Parts.SixFretRhythm.SubTracks > 0,
-                Instrument.SixFretCoopGuitar => Parts.SixFretCoopGuitar.SubTracks > 0,
+                Instrument.SixFretGuitar => _parts.SixFretGuitar.IsActive(),
+                Instrument.SixFretBass => _parts.SixFretBass.IsActive(),
+                Instrument.SixFretRhythm => _parts.SixFretRhythm.IsActive(),
+                Instrument.SixFretCoopGuitar => _parts.SixFretCoopGuitar.IsActive(),
 
-                Instrument.FourLaneDrums => Parts.FourLaneDrums.SubTracks > 0,
-                Instrument.FiveLaneDrums => Parts.FiveLaneDrums.SubTracks > 0,
-                Instrument.ProDrums => Parts.ProDrums.SubTracks > 0,
+                Instrument.FourLaneDrums => _parts.FourLaneDrums.IsActive(),
+                Instrument.FiveLaneDrums => _parts.FiveLaneDrums.IsActive(),
+                Instrument.ProDrums => _parts.ProDrums.IsActive(),
 
-                Instrument.EliteDrums => Parts.EliteDrums.SubTracks > 0,
+                Instrument.EliteDrums => _parts.EliteDrums.IsActive(),
 
-                Instrument.ProGuitar_17Fret => Parts.ProGuitar_17Fret.SubTracks > 0,
-                Instrument.ProGuitar_22Fret => Parts.ProGuitar_22Fret.SubTracks > 0,
-                Instrument.ProBass_17Fret => Parts.ProBass_17Fret.SubTracks > 0,
-                Instrument.ProBass_22Fret => Parts.ProBass_22Fret.SubTracks > 0,
+                Instrument.ProGuitar_17Fret => _parts.ProGuitar_17Fret.IsActive(),
+                Instrument.ProGuitar_22Fret => _parts.ProGuitar_22Fret.IsActive(),
+                Instrument.ProBass_17Fret => _parts.ProBass_17Fret.IsActive(),
+                Instrument.ProBass_22Fret => _parts.ProBass_22Fret.IsActive(),
 
-                Instrument.ProKeys => Parts.ProKeys.SubTracks > 0,
+                Instrument.ProKeys => _parts.ProKeys.IsActive(),
 
-                // Instrument.Dj => Parts.DJ.SubTracks > 0,
-
-                Instrument.Vocals => Parts.LeadVocals.SubTracks > 0,
-                Instrument.Harmony => Parts.HarmonyVocals.SubTracks > 0,
-                Instrument.Band => Parts.BandDifficulty.SubTracks > 0,
+                Instrument.Vocals => _parts.LeadVocals.IsActive(),
+                Instrument.Harmony => _parts.HarmonyVocals.IsActive(),
+                Instrument.Band => _parts.BandDifficulty.IsActive(),
 
                 _ => false
             };
         }
 
-        protected SongEntry(in SongMetadata metadata, in AvailableParts parts, in HashWrapper hash, in LoaderSettings settings)
-        {
-            Metadata = metadata;
-            Parts = parts;
-            Hash = hash;
-            Settings = settings;
-        }
+        internal void MarkAsDuplicate() { _isDuplicate = true; }
 
-        protected SongEntry(UnmanagedMemoryStream stream, CategoryCacheStrings strings)
+        internal virtual void Serialize(MemoryStream stream, CacheWriteIndices node)
         {
-            Hash = HashWrapper.Deserialize(stream);
+            _hash.Serialize(stream);
             unsafe
             {
-                Parts = *(AvailableParts*) stream.PositionPointer;
-                stream.Position += sizeof(AvailableParts);
+                var parts = _parts;
+                stream.Write(new Span<byte>(&parts, sizeof(AvailableParts)));
             }
-            Metadata = new SongMetadata(stream, strings);
-            Settings.HopoThreshold = stream.Read<long>(Endianness.Little);
-            Settings.SustainCutoffThreshold = stream.Read<long>(Endianness.Little);
-            Settings.OverdiveMidiNote = stream.Read<int>(Endianness.Little);
+
+            stream.Write(node.Title, Endianness.Little);
+            stream.Write(node.Artist, Endianness.Little);
+            stream.Write(node.Album, Endianness.Little);
+            stream.Write(node.Genre, Endianness.Little);
+            stream.Write(node.Year, Endianness.Little);
+            stream.Write(node.Charter, Endianness.Little);
+            stream.Write(node.Playlist, Endianness.Little);
+            stream.Write(node.Source, Endianness.Little);
+
+            stream.Write(_metadata.IsMaster);
+            stream.Write(_metadata.VideoLoop);
+
+            stream.Write(_metadata.AlbumTrack, Endianness.Little);
+            stream.Write(_metadata.PlaylistTrack, Endianness.Little);
+
+            stream.Write(_metadata.SongLength, Endianness.Little);
+            stream.Write(_metadata.SongOffset, Endianness.Little);
+            stream.Write((int)_metadata.SongRating, Endianness.Little);
+
+            stream.Write(_metadata.Preview.Start, Endianness.Little);
+            stream.Write(_metadata.Preview.End, Endianness.Little);
+
+            stream.Write(_metadata.Video.Start, Endianness.Little);
+            stream.Write(_metadata.Video.End, Endianness.Little);
+
+            stream.Write(_metadata.LoadingPhrase);
+
+            stream.Write(_metadata.CreditWrittenBy);
+            stream.Write(_metadata.CreditPerformedBy);
+            stream.Write(_metadata.CreditCourtesyOf);
+            stream.Write(_metadata.CreditAlbumCover);
+            stream.Write(_metadata.CreditLicense);
+
+            stream.Write(_settings.HopoThreshold, Endianness.Little);
+            stream.Write(_settings.SustainCutoffThreshold, Endianness.Little);
+            stream.Write(_settings.OverdiveMidiNote, Endianness.Little);
         }
 
-        public virtual void Serialize(MemoryStream stream, CategoryCacheWriteNode node)
+        protected SongEntry() { }
+
+        private protected void Deserialize(ref FixedArrayStream stream, CacheReadStrings strings)
         {
-            Hash.Serialize(stream);
+            _hash = HashWrapper.Deserialize(ref stream);
             unsafe
             {
-                fixed (AvailableParts* ptr = &Parts)
-                {
-                    stream.Write(new Span<byte>(ptr, sizeof(AvailableParts)));
-                }
+                AvailableParts parts;
+                stream.Read(&parts, sizeof(AvailableParts));
+                _parts = parts;
             }
-            Metadata.Serialize(stream, node);
-            stream.Write(Settings.HopoThreshold, Endianness.Little);
-            stream.Write(Settings.SustainCutoffThreshold, Endianness.Little);
-            stream.Write(Settings.OverdiveMidiNote, Endianness.Little);
+
+            _metadata.Name =     strings.Titles   [stream.Read<int>(Endianness.Little)];
+            _metadata.Artist =   strings.Artists  [stream.Read<int>(Endianness.Little)];
+            _metadata.Album =    strings.Albums   [stream.Read<int>(Endianness.Little)];
+            _metadata.Genre =    strings.Genres   [stream.Read<int>(Endianness.Little)];
+            _metadata.Year =     strings.Years    [stream.Read<int>(Endianness.Little)];
+            _metadata.Charter =  strings.Charters [stream.Read<int>(Endianness.Little)];
+            _metadata.Playlist = strings.Playlists[stream.Read<int>(Endianness.Little)];
+            _metadata.Source =   strings.Sources  [stream.Read<int>(Endianness.Little)];
+
+            _metadata.IsMaster =  stream.ReadBoolean();
+            _metadata.VideoLoop = stream.ReadBoolean();
+
+            _metadata.AlbumTrack =    stream.Read<int>(Endianness.Little);
+            _metadata.PlaylistTrack = stream.Read<int>(Endianness.Little);
+
+            _metadata.SongLength = stream.Read<long>(Endianness.Little);
+            _metadata.SongOffset = stream.Read<long>(Endianness.Little);
+            _metadata.SongRating = (SongRating)stream.Read<uint>(Endianness.Little);
+
+            _metadata.Preview.Start = stream.Read<long>(Endianness.Little);
+            _metadata.Preview.End   = stream.Read<long>(Endianness.Little);
+
+            _metadata.Video.Start = stream.Read<long>(Endianness.Little);
+            _metadata.Video.End = stream.Read<long>(Endianness.Little);
+
+            _metadata.LoadingPhrase = stream.ReadString();
+
+            _metadata.CreditWrittenBy = stream.ReadString();
+            _metadata.CreditPerformedBy = stream.ReadString();
+            _metadata.CreditCourtesyOf = stream.ReadString();
+            _metadata.CreditAlbumCover = stream.ReadString();
+            _metadata.CreditLicense = stream.ReadString();
+
+            _settings.HopoThreshold = stream.Read<long>(Endianness.Little);
+            _settings.SustainCutoffThreshold = stream.Read<long>(Endianness.Little);
+            _settings.OverdiveMidiNote = stream.Read<int>(Endianness.Little);
+
+            SetSortStrings();
+        }
+
+        protected void SetSortStrings()
+        {
+            _name = new SortString(_metadata.Name);
+            _artist = new SortString(_metadata.Artist);
+            _album = new SortString(_metadata.Album);
+            _genre = new SortString(_metadata.Genre);
+            _charter = new SortString(_metadata.Charter);
+            _source = new SortString(_metadata.Source);
+            _playlist = new SortString(_metadata.Playlist);
         }
     }
 }
