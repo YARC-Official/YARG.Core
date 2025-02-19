@@ -191,15 +191,9 @@ namespace YARG.Core.Song
             &SortByPlaylist, &SortBySource, &SortByArtistAlbum, &SortByLength, &SortByDateAdded, &SortByInstruments
         };
 
-        internal static void SortEntries(SongCache cache)
+        internal static unsafe void SortEntries(SongCache cache)
         {
-            Parallel.For(0, SORTERS.Length, i =>
-            {
-                unsafe
-                {
-                    SORTERS[i](cache);
-                }
-            });
+            Parallel.For(0, SORTERS.Length, i => SORTERS[i](cache));
         }
 
         private static void SortByTitle(SongCache cache)
@@ -243,8 +237,6 @@ namespace YARG.Core.Song
                     category.Insert(~index, entry);
                 }
             }
-
-            
         }
 
         private static void SortByAlbum(SongCache cache)
