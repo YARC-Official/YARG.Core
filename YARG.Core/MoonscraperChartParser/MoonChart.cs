@@ -1,16 +1,13 @@
 ﻿// Copyright (c) 2016-2020 Alexander Ong
 // See LICENSE in project root for license information.
 
+using System.Collections;
 using System.Collections.Generic;
 
 namespace MoonscraperChartEditor.Song
 {
     internal class MoonChart
     {
-        /// <summary>
-        /// The song this chart is connected to.
-        /// </summary>
-        public MoonSong song { get; private set; }
         /// <summary>
         /// The game mode the chart is designed for
         /// </summary>
@@ -34,15 +31,13 @@ namespace MoonscraperChartEditor.Song
         /// <summary>
         /// Creates a new chart object.
         /// </summary>
-        /// <param name="_song">The song to associate this chart with.</param>
-        public MoonChart(MoonSong _song, GameMode _gameMode)
+        public MoonChart(GameMode _gameMode)
         {
-            song = _song;
             gameMode = _gameMode;
         }
 
-        public MoonChart(MoonSong song, MoonSong.MoonInstrument Instrument)
-            : this(song, MoonSong.InstrumentToChartGameMode(Instrument))
+        public MoonChart(MoonSong.MoonInstrument Instrument)
+            : this(MoonSong.InstrumentToChartGameMode(Instrument))
         {
         }
 
@@ -53,17 +48,32 @@ namespace MoonscraperChartEditor.Song
             specialPhrases.Clear();
         }
 
-        public int Add(MoonNote note)
+        public void Add(MoonNote note)
+        {
+            MoonObjectHelper.AddToEnd(note, notes);
+        }
+
+        public void Add(MoonPhrase phrase)
+        {
+            MoonObjectHelper.AddToEnd(phrase, specialPhrases);
+        }
+
+        public void Add(MoonText ev)
+        {
+            MoonObjectHelper.AddToEnd(ev, events);
+        }
+
+        public int Insert(MoonNote note)
         {
             return MoonObjectHelper.Insert(note, notes);
         }
 
-        public int Add(MoonPhrase phrase)
+        public int Insert(MoonPhrase phrase)
         {
             return MoonObjectHelper.Insert(phrase, specialPhrases);
         }
 
-        public int Add(MoonText ev)
+        public int Insert(MoonText ev)
         {
             return MoonObjectHelper.Insert(ev, events);
         }
