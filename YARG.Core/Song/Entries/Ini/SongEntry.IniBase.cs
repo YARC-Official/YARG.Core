@@ -191,9 +191,9 @@ namespace YARG.Core.Song
                 {
                     entry._settings.HopoThreshold = resolution.Value / (eighthNoteHopo ? 2 : 3);
                 }
-                else if (modifiers.Extract("hopofreq", out long hopoFreq))
+                else if (modifiers.Extract("hopofreq", out int hopoFreq))
                 {
-                    int denominator = hopoFreq switch
+                    long denominator = hopoFreq switch
                     {
                         0 => 24,
                         1 => 16,
