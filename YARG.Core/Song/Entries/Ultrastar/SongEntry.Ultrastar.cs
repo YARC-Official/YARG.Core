@@ -43,6 +43,8 @@ namespace YARG.Core.Song.Entries.Ultrastar
             "co"
         };
 
+        private const int DEFAULT_INTENSITY = 3;
+
         static UltrastarEntry()
         {
             ALBUMART_FILES = new string[IMAGE_EXTENSIONS.Length * DEFAULT_ALBUMART_FILENAMES.Length];
@@ -289,10 +291,7 @@ namespace YARG.Core.Song.Entries.Ultrastar
 
         protected internal static ScanResult ScanChart(UltrastarEntry entry, in FixedArray<byte> file, UltrastarModifierCollection modifiers)
         {
-            entry._parts.LeadVocals.ActivateSubtrack(0);
-            entry._parts.LeadVocals.Intensity = 2;
-
-            // TODO: Get chart metadata here (number of players, etc.)
+            ParseChart(entry, in file);
 
             if (!modifiers.Contains("title"))
             {
@@ -334,6 +333,46 @@ namespace YARG.Core.Song.Entries.Ultrastar
                 }
             }
             return ScanResult.Success;
+        }
+
+        private static void ParseChart(UltrastarEntry entry, in FixedArray<byte> file)
+        {
+            // If we have an ultrastar chart, we have lead vocals
+            entry._parts.LeadVocals.ActivateSubtrack(0);
+            entry._parts.LeadVocals.Intensity = DEFAULT_INTENSITY;
+
+            var textContainer = new YARGTextContainer<byte>(file, Encoding.UTF8);
+            bool foundHarmony = false;
+            bool foundHarmony2 = false;
+            string line;
+
+            while ((line = YARGTextReader.PeekLine(ref textContainer)).Length > 0)
+            {
+                if (line.StartsWith("p1", StringComparison.CurrentCultureIgnoreCase))
+                {
+                    foundHarmony = true;
+                }
+
+                else if (line.StartsWith("p2", StringComparison.CurrentCultureIgnoreCase))
+                {
+                    foundHarmony = true;
+                    foundHarmony2 = true;
+                    break;
+                }
+
+                YARGTextReader.GotoNextLine(ref textContainer);
+            }
+
+            if (foundHarmony)
+            {
+                entry._parts.HarmonyVocals.ActivateSubtrack(0);
+                entry._parts.HarmonyVocals.Intensity = DEFAULT_INTENSITY;
+
+                if (foundHarmony2)
+                {
+                    entry._parts.HarmonyVocals.ActivateSubtrack(1);
+                }
+            }
         }
 
         private static void UpdateEntryWithModifiers(ref UltrastarEntry entry, UltrastarModifierCollection modifiers)

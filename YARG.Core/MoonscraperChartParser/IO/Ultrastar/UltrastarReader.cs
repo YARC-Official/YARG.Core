@@ -34,10 +34,11 @@ namespace YARG.Core.MoonscraperChartParser.IO.Ultrastar
 
         private struct ChartSettings
         {
-            public ChartSettings(uint _gap, uint _player, float _bpm, bool _relativeOffsets, bool _reachedEnd)
+            public ChartSettings(uint _gap, uint _player, uint _accumulativeBeat, float _bpm, bool _relativeOffsets, bool _reachedEnd)
             {
                 gapInMilliseconds = _gap;
                 currentPlayer = _player;
+                accumlativeBeat = _accumulativeBeat;
                 bpm = _bpm;
                 relativeNoteOffsets = _relativeOffsets;
                 reachedEnd = _reachedEnd;
@@ -45,6 +46,7 @@ namespace YARG.Core.MoonscraperChartParser.IO.Ultrastar
 
             public uint gapInMilliseconds;
             public uint currentPlayer;
+            public uint accumlativeBeat;
             public float bpm;
             public bool relativeNoteOffsets;
             public bool reachedEnd;
@@ -87,30 +89,42 @@ namespace YARG.Core.MoonscraperChartParser.IO.Ultrastar
         {
             int textIndex = 0;
 
-            ChartSettings chartSettings = new ChartSettings(0, 0, 120f, false, false);
+            ChartSettings chartSettings = new ChartSettings(0, 0, 0, 120f, false, false);
             var song = new MoonSong(DEFAULT_RESOLUTION);
-            var chart = song.GetChart(MoonSong.MoonInstrument.Vocals, MoonSong.Difficulty.Expert);
+            var charts = GetChartsForPlayer(chartSettings, song);
 
             ReadOnlySpan<char> line;
-            chart.specialPhrases.Add(new MoonPhrase(0, 0, MoonPhrase.Type.Vocals_LyricPhrase));
+
+            foreach (var chart in charts)
+            {
+                chart.specialPhrases.Add(new MoonPhrase(0, 0, MoonPhrase.Type.Vocals_LyricPhrase));
+            }
 
             while ((line = GetNextLine(chartText, ref textIndex)).Length > 0 && !chartSettings.reachedEnd)
             {
-                ParseLine(line, ref song, ref chartSettings);
+                ParseLine(line, ref chartSettings, ref song);
 
                 textIndex += 1;
             }
 
-            // Fix last special phrase end time
+            var chartsWithSpecialPhrases = song.Charts.Where(chart => chart.notes.Count > 0 && chart.specialPhrases.Count > 0);
+            foreach (var c in chartsWithSpecialPhrases)
             {
-                uint endOfLastNote = chart.notes.Last().tick + chart.notes.Last().length;
-                chart.specialPhrases.Last().length = endOfLastNote - chart.specialPhrases.Last().tick;
+                // Fix last special phrases end time
+                uint endOfLastNote = c.notes.Last().tick + c.notes.Last().length;
+                c.specialPhrases.Last().length = endOfLastNote - c.specialPhrases.Last().tick;
+
+                // Reorganize fields as multiple players get read in one at a time
+                // Without regard to the timing
+                FinalizeObjects(c.notes);
+                FinalizeObjects(c.specialPhrases);
+                FinalizeObjects(c.events);
             }
 
             return song;
         }
 
-        private static void ParseLine(ReadOnlySpan<char> lineText, ref MoonSong song, ref ChartSettings chartSettings)
+        private static void ParseLine(ReadOnlySpan<char> lineText, ref ChartSettings chartSettings, ref MoonSong song)
         {
             if (lineText.Length < 1)
             {
@@ -123,7 +137,7 @@ namespace YARG.Core.MoonscraperChartParser.IO.Ultrastar
                     ParseMetadataLine(lineText, ref chartSettings, ref song);
                     break;
                 case 'P':
-                    ParsePlayerLine(lineText, ref chartSettings);
+                    ParsePlayerLine(lineText, ref chartSettings, ref song);
                     break;
                 case ':':
                 case '*':
@@ -146,11 +160,13 @@ namespace YARG.Core.MoonscraperChartParser.IO.Ultrastar
             var splits = lineText.Split(':');
             splits.MoveNext();
 
-            if (splits.Current.StartsWith("#BPM"))
+            if (splits.Current.StartsWith("#bpm", StringComparison.CurrentCultureIgnoreCase))
             {
                 if (splits.MoveNext())
                 {
-                    if (float.TryParse(splits.Current, out float bpm))
+                    string value = splits.Current.ToString().Trim();
+                    value = value.Replace(',', '.'); // Commas may be added inplace of decimals in other languages which breaks TryParse.
+                    if (float.TryParse(value, out float bpm))
                     {
                         song.syncTrack.Tempos.Clear();
                         var tempoChange = new TempoChange(bpm * BPM_MULTIPLIER, 0, 0);
@@ -160,19 +176,34 @@ namespace YARG.Core.MoonscraperChartParser.IO.Ultrastar
                 }
             }
 
-            if (splits.Current.StartsWith("#GAP") || splits.Current.StartsWith("#AUDIOGAP"))
+            if (splits.Current.StartsWith("#gap", StringComparison.CurrentCultureIgnoreCase) || splits.Current.StartsWith("#audiogap", StringComparison.CurrentCultureIgnoreCase))
             {
                 if (splits.MoveNext())
                 {
-                    if (uint.TryParse(splits.Current, out uint gap))
+                    string value = splits.Current.ToString().Trim();
+                    value = value.Replace(',', '.'); // Commas may be added inplace of decimals in other languages which breaks TryParse.
+                    if (float.TryParse(value, out float gap))
                     {
-                        chartSettings.gapInMilliseconds = gap;
+                        chartSettings.gapInMilliseconds = (uint)gap;
+                    }
+                }
+            }
+
+            if (splits.Current.StartsWith("#relative", StringComparison.CurrentCultureIgnoreCase))
+            {
+                if (splits.MoveNext())
+                {
+                    string value = splits.Current.ToString().Trim().ToLower();
+
+                    if (value == "yes")
+                    {
+                        chartSettings.relativeNoteOffsets = true;
                     }
                 }
             }
         }
 
-        private static void ParsePlayerLine(ReadOnlySpan<char> lineText, ref ChartSettings chartSettings)
+        private static void ParsePlayerLine(ReadOnlySpan<char> lineText, ref ChartSettings chartSettings, ref MoonSong song)
         {
             if (lineText.Length < 2)
             {
@@ -181,13 +212,21 @@ namespace YARG.Core.MoonscraperChartParser.IO.Ultrastar
 
             if (uint.TryParse(lineText[1].ToString(), out uint playerId))
             {
-                chartSettings.currentPlayer = playerId - 1;
+                chartSettings.currentPlayer = playerId;
+                chartSettings.accumlativeBeat = 0;
+
+                var charts = GetChartsForPlayer(chartSettings, song);
+
+                foreach (var chart in charts)
+                {
+                    chart.specialPhrases.Add(new MoonPhrase(0, 0, MoonPhrase.Type.Vocals_LyricPhrase));
+                }
             }
         }
 
         private static void ParseNoteLine(ReadOnlySpan<char> lineText, ChartSettings chartSettings, ref MoonSong song)
         {
-            var chart = song.GetChart(MoonSong.MoonInstrument.Vocals, MoonSong.Difficulty.Expert);
+            var charts = GetChartsForPlayer(chartSettings, song);
 
             var splits = lineText.Split(' ');
             splits.MoveNext();
@@ -211,7 +250,7 @@ namespace YARG.Core.MoonscraperChartParser.IO.Ultrastar
             splits.MoveNext();
 
             int splitIndex = splits.Original.Length - (splits.Current.Length + splits.Remaining.Length) - 1;
-            string text = splits.Original[splitIndex..].ToString();
+            string text = splits.Original[splitIndex..].ToString().Trim();
 
             float timeOfStartBeat = GetTimeOfBeat(chartSettings, startBeat);
             uint startTick = song.TimeToTick(timeOfStartBeat);
@@ -220,7 +259,6 @@ namespace YARG.Core.MoonscraperChartParser.IO.Ultrastar
             uint sustainTicks = song.TimeToTick(timeOfSustainEnd) - startTick;
 
             var note = new MoonNote(startTick, pitch + MIDI_OFFSET_C4, sustainTicks);
-            MoonObjectHelper.PushNote(note, chart.notes);
 
             string lyricModifier = type switch
             {
@@ -231,16 +269,23 @@ namespace YARG.Core.MoonscraperChartParser.IO.Ultrastar
             if (text.Length > 0 && text[0] == SLIDE_CHAR)
             {
                 lyricModifier += LyricSymbols.PITCH_SLIDE_SYMBOL;
-                text = text[1..];
+                text = text[1..].Trim();
             }
 
             string lyricEvent = TextEvents.LYRIC_PREFIX_WITH_SPACE + text + lyricModifier;
-            chart.events.Add(new MoonText(lyricEvent, startTick));
 
-            if (chart.specialPhrases.Count == 1 && chart.specialPhrases.First().tick == 0)
+            foreach (var chart in charts)
             {
-                chart.specialPhrases.First().tick = startTick;
+                MoonObjectHelper.PushNote(note, chart.notes);
+                chart.events.Add(new MoonText(lyricEvent, startTick));
+
+                if (chart.specialPhrases.Count == 1 && chart.specialPhrases.First().tick == 0)
+                {
+                    chart.specialPhrases.First().tick = startTick;
+                }
             }
+
+            chartSettings.accumlativeBeat += startBeat;
         }
 
         private static void ParsePhraseEndLine(ReadOnlySpan<char> lineText, ChartSettings chartSettings, ref MoonSong song)
@@ -249,26 +294,64 @@ namespace YARG.Core.MoonscraperChartParser.IO.Ultrastar
             splits.MoveNext();
             splits.MoveNext();
 
-            var chart = song.GetChart(MoonSong.MoonInstrument.Vocals, MoonSong.Difficulty.Expert);
+            var charts = GetChartsForPlayer(chartSettings, song);
 
             if (uint.TryParse(splits.Current, out uint nextPhraseStartBeat))
             {
                 float timeOfNextPhraseStart = GetTimeOfBeat(chartSettings, nextPhraseStartBeat);
                 uint tickOfNextPhraseStart = song.TimeToTick(timeOfNextPhraseStart);
 
-                var lastPhrase = chart.specialPhrases.Last();
-                lastPhrase.length = tickOfNextPhraseStart - lastPhrase.tick;
-                
-                var nextPhrase = new MoonPhrase(tickOfNextPhraseStart, 0, MoonPhrase.Type.Vocals_LyricPhrase);
-                chart.specialPhrases.Add(nextPhrase);
+                foreach (var chart in charts)
+                {
+                    var lastPhrase = chart.specialPhrases.Last();
+                    lastPhrase.length = tickOfNextPhraseStart - lastPhrase.tick;
+
+                    var nextPhrase = new MoonPhrase(tickOfNextPhraseStart, 0, MoonPhrase.Type.Vocals_LyricPhrase);
+                    chart.specialPhrases.Add(nextPhrase);
+                }
+
+                chartSettings.accumlativeBeat += nextPhraseStartBeat;
             }
+        }
+
+        private static List<MoonChart> GetChartsForPlayer(ChartSettings chartSettings, MoonSong song)
+        {
+            MoonSong.MoonInstrument instrument = chartSettings.currentPlayer switch
+            {
+                0 => MoonSong.MoonInstrument.Vocals,
+                1 => MoonSong.MoonInstrument.Harmony1,
+                2 => MoonSong.MoonInstrument.Harmony2,
+                _ => MoonSong.MoonInstrument.Vocals
+            };
+
+            List<MoonChart> charts = new List<MoonChart>();
+            charts.Add(song.GetChart(instrument, MoonSong.Difficulty.Expert));
+
+            if (instrument == MoonSong.MoonInstrument.Harmony1)
+            {
+                charts.Add(song.GetChart(MoonSong.MoonInstrument.Vocals, MoonSong.Difficulty.Expert));
+            }
+
+            return charts;
+        }
+
+        private static void FinalizeObjects<TObject>(List<TObject> objects)
+            where TObject : MoonObject
+        {
+            objects.Sort((left, right) => left.tick.CompareTo(right.tick));
+
+            var duplicateObjects = objects.GroupBy(o => o.tick).SelectMany(g => g.Skip(1)).ToList();
+            objects.RemoveAll(o => duplicateObjects.Contains(o));
         }
 
         private static float GetTimeOfBeat(ChartSettings chartSettings, uint beat)
         {
             float gapSeconds = chartSettings.gapInMilliseconds / 1000f;
             float secondsPerBeat = 60 / chartSettings.bpm;
-            return gapSeconds + (secondsPerBeat * beat);
+
+            float relativeBeatOffset = chartSettings.relativeNoteOffsets ? (chartSettings.accumlativeBeat * secondsPerBeat) : 0;
+
+            return gapSeconds + (secondsPerBeat * beat) + relativeBeatOffset;
         }
 
         private static ReadOnlySpan<char> GetNextLine(ReadOnlySpan<char> chartText, ref int textIndex)
