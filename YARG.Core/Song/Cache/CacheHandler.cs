@@ -7,6 +7,7 @@ using YARG.Core.Audio;
 using YARG.Core.Extensions;
 using YARG.Core.IO;
 using YARG.Core.Logging;
+using YARG.Core.Song.Entries.Ultrastar;
 
 namespace YARG.Core.Song.Cache
 {
@@ -172,6 +173,13 @@ namespace YARG.Core.Song.Cache
 
         #region Data
 
+        private enum EntryType
+        {
+            INI,
+            CON,
+            Ultrastar
+        }
+
         private readonly SongCache cache = new();
 
         private readonly List<IniEntryGroup> iniGroups;
@@ -179,10 +187,11 @@ namespace YARG.Core.Song.Cache
         private readonly List<CONUpdateGroup> updateGroups = new();
         private readonly List<PackedCONUpgradeGroup> packedUpgradeGroups = new();
         private readonly List<UnpackedCONUpgradeGroup> unpackedUpgradeGroups = new();
+        private readonly List<UltrastarEntryGroup> ultrastarGroups = new();
 
         private readonly Dictionary<string, CONModification> conModifications = new();
 
-        private readonly HashSet<string> preScannedPaths = new();
+        private readonly HashSet<(EntryType, string)> preScannedPaths = new();
         private readonly SortedDictionary<string, ScanResult> badSongs = new();
         #endregion
 
@@ -193,11 +202,19 @@ namespace YARG.Core.Song.Cache
             _progress = default;
 
             iniGroups = new(baseDirectories.Count);
+            ultrastarGroups = new(baseDirectories.Count);
             foreach (string dir in baseDirectories)
             {
-                if (!string.IsNullOrEmpty(dir) && !iniGroups.Exists(group => { return group.Directory == dir; }))
+                if (!string.IsNullOrEmpty(dir))
                 {
-                    iniGroups.Add(new IniEntryGroup(dir));
+                    if (!iniGroups.Exists(group => { return group.Directory == dir; }))
+                    {
+                        iniGroups.Add(new IniEntryGroup(dir));
+                    }
+                    if (!ultrastarGroups.Exists(group => { return group.Directory == dir; }))
+                    {
+                        ultrastarGroups.Add(new UltrastarEntryGroup(dir));
+                    }
                 }
             }
         }
@@ -316,6 +333,12 @@ namespace YARG.Core.Song.Cache
                 ScanDirectory(dirInfo, group, tracker);
             });
 
+            Parallel.ForEach(ultrastarGroups, group =>
+            {
+                var dirInfo = new DirectoryInfo(group.Directory);
+                ScanDirectory(dirInfo, group, tracker);
+            });
+
             Parallel.ForEach(conEntryGroups, group =>
             {
                 group.InitScan();
@@ -394,11 +417,11 @@ namespace YARG.Core.Song.Cache
         /// </summary>
         /// <param name="directory">The directory to mark</param>
         /// <returns><see langword="true"/> if the directory was not previously marked</returns>
-        private bool FindOrMarkDirectory(string directory)
+        private bool FindOrMarkDirectory(EntryType entryType, string directory)
         {
             lock (preScannedPaths)
             {
-                if (!preScannedPaths.Add(directory))
+                if (!preScannedPaths.Add((entryType, directory)))
                 {
                     return false;
                 }
@@ -412,11 +435,11 @@ namespace YARG.Core.Song.Cache
         /// </summary>
         /// <param name="file">The file to mark</param>
         /// <returns><see langword="true"/> if the file was not previously marked</returns>
-        private bool FindOrMarkFile(string file)
+        private bool FindOrMarkFile(EntryType entryType, string file)
         {
             lock (preScannedPaths)
             {
-                return preScannedPaths.Add(file);
+                return preScannedPaths.Add((entryType, file));
             }
         }
 
@@ -634,7 +657,7 @@ namespace YARG.Core.Song.Cache
         {
             try
             {
-                if (!FindOrMarkDirectory(directory.FullName))
+                if (!FindOrMarkDirectory(EntryType.INI, directory.FullName))
                 {
                     return;
                 }
@@ -742,6 +765,62 @@ namespace YARG.Core.Song.Cache
             }
         }
 
+        private void ScanDirectory(DirectoryInfo directory, UltrastarEntryGroup group, PlaylistTracker tracker)
+        {
+            try
+            {
+                if (!FindOrMarkDirectory(EntryType.Ultrastar, directory.FullName))
+                {
+                    return;
+                }
+
+                if (!collectionCache.TryGetValue(directory.FullName, out var collection))
+                {
+                    collection = new FileCollection(directory);
+                }
+
+                // Only possible on UNIX-based systems where file names are case-sensitive
+                if (collection.ContainedDupes)
+                {
+                    AddToBadSongs(collection.Directory, ScanResult.DuplicateFilesFound);
+                }
+
+                // If we discover any combo of valid unpacked ini entry files in this directory,
+                // we will traverse none of the subdirectories present in this scope
+                if (ScanUltrastarEntry(in collection, group, tracker.Playlist))
+                {
+                    // However, the presence of subdirectories could mean that the user didn't properly
+                    // organize their collection. So as a service, we warn them in the badsongs.txt.
+                    if (collection.ContainsDirectory())
+                    {
+                        AddToBadSongs(directory.FullName, ScanResult.LooseChart_Warning);
+                    }
+                }
+                else
+                {
+                    var nextTracker = tracker.Append(directory.Name);
+                    Parallel.ForEach(collection, entry =>
+                    {
+                        switch (entry.Value)
+                        {
+                            case DirectoryInfo directory:
+                                ScanDirectory(directory, group, nextTracker);
+                                break;
+                        }
+                    });
+                }
+            }
+            catch (PathTooLongException)
+            {
+                YargLogger.LogFormatError("Path {0} is too long for the file system!", directory.FullName);
+                AddToBadSongs(directory.FullName, ScanResult.PathTooLong);
+            }
+            catch (Exception e)
+            {
+                YargLogger.LogException(e, $"Error while scanning directory {directory.FullName}!");
+            }
+        }
+
         /// <summary>
         /// Attempts to process the provided file as either a CON or SNG
         /// </summary>
@@ -754,7 +833,7 @@ namespace YARG.Core.Song.Cache
             try
             {
                 // Ensures only fully downloaded unmarked files are processed
-                if (FindOrMarkFile(filename))
+                if (FindOrMarkFile(EntryType.CON, filename))
                 {
                     string ext = info.Extension;
                     if (ext == ".sng" || ext == ".yargsong")
@@ -842,6 +921,62 @@ namespace YARG.Core.Song.Cache
                 {
                     YargLogger.LogException(e, $"Error while scanning chart file {chart}!");
                     AddToBadSongs(collection.Directory, ScanResult.IniEntryCorruption);
+                }
+                return true;
+            }
+            return false;
+        }
+
+        private bool ScanUltrastarEntry(in FileCollection collection, UltrastarEntryGroup group, string defaultPlaylist)
+        {
+            var enumerator = collection.GetEnumerator();
+
+            while (enumerator.MoveNext())
+            {
+                if (!enumerator.Current.Key.EndsWith(".txt"))
+                {
+                    continue;
+                }
+
+                if (enumerator.Current.Value is not FileInfo)
+                {
+                    continue;
+                }
+
+                var ultrastarFile = (FileInfo)enumerator.Current.Value;
+
+                // Can't play a song without any audio can you?
+                //
+                // Note though that this is purely a pre-add check.
+                // We will not invalidate an entry from cache if the user removes the audio after the fact.
+                //if (!collection.ContainsAudio())
+                //{
+                //    AddToBadSongs(ultrastarFile.FullName, ScanResult.NoAudio);
+                //    break;
+                //}
+
+                try
+                {
+                    var entry = UltrastarEntry.ProcessNewEntry(collection.Directory, ultrastarFile, defaultPlaylist);
+                    if (entry)
+                    {
+                        AddEntry(entry.Value);
+                        group.AddEntry(entry.Value);
+                    }
+                    else
+                    {
+                        AddToBadSongs(ultrastarFile.FullName, entry.Error);
+                    }
+                }
+                catch (PathTooLongException)
+                {
+                    YargLogger.LogFormatError("Path {0} is too long for the file system!", ultrastarFile);
+                    AddToBadSongs(ultrastarFile.FullName, ScanResult.PathTooLong);
+                }
+                catch (Exception e)
+                {
+                    YargLogger.LogException(e, $"Error while scanning chart file {ultrastarFile}!");
+                    AddToBadSongs(collection.Directory, ScanResult.UltrastarEntryCorruption);
                 }
                 return true;
             }
@@ -960,6 +1095,7 @@ namespace YARG.Core.Song.Cache
             UnpackedCONUpgradeGroup.SerializeGroups(filestream, unpackedUpgradeGroups);
             PackedCONUpgradeGroup.SerializeGroups(filestream, packedUpgradeGroups);
             IEntryGroup.SerializeGroups(filestream, iniGroups, nodes);
+            IEntryGroup.SerializeGroups(filestream, ultrastarGroups, nodes);
             IEntryGroup.SerializeGroups(filestream, conEntryGroups, nodes);
         }
 
@@ -989,6 +1125,11 @@ namespace YARG.Core.Song.Cache
             Parallel.ForEach(new CacheLoopable(&stream), node =>
             {
                 ReadIniDirectory(node.Slice, strings);
+            });
+
+            Parallel.ForEach(new CacheLoopable(&stream), node =>
+            {
+                ReadUltrastarDirectory(node.Slice, strings);
             });
 
             Parallel.ForEach(new CacheLoopable(&stream), node =>
@@ -1027,6 +1168,11 @@ namespace YARG.Core.Song.Cache
 
             Parallel.ForEach(new CacheLoopable(&stream), node =>
             {
+                QuickReadUltrastarDirectory(node.Slice, strings);
+            });
+
+            Parallel.ForEach(new CacheLoopable(&stream), node =>
+            {
                 QuickReadCONGroup(node.Slice, strings);
             });
         }
@@ -1055,7 +1201,7 @@ namespace YARG.Core.Song.Cache
                 goto Invalidate;
             }
 
-            FindOrMarkDirectory(directory);
+            FindOrMarkDirectory(EntryType.CON, directory);
 
             // Will add the update group to the shared list on success
             if (CONUpdateGroup.Create(directory, dtaInfo, out var group) && group.Root.LastWriteTime == dtaLastWrite)
@@ -1181,7 +1327,7 @@ namespace YARG.Core.Song.Cache
                 goto Invalidate;
             }
 
-            FindOrMarkDirectory(directory);
+            FindOrMarkDirectory(EntryType.CON, directory);
 
             if (UnpackedCONUpgradeGroup.Create(in collection, dta, out var group))
             {
@@ -1280,7 +1426,7 @@ namespace YARG.Core.Song.Cache
                 goto Invalidate;
             }
 
-            FindOrMarkFile(filename);
+            FindOrMarkFile(EntryType.CON, filename);
 
             string defaultPlaylist = ConstructPlaylist(filename, baseGroup.Directory, fullDirectoryPlaylists);
             var result = CreateCONGroup(info, defaultPlaylist);
@@ -1358,7 +1504,7 @@ namespace YARG.Core.Song.Cache
                     var entry = UnpackedIniEntry.TryDeserialize(directory, ref node.Slice, strings);
                     if (entry != null)
                     {
-                        FindOrMarkDirectory(entry.ActualLocation);
+                        FindOrMarkDirectory(EntryType.INI, entry.ActualLocation);
                         AddEntry(entry);
                         baseGroup.AddEntry(entry);
                     }
@@ -1369,13 +1515,14 @@ namespace YARG.Core.Song.Cache
                     var entry = SngEntry.TryDeserialize(directory, ref node.Slice, strings);
                     if (entry != null)
                     {
-                        FindOrMarkFile(entry.ActualLocation);
+                        FindOrMarkFile(EntryType.INI, entry.ActualLocation);
                         AddEntry(entry);
                         baseGroup.AddEntry(entry);
                     }
                 });
             }
         }
+
 
         private void QuickReadIniDirectory(FixedArrayStream stream, CacheReadStrings strings)
         {
@@ -1411,7 +1558,7 @@ namespace YARG.Core.Song.Cache
                     var info = new FileInfo(location);
                     if (info.Exists)
                     {
-                        FindOrMarkFile(location);
+                        FindOrMarkFile(EntryType.CON, location);
                         group = CreateCONGroup(info, defaultPlaylist).Entries;
                     }
                 }
@@ -1421,7 +1568,7 @@ namespace YARG.Core.Song.Cache
                 var dtaInfo = new FileInfo(Path.Combine(location, SONGS_DTA));
                 if (dtaInfo.Exists)
                 {
-                    FindOrMarkDirectory(location);
+                    FindOrMarkDirectory(EntryType.CON, location);
                     if (UnpackedCONEntryGroup.Create(location, dtaInfo, defaultPlaylist, out var unpacked))
                     {
                         lock (conEntryGroups)
@@ -1491,6 +1638,38 @@ namespace YARG.Core.Song.Cache
             }
         }
 
+        private void ReadUltrastarDirectory(FixedArrayStream stream, CacheReadStrings strings)
+        {
+            string directory = stream.ReadString();
+            if (!GetBaseUltrastarGroup(directory, out var baseGroup))
+            {
+                return;
+            }
+
+            unsafe
+            {
+                Parallel.ForEach(new CacheLoopable(&stream), node =>
+                {
+                    var entry = UltrastarEntry.TryDeserialize(directory, ref node.Slice, strings);
+                    if (entry != null)
+                    {
+                        FindOrMarkDirectory(EntryType.Ultrastar, entry.ActualLocation);
+                        AddEntry(entry);
+                        baseGroup.AddEntry(entry);
+                    }
+                });
+            }
+        }
+
+        private void QuickReadUltrastarDirectory(FixedArrayStream stream, CacheReadStrings strings)
+        {
+            string directory = stream.ReadString();
+            unsafe
+            {
+                Parallel.ForEach(new CacheLoopable(&stream), node => AddEntry(UltrastarEntry.ForceDeserialize(directory, ref node.Slice, strings)));
+            }
+        }
+
         /// <summary>
         /// Grabs the iniGroup that parents the provided path, if one exists
         /// </summary>
@@ -1525,6 +1704,24 @@ namespace YARG.Core.Song.Cache
                 }
             }
             return mods;
+        }
+
+        private bool GetBaseUltrastarGroup(string path, out UltrastarEntryGroup baseGroup)
+        {
+            foreach (var group in ultrastarGroups)
+            {
+                if (path.StartsWith(group.Directory) &&
+                    // Ensures directories with similar names (previously separate bases)
+                    // that are consolidated in-game to a single base directory
+                    // don't have conflicting "relative path" issues
+                    (path.Length == group.Directory.Length || path[group.Directory.Length] == Path.DirectorySeparatorChar))
+                {
+                    baseGroup = group;
+                    return true;
+                }
+            }
+            baseGroup = null!;
+            return false;
         }
 
         /// <summary>

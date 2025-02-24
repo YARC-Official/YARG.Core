@@ -8,6 +8,7 @@ namespace YARG.Core.Song
         DirectoryError,
         DuplicateFilesFound,
         IniEntryCorruption,
+        UltrastarEntryCorruption,
         NoName,
         NoNotes,
         DTAError,

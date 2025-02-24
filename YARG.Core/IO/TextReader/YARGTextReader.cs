@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Linq;
 using System.Text;
 using YARG.Core.Extensions;
 
@@ -10,15 +11,18 @@ namespace YARG.Core.IO
         public static readonly TChar NEWLINE;
         public static readonly TChar OPEN_BRACKET;
         public static readonly TChar CLOSE_BRACE;
+        public static readonly TChar POUND_SIGN;
 
         static unsafe TextConstants()
         {
             int newline = '\n';
             int openBracket = '[';
             int closeBrace = '}';
+            int poundSign = '#';
             NEWLINE = *(TChar*) &newline;
             OPEN_BRACKET = *(TChar*) &openBracket;
             CLOSE_BRACE = *(TChar*) &closeBrace;
+            POUND_SIGN = *(TChar*) &poundSign;
         }
     }
 
@@ -227,14 +231,14 @@ namespace YARG.Core.IO
             }
         }
 
-        public static unsafe string ExtractModifierName<TChar>(ref YARGTextContainer<TChar> container)
+        public static unsafe string ExtractModifierName<TChar>(ref YARGTextContainer<TChar> container, int splitChar = '=')
             where TChar : unmanaged, IConvertible
         {
             int length = 0;
             while (container.Position + length < container.Length)
             {
                 int val = container[length];
-                if (val <= WHITESPACE_LIMIT || val == '=')
+                if (val <= WHITESPACE_LIMIT || val == splitChar)
                 {
                     break;
                 }
@@ -330,18 +334,27 @@ namespace YARG.Core.IO
             return Decode(container.GetBuffer() + stringBegin, stringEnd - stringBegin, ref container);
         }
 
-        public static bool ExtractBoolean<TChar>(in YARGTextContainer<TChar> text)
+        public static bool ExtractBoolean<TChar>(in YARGTextContainer<TChar> text, string trueString = "true")
             where TChar : unmanaged, IConvertible
         {
             return !text.IsAtEnd() && text.Get() switch
             {
                 '1' => true,
-                _ => text.Position + 4 <= text.Length &&
-                    (text[0] | CharacterExtensions.ASCII_LOWERCASE_FLAG) is 't' &&
-                    (text[1] | CharacterExtensions.ASCII_LOWERCASE_FLAG) is 'r' &&
-                    (text[2] | CharacterExtensions.ASCII_LOWERCASE_FLAG) is 'u' &&
-                    (text[3] | CharacterExtensions.ASCII_LOWERCASE_FLAG) is 'e',
+                _ => text.Position + trueString.Length <= text.Length && MatchTrueString(text, trueString)
             };
+        }
+
+        private static bool MatchTrueString<TChar>(in YARGTextContainer<TChar> text, string trueString)
+            where TChar : unmanaged, IConvertible
+        {
+            for (int i = 0; i < trueString.Length; i++)
+            {
+                if ((text[i] | CharacterExtensions.ASCII_LOWERCASE_FLAG) != char.ToLower(trueString[i]))
+                {
+                    return false;
+                }
+            }
+            return true;
         }
 
         public static bool TryExtract<TChar, TNumber>(ref YARGTextContainer<TChar> text, out TNumber value)

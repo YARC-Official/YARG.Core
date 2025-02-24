@@ -1,4 +1,5 @@
 ﻿using YARG.Core.IO.Ini;
+using YARG.Core.IO.Ultrastar;
 
 namespace YARG.Core.Song
 {
@@ -250,6 +251,69 @@ namespace YARG.Core.Song
             if (modifiers.Extract("video_loop", out bool videoLoop))
             {
                 metadata.VideoLoop = videoLoop;
+            }
+        }
+
+        public static void FillFromUltrastar(ref SongMetadata metadata, UltrastarVersion version, UltrastarModifierCollection modifiers)
+        {
+            if (modifiers.Extract("title", out string title) && title.Length > 0)
+            {
+                metadata.Name = title;
+            }
+
+            if (modifiers.Extract("artist", out string artist) && artist.Length > 0)
+            {
+                metadata.Artist = artist;
+            }
+
+            if (modifiers.Extract("genre", out string genre) && genre.Length > 0)
+            {
+                metadata.Genre = genre;
+            }
+
+            if (modifiers.Extract("year", out string year) && year.Length > 0)
+            {
+                metadata.Year = year;
+            }
+
+            if (modifiers.Extract("creator", out string creator) && creator.Length > 0)
+            {
+                metadata.Charter = creator;
+            }
+
+            metadata.Source = "ultrastar";
+            metadata.PlaylistTrack = int.MaxValue;
+            metadata.AlbumTrack = int.MaxValue;
+
+            if (modifiers.Extract("videogap", out double videoStartTime))
+            {
+                // In version 2.0.0 this was changed to seconds, instead of milliseconds
+                if (version >= UltrastarVersion.V2_0_0)
+                {
+                    videoStartTime *= MILLISECOND_FACTOR;
+                }
+
+                metadata.Video.Start = (long) videoStartTime;
+            }
+
+            if (modifiers.Extract("previewstart", out double previewStart))
+            {
+                if (version >= UltrastarVersion.V2_0_0)
+                {
+                    previewStart *= MILLISECOND_FACTOR;
+                }
+
+                metadata.Preview.Start = (long) previewStart;
+            }
+
+            if (modifiers.Extract("previewend", out double previewEnd))
+            {
+                if (version >= UltrastarVersion.V2_0_0)
+                {
+                    previewEnd *= MILLISECOND_FACTOR;
+                }
+
+                metadata.Preview.End = (long) previewEnd;
             }
         }
     }
