@@ -25,6 +25,9 @@ namespace YARG.Core.MoonscraperChartParser.IO.Ultrastar
 
         private const char SLIDE_CHAR = '~';
 
+        private const double MAX_SECONDS_BETWEEN_START_PHRASE_FIRST_NOTE = 1.0d;
+        private const double MAX_SECONDS_BETWEEN_LAST_NOTE_END_PHRASE = 0.5d;
+
         private enum NoteType
         {
             Normal,
@@ -112,13 +115,15 @@ namespace YARG.Core.MoonscraperChartParser.IO.Ultrastar
             {
                 // Fix last special phrases end time
                 uint endOfLastNote = c.notes.Last().tick + c.notes.Last().length;
-                c.specialPhrases.Last().length = endOfLastNote - c.specialPhrases.Last().tick;
+                c.specialPhrases.Last().length = (endOfLastNote - c.specialPhrases.Last().tick) + 1;
 
                 // Reorganize fields as multiple players get read in one at a time
                 // Without regard to the timing
                 FinalizeObjects(c.notes);
                 FinalizeObjects(c.specialPhrases);
                 FinalizeObjects(c.events);
+
+                AdjustPhrasesForWaitCooldowns(song, c.notes, c.specialPhrases);
             }
 
             return song;
@@ -311,6 +316,45 @@ namespace YARG.Core.MoonscraperChartParser.IO.Ultrastar
                 }
 
                 chartSettings.accumlativeBeat += nextPhraseStartBeat;
+            }
+        }
+
+        private static void AdjustPhrasesForWaitCooldowns(MoonSong song, List<MoonNote> notes, List<MoonPhrase> specialPhrases)
+        {
+            foreach (var specialPhrase in specialPhrases)
+            {
+                var closestNoteAfter = notes.Find(note => note.tick >= specialPhrase.tick);
+                var lastNoteInPhrase = notes.FindLast(note => note.tick >= specialPhrase.tick
+                    && (note.tick + note.length) < (specialPhrase.tick + specialPhrase.length));
+
+                if (closestNoteAfter == null)
+                {
+                    continue;
+                }
+
+                double diffBetweenPhraseStartAndNote = song.TickToTime(closestNoteAfter.tick) - song.TickToTime(specialPhrase.tick);
+
+                if (diffBetweenPhraseStartAndNote <= MAX_SECONDS_BETWEEN_START_PHRASE_FIRST_NOTE)
+                {
+                    continue;
+                }
+
+                double newPhraseStartTime = song.TickToTime(closestNoteAfter.tick) - MAX_SECONDS_BETWEEN_START_PHRASE_FIRST_NOTE;
+
+                double phraseEndTime = song.TickToTime(specialPhrase.tick + specialPhrase.length);
+                if (lastNoteInPhrase != null)
+                {
+                    double lastNoteEndTime = song.TickToTime(lastNoteInPhrase.tick + lastNoteInPhrase.length);
+                    double diffLastNoteEndPhrase = phraseEndTime - lastNoteEndTime;
+
+                    if (diffLastNoteEndPhrase > MAX_SECONDS_BETWEEN_LAST_NOTE_END_PHRASE)
+                    {
+                        phraseEndTime = lastNoteEndTime + MAX_SECONDS_BETWEEN_LAST_NOTE_END_PHRASE;
+                    }
+                }
+
+                specialPhrase.tick = song.TimeToTick(newPhraseStartTime);
+                specialPhrase.length = song.TimeToTick(phraseEndTime) - specialPhrase.tick;
             }
         }
 
