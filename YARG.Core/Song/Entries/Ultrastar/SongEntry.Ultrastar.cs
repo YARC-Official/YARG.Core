@@ -334,9 +334,6 @@ namespace YARG.Core.Song.Entries.Ultrastar
         private static void ParseChart(UltrastarEntry entry, in FixedArray<byte> file)
         {
             // If we have an ultrastar chart, we have lead vocals
-            entry._parts.LeadVocals.ActivateSubtrack(0);
-            entry._parts.LeadVocals.Intensity = DEFAULT_INTENSITY;
-
             var textContainer = new YARGTextContainer<byte>(file, Encoding.UTF8);
             bool foundHarmony = false;
             bool foundHarmony2 = false;
@@ -427,6 +424,11 @@ namespace YARG.Core.Song.Entries.Ultrastar
                 {
                     entry._parts.HarmonyVocals.ActivateSubtrack(1);
                 }
+            }
+            else
+            {
+                entry._parts.LeadVocals.ActivateSubtrack(0);
+                entry._parts.LeadVocals.Intensity = DEFAULT_INTENSITY;
             }
 
             // Ultrastar by default (unless explictly specified) sets the preview start time at the start time of the note
