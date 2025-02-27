@@ -315,21 +315,17 @@ namespace YARG.Core.Song.Entries.Ultrastar
 
             UpdateEntryWithModifiers(ref entry, modifiers);
 
+            if (entry._audioLocation == string.Empty || !File.Exists(Path.Combine(entry._location, entry._audioLocation)))
+            {
+                return ScanResult.NoAudio;
+            }
+
             if (entry._metadata.SongLength <= 0)
             {
                 using var mixer = entry.LoadAudio(0, 0);
                 if (mixer != null)
                 {
                     entry._metadata.SongLength = (long) (mixer.Length * SongMetadata.MILLISECOND_FACTOR);
-
-                    if (entry._metadata.Preview == (-1, -1))
-                    {
-                        // TODO: This is not technically correct, rather the preview audio starts 1/3rd of the way through the song
-                        // in terms of the part of the song that is playable. So if a song is 300 seconds long, but vocals are
-                        // from 0-200, the preview would be at 66.66s not 100s in.
-                        // Unless specified otherwise in the ultrastar file.
-                        entry._metadata.Preview.Start = entry._metadata.SongLength / 3;
-                    }
                 }
             }
             return ScanResult.Success;
@@ -344,11 +340,43 @@ namespace YARG.Core.Song.Entries.Ultrastar
             var textContainer = new YARGTextContainer<byte>(file, Encoding.UTF8);
             bool foundHarmony = false;
             bool foundHarmony2 = false;
+            List<int> noteBeats = new List<int>();
+            bool countNoteBeats = true;
+
+            double bpm = 120;
+            double gapSeconds = 0;
+
             string line;
 
             while ((line = YARGTextReader.PeekLine(ref textContainer)).Length > 0)
             {
-                if (line.StartsWith("p1", StringComparison.CurrentCultureIgnoreCase))
+                if (line.StartsWith("#bpm", StringComparison.CurrentCultureIgnoreCase))
+                {
+                    var splits = line.Split(":");
+
+                    if (splits.Length >= 2)
+                    {
+                        if (double.TryParse(splits[1], out double tempBpm))
+                        {
+                            // Ultrastar multiplies all BPM from files by 4.
+                            bpm = tempBpm * 4;
+                        }
+                    }
+                }
+                else if (line.StartsWith("#gap", StringComparison.CurrentCultureIgnoreCase) || line.StartsWith("#audiogap", StringComparison.CurrentCultureIgnoreCase))
+                {
+                    var splits = line.Split(":");
+
+                    if (splits.Length >= 2)
+                    {
+                        if (float.TryParse(splits[1], out float tempGap))
+                        {
+                            gapSeconds = tempGap / SongMetadata.MILLISECOND_FACTOR;
+                        }
+                    }
+                }
+
+                else if (line.StartsWith("p1", StringComparison.CurrentCultureIgnoreCase))
                 {
                     foundHarmony = true;
                 }
@@ -357,7 +385,34 @@ namespace YARG.Core.Song.Entries.Ultrastar
                 {
                     foundHarmony = true;
                     foundHarmony2 = true;
+                    countNoteBeats = false;
                     break;
+                }
+
+                if (line.Length > 0 && countNoteBeats)
+                {
+                    char firstChar = line[0];
+
+                    switch (firstChar)
+                    {
+                        case ':':
+                        case '*':
+                        case 'F':
+                        case 'R':
+                        case 'G':
+                            var splits = line.Split(' ');
+
+                            if (splits.Length >= 2)
+                            {
+                                if (int.TryParse(splits[1], out int noteBeat))
+                                {
+                                    noteBeats.Add(noteBeat);
+                                }
+                            }
+                            break;
+                        default:
+                            break;
+                    }
                 }
 
                 YARGTextReader.GotoNextLine(ref textContainer);
@@ -372,6 +427,20 @@ namespace YARG.Core.Song.Entries.Ultrastar
                 {
                     entry._parts.HarmonyVocals.ActivateSubtrack(1);
                 }
+            }
+
+            // Ultrastar by default (unless explictly specified) sets the preview start time at the start time of the note
+            // that is 1/3rd of the way into player 1's notes.
+            // So if a song is 300 seconds long, notes every second from 50s-250s, so 200 notes.
+            // The preview would start at note 66, meaning the preview starts at 110s into the song audio.
+            if (noteBeats.Count > 0 && bpm != 0)
+            {
+                int noteIndex = (int)((noteBeats.Count - 1) * 0.33f);
+                int beatOfPreview = noteBeats[noteIndex];
+                double secondsPerBeat = 60 / bpm;
+                double timeOfPreviewSeconds = gapSeconds + (beatOfPreview * secondsPerBeat);
+
+                entry._metadata.Preview.Start = (long)(timeOfPreviewSeconds * SongMetadata.MILLISECOND_FACTOR);
             }
         }
 
