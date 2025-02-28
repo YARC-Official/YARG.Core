@@ -48,7 +48,7 @@ namespace YARG.Core.Chart
             }
             else
             {
-                newMeasuresLeft = TotalMeasures - _measureBeatlines.GetIndexOfNext(currentTick);
+                newMeasuresLeft = TotalMeasures - _measureBeatlines.UpperBound(currentTick);
             }
 
             MeasuresLeft = newMeasuresLeft;
