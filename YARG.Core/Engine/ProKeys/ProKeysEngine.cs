@@ -129,6 +129,12 @@ namespace YARG.Core.Engine.ProKeys
                 return;
             }
 
+            if (ActiveLaneIncludesNote(key))
+            {
+                // Cancel overhit if this key is satisfies an active lane
+                return;
+            }
+
             YargLogger.LogFormatTrace("Overhit at {0}", CurrentTime);
 
             // Break all active sustains
@@ -282,7 +288,7 @@ namespace YARG.Core.Engine.ProKeys
             UpdateMultiplier();
 
             OnNoteMissed?.Invoke(NoteIndex, note);
-            base.HitNote(note);
+            base.MissNote(note);
         }
 
         protected override void AddScore(ProKeysNote note)
