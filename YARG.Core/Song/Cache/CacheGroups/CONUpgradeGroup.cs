@@ -25,7 +25,7 @@ namespace YARG.Core.Song.Cache
 
         public static bool Create(Stream stream, List<CONFileListing> listings, in AbridgedFileInfo root, out PackedCONUpgradeGroup group)
         {
-            const string UPGRADES_PATH = "songs_upgrades/upgrades.dta";
+            const string UPGRADES_PATH = PackedRBProUpgrade.UPGRADES_DIRECTORY + RBProUpgrade.UPGRADES_DTA;
             group = null!;
             if (listings.FindListing(UPGRADES_PATH, out var listing))
             {
@@ -39,7 +39,7 @@ namespace YARG.Core.Song.Cache
                 while (YARGDTAReader.StartNode(ref container))
                 {
                     string name = YARGDTAReader.GetNameOfNode(ref container, true);
-                    if (listings.FindListing($"songs_upgrades/{name}_plus.mid", out listing))
+                    if (listings.FindListing(PackedRBProUpgrade.UPGRADES_DIRECTORY + name + RBProUpgrade.UPGRADES_MIDI_EXT, out listing))
                     {
                         group._upgrades[name] = (container, new PackedRBProUpgrade(listing, root));
                     }
@@ -99,7 +99,7 @@ namespace YARG.Core.Song.Cache
                 while (YARGDTAReader.StartNode(ref container))
                 {
                     string name = YARGDTAReader.GetNameOfNode(ref container, true);
-                    if (collection.FindFile($"{name.ToLower()}_plus.mid", out var info))
+                    if (collection.FindFile(name.ToLower() + RBProUpgrade.UPGRADES_MIDI_EXT, out var info))
                     {
                         group._upgrades[name] = (container, new UnpackedRBProUpgrade(name, info.LastWriteTime, group._root));
                     }

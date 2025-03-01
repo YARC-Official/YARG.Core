@@ -617,10 +617,6 @@ namespace YARG.Core.Song.Cache
             }
         }
 
-        private const string SONGS_DTA = "songs.dta";
-        private const string SONGUPDATES_DTA = "songs_updates.dta";
-        private const string SONGUPGRADES_DTA = "upgrades.dta";
-
         /// <summary>
         /// Checks for the presence of files pertaining to an unpacked ini entry or whether the directory
         /// is to be used for CON updates, upgrades, or extracted CON song entries.
@@ -643,7 +639,7 @@ namespace YARG.Core.Song.Cache
                 {
                     case "songs_updates":
                     {
-                        var dta = new FileInfo(Path.Combine(directory.FullName, SONGUPDATES_DTA));
+                        var dta = new FileInfo(Path.Combine(directory.FullName, RBCONEntry.SONGUPDATES_DTA));
                         if (dta.Exists && CONUpdateGroup.Create(directory.FullName, dta, out var updateGroup))
                         {
                             lock (updateGroups)
@@ -659,7 +655,7 @@ namespace YARG.Core.Song.Cache
                     // It's likely that directories of this name do not denote CON entires, so that's necessary.
                     case "songs":
                     {
-                        var dta = new FileInfo(Path.Combine(directory.FullName, SONGS_DTA));
+                        var dta = new FileInfo(Path.Combine(directory.FullName, CONEntryGroup.SONGS_DTA));
                         if (dta.Exists)
                         {
                             if (UnpackedCONEntryGroup.Create(directory.FullName, dta, tracker.Playlist, out var entryGroup))
@@ -692,7 +688,7 @@ namespace YARG.Core.Song.Cache
 
                 if (directory.Name == "songs_upgrades")
                 {
-                    if (collection.FindFile(SONGUPGRADES_DTA, out var dta)
+                    if (collection.FindFile(RBProUpgrade.UPGRADES_DTA, out var dta)
                     && UnpackedCONUpgradeGroup.Create(collection, dta, out var upgradeGroup))
                     {
                         lock (unpackedUpgradeGroups)
@@ -1049,7 +1045,7 @@ namespace YARG.Core.Song.Cache
                 goto Invalidate;
             }
 
-            var dtaInfo = new FileInfo(Path.Combine(directory, SONGUPDATES_DTA));
+            var dtaInfo = new FileInfo(Path.Combine(directory, RBCONEntry.SONGUPDATES_DTA));
             if (!dtaInfo.Exists)
             {
                 goto Invalidate;
@@ -1170,7 +1166,7 @@ namespace YARG.Core.Song.Cache
             }
 
             var collection = new FileCollection(dirInfo);
-            if (!collection.FindFile(SONGUPGRADES_DTA, out var dta))
+            if (!collection.FindFile(RBProUpgrade.UPGRADES_DTA, out var dta))
             {
                 // We don't *mark* the directory to allow the "New Entries" process
                 // to access this collection
@@ -1331,7 +1327,7 @@ namespace YARG.Core.Song.Cache
             {
                 string name = stream.ReadString();
                 CONFileListing? listing = null;
-                listings?.FindListing($"songs_upgrades/{name}_plus.mid", out listing);
+                listings?.FindListing(PackedRBProUpgrade.UPGRADES_DIRECTORY + name + RBProUpgrade.UPGRADES_MIDI_EXT, out listing);
                 var mods = GetQuickCONMods(name);
                 lock (mods)
                 {
@@ -1418,7 +1414,7 @@ namespace YARG.Core.Song.Cache
             }
             else
             {
-                var dtaInfo = new FileInfo(Path.Combine(location, SONGS_DTA));
+                var dtaInfo = new FileInfo(Path.Combine(location, CONEntryGroup.SONGS_DTA));
                 if (dtaInfo.Exists)
                 {
                     FindOrMarkDirectory(location);
@@ -1459,7 +1455,6 @@ namespace YARG.Core.Song.Cache
                     }
                 });
             }
-            
         }
 
         private void QuickReadCONGroup(FixedArrayStream stream, CacheReadStrings strings)
@@ -1618,7 +1613,7 @@ namespace YARG.Core.Song.Cache
         }
 
         /// <summary>
-        /// Constructs a directory-based playlist based on the provided file name 
+        /// Constructs a directory-based playlist based on the provided file name
         /// </summary>
         /// <param name="filename">The path for the current file</param>
         /// <param name="baseDirectory">One of the base directories provided by the user</param>

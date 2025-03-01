@@ -9,6 +9,8 @@ namespace YARG.Core.Song.Cache
 {
     internal abstract class CONEntryGroup : IEntryGroup, IDisposable, IEnumerable<KeyValuePair<string, List<YARGTextContainer<byte>>>>
     {
+        public const string SONGS_DTA = "songs.dta";
+
         private readonly Dictionary<string, List<(int Index, RBCONEntry Entry)>> _entries;
         private readonly string _defaultPlaylist;
         protected readonly AbridgedFileInfo _root;

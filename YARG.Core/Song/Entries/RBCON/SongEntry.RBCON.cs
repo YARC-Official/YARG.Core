@@ -29,6 +29,7 @@ namespace YARG.Core.Song
     {
         private const long NOTE_SNAP_THRESHOLD = 10;
         public const int UNENCRYPTED_MOGG = 0xA;
+        public const string SONGUPDATES_DTA = "songs_updates.dta";
 
         protected readonly AbridgedFileInfo _root;
         protected readonly string _nodeName;
@@ -117,7 +118,7 @@ namespace YARG.Core.Song
             // Merge update MIDI
             if (_updateMidiLastWrite.HasValue)
             {
-                if (!AbridgedFileInfo.Validate(Path.Combine(_updateDirectoryAndDtaLastWrite!.Value.FullName, "songs_updates.dta"), _updateDirectoryAndDtaLastWrite.Value.LastWriteTime))
+                if (!AbridgedFileInfo.Validate(Path.Combine(_updateDirectoryAndDtaLastWrite!.Value.FullName, SONGUPDATES_DTA), _updateDirectoryAndDtaLastWrite.Value.LastWriteTime))
                 {
                     return null;
                 }
