@@ -24,7 +24,7 @@ namespace YARG.Core.Engine
             }
         }
 
-        public class EngineContainer
+        public partial class EngineContainer
         {
             public  int          EngineId      { get; }
             public  BaseEngine   Engine        { get; }
@@ -43,9 +43,9 @@ namespace YARG.Core.Engine
                 public double            Time;
             }
 
-            private List<EngineCommand> _sentCommands = new();
-            private int                 _commandCount => _sentCommands.Count;
-            private EngineManager       _engineManager;
+            private          List<EngineCommand> _sentCommands = new();
+            private          int                 _commandCount => _sentCommands.Count;
+            private readonly EngineManager       _engineManager;
 
             public EngineContainer(BaseEngine engine, Instrument instrument, SongChart songChart, int engineId, EngineManager manager)
             {
@@ -55,6 +55,8 @@ namespace YARG.Core.Engine
                 SongChart = songChart;
                 UnisonPhrases = GetUnisonPhrases(Instrument, SongChart);
                 _engineManager = manager;
+
+                SubscribeToEngineEvents();
             }
 
             public void SendCommand(EngineCommandType command)
