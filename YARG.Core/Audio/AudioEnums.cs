@@ -36,6 +36,7 @@
         Overstrum2,
         Overstrum3,
         Overstrum4,
+        FailSound,
     }
 
     public enum DrumSfxSample
