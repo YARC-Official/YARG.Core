@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using YARG.Core.Chart;
@@ -209,8 +209,8 @@ namespace YARG.Core.Engine
                     double maxTime = Math.Min(StarPowerWhammyTimer.EndTime, nextTime);
 
                     // Get the Sync change where the max time occurs
-                    int maxSpTickSync = CurrentSyncIndex;
-                    int nextMaxSpTickSync = CurrentSyncIndex + 1;
+                    int maxSpTickSync = 0;
+                    int nextMaxSpTickSync = 1;
 
                     while (nextMaxSpTickSync < SyncTrackChanges.Count && maxTime >= SyncTrackChanges[nextMaxSpTickSync].Time)
                     {
@@ -226,8 +226,9 @@ namespace YARG.Core.Engine
 
                     int spTickAmount = (int) BaseStats.StarPowerTickAmount;
 
-                    int syncIndex = CurrentSyncIndex;
-                    int nextSyncIndex = CurrentSyncIndex + 1;
+                    // It's not ideal we start from the first syncIndex each time but it's getting the wrong one otherwise
+                    int syncIndex = 0;
+                    int nextSyncIndex = 1;
 
                     for(uint spTick = StarPowerTickPosition + 1; spTick <= maxSpTick; spTick++)
                     {
@@ -236,6 +237,7 @@ namespace YARG.Core.Engine
                         {
                             syncIndex++;
                             nextSyncIndex++;
+                            //YargLogger.LogFormatDebug("Sync index changed to {0} (tick: {1})", syncIndex, spTick);
                         }
 
                         // Time of this SP tick

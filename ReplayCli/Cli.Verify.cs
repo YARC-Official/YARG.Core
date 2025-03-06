@@ -63,6 +63,7 @@ public partial class Cli
             Console.WriteLine($"Metadata score : {_replayInfo.BandScore}");
             Console.WriteLine($"Real score     : {bandScore}");
             Console.WriteLine($"Difference     : {Math.Abs(bandScore - _replayInfo.BandScore)}\n");
+            Console.ResetColor();
 
             for (int frameIndex = 0; frameIndex < _replayData.Frames.Length; frameIndex++)
             {

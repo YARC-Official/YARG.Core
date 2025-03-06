@@ -579,7 +579,7 @@ namespace YARG.Core.Engine
             var seconds = tempo.SecondsPerBeat * drainFactor;
             var beats = period / seconds;
 
-            return Math.Round(beats * Resolution, 6);
+            //return Math.Round(beats * Resolution, 6);
             return beats * Resolution;
         }
 
@@ -648,10 +648,7 @@ namespace YARG.Core.Engine
             }
 
             // Get the change that the star power tick is in
-            if (low < StarPowerTempoTsTicks.Count - 1)
-            {
-                low--;
-            }
+            low--;
 
             var change = SyncTrackChanges[low];
             var tempo = change.Tempo;
