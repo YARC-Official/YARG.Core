@@ -10,12 +10,14 @@ namespace YARG.Core.Engine
 {
     public partial class EngineManager
     {
-        private const float INITIAL_CROWD_HAPPINESS        = 0.8f;
+        private const float INITIAL_CROWD_HAPPINESS        = 0.85f;
         private const float HAPPINESS_FAIL_THRESHOLD       = 0.0f;
         private const float HAPPINESS_PER_NOTE_HIT         = 0.01f;
         private const float HAPPINESS_PER_NOTE_MISS        = 0.04f;
         private const float HAPPINESS_PER_OVERSTRUM        = HAPPINESS_PER_NOTE_MISS / 2;
         private const int   HAPPINESS_STARPOWER_MULTIPLIER = 5;
+
+        private const float HAPPINESS_CROWD_THRESHOLD      = 0.83f;
         public        float Happiness => GetAverageHappiness();
 
         private int _starpowerCount = 0;
@@ -59,10 +61,17 @@ namespace YARG.Core.Engine
         public partial class EngineContainer
         {
             public float Happiness { get; private set; } = INITIAL_CROWD_HAPPINESS;
+            private float _previousHappiness = INITIAL_CROWD_HAPPINESS;
 
             public delegate void SongFailed();
 
+            public delegate void HappinessOverThreshold();
+
+            public delegate void HappinessUnderThreshold();
+
             public SongFailed? OnSongFailed;
+            public HappinessOverThreshold? OnHappinessOverThreshold;
+            public HappinessUnderThreshold? OnHappinessUnderThreshold;
 
             // TODO: This should only trigger once per note group
             //  I think ignoring any calls where note.WasFullyHit returns false should be good enough here
@@ -84,6 +93,14 @@ namespace YARG.Core.Engine
                 {
                     Happiness = Math.Clamp(Happiness + HAPPINESS_PER_NOTE_HIT, -1.5f, 1f);
                 }
+
+                // Send over threshold event when happiness goes from below threshold to above
+                if (Happiness >= HAPPINESS_CROWD_THRESHOLD && _previousHappiness < HAPPINESS_CROWD_THRESHOLD)
+                {
+                    OnHappinessOverThreshold?.Invoke();
+                }
+
+                _previousHappiness = Happiness;
             }
 
             private void OnNoteMissed<TNote>(int index, TNote note) where TNote : Note<TNote>
@@ -102,6 +119,14 @@ namespace YARG.Core.Engine
                     OnSongFailed?.Invoke();
                     YargLogger.LogFormatDebug("Song Fail invoked after miss by player {0} with average happiness {1}", EngineId, _engineManager.Happiness);
                 }
+
+                // Send under threshold event when happiness drops from above to below
+                if (Happiness < HAPPINESS_CROWD_THRESHOLD && _previousHappiness >= HAPPINESS_CROWD_THRESHOLD)
+                {
+                    OnHappinessUnderThreshold?.Invoke();
+                }
+
+                _previousHappiness = Happiness;
             }
 
             private void OnOverstrum()
