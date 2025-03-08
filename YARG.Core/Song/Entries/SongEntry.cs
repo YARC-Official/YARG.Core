@@ -120,16 +120,19 @@ namespace YARG.Core.Song
         public SongRating SongRating => _metadata.SongRating;
 
         public string LoadingPhrase => _metadata.LoadingPhrase;
-        
-        public string CreditWrittenBy => _metadata.CreditWrittenBy;
-        
-        public string CreditPerformedBy => _metadata.CreditPerformedBy;
-        
-        public string CreditCourtesyOf => _metadata.CreditCourtesyOf;
-        
-        public string CreditAlbumCover => _metadata.CreditAlbumCover;
-        
-        public string CreditLicense => _metadata.CreditLicense;
+
+        public string CreditAlbumArtBy   => _metadata.CreditAlbumArtBy;
+        public string CreditArrangedBy   => _metadata.CreditArrangedBy;
+        public string CreditComposedBy   => _metadata.CreditComposedBy;
+        public string CreditCourtesyOf   => _metadata.CreditCourtesyOf;
+        public string CreditLicense      => _metadata.CreditLicense;
+        public string CreditMasteredBy   => _metadata.CreditMasteredBy;
+        public string CreditMixedBy      => _metadata.CreditMixedBy;
+        public string CreditOther        => _metadata.CreditOther;
+        public string CreditPerformedBy  => _metadata.CreditPerformedBy;
+        public string CreditProducedBy   => _metadata.CreditProducedBy;
+        public string CreditPublishedBy  => _metadata.CreditPublishedBy;
+        public string CreditWrittenBy    => _metadata.CreditWrittenBy;
 
         public long SongLengthMilliseconds => _metadata.SongLength;
 
@@ -295,11 +298,18 @@ namespace YARG.Core.Song
 
             stream.Write(_metadata.LoadingPhrase);
 
-            stream.Write(_metadata.CreditWrittenBy);
-            stream.Write(_metadata.CreditPerformedBy);
+            stream.Write(_metadata.CreditAlbumArtBy);
+            stream.Write(_metadata.CreditArrangedBy);
+            stream.Write(_metadata.CreditComposedBy);
             stream.Write(_metadata.CreditCourtesyOf);
-            stream.Write(_metadata.CreditAlbumCover);
             stream.Write(_metadata.CreditLicense);
+            stream.Write(_metadata.CreditMasteredBy);
+            stream.Write(_metadata.CreditMixedBy);
+            stream.Write(_metadata.CreditOther);
+            stream.Write(_metadata.CreditPerformedBy);
+            stream.Write(_metadata.CreditProducedBy);
+            stream.Write(_metadata.CreditPublishedBy);
+            stream.Write(_metadata.CreditWrittenBy);
 
             stream.Write(_settings.HopoThreshold, Endianness.Little);
             stream.Write(_settings.SustainCutoffThreshold, Endianness.Little);
@@ -345,11 +355,18 @@ namespace YARG.Core.Song
 
             _metadata.LoadingPhrase = stream.ReadString();
 
-            _metadata.CreditWrittenBy = stream.ReadString();
-            _metadata.CreditPerformedBy = stream.ReadString();
+            _metadata.CreditAlbumArtBy = stream.ReadString();
+            _metadata.CreditArrangedBy = stream.ReadString();
+            _metadata.CreditComposedBy = stream.ReadString();
             _metadata.CreditCourtesyOf = stream.ReadString();
-            _metadata.CreditAlbumCover = stream.ReadString();
             _metadata.CreditLicense = stream.ReadString();
+            _metadata.CreditMasteredBy = stream.ReadString();
+            _metadata.CreditMixedBy = stream.ReadString();
+            _metadata.CreditOther = stream.ReadString();
+            _metadata.CreditPerformedBy = stream.ReadString();
+            _metadata.CreditProducedBy = stream.ReadString();
+            _metadata.CreditPublishedBy = stream.ReadString();
+            _metadata.CreditWrittenBy = stream.ReadString();
 
             _settings.HopoThreshold = stream.Read<long>(Endianness.Little);
             _settings.SustainCutoffThreshold = stream.Read<long>(Endianness.Little);

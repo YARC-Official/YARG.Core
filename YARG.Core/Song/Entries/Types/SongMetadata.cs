@@ -37,11 +37,18 @@ namespace YARG.Core.Song
             AlbumTrack = int.MaxValue,
             PlaylistTrack = int.MaxValue,
             LoadingPhrase = string.Empty,
-            CreditWrittenBy = string.Empty,
-            CreditPerformedBy = string.Empty,
+            CreditAlbumArtBy = string.Empty,
+            CreditArrangedBy = string.Empty,
+            CreditComposedBy = string.Empty,
             CreditCourtesyOf = string.Empty,
-            CreditAlbumCover = string.Empty,
             CreditLicense = string.Empty,
+            CreditMasteredBy = string.Empty,
+            CreditMixedBy = string.Empty,
+            CreditOther = string.Empty,
+            CreditPerformedBy = string.Empty,
+            CreditProducedBy = string.Empty,
+            CreditPublishedBy = string.Empty,
+            CreditWrittenBy = string.Empty,
             SongLength = 0,
             SongOffset = 0,
             Preview = (-1, -1),
@@ -72,11 +79,18 @@ namespace YARG.Core.Song
 
         public string LoadingPhrase;
 
-        public string CreditWrittenBy;
-        public string CreditPerformedBy;
+        public string CreditAlbumArtBy;
+        public string CreditArrangedBy;
+        public string CreditComposedBy;
         public string CreditCourtesyOf;
-        public string CreditAlbumCover;
         public string CreditLicense;
+        public string CreditMasteredBy;
+        public string CreditMixedBy;
+        public string CreditOther;
+        public string CreditPerformedBy;
+        public string CreditProducedBy;
+        public string CreditPublishedBy;
+        public string CreditWrittenBy;
 
         public static SongMetadata CreateFromIni(IniModifierCollection modifiers)
         {
@@ -150,14 +164,20 @@ namespace YARG.Core.Song
                 metadata.LoadingPhrase = loadingPhrase;
             }
 
-            if (modifiers.Extract("credit_written_by", out string creditWrittenBy))
+            if (modifiers.Extract("credit_album_art_by", out string creditAlbumArt) ||
+                modifiers.Extract("credit_album_cover", out creditAlbumArt))
             {
-                metadata.CreditWrittenBy = creditWrittenBy;
+                metadata.CreditAlbumArtBy = creditAlbumArt;
             }
 
-            if (modifiers.Extract("credit_performed_by", out string creditPerformedBy))
+            if (modifiers.Extract("credit_arranged_by", out string creditArrangedBy))
             {
-                metadata.CreditPerformedBy = creditPerformedBy;
+                metadata.CreditArrangedBy = creditArrangedBy;
+            }
+
+            if (modifiers.Extract("credit_composed_by", out string creditComposedBy))
+            {
+                metadata.CreditComposedBy = creditComposedBy;
             }
 
             if (modifiers.Extract("credit_courtesy_of", out string creditCourtesyOf))
@@ -165,14 +185,44 @@ namespace YARG.Core.Song
                 metadata.CreditCourtesyOf = creditCourtesyOf;
             }
 
-            if (modifiers.Extract("credit_album_cover", out string creditAlbumCover))
-            {
-                metadata.CreditAlbumCover = creditAlbumCover;
-            }
-
             if (modifiers.Extract("credit_license", out string creditLicense))
             {
                 metadata.CreditLicense = creditLicense;
+            }
+
+            if (modifiers.Extract("credit_mastered_by", out string creditMasteredBy))
+            {
+                metadata.CreditMasteredBy = creditMasteredBy;
+            }
+
+            if (modifiers.Extract("credit_mixed_by", out string creditMixedBy))
+            {
+                metadata.CreditMixedBy = creditMixedBy;
+            }
+
+            if (modifiers.Extract("credit_other", out string creditOther))
+            {
+                metadata.CreditOther = creditOther;
+            }
+
+            if (modifiers.Extract("credit_performed_by", out string creditPerformedBy))
+            {
+                metadata.CreditPerformedBy = creditPerformedBy;
+            }
+
+            if (modifiers.Extract("credit_produced_by", out string creditProducedBy))
+            {
+                metadata.CreditProducedBy = creditProducedBy;
+            }
+
+            if (modifiers.Extract("credit_published_by", out string creditPublishedBy))
+            {
+                metadata.CreditPublishedBy = creditPublishedBy;
+            }
+
+            if (modifiers.Extract("credit_written_by", out string creditWrittenBy))
+            {
+                metadata.CreditWrittenBy = creditWrittenBy;
             }
 
             if (modifiers.Extract("playlist_track", out int playlistTrack))
