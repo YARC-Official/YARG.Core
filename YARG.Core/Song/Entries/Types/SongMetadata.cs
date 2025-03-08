@@ -170,6 +170,11 @@ namespace YARG.Core.Song
                 metadata.CreditAlbumCover = creditAlbumCover;
             }
 
+            if (modifiers.Extract("credit_license", out string creditLicense))
+            {
+                metadata.CreditLicense = creditLicense;
+            }
+
             if (modifiers.Extract("playlist_track", out int playlistTrack))
             {
                 metadata.PlaylistTrack = playlistTrack;
