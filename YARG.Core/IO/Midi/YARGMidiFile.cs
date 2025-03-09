@@ -88,12 +88,17 @@ namespace YARG.Core.IO
             return true;
         }
 
-        public IEnumerator<YARGMidiTrack> GetEnumerator()
+        public readonly Enumerator GetEnumerator()
         {
             return new Enumerator(this);
         }
 
-        IEnumerator IEnumerable.GetEnumerator()
+        readonly IEnumerator<YARGMidiTrack> IEnumerable<YARGMidiTrack>.GetEnumerator()
+        {
+            return new Enumerator(this);
+        }
+
+        readonly IEnumerator IEnumerable.GetEnumerator()
         {
             return GetEnumerator();
         }

@@ -17,14 +17,19 @@ namespace YARG.Core.Song
             Count = stream->Read<int>(Endianness.Little);
         }
 
-        public IEnumerator<(FixedArrayStream Slice, int Index)> GetEnumerator()
+        public readonly Enumerator GetEnumerator()
         {
             return new Enumerator(Stream, Count);
         }
 
-        IEnumerator IEnumerable.GetEnumerator()
+        readonly IEnumerator<(FixedArrayStream Slice, int Index)> IEnumerable<(FixedArrayStream Slice, int Index)>.GetEnumerator()
         {
-            return GetEnumerator();
+            return new Enumerator(Stream, Count);
+        }
+
+        readonly IEnumerator IEnumerable.GetEnumerator()
+        {
+            return new Enumerator(Stream, Count);
         }
 
         public struct Enumerator : IEnumerator<(FixedArrayStream Slice, int Index)>

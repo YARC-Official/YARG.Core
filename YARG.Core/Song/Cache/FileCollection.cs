@@ -87,14 +87,19 @@ namespace YARG.Core.Song.Cache
             return false;
         }
 
-        public IEnumerator<KeyValuePair<string, FileSystemInfo>> GetEnumerator()
+        public Dictionary<string, FileSystemInfo>.Enumerator GetEnumerator()
         {
-            return ((IEnumerable<KeyValuePair<string, FileSystemInfo>>) _entries).GetEnumerator();
+            return _entries.GetEnumerator();
+        }
+
+        IEnumerator<KeyValuePair<string, FileSystemInfo>> IEnumerable<KeyValuePair<string, FileSystemInfo>>.GetEnumerator()
+        {
+            return _entries.GetEnumerator();
         }
 
         IEnumerator IEnumerable.GetEnumerator()
         {
-            return ((IEnumerable) _entries).GetEnumerator();
+            return _entries.GetEnumerator();
         }
     }
 }

@@ -108,14 +108,19 @@ namespace YARG.Core.Song.Cache
             _data.Dispose();
         }
 
-        public IEnumerator<KeyValuePair<string, List<YARGTextContainer<byte>>>> GetEnumerator()
+        public Dictionary<string, List<YARGTextContainer<byte>>>.Enumerator GetEnumerator()
         {
-            return ((IEnumerable<KeyValuePair<string, List<YARGTextContainer<byte>>>>) _nodes).GetEnumerator();
+            return _nodes.GetEnumerator();
+        }
+
+        IEnumerator<KeyValuePair<string, List<YARGTextContainer<byte>>>> IEnumerable<KeyValuePair<string, List<YARGTextContainer<byte>>>>.GetEnumerator()
+        {
+            return _nodes.GetEnumerator();
         }
 
         IEnumerator IEnumerable.GetEnumerator()
         {
-            return ((IEnumerable) _nodes).GetEnumerator();
+            return _nodes.GetEnumerator();
         }
 
         protected CONEntryGroup(in AbridgedFileInfo root, string defaultPlaylist)
