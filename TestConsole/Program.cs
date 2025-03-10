@@ -33,3 +33,9 @@ static SongChart LoadCONChart(string songId)
     return CacheLoader.LoadCON(CacheLoader.LoadCache(), songId)
         .LoadChart() ?? throw new Exception("Could not load chart!");
 }
+
+static SongChart LoadUltrastarChart(string directory)
+{
+    return CacheLoader.LoadUltrastar(CacheLoader.LoadCache(), directory)
+        .LoadChart() ?? throw new Exception("Could not load chart!");
+}
