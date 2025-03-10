@@ -1,5 +1,5 @@
-﻿using System;
-using System.Runtime.InteropServices;
+﻿using StbImageSharp;
+using System;
 
 namespace YARG.Core.IO
 {
@@ -18,7 +18,6 @@ namespace YARG.Core.IO
         public static readonly YARGImage Null = new()
         {
             _handle = FixedArray<byte>.Null,
-            _disposed = true,
             _data = null,
             _width = 0,
             _height = 0,
@@ -26,8 +25,6 @@ namespace YARG.Core.IO
         };
 
         private FixedArray<byte> _handle;
-        private bool _disposed;
-
         private unsafe byte* _data;
         private int _width;
         private int _height;
@@ -37,7 +34,7 @@ namespace YARG.Core.IO
         public readonly int Width => _width;
         public readonly int Height => _height;
         public readonly ImageFormat Format => _format;
-        public readonly unsafe bool IsAllocated => _data != null;
+        public readonly unsafe bool IsAllocated => _handle.IsAllocated;
 
         public static YARGImage Load(string path)
         {
@@ -47,18 +44,15 @@ namespace YARG.Core.IO
 
         public static unsafe YARGImage Load(in FixedArray<byte> file)
         {
-            var result = LoadNative(file.Ptr, (int) file.Length, out int width, out int height, out int components);
-            if (result == null)
+            int comp;
+            var image = Null;
+            var context = new StbImage.stbi__context(file.Ptr, file.Length);
+            if (StbImage.stbi__load_and_postprocess_8bit(&context, &image._width, &image._height, &comp, out image._handle))
             {
-                return Null;
+                image._data = image._handle.Ptr;
+                image._format = (ImageFormat) comp;
             }
-            return new YARGImage()
-            {
-                _data = result,
-                _width = width,
-                _height = height,
-                _format = (ImageFormat) components
-            };
+            return image;
         }
 
         public static YARGImage LoadDXT(string path)
@@ -82,36 +76,9 @@ namespace YARG.Core.IO
             };
         }
 
-        private void _Dispose()
-        {
-            
-            if (!_disposed)
-            {
-                unsafe
-                {
-                    if (_handle.IsAllocated)
-                    {
-                        _handle.Dispose();
-                    }
-                    else if (_data != null)
-                    {
-                        FreeNative(_data);
-                    }
-                }
-                _disposed = true;
-            }
-        }
-
         public void Dispose()
         {
-            _Dispose();
-            GC.SuppressFinalize(this);
+            _handle.Dispose();
         }
-
-        [DllImport("STB2CSharp", EntryPoint = "load_image_from_memory")]
-        private static extern unsafe byte* LoadNative(byte* data, int length, out int width, out int height, out int components);
-
-        [DllImport("STB2CSharp", EntryPoint = "free_image")]
-        private static extern unsafe void FreeNative(byte* image);
     }
 }

@@ -269,6 +269,7 @@ namespace YARG.Core.IO
                 Marshal.FreeHGlobal(IntPtr);
                 _handle = IntPtr.Zero;
             }
+            _ptr = null;
         }
     }
 }
