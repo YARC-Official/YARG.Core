@@ -1107,7 +1107,7 @@ namespace YARG.Core.Song.Cache
                 AddInvalidSong(stream.ReadString());
                 if (stream.ReadBoolean())
                 {
-                    stream.Position += sizeof(long);
+                    stream.Position += SIZEOF_DATETIME;
                 }
             }
         }
@@ -1209,7 +1209,7 @@ namespace YARG.Core.Song.Cache
                         else
                         {
                             AddInvalidSong(name);
-                            stream.Position += sizeof(long);
+                            stream.Position += SIZEOF_DATETIME;
                         }
                     }
 
@@ -1310,7 +1310,6 @@ namespace YARG.Core.Song.Cache
             for (int i = 0; i < count; i++)
             {
                 AddInvalidSong(stream.ReadString());
-                stream.Position += SIZEOF_DATETIME;
             }
         }
 
