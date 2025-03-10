@@ -73,8 +73,7 @@ namespace YARG.Core.Engine
 
             public void OnStarPowerPhraseHit<TNote>(TNote note) where TNote : Note<TNote>
             {
-                // TODO: Make sure it doesn't matter whether this is note.Time or Engine.CurrentTime
-                _engineManager.OnStarPowerPhraseHit(this, Engine.CurrentTime);
+                _engineManager.OnStarPowerPhraseHit(this, note.Time);
             }
 
             public void UpdateEngine(double time)
