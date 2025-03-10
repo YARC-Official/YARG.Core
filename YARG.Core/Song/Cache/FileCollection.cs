@@ -21,7 +21,7 @@ namespace YARG.Core.Song.Cache
         public FileCollection(DirectoryInfo directory)
         {
             Directory = directory.FullName;
-            _entries = new Dictionary<string, FileSystemInfo>(StringComparer.InvariantCultureIgnoreCase);
+            _entries = new Dictionary<string, FileSystemInfo>(StringComparer.Ordinal);
             var dupes = new HashSet<string>();
 
             foreach (var entry in directory.EnumerateFileSystemInfos("*", OPTIONS))
@@ -43,24 +43,22 @@ namespace YARG.Core.Song.Cache
 
         public bool FindFile(string name, out FileInfo file)
         {
-            if (_entries.TryGetValue(name, out var entry) && entry is FileInfo result)
-            {
-                file = result;
-                return true;
-            }
             file = null!;
-            return false;
+            if (_entries.TryGetValue(name, out var entry))
+            {
+                file = (entry as FileInfo)!;
+            }
+            return file != null!;
         }
 
         public bool FindDirectory(string name, out DirectoryInfo directory)
         {
-            if (_entries.TryGetValue(name, out var entry) && entry is DirectoryInfo result)
-            {
-                directory = result;
-                return true;
-            }
             directory = null!;
-            return false;
+            if (_entries.TryGetValue(name, out var entry))
+            {
+                directory = (entry as DirectoryInfo)!;
+            }
+            return directory != null!;
         }
 
         public bool ContainsDirectory()
