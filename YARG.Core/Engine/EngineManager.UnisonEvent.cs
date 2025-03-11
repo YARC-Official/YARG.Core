@@ -5,6 +5,7 @@ using YARG.Core.Engine.Drums;
 using YARG.Core.Engine.Guitar;
 using YARG.Core.Engine.ProKeys;
 using YARG.Core.Logging;
+using YARG.Core.Extensions;
 
 namespace YARG.Core.Engine
 {
@@ -100,7 +101,7 @@ namespace YARG.Core.Engine
         private int                                             _playerCount  = 0;
 
         // Instrument groups whose combination cannot be the source of a unison
-        private static readonly List<List<Instrument>> InstrumentGroups = new List<List<Instrument>>()
+        public static readonly List<List<Instrument>> InstrumentGroups = new List<List<Instrument>>()
         {
             new List<Instrument> { Instrument.FiveFretGuitar, Instrument.ProGuitar_17Fret, Instrument.ProGuitar_22Fret, Instrument.SixFretGuitar },
             new List<Instrument> { Instrument.FiveFretBass, Instrument.ProBass_17Fret, Instrument.ProBass_22Fret, Instrument.SixFretBass },
@@ -173,38 +174,42 @@ namespace YARG.Core.Engine
 
             var foundSelf = false;
 
+            // Find a track that corresponds to the player's instrument
             if(TryFindTrackForInstrument(instrument, chart.FiveFretTracks, out var fiveFretTrack))
             {
-                var selfInstrumentDifficulty = GetAnyInstrumentDifficulty(fiveFretTrack);
-                sourceSpSections = GetSpSectionsFromDifficulty(selfInstrumentDifficulty);
+                // var selfInstrumentDifficulty = GetAnyInstrumentDifficulty(fiveFretTrack);
+                // sourceSpSections = GetSpSectionsFromDifficulty(selfInstrumentDifficulty);
+                sourceSpSections = fiveFretTrack.FirstDifficulty().GetStarpowerSections();
                 foundSelf = true;
             }
 
             if (!foundSelf && TryFindTrackForInstrument(instrument, chart.DrumsTracks, out var drumsTrack))
             {
-                var selfInstrumentDifficulty = GetAnyInstrumentDifficulty(drumsTrack);
-                sourceSpSections = GetSpSectionsFromDifficulty(selfInstrumentDifficulty);
+                sourceSpSections = drumsTrack.FirstDifficulty().GetStarpowerSections();
                 foundSelf = true;
             }
 
             if (!foundSelf && TryFindTrackForInstrument(instrument, chart.SixFretTracks, out var sixFretTrack))
             {
-                var selfInstrumentDifficulty = GetAnyInstrumentDifficulty(sixFretTrack);
-                sourceSpSections = GetSpSectionsFromDifficulty(selfInstrumentDifficulty);
+                sourceSpSections = sixFretTrack.FirstDifficulty().GetStarpowerSections();
                 foundSelf = true;
             }
 
             if (!foundSelf && TryFindTrackForInstrument(instrument, chart.ProGuitarTracks, out var proGuitarTrack))
             {
-                var selfInstrumentDifficulty = GetAnyInstrumentDifficulty(proGuitarTrack);
-                sourceSpSections = GetSpSectionsFromDifficulty(selfInstrumentDifficulty);
+                sourceSpSections = proGuitarTrack.FirstDifficulty().GetStarpowerSections();
                 foundSelf = true;
             }
 
             if (!foundSelf && chart.ProKeys.Instrument == instrument)
             {
-                var selfInstrumentDifficulty = GetAnyInstrumentDifficulty(chart.ProKeys);
-                sourceSpSections = GetSpSectionsFromDifficulty(selfInstrumentDifficulty);
+                sourceSpSections = chart.ProKeys.FirstDifficulty().GetStarpowerSections();
+                foundSelf = true;
+            }
+
+            if (!foundSelf && chart.Keys.Instrument == instrument)
+            {
+                sourceSpSections = chart.Keys.FirstDifficulty().GetStarpowerSections();
                 foundSelf = true;
             }
 
@@ -217,31 +222,11 @@ namespace YARG.Core.Engine
             // Add ourselves to the beginning of the accepted list so any dupes with us will be filtered
             acceptedSpSections.Add(sourceSpSections);
 
-            GetSpSectionsFromCharts(chart.FiveFretTracks, ref acceptedSpSections, instrument);
-            GetSpSectionsFromCharts(chart.SixFretTracks, ref acceptedSpSections, instrument);
-            GetSpSectionsFromCharts(chart.DrumsTracks, ref acceptedSpSections, instrument);
-            // Pro guitar is excluded since we don't actually support this yet and it is causing confusion
-            // GetSpSectionsFromCharts(chart.ProGuitarTracks, ref acceptedSpSections, instrument);
-
-            if (chart.ProKeys.Instrument != instrument && chart.Keys.Instrument != instrument)
-            {
-                var proKeysDifficulty = GetAnyInstrumentDifficulty(chart.ProKeys);
-                var candidateSpSections = GetSpSectionsFromDifficulty(proKeysDifficulty);
-                if (!SpListIsDuplicate(candidateSpSections, acceptedSpSections))
-                {
-                    acceptedSpSections.Add(candidateSpSections);
-                }
-            }
-
-            if (chart.Keys.Instrument != instrument && chart.ProKeys.Instrument != instrument)
-            {
-                var keysDifficulty = GetAnyInstrumentDifficulty(chart.Keys);
-                var candidateSpSections = GetSpSectionsFromDifficulty(keysDifficulty);
-                if (!SpListIsDuplicate(candidateSpSections, acceptedSpSections))
-                {
-                    acceptedSpSections.Add(candidateSpSections);
-                }
-            }
+            chart.FiveFretTracks.GetStarpowerSections(ref acceptedSpSections, instrument);
+            chart.SixFretTracks.GetStarpowerSections(ref acceptedSpSections, instrument);
+            chart.DrumsTracks.GetStarpowerSections(ref acceptedSpSections, instrument);
+            chart.ProKeys.GetStarpowerSections(ref acceptedSpSections, instrument);
+            chart.Keys.GetStarpowerSections(ref acceptedSpSections, instrument);
 
             // Now we delete self from the accepted list to ensure we don't match against self
             acceptedSpSections.Remove(sourceSpSections);
@@ -269,8 +254,7 @@ namespace YARG.Core.Engine
 
             return phrases;
 
-            // Thus begins a parade of helper functions
-
+            // Get the track for a given instrument, if it exists
             static bool TryFindTrackForInstrument<TNote>(Instrument instrument,
                 IEnumerable<InstrumentTrack<TNote>> trackEnumerable, out InstrumentTrack<TNote> instrumentTrack) where TNote : Note<TNote>
             {
@@ -285,90 +269,6 @@ namespace YARG.Core.Engine
 
                 instrumentTrack = null;
                 return false;
-            }
-
-            // Gets the StarPower sections from a list of charts, excluding a specific instrument and anything in its group
-            static void GetSpSectionsFromCharts<TNote>(IEnumerable<InstrumentTrack<TNote>> tracks,
-                ref List<List<StarPowerSection>> acceptedSpSections,
-                Instrument instrument) where TNote : Note<TNote>
-            {
-                List<Instrument> instrumentGroup = new List<Instrument>();
-                foreach (var group in InstrumentGroups)
-                {
-                    if (group.Contains(instrument))
-                    {
-                        instrumentGroup = group;
-                        break;
-                    }
-                }
-                foreach (var track in tracks)
-                {
-                    if (track.Instrument == instrument || instrumentGroup.Contains(track.Instrument))
-                    {
-                        continue;
-                    }
-                    var instrumentDifficulty = GetAnyInstrumentDifficulty(track);
-                    var candidateSpSections = GetSpSectionsFromDifficulty(instrumentDifficulty);
-                    if (!SpListIsDuplicate(candidateSpSections, acceptedSpSections))
-                    {
-                        acceptedSpSections.Add(candidateSpSections);
-                    }
-                }
-            }
-
-            static List<StarPowerSection> GetSpSectionsFromDifficulty<TNote>(InstrumentDifficulty<TNote> difficulty) where TNote : Note<TNote>
-            {
-                var spSections = new List<StarPowerSection>();
-                foreach (var phrase in difficulty.Phrases)
-                {
-                    if (phrase.Type == PhraseType.StarPower)
-                    {
-                        spSections.Add(new StarPowerSection(phrase.Time, phrase.TimeEnd, phrase));
-                    }
-                }
-                return spSections;
-            }
-
-            static bool SpListIsDuplicate(List<StarPowerSection> proposed, List<List<StarPowerSection>> accepted)
-            {
-                foreach (var sections in accepted)
-                {
-                    if (proposed.Count != sections.Count)
-                    {
-                        continue;
-                    }
-
-                    // Count is the same, so it could be a dupe
-                    var dupeCount = 0;
-                    for (var i = 0; i < sections.Count; i++)
-                    {
-                        if (!proposed[i].Equals(sections[i]))
-                        {
-                            break;
-                        }
-                        dupeCount++;
-                    }
-
-                    if (dupeCount == sections.Count)
-                    {
-                        return true;
-                    }
-                }
-                return false;
-            }
-
-            static InstrumentDifficulty<TNote> GetAnyInstrumentDifficulty<TNote>(InstrumentTrack<TNote> instrumentTrack) where TNote : Note<TNote>
-            {
-                // We don't care what difficulty, so we return the first one we find
-                foreach (var difficulty in Enum.GetValues(typeof(Difficulty)))
-                {
-                    if (instrumentTrack.TryGetDifficulty((Difficulty) difficulty, out var instrumentDifficulty))
-                    {
-                        return instrumentDifficulty;
-                    }
-                }
-
-                return null;
             }
         }
 
