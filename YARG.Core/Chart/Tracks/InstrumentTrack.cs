@@ -79,12 +79,12 @@ namespace YARG.Core.Chart
             return totalStartTime;
         }
 
-        public double GetEndTime()
+        public double GetEndTime(bool noteOnly = false)
         {
             double totalEndTime = 0;
             foreach (var difficulty in _difficulties.Values)
             {
-                totalEndTime = Math.Max(difficulty.GetEndTime(), totalEndTime);
+                totalEndTime = Math.Max(difficulty.GetEndTime(noteOnly), totalEndTime);
             }
 
             return totalEndTime;

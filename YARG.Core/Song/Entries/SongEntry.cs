@@ -112,6 +112,7 @@ namespace YARG.Core.Song
 
         public bool IsMaster => _metadata.IsMaster;
         public bool VideoLoop => _metadata.VideoLoop;
+        public bool EndEvents => _metadata.EndEvents;
 
         public int AlbumTrack => _metadata.AlbumTrack;
 
