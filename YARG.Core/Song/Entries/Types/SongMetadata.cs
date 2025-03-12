@@ -34,6 +34,7 @@ namespace YARG.Core.Song
             Playlist = string.Empty,
             IsMaster = true,
             VideoLoop = false,
+            EndEvents = false,
             AlbumTrack = int.MaxValue,
             PlaylistTrack = int.MaxValue,
             LoadingPhrase = string.Empty,
@@ -93,6 +94,7 @@ namespace YARG.Core.Song
 
         public bool IsMaster;
         public bool VideoLoop;
+        public bool EndEvents;
 
         public int AlbumTrack;
         public int PlaylistTrack;
@@ -447,6 +449,11 @@ namespace YARG.Core.Song
             if (modifiers.Extract("link_bandcamp", out string linkBandcamp))
             {
                 metadata.LinkBandcamp = linkBandcamp;
+            }
+
+            if (modifiers.Extract("end_events", out bool endEvents))
+            {
+                metadata.EndEvents = endEvents;
             }
         }
     }
