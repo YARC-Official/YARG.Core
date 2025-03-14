@@ -37,10 +37,20 @@ namespace YARG.Core.Song
             AlbumTrack = int.MaxValue,
             PlaylistTrack = int.MaxValue,
             LoadingPhrase = string.Empty,
-            CreditAlbumArtBy = string.Empty,
+            LinkBandcamp = string.Empty,
+            LinkBluesky = string.Empty,
+            LinkFacebook = string.Empty,
+            LinkInstagram = string.Empty,
+            LinkSpotify = string.Empty,
+            LinkTwitter = string.Empty,
+            LinkOther = string.Empty,
+            LinkYoutube = string.Empty,
+            Location = string.Empty,
+            CreditAlbumArtDesignedBy = string.Empty,
             CreditArrangedBy = string.Empty,
             CreditComposedBy = string.Empty,
             CreditCourtesyOf = string.Empty,
+            CreditEngineeredBy = string.Empty,
             CreditLicense = string.Empty,
             CreditMasteredBy = string.Empty,
             CreditMixedBy = string.Empty,
@@ -49,6 +59,16 @@ namespace YARG.Core.Song
             CreditProducedBy = string.Empty,
             CreditPublishedBy = string.Empty,
             CreditWrittenBy = string.Empty,
+            CharterBass = string.Empty,
+            CharterDrums = string.Empty,
+            CharterEliteDrums = string.Empty,
+            CharterGuitar = string.Empty,
+            CharterKeys = string.Empty,
+            CharterLowerDiff = string.Empty,
+            CharterProBass = string.Empty,
+            CharterProKeys = string.Empty,
+            CharterProGuitar = string.Empty,
+            CharterVocals = string.Empty,
             SongLength = 0,
             SongOffset = 0,
             Preview = (-1, -1),
@@ -79,10 +99,22 @@ namespace YARG.Core.Song
 
         public string LoadingPhrase;
 
-        public string CreditAlbumArtBy;
+        public string LinkBandcamp;
+        public string LinkBluesky;
+        public string LinkFacebook;
+        public string LinkInstagram;
+        public string LinkSpotify;
+        public string LinkTwitter;
+        public string LinkOther;
+        public string LinkYoutube;
+
+        public string Location;
+
+        public string CreditAlbumArtDesignedBy;
         public string CreditArrangedBy;
         public string CreditComposedBy;
         public string CreditCourtesyOf;
+        public string CreditEngineeredBy;
         public string CreditLicense;
         public string CreditMasteredBy;
         public string CreditMixedBy;
@@ -91,6 +123,17 @@ namespace YARG.Core.Song
         public string CreditProducedBy;
         public string CreditPublishedBy;
         public string CreditWrittenBy;
+
+        public string CharterBass;
+        public string CharterDrums;
+        public string CharterEliteDrums;
+        public string CharterGuitar;
+        public string CharterKeys;
+        public string CharterLowerDiff;
+        public string CharterProBass;
+        public string CharterProKeys;
+        public string CharterProGuitar;
+        public string CharterVocals;
 
         public static SongMetadata CreateFromIni(IniModifierCollection modifiers)
         {
@@ -164,10 +207,49 @@ namespace YARG.Core.Song
                 metadata.LoadingPhrase = loadingPhrase;
             }
 
-            if (modifiers.Extract("credit_album_art_by", out string creditAlbumArt) ||
-                modifiers.Extract("credit_album_cover", out creditAlbumArt))
+            if (modifiers.Extract("link_bluesky", out string linkBluesky))
             {
-                metadata.CreditAlbumArtBy = creditAlbumArt;
+                metadata.LinkBluesky = linkBluesky;
+            }
+
+            if (modifiers.Extract("link_facebook", out string linkFacebook))
+            {
+                metadata.LinkFacebook = linkFacebook;
+            }
+
+            if (modifiers.Extract("link_instagram", out string linkInstagram))
+            {
+                metadata.LinkInstagram = linkInstagram;
+            }
+
+            if (modifiers.Extract("link_spotify", out string linkSpotify))
+            {
+                metadata.LinkSpotify = linkSpotify;
+            }
+
+            if (modifiers.Extract("link_twitter", out string linkTwitter))
+            {
+                metadata.LinkTwitter = linkTwitter;
+            }
+
+            if (modifiers.Extract("link_other", out string linkOther))
+            {
+                metadata.LinkOther = linkOther;
+            }
+
+            if (modifiers.Extract("link_youtube", out string linkYoutube))
+            {
+                metadata.LinkYoutube = linkYoutube;
+            }
+
+            if (modifiers.Extract("location", out string location))
+            {
+                metadata.Location = location;
+            }
+
+            if (modifiers.Extract("credit_album_art_designed_by", out string creditAlbumArt))
+            {
+                metadata.CreditAlbumArtDesignedBy = creditAlbumArt;
             }
 
             if (modifiers.Extract("credit_arranged_by", out string creditArrangedBy))
@@ -183,6 +265,11 @@ namespace YARG.Core.Song
             if (modifiers.Extract("credit_courtesy_of", out string creditCourtesyOf))
             {
                 metadata.CreditCourtesyOf = creditCourtesyOf;
+            }
+
+            if (modifiers.Extract("credit_engineered_by", out string creditEngineeredBy))
+            {
+                metadata.CreditEngineeredBy = creditEngineeredBy;
             }
 
             if (modifiers.Extract("credit_license", out string creditLicense))
@@ -223,6 +310,56 @@ namespace YARG.Core.Song
             if (modifiers.Extract("credit_written_by", out string creditWrittenBy))
             {
                 metadata.CreditWrittenBy = creditWrittenBy;
+            }
+
+            if (modifiers.Extract("charter_bass", out string charterBass))
+            {
+                metadata.CharterBass = charterBass;
+            }
+
+            if (modifiers.Extract("charter_drums", out string charterDrums))
+            {
+                metadata.CharterDrums = charterDrums;
+            }
+
+            if (modifiers.Extract("charter_elite_drums", out string charterEliteDrums))
+            {
+                metadata.CharterEliteDrums = charterEliteDrums;
+            }
+
+            if (modifiers.Extract("charter_guitar", out string charterGuitar))
+            {
+                metadata.CharterGuitar = charterGuitar;
+            }
+
+            if (modifiers.Extract("charter_keys", out string charterKeys))
+            {
+                metadata.CharterKeys = charterKeys;
+            }
+
+            if (modifiers.Extract("charter_lower_diff", out string charterLowerDiff))
+            {
+                metadata.CharterLowerDiff = charterLowerDiff;
+            }
+
+            if (modifiers.Extract("charter_pro_bass", out string charterProBass))
+            {
+                metadata.CharterProBass = charterProBass;
+            }
+
+            if (modifiers.Extract("charter_pro_keys", out string charterProKeys))
+            {
+                metadata.CharterProKeys = charterProKeys;
+            }
+
+            if (modifiers.Extract("charter_pro_guitar", out string charterProGuitar))
+            {
+                metadata.CharterProGuitar = charterProGuitar;
+            }
+
+            if (modifiers.Extract("charter_vocals", out string charterVocals))
+            {
+                metadata.CharterVocals = charterVocals;
             }
 
             if (modifiers.Extract("playlist_track", out int playlistTrack))
@@ -305,6 +442,11 @@ namespace YARG.Core.Song
             if (modifiers.Extract("video_loop", out bool videoLoop))
             {
                 metadata.VideoLoop = videoLoop;
+            }
+
+            if (modifiers.Extract("link_bandcamp", out string linkBandcamp))
+            {
+                metadata.LinkBandcamp = linkBandcamp;
             }
         }
     }
