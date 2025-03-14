@@ -15,7 +15,9 @@ namespace YARG.Core.Song.Cache
         private const FileAttributes RECALL_ON_DATA_ACCESS = (FileAttributes) 0x00400000;
         private static readonly EnumerationOptions OPTIONS = new()
         {
-            AttributesToSkip = FileAttributes.Hidden | FileAttributes.System | RECALL_ON_DATA_ACCESS
+            MatchType = MatchType.Win32,
+            AttributesToSkip = RECALL_ON_DATA_ACCESS,
+            IgnoreInaccessible = false,
         };
 
         public FileCollection(DirectoryInfo directory)
