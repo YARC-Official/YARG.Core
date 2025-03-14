@@ -50,7 +50,7 @@ namespace YARG.Core.Audio
             };
         }
 
-        internal static bool LogMixerStatus;
+        public static bool LogMixerStatus { get; internal set; }
 
         public static bool UseWhammyFx;
         public static bool IsChipmunkSpeedup;
