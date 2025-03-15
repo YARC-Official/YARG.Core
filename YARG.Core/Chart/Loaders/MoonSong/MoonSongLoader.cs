@@ -5,6 +5,7 @@ using Melanchall.DryWetMidi.Core;
 using MoonscraperChartEditor.Song;
 using MoonscraperChartEditor.Song.IO;
 using YARG.Core.Logging;
+using YARG.Core.MoonscraperChartParser.IO.Ultrastar;
 
 namespace YARG.Core.Chart
 {
@@ -42,6 +43,7 @@ namespace YARG.Core.Chart
             {
                 ".mid" => MidReader.ReadMidi(ref settings, filePath),
                 ".chart" => ChartReader.ReadFromFile(ref settings, filePath),
+                ".txt" => UltrastarReader.ReadFromFile(ref settings, filePath),
                 _ => throw new ArgumentException($"Unrecognized file extension for chart path '{filePath}'!", nameof(filePath))
             };
 
@@ -57,6 +59,12 @@ namespace YARG.Core.Chart
         public static MoonSongLoader LoadDotChart(ParseSettings settings, ReadOnlySpan<char> chartText)
         {
             var song = ChartReader.ReadFromText(ref settings, chartText);
+            return new(song, settings);
+        }
+
+        public static MoonSongLoader LoadUltrastar(ParseSettings settings, ReadOnlySpan<char> chartText)
+        {
+            var song = UltrastarReader.ReadFromText(ref settings, chartText);
             return new(song, settings);
         }
 
