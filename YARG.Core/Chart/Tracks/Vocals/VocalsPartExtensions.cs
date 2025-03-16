@@ -1,4 +1,8 @@
-﻿namespace YARG.Core.Chart
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+
+namespace YARG.Core.Chart
 {
     public static class VocalsPartExtensions
     {
@@ -39,6 +43,24 @@
                 var newPhrase = new VocalsPhrase(phrase.Time, phrase.TimeLength, phrase.Tick, phrase.TickLength,
                     newPhraseParent, phrase.Lyrics);
                 vocalsTrack.NotePhrases[i] = newPhrase;
+            }
+        }
+
+        public static void RemovePercussion(this VocalsPart vocalsTrack)
+        {
+            var phrasesToRemove = new List<VocalsPhrase>();
+            foreach (var phrase in vocalsTrack.NotePhrases)
+            {
+                phrase.PhraseParentNote.RemovePercussionChildNotes();
+                if (phrase.IsEmpty)
+                {
+                    phrasesToRemove.Add(phrase);
+                }
+            }
+
+            foreach (var phrase in phrasesToRemove)
+            {
+                vocalsTrack.NotePhrases.Remove(phrase);
             }
         }
     }
