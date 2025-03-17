@@ -70,7 +70,7 @@ namespace YARG.Core.Song
 
         protected static readonly string[] IMAGE_EXTENSIONS =
         {
-            ".png", ".jpg", ".jpeg", ".tga", ".bmp", ".psd", ".gif", ".pic"
+            ".png", ".jpg", ".jpeg", ".tga", ".bmp",
         };
 
         protected static readonly string YARGROUND_EXTENSION = ".yarground";
