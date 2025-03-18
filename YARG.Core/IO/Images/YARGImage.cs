@@ -18,7 +18,6 @@ namespace YARG.Core.IO
         public static readonly YARGImage Null = new()
         {
             _handle = FixedArray<byte>.Null,
-            _disposed = true,
             _data = null,
             _width = 0,
             _height = 0,
@@ -26,7 +25,6 @@ namespace YARG.Core.IO
         };
 
         private FixedArray<byte> _handle;
-        private bool _disposed;
 
         private unsafe byte* _data;
         private int _width;
@@ -82,30 +80,23 @@ namespace YARG.Core.IO
             };
         }
 
-        private void _Dispose()
+        public void Dispose()
         {
-            
-            if (!_disposed)
+            unsafe
             {
-                unsafe
+                if (_data != null)
                 {
                     if (_handle.IsAllocated)
                     {
                         _handle.Dispose();
                     }
-                    else if (_data != null)
+                    else
                     {
                         FreeNative(_data);
                     }
+                    _data = null;
                 }
-                _disposed = true;
             }
-        }
-
-        public void Dispose()
-        {
-            _Dispose();
-            GC.SuppressFinalize(this);
         }
 
         [DllImport("STB2CSharp", EntryPoint = "load_image_from_memory")]
