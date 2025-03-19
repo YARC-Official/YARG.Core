@@ -3,7 +3,7 @@
 namespace YARG.Core.Song
 {
     [Serializable]
-    public partial struct AvailableParts
+    public struct AvailableParts
     {
         public static readonly AvailableParts Default = new()
         {
