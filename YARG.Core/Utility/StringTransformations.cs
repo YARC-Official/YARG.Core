@@ -12,7 +12,7 @@ namespace YARG.Core.Utility
         NonAscii
     }
 
-    public class StringTransformations
+    public static class StringTransformations
     {
         // Order of these static variables matters
         private static readonly (string, string)[] SearchLeniency =
@@ -30,7 +30,7 @@ namespace YARG.Core.Utility
             "los ", // Los fabulosos cadillacs, Los enanitos verdes,
         };
 
-        public static string RemoveDiacritics(string text)
+        public static string RemoveDiacritics(string? text)
         {
             if (text == null)
             {
@@ -77,26 +77,25 @@ namespace YARG.Core.Utility
             while (index < arg.Length)
             {
                 char curr = arg[index++];
-                if (curr > 32 || (length > 0 && buffer[length - 1] > 32))
+                if (curr > 32)
                 {
-                    if (curr > 32)
-                    {
-                        buffer[length++] = curr;
-                    }
-                    else
-                    {
-                        while (index < arg.Length && arg[index] <= 32)
-                        {
-                            index++;
-                        }
+                    buffer[length++] = curr;
+                    continue;
+                }
 
-                        if (index == arg.Length)
-                        {
-                            break;
-                        }
+                if (length == 0 || buffer[length - 1] <= 32)
+                {
+                    continue;
+                }
 
-                        buffer[length++] = ' ';
-                    }
+                while (index < arg.Length && arg[index] <= 32)
+                {
+                    index++;
+                }
+
+                if (index < arg.Length)
+                {
+                    buffer[length++] = ' ';
                 }
             }
             return length == arg.Length ? arg : new string(buffer, 0, length);
@@ -117,23 +116,19 @@ namespace YARG.Core.Utility
             return name;
         }
 
-        // Why use a custom function vs. .NET's built-in one? Because hot paths baby! YIPPEEEEEE!
+        // Why use a custom function versus .NET's built-in one? Because hot paths baby! YIPPEEEEEE!
         // Also, the use case is very controlled, so this won't hurt
         private static bool StartsWith(string str, string query)
         {
-            if (str.Length < query.Length)
+            int index = 0;
+            if (str.Length >= query.Length)
             {
-                return false;
-            }
-
-            for (var i = 0; i < query.Length; i++)
-            {
-                if (char.ToLowerInvariant(str[i]) != query[i])
+                while (index < query.Length && char.ToLowerInvariant(str[index]) == query[index])
                 {
-                    return false;
+                    index++;
                 }
             }
-            return true;
+            return index == query.Length;
         }
 
         public static CharacterGroup GetCharacterGrouping(string str)
@@ -143,16 +138,12 @@ namespace YARG.Core.Utility
                 return CharacterGroup.Empty;
             }
 
-            char character = str[0];
-            if ('a' <= character && character <= 'z')
+            return str[0] switch
             {
-                return CharacterGroup.AsciiLetter;
-            }
-            if ('0' <= character && character <= '9')
-            {
-                return CharacterGroup.AsciiNumber;
-            }
-            return character > 127 ? CharacterGroup.NonAscii : CharacterGroup.AsciiSymbol;
+                >= 'a' and <= 'z' => CharacterGroup.AsciiLetter,
+                >= '0' and <= '9' => CharacterGroup.AsciiNumber,
+                _                 => str[0] > 127 ? CharacterGroup.NonAscii : CharacterGroup.AsciiSymbol
+            };
         }
     }
 }
