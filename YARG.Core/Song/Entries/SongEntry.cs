@@ -73,8 +73,8 @@ namespace YARG.Core.Song
             ".png", ".jpg", ".jpeg", ".tga", ".bmp", ".psd", ".gif", ".pic"
         };
 
-        protected static readonly string YARGROUND_EXTENSION = ".yarground";
-        protected static readonly string YARGROUND_FULLNAME = "bg.yarground";
+        protected const string YARGROUND_EXTENSION = ".yarground";
+        protected const string YARGROUND_FULLNAME = "bg.yarground";
         protected static readonly Random BACKROUND_RNG = new();
 
         private SortString _name = SortString.Empty;
