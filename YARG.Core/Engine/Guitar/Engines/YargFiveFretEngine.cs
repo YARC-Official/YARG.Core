@@ -333,18 +333,18 @@ namespace YARG.Core.Engine.Guitar.Engines
     
                 // If open, must not hold any frets
                 // If not open, must be holding at least 1 fret
-                if (noteMask == 0 && buttonsMasked != 0 || noteMask != 0 && buttonsMasked == 0)
+                if (noteMask == 0)
                 {
-                    return false;
+                    return buttonsMasked == 0;
                 }
 
                 // If holding exact note mask, can hit
-                if (buttonsMasked == noteMask)
+                if (!note.IsChord)
                 {
-                    return true;
+                    return (buttonsMasked & noteMask) != 0;
                 }
 
-                return (buttonsMasked & noteMask) != 0;
+                return buttonsMasked == noteMask;
             }
         }
 
