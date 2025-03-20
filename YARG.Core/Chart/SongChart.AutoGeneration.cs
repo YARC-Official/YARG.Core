@@ -205,17 +205,17 @@ namespace YARG.Core.Chart
             // Align activation phrases with measure boundaries that have already been evaluated
             var measureBeatLines = SyncTrack.Beatlines.Where(x => x.Type == BeatlineType.Measure).ToList();
 
-            int currentMeasureIndex = measureBeatLines.GetIndexOfPrevious(spacingRefTime);
+            int currentMeasureIndex = measureBeatLines.LowerBound(spacingRefTime);
             int totalMeasures = measureBeatLines.Count;
 
             // Prefer section boundaries and time signature changes for activation placement when possible
-            int currentSectionIndex = Sections.GetIndexOfPrevious(spacingRefTime);
+            int currentSectionIndex = Sections.LowerBound(spacingRefTime);
 
             var timeSigChanges = SyncTrack.TimeSignatures;
-            int currentTimeSigIndex = timeSigChanges.GetIndexOfPrevious(spacingRefTime);
+            int currentTimeSigIndex = timeSigChanges.LowerBound(spacingRefTime);
 
             // Do not place activation phrases inside of solo phrases
-            int currentSoloIndex = soloPhrases.GetIndexOfPrevious(spacingRefTime);
+            int currentSoloIndex = soloPhrases.LowerBound(spacingRefTime);
             uint lastSoloTick = soloPhrases.GetLastTick();
 
             while (currentMeasureIndex < totalMeasures - 4)
@@ -233,7 +233,7 @@ namespace YARG.Core.Chart
 
                 var currentMeasureLine = measureBeatLines[currentMeasureIndex];
 
-                int newSectionIndex = Sections.GetIndexOfPrevious(currentMeasureLine.Tick);
+                int newSectionIndex = Sections.LowerBound(currentMeasureLine.Tick);
                 if (newSectionIndex > currentSectionIndex)
                 {
                     // Moved forward into a new section
@@ -241,13 +241,13 @@ namespace YARG.Core.Chart
                     var currentSection = Sections[currentSectionIndex];
 
                     //move the activation point to the start of this section
-                    currentMeasureIndex = measureBeatLines.GetIndexOfPrevious(currentSection.Tick);
+                    currentMeasureIndex = measureBeatLines.LowerBound(currentSection.Tick);
                     currentMeasureLine = measureBeatLines[currentMeasureIndex];
                 }
                 else
                 {
                     // Still in the same section (or no sections exist), look for a time signature change
-                    int newTimeSigIndex = timeSigChanges.GetIndexOfPrevious(currentMeasureLine.Tick);
+                    int newTimeSigIndex = timeSigChanges.LowerBound(currentMeasureLine.Tick);
                     if (newTimeSigIndex > currentTimeSigIndex)
                     {
                         // Moved forward into a new time signature
@@ -255,14 +255,14 @@ namespace YARG.Core.Chart
                         var currentTimeSig = timeSigChanges[currentTimeSigIndex];
 
                         //move the activation point to the start of this time signature
-                        currentMeasureIndex = measureBeatLines.GetIndexOfPrevious(currentTimeSig.Tick);
+                        currentMeasureIndex = measureBeatLines.LowerBound(currentTimeSig.Tick);
                         currentMeasureLine = measureBeatLines[currentMeasureIndex];
                     }
                 }
 
                 uint currentMeasureTick = currentMeasureLine.Tick;
 
-                int newSPPhraseIndex = starPowerPhrases.GetIndexOfPrevious(currentMeasureTick);
+                int newSPPhraseIndex = starPowerPhrases.LowerBound(currentMeasureTick);
                 if (newSPPhraseIndex > currentSPPhraseIndex)
                 {
                     // New SP phrase encountered. Update reference time to the end of this SP phrase
@@ -274,7 +274,7 @@ namespace YARG.Core.Chart
                 // Prevent placing an activation phrase here if it overlaps with a solo section
                 if (soloPhrases.Count > 0 && currentMeasureTick < lastSoloTick)
                 {
-                    int newSoloIndex = soloPhrases.GetIndexOfPrevious(currentMeasureTick);
+                    int newSoloIndex = soloPhrases.LowerBound(currentMeasureTick);
 
                     if (newSoloIndex > currentSoloIndex)
                     {
@@ -297,7 +297,7 @@ namespace YARG.Core.Chart
                 uint starPowerEndTick = measureBeatLines[starPowerEndMeasureIndex].Tick;
 
                 int totalNotesForStarPower = 0;
-                var testNote = diffChart.Notes.GetNext(currentMeasureTick);
+                var testNote = diffChart.Notes.UpperBoundElement(currentMeasureTick);
                 while (totalNotesForStarPower < SP_MIN_NOTES && testNote != null && testNote.Tick <= starPowerEndTick)
                 {
                     totalNotesForStarPower += testNote.ChildNotes.Count + 1;
@@ -346,7 +346,7 @@ namespace YARG.Core.Chart
                 }
 
                 // Attempt to retrieve an activation note directly on the bar line
-                var activationNote = allNotes.GetNext(barLineTick - 1);
+                var activationNote = allNotes.UpperBoundElement(barLineTick - 1);
 
                 bool searchForAltNote = false;
 
@@ -368,7 +368,7 @@ namespace YARG.Core.Chart
                     // Allow a window of +/- an eighth note for syncopated activator notes
                     uint eighthNoteTickLength = newPhrase.TickLength / 8;
 
-                    var testNote = allNotes.GetNext(barLineTick - eighthNoteTickLength - 1);
+                    var testNote = allNotes.UpperBoundElement(barLineTick - eighthNoteTickLength - 1);
                     while (testNote != null && testNote.Tick <= barLineTick + eighthNoteTickLength)
                     {
                         if (activationNote == null)
@@ -409,7 +409,7 @@ namespace YARG.Core.Chart
                     phraseToApply.TimeLength = activationNote.Time - phraseToApply.Time;
                 }
 
-                int newPhraseIndex = diffChart.Phrases.GetIndexOfNext(phraseToApply.Tick);
+                int newPhraseIndex = diffChart.Phrases.UpperBound(phraseToApply.Tick);
 
                 if (newPhraseIndex != -1)
                 {

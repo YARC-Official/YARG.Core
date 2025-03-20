@@ -86,7 +86,7 @@ foreach (var (upper, lower, type) in types)
         /// </summary>
         public void ResetTo<#= upper #>(<#= type #> <#= lower #>)
         {
-            _eventIndex = _events.GetIndexOfPrevious(<#= lower #>);
+            _eventIndex = _events.LowerBound(<#= lower #>);
         }
     }
 
