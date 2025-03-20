@@ -80,16 +80,18 @@ namespace YARG.Core.Utility
                 if (curr > 32)
                 {
                     buffer[length++] = curr;
+                    continue;
                 }
-                // length check accounts for pre-fix whitespace
-                else if (length > 0 && index < arg.Length)
+
+                while (index < arg.Length && arg[index] <= 32)
                 {
-                    curr = arg[index++];
-                    if (curr > 32)
-                    {
-                        buffer[length++] = ' ';
-                        buffer[length++] = curr;
-                    }
+                    ++index;
+                }
+
+                if (length > 0 && index < arg.Length)
+                {
+                    buffer[length++] = ' ';
+                    buffer[length++] = arg[index++];
                 }
             }
             return length == arg.Length ? arg : new string(buffer, 0, length);
