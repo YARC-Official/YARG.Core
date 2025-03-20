@@ -463,5 +463,120 @@ namespace YARG.Core.Chart
 
             return containsCrash && (containsKick || containsSnare);
         }
+
+        // Add range shift events to the InstrumentDifficulty
+        private void CreateRangeShiftPhrases()
+        {
+            var allPossibleDifficulties = Enum.GetValues(typeof(Difficulty));
+
+
+            // Only guitar/bass have range shifts
+            foreach (var track in FiveFretTracks)
+            {
+
+                foreach (Difficulty difficulty in allPossibleDifficulties)
+                {
+                    if (!track.TryGetDifficulty(difficulty, out var instrumentDifficulty))
+                    {
+                        continue;
+                    }
+
+                    var textEvents = ParseRangeShifts(instrumentDifficulty);
+
+                    for (var i = 0; i < textEvents.Count; i++)
+                    {
+                        var time = textEvents[i].Time;
+                        var tick = textEvents[i].Tick;
+                        double timeEnd;
+                        uint tickEnd;
+
+                        // Overlaps will lead to bad things, so the end of one phrase is a tick before the beginning of the next
+                        if (i < textEvents.Count - 1)
+                        {
+                            tickEnd = textEvents[i + 1].Tick - 1;
+                            timeEnd = SyncTrack.TickToTime(tickEnd);
+                        }
+                        else
+                        {
+                            // This is the last range shift, so it ends once all the notes are over
+                            tickEnd = instrumentDifficulty.Notes[^1].TickEnd;
+                            timeEnd = instrumentDifficulty.Notes[^1].TimeEnd;
+                        }
+
+                        // We already validated the event above, so no need to do it again, just split and go
+                        var splitEvent = textEvents[i].Text.Split(' ');
+
+                        var range = int.Parse(splitEvent[2]);
+                        var size = int.Parse(splitEvent[3]);
+
+                        var newPhrase = new RangeShift(time, timeEnd - time, tick, tickEnd - tick, range, size);
+                        int newPhraseIndex = instrumentDifficulty.RangeShiftEvents.GetIndexOfNext(newPhrase.Tick);
+
+                        // Add or insert the new event into the list for the given instrument difficulty
+                        if (newPhraseIndex == -1)
+                        {
+                            instrumentDifficulty.RangeShiftEvents.Add(newPhrase);
+                        }
+                        else
+                        {
+                            instrumentDifficulty.RangeShiftEvents.Insert(newPhraseIndex, newPhrase);
+                        }
+                    }
+                }
+            }
+        }
+
+        private List<TextEvent> ParseRangeShifts(InstrumentDifficulty<GuitarNote> instrumentDifficulty)
+        {
+            List<TextEvent> textEvents = new List<TextEvent>();
+
+            foreach (var textEvent in instrumentDifficulty.TextEvents)
+            {
+                if (!textEvent.Text.StartsWith("ld_range_shift"))
+                {
+                    continue;
+                }
+
+                // Validate the event and add it to the list
+                // My natural inclination here would be to use a regex, but they're not really used
+                // anywhere else in YARG, so...
+                var splitEvent = textEvent.Text.Split(' ');
+                if (splitEvent.Length != 4)
+                {
+                    continue;
+                }
+
+                // TODO: Consider merging this with the above, though I feel like this way is more readable
+                if (!(int.TryParse(splitEvent[1], out int eventDifficulty) &&
+                    int.TryParse(splitEvent[2], out int range) &&
+                    int.TryParse(splitEvent[3], out int size)))
+                {
+                    continue;
+                }
+
+                // Further validation
+                // 1) Is the range index valid
+                if (range < 1 || range > 5)
+                {
+                    continue;
+                }
+
+                // 2) Is the size valid for the range index
+                if (range + size > 6)
+                {
+                    continue;
+                }
+
+                // 3) Does it apply to this difficulty?
+                if ((int) instrumentDifficulty.Difficulty - 1 != eventDifficulty)
+                {
+                    continue;
+                }
+
+                // We have a valid range shift, so place it in the appropriate difficulty bin
+                textEvents.Add(textEvent);
+            }
+            return textEvents;
+        }
     }
 }

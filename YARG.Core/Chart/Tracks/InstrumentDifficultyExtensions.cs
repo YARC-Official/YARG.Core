@@ -1,4 +1,5 @@
 ﻿using System;
+using YARG.Core.Extensions;
 
 namespace YARG.Core.Chart
 {
@@ -30,6 +31,66 @@ namespace YARG.Core.Chart
                 foreach (var child in note.ChildNotes)
                 {
                     child.Type = to;
+                }
+            }
+        }
+
+        // Transposes all ranges into the first range.
+        // For example, if the song starts in the GRY range and later shifts to the RYB or YBO ranges
+        // the notes in the later ranges are transposed into the first range. (If there was a case where the
+        // original range was GRY and a subsequent range was RYBO, which shouldn't actually happen, RYBO would
+        // be transposed into GRYB)
+        public static void CompressGuitarRange(this InstrumentDifficulty<GuitarNote> difficulty)
+        {
+            // Bail if there aren't actually any range shift events
+            if (difficulty.RangeShiftEvents.Count == 0)
+            {
+                return;
+            }
+
+            var shifts = difficulty.RangeShiftEvents;
+
+            // We're shifting all ranges into the first range, so set rangeTo to the first range
+            var rangeTo = shifts[0].Range;
+            // These need to be initialized since the first range won't have set them in the loop
+            var rangeFrom = shifts[0].Range;
+            var shiftAmount = rangeFrom - rangeTo;
+
+            var shiftIndex = 0;
+
+            var openFret = FiveFretGuitarFret.Open.Convert();
+
+            foreach (var note in difficulty.Notes)
+            {
+                if (note.Time >= shifts[shiftIndex].TimeEnd && shiftIndex + 1 < shifts.Count)
+                {
+                    shiftIndex++;
+                    rangeFrom = shifts[shiftIndex].Range;
+                    shiftAmount = rangeFrom - rangeTo;
+                }
+
+                if (shifts[shiftIndex].Range == rangeTo)
+                {
+                    continue;
+                }
+
+                // Leave open notes as they are
+                if (note.Fret == openFret)
+                {
+                    continue;
+                }
+
+                // Change the fret and mask according to the new range
+                note.Fret -= shiftAmount;
+                note.NoteMask >>= shiftAmount;
+                note.DisjointMask >>= shiftAmount;
+
+                // Shift child notes since we shifted the parent note
+                foreach (var child in note.ChildNotes)
+                {
+                    child.Fret -= shiftAmount;
+                    child.NoteMask >>= shiftAmount;
+                    child.DisjointMask >>= shiftAmount;
                 }
             }
         }
