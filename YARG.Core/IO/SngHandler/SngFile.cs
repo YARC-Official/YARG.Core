@@ -28,7 +28,7 @@ namespace YARG.Core.IO
                 {
                     throw new ObjectDisposedException("");
                 }
-                ++_count; 
+                ++_count;
             }
             return this;
         }
@@ -78,7 +78,7 @@ namespace YARG.Core.IO
             lock (_tracker.Stream)
             {
                 _tracker.Stream.Position = listing.Position;
-                data = FixedArray.Read(_tracker.Stream, listing.Length);
+                data = FixedArray.Read(_tracker.Stream, listing.Length, true);
             }
 
             unsafe

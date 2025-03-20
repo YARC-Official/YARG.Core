@@ -9,7 +9,7 @@ namespace YARG.Core.IO
     public static class FixedArray
     {
         /// <summary>
-        /// Loads all of the given file's data into a FixedArray buffer
+        /// Loads all the given file's data into a FixedArray buffer
         /// </summary>
         /// <param name="filename">The path to the file</param>
         /// <returns>The instance carrying the loaded data</returns>
@@ -33,9 +33,10 @@ namespace YARG.Core.IO
         /// Loads the given amount of data from the stream into a FixedArray buffer
         /// </summary>
         /// <param name="stream">Stream with leftover data</param>
-        /// <param name="numElements">Number of <see cref="T"/> elements to read from the stream</param>
+        /// <param name="numElements">Number of bytes to read from the stream</param>
+        /// <param name="vectorize">Flags whether to allocate the buffer with vector alignment</param>
         /// <returns>The instance carrying the loaded data</returns>
-        public static FixedArray<byte> Read(Stream stream, long numElements)
+        public static FixedArray<byte> Read(Stream stream, long numElements, bool vectorize = false)
         {
             long byteCount = numElements;
             if (stream.Position > stream.Length - byteCount)
@@ -43,7 +44,10 @@ namespace YARG.Core.IO
                 throw new ArgumentException("Length extends past end of stream");
             }
 
-            var buffer = FixedArray<byte>.Alloc(numElements);
+            var buffer = !vectorize
+                ? FixedArray<byte>.Alloc(numElements)
+                : FixedArray<byte>.AllocVectorAligned(numElements);
+
             unsafe
             {
                 if (stream.Read(new Span<byte>(buffer.Ptr, (int) byteCount)) != byteCount)
@@ -73,7 +77,7 @@ namespace YARG.Core.IO
     /// A wrapper interface over a fixed area of unmanaged memory.
     /// Provides functions to create spans and span slices alongside
     /// basic indexing and enumeration.<br></br><br></br>
-    /// 
+    ///
     /// For serious performance-critical code, the raw pointer to
     /// the start of the memory block is also provided.<br></br>
     /// However, code that uses the value directly should first check
@@ -106,12 +110,13 @@ namespace YARG.Core.IO
         public static FixedArray<T> Alloc(long numElements)
         {
             var handle = Marshal.AllocHGlobal((IntPtr) (numElements * sizeof(T)));
-            return new FixedArray<T>()
-            {
-                _handle = handle,
-                _ptr = (T*) handle,
-                _length = numElements,
-            };
+            return new FixedArray<T>
+            (
+                handle,
+                (T*) handle,
+                numElements,
+                false
+            );
         }
 
         private static readonly int OVER_ALLOCATION = sizeof(Vector<byte>) - 1;
@@ -124,12 +129,13 @@ namespace YARG.Core.IO
                 adjustment = sizeof(Vector<byte>) - adjustment;
             }
 
-            return new FixedArray<T>()
-            {
-                _handle = handle,
-                _ptr = (T*) ((byte*)handle + adjustment),
-                _length = numElements,
-            };
+            return new FixedArray<T>
+            (
+                handle,
+                (T*) ((byte*)handle + adjustment),
+                numElements,
+                true
+            );
         }
 
         /// <summary>
@@ -143,6 +149,11 @@ namespace YARG.Core.IO
         public static FixedArray<T> Cast<U>(in FixedArray<U> source, long offset, long numElements)
             where U : unmanaged
         {
+            if (source._vectorized)
+            {
+                throw new InvalidOperationException("Do not cast from a vectorized source");
+            }
+
             if (offset < 0)
             {
                 throw new IndexOutOfRangeException();
@@ -153,17 +164,19 @@ namespace YARG.Core.IO
                 throw new ArgumentOutOfRangeException(nameof(numElements));
             }
 
-            return new FixedArray<T>()
-            {
-                _handle = IntPtr.Zero,
-                _ptr = (T*) (source.Ptr + offset),
-                _length = numElements,
-            };
+            return new FixedArray<T>
+            (
+                IntPtr.Zero,
+                (T*) (source.Ptr + offset),
+                numElements,
+                false
+            );
         }
 
-        private IntPtr _handle;
-        private T* _ptr;
-        private long _length;
+        private          IntPtr _handle;
+        private          T*     _ptr;
+        private          long   _length;
+        private readonly bool   _vectorized;
 
         /// <summary>
         /// Pointer to the beginning of the memory block.<br></br>
@@ -193,6 +206,14 @@ namespace YARG.Core.IO
 
         public readonly Span<T> Span => new(Ptr, (int) Length);
 
+        private FixedArray(IntPtr handle, T* ptr, long length, bool vectorized)
+        {
+            _handle = handle;
+            _ptr = ptr;
+            _length = length;
+            _vectorized = vectorized;
+        }
+
         public readonly Span<T> Slice(long offset, long count)
         {
             if (offset < 0 || offset + count > _length)
@@ -216,17 +237,18 @@ namespace YARG.Core.IO
         /// in a limbo state - no longer responsible for disposing of the data.
         /// </summary>
         /// <remarks>Useful for cleanly handling exception safety</remarks>
-        /// <returns>The instance that takes responsibilty over disposing of the buffer</returns>
+        /// <returns>The instance that takes responsibility over disposing of the buffer</returns>
         public FixedArray<T> TransferOwnership()
         {
             var handle = _handle;
             _handle = IntPtr.Zero;
-            return new FixedArray<T>()
-            {
-                _handle = handle,
-                _ptr = _ptr,
-                _length = _length
-            };
+            return new FixedArray<T>
+            (
+                handle,
+                _ptr,
+                _length,
+                _vectorized
+            );
         }
 
         /// <summary>
@@ -258,7 +280,21 @@ namespace YARG.Core.IO
                 throw new InvalidOperationException("Can not resize an unowned array");
             }
 
-            _ptr = (T*) Marshal.ReAllocHGlobal(IntPtr, (IntPtr) (numElements * sizeof(T)));
+            if (_vectorized)
+            {
+                // Reasoning: if the array is used for simd operations, that entails that
+                // the data is either a file read buffer OR the whole file itself.
+                // Resizing would therefore be illogical.
+                throw new InvalidOperationException("Do not resize an array when vectorized");
+            }
+
+            if (numElements == _length)
+            {
+                return;
+            }
+
+            _handle = Marshal.ReAllocHGlobal(_handle, (IntPtr) (numElements * sizeof(T)));
+            _ptr = (T*)_handle;
             _length = numElements;
         }
 
@@ -266,7 +302,7 @@ namespace YARG.Core.IO
         {
             if (_handle != IntPtr.Zero)
             {
-                Marshal.FreeHGlobal(IntPtr);
+                Marshal.FreeHGlobal(_handle);
                 _handle = IntPtr.Zero;
             }
         }
