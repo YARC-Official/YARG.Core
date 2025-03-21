@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.IO;
 using Newtonsoft.Json;
 using YARG.Core.Chart;
@@ -220,6 +220,11 @@ namespace YARG.Core.Game
             if (IsModifierActive(Modifier.UnpitchedOnly))
             {
                 vocalsPart.ConvertAllToUnpitched();
+            }
+
+            if (IsModifierActive(Modifier.NoVocalPercussion))
+            {
+                vocalsPart.RemovePercussion();
             }
         }
 
