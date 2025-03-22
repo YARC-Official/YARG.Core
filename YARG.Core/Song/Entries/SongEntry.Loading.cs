@@ -9,26 +9,30 @@ namespace YARG.Core.Song
 {
     public class BackgroundResult : IDisposable
     {
-        public readonly BackgroundType Type;
-        public readonly Stream? Stream;
-        public readonly YARGImage Image;
+        private YARGImage      _image;
+        public  BackgroundType Type   { get; }
+        public  Stream?        Stream { get; }
+
+        public YARGImage Image => _image;
 
         public BackgroundResult(BackgroundType type, Stream stream)
         {
+            _image = YARGImage.Null;
             Type = type;
             Stream = stream;
         }
 
         public BackgroundResult(YARGImage image)
         {
+            _image = image;
             Type = BackgroundType.Image;
-            Image = image;
+            Stream = null;
         }
 
         public void Dispose()
         {
+            _image.Dispose();
             Stream?.Dispose();
-            Image.Dispose();
         }
     }
 
@@ -38,7 +42,7 @@ namespace YARG.Core.Song
         public abstract StemMixer? LoadAudio(float speed, double volume, params SongStem[] ignoreStems);
         public abstract StemMixer? LoadPreviewAudio(float speed);
         public abstract YARGImage LoadAlbumData();
-        public abstract BackgroundResult? LoadBackground(BackgroundType options);
+        public abstract BackgroundResult? LoadBackground();
         public abstract FixedArray<byte> LoadMiloData();
     }
 }

@@ -98,7 +98,7 @@ namespace YARG.Core.Song
             return YARGImage.Null;
         }
 
-        public override BackgroundResult? LoadBackground(BackgroundType options)
+        public override BackgroundResult? LoadBackground()
         {
             using var sngFile = SngFile.TryLoadFromFile(_location, false);
             if (!sngFile.IsLoaded)
@@ -106,82 +106,69 @@ namespace YARG.Core.Song
                 return null;
             }
 
-            if ((options & BackgroundType.Yarground) > 0)
+            if (sngFile.TryGetListing(YARGROUND_FULLNAME, out var listing))
             {
-                if (sngFile.TryGetListing(YARGROUND_FULLNAME, out var listing))
-                {
-                    return new BackgroundResult(BackgroundType.Yarground, sngFile.CreateStream(YARGROUND_FULLNAME, in listing));
-                }
-
-                string file = Path.ChangeExtension(_location, YARGROUND_EXTENSION);
-                if (File.Exists(file))
-                {
-                    return new BackgroundResult(BackgroundType.Yarground, File.OpenRead(file));
-                }
+                return new BackgroundResult(BackgroundType.Yarground, sngFile.CreateStream(YARGROUND_FULLNAME, in listing));
             }
 
-            if ((options & BackgroundType.Video) > 0)
+            string file = Path.ChangeExtension(_location, YARGROUND_EXTENSION);
+            if (File.Exists(file))
             {
-                if (sngFile.TryGetListing(_video, out var listing))
-                {
-                    return new BackgroundResult(BackgroundType.Video, sngFile.CreateStream(_video, in listing));
-                }
+                return new BackgroundResult(BackgroundType.Yarground, File.OpenRead(file));
+            }
 
-                foreach (var stem in BACKGROUND_FILENAMES)
-                {
-                    foreach (var format in VIDEO_EXTENSIONS)
-                    {
-                        string name = stem + format;
-                        if (sngFile.TryGetListing(name, out listing))
-                        {
-                            return new BackgroundResult(BackgroundType.Video, sngFile.CreateStream(name, in listing));
-                        }
-                    }
-                }
+            if (sngFile.TryGetListing(_video, out listing))
+            {
+                return new BackgroundResult(BackgroundType.Video, sngFile.CreateStream(_video, in listing));
+            }
 
+            foreach (var stem in BACKGROUND_FILENAMES)
+            {
                 foreach (var format in VIDEO_EXTENSIONS)
                 {
-                    string path = Path.ChangeExtension(_location, format);
-                    if (File.Exists(path))
+                    string name = stem + format;
+                    if (sngFile.TryGetListing(name, out listing))
                     {
-                        return new BackgroundResult(BackgroundType.Video, File.OpenRead(path));
+                        return new BackgroundResult(BackgroundType.Video, sngFile.CreateStream(name, in listing));
                     }
                 }
             }
 
-            if ((options & BackgroundType.Image) > 0)
+            foreach (var format in VIDEO_EXTENSIONS)
             {
-                var data = FixedArray<byte>.Null;
-                if (sngFile.TryGetListing(_background, out var listing) || TryGetRandomBackgroundImage(sngFile.Listings, out listing))
+                string path = Path.ChangeExtension(_location, format);
+                if (File.Exists(path))
                 {
-                    data = sngFile.LoadAllBytes(in listing);
+                    return new BackgroundResult(BackgroundType.Video, File.OpenRead(path));
                 }
-                else
-                {
-                    // Fallback to a potential external image mapped specifically to the sng
-                    foreach (var format in IMAGE_EXTENSIONS)
-                    {
-                        string path = Path.ChangeExtension(_location, format);
-                        if (File.Exists(path))
-                        {
-                            data = FixedArray.LoadFile(path);
-                            break;
-                        }
-                    }
-                }
+            }
 
-                if (data.IsAllocated)
+            if (sngFile.TryGetListing(_background, out listing) || TryGetRandomBackgroundImage(sngFile.Listings, out listing))
+            {
+                using var data = sngFile.LoadAllBytes(in listing);
+                var image = YARGImage.Load(in data);
+                if (image.IsAllocated)
                 {
+                    return new BackgroundResult(image);
+                }
+                YargLogger.LogError("Failed to load SNG background image");
+            }
+
+            // Fallback to a potential external image mapped specifically to the sng
+            foreach (var format in IMAGE_EXTENSIONS)
+            {
+                string path = Path.ChangeExtension(_location, format);
+                if (File.Exists(path))
+                {
+                    using var data = FixedArray.LoadFile(path);
                     var image = YARGImage.Load(in data);
-                    data.Dispose();
                     if (image.IsAllocated)
                     {
                         return new BackgroundResult(image);
                     }
-                    YargLogger.LogError("Failed to load SNG background image");
+                    YargLogger.LogFormatError("Failed to load background image {0}", path);
                 }
             }
-
             return null;
         }
 
