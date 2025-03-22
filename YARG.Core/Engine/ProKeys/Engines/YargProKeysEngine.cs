@@ -326,7 +326,7 @@ namespace YARG.Core.Engine.ProKeys.Engines
 
         protected override void UpdateBot(double time)
         {
-            float        botNoteHoldTime = NoteIndex >= Notes.Count ? 1.66f : 0.166f;
+            float        botNoteHoldTime = 0.166f;
             ProKeysNote? note = null;
 
             if (!IsBot)
@@ -347,8 +347,10 @@ namespace YARG.Core.Engine.ProKeys.Engines
                 // or were pressed less than botNoteHoldTime in the past,
                 // unless the key is going to be pressed again this update
                 // or it is the next key to be pressed and half of the time
-                // between press and next press has already elapsed
+                // between press and next press has already elapsed or another
+                // key is being pressed this update
                 bool keyProtected = false;
+                bool keyProtectedForSustain = false;
                 bool currentKey;
 
                 if (note is not null)
@@ -367,6 +369,7 @@ namespace YARG.Core.Engine.ProKeys.Engines
                         if (sustain.Note.Key == key)
                         {
                             keyProtected = true;
+                            keyProtectedForSustain = true;
                             break;
                         }
                     }
@@ -383,11 +386,17 @@ namespace YARG.Core.Engine.ProKeys.Engines
                             {
                                 if (chordNote.Key == key && chordNote.Time - time < time - _keyPressedTimes[key])
                                 {
-                                    keyProtected = false;
+                                    keyProtected = keyProtectedForSustain;
                                     break;
                                 }
                             }
                         }
+                    }
+
+                    // if the key isn't protected due to a sustain and another note is being played, release the key
+                    if (note is not null && !keyProtectedForSustain && time >= note.Time)
+                    {
+                        keyProtected = false;
                     }
                 }
 
@@ -402,11 +411,13 @@ namespace YARG.Core.Engine.ProKeys.Engines
 
             if (NoteIndex >= Notes.Count)
             {
+                // Nothing left to press
                 return;
             }
 
             if (time < note.Time)
             {
+                // It isn't time to press another key yet
                 return;
             }
 
