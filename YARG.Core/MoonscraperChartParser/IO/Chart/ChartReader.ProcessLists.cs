@@ -244,6 +244,8 @@ namespace MoonscraperChartEditor.Song.IO
                     }
                 }
             }
+
+            chart.events.RemoveAll((ev) => ev.text is TextEvents.SOLO_START or TextEvents.SOLO_END);
         }
 
         private static void DisambiguateDrumsType(ref NoteProcessParams processParams)
