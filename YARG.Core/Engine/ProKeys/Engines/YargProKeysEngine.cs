@@ -7,10 +7,13 @@ namespace YARG.Core.Engine.ProKeys.Engines
 {
     public class YargProKeysEngine : ProKeysEngine
     {
-        // This seems like a dupe of KeyPressTimes, but it is different.
-        // Having something that only gets updated on a press input (not release) and never
-        // gets messed with by hit logic drastically simplifies the bot.
-        private double[] _keyPressedTimes = new double[(int)ProKeysAction.Key25 + 1];
+        private struct KeyPressedTimes
+        {
+            public int    NoteIndex;
+            public double Time;
+        }
+
+        private KeyPressedTimes[] _keyPressedTimes = new KeyPressedTimes[(int)ProKeysAction.Key25 + 1];
 
         public YargProKeysEngine(InstrumentDifficulty<ProKeysNote> chart, SyncTrack syncTrack,
             ProKeysEngineParameters engineParameters, bool isBot) : base(chart, syncTrack, engineParameters, isBot)
@@ -34,7 +37,8 @@ namespace YARG.Core.Engine.ProKeys.Engines
                 if (gameInput.Button)
                 {
                     KeyHit = (int) action;
-                    _keyPressedTimes[(int) action] = gameInput.Time;
+                    _keyPressedTimes[(int) action].NoteIndex = NoteIndex;
+                    _keyPressedTimes[(int) action].Time = gameInput.Time;
                 }
                 else
                 {
@@ -328,6 +332,7 @@ namespace YARG.Core.Engine.ProKeys.Engines
         {
             float        botNoteHoldTime = 0.166f;
             ProKeysNote? note = null;
+            bool[]       keysInSustain = new bool[(int) ProKeysAction.Key25 + 1];
 
             if (!IsBot)
             {
@@ -337,6 +342,12 @@ namespace YARG.Core.Engine.ProKeys.Engines
             if (NoteIndex < Notes.Count)
             {
                 note = Notes[NoteIndex];
+            }
+
+            // Find the active sustains
+            foreach (var sustain in ActiveSustains)
+            {
+                keysInSustain[sustain.Note.Key] = true;
             }
 
             // Release no longer needed keys
@@ -350,7 +361,6 @@ namespace YARG.Core.Engine.ProKeys.Engines
                 // between press and next press has already elapsed or another
                 // key is being pressed this update
                 bool keyProtected = false;
-                bool keyProtectedForSustain = false;
                 bool currentKey;
 
                 if (note is not null)
@@ -364,17 +374,11 @@ namespace YARG.Core.Engine.ProKeys.Engines
 
                 if (!currentKey)
                 {
-                    foreach (var sustain in ActiveSustains)
+                    if (keysInSustain[key])
                     {
-                        if (sustain.Note.Key == key)
-                        {
-                            keyProtected = true;
-                            keyProtectedForSustain = true;
-                            break;
-                        }
+                        keyProtected = true;
                     }
-
-                    if (_keyPressedTimes[key] > time - botNoteHoldTime)
+                    else if (_keyPressedTimes[key].Time > time - botNoteHoldTime)
                     {
                         keyProtected = true;
 
@@ -382,11 +386,12 @@ namespace YARG.Core.Engine.ProKeys.Engines
                         // half of the time between press and the next note has elapsed
                         if (note is not null)
                         {
+                            // Despite the name chordNote, this also applies to single notes
                             foreach (var chordNote in note.AllNotes)
                             {
-                                if (chordNote.Key == key && chordNote.Time - time < time - _keyPressedTimes[key])
+                                if (chordNote.Key == key && chordNote.Time - time < time - _keyPressedTimes[key].Time)
                                 {
-                                    keyProtected = keyProtectedForSustain;
+                                    keyProtected = false;
                                     break;
                                 }
                             }
@@ -394,7 +399,7 @@ namespace YARG.Core.Engine.ProKeys.Engines
                     }
 
                     // if the key isn't protected due to a sustain and another note is being played, release the key
-                    if (note is not null && !keyProtectedForSustain && time >= note.Time)
+                    if (note is not null && !keysInSustain[key] && time >= note.Time)
                     {
                         keyProtected = false;
                     }
@@ -402,7 +407,16 @@ namespace YARG.Core.Engine.ProKeys.Engines
 
                 if ((mask & 1) == 1 && (!keyProtected || currentKey))
                 {
-                    MutateStateWithInput(new GameInput(time, key, false));
+                    var pressedNote = Notes[_keyPressedTimes[key].NoteIndex];
+
+                    // We loop to ensure that all notes in a chord are released at the same time
+                    foreach (var chordNote in pressedNote.AllNotes)
+                    {
+                        if (!keysInSustain[chordNote.Key])
+                        {
+                            MutateStateWithInput(new GameInput(time, chordNote.Key, false));
+                        }
+                    }
                 }
 
                 key++;
