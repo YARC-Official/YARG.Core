@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using MoonscraperChartEditor.Song;
@@ -61,6 +61,7 @@ namespace YARG.Core.Chart
             var notePhrases = GetVocalsPhrases(moonChart, harmonyPart);
             var otherPhrases = GetPhrases(moonChart);
             var textEvents = GetTextEvents(moonChart);
+            TrimOrphanPhrases(notePhrases, otherPhrases);
             return new(isHarmony, notePhrases, otherPhrases, textEvents);
         }
 
@@ -80,6 +81,7 @@ namespace YARG.Core.Chart
             int moonNoteIndex = 0;
             int moonTextIndex = 0;
 
+            MoonNote? carriedNote = null;
             for (int moonPhraseIndex = 0; moonPhraseIndex < moonChart.specialPhrases.Count;)
             {
                 var moonPhrase = moonChart.specialPhrases[moonPhraseIndex++];
@@ -98,6 +100,11 @@ namespace YARG.Core.Chart
 
                     phraseTracker[moonPhrase2.type] = moonPhrase2;
                     moonPhraseIndex++;
+                }
+
+                if (carriedNote != null && carriedNote.tick + carriedNote.length < moonPhrase.tick)
+                {
+                    carriedNote = null;
                 }
 
                 // Go through each note and lyric in the phrase
@@ -150,11 +157,16 @@ namespace YARG.Core.Chart
                         continue;
                     }
 
+                    if (moonNote.tick + moonNote.length > moonPhrase.tick + moonPhrase.length)
+                    {
+                        carriedNote = moonNote;
+                    }
+
                     notes.Add(note);
                     previousNote = note;
                 }
 
-                if (notes.Count < 1)
+                if (notes.Count < 1 && carriedNote == null)
                 {
                     // This can occur on harmonies, HARM1 must contain phrases for all harmony parts
                     // so, for example, phrases with only HARM2/3 notes will cause this
@@ -167,6 +179,18 @@ namespace YARG.Core.Chart
 
             phrases.TrimExcess();
             return phrases;
+        }
+
+        private void TrimOrphanPhrases(List<VocalsPhrase> vocalPhrases, List<Phrase> otherPhrases)
+        {
+            for (int i = 0; i < otherPhrases.Count; i++)
+            {
+                if (!vocalPhrases.Any(e => e.Tick == otherPhrases[i].Tick))
+                {
+                    otherPhrases.RemoveAt(i);
+                    i--;
+                }
+            }
         }
 
         private void ProcessLyric(List<LyricEvent> lyrics, ReadOnlySpan<char> lyric, uint lyricTick,
