@@ -16,6 +16,7 @@ namespace YARG.Core.Song
         Mid,
         Midi,
         Chart,
+        Ultrastar,
     };
 
     public enum EntryType
@@ -24,6 +25,7 @@ namespace YARG.Core.Song
         Sng,
         ExCON,
         CON,
+        Ultrastar,
     }
 
     public struct LoaderSettings
