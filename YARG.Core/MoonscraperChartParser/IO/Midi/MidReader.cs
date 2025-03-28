@@ -110,7 +110,7 @@ namespace MoonscraperChartEditor.Song.IO
             // Apply settings
             song.hopoThreshold = settings.HopoThreshold > ParseSettings.SETTING_DEFAULT
                 // +1 for a small bit of leniency
-                ? (uint)settings.HopoThreshold + 1 
+                ? (uint)settings.HopoThreshold + 1
                 : (song.resolution / 3) + 1;
 
             if (settings.SustainCutoffThreshold <= ParseSettings.SETTING_DEFAULT)
@@ -236,11 +236,14 @@ namespace MoonscraperChartEditor.Song.IO
                     BeatlineType beatType;
                     switch ((byte)note.NoteNumber)
                     {
-                        case MidIOHelper.BEAT_STRONG:
+                        case MidIOHelper.BEAT_MEASURE:
                             beatType = BeatlineType.Measure;
                             break;
-                        case MidIOHelper.BEAT_WEAK:
+                        case MidIOHelper.BEAT_STRONG:
                             beatType = BeatlineType.Strong;
+                            break;
+                        case MidIOHelper.BEAT_WEAK:
+                            beatType = BeatlineType.Weak;
                             break;
                         default:
                             continue;
