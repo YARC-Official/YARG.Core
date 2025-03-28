@@ -332,7 +332,7 @@ namespace YARG.Core.Engine.ProKeys.Engines
         {
             float        botNoteHoldTime = 0.166f;
             ProKeysNote? note = null;
-            bool[]       keysInSustain = new bool[(int) ProKeysAction.Key25 + 1];
+            int          keysInSustain = 0;
 
             if (!IsBot)
             {
@@ -347,7 +347,7 @@ namespace YARG.Core.Engine.ProKeys.Engines
             // Find the active sustains
             foreach (var sustain in ActiveSustains)
             {
-                keysInSustain[sustain.Note.Key] = true;
+                keysInSustain |= 1 << sustain.Note.Key;
             }
 
             // Release no longer needed keys
@@ -374,7 +374,7 @@ namespace YARG.Core.Engine.ProKeys.Engines
 
                 if (!currentKey)
                 {
-                    if (keysInSustain[key])
+                    if ((keysInSustain & 1 << key) != 0)
                     {
                         keyProtected = true;
                     }
@@ -399,7 +399,7 @@ namespace YARG.Core.Engine.ProKeys.Engines
                     }
 
                     // if the key isn't protected due to a sustain and another note is being played, release the key
-                    if (note is not null && !keysInSustain[key] && time >= note.Time)
+                    if (note is not null && (keysInSustain & 1 << key) == 0 && time >= note.Time)
                     {
                         keyProtected = false;
                     }
@@ -412,7 +412,7 @@ namespace YARG.Core.Engine.ProKeys.Engines
                     // We loop to ensure that all notes in a chord are released at the same time
                     foreach (var chordNote in pressedNote.AllNotes)
                     {
-                        if (!keysInSustain[chordNote.Key])
+                        if ((keysInSustain & 1 << chordNote.Key) == 0)
                         {
                             MutateStateWithInput(new GameInput(time, chordNote.Key, false));
                         }
