@@ -186,8 +186,8 @@ namespace YARG.Core.Engine
 
                 double deltaTime = change.Time - prevChange.Time;
 
-                var tempo = syncTrack.Tempos.GetPrevious(change.Tick - 1);
-                var ts = syncTrack.TimeSignatures.GetPrevious(change.Tick - 1);
+                var tempo = syncTrack.Tempos.LowerBoundElement(change.Tick - 1);
+                var ts = syncTrack.TimeSignatures.LowerBoundElement(change.Tick - 1);
 
                 // Calculate the number of star power ticks that occur during this tempo
                 var starPowerTicks = GetStarPowerDrainPeriodToTicks(deltaTime, tempo!, ts!);

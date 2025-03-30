@@ -193,7 +193,7 @@ namespace YARG.Core.Chart
         public double TickToTime(uint tick)
         {
             // Find the current tempo marker at the given tick
-            var currentTempo = Tempos.GetPrevious(tick);
+            var currentTempo = Tempos.LowerBoundElement(tick);
             if (currentTempo is null)
                 return 0;
 
@@ -211,7 +211,7 @@ namespace YARG.Core.Chart
                 return 0;
 
             // Find the current tempo marker at the given time
-            var currentTempo = Tempos.GetPrevious(time);
+            var currentTempo = Tempos.LowerBoundElement(time);
             if (currentTempo is null)
                 return 0;
 
