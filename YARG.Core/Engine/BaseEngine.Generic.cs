@@ -1078,23 +1078,24 @@ namespace YARG.Core.Engine
             for (int i = 0; i < Notes.Count; i++)
             {
                 var curr = Notes[i];
-                if (curr.IsSoloStart)
+                if (!curr.IsSoloStart)
                 {
-                    int soloNoteCount = 0;
-                    uint start = curr.Tick;
-                    while (true)
-                    {
-                        soloNoteCount += GetNumberOfNotes(curr);
-                        if (curr.IsSoloEnd || i + 1 == Notes.Count)
-                        {
-                            break;
-                        }
-                        curr = Notes[++i];
-                    }
-                    soloSections.Add(new SoloSection(start, curr.Tick, soloNoteCount));
+                    continue;
                 }
-            }
 
+                int soloNoteCount = 0;
+                uint start = curr.Tick;
+                while (true)
+                {
+                    soloNoteCount += GetNumberOfNotes(curr);
+                    if (curr.IsSoloEnd || i + 1 == Notes.Count)
+                    {
+                        break;
+                    }
+                    curr = Notes[++i];
+                }
+                soloSections.Add(new SoloSection(start, curr.Tick, soloNoteCount));
+            }
             return soloSections;
         }
 

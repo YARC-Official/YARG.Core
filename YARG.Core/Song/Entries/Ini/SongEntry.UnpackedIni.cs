@@ -119,48 +119,39 @@ namespace YARG.Core.Song
             return YARGImage.Null;
         }
 
-        public override BackgroundResult? LoadBackground(BackgroundType options)
+        public override BackgroundResult? LoadBackground()
         {
             var subFiles = GetSubFiles();
-            if ((options & BackgroundType.Yarground) > 0)
+            if (subFiles.TryGetValue("bg.yarground", out var file))
             {
-                if (subFiles.TryGetValue("bg.yarground", out var file))
-                {
-                    var stream = File.OpenRead(file);
-                    return new BackgroundResult(BackgroundType.Yarground, stream);
-                }
+                var stream = File.OpenRead(file);
+                return new BackgroundResult(BackgroundType.Yarground, stream);
             }
 
-            if ((options & BackgroundType.Video) > 0)
+            if (subFiles.TryGetValue(_video, out var video))
             {
-                if (subFiles.TryGetValue(_video, out var video))
-                {
-                    var stream = File.OpenRead(video);
-                    return new BackgroundResult(BackgroundType.Video, stream);
-                }
+                var stream = File.OpenRead(video);
+                return new BackgroundResult(BackgroundType.Video, stream);
+            }
 
-                foreach (var stem in BACKGROUND_FILENAMES)
+            foreach (var stem in BACKGROUND_FILENAMES)
+            {
+                foreach (var format in VIDEO_EXTENSIONS)
                 {
-                    foreach (var format in VIDEO_EXTENSIONS)
+                    if (subFiles.TryGetValue(stem + format, out file))
                     {
-                        if (subFiles.TryGetValue(stem + format, out var file))
-                        {
-                            var stream = File.OpenRead(file);
-                            return new BackgroundResult(BackgroundType.Video, stream);
-                        }
+                        var stream = File.OpenRead(file);
+                        return new BackgroundResult(BackgroundType.Video, stream);
                     }
                 }
             }
 
-            if ((options & BackgroundType.Image) > 0)
+            if (subFiles.TryGetValue(_background, out file) || TryGetRandomBackgroundImage(subFiles, out file))
             {
-                if (subFiles.TryGetValue(_background, out var file) || TryGetRandomBackgroundImage(subFiles, out file))
+                var image = YARGImage.Load(file!);
+                if (image.IsAllocated)
                 {
-                    var image = YARGImage.Load(file!);
-                    if (image.IsAllocated)
-                    {
-                        return new BackgroundResult(image);
-                    }
+                    return new BackgroundResult(image);
                 }
             }
             return null;

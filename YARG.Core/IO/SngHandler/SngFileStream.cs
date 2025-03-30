@@ -16,7 +16,7 @@ namespace YARG.Core.IO
         private readonly SngTracker _tracker;
         private readonly string _filename;
         private readonly SngFileListing _listing;
-        private readonly FixedArray<byte> _dataBuffer = FixedArray<byte>.AllocVectorAligned(BUFFER_SIZE);
+        private FixedArray<byte> _dataBuffer = FixedArray<byte>.AllocVectorAligned(BUFFER_SIZE);
 
         private long _bufferIndex = 0;
         private long _bufferPosition = 0;

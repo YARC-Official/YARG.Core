@@ -6,6 +6,9 @@ namespace YARG.Core.Song
 {
     internal abstract class RBProUpgrade
     {
+        public const string UPGRADES_DTA = "upgrades.dta";
+        public const string UPGRADES_MIDI_EXT = "_plus.mid";
+
         public abstract DateTime LastWriteTime { get; }
         public abstract FixedArray<byte> LoadUpgradeMidi();
 
@@ -19,6 +22,8 @@ namespace YARG.Core.Song
     [Serializable]
     internal sealed class PackedRBProUpgrade : RBProUpgrade
     {
+        public const string UPGRADES_DIRECTORY = "songs_upgrades/";
+
         private readonly CONFileListing? _listing;
 
         public override DateTime LastWriteTime => _root.LastWriteTime;
@@ -55,9 +60,9 @@ namespace YARG.Core.Song
         public override FixedArray<byte> LoadUpgradeMidi()
         {
             var data = FixedArray<byte>.Null;
-            if (AbridgedFileInfo.Validate(Path.Combine(_root.FullName, "songs_updates.dta"), in _root.LastWriteTime))
+            if (AbridgedFileInfo.Validate(Path.Combine(_root.FullName, UPGRADES_DTA), in _root.LastWriteTime))
             {
-                string file = Path.Combine(_root.FullName, _name + "_plus.mid");
+                string file = Path.Combine(_root.FullName, _name + UPGRADES_MIDI_EXT);
                 if (AbridgedFileInfo.Validate(file, in _lastWritetime))
                 {
                     data = FixedArray.LoadFile(file);

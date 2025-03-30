@@ -5,69 +5,75 @@ using System.IO;
 
 namespace YARG.Core.IO
 {
-    public struct YARGMidiFile : IEnumerable<YARGMidiTrack>
+    public ref struct YARGMidiFile
     {
-        private static readonly FourCC HEADER_TAG = new('M', 'T', 'h', 'd');
-        private static readonly FourCC TRACK_TAG  = new('M', 'T', 'r', 'k');
-        private const int TAG_SIZE = sizeof(uint);
-        private const int DATA_OFFSET = TAG_SIZE + sizeof(int);
+        private const           int    TAG_SIZE             = sizeof(uint);
+        private const           int    SIZEOF_HEADER        = 6;
+        private const           int    DATA_OFFSET          = TAG_SIZE + sizeof(int);
+        private const           int    FIRST_TRACK_POSITION = DATA_OFFSET + SIZEOF_HEADER;
+        private static readonly FourCC HEADER_TAG           = new('M', 'T', 'h', 'd');
+        private static readonly FourCC TRACK_TAG            = new('M', 'T', 'r', 'k');
 
-        private readonly ushort _format;
-        private readonly ushort _num_tracks;
-        private readonly ushort _resolution;
+        private FixedArray<byte> _data;
+        private ushort _format;
+        private ushort _numTracks;
+        private ushort _resolution;
 
-        private readonly FixedArray<byte> _data;
         private long _position;
         private ushort _trackNumber;
 
         public readonly ushort Format => _format;
-        public readonly ushort NumTracks => _num_tracks;
+        public readonly ushort NumTracks => _numTracks;
         public readonly ushort Resolution => _resolution;
-        public readonly ushort TrackNumber => _trackNumber;
 
-        private const int SIZEOF_HEADER = 6;
-        public YARGMidiFile(in FixedArray<byte> data)
+        public static YARGMidiFile Load(in FixedArray<byte> data)
         {
-            if (TAG_SIZE > data.Length || !HEADER_TAG.Matches(data.ReadonlySlice(0, TAG_SIZE)))
+            if (TAG_SIZE > data.Length
+            || !HEADER_TAG.Matches(data.ReadonlySlice(0, TAG_SIZE)))
             {
                 throw new Exception("Midi header Tag 'MThd' mismatch");
             }
 
-            if (DATA_OFFSET > data.Length)
+            if (FIRST_TRACK_POSITION > data.Length)
             {
-                throw new EndOfStreamException("End of stream found within midi header");
-            }
-            
-            int headerSize = (data[TAG_SIZE] << 24) | (data[TAG_SIZE + 1] << 16) | (data[TAG_SIZE + 2] << 8) | data[TAG_SIZE + 3];
-            if (headerSize < SIZEOF_HEADER)
-            {
-                throw new Exception("Midi header length less than minimum");
+                throw new EndOfStreamException("Data ends within midi header");
             }
 
-            _position = DATA_OFFSET + headerSize;
-            if (_position > data.Length)
+            // Track lengths are in big endian
+            int headerSize =
+                (data[TAG_SIZE] << 24) |
+                (data[TAG_SIZE + 1] << 16) |
+                (data[TAG_SIZE + 2] << 8) |
+                 data[TAG_SIZE + 3];
+            if (headerSize != SIZEOF_HEADER)
             {
-                throw new EndOfStreamException("End of stream found within midi header");
+                throw new Exception("Midi header of an unsupported length");
             }
 
-            _format     = (ushort)((data[DATA_OFFSET] << 8)     | data[DATA_OFFSET + 1]);
-            _num_tracks = (ushort)((data[DATA_OFFSET + 2] << 8) | data[DATA_OFFSET + 3]);
-            _resolution = (ushort)((data[DATA_OFFSET + 4] << 8) | data[DATA_OFFSET + 5]);
-
-            _data = data;
-            _trackNumber = 0;
+            // These values reside at pre-defined offsets, so we can just use those offsets directly
+            return new YARGMidiFile
+            {
+                _format = (ushort) ((data[DATA_OFFSET] << 8) | data[DATA_OFFSET + 1]),
+                _numTracks = (ushort) ((data[DATA_OFFSET + 2] << 8) | data[DATA_OFFSET + 3]),
+                _resolution = (ushort) ((data[DATA_OFFSET + 4] << 8) | data[DATA_OFFSET + 5]),
+                _data = data,
+                _position = FIRST_TRACK_POSITION,
+                _trackNumber = 0,
+            };
         }
 
-        public bool LoadNextTrack(out YARGMidiTrack track)
+        public bool GetNextTrack(out ushort trackNumber, out YARGMidiTrack track)
         {
-            track = default;
-            if (_trackNumber == NumTracks || _position == _data.Length)
+            if (_trackNumber == _numTracks || _position == _data.Length)
             {
+                trackNumber = _trackNumber;
+                track = default;
                 return false;
             }
 
             ++_trackNumber;
-            if (_position + TAG_SIZE > _data.Length || !TRACK_TAG.Matches(_data.ReadonlySlice( _position, TAG_SIZE)))
+            if (_position + TAG_SIZE > _data.Length
+                || !TRACK_TAG.Matches(_data.ReadonlySlice(_position, TAG_SIZE)))
             {
                 throw new Exception("Midi Track Tag 'MTrk' mismatch");
             }
@@ -78,53 +84,26 @@ namespace YARG.Core.IO
                 throw new EndOfStreamException("End of stream found within midi track");
             }
 
-            int length = (_data[_position] << 24) | (_data[_position + 1] << 16) | (_data[_position + 2] << 8) | _data[_position + 3];
+            // Track lengths are in big endian
+            int length =
+                (_data[_position] << 24) |
+                (_data[_position + 1] << 16) |
+                (_data[_position + 2] << 8) |
+                 _data[_position + 3];
             _position += sizeof(int);
             unsafe
             {
                 track = new YARGMidiTrack(_data.Ptr + _position, length);
             }
             _position += length;
+            trackNumber = _trackNumber;
             return true;
         }
 
-        public IEnumerator<YARGMidiTrack> GetEnumerator()
+        public void Reset()
         {
-            return new Enumerator(this);
-        }
-
-        IEnumerator IEnumerable.GetEnumerator()
-        {
-            return GetEnumerator();
-        }
-
-        public struct Enumerator : IEnumerator<YARGMidiTrack>
-        {
-            private YARGMidiFile _file;
-            private YARGMidiTrack _current;
-            public Enumerator(YARGMidiFile file)
-            {
-                _file = file;
-                _current = default;
-            }
-
-            public readonly YARGMidiTrack Current => _current;
-
-            readonly object IEnumerator.Current => _current;
-
-            public bool MoveNext()
-            {
-                return _file.LoadNextTrack(out _current);
-            }
-
-            public readonly void Reset()
-            {
-                throw new NotImplementedException();
-            }
-
-            public readonly void Dispose()
-            {
-            }
+            _trackNumber = 0;
+            _position = FIRST_TRACK_POSITION;
         }
     }
 }

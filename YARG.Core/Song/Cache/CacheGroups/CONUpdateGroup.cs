@@ -1,5 +1,4 @@
-﻿using Newtonsoft.Json.Linq;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
 using YARG.Core.Extensions;
@@ -44,7 +43,7 @@ namespace YARG.Core.Song.Cache
                         var info = new FileInfo(Path.Combine(group._root.FullName, name, name + "_update.mid"));
                         if (info.Exists)
                         {
-                            lastWriteTime = info.LastWriteTime;
+                            lastWriteTime = AbridgedFileInfo.NormalizedLastWrite(info);
                         }
                         group._updates.Add(name, node = (new List<YARGTextContainer<byte>>(), lastWriteTime));
                     }

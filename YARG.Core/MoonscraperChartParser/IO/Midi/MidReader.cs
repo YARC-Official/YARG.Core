@@ -259,11 +259,14 @@ namespace MoonscraperChartEditor.Song.IO
                     BeatlineType beatType;
                     switch ((byte)note.NoteNumber)
                     {
-                        case MidIOHelper.BEAT_STRONG:
+                        case MidIOHelper.BEAT_MEASURE:
                             beatType = BeatlineType.Measure;
                             break;
-                        case MidIOHelper.BEAT_WEAK:
+                        case MidIOHelper.BEAT_STRONG:
                             beatType = BeatlineType.Strong;
+                            break;
+                        case MidIOHelper.BEAT_WEAK:
+                            beatType = BeatlineType.Weak;
                             break;
                         default:
                             continue;

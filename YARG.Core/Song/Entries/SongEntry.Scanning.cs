@@ -8,7 +8,7 @@ namespace YARG.Core.Song
     {
         private protected static ScanExpected<long> ParseMidi(in FixedArray<byte> file, ref AvailableParts parts, ref DrumsType drumsType)
         {
-            var midiFile = new YARGMidiFile(in file);
+            var midiFile = YARGMidiFile.Load(in file);
             if (midiFile.Resolution == 0)
             {
                 return new ScanUnexpected(ScanResult.InvalidResolution);
@@ -16,7 +16,7 @@ namespace YARG.Core.Song
 
             bool harm2 = false;
             bool harm3 = false;
-            foreach (var track in midiFile)
+            while (midiFile.GetNextTrack(out var _, out var track))
             {
                 if (!track.FindTrackName(out var trackname))
                 {

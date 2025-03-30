@@ -316,14 +316,13 @@ namespace YARG.Core.Replays.Analyzer
                 {
                     // Get the notes
                     var notes = _chart.GetVocalsTrack(profile.CurrentInstrument)
-                        .Parts[profile.HarmonyIndex].CloneAsInstrumentDifficulty();
-
-                    // No idea how vocals applies modifiers lol
-                    //profile.ApplyModifiers(notes);
+                        .Parts[profile.HarmonyIndex].Clone();
+                    profile.ApplyVocalModifiers(notes);
 
                     // Create engine
                     return new YargVocalsEngine(
-                        notes,
+                        // hate the double-clone lol but for now it'll be fine
+                        notes.CloneAsInstrumentDifficulty(),
                         _chart.SyncTrack,
                         (VocalsEngineParameters) parameters,
                         profile.IsBot);
