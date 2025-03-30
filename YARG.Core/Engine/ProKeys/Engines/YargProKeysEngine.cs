@@ -7,6 +7,14 @@ namespace YARG.Core.Engine.ProKeys.Engines
 {
     public class YargProKeysEngine : ProKeysEngine
     {
+        private struct KeyPressedTimes
+        {
+            public int    NoteIndex;
+            public double Time;
+        }
+
+        private KeyPressedTimes[] _keyPressedTimes = new KeyPressedTimes[(int)ProKeysAction.Key25 + 1];
+
         public YargProKeysEngine(InstrumentDifficulty<ProKeysNote> chart, SyncTrack syncTrack,
             ProKeysEngineParameters engineParameters, bool isBot) : base(chart, syncTrack, engineParameters, isBot)
         {
@@ -29,6 +37,8 @@ namespace YARG.Core.Engine.ProKeys.Engines
                 if (gameInput.Button)
                 {
                     KeyHit = (int) action;
+                    _keyPressedTimes[(int) action].NoteIndex = NoteIndex;
+                    _keyPressedTimes[(int) action].Time = gameInput.Time;
                 }
                 else
                 {
@@ -320,30 +330,110 @@ namespace YARG.Core.Engine.ProKeys.Engines
 
         protected override void UpdateBot(double time)
         {
-            if (!IsBot || NoteIndex >= Notes.Count)
+            float        botNoteHoldTime = 0.166f;
+            ProKeysNote? note = null;
+            int          keysInSustain = 0;
+
+            if (!IsBot)
             {
                 return;
             }
 
-            var note = Notes[NoteIndex];
-
-            if (time < note.Time)
+            if (NoteIndex < Notes.Count)
             {
-                return;
+                note = Notes[NoteIndex];
             }
 
-            // Disables keys that are not in the current note
+            // Find the active sustains
+            foreach (var sustain in ActiveSustains)
+            {
+                keysInSustain |= 1 << sustain.Note.Key;
+            }
+
+            // Release no longer needed keys
             int key = 0;
             for (var mask = KeyMask; mask > 0; mask >>= 1)
             {
-                if ((mask & 1) == 1)
+                // Keys are not released if they are part of an active sustain
+                // or were pressed less than botNoteHoldTime in the past,
+                // unless the key is going to be pressed again this update
+                // or it is the next key to be pressed and half of the time
+                // between press and next press has already elapsed or another
+                // key is being pressed this update
+                bool keyProtected = false;
+                bool currentKey;
+
+                if (note is not null)
                 {
-                    MutateStateWithInput(new GameInput(note.Time, key, false));
+                    currentKey = time >= note.Time && note.Key == key;
+                }
+                else
+                {
+                    currentKey = false;
+                }
+
+                if (!currentKey)
+                {
+                    if ((keysInSustain & 1 << key) != 0)
+                    {
+                        keyProtected = true;
+                    }
+                    else if (_keyPressedTimes[key].Time > time - botNoteHoldTime)
+                    {
+                        keyProtected = true;
+
+                        // Release the key if the next note is on this key and
+                        // half of the time between press and the next note has elapsed
+                        if (note is not null)
+                        {
+                            // Despite the name chordNote, this also applies to single notes
+                            foreach (var chordNote in note.AllNotes)
+                            {
+                                if (chordNote.Key == key && chordNote.Time - time < time - _keyPressedTimes[key].Time)
+                                {
+                                    keyProtected = false;
+                                    break;
+                                }
+                            }
+                        }
+                    }
+
+                    // if the key isn't protected due to a sustain and another note is being played, release the key
+                    if (note is not null && (keysInSustain & 1 << key) == 0 && time >= note.Time)
+                    {
+                        keyProtected = false;
+                    }
+                }
+
+                if ((mask & 1) == 1 && (!keyProtected || currentKey))
+                {
+                    var pressedNote = Notes[_keyPressedTimes[key].NoteIndex];
+
+                    // We loop to ensure that all notes in a chord are released at the same time
+                    foreach (var chordNote in pressedNote.AllNotes)
+                    {
+                        if ((keysInSustain & 1 << chordNote.Key) == 0)
+                        {
+                            MutateStateWithInput(new GameInput(time, chordNote.Key, false));
+                        }
+                    }
                 }
 
                 key++;
             }
 
+
+            if (NoteIndex >= Notes.Count)
+            {
+                // Nothing left to press
+                return;
+            }
+
+            if (time < note.Time)
+            {
+                // It isn't time to press another key yet
+                return;
+            }
 
             // Press keys for current note
             foreach (var chordNote in note.AllNotes)
