@@ -939,7 +939,7 @@ namespace YARG.Core.Engine
                     // Increasing measure index if there's no more measures causes an exception
                     // Temporary fix by adding a check for the last measure
                     // Affects 1/1 time signatures
-                    int curMeasureIndex = allMeasureBeatLines.GetIndexOfPrevious(noteOneTickEnd);
+                    int curMeasureIndex = allMeasureBeatLines.LowerBound(noteOneTickEnd);
                     if (curMeasureIndex == -1)
                     {
                         // In songs with no events at time 0, it's possible to have no previous note.

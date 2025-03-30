@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using YARG.Core.Extensions;
 
 namespace YARG.Core.Chart
@@ -84,205 +85,185 @@ namespace YARG.Core.Chart
             return chartEvent.TickEnd;
         }
 
-        public static TEvent? GetPrevious<TEvent>(this List<TEvent> events, double time)
+        /// <summary>
+        /// Searches for the first event that occurs before (or at) the given time.
+        /// </summary>
+        /// <seealso cref="Extensions.CollectionExtensions.LowerBound"/>
+        public static int LowerBound<TEvent>(this List<TEvent> events, double time)
             where TEvent : ChartEvent
         {
-            int index = GetIndexOfPrevious(events, time);
-            if (index < 0)
-                return null;
-
-            return events[index];
+            return events.LowerBound(time, EventComparer<TEvent>.CompareTime, before: true);
         }
 
-        public static TEvent? GetPrevious<TEvent>(this List<TEvent> events, uint tick)
+        /// <summary>
+        /// Searches for the first event that occurs before (or at) the given tick.
+        /// </summary>
+        /// <seealso cref="Extensions.CollectionExtensions.LowerBound"/>
+        public static int LowerBound<TEvent>(this List<TEvent> events, uint tick)
             where TEvent : ChartEvent
         {
-            int index = GetIndexOfPrevious(events, tick);
-            if (index < 0)
-                return null;
-
-            return events[index];
+            return events.LowerBound(tick, EventComparer<TEvent>.CompareTick, before: true);
         }
 
-        public static TEvent? GetNext<TEvent>(this List<TEvent> events, double time)
+        /// <summary>
+        /// Searches for the first event that occurs before (or at) the given time.
+        /// </summary>
+        /// <seealso cref="Extensions.CollectionExtensions.LowerBoundElement"/>
+        public static bool LowerBoundElement<TEvent>(
+            this List<TEvent> events, double time, [MaybeNullWhen(false)] out TEvent value
+        )
             where TEvent : ChartEvent
         {
-            int index = GetIndexOfNext(events, time);
-            if (index < 0)
-                return null;
-
-            return events[index];
+            return events.LowerBoundElement(time, EventComparer<TEvent>.CompareTime, before: true, out value);
         }
 
-        public static TEvent? GetNext<TEvent>(this List<TEvent> events, uint tick)
+        /// <summary>
+        /// Searches for the first event that occurs before (or at) the given tick.
+        /// </summary>
+        /// <seealso cref="Extensions.CollectionExtensions.LowerBoundElement"/>
+        public static bool LowerBoundElement<TEvent>(
+            this List<TEvent> events, uint tick, [MaybeNullWhen(false)] out TEvent value
+        )
             where TEvent : ChartEvent
         {
-            int index = GetIndexOfNext(events, tick);
-            if (index < 0)
-                return null;
-
-            return events[index];
+            return events.LowerBoundElement(tick, EventComparer<TEvent>.CompareTick, before: true, out value);
         }
 
-        public static int GetIndexOfPrevious<TEvent>(this List<TEvent> events, double time)
+        /// <summary>
+        /// Searches for the first event that occurs before (or at) the given time.
+        /// </summary>
+        /// <seealso cref="Extensions.CollectionExtensions.LowerBoundElement"/>
+        public static TEvent? LowerBoundElement<TEvent>(this List<TEvent> events, double time)
             where TEvent : ChartEvent
         {
-            int closestIndex = events.FindClosestEventIndex(time);
-            if (closestIndex < 0)
-                return -1;
-
-            // Ensure the index we return is for an event that occurs before (or at) the given time
-            while (closestIndex >= 0 && events[closestIndex].Time > time)
-                closestIndex--;
-
-            return closestIndex;
+            return events.LowerBoundElement(time, EventComparer<TEvent>.CompareTime, before: true);
         }
 
-        public static int GetIndexOfPrevious<TEvent>(this List<TEvent> events, uint tick)
+        /// <summary>
+        /// Searches for the first event that occurs before (or at) the given tick.
+        /// </summary>
+        /// <seealso cref="Extensions.CollectionExtensions.LowerBoundElement"/>
+        public static TEvent? LowerBoundElement<TEvent>(this List<TEvent> events, uint tick)
             where TEvent : ChartEvent
         {
-            int closestIndex = events.FindClosestEventIndex(tick);
-            if (closestIndex < 0)
-                return -1;
-
-            // Ensure the index we return is for an event that occurs before (or at) the given tick
-            while (closestIndex >= 0 && events[closestIndex].Tick > tick)
-                closestIndex--;
-
-            return closestIndex;
+            return events.LowerBoundElement(tick, EventComparer<TEvent>.CompareTick, before: true);
         }
 
-        public static int GetIndexOfNext<TEvent>(this List<TEvent> events, double time)
+        /// <summary>
+        /// Searches for the first event that occurs after the given time.
+        /// </summary>
+        /// <seealso cref="Extensions.CollectionExtensions.UpperBound"/>
+        public static int UpperBound<TEvent>(this List<TEvent> events, double time)
             where TEvent : ChartEvent
         {
-            int closestIndex = events.FindClosestEventIndex(time);
-            if (closestIndex < 0)
-                return -1;
-
-            // Ensure the index we return is for an event that occurs after the given time
-            int count = events.Count;
-            while (closestIndex < count && events[closestIndex].Time <= time)
-                closestIndex++;
-
-            return closestIndex < count ? closestIndex : -1;
+            return events.UpperBound(time, EventComparer<TEvent>.CompareTime);
         }
 
-        public static int GetIndexOfNext<TEvent>(this List<TEvent> events, uint tick)
+        /// <summary>
+        /// Searches for the first event that occurs after the given tick.
+        /// </summary>
+        /// <seealso cref="Extensions.CollectionExtensions.UpperBound"/>
+        public static int UpperBound<TEvent>(this List<TEvent> events, uint tick)
             where TEvent : ChartEvent
         {
-            int closestIndex = events.FindClosestEventIndex(tick);
-            if (closestIndex < 0)
-                return -1;
-
-            // Ensure the index we return is for an event that occurs after the given tick
-            int count = events.Count;
-            while (closestIndex < count && events[closestIndex].Tick <= tick)
-                closestIndex++;
-
-            return closestIndex < count ? closestIndex : -1;
+            return events.UpperBound(tick, EventComparer<TEvent>.CompareTick);
         }
 
-        public static bool GetEventRange<TEvent>(this List<TEvent> events, double startTime, double endTime,
-            out Range range)
+        /// <summary>
+        /// Searches for the first event that occurs after the given time.
+        /// </summary>
+        /// <seealso cref="Extensions.CollectionExtensions.UpperBoundElement"/>
+        public static bool UpperBoundElement<TEvent>(
+            this List<TEvent> events, double time, [MaybeNullWhen(false)] out TEvent value
+        )
             where TEvent : ChartEvent
         {
-            range = default;
-
-            int startIndex = events.FindClosestEventIndex(startTime);
-            int endIndex = events.FindClosestEventIndex(endTime);
-            if (startIndex < 0 || endIndex < 0)
-                return false;
-
-            // Ensure indexes are within time bounds
-            int count = events.Count;
-            while (startIndex < count && events[startIndex].Time < startTime)
-                startIndex++;
-            while (endIndex >= 0 && events[endIndex].Time >= endTime)
-                endIndex--;
-
-            // Ensure indexes are still in bounds
-            if (startIndex >= count || endIndex < 0 || startIndex > endIndex)
-                return false;
-
-            range = new Range(startIndex, endIndex + 1);
-            return true;
+            return events.UpperBoundElement(time, EventComparer<TEvent>.CompareTime, out value);
         }
 
-        public static bool GetEventRange<TEvent>(this List<TEvent> events, uint startTick, uint endTick,
-            out Range range)
+        /// <summary>
+        /// Searches for the first event that occurs after the given tick.
+        /// </summary>
+        /// <seealso cref="Extensions.CollectionExtensions.UpperBoundElement"/>
+        public static bool UpperBoundElement<TEvent>(
+            this List<TEvent> events, uint tick, [MaybeNullWhen(false)] out TEvent value
+        )
             where TEvent : ChartEvent
         {
-            range = default;
-
-            int startIndex = events.FindClosestEventIndex(startTick);
-            int endIndex = events.FindClosestEventIndex(endTick);
-            if (startIndex < 0 || endIndex < 0)
-                return false;
-
-            // Ensure indexes are within tick bounds
-            int count = events.Count;
-            while (startIndex < count && events[startIndex].Tick < startTick)
-                startIndex++;
-            while (endIndex >= 0 && events[endIndex].Tick >= endTick)
-                endIndex--;
-
-            // Ensure indexes are still in bounds
-            if (startIndex >= count || endIndex < 0 || startIndex > endIndex)
-                return false;
-
-            range = new Range(startIndex, endIndex + 1);
-            return true;
+            return events.UpperBoundElement(tick, EventComparer<TEvent>.CompareTick, out value);
         }
 
-        public static TEvent? FindClosestEvent<TEvent>(this List<TEvent> events, double time)
+        /// <summary>
+        /// Searches for the first event that occurs after the given time.
+        /// </summary>
+        /// <seealso cref="Extensions.CollectionExtensions.UpperBoundElement"/>
+        public static TEvent? UpperBoundElement<TEvent>(this List<TEvent> events, double time)
             where TEvent : ChartEvent
         {
-            return events.BinarySearch(time, EventComparer<TEvent>.CompareTime);
+            return events.UpperBoundElement(time, EventComparer<TEvent>.CompareTime);
         }
 
-        public static TEvent? FindClosestEvent<TEvent>(this List<TEvent> events, uint tick)
+        /// <summary>
+        /// Searches for the first event that occurs after the given tick.
+        /// </summary>
+        /// <seealso cref="Extensions.CollectionExtensions.UpperBoundElement"/>
+        public static TEvent? UpperBoundElement<TEvent>(this List<TEvent> events, uint tick)
             where TEvent : ChartEvent
         {
-            return events.BinarySearch(tick, EventComparer<TEvent>.CompareTick);
+            return events.UpperBoundElement(tick, EventComparer<TEvent>.CompareTick);
         }
 
-        public static int FindClosestEventIndex<TEvent>(this List<TEvent> events, double time)
+        /// <summary>
+        /// Searches for all events that occur at the given time.
+        /// </summary>
+        public static bool FindEqualRange<TEvent>(this List<TEvent> events, double time, out Range range)
             where TEvent : ChartEvent
         {
-            return events.BinarySearchIndex(time, EventComparer<TEvent>.CompareTime);
+            return events.FindEqualRange(time, EventComparer<TEvent>.CompareTime, out range);
         }
 
-        public static int FindClosestEventIndex<TEvent>(this List<TEvent> events, uint tick)
+        /// <summary>
+        /// Searches for all events that occur at the given tick.
+        /// </summary>
+        public static bool FindEqualRange<TEvent>(this List<TEvent> events, uint tick, out Range range)
             where TEvent : ChartEvent
         {
-            return events.BinarySearchIndex(tick, EventComparer<TEvent>.CompareTick);
+            return events.FindEqualRange(tick, EventComparer<TEvent>.CompareTick, out range);
+        }
+
+        /// <summary>
+        /// Searches for all events that occur between the given start and end time.
+        /// </summary>
+        /// <param name="endInclusive">
+        /// Whether the end value should be treated as inclusive, rather than exclusive.
+        /// </param>
+        public static bool FindRange<TEvent>(
+            this List<TEvent> events, double startTime, double endTime, bool endInclusive, out Range range
+        )
+            where TEvent : ChartEvent
+        {
+            return events.FindRange(startTime, endTime, EventComparer<TEvent>.CompareTime, endInclusive, out range);
+        }
+
+        /// <summary>
+        /// Searches for all events that occur between the given start and end tick.
+        /// </summary>
+        /// <param name="endInclusive">
+        /// Whether the end value should be treated as inclusive, rather than exclusive.
+        /// </param>
+        public static bool FindRange<TEvent>(
+            this List<TEvent> events, uint startTick, uint endTick, bool endInclusive, out Range range
+        )
+            where TEvent : ChartEvent
+        {
+            return events.FindRange(startTick, endTick, EventComparer<TEvent>.CompareTick, endInclusive, out range);
         }
 
         private static class EventComparer<TEvent>
             where TEvent : ChartEvent
         {
-            public static readonly Func<TEvent, double, int> CompareTime = _CompareTime;
-            public static readonly Func<TEvent, uint, int> CompareTick = _CompareTick;
-
-            private static int _CompareTime(TEvent currentEvent, double targetTime)
-            {
-                if (currentEvent.Time == targetTime)
-                    return 0;
-                else if (currentEvent.Time < targetTime)
-                    return -1;
-                else
-                    return 1;
-            }
-
-            private static int _CompareTick(TEvent currentEvent, uint targetTick)
-            {
-                if (currentEvent.Tick == targetTick)
-                    return 0;
-                else if (currentEvent.Tick < targetTick)
-                    return -1;
-                else
-                    return 1;
-            }
+            public static readonly SearchComparison<TEvent, double> CompareTime = (ev, time) => ev.Time.CompareTo(time);
+            public static readonly SearchComparison<TEvent, uint> CompareTick = (ev, tick) => ev.Tick.CompareTo(tick);
         }
     }
 }
