@@ -111,5 +111,20 @@ namespace YARG.TestConsole
 
             throw new Exception($"Cannot find song {songId}");
         }
+
+        public static SongEntry LoadUltrastar(SongCache cache, string directory)
+        {
+            Console.WriteLine($"Loading ultrastar song {directory}");
+            foreach (var node in cache.Entries.Values)
+            {
+                foreach (var entry in node)
+                {
+                    if (entry.SubType == EntryType.Ultrastar && entry.SortBasedLocation == directory)
+                        return entry;
+                }
+            }
+
+            throw new Exception($"Cannot find song {directory}");
+        }
     }
 }

@@ -238,6 +238,12 @@ namespace YARG.Core.Chart
             return new(loader);
         }
 
+        public static SongChart FromUltrastar(in ParseSettings settings, ReadOnlySpan<char> chartText)
+        {
+            var loader = MoonSongLoader.LoadUltrastar(settings, chartText);
+            return new(loader);
+        }
+
         public InstrumentTrack<GuitarNote> GetFiveFretTrack(Instrument instrument)
         {
             return instrument switch
