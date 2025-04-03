@@ -1,5 +1,4 @@
 ﻿using System;
-using YARG.Core.Extensions;
 
 namespace YARG.Core.Chart
 {
@@ -51,17 +50,17 @@ namespace YARG.Core.Chart
             var shifts = difficulty.RangeShiftEvents;
 
             // We're shifting all ranges into the first range, so set rangeTo to the first range
-            var rangeTo = shifts[0].Range;
-            // These need to be initialized since the first range won't have set them in the loop
-            var rangeFrom = shifts[0].Range;
-            var shiftAmount = rangeFrom - rangeTo;
+            int rangeTo = shifts[0].Range;
+            // These need to be initialized here since the first range won't have set them in the loop
+            int rangeFrom = shifts[0].Range;
+            int shiftIndex = 0;
+            int shiftAmount = rangeFrom - rangeTo;
+            GuitarNote note;
 
-            var shiftIndex = 0;
-
-            var openFret = FiveFretGuitarFret.Open.Convert();
-
-            foreach (var note in difficulty.Notes)
+            for (var i = 0; i < difficulty.Notes.Count; i++)
             {
+                note = difficulty.Notes[i];
+
                 if (note.Time >= shifts[shiftIndex].TimeEnd && shiftIndex + 1 < shifts.Count)
                 {
                     shiftIndex++;
@@ -69,28 +68,135 @@ namespace YARG.Core.Chart
                     shiftAmount = rangeFrom - rangeTo;
                 }
 
-                if (shifts[shiftIndex].Range == rangeTo)
+                if (rangeFrom == rangeTo)
                 {
                     continue;
                 }
 
                 // Leave open notes as they are
-                if (note.Fret == openFret)
+                if (note.Fret == (int) FiveFretGuitarFret.Open)
                 {
                     continue;
                 }
 
                 // Change the fret and mask according to the new range
                 note.Fret -= shiftAmount;
-                note.NoteMask >>= shiftAmount;
-                note.DisjointMask >>= shiftAmount;
-
-                // Shift child notes since we shifted the parent note
-                foreach (var child in note.ChildNotes)
+                if (shiftAmount > 0)
                 {
+                    note.NoteMask >>= shiftAmount;
+                    note.DisjointMask >>= shiftAmount;
+                }
+                else
+                {
+                    note.NoteMask <<= shiftAmount;
+                    note.DisjointMask <<= shiftAmount;
+                }
+
+
+                // Shift child notes
+                for (int j = 0; j < note.ChildNotes.Count; j++)
+                {
+                    var child = note.ChildNotes[j];
                     child.Fret -= shiftAmount;
-                    child.NoteMask >>= shiftAmount;
-                    child.DisjointMask >>= shiftAmount;
+                    if (shiftAmount > 0)
+                    {
+                        child.NoteMask >>= shiftAmount;
+                        child.DisjointMask >>= shiftAmount;
+                    }
+                    else
+                    {
+                        child.NoteMask <<= shiftAmount;
+                        child.DisjointMask <<= shiftAmount;
+                    }
+                }
+
+                // Check for validity of (possible) parent and remove if off track, reparenting children as necessary
+                var count = note.ChildNotes.Count + 1;
+                bool outOfRange = false;
+
+                foreach (var chordNote in note.AllNotes)
+                {
+                    if (chordNote.Fret is < (int) FiveFretGuitarFret.Green or > (int) FiveFretGuitarFret.Orange)
+                    {
+                        outOfRange = true;
+                    }
+                }
+
+                if (!outOfRange)
+                {
+                    continue;
+                }
+
+                // Check if parent is out of range, replacing parent with a child if so, and keep doing
+                // that until we get a parent that is in range or we run out of children
+                while (note.Fret is < (int) FiveFretGuitarFret.Green or > (int) FiveFretGuitarFret.Orange)
+                {
+                    difficulty.Notes.RemoveNoteAt(i);
+
+                    if (count == 0)
+                    {
+                        // Parent and all children have been removed, so we're done
+                        break;
+                    }
+
+                    note = difficulty.Notes[i];
+                    count--;
+                }
+
+                if (count == 0)
+                {
+                    // We ended up deleting all the notes, so we need to start again using the same i
+                    i--;
+                    continue;
+                }
+
+                // Now check that any remaining children are in range and remove if not
+                // It should be noted that when shifting down (towards green), this is the part
+                // that really does all the work since the parent is actually the high note of the chord
+                for (int j = 0; j < note.ChildNotes.Count; j++)
+                {
+                    if (note.ChildNotes[j].Fret is < 1 or > 5)
+                    {
+                        difficulty.Notes.RemoveChildFromNote(i, j);
+                    }
+                }
+
+                // If we're here, we are working with a broken chart, so we should check for overlapping sustains
+
+                // There is no previous note, so an overlapping sustain isn't possible
+                if (i == 0)
+                {
+                    continue;
+                }
+
+                // Now that we know what the final note (group) for this index is, make sure any previous sustain
+                // doesn't overlap with the current note
+                if ((note.NoteMask & difficulty.Notes[i - 1].NoteMask) == 0)
+                {
+                    // Previous and current share no notes, so we're done
+                    continue;
+                }
+
+                // Cut off sustains that would overlap
+                foreach (var prevNote in difficulty.Notes[i-1].AllNotes)
+                {
+                    if (!prevNote.IsSustain)
+                    {
+                        continue;
+                    }
+
+                    foreach (var child in note.AllNotes)
+                    {
+                        if (prevNote.Fret != child.Fret)
+                        {
+                            continue;
+                        }
+
+                        if (prevNote.Tick + prevNote.TickLength > child.Tick)
+                        {
+                            prevNote.TickLength = child.Tick - prevNote.Tick;
+                        }
+                    }
                 }
             }
         }
