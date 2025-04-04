@@ -468,7 +468,7 @@ namespace YARG.Core.Chart
         private void CreateRangeShiftPhrases()
         {
             var allPossibleDifficulties = Enum.GetValues(typeof(Difficulty));
-
+            int size;
 
             // Only guitar/bass have range shifts
             foreach (var track in FiveFretTracks)
@@ -507,7 +507,16 @@ namespace YARG.Core.Chart
                         var splitEvent = textEvents[i].Text.Split(' ');
 
                         var range = int.Parse(splitEvent[2]);
-                        var size = int.Parse(splitEvent[3]);
+
+                        if (!int.TryParse(splitEvent[3], out size))
+                        {
+                            size = instrumentDifficulty.Difficulty switch
+                            {
+                                Difficulty.Easy   => 3,
+                                Difficulty.Medium => 4,
+                                _                 => 5,
+                            };
+                        }
 
                         var newPhrase = new RangeShift(time, timeEnd - time, tick, tickEnd - tick, range, size);
                         int newPhraseIndex = instrumentDifficulty.RangeShiftEvents.GetIndexOfNext(newPhrase.Tick);
@@ -526,9 +535,10 @@ namespace YARG.Core.Chart
             }
         }
 
-        private List<TextEvent> ParseRangeShifts(InstrumentDifficulty<GuitarNote> instrumentDifficulty)
+        private static List<TextEvent> ParseRangeShifts(InstrumentDifficulty<GuitarNote> instrumentDifficulty)
         {
             List<TextEvent> textEvents = new List<TextEvent>();
+            int size;
 
             foreach (var textEvent in instrumentDifficulty.TextEvents)
             {
@@ -541,17 +551,37 @@ namespace YARG.Core.Chart
                 // My natural inclination here would be to use a regex, but they're not really used
                 // anywhere else in YARG, so...
                 var splitEvent = textEvent.Text.Split(' ');
-                if (splitEvent.Length != 4)
+
+                // 3 uses default size, 4 explicitly defines range size
+                if (splitEvent.Length != 3 && splitEvent.Length != 4)
                 {
+                    YargLogger.LogDebug("Invalid range shift event. (Improper parameter count)");
                     continue;
                 }
 
-                // TODO: Consider merging this with the above, though I feel like this way is more readable
                 if (!(int.TryParse(splitEvent[1], out int eventDifficulty) &&
-                    int.TryParse(splitEvent[2], out int range) &&
-                    int.TryParse(splitEvent[3], out int size)))
+                    int.TryParse(splitEvent[2], out int range)))
                 {
+                    YargLogger.LogDebug("Invalid range shift event. (Unable to parse difficulty and range)");
                     continue;
+                }
+
+                // Add one to eventDifficulty to make it match the Difficulty enum
+                eventDifficulty++;
+
+                if (splitEvent.Length == 4 && !int.TryParse(splitEvent[3], out size))
+                {
+                    YargLogger.LogDebug("Invalid range shift event. (Unable to parse size)");
+                    continue;
+                }
+                else
+                {
+                    size = eventDifficulty switch
+                    {
+                        (int) Difficulty.Easy    => 3,
+                        (int) Difficulty.Medium  => 4,
+                        _                        => 5,
+                    };
                 }
 
                 // Further validation
@@ -568,7 +598,7 @@ namespace YARG.Core.Chart
                 }
 
                 // 3) Does it apply to this difficulty?
-                if ((int) instrumentDifficulty.Difficulty - 1 != eventDifficulty)
+                if ((int) instrumentDifficulty.Difficulty != eventDifficulty)
                 {
                     continue;
                 }
