@@ -519,7 +519,7 @@ namespace YARG.Core.Chart
                         }
 
                         var newPhrase = new RangeShift(time, timeEnd - time, tick, tickEnd - tick, range, size);
-                        int newPhraseIndex = instrumentDifficulty.RangeShiftEvents.GetIndexOfNext(newPhrase.Tick);
+                        int newPhraseIndex = instrumentDifficulty.RangeShiftEvents.UpperBound(newPhrase.Tick);
 
                         // Add or insert the new event into the list for the given instrument difficulty
                         if (newPhraseIndex == -1)
