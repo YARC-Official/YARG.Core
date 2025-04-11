@@ -508,7 +508,10 @@ namespace YARG.Core.Chart
 
                         var range = int.Parse(splitEvent[2]);
 
-                        if (!int.TryParse(splitEvent[3], out size))
+                        // If the third param doesn't exist or can't be parsed, use a default
+                        // The event has already been validated as being not entirely malformed by the time we reach
+                        // this point, so we can rely on splitEvent.Length being exactly 3 or 4 here.
+                        if (splitEvent.Length == 3 || !int.TryParse(splitEvent[3], out size))
                         {
                             size = instrumentDifficulty.Difficulty switch
                             {
