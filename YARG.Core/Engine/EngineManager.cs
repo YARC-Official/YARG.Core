@@ -8,9 +8,11 @@ namespace YARG.Core.Engine
     // Tracks and instantiates engines, handles IPC between engines, and events that affect multiple engines
     public partial class EngineManager
     {
-        private int _nextEngineIndex;
-        List <EngineContainer> _allEngines = new();
-        Dictionary<int, EngineContainer> _allEnginesById = new();
+        private          int                              _nextEngineIndex;
+        private readonly List <EngineContainer>           _allEngines     = new();
+        private readonly Dictionary<int, EngineContainer> _allEnginesById = new();
+
+        public List<EngineContainer> Engines => _allEngines;
 
         public class Band
         {
@@ -28,7 +30,7 @@ namespace YARG.Core.Engine
         {
             public  int          EngineId      { get; }
             public  BaseEngine   Engine        { get; }
-            private Instrument   Instrument    { get; }
+            public  Instrument   Instrument    { get; }
             private SongChart    SongChart     { get; }
             public  List<Phrase> UnisonPhrases { get; }
 

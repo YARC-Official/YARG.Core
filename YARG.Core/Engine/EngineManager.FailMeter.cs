@@ -47,7 +47,7 @@ namespace YARG.Core.Engine
             return happiness;
         }
 
-        public float GetAverageHappiness()
+        private float GetAverageHappiness()
         {
             float happiness = 0.0f;
             foreach (var engine in _allEngines)
