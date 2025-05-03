@@ -79,7 +79,9 @@ namespace YARG.Core.Engine
             {
                 // Ignore any notes that have not been fully hit yet on the assumption that a call
                 // where the note group was fully hit will eventually come if they are all hit
-                if (!note.WasFullyHit())
+
+                // TODO: Figure a better way to handle vocals not being fully hit or missed
+                if (!note.WasFullyHit() && note is not VocalNote)
                 {
                     return;
                 }
@@ -109,7 +111,9 @@ namespace YARG.Core.Engine
                 //  since any time we are called while there are still notes in the note group
                 //  that have not been processed we immediately return. It logically follows that
                 //  we should only pass this gate once per note group on the final call.
-                if (!note.WasFullyHitOrMissed())
+
+                // TODO: Figure a better way to handle vocals not being fully hit or missed
+                if (!note.WasFullyMissed() && note is not VocalNote)
                 {
                     return;
                 }

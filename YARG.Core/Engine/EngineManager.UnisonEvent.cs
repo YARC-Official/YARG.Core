@@ -4,6 +4,7 @@ using YARG.Core.Chart;
 using YARG.Core.Engine.Drums;
 using YARG.Core.Engine.Guitar;
 using YARG.Core.Engine.ProKeys;
+using YARG.Core.Engine.Vocals;
 using YARG.Core.Logging;
 
 namespace YARG.Core.Engine
@@ -98,6 +99,12 @@ namespace YARG.Core.Engine
 
         private void AddPlayerToUnisons(EngineContainer engineContainer)
         {
+            // Vocals don't participate in unisons, so don't add them to the list
+            if (engineContainer.Engine is BaseEngine<VocalNote, VocalsEngineParameters, VocalsStats>)
+            {
+                return;
+            }
+
             foreach (var phrase in engineContainer.UnisonPhrases)
             {
                 var unisonEvent = new UnisonEvent(phrase.Time, phrase.TimeEnd);
