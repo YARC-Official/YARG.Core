@@ -11,6 +11,8 @@ namespace YARG.Core.Engine.Vocals
     {
         protected const int POINTS_PER_PERCUSSION = 100;
 
+        protected VocalNote? CarriedVocalNote;
+
         public delegate void TargetNoteChangeEvent(VocalNote targetNote);
 
         public delegate void PhraseHitEvent(double hitPercentAfterParams, bool fullPoints);
@@ -224,27 +226,32 @@ namespace YARG.Core.Engine.Vocals
         /// <returns>
         /// Gets the amount of ticks in the phrase.
         /// </returns>
-        protected static uint GetTicksInPhrase(VocalNote phrase)
+        protected uint GetTicksInPhrase(VocalNote phrase)
         {
             uint totalTime = 0;
-            foreach (var phraseNote in phrase.ChildNotes)
+            foreach (var noteInPhrase in phrase.ChildNotes.Where(e => !e.IsPercussion))
             {
-                if (phraseNote.IsPercussion)
-                {
-                    continue;
-                }
-
-                totalTime += phraseNote.TotalTickLength;
+                // If the note continues past the end of the current phrase, clamp it to the end of the phrase instead.
+                totalTime += phrase.GetTicksForNote(noteInPhrase);
             }
 
+            if (CarriedVocalNote != null)
+            {
+                totalTime += phrase.GetTicksForNote(CarriedVocalNote);
+            }
             return totalTime;
         }
 
         /// <returns>
         /// The note in the specified <paramref name="phrase"/> at the specified song <paramref name="tick"/>.
         /// </returns>
-        protected static VocalNote? GetNoteInPhraseAtSongTick(VocalNote phrase, uint tick)
+        protected VocalNote? GetNoteInPhraseAtSongTick(VocalNote phrase, uint tick)
         {
+            if (CarriedVocalNote != null && tick >= CarriedVocalNote.Tick && tick <= CarriedVocalNote.TickEnd)
+            {
+                return CarriedVocalNote;
+            }
+
             return phrase
                 .ChildNotes
                 .FirstOrDefault(phraseNote =>
@@ -315,9 +322,22 @@ namespace YARG.Core.Engine.Vocals
 
         protected sealed override int CalculateBaseScore()
         {
-            return Notes.Where(note => note.ChildNotes.Count > 0).Sum(_ => EngineParameters.PointsPerPhrase);
+            return Notes.Where(note => note.IsLyricPhrase).Sum(_ => EngineParameters.PointsPerPhrase);
         }
 
         protected override bool CanSustainHold(VocalNote note) => throw new InvalidOperationException();
+
+        protected virtual void UpdateCarriedNote(VocalNote phrase)
+        {
+            if (CarriedVocalNote != null && CarriedVocalNote.TotalTickEnd > phrase.TickEnd)
+            {
+                // Keep the current Carried Vocal Note if it continues past the end of the current phrase.
+                // This can happen for notes that span across 3 or more phrases.
+                return;
+            }
+
+            CarriedVocalNote = phrase.ChildNotes.FirstOrDefault(e => !e.IsPercussion && e.TotalTickEnd > phrase.TickEnd);
+            EngineStats.HasCarryNote = CarriedVocalNote != null;
+        }
     }
 }
