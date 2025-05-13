@@ -325,12 +325,11 @@ namespace MoonscraperChartEditor.Song.IO
 
                     // Get tick
                     uint tick = (uint) FastInt32Parse(tickText);
-
-                    if (prevTick > tick) throw new Exception("Tick value not in ascending order");
+                    if (prevTick > tick)
+                    {
+                        throw new Exception("Tick value not in ascending order");
+                    }
                     prevTick = tick;
-
-                    // This is valid since we are guaranteed to have at least one tempo event at all times
-                    var currentTempo = song.syncTrack.Tempos[^1];
 
                     // Get event type
                     var typeCode = remaining.GetNextWord(out remaining);
@@ -340,7 +339,7 @@ namespace MoonscraperChartEditor.Song.IO
                         var tempoText = remaining.GetNextWord(out remaining);
                         uint tempo = (uint) FastInt32Parse(tempoText);
 
-                        song.Add(new TempoChange(tempo / 1000.0, song.TickToTime(tick, currentTempo), tick));
+                        song.AddTempo(tempo / 1000.0, tick);
                     }
                     else if (typeCode.Equals("TS", StringComparison.Ordinal))
                     {
@@ -351,8 +350,8 @@ namespace MoonscraperChartEditor.Song.IO
                         // Get denominator
                         var denominatorText = remaining.GetNextWord(out remaining);
                         uint denominator = denominatorText.IsEmpty ? 2 : (uint) FastInt32Parse(denominatorText);
-                        song.Add(new TimeSignatureChange(numerator, (uint) Math.Pow(2, denominator),
-                            song.TickToTime(tick, currentTempo), tick));
+
+                        song.AddTimeSignature(numerator, (uint) Math.Pow(2, denominator), tick);
                     }
                     else if (typeCode.Equals("A", StringComparison.Ordinal))
                     {

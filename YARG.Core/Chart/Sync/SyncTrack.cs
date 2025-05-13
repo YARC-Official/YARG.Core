@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using YARG.Core.Extensions;
 
 namespace YARG.Core.Chart
 {
@@ -15,6 +16,8 @@ namespace YARG.Core.Chart
         public delegate BeatlineType GetBeatlineType(TimeSignatureChange currentTimeSig, uint beatlineCount);
 
         public uint Resolution { get; }
+        public uint MeasureResolution => TimeSignatureChange.GetMeasureTickResolution(Resolution);
+
         public List<TempoChange> Tempos { get; } = new();
         public List<TimeSignatureChange> TimeSignatures { get; } = new();
         public List<Beatline> Beatlines { get; } = new();
@@ -24,8 +27,12 @@ namespace YARG.Core.Chart
             Resolution = resolution;
         }
 
-        public SyncTrack(uint resolution, List<TempoChange> tempos, List<TimeSignatureChange> timeSignatures,
-            List<Beatline> beatlines)
+        public SyncTrack(
+            uint resolution,
+            List<TempoChange> tempos,
+            List<TimeSignatureChange> timeSignatures,
+            List<Beatline> beatlines
+        )
             : this(resolution)
         {
             Tempos = tempos;
@@ -195,7 +202,9 @@ namespace YARG.Core.Chart
             // Find the current tempo marker at the given tick
             var currentTempo = Tempos.LowerBoundElement(tick);
             if (currentTempo is null)
+            {
                 return 0;
+            }
 
             return TickToTime(tick, currentTempo);
 
@@ -208,98 +217,84 @@ namespace YARG.Core.Chart
         public uint TimeToTick(double time)
         {
             if (time < 0)
+            {
                 return 0;
+            }
 
             // Find the current tempo marker at the given time
             var currentTempo = Tempos.LowerBoundElement(time);
             if (currentTempo is null)
+            {
                 return 0;
+            }
 
             return TimeToTick(time, currentTempo);
         }
 
         public double TickToTime(uint tick, TempoChange currentTempo)
         {
-            return currentTempo.Time + TickRangeToTimeDelta(currentTempo.Tick, tick, currentTempo);
+            return currentTempo.TickToTime(tick, Resolution);
         }
 
         public uint TimeToTick(double time, TempoChange currentTempo)
         {
-            return currentTempo.Tick + TimeRangeToTickDelta(currentTempo.Time, time, currentTempo);
+            return currentTempo.TimeToTick(time, Resolution);
         }
 
-        public double TickRangeToTimeDelta(uint tickStart, uint tickEnd, TempoChange currentTempo)
+        public uint QuarterTickToMeasureTick(uint quarterTick)
         {
-            return TickRangeToTimeDelta(tickStart, tickEnd, Resolution, currentTempo);
+            int timeSigIndex = TimeSignatures.LowerBound(quarterTick);
+            if (timeSigIndex < 0)
+            {
+                return 0;
+            }
+
+            var timeSig = TimeSignatures[timeSigIndex];
+
+            // Interrupted time signatures need special handling for correct results
+            if (timeSig.IsInterrupted)
+            {
+                var nextTimeSig = TimeSignatures[timeSigIndex + 1];
+                return timeSig.QuarterTickToMeasureTick(quarterTick, nextTimeSig);
+            }
+
+            return timeSig.QuarterTickToMeasureTick(quarterTick, Resolution);
         }
 
-        public uint TimeRangeToTickDelta(double timeStart, double timeEnd, TempoChange currentTempo)
+        public uint MeasureTickToQuarterTick(uint measureTick)
         {
-            return TimeRangeToTickDelta(timeStart, timeEnd, Resolution, currentTempo);
+            int timeSigIndex = TimeSignatures.LowerBound(
+                measureTick,
+                (TimeSignatureChange timeSig, uint measureTick) => timeSig.MeasureTick.CompareTo(measureTick),
+                before: true
+            );
+            if (timeSigIndex < 0)
+            {
+                return 0;
+            }
+
+            var timeSig = TimeSignatures[timeSigIndex];
+
+            // Interrupted time signatures need special handling for correct results
+            if (timeSig.IsInterrupted)
+            {
+                var nextTimeSig = TimeSignatures[timeSigIndex + 1];
+                return timeSig.MeasureTickToQuarterTick(measureTick, nextTimeSig);
+            }
+
+            return timeSig.MeasureTickToQuarterTick(measureTick, Resolution);
         }
 
-        public static double TickRangeToTimeDelta(uint tickStart, uint tickEnd, uint resolution,
-            TempoChange currentTempo)
+        public uint TimeToMeasureTick(double time)
         {
-            if (tickStart < currentTempo.Tick)
-            {
-                throw new ArgumentOutOfRangeException(nameof(tickStart), tickStart,
-                    $"The given start tick must occur during the given tempo (starting at {currentTempo.Tick})!");
-            }
-
-            if (tickEnd < tickStart)
-            {
-                throw new ArgumentOutOfRangeException(nameof(tickEnd), tickEnd,
-                    $"The given end tick must occur after the starting tick ({tickStart})!");
-            }
-
-            double tickDelta = tickEnd - tickStart;
-
-            // The active code below is a slightly more precise version of the commented code,
-            // it seems to incur fewer rounding errors and should improve consistency.
-            // double beatDelta = tickDelta / resolution;
-            // double timeDelta = beatDelta * currentTempo.SecondsPerBeat;
-            double timeDelta = (tickDelta * 60.0) / (resolution * currentTempo.BeatsPerMinute);
-
-            return timeDelta;
+            uint quarterTick = TimeToTick(time);
+            return QuarterTickToMeasureTick(quarterTick);
         }
 
-        public static uint TimeRangeToTickDelta(double timeStart, double timeEnd, uint resolution,
-            TempoChange currentTempo)
+        public double MeasureTickToTime(uint measureTick)
         {
-            if (timeStart < currentTempo.Time)
-            {
-                throw new ArgumentOutOfRangeException(nameof(timeStart), timeStart,
-                    $"The given start time must occur during the given tempo (starting at {currentTempo.Time})!");
-            }
-
-            if (timeEnd < timeStart)
-            {
-                throw new ArgumentOutOfRangeException(nameof(timeEnd), timeEnd,
-                    $"The given end time must occur after the starting time ({timeStart})!");
-            }
-
-            double timeDelta = timeEnd - timeStart;
-
-            // The active code below is a slightly more precise version of the commented code,
-            // it seems to incur fewer rounding errors and should improve consistency somewhat.
-            // double beatDelta = timeDelta / currentTempo.SecondsPerBeat;
-            // double tickDelta = beatDelta * resolution;
-            double tickDelta = (timeDelta * resolution * currentTempo.BeatsPerMinute) / 60.0;
-
-            // Despite the precision improvements above, there are still some floating-point imprecisions,
-            // making time <-> tick conversions not accurately round-trippable. Thus, we need to round to
-            // prevent truncation from resulting in the wrong tick.
-            //
-            // A more conservative approach is taken here, where rounding is only done if the result is
-            // within 0.1 of the next whole value.
-            double deltaDecimals = (tickDelta + 1) - tickDelta;
-            if (Math.Abs(deltaDecimals) >= 0.9)
-            {
-                tickDelta += 0.1;
-            }
-
-            return (uint) tickDelta;
+            uint quarterTick = MeasureTickToQuarterTick(measureTick);
+            return TickToTime(quarterTick);
         }
 
         public double GetStartTime()

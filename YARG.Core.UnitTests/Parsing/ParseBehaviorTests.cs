@@ -462,8 +462,8 @@ namespace YARG.Core.UnitTests.Parsing
 
         public static void PopulateSyncTrack(MoonSong song)
         {
-            song.Add(new TempoChange(TEMPO, 0, 0));
-            song.Add(new TimeSignatureChange(NUMERATOR, DENOMINATOR, 0, 0));
+            song.AddTempo(TEMPO, 0);
+            song.AddTimeSignature(NUMERATOR, DENOMINATOR, 0);
         }
 
         public static void PopulateGlobalEvents(MoonSong song, List<MoonText> events)

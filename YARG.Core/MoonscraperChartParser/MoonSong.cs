@@ -41,7 +41,7 @@ namespace MoonscraperChartEditor.Song
         {
             syncTrack = new(resolution);
             syncTrack.Tempos.Add(new TempoChange(120, 0, 0));
-            syncTrack.TimeSignatures.Add(new TimeSignatureChange(4, 4, 0, 0));
+            syncTrack.TimeSignatures.Add(new TimeSignatureChange(4, 4, 0, 0, 0));
 
             // Chart initialisation
             charts = new MoonChart[EnumExtensions<MoonInstrument>.Count * EnumExtensions<Difficulty>.Count];
@@ -126,19 +126,71 @@ namespace MoonscraperChartEditor.Song
             }
         }
 
-        public void Add(Beatline beat)
+        public void AddTempo(double bpm, uint tick)
         {
-            AddSyncEvent(syncTrack.Beatlines, beat);
+            double time = 0;
+            if (tick > 0)
+            {
+                var previousTempo = syncTrack.Tempos[^1];
+                time = TickToTime(tick, previousTempo);
+            }
+
+            var tempo = new TempoChange(bpm, time, tick);
+            AddSyncEvent(syncTrack.Tempos, tempo);
         }
 
-        public void Add(TimeSignatureChange timeSig)
+        public void AddTimeSignature(uint numerator, uint denominator, uint tick)
         {
+            double time = 0;
+            if (tick > 0)
+            {
+                var previousTempo = syncTrack.Tempos[^1];
+                time = TickToTime(tick, previousTempo);
+            }
+
+            uint measureTick = 0;
+            if (tick > 0)
+            {
+                var previousTimesig = syncTrack.TimeSignatures[^1];
+
+                // Misaligned time signatures need to be handled specially
+                uint ticksPerMeasure = previousTimesig.GetTicksPerMeasure(syncTrack.Resolution);
+                uint tickDelta = tick - previousTimesig.Tick;
+                uint extraTicks = tickDelta % ticksPerMeasure;
+                if (extraTicks > 0)
+                {
+                    // Insert a new time signature at the start of the final measure for this
+                    // time signature, marked as interrupted so that measure tick conversions
+                    // know to handle it specially
+                    uint newTick = tick - extraTicks;
+                    uint newMeasureTick = previousTimesig.QuarterTickToMeasureTick(newTick, syncTrack.Resolution);
+                    double newTime = TickToTime(newTick, syncTrack.Tempos[^1]);
+
+                    previousTimesig = new TimeSignatureChange(
+                        previousTimesig.Numerator,
+                        previousTimesig.Denominator,
+                        newTime,
+                        newTick,
+                        newMeasureTick,
+                        interrupted: true
+                    );
+                    AddSyncEvent(syncTrack.TimeSignatures, previousTimesig);
+
+                    measureTick = newMeasureTick + syncTrack.MeasureResolution;
+                }
+                else
+                {
+                    measureTick = previousTimesig.QuarterTickToMeasureTick(tick, syncTrack.Resolution);
+                }
+            }
+
+            var timeSig = new TimeSignatureChange(numerator, denominator, time, tick, measureTick);
             AddSyncEvent(syncTrack.TimeSignatures, timeSig);
         }
 
-        public void Add(TempoChange bpm)
+        public void Add(Beatline beat)
         {
-            AddSyncEvent(syncTrack.Tempos, bpm);
+            AddSyncEvent(syncTrack.Beatlines, beat);
         }
 
         public void Add(MoonText ev)
