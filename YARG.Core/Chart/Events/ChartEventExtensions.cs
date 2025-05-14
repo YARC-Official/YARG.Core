@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using YARG.Core.Extensions;
+using YARG.Core.Logging;
 
 namespace YARG.Core.Chart
 {
@@ -44,28 +45,41 @@ namespace YARG.Core.Chart
         // Remove note from list in place, adjusting references as required
         public static void RemoveNoteAt(this List<GuitarNote> notes, int index)
         {
+            // Check for invalid index
+            if (index < 0 || index >= notes.Count)
+            {
+                YargLogger.LogFormatDebug("RemoveNoteAt called with index out of range: {0}", index);
+                return;
+            }
+
+            // If there's only one note with no children, we can just remove it and return, as there is
+            // nowhere left to move the flags and nothing to stitch back together
+            if (notes.Count == 1 && notes[index].ChildNotes.Count == 0)
+            {
+                notes.RemoveAt(index);
+                return;
+            }
+
             if (notes[index].ChildNotes.Count == 0)
             {
-                // The simple case, when there are no children
-                // Well, simple except for having to deal with all the flags that may need to move
+                // If there are no children, we have to deal with moving flags
                 if (notes[index].IsSoloStart && !notes[index].IsSoloEnd)
                 {
                     // This is a single note that is a solo start, we have to move it to the
                     // NEXT note (we don't want to extend the solo).
-                    if (index < notes.Count)
+                    if (index + 1 < notes.Count)
                     {
                         notes[index + 1].Flags |= NoteFlags.SoloStart;
                         // Also add it to the child notes
-                        foreach (var childNote in notes[index].ChildNotes)
+                        foreach (var childNote in notes[index + 1].ChildNotes)
                         {
                             childNote.Flags |= NoteFlags.SoloStart;
                         }
                     }
                 }
-
-                if (notes[index].IsSoloEnd)
+                else if (!notes[index].IsSoloStart && notes[index].IsSoloEnd)
                 {
-                    // This is a single kick drum note that is a solo end, we have to move it to the
+                    // This is a single note that is a solo end, we have to move it to the
                     // PREVIOUS note (we don't want to extend the solo).
                     if (index > 0)
                     {
@@ -82,18 +96,18 @@ namespace YARG.Core.Chart
                 if (notes[index].IsStarPowerStart && !notes[index].IsStarPowerEnd)
                 {
                     // Make the next note the SP start, so as to not extend the SP section
-                    if (index < notes.Count)
+                    if (index + 1 < notes.Count)
                     {
                         notes[index + 1].Flags |= NoteFlags.StarPowerStart;
                         // Also add it to the child notes
-                        foreach (var childNote in notes[index].ChildNotes)
+                        foreach (var childNote in notes[index + 1].ChildNotes)
                         {
                             childNote.Flags |= NoteFlags.StarPowerStart;
                         }
                     }
                 }
 
-                if (notes[index].IsStarPowerEnd)
+                if (!notes[index].IsStarPowerStart && notes[index].IsStarPowerEnd)
                 {
                     // This is a single kick drum note that is a starpower end, we have to move it to the
                     // PREVIOUS note (we don't want to extend the starpower section).
@@ -110,6 +124,17 @@ namespace YARG.Core.Chart
 
                 notes.RemoveAt(index);
 
+                // If there is now only one note, previous and next both need to be set to null
+                if (notes.Count == 1)
+                {
+                    notes[0].PreviousNote = null;
+                    notes[0].NextNote = null;
+                    return;
+                }
+
+                // Past this point, we can be assured that notes[0] and notes[^1] are valid and don't refer
+                // to the same note
+
                 // Fix Previous/Next references
                 if (index == 0)
                 {
@@ -118,6 +143,8 @@ namespace YARG.Core.Chart
                     return;
                 }
 
+                // We have already removed a note so index will equal notes.Count if it is referring
+                // to what was previously the last note in the chart
                 if (index == notes.Count)
                 {
                     // We were the last, so new last's next becomes null and everything else is fine
@@ -143,19 +170,11 @@ namespace YARG.Core.Chart
                     newParent.PreviousNote = notes[index - 1];
                     notes[index - 1].NextNote = newParent;
                 }
-                else
-                {
-                    newParent.PreviousNote = null;
-                }
 
-                if (index < notes.Count - 1)
+                if (index + 1 < notes.Count)
                 {
                     newParent.NextNote = notes[index + 1];
                     notes[index + 1].PreviousNote = newParent;
-                }
-                else
-                {
-                    newParent.NextNote = null;
                 }
 
                 notes[index] = newParent;
@@ -174,12 +193,10 @@ namespace YARG.Core.Chart
 
             for(int i = 0; i < notes[index].ChildNotes.Count; i++)
             {
-                if (childIndex == i)
+                if (childIndex != i)
                 {
-                    continue;
+                    newNote.AddChildNote(notes[index].ChildNotes[i]);
                 }
-
-                newNote.AddChildNote(notes[index].ChildNotes[i]);
             }
 
             // Stitch references
@@ -188,19 +205,11 @@ namespace YARG.Core.Chart
                 newNote.PreviousNote = notes[index - 1];
                 notes[index - 1].NextNote = newNote;
             }
-            else
-            {
-                newNote.PreviousNote = null;
-            }
 
-            if (index < notes.Count - 1)
+            if (index + 1 < notes.Count)
             {
                 newNote.NextNote = notes[index + 1];
                 notes[index + 1].PreviousNote = newNote;
-            }
-            else
-            {
-                newNote.NextNote = null;
             }
 
             notes[index] = newNote;

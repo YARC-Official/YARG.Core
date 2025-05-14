@@ -468,7 +468,6 @@ namespace YARG.Core.Chart
         private void CreateRangeShiftPhrases()
         {
             var allPossibleDifficulties = Enum.GetValues(typeof(Difficulty));
-            int size;
 
             // Only guitar/bass have range shifts
             foreach (var track in FiveFretTracks)
@@ -481,45 +480,37 @@ namespace YARG.Core.Chart
                         continue;
                     }
 
-                    var textEvents = ParseRangeShifts(instrumentDifficulty);
-
-                    for (var i = 0; i < textEvents.Count; i++)
+                    if (instrumentDifficulty.Notes.Count == 0)
                     {
-                        var time = textEvents[i].Time;
-                        var tick = textEvents[i].Tick;
+                        // No notes in this difficulty, nothing to do
+                        continue;
+                    }
+
+                    var rangeShiftEvents = ParseRangeShifts(instrumentDifficulty);
+
+                    for (var i = 0; i < rangeShiftEvents.Count; i++)
+                    {
+                        var time = rangeShiftEvents[i].Time;
+                        var tick = rangeShiftEvents[i].Tick;
                         double timeEnd;
                         uint tickEnd;
 
                         // Overlaps will lead to bad things, so the end of one phrase is a tick before the beginning of the next
-                        if (i < textEvents.Count - 1)
+                        if (i + 1 < rangeShiftEvents.Count)
                         {
-                            tickEnd = textEvents[i + 1].Tick - 1;
+                            tickEnd = rangeShiftEvents[i + 1].Tick - 1;
                             timeEnd = SyncTrack.TickToTime(tickEnd);
                         }
                         else
                         {
                             // This is the last range shift, so it ends once all the notes are over
-                            tickEnd = instrumentDifficulty.Notes[^1].TickEnd;
-                            timeEnd = instrumentDifficulty.Notes[^1].TimeEnd;
+                            var lastNote = instrumentDifficulty.Notes[^1];
+                            tickEnd = lastNote.TickEnd;
+                            timeEnd = lastNote.TimeEnd;
                         }
 
-                        // We already validated the event above, so no need to do it again, just split and go
-                        var splitEvent = textEvents[i].Text.Split(' ');
-
-                        var range = int.Parse(splitEvent[2]);
-
-                        // If the third param doesn't exist or can't be parsed, use a default
-                        // The event has already been validated as being not entirely malformed by the time we reach
-                        // this point, so we can rely on splitEvent.Length being exactly 3 or 4 here.
-                        if (splitEvent.Length == 3 || !int.TryParse(splitEvent[3], out size))
-                        {
-                            size = instrumentDifficulty.Difficulty switch
-                            {
-                                Difficulty.Easy   => 3,
-                                Difficulty.Medium => 4,
-                                _                 => 5,
-                            };
-                        }
+                        var range = rangeShiftEvents[i].Range;
+                        var size = rangeShiftEvents[i].Size;
 
                         var newPhrase = new RangeShift(time, timeEnd - time, tick, tickEnd - tick, range, size);
                         int newPhraseIndex = instrumentDifficulty.RangeShiftEvents.UpperBound(newPhrase.Tick);
@@ -538,9 +529,10 @@ namespace YARG.Core.Chart
             }
         }
 
-        private static List<TextEvent> ParseRangeShifts(InstrumentDifficulty<GuitarNote> instrumentDifficulty)
+        private static List<RangeShiftEvent> ParseRangeShifts(InstrumentDifficulty<GuitarNote> instrumentDifficulty)
         {
-            List<TextEvent> textEvents = new List<TextEvent>();
+            // List<TextEvent> textEvents = new List<TextEvent>();
+            List<RangeShiftEvent> rangeShiftEvents = new List<RangeShiftEvent>();
             int size;
 
             foreach (var textEvent in instrumentDifficulty.TextEvents)
@@ -606,10 +598,24 @@ namespace YARG.Core.Chart
                     continue;
                 }
 
-                // We have a valid range shift, so place it in the appropriate difficulty bin
-                textEvents.Add(textEvent);
+                // We have a syntactically valid range shift, so add it to the list
+                rangeShiftEvents.Add(new RangeShiftEvent
+                {
+                    Time = textEvent.Time,
+                    Tick = textEvent.Tick,
+                    Range = range,
+                    Size = size
+                });
             }
-            return textEvents;
+            return rangeShiftEvents;
         }
+    }
+
+    internal struct RangeShiftEvent
+    {
+        public double Time;
+        public uint Tick;
+        public int Range;
+        public int Size;
     }
 }

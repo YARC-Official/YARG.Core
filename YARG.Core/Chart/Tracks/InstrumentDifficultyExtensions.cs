@@ -1,4 +1,6 @@
 ﻿using System;
+using System.Linq;
+using YARG.Core.Engine.Guitar;
 
 namespace YARG.Core.Chart
 {
@@ -55,32 +57,37 @@ namespace YARG.Core.Chart
             int rangeFrom = shifts[0].Range;
             int shiftIndex = 0;
             int shiftAmount = rangeFrom - rangeTo;
-            GuitarNote note;
 
             for (var i = 0; i < difficulty.Notes.Count; i++)
             {
-                note = difficulty.Notes[i];
+                var note = difficulty.Notes[i];
+                bool isOpen = (GuitarEngine.OPEN_MASK & note.NoteMask) == GuitarEngine.OPEN_MASK;;
+                bool isOpenChord = (GuitarEngine.OPEN_MASK & note.NoteMask) > GuitarEngine.OPEN_MASK;
+                int openBit = GuitarEngine.OPEN_MASK & note.NoteMask;
 
-                if (note.Time >= shifts[shiftIndex].TimeEnd && shiftIndex + 1 < shifts.Count)
+                if (shiftIndex + 1 < shifts.Count && note.Time >= shifts[shiftIndex + 1].Time)
                 {
                     shiftIndex++;
                     rangeFrom = shifts[shiftIndex].Range;
                     shiftAmount = rangeFrom - rangeTo;
                 }
 
-                if (rangeFrom == rangeTo)
-                {
-                    continue;
-                }
-
-                // Leave open notes as they are
-                if (note.Fret == (int) FiveFretGuitarFret.Open)
+                // No shifting required if from equals to or if the only note here is an open
+                if (rangeFrom == rangeTo || isOpen)
                 {
                     continue;
                 }
 
                 // Change the fret and mask according to the new range
-                note.Fret -= shiftAmount;
+
+                // If this is an open chord it is possible this note is an open, so we still have to account for it
+                // even though we've already determined it isn't a plain open note
+                note.Fret -= note.Fret == (int) FiveFretGuitarFret.Open ? 0 : shiftAmount;
+
+                // Remove any open note from the masks
+                note.NoteMask &= ~GuitarEngine.OPEN_MASK;
+                note.DisjointMask &= ~GuitarEngine.OPEN_MASK;
+
                 if (shiftAmount > 0)
                 {
                     note.NoteMask >>= shiftAmount;
@@ -88,16 +95,25 @@ namespace YARG.Core.Chart
                 }
                 else
                 {
-                    note.NoteMask <<= shiftAmount;
-                    note.DisjointMask <<= shiftAmount;
+                    note.NoteMask <<= -shiftAmount;
+                    note.DisjointMask <<= -shiftAmount;
                 }
 
+                // Fix up the open bit by clearing the open bit and then ORing with openBit, in case it was munged
+                // by a left shift
+                note.NoteMask = (note.NoteMask & ~GuitarEngine.OPEN_MASK) | openBit;
+                note.DisjointMask = (note.DisjointMask & ~GuitarEngine.OPEN_MASK) | openBit;
 
                 // Shift child notes
                 for (int j = 0; j < note.ChildNotes.Count; j++)
                 {
                     var child = note.ChildNotes[j];
-                    child.Fret -= shiftAmount;
+                    child.Fret -= child.Fret == (int) FiveFretGuitarFret.Open ? 0 : shiftAmount;
+
+                    // Children that aren't themselves an open are guaranteed not to have the open bit set
+                    // so we can just shift without having to worry about fixing the open bit since a child
+                    // that is an open will shift by zero
+
                     if (shiftAmount > 0)
                     {
                         child.NoteMask >>= shiftAmount;
@@ -105,8 +121,8 @@ namespace YARG.Core.Chart
                     }
                     else
                     {
-                        child.NoteMask <<= shiftAmount;
-                        child.DisjointMask <<= shiftAmount;
+                        child.NoteMask <<= -shiftAmount;
+                        child.DisjointMask <<= -shiftAmount;
                     }
                 }
 
@@ -131,13 +147,13 @@ namespace YARG.Core.Chart
                 // that until we get a parent that is in range or we run out of children
                 while (note.Fret is < (int) FiveFretGuitarFret.Green or > (int) FiveFretGuitarFret.Orange)
                 {
-                    difficulty.Notes.RemoveNoteAt(i);
-
                     if (count == 0)
                     {
                         // Parent and all children have been removed, so we're done
                         break;
                     }
+
+                    difficulty.Notes.RemoveNoteAt(i);
 
                     note = difficulty.Notes[i];
                     count--;
@@ -158,6 +174,8 @@ namespace YARG.Core.Chart
                     if (note.ChildNotes[j].Fret is < 1 or > 5)
                     {
                         difficulty.Notes.RemoveChildFromNote(i, j);
+                        // note's referent has changed, so update note
+                        note = difficulty.Notes[i];
                     }
                 }
 
@@ -171,30 +189,56 @@ namespace YARG.Core.Chart
 
                 // Now that we know what the final note (group) for this index is, make sure any previous sustain
                 // doesn't overlap with the current note
-                if ((note.NoteMask & difficulty.Notes[i - 1].NoteMask) == 0)
+
+                // I guess that we really need to search for the previous note in any of this note group's
+                // lanes, not just look back a single index. We only need to go as far as is required to
+                // find the previous note in any of this group's lanes.
+
+                // GRYBO-Open
+                int[] overlapIndexes = { -1, -1, -1, -1, -1, -1 };
+
+                for (int n = i; n >= 0; n--)
                 {
-                    // Previous and current share no notes, so we're done
-                    continue;
+                    if ((note.NoteMask & difficulty.Notes[n].NoteMask) != 0)
+                    {
+                        // Figure out which notes overlap
+                        for (int m = 1; m < 7; m++)
+                        {
+                            if ((note.NoteMask & difficulty.Notes[n].NoteMask & (1 << m)) != 0 && overlapIndexes[m - 1] == -1)
+                            {
+                                overlapIndexes[m - 1] = n;
+                            }
+                        }
+
+                        // If overlapIndexes contains as many valid entries as there are notes in our group, we're done
+                        if (overlapIndexes.Count(x => x != -1) == note.ChildNotes.Count + 1)
+                        {
+                            break;
+                        }
+                    }
                 }
 
-                // Cut off sustains that would overlap
-                foreach (var prevNote in difficulty.Notes[i-1].AllNotes)
+                // For each note in our note group, check to see if the identified previous note is a sustain
+                foreach (var parentOrChild in note.AllNotes)
                 {
-                    if (!prevNote.IsSustain)
+                    if (overlapIndexes[parentOrChild.Fret - 1] == -1)
                     {
                         continue;
                     }
 
-                    foreach (var child in note.AllNotes)
+                    foreach (var prevNote in difficulty.Notes[overlapIndexes[parentOrChild.Fret - 1]].AllNotes)
                     {
-                        if (prevNote.Fret != child.Fret)
+                        // If it isn't on the same fret or it isn't a sustain, we don't care about it
+                        if (prevNote.Fret != parentOrChild.Fret || !prevNote.IsSustain)
                         {
                             continue;
                         }
 
-                        if (prevNote.Tick + prevNote.TickLength > child.Tick)
+                        // We have found a sustain on the same fret as one of our notes, so we have to cut it off
+                        // at note.Tick
+                        if (prevNote.Tick + prevNote.TickLength >= parentOrChild.Tick)
                         {
-                            prevNote.TickLength = child.Tick - prevNote.Tick;
+                            prevNote.TickLength = parentOrChild.Tick - prevNote.Tick;
                         }
                     }
                 }
