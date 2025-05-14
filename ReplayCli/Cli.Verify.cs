@@ -1,3 +1,4 @@
+﻿using YARG.Core.Logging;
 using YARG.Core.Replays.Analyzer;
 
 namespace ReplayCli;
@@ -18,8 +19,11 @@ public partial class Cli
 
         Console.WriteLine($"Analyzing replay {(_framesPerSecond > 0 ? $"at {_framesPerSecond}" : "")}...");
 
-        var results = ReplayAnalyzer.AnalyzeReplay(chart, _replayInfo, _replayData);
+        InitializeLogging();
+
         var results = ReplayAnalyzer.AnalyzeReplay(chart, _replayInfo, _replayData, _framesPerSecond, _frameIndex);
+
+        YargLogger.KillLogger();
 
         Console.WriteLine("Done!\n");
 

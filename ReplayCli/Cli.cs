@@ -5,6 +5,7 @@ using YARG.Core.Engine.Drums;
 using YARG.Core.Engine.Guitar;
 using YARG.Core.Engine.ProKeys;
 using YARG.Core.Engine.Vocals;
+using YARG.Core.Logging;
 using YARG.Core.Replays;
 
 namespace ReplayCli;
@@ -17,6 +18,9 @@ public partial class Cli
 
     private int _framesPerSecond = 0;
     private int _frameIndex = -1;
+
+    private string _logPath;
+    private LogLevel _logLevel = LogLevel.Info;
 
     private ReplayInfo _replayInfo;
     private ReplayData _replayData;
@@ -124,6 +128,50 @@ public partial class Cli
 
                     break;
                 }
+                case "--log-file":
+                case "-l":
+                {
+                    i++;
+                    if (i >= args.Length)
+                    {
+                        Console.WriteLine("ERROR: Missing log file path.");
+                        PrintHelpMessage();
+                        return false;
+                    }
+
+                    _logPath = args[i];
+
+                    break;
+                }
+                case "--log-level":
+                case "-lv":
+                {
+                    i++;
+                    if (i >= args.Length)
+                    {
+                        Console.WriteLine("ERROR: Missing log file path.");
+                        PrintHelpMessage();
+                        return false;
+                    }
+
+                    string level = args[i];
+                    switch (level)
+                    {
+                        case "error":   _logLevel = LogLevel.Error;   break;
+                        case "warning": _logLevel = LogLevel.Warning; break;
+                        case "info":    _logLevel = LogLevel.Info;    break;
+                        case "debug":   _logLevel = LogLevel.Debug;   break;
+                        case "trace":   _logLevel = LogLevel.Trace;   break;
+                        default:
+                        {
+                            Console.WriteLine($"ERROR: Invalid log level '{level}'.");
+                            PrintHelpMessage();
+                            return false;
+                        }
+                    }
+
+                    break;
+                }
                 case "--help":
                 case "-h":
                 {
@@ -145,19 +193,32 @@ public partial class Cli
     {
         Console.WriteLine(
             """
-            Usage: ReplayCli [mode] [replay-path] [options...]
+            Usage: ReplayCli <mode> <replay-path> [options...]
 
-            Mode: the run mode of the analyzer
-              verify         Verifies the replay's metadata.
-              simulate_fps   Simulates FPS updates to verify the engines consistency.
-              dump_inputs    Dumps the replay's inputs.
+              mode: the mode to run the analyzer in
+                verify              Verifies the replay's metadata.
+                simulate_fps        Simulates FPS updates to verify the engines consistency.
+                dump_inputs         Dumps the replay's inputs.
 
-            Replay Path: the path to the replay
+              replay-path: the path to the replay file
 
             Options:
-              --song     | -s    Path to `song.ini` folder (required in `verify` and `simulate_fps` modes).
-              --help     | -h    Show this help message.
-            """);
+              -h  | --help                      Show this help message.
+
+              -s  | --song <path>               Path to the song. (required in `verify` and `simulate_fps` modes)
+              -f  | --fps <value>               The framerate value to simulate with. (optional)
+              -fi | --frame-index <value>       Place a debug break at a specific frame index. (optional)
+
+              -l  | --log-file <path>           Output log messages to the specified path.
+                                                By default, log messages are output to the console.
+              -lv | --log-level <level>         The logging level to use.
+                error                             Only errors.
+                warning                           Warnings and errors.
+                info                              General information.
+                debug                             Verbose information for troubleshooting. (forces log file)
+                trace                             Log spam for thorough analysis. (forces log file)
+            """
+        );
     }
 
     private void PrintReplayMetadata()
@@ -200,6 +261,24 @@ public partial class Cli
             AnalyzerMode.Read        => RunRead(),
             _                        => false
         };
+    }
+
+    private void InitializeLogging()
+    {
+        YargLogger.MinimumLogLevel = _logLevel;
+        if (_logLevel < LogLevel.Info && string.IsNullOrEmpty(_logPath))
+        {
+            _logPath = $"ReplayCLI-{DateTime.Now:yyyy-MM-dd-HH-mm-ss}.log";
+        }
+
+        if (!string.IsNullOrEmpty(_logPath))
+        {
+            YargLogger.AddLogListener(new FileYargLogListener(_logPath, new BasicYargLogFormatter()));
+        }
+        else
+        {
+            YargLogger.AddLogListener(new ConsoleYargLogListener());
+        }
     }
 
     private SongChart ReadChart()
