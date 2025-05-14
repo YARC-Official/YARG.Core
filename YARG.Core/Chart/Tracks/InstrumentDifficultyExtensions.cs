@@ -61,9 +61,12 @@ namespace YARG.Core.Chart
             for (var i = 0; i < difficulty.Notes.Count; i++)
             {
                 var note = difficulty.Notes[i];
-                bool isOpen = (GuitarEngine.OPEN_MASK & note.NoteMask) == GuitarEngine.OPEN_MASK;;
-                bool isOpenChord = (GuitarEngine.OPEN_MASK & note.NoteMask) > GuitarEngine.OPEN_MASK;
-                int openBit = GuitarEngine.OPEN_MASK & note.NoteMask;
+                // Is the open bit set, regardless of any other
+                bool hasOpen = (GuitarEngine.OPEN_MASK & note.NoteMask) == GuitarEngine.OPEN_MASK;
+                // Is the open bit the only bit set
+                bool isOpen = (~GuitarEngine.OPEN_MASK & note.NoteMask) == 0 && hasOpen;
+                // Is the open bit set along with other bits
+                bool isOpenChord = hasOpen && !isOpen;
 
                 if (shiftIndex + 1 < shifts.Count && note.Time >= shifts[shiftIndex + 1].Time)
                 {
@@ -82,7 +85,10 @@ namespace YARG.Core.Chart
 
                 // If this is an open chord it is possible this note is an open, so we still have to account for it
                 // even though we've already determined it isn't a plain open note
-                note.Fret -= note.Fret == (int) FiveFretGuitarFret.Open ? 0 : shiftAmount;
+                if (note.Fret != (int) FiveFretGuitarFret.Open)
+                {
+                    note.Fret -= shiftAmount;
+                }
 
                 // Remove any open note from the masks
                 note.NoteMask &= ~GuitarEngine.OPEN_MASK;
@@ -99,16 +105,22 @@ namespace YARG.Core.Chart
                     note.DisjointMask <<= -shiftAmount;
                 }
 
-                // Fix up the open bit by clearing the open bit and then ORing with openBit, in case it was munged
-                // by a left shift
-                note.NoteMask = (note.NoteMask & ~GuitarEngine.OPEN_MASK) | openBit;
-                note.DisjointMask = (note.DisjointMask & ~GuitarEngine.OPEN_MASK) | openBit;
+                // Fix up the open bit if necessary
+                if (hasOpen)
+                {
+                    note.NoteMask |= GuitarEngine.OPEN_MASK;
+                    note.DisjointMask |= GuitarEngine.OPEN_MASK;
+                }
 
                 // Shift child notes
                 for (int j = 0; j < note.ChildNotes.Count; j++)
                 {
                     var child = note.ChildNotes[j];
-                    child.Fret -= child.Fret == (int) FiveFretGuitarFret.Open ? 0 : shiftAmount;
+                    if (child.Fret == (int) FiveFretGuitarFret.Open)
+                    {
+                        continue;
+                    }
+                    child.Fret -= shiftAmount;
 
                     // Children that aren't themselves an open are guaranteed not to have the open bit set
                     // so we can just shift without having to worry about fixing the open bit since a child
@@ -132,9 +144,10 @@ namespace YARG.Core.Chart
 
                 foreach (var chordNote in note.AllNotes)
                 {
+                    // TODO: Surely I can do better than this
                     if (chordNote.Fret is < (int) FiveFretGuitarFret.Green or > (int) FiveFretGuitarFret.Orange)
                     {
-                        outOfRange = true;
+                        outOfRange = chordNote.Fret != (int) FiveFretGuitarFret.Open;
                     }
                 }
 
