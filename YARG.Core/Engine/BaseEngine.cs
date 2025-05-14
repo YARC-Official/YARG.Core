@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using YARG.Core.Chart;
 using YARG.Core.Input;
@@ -15,10 +15,6 @@ namespace YARG.Core.Engine
         // Max number of measures that SP will last when draining
         // SP draining is done based on measures
         protected const int STAR_POWER_MAX_MEASURES = 8;
-
-        // Max number of beats that it takes to fill SP when gaining
-        // SP gain from whammying is done based on beats
-        protected const int STAR_POWER_MAX_BEATS = (STAR_POWER_MAX_MEASURES * 4) - 2; // - 2 for leniency
 
         // Beat fraction to use for the sustain burst threshold
         protected const int SUSTAIN_BURST_FRACTION = 4;
@@ -78,8 +74,6 @@ namespace YARG.Core.Engine
         public bool IsStarPowerInputActive { get; protected set; }
 
         protected EngineTimer StarPowerWhammyTimer;
-
-        protected bool LastWhammyTimerState;
 
         /// <summary>
         /// A Star Power Sustain was active in the last update.
@@ -408,6 +402,8 @@ namespace YARG.Core.Engine
             {
                 BaseStats.ScoreMultiplier *= 2;
             }
+
+            RebaseSustains(CurrentTick);
         }
 
         public double GetStarPowerBarAmount()
@@ -432,10 +428,10 @@ namespace YARG.Core.Engine
             YargLogger.LogFormatTrace("Activated at SP tick {0}, ends at SP tick {1}. Start time: {2}, End time: {3}",
                 StarPowerTickActivationPosition, StarPowerTickEndPosition, StarPowerActivationTime, StarPowerEndTime);
 
-            RebaseProgressValues(CurrentTick);
             BaseStats.IsStarPowerActive = true;
 
             UpdateMultiplier();
+
             OnStarPowerStatus?.Invoke(true);
         }
 
@@ -451,9 +447,8 @@ namespace YARG.Core.Engine
 
             BaseTimeInStarPower = BaseStats.TimeInStarPower;
 
-            RebaseProgressValues(CurrentTick);
-
             UpdateMultiplier();
+
             OnStarPowerStatus?.Invoke(false);
         }
 
@@ -489,15 +484,7 @@ namespace YARG.Core.Engine
 
         protected abstract void UpdateStarPower();
 
-        protected virtual void RebaseProgressValues(uint baseTick)
-        {
-
-        }
-
-        protected virtual void UpdateProgressValues(uint tick)
-        {
-
-        }
+        protected abstract void RebaseSustains(uint baseTick);
 
         public abstract void AllowStarPower(bool isAllowed);
 
