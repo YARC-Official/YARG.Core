@@ -1,4 +1,4 @@
-using NUnit.Framework;
+using System.Diagnostics;
 using YARG.Core.Chart;
 using YARG.Core.Engine;
 using YARG.Core.Engine.Drums;
@@ -7,6 +7,7 @@ using YARG.Core.Engine.ProKeys;
 using YARG.Core.Engine.Vocals;
 using YARG.Core.Logging;
 using YARG.Core.Replays;
+using YARG.Core.Song.Cache;
 
 namespace ReplayCli;
 
@@ -82,11 +83,6 @@ public partial class Cli
                     }
 
                     _songPath = args[i].Trim();
-                    if (!Directory.Exists(_songPath))
-                    {
-                        Console.WriteLine("ERROR: Song folder does not exist!");
-                        return false;
-                    }
 
                     break;
                 }
@@ -294,39 +290,58 @@ public partial class Cli
 
     private SongChart ReadChart()
     {
-        string songIni = Path.Combine(_songPath, "song.ini");
-        string notesMid = Path.Combine(_songPath, "notes.mid");
-        string notesChart = Path.Combine(_songPath, "notes.chart");
-        if (!File.Exists(songIni) || (!File.Exists(notesMid) && !File.Exists(notesChart)))
-        {
-            Console.WriteLine(
-                "ERROR: Song directory does not contain necessary song files (song.ini, notes.mid/chart).");
-            return null;
-        }
+        string tempDir = Path.Combine(Path.GetTempPath(), $"ReplayCLI-{Guid.NewGuid()}");
 
-        SongChart chart;
         try
         {
-            // TODO: Prevent this workaround from being needed
-            var parseSettings = ParseSettings.Default;
-            parseSettings.DrumsType = DrumsType.FourLane;
+            string tempCache = Path.Combine(tempDir, "songcache.bin");
+            string tempBadSongs = Path.Combine(tempDir, "badsongs.txt");
 
-            if (File.Exists(notesMid))
+            if (File.Exists(_songPath))
             {
-                chart = SongChart.FromFile(parseSettings, notesMid);
+                // CON files can't be scanned in via their direct file path
+                // This also allows a file within song.ini charts to be passed in instead
+                _songPath = Path.GetDirectoryName(_songPath);
             }
-            else
+            else if (!Directory.Exists(_songPath))
             {
-                chart = SongChart.FromFile(parseSettings, notesChart);
+                Console.WriteLine("ERROR: Song path does not exist!");
+                return null;
             }
+
+            Console.Write("Running song scan... ");
+            var directories = new List<string>() { _songPath };
+            var cache = CacheHandler.RunScan(
+                tryQuickScan: false,
+                tempCache,
+                tempBadSongs,
+                fullDirectoryPlaylists: false,
+                directories
+            );
+
+            Console.WriteLine($"Found {cache.Entries.Count} entries.");
+            Console.WriteLine();
+
+            if (!cache.Entries.TryGetValue(_replayInfo.SongChecksum, out var entries))
+            {
+                Console.WriteLine("ERROR: Could not load song from given song path!");
+                return null;
+            }
+
+            return entries[0].LoadChart();
         }
         catch (Exception e)
         {
             Console.WriteLine($"ERROR: Failed to load notes file. \n{e}");
             return null;
         }
-
-        return chart;
+        finally
+        {
+            if (Directory.Exists(tempDir))
+            {
+                Directory.Delete(tempDir, recursive: true);
+            }
+        }
     }
 
     private static void PrintStatDifferences(BaseStats originalStats, BaseStats resultStats)
