@@ -478,8 +478,16 @@ namespace YARG.Core.Engine
 
         protected void UpdateStarPowerEnds()
         {
+            uint lastEndTick = StarPowerTickEndPosition;
+            double lastEndTime = StarPowerEndTime;
+
             StarPowerTickEndPosition = StarPowerTickPosition + BaseStats.StarPowerTickAmount;
             StarPowerEndTime = SyncTrack.MeasureTickToTime(StarPowerTickEndPosition);
+
+            YargLogger.LogFormatTrace(
+                "Updated Star Power end from {0} ({1}) to {2} ({3})",
+                lastEndTime, lastEndTick, StarPowerEndTime, StarPowerTickEndPosition
+            );
         }
 
         protected abstract void UpdateStarPower();
