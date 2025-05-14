@@ -42,7 +42,13 @@ namespace YARG.Core.Replays.Analyzer
             _frameNum = frameNum;
 
             _fps = fps;
-            _doFrameUpdates = _fps > 0 || (replayData.FrameTimes.Length != 0 && _frameNum != -1);
+            _doFrameUpdates = _fps > 0 || (replayData.FrameTimes.Length > 0 && _frameNum >= 0);
+
+            // Ignore frame number when generating frame times
+            if (_fps > 0)
+            {
+                _frameNum = -1;
+            }
         }
 
         public static AnalysisResult[] AnalyzeReplay(SongChart chart, ReplayInfo info, ReplayData data, double fps = 0, int frameNum = -1)
@@ -185,51 +191,35 @@ namespace YARG.Core.Replays.Analyzer
             }
             else
             {
+                var frameTimes = _fps > 0
+                    ? GenerateFrameTimes(-2, maxTime).ToArray()
+                    : _replayData.FrameTimes;
+
                 // If we're doing frame updates, the inputs and frame times must be
                 // "interweaved" so nothing gets queued in the future
                 int currentInput = 0;
-                if (_replayData.FrameTimes.Length != 0)
+
+                for (int frameIndex = 0; frameIndex < frameTimes.Length; frameIndex++)
                 {
-                    for (int frameIndex = 0; frameIndex < _replayData.FrameTimes.Length; frameIndex++)
+                    double time = frameTimes[frameIndex];
+
+                    if (frameIndex == _frameNum)
                     {
-                        double time = _replayData.FrameTimes[frameIndex];
-
-                        if (frameIndex == _frameNum)
-                        {
-                            Debugger.Break();
-                        }
-
-                        for (; currentInput < frame.Inputs.Length; currentInput++)
-                        {
-                            var input = frame.Inputs[currentInput];
-                            if (input.Time > time)
-                            {
-                                break;
-                            }
-
-                            engine.QueueInput(ref input);
-                        }
-
-                        engine.Update(time);
+                        Debugger.Break();
                     }
-                }
-                else
-                {
-                    foreach (var time in GenerateFrameTimes(-2, maxTime))
+
+                    for (; currentInput < frame.Inputs.Length; currentInput++)
                     {
-                        for (; currentInput < frame.Inputs.Length; currentInput++)
+                        var input = frame.Inputs[currentInput];
+                        if (input.Time > time)
                         {
-                            var input = frame.Inputs[currentInput];
-                            if (input.Time > time)
-                            {
-                                break;
-                            }
-
-                            engine.QueueInput(ref input);
+                            break;
                         }
 
-                        engine.Update(time);
+                        engine.QueueInput(ref input);
                     }
+
+                    engine.Update(time);
                 }
             }
 

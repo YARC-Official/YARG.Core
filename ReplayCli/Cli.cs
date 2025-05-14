@@ -186,6 +186,17 @@ public partial class Cli
             }
         }
 
+        // Argument validation/warnings
+
+        if (_frameIndex >= 0)
+        {
+            if (_framesPerSecond > 0 || _runMode == AnalyzerMode.SimulateFps)
+            {
+                _frameIndex = -1;
+                Console.WriteLine("WARNING: Frame index is ignored when simulating FPS, as frame times from the replay are not used.");
+            }
+        }
+
         return true;
     }
 
