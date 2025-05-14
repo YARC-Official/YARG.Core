@@ -70,11 +70,18 @@ public partial class Cli
                 case "-s":
                 {
                     i++;
+                    if (i >= args.Length)
+                    {
+                        Console.WriteLine("ERROR: Missing song folder path.");
+                        PrintHelpMessage();
+                        return false;
+                    }
 
                     _songPath = args[i].Trim();
                     if (!Directory.Exists(_songPath))
                     {
                         Console.WriteLine("ERROR: Song folder does not exist!");
+                        return false;
                     }
 
                     break;
@@ -83,24 +90,36 @@ public partial class Cli
                 case "-f":
                 {
                     i++;
+                    if (i >= args.Length)
+                    {
+                        Console.WriteLine("ERROR: Missing FPS value.");
+                        PrintHelpMessage();
+                        return false;
+                    }
 
-                    if (!int.TryParse(args[i], out _framesPerSecond))
+                    if (!int.TryParse(args[i], out _framesPerSecond) || _framesPerSecond <= 0)
                     {
                         Console.WriteLine("ERROR: Invalid FPS value!");
-                        _framesPerSecond = 0;
+                        return false;
                     }
 
                     break;
                 }
-                case "--frameindex":
+                case "--frame-index":
                 case "-fi":
                 {
                     i++;
+                    if (i >= args.Length)
+                    {
+                        Console.WriteLine("ERROR: Missing frame index value.");
+                        PrintHelpMessage();
+                        return false;
+                    }
 
-                    if (!int.TryParse(args[i], out _frameIndex))
+                    if (!int.TryParse(args[i], out _frameIndex) || _frameIndex < 0)
                     {
                         Console.WriteLine("ERROR: Invalid frame index!");
-                        _frameIndex = -1;
+                        return false;
                     }
 
                     break;
@@ -110,6 +129,11 @@ public partial class Cli
                 {
                     PrintHelpMessage();
                     return false;
+                }
+                default:
+                {
+                    Console.WriteLine($"WARNING: Unrecognized argument '{args[i]}'");
+                    break;
                 }
             }
         }
