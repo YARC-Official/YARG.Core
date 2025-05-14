@@ -15,8 +15,8 @@ public partial class Cli
     private string _replayPath;
     private AnalyzerMode _runMode;
 
-    private int _framesPerSecond;
-    private int _frameIndex;
+    private int _framesPerSecond = 0;
+    private int _frameIndex = -1;
 
     private ReplayInfo _replayInfo;
     private ReplayData _replayData;
