@@ -437,7 +437,7 @@ namespace YARG.Core.Engine.ProKeys.Engines
                 return;
             }
 
-            if (time < note.Time)
+            if (time < note!.Time)
             {
                 // It isn't time to press another key yet
                 return;
