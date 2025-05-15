@@ -73,7 +73,7 @@ namespace YARG.Core.Engine.ProKeys.Engines
                     if (FatFingerNote!.WasHit)
                     {
                         YargLogger.LogTrace("Disabling fat finger timer as the note has been hit. Fat Finger was Ignored.");
-                        FatFingerTimer.Disable();
+                        FatFingerTimer.Disable(time, early: true);
                         FatFingerKey = null;
                         FatFingerNote = null;
 
@@ -102,7 +102,7 @@ namespace YARG.Core.Engine.ProKeys.Engines
                             KeyMask, isHoldingWrongKey, FatFingerNote!.WasHit);
                     }
 
-                    FatFingerTimer.Disable();
+                    FatFingerTimer.Disable(time);
                     FatFingerKey = null;
                     FatFingerNote = null;
                 }
@@ -177,7 +177,7 @@ namespace YARG.Core.Engine.ProKeys.Engines
                                 }
                             }
 
-                            ChordStaggerTimer.Disable();
+                            ChordStaggerTimer.Disable(CurrentTime);
                         }
                         else
                         {
@@ -267,7 +267,7 @@ namespace YARG.Core.Engine.ProKeys.Engines
 
                     // TODO Maybe don't disable the timer/use a flag saying no more fat fingers allowed for the current note.
 
-                    FatFingerTimer.Disable();
+                    FatFingerTimer.Disable(CurrentTime);
                     FatFingerKey = null;
                     FatFingerNote = null;
                 }

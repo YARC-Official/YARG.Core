@@ -45,8 +45,8 @@ namespace YARG.Core.Engine.Guitar
             GuitarEngineParameters engineParameters, bool isBot)
             : base(chart, syncTrack, engineParameters, false, isBot)
         {
-            StrumLeniencyTimer = new EngineTimer(engineParameters.StrumLeniency);
-            HopoLeniencyTimer = new EngineTimer(engineParameters.HopoLeniency);
+            StrumLeniencyTimer = new EngineTimer("Strum Leniency", engineParameters.StrumLeniency);
+            HopoLeniencyTimer = new EngineTimer("HOPO Leniency", engineParameters.HopoLeniency);
 
             GetWaitCountdowns(Notes);
         }
@@ -93,8 +93,8 @@ namespace YARG.Core.Engine.Guitar
 
             WasNoteGhosted = false;
 
-            StrumLeniencyTimer.Disable();
-            HopoLeniencyTimer.Disable();
+            StrumLeniencyTimer.Reset();
+            HopoLeniencyTimer.Reset();
 
             FrontEndExpireTime = 0;
 

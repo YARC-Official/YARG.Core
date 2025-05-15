@@ -46,8 +46,8 @@ namespace YARG.Core.Engine.ProKeys
             ProKeysEngineParameters engineParameters, bool isBot)
             : base(chart, syncTrack, engineParameters, true, isBot)
         {
-            ChordStaggerTimer = new(engineParameters.ChordStaggerWindow);
-            FatFingerTimer = new(engineParameters.FatFingerWindow);
+            ChordStaggerTimer = new("Chord Stagger",engineParameters.ChordStaggerWindow);
+            FatFingerTimer = new("Fat Finger",engineParameters.FatFingerWindow);
 
             KeyPressTimes = new double[(int)ProKeysAction.Key25 + 1];
             for(int i = 0; i < KeyPressTimes.Length; i++)
@@ -101,8 +101,8 @@ namespace YARG.Core.Engine.ProKeys
 
             FatFingerKey = null;
 
-            ChordStaggerTimer.Disable();
-            FatFingerTimer.Disable();
+            ChordStaggerTimer.Reset();
+            FatFingerTimer.Reset();
 
             FatFingerNote = null;
 
@@ -216,7 +216,7 @@ namespace YARG.Core.Engine.ProKeys
 
             if (note.ParentOrSelf.WasFullyHit())
             {
-                ChordStaggerTimer.Disable();
+                ChordStaggerTimer.Disable(CurrentTime, early: true);
             }
 
             // Only increase combo for the first note in a chord

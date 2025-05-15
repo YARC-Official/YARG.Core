@@ -1,6 +1,7 @@
 using System;
 using Cysharp.Text;
 using YARG.Core.Extensions;
+using YARG.Core.Logging;
 
 namespace YARG.Core.Engine
 {
@@ -12,6 +13,7 @@ namespace YARG.Core.Engine
         private double _speed;
 
         public readonly double TimeThreshold;
+        public readonly string Name;
 
         public double SpeedAdjustedThreshold => TimeThreshold * _speed;
 
@@ -25,11 +27,12 @@ namespace YARG.Core.Engine
             Utf16ValueStringBuilder.RegisterTryFormat<EngineTimer>(TryFormat);
         }
 
-        public EngineTimer(double threshold)
+        public EngineTimer(string name, double threshold)
         {
             _startTime = NOT_STARTED;
             _speed = 1.0;
 
+            Name = name;
             TimeThreshold = threshold;
 
             IsActive = false;
@@ -39,16 +42,48 @@ namespace YARG.Core.Engine
         {
             Start(ref _startTime, currentTime);
             IsActive = true;
+
+            YargLogger.LogFormatTrace("Started {0} timer at {1}", Name, currentTime);
         }
 
         public void StartWithOffset(double currentTime, double offset)
         {
             StartWithOffset(ref _startTime, currentTime, TimeThreshold * _speed, offset);
             IsActive = true;
+
+            YargLogger.LogFormatTrace("Started {0} timer at {1} with offset {2}", Name, currentTime, offset);
         }
 
-        public void Disable()
+        public void Disable(double currentTime, bool early = false)
         {
+            // Sanity checks for queued updates
+            if (IsActive && YargLogger.MinimumLogLevel <= LogLevel.Trace)
+            {
+                if (early)
+                {
+                    YargLogger.AssertFormat(
+                        currentTime <= EndTime,
+                        "{0} timer ended late! Should have ended before or at {1}, but ended at {2}.",
+                        Name, EndTime, currentTime
+                    );
+                }
+                else
+                {
+                    YargLogger.AssertFormat(
+                        currentTime == EndTime,
+                        "{0} timer end was not synchronized! Should have ended at {1}, but ended at {2} instead.",
+                        Name, EndTime, currentTime
+                    );
+                }
+            }
+
+            IsActive = false;
+            YargLogger.LogFormatTrace("Disabled {0} timer at {1}", Name, currentTime);
+        }
+
+        public void Reset()
+        {
+            _startTime = NOT_STARTED;
             IsActive = false;
         }
 

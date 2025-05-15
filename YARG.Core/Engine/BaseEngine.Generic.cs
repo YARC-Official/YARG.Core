@@ -62,7 +62,7 @@ namespace YARG.Core.Engine
             Notes = Chart.Notes;
             EngineParameters = engineParameters;
 
-            StarPowerWhammyTimer = new EngineTimer(engineParameters.StarPowerWhammyBuffer);
+            StarPowerWhammyTimer = new EngineTimer("Star Power Whammy", engineParameters.StarPowerWhammyBuffer);
 
             EngineStats = new TEngineStats();
             Reset();
@@ -388,7 +388,7 @@ namespace YARG.Core.Engine
 
             EngineStats.Reset();
 
-            StarPowerWhammyTimer.Disable();
+            StarPowerWhammyTimer.Reset();
 
             foreach (var note in Notes)
             {
@@ -685,7 +685,7 @@ namespace YARG.Core.Engine
 
             if (StarPowerWhammyTimer.IsActive && StarPowerWhammyTimer.IsExpired(CurrentTime))
             {
-                StarPowerWhammyTimer.Disable();
+                StarPowerWhammyTimer.Disable(CurrentTime);
                 YargLogger.LogFormatTrace("Disabling whammy timer at {0}", CurrentTime);
             }
         }
