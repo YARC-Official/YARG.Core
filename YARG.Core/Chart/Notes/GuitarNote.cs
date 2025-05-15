@@ -7,9 +7,9 @@ namespace YARG.Core.Chart
         private GuitarNoteFlags _guitarFlags;
         public GuitarNoteFlags GuitarFlags;
 
-        public int Fret         { get; }
-        public int DisjointMask { get; }
-        public int NoteMask     { get; private set; }
+        public int Fret         { get; set; }
+        public int DisjointMask { get; set; }
+        public int NoteMask     { get; set; }
 
         public GuitarNoteType Type { get; set; }
 

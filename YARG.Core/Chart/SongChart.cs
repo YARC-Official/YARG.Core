@@ -155,6 +155,8 @@ namespace YARG.Core.Chart
 
             // Use beatlines to place auto-generated drum activation phrases for charts without manually authored phrases
             CreateDrumActivationPhrases();
+            // Add range shift phrases, done here since they are parsed from text events
+            CreateRangeShiftPhrases();
 
             PostProcessSections();
             FixDrumPhraseEnds();

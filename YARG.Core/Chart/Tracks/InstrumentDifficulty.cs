@@ -13,9 +13,10 @@ namespace YARG.Core.Chart
         public Instrument Instrument { get; }
         public Difficulty Difficulty { get; }
 
-        public List<TNote> Notes { get; } = new();
-        public List<Phrase> Phrases { get; } = new();
-        public List<TextEvent> TextEvents { get; } = new();
+        public List<TNote>      Notes            { get; } = new();
+        public List<Phrase>     Phrases          { get; } = new();
+        public List<TextEvent>  TextEvents       { get; } = new();
+        public List<RangeShift> RangeShiftEvents { get; } = new();
 
         /// <summary>
         /// Whether or not this difficulty contains any data.
@@ -39,11 +40,22 @@ namespace YARG.Core.Chart
             Notes = notes;
             Phrases = phrases;
             TextEvents = text;
+            RangeShiftEvents = new List<RangeShift>();
+        }
+
+        public InstrumentDifficulty(Instrument instrument, Difficulty difficulty,
+            List<TNote> notes, List<Phrase> phrases, List<TextEvent> text, List<RangeShift> shifts)
+            : this(instrument, difficulty)
+        {
+            Notes = notes;
+            Phrases = phrases;
+            TextEvents = text;
+            RangeShiftEvents = shifts;
         }
 
         public InstrumentDifficulty(InstrumentDifficulty<TNote> other)
             : this(other.Instrument, other.Difficulty, other.Notes.DuplicateNotes(), other.Phrases.Duplicate(),
-                other.TextEvents.Duplicate())
+                other.TextEvents.Duplicate(), other.RangeShiftEvents.Duplicate())
         {
         }
 
