@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Threading;
 using Cysharp.Text;
@@ -32,8 +31,17 @@ namespace YARG.Core.Logging
             var logOutputterThread = new Thread(LogOutputter)
             {
                 Name = "YargLogger Thread",
+                IsBackground = true,
             };
             logOutputterThread.Start();
+        }
+
+        /// <summary>
+        /// Determines whether the given logging levle is enabled.
+        /// </summary>
+        public static bool IsLevelEnabled(LogLevel level)
+        {
+            return MinimumLogLevel <= level;
         }
 
         /// <summary>

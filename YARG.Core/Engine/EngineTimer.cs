@@ -57,7 +57,7 @@ namespace YARG.Core.Engine
         public void Disable(double currentTime, bool early = false)
         {
             // Sanity checks for queued updates
-            if (IsActive && YargLogger.MinimumLogLevel <= LogLevel.Trace)
+            if (IsActive && YargLogger.IsLevelEnabled(LogLevel.Trace))
             {
                 if (early)
                 {

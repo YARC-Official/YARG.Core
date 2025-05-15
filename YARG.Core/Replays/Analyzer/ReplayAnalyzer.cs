@@ -487,7 +487,7 @@ namespace YARG.Core.Replays.Analyzer
         private static bool IsInstrumentPassResult(GuitarStats original, GuitarStats result,
             ref Utf16ValueStringBuilder builder)
         {
-            if (YargLogger.MinimumLogLevel <= LogLevel.Debug)
+            if (YargLogger.IsLevelEnabled(LogLevel.Debug))
             {
                 void FormatStat<T>(string stat, T originalValue, T resultValue, ref Utf16ValueStringBuilder builder)
                     where T : IEquatable<T>
@@ -561,7 +561,7 @@ namespace YARG.Core.Replays.Analyzer
 
         // private static bool IsInstrumentPassResult(ProGuitarStats original, ProGuitarStats result)
         // {
-        //     if (YargLogger.MinimumLogLevel <= LogLevel.Debug)
+        //     if (YargLogger.IsLevelEnabled(LogLevel.Debug))
         //     {
         //         using var builder = new Utf16ValueStringBuilder(true);
 
