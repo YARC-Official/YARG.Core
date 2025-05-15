@@ -21,10 +21,11 @@ public partial class Cli
     private int _frameIndex = -1;
 
     private string _logPath;
-    private LogLevel _logLevel = LogLevel.Info;
 
     private ReplayInfo _replayInfo;
     private ReplayData _replayData;
+
+    private BaseYargLogListener _logListener;
 
     /// <summary>
     /// Parses the specified arguments.
@@ -153,11 +154,11 @@ public partial class Cli
                     string level = args[i];
                     switch (level)
                     {
-                        case "error":   _logLevel = LogLevel.Error;   break;
-                        case "warning": _logLevel = LogLevel.Warning; break;
-                        case "info":    _logLevel = LogLevel.Info;    break;
-                        case "debug":   _logLevel = LogLevel.Debug;   break;
-                        case "trace":   _logLevel = LogLevel.Trace;   break;
+                        case "error":   YargLogger.MinimumLogLevel = LogLevel.Error;   break;
+                        case "warning": YargLogger.MinimumLogLevel = LogLevel.Warning; break;
+                        case "info":    YargLogger.MinimumLogLevel = LogLevel.Info;    break;
+                        case "debug":   YargLogger.MinimumLogLevel = LogLevel.Debug;   break;
+                        case "trace":   YargLogger.MinimumLogLevel = LogLevel.Trace;   break;
                         default:
                         {
                             Console.WriteLine($"ERROR: Invalid log level '{level}'.");
@@ -270,21 +271,36 @@ public partial class Cli
         };
     }
 
-    private void InitializeLogging()
+    private void StartLogging()
     {
-        YargLogger.MinimumLogLevel = _logLevel;
-        if (_logLevel < LogLevel.Info && string.IsNullOrEmpty(_logPath))
+        if (_logListener != null)
+        {
+            throw new InvalidOperationException("Logging is still running!");
+        }
+
+        if (YargLogger.MinimumLogLevel < LogLevel.Info && string.IsNullOrEmpty(_logPath))
         {
             _logPath = $"ReplayCLI-{DateTime.Now:yyyy-MM-dd-HH-mm-ss}.log";
         }
 
         if (!string.IsNullOrEmpty(_logPath))
         {
-            YargLogger.AddLogListener(new FileYargLogListener(_logPath, new BasicYargLogFormatter()));
+            _logListener = new FileYargLogListener(_logPath, new BasicYargLogFormatter());
         }
         else
         {
-            YargLogger.AddLogListener(new ConsoleYargLogListener());
+            _logListener = new ConsoleYargLogListener();
+        }
+
+        YargLogger.AddLogListener(_logListener);
+    }
+
+    private void StopLogging()
+    {
+        if (_logListener != null)
+        {
+            YargLogger.FlushLogQueue();
+            YargLogger.RemoveLogListener(_logListener);
         }
     }
 

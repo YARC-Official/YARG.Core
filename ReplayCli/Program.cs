@@ -1,4 +1,6 @@
-﻿namespace ReplayCli;
+﻿using YARG.Core.Logging;
+
+namespace ReplayCli;
 
 public class Program
 {
@@ -23,6 +25,7 @@ public class Program
         finally
         {
             Console.ForegroundColor = defaultColor;
+            YargLogger.KillLogger();
         }
     }
 }

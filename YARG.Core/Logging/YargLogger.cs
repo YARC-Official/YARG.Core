@@ -103,7 +103,7 @@ namespace YARG.Core.Logging
             }
         }
 
-        private static void FlushLogQueue()
+        public static void FlushLogQueue()
         {
             lock (LogQueue)
             {
