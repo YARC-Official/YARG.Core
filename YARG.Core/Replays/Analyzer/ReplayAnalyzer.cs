@@ -422,7 +422,7 @@ namespace YARG.Core.Replays.Analyzer
                 original.MultiplierScore == result.MultiplierScore &&
                 original.SoloBonuses == result.SoloBonuses &&
                 original.StarPowerScore == result.StarPowerScore; // &&
-            // original.Stars == result.Stars;
+                // original.Stars == result.Stars;
 
             bool performancePass =
                 original.NotesHit == result.NotesHit &&
@@ -487,22 +487,19 @@ namespace YARG.Core.Replays.Analyzer
         private static bool IsInstrumentPassResult(GuitarStats original, GuitarStats result,
             ref Utf16ValueStringBuilder builder)
         {
-            if (YargLogger.IsLevelEnabled(LogLevel.Debug))
+            void FormatStat<T>(string stat, T originalValue, T resultValue, ref Utf16ValueStringBuilder builder)
+                where T : IEquatable<T>
             {
-                void FormatStat<T>(string stat, T originalValue, T resultValue, ref Utf16ValueStringBuilder builder)
-                    where T : IEquatable<T>
-                {
-                    string format = originalValue.Equals(resultValue)
-                        ? "- {0}: {1} == {2}\n"
-                        : "- {0}: {1} != {2}\n";
-                    builder.AppendFormat(format, stat, originalValue, resultValue);
-                }
-
-                builder.AppendLine("Guitar:");
-                FormatStat("Overstrums", original.Overstrums, result.Overstrums, ref builder);
-                FormatStat("Ghost inputs", original.GhostInputs, result.GhostInputs, ref builder);
-                FormatStat("HOPOs strummed", original.HoposStrummed, result.HoposStrummed, ref builder);
+                string format = originalValue.Equals(resultValue)
+                    ? "- {0}: {1} == {2}\n"
+                    : "- {0}: {1} != {2}\n";
+                builder.AppendFormat(format, stat, originalValue, resultValue);
             }
+
+            builder.AppendLine("Guitar:");
+            FormatStat("Overstrums", original.Overstrums, result.Overstrums, ref builder);
+            FormatStat("Ghost inputs", original.GhostInputs, result.GhostInputs, ref builder);
+            FormatStat("HOPOs strummed", original.HoposStrummed, result.HoposStrummed, ref builder);
 
             return original.Overstrums == result.Overstrums &&
                 original.GhostInputs == result.GhostInputs &&
@@ -561,24 +558,19 @@ namespace YARG.Core.Replays.Analyzer
 
         // private static bool IsInstrumentPassResult(ProGuitarStats original, ProGuitarStats result)
         // {
-        //     if (YargLogger.IsLevelEnabled(LogLevel.Debug))
+        //     using var builder = new Utf16ValueStringBuilder(true);
+
+        //     void FormatStat<T>(string stat, T originalValue, T resultValue)
+        //         where T : IEquatable<T>
         //     {
-        //         using var builder = new Utf16ValueStringBuilder(true);
-
-        //         void FormatStat<T>(string stat, T originalValue, T resultValue)
-        //             where T : IEquatable<T>
-        //         {
-        //             string format = originalValue.Equals(resultValue)
-        //                 ? "- {0}: {1} == {2}\n"
-        //                 : "- {0}: {1} != {2}\n";
-        //             builder.AppendFormat(format, stat, originalValue, resultValue);
-        //         }
-
-        //         builder.AppendLine("Pro Guitar:");
-        //         FormatStat("Stat", original.Stat, result.Stat);
-        //         YargLogger.LogDebug(builder.ToString());
-        //         builder.Clear();
+        //         string format = originalValue.Equals(resultValue)
+        //             ? "- {0}: {1} == {2}\n"
+        //             : "- {0}: {1} != {2}\n";
+        //         builder.AppendFormat(format, stat, originalValue, resultValue);
         //     }
+
+        //     builder.AppendLine("Pro Guitar:");
+        //     FormatStat("Stat", original.Stat, result.Stat);
 
         //     return original.Stat == result.Stat;
         // }
