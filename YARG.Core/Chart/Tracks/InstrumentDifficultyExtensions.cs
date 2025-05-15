@@ -57,6 +57,11 @@ namespace YARG.Core.Chart
             int rangeFrom = shifts[0].Range;
             int shiftIndex = 0;
             int shiftAmount = rangeFrom - rangeTo;
+            int allNoteMask = 95;
+
+            // Maybe I'm being a bit overeager, but I'd rather not have to change this if the enum ever grows,
+            // say if we had a new type of note after open.
+            uint[] laneEndTicks = new uint[Enum.GetValues(typeof(FiveFretGuitarFret)).Cast<int>().Max() + 1];
 
             for (var i = 0; i < difficulty.Notes.Count; i++)
             {
@@ -78,17 +83,26 @@ namespace YARG.Core.Chart
                 // No shifting required if from equals to or if the only note here is an open
                 if (rangeFrom == rangeTo || isOpen)
                 {
+                    // Store the end ticks of all the notes in the group before we continue
+                    foreach (var chordNote in note.AllNotes)
+                    {
+                        laneEndTicks[chordNote.Fret] = chordNote.Tick + chordNote.TickLength;
+                    }
+
                     continue;
                 }
-
-                // Change the fret and mask according to the new range
 
                 // If this is an open chord it is possible this note is an open, so we still have to account for it
                 // even though we've already determined it isn't a plain open note
                 if (note.Fret != (int) FiveFretGuitarFret.Open)
                 {
-                    note.Fret -= shiftAmount;
+                    // Shift the note, clamping to one outside the track range
+                    // This avoids accidentally shifting into an open note and makes
+                    // it easier to check for invalid notes later
+                    note.Fret = Math.Clamp(note.Fret - shiftAmount, 0, 6);
                 }
+
+                // Change the fret and mask according to the new range
 
                 // Remove any open note from the masks
                 note.NoteMask &= ~GuitarEngine.OPEN_MASK;
@@ -112,6 +126,10 @@ namespace YARG.Core.Chart
                     note.DisjointMask |= GuitarEngine.OPEN_MASK;
                 }
 
+                // Ensure there are no bits that are out of range
+                note.NoteMask &= allNoteMask;
+                note.DisjointMask &= allNoteMask;
+
                 // Shift child notes
                 for (int j = 0; j < note.ChildNotes.Count; j++)
                 {
@@ -120,7 +138,7 @@ namespace YARG.Core.Chart
                     {
                         continue;
                     }
-                    child.Fret -= shiftAmount;
+                    child.Fret = Math.Clamp(child.Fret - shiftAmount, 0, 6);
 
                     // Children that aren't themselves an open are guaranteed not to have the open bit set
                     // so we can just shift without having to worry about fixing the open bit since a child
@@ -136,52 +154,13 @@ namespace YARG.Core.Chart
                         child.NoteMask <<= -shiftAmount;
                         child.DisjointMask <<= -shiftAmount;
                     }
+
+                    // Ensure there are no bits that are out of range
+                    child.NoteMask &= allNoteMask;
+                    child.DisjointMask &= allNoteMask;
                 }
 
-                // Check for validity of (possible) parent and remove if off track, reparenting children as necessary
-                var count = note.ChildNotes.Count + 1;
-                bool outOfRange = false;
-
-                foreach (var chordNote in note.AllNotes)
-                {
-                    // TODO: Surely I can do better than this
-                    if (chordNote.Fret is < (int) FiveFretGuitarFret.Green or > (int) FiveFretGuitarFret.Orange)
-                    {
-                        outOfRange = chordNote.Fret != (int) FiveFretGuitarFret.Open;
-                    }
-                }
-
-                if (!outOfRange)
-                {
-                    continue;
-                }
-
-                // Check if parent is out of range, replacing parent with a child if so, and keep doing
-                // that until we get a parent that is in range or we run out of children
-                while (note.Fret is < (int) FiveFretGuitarFret.Green or > (int) FiveFretGuitarFret.Orange)
-                {
-                    if (count == 0)
-                    {
-                        // Parent and all children have been removed, so we're done
-                        break;
-                    }
-
-                    difficulty.Notes.RemoveNoteAt(i);
-
-                    note = difficulty.Notes[i];
-                    count--;
-                }
-
-                if (count == 0)
-                {
-                    // We ended up deleting all the notes, so we need to start again using the same i
-                    i--;
-                    continue;
-                }
-
-                // Now check that any remaining children are in range and remove if not
-                // It should be noted that when shifting down (towards green), this is the part
-                // that really does all the work since the parent is actually the high note of the chord
+                // Check that any children are in range and remove if not
                 for (int j = 0; j < note.ChildNotes.Count; j++)
                 {
                     if (note.ChildNotes[j].Fret is < 1 or > 5)
@@ -192,68 +171,62 @@ namespace YARG.Core.Chart
                     }
                 }
 
-                // If we're here, we are working with a broken chart, so we should check for overlapping sustains
-
-                // There is no previous note, so an overlapping sustain isn't possible
-                if (i == 0)
+                // Check that parent is in range and remove if not
+                if (note.Fret is 0 or 6)
                 {
-                    continue;
-                }
-
-                // Now that we know what the final note (group) for this index is, make sure any previous sustain
-                // doesn't overlap with the current note
-
-                // I guess that we really need to search for the previous note in any of this note group's
-                // lanes, not just look back a single index. We only need to go as far as is required to
-                // find the previous note in any of this group's lanes.
-
-                // GRYBO-Open
-                int[] overlapIndexes = { -1, -1, -1, -1, -1, -1 };
-
-                for (int n = i; n >= 0; n--)
-                {
-                    if ((note.NoteMask & difficulty.Notes[n].NoteMask) != 0)
+                    if (note.ChildNotes.Count == 0)
                     {
-                        // Figure out which notes overlap
-                        for (int m = 1; m < 7; m++)
-                        {
-                            if ((note.NoteMask & difficulty.Notes[n].NoteMask & (1 << m)) != 0 && overlapIndexes[m - 1] == -1)
-                            {
-                                overlapIndexes[m - 1] = n;
-                            }
-                        }
-
-                        // If overlapIndexes contains as many valid entries as there are notes in our group, we're done
-                        if (overlapIndexes.Count(x => x != -1) == note.ChildNotes.Count + 1)
-                        {
-                            break;
-                        }
+                        difficulty.Notes.RemoveNoteAt(i);
+                        // All notes at this index were deleted, so start again with the same i
+                        i--;
+                        continue;
                     }
+
+                    difficulty.Notes.RemoveNoteAt(i);
+                    // note's referent has changed, so update note
+                    note = difficulty.Notes[i];
                 }
 
-                // For each note in our note group, check to see if the identified previous note is a sustain
-                foreach (var parentOrChild in note.AllNotes)
+                // Check for sustain overlaps
+                for (int childIndex = 0; childIndex < note.ChildNotes.Count; childIndex++)
                 {
-                    if (overlapIndexes[parentOrChild.Fret - 1] == -1)
+                    var child = note.ChildNotes[childIndex];
+                    // Ignore opens
+                    if (child.Fret == (int) FiveFretGuitarFret.Open)
                     {
                         continue;
                     }
 
-                    foreach (var prevNote in difficulty.Notes[overlapIndexes[parentOrChild.Fret - 1]].AllNotes)
+                    if (child.Tick <= laneEndTicks[child.Fret])
                     {
-                        // If it isn't on the same fret or it isn't a sustain, we don't care about it
-                        if (prevNote.Fret != parentOrChild.Fret || !prevNote.IsSustain)
-                        {
-                            continue;
-                        }
-
-                        // We have found a sustain on the same fret as one of our notes, so we have to cut it off
-                        // at note.Tick
-                        if (prevNote.Tick + prevNote.TickLength >= parentOrChild.Tick)
-                        {
-                            prevNote.TickLength = parentOrChild.Tick - prevNote.Tick;
-                        }
+                        // This child note overlaps with a sustain, so delete it
+                        difficulty.Notes.RemoveChildFromNote(i, childIndex);
                     }
+                }
+
+                // Note may be stale now, so update it
+                note = difficulty.Notes[i];
+
+                // Check the parent itself for sustain overlap (opens are ignored since they don't shift)
+                if (note.Fret != (int) FiveFretGuitarFret.Open && note.Tick <= laneEndTicks[note.Fret])
+                {
+                    if (note.ChildNotes.Count == 0)
+                    {
+                        difficulty.Notes.RemoveNoteAt(i);
+                        // We removed the note and there are no children to be promoted, so we need to start again using the same i
+                        i--;
+                        continue;
+                    }
+
+                    difficulty.Notes.RemoveNoteAt(i);
+                    // We removed note, so grab note again
+                    note = difficulty.Notes[i];
+                }
+
+                // Store the end ticks of all the notes in the group before we continue
+                foreach (var chordNote in note.AllNotes)
+                {
+                    laneEndTicks[chordNote.Fret] = chordNote.Tick + chordNote.TickLength;
                 }
             }
         }
