@@ -18,7 +18,7 @@ namespace YARG.Core.Engine
             public int       PartCount      { get; private set; }
             public int       SuccessCount   { get; private set; }
             public bool      Awarded        { get; set; }
-            public List<int> ParticipantIds { get; private set; }
+            public List<int> ParticipantIds { get; }
 
             public bool Equals(UnisonEvent other) => Time.Equals(other.Time) && TimeEnd.Equals(other.TimeEnd);
 
@@ -175,42 +175,58 @@ namespace YARG.Core.Engine
             var foundSelf = false;
 
             // Find a track that corresponds to the player's instrument
-            if(TryFindTrackForInstrument(instrument, chart.FiveFretTracks, out var fiveFretTrack))
+            if (TryFindTrackForInstrument(instrument, chart.FiveFretTracks, out var fiveFretTrack))
             {
-                // var selfInstrumentDifficulty = GetAnyInstrumentDifficulty(fiveFretTrack);
-                // sourceSpSections = GetSpSectionsFromDifficulty(selfInstrumentDifficulty);
-                sourceSpSections = fiveFretTrack.FirstDifficulty().GetStarpowerSections();
-                foundSelf = true;
+                if (fiveFretTrack.TryGetAnyInstrumentDifficulty(out var difficulty))
+                {
+                    sourceSpSections = difficulty.GetStarpowerSections();
+                    foundSelf = true;
+                }
             }
 
             if (!foundSelf && TryFindTrackForInstrument(instrument, chart.DrumsTracks, out var drumsTrack))
             {
-                sourceSpSections = drumsTrack.FirstDifficulty().GetStarpowerSections();
-                foundSelf = true;
+                if (drumsTrack.TryGetAnyInstrumentDifficulty(out var difficulty))
+                {
+                    sourceSpSections = difficulty.GetStarpowerSections();
+                    foundSelf = true;
+                }
             }
 
             if (!foundSelf && TryFindTrackForInstrument(instrument, chart.SixFretTracks, out var sixFretTrack))
             {
-                sourceSpSections = sixFretTrack.FirstDifficulty().GetStarpowerSections();
-                foundSelf = true;
+                if (sixFretTrack.TryGetAnyInstrumentDifficulty(out var difficulty))
+                {
+                    sourceSpSections = difficulty.GetStarpowerSections();
+                    foundSelf = true;
+                }
             }
 
             if (!foundSelf && TryFindTrackForInstrument(instrument, chart.ProGuitarTracks, out var proGuitarTrack))
             {
-                sourceSpSections = proGuitarTrack.FirstDifficulty().GetStarpowerSections();
-                foundSelf = true;
+                if (proGuitarTrack.TryGetAnyInstrumentDifficulty(out var difficulty))
+                {
+                    sourceSpSections = difficulty.GetStarpowerSections();
+                    foundSelf = true;
+                }
             }
 
             if (!foundSelf && chart.ProKeys.Instrument == instrument)
             {
-                sourceSpSections = chart.ProKeys.FirstDifficulty().GetStarpowerSections();
-                foundSelf = true;
+                if (chart.ProKeys.TryGetAnyInstrumentDifficulty(out var difficulty))
+                {
+                    sourceSpSections = difficulty.GetStarpowerSections();
+                    foundSelf = true;
+                }
             }
 
             if (!foundSelf && chart.Keys.Instrument == instrument)
             {
-                sourceSpSections = chart.Keys.FirstDifficulty().GetStarpowerSections();
-                foundSelf = true;
+                if (chart.Keys.TryGetAnyInstrumentDifficulty(out var difficulty))
+                {
+                    sourceSpSections = difficulty.GetStarpowerSections();
+                    foundSelf = true;
+                }
             }
 
             if (!foundSelf)
@@ -312,7 +328,7 @@ namespace YARG.Core.Engine
         {
             foreach (var container in _allEngines)
             {
-                // var input = new GameInput(container.Engine.CurrentTime, (int) BandAction.StepMultiplier, true);
+
             }
         }
 
@@ -320,18 +336,8 @@ namespace YARG.Core.Engine
         {
             foreach (var container in _allEngines)
             {
-                // var input = new GameInput(container.Engine.CurrentTime, (int) BandAction.StepMultiplier, false);
-            }
-        }
 
-        public List<UnisonEvent>? GetUnisonEvents()
-        {
-            if (_unisonsReady)
-            {
-                return _unisonEvents;
             }
-
-            return null;
         }
     }
 }

@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using YARG.Core.Chart;
-using YARG.Core.Logging;
 
 namespace YARG.Core.Engine
 {
@@ -93,6 +92,7 @@ namespace YARG.Core.Engine
 
             return engineContainer;
         }
+
         private EngineContainer GetEngineContainer(BaseEngine target)
         {
             foreach (var engine in _allEngines)

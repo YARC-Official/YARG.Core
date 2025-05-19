@@ -28,7 +28,13 @@ namespace YARG.Core.Extensions
                 {
                     continue;
                 }
-                var instrumentDifficulty = GetAnyInstrumentDifficulty(track);
+
+
+                if (!TryGetAnyInstrumentDifficulty(track, out var instrumentDifficulty))
+                {
+                    continue;
+                }
+
                 var candidateSpSections = GetStarpowerSections(instrumentDifficulty);
                 if (!SpListIsDuplicate(candidateSpSections, acceptedSpSections))
                 {
@@ -56,7 +62,12 @@ namespace YARG.Core.Extensions
             {
                 return;
             }
-            var instrumentDifficulty = GetAnyInstrumentDifficulty(track);
+
+            if (!TryGetAnyInstrumentDifficulty(track, out var instrumentDifficulty))
+            {
+                return;
+            }
+
             var candidateSpSections = GetStarpowerSections(instrumentDifficulty);
             if (!SpListIsDuplicate(candidateSpSections, acceptedSpSections))
             {
@@ -108,18 +119,21 @@ namespace YARG.Core.Extensions
             return false;
         }
 
-        private static InstrumentDifficulty<TNote> GetAnyInstrumentDifficulty<TNote>(this InstrumentTrack<TNote> instrumentTrack) where TNote : Note<TNote>
+        public static bool TryGetAnyInstrumentDifficulty<TNote>(
+            this InstrumentTrack<TNote> instrumentTrack, out InstrumentDifficulty<TNote>? ret) where TNote : Note<TNote>
         {
             // We don't care what difficulty, so we return the first one we find
             foreach (var difficulty in Enum.GetValues(typeof(Difficulty)))
             {
                 if (instrumentTrack.TryGetDifficulty((Difficulty) difficulty, out var instrumentDifficulty))
                 {
-                    return instrumentDifficulty;
+                    ret = instrumentDifficulty;
+                    return true;
                 }
             }
 
-            return null;
+            ret = null;
+            return false;
         }
     }
 }
