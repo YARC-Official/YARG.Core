@@ -43,6 +43,10 @@ namespace YARG.Core.Engine.Guitar.Engines
 
                 if (!sustainNote.IsExtendedSustain)
                 {
+                    if (EngineStats.CanStarPowerActivate)
+                    {
+                        CurrentInput.SetAction(GuitarAction.StarPower, true);
+                    }
                     continue;
                 }
 
