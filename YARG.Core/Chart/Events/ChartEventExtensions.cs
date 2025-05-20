@@ -154,41 +154,6 @@ namespace YARG.Core.Chart
             }
         }
 
-        /// <summary>
-        /// Creates a new note group not including the indicated child
-        /// </summary>
-        /// <param name="notes"></param>
-        /// <param name="index"></param>
-        /// <param name="childIndex"></param>
-        public static void RemoveChildFromNote(this List<GuitarNote> notes, int index, int childIndex)
-        {
-            var oldNote = notes[index];
-            var newNote = notes[index].CloneWithoutChildNotes();
-
-            for(int i = 0; i < oldNote.ChildNotes.Count; i++)
-            {
-                if (childIndex != i)
-                {
-                    newNote.AddChildNote(oldNote.ChildNotes[i]);
-                }
-            }
-
-            // Stitch references
-            if (oldNote.PreviousNote != null)
-            {
-                newNote.PreviousNote = oldNote.PreviousNote;
-                oldNote.PreviousNote.NextNote = newNote;
-            }
-
-            if (oldNote.NextNote != null)
-            {
-                newNote.NextNote = oldNote.NextNote;
-                oldNote.NextNote.PreviousNote = newNote;
-            }
-
-            notes[index] = newNote;
-        }
-
         public static double GetStartTime<TEvent>(this List<TEvent> events)
             where TEvent : ChartEvent
         {
