@@ -118,58 +118,36 @@ namespace YARG.Core.Chart
 
                 notes.RemoveAt(index);
 
-                // If there is now only one note, previous and next both need to be set to null
-                if (notes.Count == 1)
-                {
-                    notes[0].PreviousNote = null;
-                    notes[0].NextNote = null;
-                    return;
-                }
-
-                // Past this point, we can be assured that notes[0] and notes[^1] are valid and don't refer
-                // to the same note
-
-                // Fix Previous/Next references
-                if (index == 0)
-                {
-                    // We were the first, so new 0's previous becomes null and everything else is fine
-                    notes[0].PreviousNote = null;
-                    return;
-                }
-
-                // We have already removed a note so index will equal notes.Count if it is referring
-                // to what was previously the last note in the chart
-                if (index == notes.Count)
-                {
-                    // We were the last, so new last's next becomes null and everything else is fine
-                    notes[^1].NextNote = null;
-                    return;
-                }
-
-                // We're somewhere in the middle, so we have to stitch references back together
-                // note is no longer good, so back to indexed access
-                notes[index - 1].NextNote = notes[index];
-                notes[index].PreviousNote = notes[index].PreviousNote;
-            }
-            else
-            {
-                // Promote first child to parent, reparent other children, and stitch references
-                var newParent = notes[index].ChildNotes[0].Clone();
-                for (var i = 1; i < notes[index].ChildNotes.Count; i++)
-                {
-                    newParent.AddChildNote(notes[index].ChildNotes[i]);
-                }
-
                 if (note.PreviousNote != null)
                 {
-                    newParent.PreviousNote = note.PreviousNote;
-                    note.PreviousNote.NextNote = newParent;
+                    note.PreviousNote.NextNote = note.NextNote;
                 }
 
                 if (note.NextNote != null)
                 {
-                    newParent.NextNote = note.NextNote;
-                    note.NextNote.PreviousNote = newParent;
+                    note.NextNote.PreviousNote = note.PreviousNote;
+                }
+            }
+            else
+            {
+                // Promote first child to parent, reparent other children, and stitch references
+                var newParent = note.ChildNotes[0].Clone();
+                for (var i = 1; i < note.ChildNotes.Count; i++)
+                {
+                    newParent.AddChildNote(note.ChildNotes[i]);
+                }
+
+                newParent.PreviousNote = note.PreviousNote;
+                newParent.NextNote = note.NextNote;
+
+                if (newParent.PreviousNote != null)
+                {
+                    newParent.PreviousNote.NextNote = newParent;
+                }
+
+                if (newParent.NextNote != null)
+                {
+                    newParent.NextNote.PreviousNote = newParent;
                 }
 
                 notes[index] = newParent;
