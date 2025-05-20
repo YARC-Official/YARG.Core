@@ -91,7 +91,8 @@ namespace YARG.Core.Chart
                         ++j;
                     }
 
-                    if (note.Fret != (int) FiveFretGuitarFret.Open && note.Fret > maxFretAllowed)
+                    if (note.Fret != (int) FiveFretGuitarFret.Open &&
+                        (note.Fret > maxFretAllowed || note.Tick < laneEndTicks[note.Fret - shiftAmount]))
                     {
                         // This will automatically create a mask with all the frets pre-shifted
                         // if child notes still exist.
@@ -146,7 +147,8 @@ namespace YARG.Core.Chart
                         ++j;
                     }
 
-                    if (note.Fret != (int) FiveFretGuitarFret.Open && note.Fret < minFretAllowed)
+                    if (note.Fret != (int) FiveFretGuitarFret.Open &&
+                        (note.Fret < minFretAllowed || note.Tick < laneEndTicks[note.Fret - shiftAmount]))
                     {
                         // This will automatically create a mask with all the frets pre-shifted
                         // if child notes still exist.
@@ -177,10 +179,18 @@ namespace YARG.Core.Chart
                     }
                 }
 
-                laneEndTicks[note.Fret] = note.Tick + note.TickLength;
+                // Don't add the trackers for open fret
+                if (note.Fret != (int) FiveFretGuitarFret.Open)
+                {
+                    laneEndTicks[note.Fret] = note.Tick + note.TickLength;
+                }
+
                 foreach (var childNote in note.ChildNotes)
                 {
-                    laneEndTicks[childNote.Fret] = note.Tick + childNote.TickLength;
+                    if (note.Fret != (int) FiveFretGuitarFret.Open)
+                    {
+                        laneEndTicks[childNote.Fret] = note.Tick + childNote.TickLength;
+                    }
                 }
                 ++noteIndex;
             }
