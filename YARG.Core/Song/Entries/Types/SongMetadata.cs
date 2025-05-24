@@ -21,6 +21,7 @@ namespace YARG.Core.Song
         public const string DEFAULT_CHARTER = "Unknown Charter";
         public const string DEFAULT_SOURCE = "Unknown Source";
         public const string DEFAULT_YEAR = "####";
+        public const string DEFAULT_STARS = "Not Played";
 
         public static readonly SongMetadata Default = new()
         {
@@ -31,6 +32,7 @@ namespace YARG.Core.Song
             Charter = DEFAULT_CHARTER,
             Source = DEFAULT_SOURCE,
             Year = DEFAULT_YEAR,
+            Stars = DEFAULT_STARS,
             Playlist = string.Empty,
             IsMaster = true,
             VideoLoop = false,
@@ -83,6 +85,7 @@ namespace YARG.Core.Song
         public string Source;
         public string Playlist;
         public string Year;
+        public string Stars;
 
         public long SongLength;
         public long SongOffset;

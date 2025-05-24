@@ -38,6 +38,8 @@ namespace YARG.Core.Song.Cache
 
         public static ScanProgressTracker Progress => _progress;
         private static ScanProgressTracker _progress;
+        public static IPlayerContext? PlayerContext { get; set; }
+        public static IStarProvider? StarProvider { get; set; }
 
         public static SongCache RunScan(bool tryQuickScan, string cacheLocation, string badSongsLocation, bool fullDirectoryPlaylists, List<string> baseDirectories)
         {
