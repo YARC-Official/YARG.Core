@@ -8,25 +8,14 @@ namespace YARG.Core.IO
         where TChar : unmanaged, IConvertible
     {
         private readonly unsafe TChar* _data;
-        private readonly long _length;
-        private Encoding _encoding;
-        private long _position;
 
-        public long Position
-        {
-            readonly get { return _position; }
-            set { _position = value; }
-        }
+        public long Length { get; }
 
-        public Encoding Encoding
-        {
-            readonly get { return _encoding; }
-            set { _encoding = value; }
-        }
+        public long Position { get; set; }
 
-        public readonly long Length => _length;
+        public Encoding Encoding { get; set; }
 
-        public readonly unsafe TChar* PositionPointer => _data + _position;
+        public readonly unsafe TChar* PositionPointer => _data + Position;
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public readonly unsafe TChar* GetBuffer() { return _data; }
@@ -36,21 +25,21 @@ namespace YARG.Core.IO
         {
             unsafe
             {
-                return new ReadOnlySpan<TChar>(_data + _position, (int) (_length - _position));
+                return new ReadOnlySpan<TChar>(_data + Position, (int) (Length - Position));
             }
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public readonly int GetCurrentCharacter()
         {
-            if (_position >= _length)
+            if (Position >= Length)
             {
                 throw new InvalidOperationException();
             }
 
             unsafe
             {
-                return _data[_position].ToInt32(null);
+                return _data[Position].ToInt32(null);
             }
         }
 
@@ -59,7 +48,7 @@ namespace YARG.Core.IO
         {
             unsafe
             {
-                return _data[_position].ToInt32(null);
+                return _data[Position].ToInt32(null);
             }
         }
 
@@ -69,15 +58,15 @@ namespace YARG.Core.IO
             {
                 unsafe
                 {
-                   return _data[_position + index].ToInt32(null);
+                   return _data[Position + index].ToInt32(null);
                 }
             }
         }
 
         public readonly int At(long index)
         {
-            long pos = _position + index;
-            if (pos < 0 || pos >= _length)
+            long pos = Position + index;
+            if (pos < 0 || pos >= Length)
             {
                 throw new InvalidOperationException();
             }
@@ -89,7 +78,7 @@ namespace YARG.Core.IO
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public readonly bool IsAtEnd() { return _position >= _length; }
+        public readonly bool IsAtEnd() { return Position >= Length; }
 
         public YARGTextContainer(in FixedArray<TChar> data, Encoding encoding)
         {
@@ -97,9 +86,9 @@ namespace YARG.Core.IO
             {
                 _data = data.Ptr;
             }
-            _length = data.Length;
-            _encoding = encoding;
-            _position = 0;
+            Length = data.Length;
+            Encoding = encoding;
+            Position = 0;
         }
     }
 }

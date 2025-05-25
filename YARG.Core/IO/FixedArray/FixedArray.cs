@@ -98,8 +98,8 @@ namespace YARG.Core.IO
         public static readonly FixedArray<T> Null = new()
         {
             _handle = IntPtr.Zero,
-            _ptr = null,
-            _length = 0,
+            Ptr = null,
+            Length = 0,
         };
 
         /// <summary>
@@ -154,7 +154,9 @@ namespace YARG.Core.IO
                 throw new InvalidOperationException("Do not cast from a vectorized source");
             }
 
-            if (offset < 0)
+            if (offset < 0
+            || numElements < 0
+            || (source.Length - offset) * sizeof(U) < numElements * sizeof(T))
             {
                 throw new IndexOutOfRangeException();
             }
@@ -174,30 +176,23 @@ namespace YARG.Core.IO
         }
 
         private          IntPtr _handle;
-        private          T*     _ptr;
-        private          long   _length;
         private readonly bool   _vectorized;
 
         /// <summary>
         /// Pointer to the beginning of the memory block.<br></br>
         /// DO NOT TOUCH UNLESS YOU ENSURE YOU'RE WITHIN BOUNDS
         /// </summary>
-        public readonly T* Ptr => _ptr;
+        public T* Ptr { get; private set; }
 
         /// <summary>
         /// Number of elements within the block
         /// </summary>
-        public readonly long Length => _length;
+        public long Length { get; private set; }
 
         /// <summary>
         /// Returns whether the instance points to actual data
         /// </summary>
         public readonly bool IsAllocated => Ptr != null;
-
-        /// <summary>
-        /// Provides the pointer to the block of memory in IntPtr form
-        /// </summary>
-        public readonly IntPtr IntPtr => (IntPtr) Ptr;
 
         /// <summary>
         /// Provides a ReadOnlySpan over the block of memory
@@ -209,27 +204,27 @@ namespace YARG.Core.IO
         private FixedArray(IntPtr handle, T* ptr, long length, bool vectorized)
         {
             _handle = handle;
-            _ptr = ptr;
-            _length = length;
+            Ptr = ptr;
+            Length = length;
             _vectorized = vectorized;
         }
 
         public readonly Span<T> Slice(long offset, long count)
         {
-            if (offset < 0 || offset + count > _length)
+            if (offset < 0 || offset + count > Length)
             {
                 throw new IndexOutOfRangeException();
             }
-            return new Span<T>(_ptr + offset, (int) count);
+            return new Span<T>(Ptr + offset, (int) count);
         }
 
         public readonly ReadOnlySpan<T> ReadonlySlice(long offset, long count)
         {
-            if (offset < 0 || offset + count > _length)
+            if (offset < 0 || offset + count > Length)
             {
                 throw new IndexOutOfRangeException();
             }
-            return new ReadOnlySpan<T>(_ptr + offset, (int) count);
+            return new ReadOnlySpan<T>(Ptr + offset, (int) count);
         }
 
         /// <summary>
@@ -245,8 +240,8 @@ namespace YARG.Core.IO
             return new FixedArray<T>
             (
                 handle,
-                _ptr,
-                _length,
+                Ptr,
+                Length,
                 _vectorized
             );
         }
@@ -256,7 +251,7 @@ namespace YARG.Core.IO
         /// </summary>
         /// <param name="index"></param>
         /// <exception cref="IndexOutOfRangeException"></exception>
-        public readonly ref T this[long index] => ref _ptr[index];
+        public readonly ref T this[long index] => ref Ptr[index];
 
         /// <summary>
         /// Returns a reference to the value at the provided index, so long as the index lies within bounds.
@@ -266,11 +261,11 @@ namespace YARG.Core.IO
         /// <exception cref="IndexOutOfRangeException"></exception>
         public readonly ref T At(long index)
         {
-            if (index < 0 || _length <= index)
+            if (index < 0 || Length <= index)
             {
                 throw new IndexOutOfRangeException();
             }
-            return ref _ptr[index];
+            return ref Ptr[index];
         }
 
         public void Resize(int numElements)
@@ -288,14 +283,14 @@ namespace YARG.Core.IO
                 throw new InvalidOperationException("Do not resize an array when vectorized");
             }
 
-            if (numElements == _length)
+            if (numElements == Length)
             {
                 return;
             }
 
             _handle = Marshal.ReAllocHGlobal(_handle, (IntPtr) (numElements * sizeof(T)));
-            _ptr = (T*)_handle;
-            _length = numElements;
+            Ptr = (T*)_handle;
+            Length = numElements;
         }
 
         public void Dispose()
