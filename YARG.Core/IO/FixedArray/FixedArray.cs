@@ -161,11 +161,6 @@ namespace YARG.Core.IO
                 throw new IndexOutOfRangeException();
             }
 
-            if ((source.Length - offset) * sizeof(U) < numElements * sizeof(T))
-            {
-                throw new ArgumentOutOfRangeException(nameof(numElements));
-            }
-
             return new FixedArray<T>
             (
                 IntPtr.Zero,
