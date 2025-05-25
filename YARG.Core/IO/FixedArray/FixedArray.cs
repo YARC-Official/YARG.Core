@@ -158,7 +158,7 @@ namespace YARG.Core.IO
             || numElements < 0
             || (source.Length - offset) * sizeof(U) < numElements * sizeof(T))
             {
-                throw new IndexOutOfRangeException();
+                throw new ArgumentOutOfRangeException();
             }
 
             return new FixedArray<T>
