@@ -360,7 +360,7 @@ namespace YARG.Core.IO
             switch (ch)
             {
                 case '-':
-                    if (!NumericalLimits<TNumber>.IS_SIGNED)
+                    if (typeof(TNumber) == typeof(ulong) || typeof(TNumber) == typeof(uint) || typeof(TNumber) == typeof(ushort))
                     {
                         return false;
                     }
@@ -398,60 +398,60 @@ namespace YARG.Core.IO
                     break;
                 }
 
-                if (!NumericalLimits<TNumber>.IS_SIGNED)
+                if (   tmp <  NumericalValues<TNumber>.SOFT_MAX
+                    || tmp == NumericalValues<TNumber>.SOFT_MAX && ch <= NumericalValues<TNumber>.LAST_DIGIT)
                 {
-                    const char LAST_DIGIT_UNSIGNED = '5';
-                    if (tmp < NumericalLimits<TNumber>.UNSIGNED_SOFT_MAX || tmp == NumericalLimits<TNumber>.UNSIGNED_SOFT_MAX && ch <= LAST_DIGIT_UNSIGNED)
-                    {
-                        tmp *= 10;
-                        continue;
-                    }
+                    tmp *= 10;
+                    continue;
+                }
 
-                    while (!text.IsAtEnd())
+                while (!text.IsAtEnd())
+                {
+                    ch = text.Get();
+                    if (ch < '0' || '9' < ch)
                     {
-                        ch = text.Get();
-                        if (ch < '0' || '9' < ch)
-                        {
-                            break;
-                        }
-                        ++text.Position;
+                        break;
                     }
-                    value = NumericalLimits<TNumber>.UNSIGNED_MAX;
-                    return true;
+                    ++text.Position;
+                }
+
+                if (typeof(TNumber) == typeof(ulong))
+                {
+                    value = (TNumber)(object)ulong.MaxValue;
+                }
+                else if (typeof(TNumber) == typeof(uint))
+                {
+                    value = (TNumber)(object)uint.MaxValue;
+                }
+                else if (typeof(TNumber) == typeof(ushort))
+                {
+                    value = (TNumber)(object)ushort.MaxValue;
+                }
+                else if (typeof(TNumber) == typeof(long))
+                {
+                    value = (TNumber)(object)(sign == 1 ? long.MaxValue : long.MinValue);
+                }
+                else if (typeof(TNumber) == typeof(int))
+                {
+                    value = (TNumber)(object)(sign == 1 ? int.MaxValue : int.MinValue);
                 }
                 else
                 {
-                    const char LAST_DIGIT_SIGNED = '7';
-                    if (tmp < NumericalLimits<TNumber>.SIGNED_SOFT_MAX || tmp == NumericalLimits<TNumber>.SIGNED_SOFT_MAX && ch <= LAST_DIGIT_SIGNED)
-                    {
-                        tmp *= 10;
-                        continue;
-                    }
-
-                    while (!text.IsAtEnd())
-                    {
-                        ch = text.Get();
-                        if (ch < '0' || '9' < ch)
-                        {
-                            break;
-                        }
-                        ++text.Position;
-                    }
-                    value = sign == -1 ? NumericalLimits<TNumber>.SIGNED_MIN : NumericalLimits<TNumber>.SIGNED_MAX;
-                    return true;
+                    value = (TNumber)(object)(sign == 1 ? short.MaxValue : short.MinValue);
                 }
+                return true;
             }
 
             unsafe
             {
-                if (NumericalLimits<TNumber>.IS_SIGNED)
+                if (typeof(TNumber) == typeof(long) || typeof(TNumber) == typeof(int) || typeof(TNumber) == typeof(short))
                 {
                     long signed = (long) tmp * sign;
-                    value = *(TNumber*) &signed;
+                    value = *(TNumber*)&signed;
                 }
                 else
                 {
-                    value = *(TNumber*) &tmp;
+                    value = *(TNumber*)&tmp;
                 }
             }
             return true;
@@ -584,37 +584,41 @@ namespace YARG.Core.IO
             }
         }
 
-        private static class NumericalLimits<TNumber>
+        private static class NumericalValues<TNumber>
             where TNumber : unmanaged, IComparable, IComparable<TNumber>, IConvertible, IEquatable<TNumber>, IFormattable
         {
-            public static readonly TNumber SIGNED_MAX;
-            public static readonly ulong SIGNED_SOFT_MAX;
-            public static readonly TNumber SIGNED_MIN;
-            public static readonly TNumber UNSIGNED_MAX;
-            public static readonly ulong UNSIGNED_SOFT_MAX;
+            public static readonly ulong SOFT_MAX;
+            public static readonly char LAST_DIGIT;
 
-            public static readonly bool IS_SIGNED;
-
-            static unsafe NumericalLimits()
+            static NumericalValues()
             {
-                ulong ZERO = 0;
-                ulong MAX = ulong.MaxValue >> ((8 - sizeof(TNumber)) * 8);
-                UNSIGNED_MAX = *(TNumber*) &MAX;
-                if (IS_SIGNED = UNSIGNED_MAX.CompareTo(*(TNumber*)&ZERO) < 0)
+                if (typeof(TNumber) == typeof(ulong))
                 {
-                    ulong sMAX = (ulong)long.MaxValue >> ((8 - sizeof(TNumber)) * 8);
-                    SIGNED_MAX = *(TNumber*) &sMAX;
-                    sMAX /= 10;
-                    SIGNED_SOFT_MAX = sMAX;
-
-                    long sMin = long.MinValue >> ((8 - sizeof(TNumber)) * 8);
-                    SIGNED_MIN = *(TNumber*) &sMin;
+                    SOFT_MAX = ulong.MaxValue / 10;
+                }
+                else if (typeof(TNumber) == typeof(uint))
+                {
+                    SOFT_MAX = uint.MaxValue / 10;
+                }
+                else if (typeof(TNumber) == typeof(ushort))
+                {
+                    SOFT_MAX = ushort.MaxValue / 10;
+                }
+                else if (typeof(TNumber) == typeof(long))
+                {
+                    SOFT_MAX = long.MaxValue / 10;
+                }
+                else if (typeof(TNumber) == typeof(int))
+                {
+                    SOFT_MAX = int.MaxValue / 10;
                 }
                 else
                 {
-                    MAX /= 10;
-                    UNSIGNED_SOFT_MAX = MAX;
+                    SOFT_MAX = (ulong)short.MaxValue / 10;
                 }
+
+                LAST_DIGIT = typeof(TNumber) == typeof(ulong) || typeof(TNumber) == typeof(uint) || typeof(TNumber) == typeof(ushort)
+                        ? '5' : '7';
             }
         }
     }
