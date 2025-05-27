@@ -357,10 +357,14 @@ namespace YARG.Core.IO
             int ch = text.Get();
             long sign = 1;
 
+            bool signedType = typeof(TNumber) == typeof(long)
+                || typeof(TNumber) == typeof(int)
+                || typeof(TNumber) == typeof(short);
+
             switch (ch)
             {
                 case '-':
-                    if (typeof(TNumber) == typeof(ulong) || typeof(TNumber) == typeof(uint) || typeof(TNumber) == typeof(ushort))
+                    if (!signedType)
                     {
                         return false;
                     }
@@ -381,6 +385,34 @@ namespace YARG.Core.IO
                 return false;
             }
 
+            ulong softMax;
+            if (typeof(TNumber) == typeof(ulong))
+            {
+                softMax = ulong.MaxValue / 10;
+            }
+            else if (typeof(TNumber) == typeof(uint))
+            {
+                softMax = uint.MaxValue / 10;
+            }
+            else if (typeof(TNumber) == typeof(ushort))
+            {
+                softMax = ushort.MaxValue / 10;
+            }
+            else if (typeof(TNumber) == typeof(long))
+            {
+                softMax = long.MaxValue / 10;
+            }
+            else if (typeof(TNumber) == typeof(int))
+            {
+                softMax = int.MaxValue / 10;
+            }
+            else
+            {
+                softMax = (ulong)short.MaxValue / 10;
+            }
+
+            char lastDigit = signedType ? '7' : '5';
+
             ulong tmp = 0;
             while (true)
             {
@@ -398,8 +430,7 @@ namespace YARG.Core.IO
                     break;
                 }
 
-                if (   tmp <  NumericalValues<TNumber>.SOFT_MAX
-                    || tmp == NumericalValues<TNumber>.SOFT_MAX && ch <= NumericalValues<TNumber>.LAST_DIGIT)
+                if (tmp < softMax || (tmp == softMax && ch <= lastDigit))
                 {
                     tmp *= 10;
                     continue;
@@ -444,7 +475,7 @@ namespace YARG.Core.IO
 
             unsafe
             {
-                if (typeof(TNumber) == typeof(long) || typeof(TNumber) == typeof(int) || typeof(TNumber) == typeof(short))
+                if (signedType)
                 {
                     long signed = (long) tmp * sign;
                     value = *(TNumber*)&signed;
@@ -581,44 +612,6 @@ namespace YARG.Core.IO
                     }
                     text.Encoding = Latin1;
                 }
-            }
-        }
-
-        private static class NumericalValues<TNumber>
-            where TNumber : unmanaged, IComparable, IComparable<TNumber>, IConvertible, IEquatable<TNumber>, IFormattable
-        {
-            public static readonly ulong SOFT_MAX;
-            public static readonly char LAST_DIGIT;
-
-            static NumericalValues()
-            {
-                if (typeof(TNumber) == typeof(ulong))
-                {
-                    SOFT_MAX = ulong.MaxValue / 10;
-                }
-                else if (typeof(TNumber) == typeof(uint))
-                {
-                    SOFT_MAX = uint.MaxValue / 10;
-                }
-                else if (typeof(TNumber) == typeof(ushort))
-                {
-                    SOFT_MAX = ushort.MaxValue / 10;
-                }
-                else if (typeof(TNumber) == typeof(long))
-                {
-                    SOFT_MAX = long.MaxValue / 10;
-                }
-                else if (typeof(TNumber) == typeof(int))
-                {
-                    SOFT_MAX = int.MaxValue / 10;
-                }
-                else
-                {
-                    SOFT_MAX = (ulong)short.MaxValue / 10;
-                }
-
-                LAST_DIGIT = typeof(TNumber) == typeof(ulong) || typeof(TNumber) == typeof(uint) || typeof(TNumber) == typeof(ushort)
-                        ? '5' : '7';
             }
         }
     }
