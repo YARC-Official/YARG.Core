@@ -5,6 +5,6 @@ namespace YARG.Core.Song.Cache
 {
     public interface IStarProvider
     {
-        StarAmount GetBestStarsForSong(HashWrapper songHash, Guid playerId);
+        public StarAmount GetBestStarsForSong(HashWrapper songHash, Guid playerId, Instrument instrument, Difficulty difficulty);
     }
 }

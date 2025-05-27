@@ -6,7 +6,6 @@ using YARG.Core.Game;
 using YARG.Core.IO;
 using YARG.Core.Song.Cache;
 using YARG.Core.Utility;
-using System.Diagnostics;
 
 namespace YARG.Core.Song
 {
@@ -100,13 +99,17 @@ namespace YARG.Core.Song
         public void PopulateStars(IStarProvider starProvider, IPlayerContext playerContext)
         {
             var playerId = playerContext.GetCurrentPlayerId();
-            var starAmount = starProvider.GetBestStarsForSong(Hash, playerId);
+            var instrument = playerContext.GetCurrentInstrument();
+            var difficulty = playerContext.GetCurrentDifficulty();
+            var starAmount = starProvider.GetBestStarsForSong(Hash, playerId, instrument, difficulty);
 
             _starsAsNumber = (int) starAmount;
             _parsedStars = starAmount switch
             {
                 StarAmount.StarGold => "Gold Stars",
-                _ => $"{(int) starAmount} Stars"
+                StarAmount.Star1 => "1 Star",
+                StarAmount.None => "Not Played",
+                _ => $"{(int) starAmount} Stars" // 5, 4, 3, 2 Stars
             };
         }
 
