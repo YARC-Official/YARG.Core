@@ -604,12 +604,8 @@ namespace YARG.Core.IO
                 {
                     return text.Encoding.GetString((byte*) data, (int) (count * sizeof(TChar)));
                 }
-                catch
+                catch when(ReferenceEquals(text.Encoding, UTF8Strict))
                 {
-                    if (text.Encoding != UTF8Strict)
-                    {
-                        throw;
-                    }
                     text.Encoding = Latin1;
                 }
             }
