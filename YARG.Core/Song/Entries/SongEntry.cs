@@ -2,6 +2,7 @@
 using System.IO;
 using YARG.Core.Chart;
 using YARG.Core.Extensions;
+using YARG.Core.Game;
 using YARG.Core.IO;
 using YARG.Core.Song.Cache;
 using YARG.Core.Utility;
@@ -92,6 +93,25 @@ namespace YARG.Core.Song
         protected LoaderSettings _settings = LoaderSettings.Default;
         protected string _parsedYear = string.Empty;
         protected int _yearAsNumber = int.MaxValue;
+        protected string _parsedStars = string.Empty;
+        protected int _starsAsNumber = int.MaxValue;
+
+        public void PopulateStars(IStarProvider starProvider, IPlayerContext playerContext)
+        {
+            var playerId = playerContext.GetCurrentPlayerId();
+            var instrument = playerContext.GetCurrentInstrument();
+            var difficulty = playerContext.GetCurrentDifficulty();
+            var starAmount = starProvider.GetBestStarsForSong(Hash, playerId, instrument, difficulty);
+
+            _starsAsNumber = (int) starAmount;
+            _parsedStars = starAmount switch
+            {
+                StarAmount.StarGold => "Gold Stars",
+                StarAmount.Star1 => "1 Star",
+                StarAmount.None => "Not Played",
+                _ => $"{(int) starAmount} Stars" // 5, 4, 3, 2 Stars
+            };
+        }
 
         public abstract EntryType SubType { get; }
         public abstract string SortBasedLocation { get; }
@@ -109,6 +129,9 @@ namespace YARG.Core.Song
         public string UnmodifiedYear => _metadata.Year;
         public string ParsedYear => _parsedYear;
         public int YearAsNumber => _yearAsNumber;
+
+        public string ParsedStars => _parsedStars;
+        public int StarsAsNumber => _starsAsNumber;
 
         public bool IsMaster => _metadata.IsMaster;
         public bool VideoLoop => _metadata.VideoLoop;
@@ -360,6 +383,8 @@ namespace YARG.Core.Song
             stream.Write(_settings.HopoThreshold, Endianness.Little);
             stream.Write(_settings.SustainCutoffThreshold, Endianness.Little);
             stream.Write(_settings.OverdiveMidiNote, Endianness.Little);
+
+            stream.Write(_starsAsNumber, Endianness.Little);
         }
 
         protected SongEntry() { }
@@ -440,6 +465,9 @@ namespace YARG.Core.Song
             _settings.HopoThreshold = stream.Read<long>(Endianness.Little);
             _settings.SustainCutoffThreshold = stream.Read<long>(Endianness.Little);
             _settings.OverdiveMidiNote = stream.Read<int>(Endianness.Little);
+
+            _starsAsNumber = stream.Read<int>(Endianness.Little);
+            _parsedStars = ((StarAmount)_starsAsNumber).ToString();
 
             SetSortStrings();
         }

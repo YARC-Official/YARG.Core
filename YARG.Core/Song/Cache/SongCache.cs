@@ -26,6 +26,7 @@ namespace YARG.Core.Song
         public readonly SortedDictionary<SortString, List<SongEntry>> Charters     = new();
         public readonly SortedDictionary<SortString, List<SongEntry>> Playlists    = new();
         public readonly SortedDictionary<SortString, List<SongEntry>> Sources      = new();
+        public readonly SortedDictionary<string,     List<SongEntry>> Stars        = new();
 
         [NonSerialized]
         public readonly SortedDictionary<string,     List<SongEntry>> SongLengths  = new();

@@ -14,11 +14,12 @@ namespace YARG.Core.Song
         public int Charter;
         public int Playlist;
         public int Source;
+        public int star;
     }
 
     internal class CacheReadStrings
     {
-        public const int NUM_CATEGORIES = 8;
+        public const int NUM_CATEGORIES = 9;
 
         private string[][] _categories = new string[NUM_CATEGORIES][];
 
@@ -30,6 +31,7 @@ namespace YARG.Core.Song
         public string[] Charters  => _categories[5];
         public string[] Playlists => _categories[6];
         public string[] Sources   => _categories[7];
+        public string[] Stars     => _categories[8];
 
         public unsafe CacheReadStrings(FixedArrayStream* stream)
         {

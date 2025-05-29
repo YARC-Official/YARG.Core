@@ -22,6 +22,7 @@ namespace YARG.Core.Song
         Source,
         SongLength,
         DateAdded,
+        Star,
     };
 
     public static class SongEntrySorting
@@ -185,10 +186,28 @@ namespace YARG.Core.Song
             }
         }
 
+        private readonly struct StarComparer : IComparer<SongEntry>
+        {
+            public static readonly StarComparer Instance = default;
+
+            public readonly int Compare(SongEntry lhs, SongEntry rhs)
+            {
+                if (lhs.StarsAsNumber != rhs.StarsAsNumber)
+                {
+                    if (lhs.StarsAsNumber == int.MaxValue) return 1;
+                    if (rhs.StarsAsNumber == int.MaxValue) return -1;
+                    return rhs.StarsAsNumber.CompareTo(lhs.StarsAsNumber); // Descending
+                }
+
+                return MetadataComparer.Instance.Compare(lhs, rhs);
+            }
+        }
+
         private static readonly unsafe delegate*<SongCache, void>[] SORTERS =
         {
-            &SortByTitle,    &SortByArtist, &SortByAlbum,       &SortByGenre,  &SortByYear,      &SortByCharter,
-            &SortByPlaylist, &SortBySource, &SortByArtistAlbum, &SortByLength, &SortByDateAdded, &SortByInstruments
+            &SortByTitle, &SortByArtist, &SortByAlbum, &SortByGenre, &SortByYear,
+            &SortByArtistAlbum, &SortByCharter, &SortByPlaylist, &SortBySource,
+            &SortByLength, &SortByDateAdded, &SortByInstruments,  &SortByStars,
         };
 
         internal static unsafe void SortEntries(SongCache cache)
@@ -448,6 +467,24 @@ namespace YARG.Core.Song
                     }
                 }
             });
+        }
+
+        private static void SortByStars(SongCache cache)
+        {
+            foreach (var list in cache.Entries)
+            {
+                foreach (var entry in list.Value)
+                {
+                    var stars = entry.ParsedStars;
+                    if (!cache.Stars.TryGetValue(stars, out var category))
+                    {
+                        cache.Stars.Add(stars, category = new List<SongEntry>());
+                    }
+
+                    int index = category.BinarySearch(entry, StarComparer.Instance);
+                    category.Insert(~index, entry);
+                }
+            }
         }
 
         private static readonly unsafe delegate*<SongCache, Dictionary<SongEntry, CacheWriteIndices>, List<string>>[] COLLECTORS =
