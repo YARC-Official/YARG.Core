@@ -49,16 +49,16 @@ namespace YARG.Core.IO
             };
 
             public MidiEventType Type;
-            public long Length;
+            public int           Length;
         }
 
         private readonly unsafe byte* _data;
-        private readonly long _length;
-        private long _trackPosition;
-        private long _eventPosition;
+        private readonly        int   _length;
+        private                 int   _trackPosition;
+        private                 int   _eventPosition;
 
-        private long _tickPosition;
-        private long _eventLength;
+        private long         _tickPosition;
+        private int          _eventLength;
         private RunningEvent _running;
 
         public readonly unsafe TextSpan ExtractTextOrSysEx()
@@ -78,7 +78,7 @@ namespace YARG.Core.IO
             }
         }
 
-        public unsafe YARGMidiTrack(byte* data, long length)
+        public unsafe YARGMidiTrack(byte* data, int length)
         {
             _data = data;
             _length = length;

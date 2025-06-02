@@ -14,7 +14,7 @@ namespace YARG.Core.IO
         };
 
         public byte* ptr;
-        public long length;
+        public int   length;
 
         public readonly bool IsEmpty => ptr == null || length == 0;
 

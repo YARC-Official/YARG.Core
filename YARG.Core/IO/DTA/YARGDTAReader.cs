@@ -7,7 +7,7 @@ namespace YARG.Core.IO
 {
     public static class YARGDTAReader
     {
-        public static YARGTextContainer<byte> Create(in FixedArray<byte> data)
+        public static YARGTextContainer<byte> Create(FixedArray<byte> data)
         {
             // If it doesn't throw with `At(1)`, then 0 and 1 are valid indices.
             // We can therefore skip bounds checking

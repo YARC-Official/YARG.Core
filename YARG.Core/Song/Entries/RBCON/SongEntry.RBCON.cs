@@ -48,7 +48,7 @@ namespace YARG.Core.Song
 
         protected abstract DateTime MidiLastWriteTime { get; }
 
-        protected abstract FixedArray<byte> GetMainMidiData();
+        protected abstract FixedArray<byte>? GetMainMidiData();
         protected abstract Stream? GetMoggStream();
 
         public override DateTime GetLastWriteTime()
@@ -108,7 +108,7 @@ namespace YARG.Core.Song
             // Read base MIDI
             using (var mainMidi = GetMainMidiData())
             {
-                if (!mainMidi.IsAllocated)
+                if (mainMidi == null)
                 {
                     return null;
                 }
@@ -138,7 +138,7 @@ namespace YARG.Core.Song
             if (_upgrade != null)
             {
                 using var upgradeMidi = _upgrade.LoadUpgradeMidi();
-                if (!upgradeMidi.IsAllocated)
+                if (upgradeMidi == null)
                 {
                     return null;
                 }
@@ -494,16 +494,16 @@ namespace YARG.Core.Song
             return location;
         }
 
-        private protected static ScanResult ScanMidis(RBCONEntry entry, in FixedArray<byte> mainMidi)
+        private protected static ScanResult ScanMidis(RBCONEntry entry, FixedArray<byte> mainMidi)
         {
-            var updateMidi = FixedArray<byte>.Null;
-            var upgradeMidi = FixedArray<byte>.Null;
+            var updateMidi = default(FixedArray<byte>);
+            var upgradeMidi = default(FixedArray<byte>);
             try
             {
                 if (entry._upgrade != null)
                 {
                     upgradeMidi = entry._upgrade.LoadUpgradeMidi();
-                    if (!upgradeMidi.IsAllocated)
+                    if (upgradeMidi == null)
                     {
                         throw new FileNotFoundException("Upgrade midi not located");
                     }
@@ -517,10 +517,10 @@ namespace YARG.Core.Song
 
                 var drumsType = DrumsType.ProDrums;
 
-                long bufLength = mainMidi.Length;
-                if (updateMidi.IsAllocated)
+                int bufLength = mainMidi.Length;
+                if (updateMidi != null)
                 {
-                    var updateResult = ParseMidi(in updateMidi, ref entry._parts, ref drumsType);
+                    var updateResult = ParseMidi(updateMidi, ref entry._parts, ref drumsType);
                     switch (updateResult.Error)
                     {
                         case ScanResult.InvalidResolution:      return ScanResult.InvalidResolution_Update;
@@ -529,9 +529,9 @@ namespace YARG.Core.Song
                     bufLength += updateMidi.Length;
                 }
 
-                if (upgradeMidi.IsAllocated)
+                if (upgradeMidi != null)
                 {
-                    var upgradeResult = ParseMidi(in upgradeMidi, ref entry._parts, ref drumsType);
+                    var upgradeResult = ParseMidi(upgradeMidi, ref entry._parts, ref drumsType);
                     switch (upgradeResult.Error)
                     {
                         case ScanResult.InvalidResolution:      return ScanResult.InvalidResolution_Upgrade;
@@ -540,7 +540,7 @@ namespace YARG.Core.Song
                     bufLength += upgradeMidi.Length;
                 }
 
-                var resolution = ParseMidi(in mainMidi, ref entry._parts, ref drumsType);
+                var resolution = ParseMidi(mainMidi, ref entry._parts, ref drumsType);
                 if (!resolution)
                 {
                     return resolution.Error;
@@ -564,14 +564,14 @@ namespace YARG.Core.Song
                     System.Runtime.CompilerServices.Unsafe.CopyBlock(buffer.Ptr, mainMidi.Ptr, (uint) mainMidi.Length);
 
                     long offset = mainMidi.Length;
-                    if (updateMidi.IsAllocated)
+                    if (updateMidi != null)
                     {
                         System.Runtime.CompilerServices.Unsafe.CopyBlock(buffer.Ptr + offset, updateMidi.Ptr, (uint) updateMidi.Length);
                         offset += updateMidi.Length;
                         updateMidi.Dispose();
                     }
 
-                    if (upgradeMidi.IsAllocated)
+                    if (upgradeMidi != null)
                     {
                         System.Runtime.CompilerServices.Unsafe.CopyBlock(buffer.Ptr + offset, upgradeMidi.Ptr, (uint) upgradeMidi.Length);
                         upgradeMidi.Dispose();
@@ -582,12 +582,12 @@ namespace YARG.Core.Song
             }
             catch (Exception ex)
             {
-                if (updateMidi.IsAllocated)
+                if (updateMidi != null)
                 {
                     updateMidi.Dispose();
                 }
 
-                if (upgradeMidi.IsAllocated)
+                if (upgradeMidi != null)
                 {
                     upgradeMidi.Dispose();
                 }
@@ -610,9 +610,9 @@ namespace YARG.Core.Song
             return stream;
         }
 
-        protected YARGImage LoadUpdateAlbumData()
+        protected YARGImage? LoadUpdateAlbumData()
         {
-            var image = YARGImage.Null;
+            var image = default(YARGImage);
             if (_updateDirectoryAndDtaLastWrite.HasValue)
             {
                 string updateImgPath = Path.Combine(_updateDirectoryAndDtaLastWrite.Value.FullName, _subName, "gen", _subName + "_keep.png_xbox");
@@ -624,9 +624,9 @@ namespace YARG.Core.Song
             return image;
         }
 
-        protected FixedArray<byte> LoadUpdateMiloData()
+        protected FixedArray<byte>? LoadUpdateMiloData()
         {
-            var data = FixedArray<byte>.Null;
+            var data = default(FixedArray<byte>);
             if (_updateDirectoryAndDtaLastWrite.HasValue)
             {
                 string updateMiloPath = Path.Combine(_updateDirectoryAndDtaLastWrite.Value.FullName, _subName, "gen", _subName + ".milo_xbox");

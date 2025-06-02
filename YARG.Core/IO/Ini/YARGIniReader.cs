@@ -13,20 +13,20 @@ namespace YARG.Core.IO.Ini
             try
             {
                 using var bytes = FixedArray.LoadFile(iniPath);
-                if (YARGTextReader.TryUTF8(in bytes, out var byteContainer))
+                if (YARGTextReader.TryUTF8(bytes, out var byteContainer))
                 {
                     return ProcessIni(ref byteContainer, lookups);
                 }
 
-                using var chars = YARGTextReader.TryUTF16Cast(in bytes);
-                if (chars.IsAllocated)
+                using var chars = YARGTextReader.TryUTF16Cast(bytes);
+                if (chars != null)
                 {
-                    var charContainer = YARGTextReader.CreateUTF16Container(in chars);
+                    var charContainer = YARGTextReader.CreateUTF16Container(chars);
                     return ProcessIni(ref charContainer, lookups);
                 }
 
-                using var ints = YARGTextReader.CastUTF32(in bytes);
-                var intContainer = YARGTextReader.CreateUTF32Container(in ints);
+                using var ints = YARGTextReader.CastUTF32(bytes);
+                var intContainer = YARGTextReader.CreateUTF32Container(ints);
                 return ProcessIni(ref intContainer, lookups);
 
             }

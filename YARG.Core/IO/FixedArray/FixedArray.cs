@@ -3,6 +3,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Numerics;
 using System.Runtime.InteropServices;
+using YARG.Core.Logging;
 
 namespace YARG.Core.IO
 {
@@ -38,19 +39,23 @@ namespace YARG.Core.IO
         /// <returns>The instance carrying the loaded data</returns>
         public static FixedArray<byte> Read(Stream stream, long numElements, bool vectorize = false)
         {
-            long byteCount = numElements;
-            if (stream.Position > stream.Length - byteCount)
+            if (stream.Position > stream.Length - numElements)
             {
                 throw new ArgumentException("Length extends past end of stream");
             }
 
+            if (numElements > FixedArray<byte>.MAX_ELEMENTS)
+            {
+                throw new Exception($"Stream read count exceeds max of {int.MaxValue}");
+            }
+
             var buffer = !vectorize
-                ? FixedArray<byte>.Alloc(numElements)
-                : FixedArray<byte>.AllocVectorAligned(numElements);
+                ? FixedArray<byte>.Alloc((int)numElements)
+                : FixedArray<byte>.AllocVectorAligned((int)numElements);
 
             unsafe
             {
-                if (stream.Read(new Span<byte>(buffer.Ptr, (int) byteCount)) != byteCount)
+                if (stream.Read(new Span<byte>(buffer.Ptr, (int) numElements)) != numElements)
                 {
                     buffer.Dispose();
                     throw new IOException("Could not read data from file");
@@ -59,12 +64,12 @@ namespace YARG.Core.IO
             return buffer;
         }
 
-        public static FixedArrayStream ToValueStream(in this FixedArray<byte> arr)
+        public static FixedArrayStream ToValueStream(this FixedArray<byte> arr)
         {
-            return new FixedArrayStream(in arr);
+            return new FixedArrayStream(arr);
         }
 
-        public static UnmanagedMemoryStream ToReferenceStream(in this FixedArray<byte> arr)
+        public static UnmanagedMemoryStream ToReferenceStream(this FixedArray<byte> arr)
         {
             unsafe
             {
@@ -89,26 +94,23 @@ namespace YARG.Core.IO
     /// </remarks>
     /// <typeparam name="T">The unmanaged type contained in the block of memory</typeparam>
     [DebuggerDisplay("Length = {Length}")]
-    public unsafe struct FixedArray<T> : IDisposable
+    public unsafe class FixedArray<T> : IDisposable
         where T : unmanaged
     {
-        /// <summary>
-        /// A indisposable default instance with a null pointer
-        /// </summary>
-        public static readonly FixedArray<T> Null = new()
-        {
-            _handle = IntPtr.Zero,
-            Ptr = null,
-            Length = 0,
-        };
+        public static readonly int MAX_ELEMENTS = int.MaxValue / sizeof(T);
 
         /// <summary>
         /// Allocates a uninitialized buffer of data
         /// </summary>
         /// <param name="numElements">Number of the elements to hold in the buffer</param>
         /// <returns>The instance carrying the empty buffer</returns>
-        public static FixedArray<T> Alloc(long numElements)
+        public static FixedArray<T> Alloc(int numElements)
         {
+            if (numElements > MAX_ELEMENTS)
+            {
+                throw new ArgumentOutOfRangeException(nameof(numElements));
+            }
+
             var handle = Marshal.AllocHGlobal((IntPtr) (numElements * sizeof(T)));
             return new FixedArray<T>
             (
@@ -120,9 +122,15 @@ namespace YARG.Core.IO
         }
 
         private static readonly int OVER_ALLOCATION = sizeof(Vector<byte>) - 1;
-        public static FixedArray<T> AllocVectorAligned(long numElements)
+        public static FixedArray<T> AllocVectorAligned(int numElements)
         {
+            if (numElements > MAX_ELEMENTS)
+            {
+                throw new ArgumentOutOfRangeException(nameof(numElements));
+            }
+
             var handle = Marshal.AllocHGlobal((IntPtr) (numElements * sizeof(T) + OVER_ALLOCATION));
+
             long adjustment = handle.ToInt64() & OVER_ALLOCATION;
             if (adjustment > 0)
             {
@@ -146,7 +154,7 @@ namespace YARG.Core.IO
         /// <param name="offset">The index in the source buffer to start the cast from</param>
         /// <param name="numElements">The number of elements to cast to</param>
         /// <returns>The buffer casted to the new type</returns>
-        public static FixedArray<T> Cast<U>(in FixedArray<U> source, long offset, long numElements)
+        public static FixedArray<T> Cast<U>(FixedArray<U> source, int offset, int numElements)
             where U : unmanaged
         {
             if (source._vectorized)
@@ -170,8 +178,9 @@ namespace YARG.Core.IO
             );
         }
 
-        private          IntPtr _handle;
         private readonly bool   _vectorized;
+        private          IntPtr _handle;
+        private          bool   _disposed;
 
         /// <summary>
         /// Pointer to the beginning of the memory block.<br></br>
@@ -182,21 +191,16 @@ namespace YARG.Core.IO
         /// <summary>
         /// Number of elements within the block
         /// </summary>
-        public long Length { get; private set; }
-
-        /// <summary>
-        /// Returns whether the instance points to actual data
-        /// </summary>
-        public readonly bool IsAllocated => Ptr != null;
+        public int Length { get; private set; }
 
         /// <summary>
         /// Provides a ReadOnlySpan over the block of memory
         /// </summary>
-        public readonly ReadOnlySpan<T> ReadOnlySpan => new(Ptr, (int) Length);
+        public ReadOnlySpan<T> ReadOnlySpan => new(Ptr, Length);
 
-        public readonly Span<T> Span => new(Ptr, (int) Length);
+        public Span<T> Span => new(Ptr, Length);
 
-        private FixedArray(IntPtr handle, T* ptr, long length, bool vectorized)
+        private FixedArray(IntPtr handle, T* ptr, int length, bool vectorized)
         {
             _handle = handle;
             Ptr = ptr;
@@ -204,22 +208,32 @@ namespace YARG.Core.IO
             _vectorized = vectorized;
         }
 
-        public readonly Span<T> Slice(long offset, long count)
+        public Span<T> Slice(int offset, int count)
         {
+            if (_disposed)
+            {
+                throw new ObjectDisposedException(nameof(FixedArray<T>));
+            }
+
             if (offset < 0 || offset + count > Length)
             {
                 throw new IndexOutOfRangeException();
             }
-            return new Span<T>(Ptr + offset, (int) count);
+            return new Span<T>(Ptr + offset, count);
         }
 
-        public readonly ReadOnlySpan<T> ReadonlySlice(long offset, long count)
+        public ReadOnlySpan<T> ReadonlySlice(int offset, int count)
         {
+            if (_disposed)
+            {
+                throw new ObjectDisposedException(nameof(FixedArray<T>));
+            }
+
             if (offset < 0 || offset + count > Length)
             {
                 throw new IndexOutOfRangeException();
             }
-            return new ReadOnlySpan<T>(Ptr + offset, (int) count);
+            return new ReadOnlySpan<T>(Ptr + offset, count);
         }
 
         /// <summary>
@@ -230,6 +244,11 @@ namespace YARG.Core.IO
         /// <returns>The instance that takes responsibility over disposing of the buffer</returns>
         public FixedArray<T> TransferOwnership()
         {
+            if (_handle == IntPtr.Zero)
+            {
+                throw new InvalidOperationException("This object owns no memory");
+            }
+
             var handle = _handle;
             _handle = IntPtr.Zero;
             return new FixedArray<T>
@@ -246,16 +265,21 @@ namespace YARG.Core.IO
         /// </summary>
         /// <param name="index"></param>
         /// <exception cref="IndexOutOfRangeException"></exception>
-        public readonly ref T this[long index] => ref Ptr[index];
+        public ref T this[int index] => ref Ptr[index];
 
         /// <summary>
         /// Returns a reference to the value at the provided index, so long as the index lies within bounds.
-        /// Indices out of bounds will throw an excpetion.
+        /// Indices out of bounds will throw an exception.
         /// </summary>
         /// <param name="index"></param>
         /// <exception cref="IndexOutOfRangeException"></exception>
-        public readonly ref T At(long index)
+        public ref T At(int index)
         {
+            if (_disposed)
+            {
+                throw new ObjectDisposedException(nameof(FixedArray<T>));
+            }
+
             if (index < 0 || Length <= index)
             {
                 throw new IndexOutOfRangeException();
@@ -275,7 +299,7 @@ namespace YARG.Core.IO
                 // Reasoning: if the array is used for simd operations, that entails that
                 // the data is either a file read buffer OR the whole file itself.
                 // Resizing would therefore be illogical.
-                throw new InvalidOperationException("Do not resize an array when vectorized");
+                throw new InvalidOperationException("Do not resize a vectorized array");
             }
 
             if (numElements == Length)
@@ -288,12 +312,33 @@ namespace YARG.Core.IO
             Length = numElements;
         }
 
-        public void Dispose()
+        private void _Dispose()
         {
             if (_handle != IntPtr.Zero)
             {
                 Marshal.FreeHGlobal(_handle);
                 _handle = IntPtr.Zero;
+            }
+
+            _disposed = true;
+        }
+
+        public void Dispose()
+        {
+            _Dispose();
+            GC.SuppressFinalize(this);
+        }
+
+        ~FixedArray()
+        {
+            try
+            {
+                _Dispose();
+                YargLogger.LogDebug("Finalizer called on FixedArray! Missing manual Dispose!");
+            }
+            catch
+            {
+                // ignored
             }
         }
     }

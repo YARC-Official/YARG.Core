@@ -175,11 +175,7 @@ namespace YARG.Core.IO
             ulong numPairs = stream.Read<ulong>(Endianness.Little);
 
             using var bytes = FixedArray.Read(stream, length);
-            YARGTextContainer<byte> container;
-            unsafe
-            {
-                container = new YARGTextContainer<byte>(in bytes, null!);
-            }
+            var container = new YARGTextContainer<byte>(bytes, null!);
 
             for (ulong i = 0; i < numPairs; ++i)
             {
@@ -192,7 +188,8 @@ namespace YARG.Core.IO
                 container.Position += strLength;
 
                 strLength = GetLength(ref container);
-                long next = container.Position + strLength;
+
+                int next = container.Position + strLength;
                 if (SongIniHandler.SONG_INI_OUTLINES.TryGetValue(key, out var outline))
                 {
                     modifiers.AddSng(ref container, strLength, outline);
@@ -210,7 +207,7 @@ namespace YARG.Core.IO
             listings.EnsureCapacity((int)numListings);
 
             ulong listingIndex = 0;
-            long buffPosition = 0;
+            int buffPosition = 0;
             while (listingIndex < numListings)
             {
                 if (buffPosition == bytes.Length)

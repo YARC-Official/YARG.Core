@@ -91,13 +91,13 @@ namespace YARG.Core.Song
             return LoadAudio(speed, 0, SongStem.Crowd);
         }
 
-        public override YARGImage LoadAlbumData()
+        public override YARGImage? LoadAlbumData()
         {
             var subFiles = GetSubFiles();
             if (!string.IsNullOrEmpty(_cover) && subFiles.TryGetValue(_cover, out var cover))
             {
                 var image = YARGImage.Load(cover);
-                if (image.IsAllocated)
+                if (image != null)
                 {
                     return image;
                 }
@@ -109,14 +109,14 @@ namespace YARG.Core.Song
                 if (subFiles.TryGetValue(albumName, out var file))
                 {
                     var image = YARGImage.Load(file);
-                    if (image.IsAllocated)
+                    if (image != null)
                     {
                         return image;
                     }
                     YargLogger.LogFormatError("Image at {0} failed to load", file);
                 }
             }
-            return YARGImage.Null;
+            return null;
         }
 
         public override BackgroundResult? LoadBackground()
@@ -149,7 +149,7 @@ namespace YARG.Core.Song
             if (subFiles.TryGetValue(_background, out file) || TryGetRandomBackgroundImage(subFiles, out file))
             {
                 var image = YARGImage.Load(file!);
-                if (image.IsAllocated)
+                if (image != null)
                 {
                     return new BackgroundResult(image);
                 }
@@ -159,12 +159,13 @@ namespace YARG.Core.Song
 
         public override FixedArray<byte> LoadMiloData()
         {
-            return FixedArray<byte>.Null;
+            return null;
         }
 
         protected override FixedArray<byte> GetChartData(string filename)
         {
-            var data = FixedArray<byte>.Null;
+            var data = default(FixedArray<byte>);
+
             string chartPath = Path.Combine(_location, filename);
             if (AbridgedFileInfo.Validate(chartPath, in _chartLastWrite))
             {
@@ -216,7 +217,8 @@ namespace YARG.Core.Song
             entry._metadata.Playlist = defaultPlaylist;
 
             using var file = FixedArray.LoadFile(chartInfo.FullName);
-            var result = ScanChart(entry, in file, iniModifiers);
+
+            var result = ScanChart(entry, file, iniModifiers);
             return result == ScanResult.Success ? entry : new ScanUnexpected(result);
         }
 

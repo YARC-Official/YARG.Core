@@ -28,7 +28,7 @@ namespace YARG.Core.IO
         public static readonly Encoding UTF8Strict = new UTF8Encoding(false, true);
         public const int WHITESPACE_LIMIT = 32;
 
-        public static bool TryUTF8(in FixedArray<byte> data, out YARGTextContainer<byte> container)
+        public static bool TryUTF8(FixedArray<byte> data, out YARGTextContainer<byte> container)
         {
             // If it doesn't throw with `At(1)`, then 0 and 1 are valid indices.
             // We can therefore skip bounds checking
@@ -48,18 +48,19 @@ namespace YARG.Core.IO
             return true;
         }
 
-        public static FixedArray<char> TryUTF16Cast(in FixedArray<byte> data)
+        public static FixedArray<char>? TryUTF16Cast(FixedArray<byte> data)
         {
-            var buffer = FixedArray<char>.Null;
+            var buffer = default(FixedArray<char>);
             if (data.At(2) != 0)
             {
                 const int UTF16BOM_OFFSET = 2;
-                long length = (data.Length - UTF16BOM_OFFSET) / sizeof(char);
+                int length = (data.Length - UTF16BOM_OFFSET) / sizeof(char);
                 if ((data[0] == 0xFF) != BitConverter.IsLittleEndian)
                 {
                     // We have to swap the endian of the data so string conversion works properly
                     // but we can't just use the original buffer as we create a hash off it.
                     buffer = FixedArray<char>.Alloc(length);
+
                     for (int i = 0, j = UTF16BOM_OFFSET; i < buffer.Length; ++i, j += sizeof(char))
                     {
                         buffer[i] = (char) (data[j] << 8 | data[j + 1]);
@@ -67,25 +68,26 @@ namespace YARG.Core.IO
                 }
                 else
                 {
-                    buffer = FixedArray<char>.Cast(in data, UTF16BOM_OFFSET, length);
+                    buffer = FixedArray<char>.Cast(data, UTF16BOM_OFFSET, length);
                 }
             }
             return buffer;
         }
 
-        public static YARGTextContainer<char> CreateUTF16Container(in FixedArray<char> data)
+        public static YARGTextContainer<char> CreateUTF16Container(FixedArray<char> data)
         {
-            var container = new YARGTextContainer<char>(in data, Encoding.Unicode);
+            var container = new YARGTextContainer<char>(data, Encoding.Unicode);
             SkipPureWhitespace(ref container);
             return container;
         }
 
-        public static FixedArray<int> CastUTF32(in FixedArray<byte> data)
+        public static FixedArray<int> CastUTF32(FixedArray<byte> data)
         {
             const int UTF32BOM_OFFSET = 3;
 
             FixedArray<int> buffer;
-            long length = (data.Length - UTF32BOM_OFFSET) / sizeof(int);
+            int length = (data.Length - UTF32BOM_OFFSET) / sizeof(int);
+
             // We already know by this point that index `0` is valid
             if ((data[0] == 0xFF) != BitConverter.IsLittleEndian)
             {
@@ -102,14 +104,14 @@ namespace YARG.Core.IO
             }
             else
             {
-                buffer = FixedArray<int>.Cast(in data, UTF32BOM_OFFSET, length);
+                buffer = FixedArray<int>.Cast(data, UTF32BOM_OFFSET, length);
             }
             return buffer;
         }
 
-        public static YARGTextContainer<int> CreateUTF32Container(in FixedArray<int> data)
+        public static YARGTextContainer<int> CreateUTF32Container(FixedArray<int> data)
         {
-            var container = new YARGTextContainer<int>(in data, Encoding.UTF32);
+            var container = new YARGTextContainer<int>(data, Encoding.UTF32);
             SkipPureWhitespace(ref container);
             return container;
         }
