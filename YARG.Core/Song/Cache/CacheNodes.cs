@@ -14,7 +14,6 @@ namespace YARG.Core.Song
         public int Charter;
         public int Playlist;
         public int Source;
-        public int star;
     }
 
     internal class CacheReadStrings
