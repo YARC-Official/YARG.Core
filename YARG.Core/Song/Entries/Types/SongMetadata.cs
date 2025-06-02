@@ -83,7 +83,6 @@ namespace YARG.Core.Song
         public string Source;
         public string Playlist;
         public string Year;
-        public string Stars;
 
         public long SongLength;
         public long SongOffset;

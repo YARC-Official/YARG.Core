@@ -21,7 +21,7 @@ namespace YARG.Core.Song
         Playlist,
         Source,
         SongLength,
-        DateAdded
+        DateAdded,
     };
 
     public static class SongEntrySorting

@@ -2,7 +2,6 @@
 using System.IO;
 using YARG.Core.Chart;
 using YARG.Core.Extensions;
-using YARG.Core.Game;
 using YARG.Core.IO;
 using YARG.Core.Song.Cache;
 using YARG.Core.Utility;
