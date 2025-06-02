@@ -29,6 +29,8 @@ namespace YARG.Core.Game
 
         public bool UseCymbalModels;
 
+        public bool SwapFiveLaneSnareAndHiHat;
+
         public int? AutoConnectOrder;
 
         public long InputCalibrationMilliseconds;
@@ -99,6 +101,7 @@ namespace YARG.Core.Game
             LeftyFlip = false;
             RangeEnabled = true;
             UseCymbalModels = true;
+            SwapFiveLaneSnareAndHiHat = false;
 
             // Set preset IDs to default
             ColorProfile = Game.ColorProfile.Default.Id;
@@ -148,6 +151,7 @@ namespace YARG.Core.Game
             if (version >= 4)
             {
                 UseCymbalModels = stream.ReadBoolean();
+                SwapFiveLaneSnareAndHiHat = stream.ReadBoolean();
             }
         }
 
@@ -283,6 +287,7 @@ namespace YARG.Core.Game
             writer.Write(RangeEnabled);
 
             writer.Write(UseCymbalModels);
+            writer.Write(SwapFiveLaneSnareAndHiHat);
         }
     }
 }
