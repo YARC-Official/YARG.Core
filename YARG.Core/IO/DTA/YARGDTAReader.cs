@@ -217,12 +217,8 @@ namespace YARG.Core.IO
             {
                 str = span.GetString(encoding);
             }
-            catch
+            catch when(ReferenceEquals(encoding, YARGTextReader.UTF8Strict))
             {
-                if (encoding != YARGTextReader.UTF8Strict)
-                {
-                    throw;
-                }
                 str = span.GetString(YARGTextReader.Latin1);
             }
             return str.Replace("\\q", "\"");
