@@ -187,10 +187,10 @@ namespace YARG.Core.IO
 
         public static unsafe void DecryptVectorized(byte* position, SngMask mask, byte* end)
         {
-            byte* key_position = mask.Ptr;
+            byte* keyPosition = mask.Ptr;
             Parallel.For(0, SngMask.NUM_VECTORS, i =>
             {
-                var xor = *((Vector<byte>*) key_position + i);
+                var xor = *((Vector<byte>*) keyPosition + i);
                 for (var loc = (Vector<byte>*) position + i; loc + 1 <= end; loc += SngMask.NUM_VECTORS)
                 {
                     *loc ^= xor;
@@ -199,11 +199,11 @@ namespace YARG.Core.IO
 
             long numVecs = (end - position) / sizeof(Vector<byte>);
             position += numVecs * sizeof(Vector<byte>);
-            key_position += (numVecs % SngMask.NUM_VECTORS) * sizeof(Vector<byte>);
+            keyPosition += (numVecs % SngMask.NUM_VECTORS) * sizeof(Vector<byte>);
 
             while (position < end)
             {
-                *position++ ^= *key_position++;
+                *position++ ^= *keyPosition++;
             }
         }
     }
