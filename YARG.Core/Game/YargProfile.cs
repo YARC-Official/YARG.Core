@@ -11,7 +11,7 @@ namespace YARG.Core.Game
 {
     public class YargProfile
     {
-        private const int PROFILE_VERSION = 3;
+        private const int PROFILE_VERSION = 4;
 
         public Guid Id;
         public string Name;
@@ -26,6 +26,8 @@ namespace YARG.Core.Game
         public bool LeftyFlip;
 
         public bool RangeEnabled;
+
+        public bool UseCymbalModels;
 
         public int? AutoConnectOrder;
 
@@ -96,6 +98,7 @@ namespace YARG.Core.Game
             HighwayLength = 1;
             LeftyFlip = false;
             RangeEnabled = true;
+            UseCymbalModels = true;
 
             // Set preset IDs to default
             ColorProfile = Game.ColorProfile.Default.Id;
@@ -140,6 +143,11 @@ namespace YARG.Core.Game
             if (version >= 3)
             {
                 RangeEnabled = stream.ReadBoolean();
+            }
+
+            if (version >= 4)
+            {
+                UseCymbalModels = stream.ReadBoolean();
             }
         }
 
@@ -273,6 +281,8 @@ namespace YARG.Core.Game
             writer.Write(LeftyFlip);
 
             writer.Write(RangeEnabled);
+
+            writer.Write(UseCymbalModels);
         }
     }
 }
