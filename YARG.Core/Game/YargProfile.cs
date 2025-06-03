@@ -29,9 +29,11 @@ namespace YARG.Core.Game
 
         public bool UseCymbalModels;
 
+        public bool SplitProTomsAndCymbals;
+
         public bool SwapSnareAndHiHat;
 
-        public bool SplitProTomsAndCymbals;
+        public bool SwapCrashAndRide;
 
         public int? AutoConnectOrder;
 
@@ -103,8 +105,9 @@ namespace YARG.Core.Game
             LeftyFlip = false;
             RangeEnabled = true;
             UseCymbalModels = true;
-            SwapSnareAndHiHat = false;
             SplitProTomsAndCymbals = false;
+            SwapSnareAndHiHat = false;
+            SwapCrashAndRide = false;
 
             // Set preset IDs to default
             ColorProfile = Game.ColorProfile.Default.Id;
@@ -154,8 +157,9 @@ namespace YARG.Core.Game
             if (version >= 4)
             {
                 UseCymbalModels = stream.ReadBoolean();
-                SwapSnareAndHiHat = stream.ReadBoolean();
                 SplitProTomsAndCymbals = stream.ReadBoolean();
+                SwapSnareAndHiHat = stream.ReadBoolean();
+                SwapCrashAndRide = stream.ReadBoolean();
             }
         }
 
@@ -291,8 +295,9 @@ namespace YARG.Core.Game
             writer.Write(RangeEnabled);
 
             writer.Write(UseCymbalModels);
-            writer.Write(SwapSnareAndHiHat);
             writer.Write(SplitProTomsAndCymbals);
+            writer.Write(SwapSnareAndHiHat);
+            writer.Write(SwapCrashAndRide);
         }
     }
 }
