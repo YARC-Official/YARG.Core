@@ -29,7 +29,7 @@ namespace YARG.Core.Game
 
         public bool UseCymbalModels;
 
-        public bool SwapFiveLaneSnareAndHiHat;
+        public bool SwapSnareAndHiHat;
 
         public bool SplitProTomsAndCymbals;
 
@@ -103,7 +103,7 @@ namespace YARG.Core.Game
             LeftyFlip = false;
             RangeEnabled = true;
             UseCymbalModels = true;
-            SwapFiveLaneSnareAndHiHat = false;
+            SwapSnareAndHiHat = false;
             SplitProTomsAndCymbals = false;
 
             // Set preset IDs to default
@@ -154,7 +154,7 @@ namespace YARG.Core.Game
             if (version >= 4)
             {
                 UseCymbalModels = stream.ReadBoolean();
-                SwapFiveLaneSnareAndHiHat = stream.ReadBoolean();
+                SwapSnareAndHiHat = stream.ReadBoolean();
                 SplitProTomsAndCymbals = stream.ReadBoolean();
             }
         }
@@ -291,7 +291,7 @@ namespace YARG.Core.Game
             writer.Write(RangeEnabled);
 
             writer.Write(UseCymbalModels);
-            writer.Write(SwapFiveLaneSnareAndHiHat);
+            writer.Write(SwapSnareAndHiHat);
             writer.Write(SplitProTomsAndCymbals);
         }
     }
