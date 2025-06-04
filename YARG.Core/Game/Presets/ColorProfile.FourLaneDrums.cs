@@ -313,23 +313,21 @@ namespace YARG.Core.Game
 
                 ActivationNote = reader.ReadColor();
 
-                if (version >= 2)
-                {
-                    RedCymbalFret = reader.ReadColor();
-                    YellowCymbalFret = reader.ReadColor();
-                    BlueCymbalFret = reader.ReadColor();
-                    GreenCymbalFret = reader.ReadColor();
+                RedCymbalFret = reader.ReadColor();
+                YellowCymbalFret = reader.ReadColor();
+                BlueCymbalFret = reader.ReadColor();
+                GreenCymbalFret = reader.ReadColor();
 
-                    RedCymbalFretInner = reader.ReadColor();
-                    YellowCymbalFretInner = reader.ReadColor();
-                    BlueCymbalFretInner = reader.ReadColor();
-                    GreenCymbalFretInner = reader.ReadColor();
+                RedCymbalFretInner = reader.ReadColor();
+                YellowCymbalFretInner = reader.ReadColor();
+                BlueCymbalFretInner = reader.ReadColor();
+                GreenCymbalFretInner = reader.ReadColor();
 
-                    RedCymbalParticles = reader.ReadColor();
-                    YellowCymbalParticles = reader.ReadColor();
-                    BlueCymbalParticles = reader.ReadColor();
-                    GreenCymbalParticles = reader.ReadColor();
-                }
+                RedCymbalParticles = reader.ReadColor();
+                YellowCymbalParticles = reader.ReadColor();
+                BlueCymbalParticles = reader.ReadColor();
+                GreenCymbalParticles = reader.ReadColor();
+
             }
 
             #endregion
