@@ -7,13 +7,16 @@
 
         public int Pad { get; }
 
+        private int _padMask;
         public DrumNoteType Dynamics { get; set; }
 
-        private int _padMask;
         public bool IsNeutral => Dynamics == DrumNoteType.Neutral;
         public bool IsAccent => Dynamics == DrumNoteType.Accent;
         public bool IsGhost => Dynamics == DrumNoteType.Ghost;
         public EliteDrumsHatState HatState { get; set; }
+        public bool IsOpen => HatState == EliteDrumsHatState.Open;
+        public bool IsClosed => HatState == EliteDrumsHatState.Closed;
+        public bool IsIndifferent => HatState == EliteDrumsHatState.Indifferent;
 
         public bool IsFlam { get; set; }
 

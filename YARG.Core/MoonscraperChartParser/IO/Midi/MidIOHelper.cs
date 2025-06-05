@@ -134,6 +134,7 @@ namespace MoonscraperChartEditor.Song.IO
         // The bracketed versions follow the style of other existing .mid text events.
         public const string CHART_DYNAMICS_TEXT = "ENABLE_CHART_DYNAMICS";
         public const string ENHANCED_OPENS_TEXT = "ENHANCED_OPENS";
+        public const string STRICT_HAT_PEDAL_STATE = "STRICT_HAT_PEDAL_STATE";
 
         // Note velocities
         public const byte VELOCITY = 100;             // default note velocity for exporting

@@ -32,6 +32,7 @@ namespace YARG.Core.Chart
         {
             var pad = GetEliteDrumPad(moonNote);
             var noteDynamics = GetEliteDrumNoteDynamics(moonNote);
+            var hatState = GetEliteDrumHatState(moonNote);
             var isFlam = GetEliteDrumNoteIsFlam(moonNote);
             var generalFlags = GetGeneralFlags(moonNote, currentPhrases);
             var drumFlags = GetDrumNoteFlags(moonNote, currentPhrases);
@@ -86,6 +87,23 @@ namespace YARG.Core.Chart
                 dynamics = DrumNoteType.Ghost;
 
             return dynamics;
+        }
+
+        private EliteDrumsHatState GetEliteDrumHatState(MoonNote moonNote)
+        {
+            if (moonNote.eliteDrumPad is not MoonNote.EliteDrumPad.HiHat)
+            {
+                return EliteDrumsHatState.Indifferent;
+            }
+
+            var hatState = EliteDrumsHatState.Open;
+
+            if ((moonNote.flags & MoonNote.Flags.EliteDrums_ForcedClosed) != 0)
+                hatState = EliteDrumsHatState.Closed;
+            else if ((moonNote.flags & MoonNote.Flags.EliteDrums_ForcedIndifferent) != 0)
+                hatState = EliteDrumsHatState.Indifferent;
+
+            return hatState;
         }
 
         private bool GetEliteDrumNoteIsFlam(MoonNote moonNote)

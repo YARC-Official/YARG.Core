@@ -45,7 +45,8 @@ namespace MoonscraperChartEditor.Song.IO
         private static readonly Dictionary<int, EventProcessFn> DrumsNoteProcessMap_Velocity = BuildDrumsNoteProcessDict(enableVelocity: true);
         private static readonly Dictionary<int, EventProcessFn> VocalsNoteProcessMap = BuildVocalsNoteProcessDict();
         private static readonly Dictionary<int, EventProcessFn> ProKeysNoteProcessMap = BuildProKeysNoteProcessDict();
-        private static readonly Dictionary<int, EventProcessFn> EliteDrumsNoteProcessMap = BuildEliteDrumsNoteProcessDict();
+        private static readonly Dictionary<int, EventProcessFn> EliteDrumsNoteProcessMap = BuildEliteDrumsNoteProcessDict(strictHatPedalState: false);
+        private static readonly Dictionary<int, EventProcessFn> EliteDrumsNoteProcessMap_Strict = BuildEliteDrumsNoteProcessDict(strictHatPedalState: true);
 
         private static readonly CommonPhraseSettings GuitarPhraseSettings = new()
         {
@@ -114,6 +115,11 @@ namespace MoonscraperChartEditor.Song.IO
         private static readonly Dictionary<string, ProcessModificationProcessFn> DrumsTextProcessMap = new()
         {
             { MidIOHelper.CHART_DYNAMICS_TEXT, SwitchToDrumsVelocityProcessMap },
+        };
+
+        private static readonly Dictionary<string, ProcessModificationProcessFn> EliteDrumsTextProcessMap = new()
+        {
+            {MidIOHelper.STRICT_HAT_PEDAL_STATE, SwitchToEliteDrumsStrictHatPedalStateProcessMap }
         };
 
         private static readonly Dictionary<string, ProcessModificationProcessFn> VocalsTextProcessMap = new()
@@ -373,6 +379,19 @@ namespace MoonscraperChartEditor.Song.IO
             processParams.noteProcessMap = DrumsNoteProcessMap_Velocity;
         }
 
+
+        private static void SwitchToEliteDrumsStrictHatPedalStateProcessMap(ref EventProcessParams processParams)
+        {
+            var gameMode = MoonSong.InstrumentToChartGameMode(processParams.instrument);
+            if (gameMode != MoonChart.GameMode.EliteDrums)
+            {
+                YargLogger.LogFormatWarning("Attempted to apply elite drums strict hat pedal state process map to non-ED instrument: {0}", processParams.instrument);
+                return;
+            }
+
+            // Switch process map to elite drums strict hat pedal state process map
+            processParams.noteProcessMap = EliteDrumsNoteProcessMap_Strict;
+        }
         private static Dictionary<int, EventProcessFn> BuildCommonPhraseProcessMap(CommonPhraseSettings settings)
         {
             var processMap = new Dictionary<int, EventProcessFn>();
@@ -806,7 +825,7 @@ namespace MoonscraperChartEditor.Song.IO
             return processFnDict;
         }
 
-        private static Dictionary<int, EventProcessFn> BuildEliteDrumsNoteProcessDict()
+        private static Dictionary<int, EventProcessFn> BuildEliteDrumsNoteProcessDict(bool strictHatPedalState = false)
         {
             var processFnDict = new Dictionary<int, EventProcessFn>()
             {
@@ -850,16 +869,43 @@ namespace MoonscraperChartEditor.Song.IO
                             }
 
                             var flags = defaultFlags;
-                            switch (noteEvent.Velocity)
+
+                            if (pad == MoonNote.EliteDrumPad.HatPedal)
                             {
-                                case MidIOHelper.VELOCITY_ACCENT:
-                                    flags |= pad == MoonNote.EliteDrumPad.HatPedal ? MoonNote.Flags.EliteDrums_Splash : MoonNote.Flags.ProDrums_Accent;
-                                    break;
-                                case MidIOHelper.VELOCITY_GHOST:
-                                    flags |= pad == MoonNote.EliteDrumPad.HatPedal ? MoonNote.Flags.EliteDrums_InvisibleTerminator : MoonNote.Flags.ProDrums_Ghost;
-                                    break;
-                                default:
-                                    break;
+                                if (strictHatPedalState)
+                                {
+                                    switch (noteEvent.Velocity)
+                                    {
+                                        case MidIOHelper.VELOCITY_ACCENT:
+                                            flags |= MoonNote.Flags.EliteDrums_Splash;
+                                            break;
+                                        case MidIOHelper.VELOCITY_GHOST:
+                                            flags |= MoonNote.Flags.EliteDrums_InvisibleTerminator;
+                                            break;
+                                        default:
+                                            break;
+                                    }
+                                } else
+                                {
+                                    /* Not actually sure how to implement this, since it requires the context of other notes.
+                                     * Guessing that belongs in some post-processing function. I'm leaving this blank for now since it's
+                                     * not really relevant to downcharting (unless somebody puts channel flags on their stomps and splashes lol)
+                                     */
+                                }
+                            }
+                            else
+                            {
+                                switch (noteEvent.Velocity)
+                                {
+                                    case MidIOHelper.VELOCITY_ACCENT:
+                                        flags |= MoonNote.Flags.ProDrums_Accent;
+                                        break;
+                                    case MidIOHelper.VELOCITY_GHOST:
+                                        flags |= MoonNote.Flags.ProDrums_Ghost;
+                                        break;
+                                    default:
+                                        break;
+                                }
                             }
 
                             ProcessNoteOnEventAsNote(ref eventProcessParams, difficulty, fret, flags);
