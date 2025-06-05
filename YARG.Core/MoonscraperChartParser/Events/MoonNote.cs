@@ -112,9 +112,10 @@ namespace MoonscraperChartEditor.Song
             EliteDrums_ForcedClosed = 1 << 12,
             EliteDrums_Splash = 1 << 13,
             EliteDrums_InvisibleTerminator = 1 << 14,
-            EliteDrums_Sizzle = 1 << 15, // Reserved, not MVP
-            EliteDrums_RimBell = 1 << 16, // Reserved, not MVP
-            EliteDrums_Choke = 1 << 17, // Reserved, not MVP
+            EliteDrums_StrictHatState = 1 << 15,
+            EliteDrums_Sizzle = 1 << 16, // Reserved, not MVP
+            EliteDrums_RimBell = 1 << 17, // Reserved, not MVP
+            EliteDrums_Choke = 1 << 18, // Reserved, not MVP
         }
 
         public uint length;

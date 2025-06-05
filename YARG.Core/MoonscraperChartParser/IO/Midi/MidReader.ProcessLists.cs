@@ -191,6 +191,11 @@ namespace MoonscraperChartEditor.Song.IO
         {
         };
 
+        private static readonly List<EventProcessFn> EliteDrumsPostProcessList = new()
+        {
+            SuppressNonStrictStompsAndSplashes
+        };
+
         private static Dictionary<int, EventProcessFn> GetNoteProcessDict(MoonChart.GameMode gameMode)
         {
             return gameMode switch
@@ -350,6 +355,62 @@ namespace MoonscraperChartEditor.Song.IO
             {
                 // Make a new copy instead of adding the original reference
                 chart.specialPhrases.Add(phrase.Clone());
+            }
+        }
+
+        private static void SuppressNonStrictStompsAndSplashes(ref EventProcessParams processParams)
+        {
+            if (processParams.instrument is not MoonSong.MoonInstrument.EliteDrums)
+                return;
+
+            foreach (var difficulty in EnumExtensions<MoonSong.Difficulty>.Values)
+            {
+                var chart = processParams.song.GetChart(processParams.instrument, difficulty);
+
+                // Find and suppress non-strict hat pedal notes that are chorded with non-indifferent hi-hats
+                foreach (var nonStrictPedal in chart.notes)
+                {
+                    if (
+                        nonStrictPedal.eliteDrumPad is MoonNote.EliteDrumPad.HatPedal &&
+                        ((nonStrictPedal.flags & MoonNote.Flags.EliteDrums_StrictHatState) == 0) &&
+                        nonStrictPedal.isChord
+                        )
+                    {
+                        foreach (var nonIndifferentHat in nonStrictPedal.chord)
+                        {
+                            if (
+                                nonIndifferentHat.eliteDrumPad is MoonNote.EliteDrumPad.HiHat &&
+                                ((nonIndifferentHat.flags & MoonNote.Flags.EliteDrums_ForcedIndifferent) == 0)
+                            )
+                            {
+                                nonStrictPedal.flags |= MoonNote.Flags.EliteDrums_InvisibleTerminator;
+                            }
+                        } 
+                    }
+                }
+
+                // Find non-indifferent hi-hats that are chorded with non-strict pedal notes and suppress those pedal notes
+                // TO INVESTIGATE: This is redundant if MoonChart.notes iterates over every note of every chord, rather than every chord parent note; remove if so
+                foreach (var nonIndifferentHat in chart.notes)
+                {
+                    if (
+                        nonIndifferentHat.eliteDrumPad is MoonNote.EliteDrumPad.HiHat &&
+                        ((nonIndifferentHat.flags & MoonNote.Flags.EliteDrums_ForcedIndifferent) == 0) &&
+                        nonIndifferentHat.isChord
+                    )
+                    {
+                        foreach (var nonStrictPedal in nonIndifferentHat.chord)
+                        {
+                            if (
+                                nonStrictPedal.eliteDrumPad is MoonNote.EliteDrumPad.HatPedal &&
+                                ((nonStrictPedal.flags & MoonNote.Flags.EliteDrums_StrictHatState) == 0)
+                            )
+                            {
+                                nonStrictPedal.flags |= MoonNote.Flags.EliteDrums_InvisibleTerminator;
+                            }
+                        }
+                    }
+                }
             }
         }
 
@@ -872,25 +933,21 @@ namespace MoonscraperChartEditor.Song.IO
 
                             if (pad == MoonNote.EliteDrumPad.HatPedal)
                             {
+                                switch (noteEvent.Velocity)
+                                {
+                                    case MidIOHelper.VELOCITY_ACCENT:
+                                        flags |= MoonNote.Flags.EliteDrums_Splash;
+                                        break;
+                                    case MidIOHelper.VELOCITY_GHOST:
+                                        flags |= MoonNote.Flags.EliteDrums_InvisibleTerminator;
+                                        break;
+                                    default:
+                                        break;
+                                }
+
                                 if (strictHatPedalState)
                                 {
-                                    switch (noteEvent.Velocity)
-                                    {
-                                        case MidIOHelper.VELOCITY_ACCENT:
-                                            flags |= MoonNote.Flags.EliteDrums_Splash;
-                                            break;
-                                        case MidIOHelper.VELOCITY_GHOST:
-                                            flags |= MoonNote.Flags.EliteDrums_InvisibleTerminator;
-                                            break;
-                                        default:
-                                            break;
-                                    }
-                                } else
-                                {
-                                    /* Not actually sure how to implement this, since it requires the context of other notes.
-                                     * Guessing that belongs in some post-processing function. I'm leaving this blank for now since it's
-                                     * not really relevant to downcharting (unless somebody puts channel flags on their stomps and splashes lol)
-                                     */
+                                    flags |= MoonNote.Flags.EliteDrums_StrictHatState;
                                 }
                             }
                             else
