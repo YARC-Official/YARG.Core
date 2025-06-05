@@ -91,6 +91,7 @@ namespace MoonscraperChartEditor.Song
             ProGuitar,
             ProKeys,
             Vocals,
+            EliteDrums,
         }
     }
 }

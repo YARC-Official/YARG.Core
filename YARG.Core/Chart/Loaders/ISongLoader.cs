@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 
 namespace YARG.Core.Chart
 {
@@ -17,6 +17,7 @@ namespace YARG.Core.Chart
         InstrumentTrack<ProGuitarNote> LoadProGuitarTrack(Instrument instrument);
         InstrumentTrack<ProKeysNote> LoadProKeysTrack(Instrument instrument);
         InstrumentTrack<DrumNote> LoadDrumsTrack(Instrument instrument);
+
         VocalsTrack LoadVocalsTrack(Instrument instrument);
     }
 }

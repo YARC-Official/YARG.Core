@@ -45,6 +45,7 @@ namespace MoonscraperChartEditor.Song.IO
         private static readonly Dictionary<int, EventProcessFn> DrumsNoteProcessMap_Velocity = BuildDrumsNoteProcessDict(enableVelocity: true);
         private static readonly Dictionary<int, EventProcessFn> VocalsNoteProcessMap = BuildVocalsNoteProcessDict();
         private static readonly Dictionary<int, EventProcessFn> ProKeysNoteProcessMap = BuildProKeysNoteProcessDict();
+        private static readonly Dictionary<int, EventProcessFn> EliteDrumsNoteProcessMap = BuildEliteDrumsNoteProcessDict();
 
         private static readonly CommonPhraseSettings GuitarPhraseSettings = new()
         {
@@ -72,6 +73,14 @@ namespace MoonscraperChartEditor.Song.IO
             soloNote = MidIOHelper.SOLO_NOTE,
             versusPhrases = true,
             lanePhrases = true,
+        };
+
+        private static readonly CommonPhraseSettings EliteDrumsPhraseSettings = new()
+        {
+            soloNote = MidIOHelper.SOLO_NOTE,
+            starPowerNote = MidIOHelper.ELITE_DRUMS_STARPOWER_NOTE,
+            versusPhrases = false,
+            lanePhrases = false, // Handled manually due to per-pad markers
         };
 
         private static readonly CommonPhraseSettings VocalsPhraseSettings = new()
@@ -186,6 +195,7 @@ namespace MoonscraperChartEditor.Song.IO
                 MoonChart.GameMode.Drums => DrumsNoteProcessMap,
                 MoonChart.GameMode.Vocals => VocalsNoteProcessMap,
                 MoonChart.GameMode.ProKeys => ProKeysNoteProcessMap,
+                MoonChart.GameMode.EliteDrums => EliteDrumsNoteProcessMap,
                 _ => throw new NotImplementedException($"No process map for game mode {gameMode}!")
             };
         }
@@ -790,6 +800,131 @@ namespace MoonscraperChartEditor.Song.IO
 
                     var diff = eventProcessParams.trackDifficulty.Value;
                     ProcessNoteOnEventAsNote(ref eventProcessParams, diff, fret);
+                });
+            }
+
+            return processFnDict;
+        }
+
+        private static Dictionary<int, EventProcessFn> BuildEliteDrumsNoteProcessDict()
+        {
+            var processFnDict = new Dictionary<int, EventProcessFn>()
+            {
+                { MidIOHelper.ELITE_DRUMS_DRUM_FILL_NOTE, (ref EventProcessParams eventProcessParams) => {
+                    ProcessNoteOnEventAsSpecialPhrase(ref eventProcessParams, MoonPhrase.Type.ProDrums_Activation);
+                }},
+            };
+
+            var EliteDrumPadToMidiKey = new Dictionary<MoonNote.EliteDrumPad, int>()
+            {
+                { MoonNote.EliteDrumPad.HatPedal, -2 },
+                { MoonNote.EliteDrumPad.Kick, 0 },
+                { MoonNote.EliteDrumPad.Snare, 1 },
+                { MoonNote.EliteDrumPad.HiHat, 2 },
+                { MoonNote.EliteDrumPad.LeftCrash, 3 },
+                { MoonNote.EliteDrumPad.Tom1, 4 },
+                { MoonNote.EliteDrumPad.Tom2, 5 },
+                { MoonNote.EliteDrumPad.Tom3, 6 },
+                { MoonNote.EliteDrumPad.Ride, 7 },
+                { MoonNote.EliteDrumPad.RightCrash, 8 }
+            };
+
+            foreach (var difficulty in EnumExtensions<MoonSong.Difficulty>.Values)
+            {
+                int difficultyStartRange = MidIOHelper.ELITE_DRUMS_DIFF_START_LOOKUP[difficulty];
+                foreach (var pad in EnumExtensions<MoonNote.EliteDrumPad>.Values)
+                {
+                    if (EliteDrumPadToMidiKey.TryGetValue(pad, out int padOffset))
+                    {
+                        int key = padOffset + difficultyStartRange;
+                        int fret = (int) pad;
+                        var defaultFlags = MoonNote.Flags.None;
+
+                        processFnDict.Add(key, (ref EventProcessParams eventProcessParams) =>
+                        {
+                            if (eventProcessParams.timedEvent.midiEvent is not NoteEvent noteEvent)
+                            {
+                                YargLogger.FailFormat("Wrong note event type! Expected: {0}, Actual: {1}",
+                                    typeof(NoteEvent), eventProcessParams.timedEvent.midiEvent.GetType());
+                                return;
+                            }
+
+                            var flags = defaultFlags;
+                            switch (noteEvent.Velocity)
+                            {
+                                case MidIOHelper.VELOCITY_ACCENT:
+                                    flags |= pad == MoonNote.EliteDrumPad.HatPedal ? MoonNote.Flags.EliteDrums_Splash : MoonNote.Flags.ProDrums_Accent;
+                                    break;
+                                case MidIOHelper.VELOCITY_GHOST:
+                                    flags |= pad == MoonNote.EliteDrumPad.HatPedal ? MoonNote.Flags.EliteDrums_InvisibleTerminator : MoonNote.Flags.ProDrums_Ghost;
+                                    break;
+                                default:
+                                    break;
+                            }
+
+                            ProcessNoteOnEventAsNote(ref eventProcessParams, difficulty, fret, flags);
+                        });
+
+                        if (pad == MoonNote.EliteDrumPad.Kick)
+                        {
+                            processFnDict.Add(key - 1, (ref EventProcessParams eventProcessParams) => {
+                                ProcessNoteOnEventAsNote(ref eventProcessParams, difficulty, fret, MoonNote.Flags.InstrumentPlus);
+                            });
+                        }
+
+                        // Process per-difficulty markers
+                        {
+                            // Disco flip
+                            int flagKey = difficultyStartRange + 16;
+                            processFnDict.Add(flagKey, (ref EventProcessParams eventProcessParams) =>
+                            {
+                                ProcessNoteOnEventAsSpecialPhrase(ref eventProcessParams, MoonPhrase.Type.EliteDrums_DiscoFlip, difficulty);
+                            });
+                        }
+                        {
+                            // Indifferent hat
+                            int flagKey = difficultyStartRange + 14;
+                            processFnDict.Add(flagKey, (ref EventProcessParams eventProcessParams) => {
+                                ProcessNoteOnEventAsFlagToggle(ref eventProcessParams, MoonNote.Flags.EliteDrums_ForcedIndifferent, (int) MoonNote.EliteDrumPad.HiHat);
+                            });
+                        }
+                        {
+                            // Flam
+                            int flagKey = difficultyStartRange + 13;
+                            processFnDict.Add(flagKey, (ref EventProcessParams eventProcessParams) =>
+                            {
+                                foreach (var pad in EnumExtensions<MoonNote.EliteDrumPad>.Values)
+                                {
+                                    // Kick flams are marked differently. Stomp and splash flams don't exist at all
+                                    if (pad is MoonNote.EliteDrumPad.Kick or MoonNote.EliteDrumPad.HatPedal)
+                                    {
+                                        continue;
+                                    }
+
+                                    ProcessNoteOnEventAsFlagToggle(ref eventProcessParams, MoonNote.Flags.EliteDrums_Flam, (int)pad);
+                                }
+                            });
+                        }
+                        {
+                            // Closed hat
+                            int flagKey = difficultyStartRange - 2; // This is the same note that produces stomp/splash gems; it performs double duty
+                            processFnDict.Add(flagKey, (ref EventProcessParams eventProcessParams) =>
+                            {
+                                ProcessNoteOnEventAsFlagToggle(ref eventProcessParams, MoonNote.Flags.EliteDrums_ForcedClosed, (int) MoonNote.EliteDrumPad.HiHat);
+                            });
+                        }
+                    }
+                }
+            }
+
+            foreach (var keyVal in MidIOHelper.ELITE_DRUMS_LANE_LOOKUP)
+            {
+                var lane = keyVal.Key;
+                var midiKey = keyVal.Value;
+
+                processFnDict.Add(midiKey, (ref EventProcessParams eventProcessParams) =>
+                {
+                    ProcessNoteOnEventAsSpecialPhrase(ref eventProcessParams, lane);
                 });
             }
 
