@@ -111,6 +111,7 @@ namespace MoonscraperChartEditor.Song.IO
         public const byte PRO_GUITAR_CHANNEL_PINCH_HARMONIC = 6;
 
         // Elite Drums notes
+        public const byte ELITE_DRUMS_DRUM_FILL_NOTE = 120;
         public const byte ELITE_DRUMS_RIGHT_CRASH_ROLL_LANE_NOTE = 118;
         public const byte ELITE_DRUMS_RIDE_ROLL_LANE_NOTE = 117;
         public const byte ELITE_DRUMS_TOM_3_ROLL_LANE_NOTE = 116;
@@ -121,7 +122,6 @@ namespace MoonscraperChartEditor.Song.IO
         public const byte ELITE_DRUMS_SNARE_ROLL_LANE_NOTE = 111;
         public const byte ELITE_DRUMS_KICK_ROLL_LANE_NOTE = 110;
         public const byte ELITE_DRUMS_HAT_PEDAL_ROLL_LANE_NOTE = 108;
-        public const byte ELITE_DRUMS_DRUM_FILL_NOTE = 106;
         public const byte ELITE_DRUMS_STARPOWER_NOTE = 104;
 
 

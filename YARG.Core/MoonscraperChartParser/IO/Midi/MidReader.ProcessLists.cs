@@ -80,7 +80,7 @@ namespace MoonscraperChartEditor.Song.IO
         {
             soloNote = MidIOHelper.SOLO_NOTE,
             starPowerNote = MidIOHelper.ELITE_DRUMS_STARPOWER_NOTE,
-            versusPhrases = false,
+            versusPhrases = true,
             lanePhrases = false, // Handled manually due to per-pad markers
         };
 
@@ -163,6 +163,10 @@ namespace MoonscraperChartEditor.Song.IO
         {
         };
 
+        private static readonly Dictionary<PhaseShiftSysEx.PhraseCode, EventProcessFn> EliteDrumsSysExProcessMap = new()
+        {
+        };
+
         // Some post-processing events should always be carried out on certain tracks
         private static readonly List<EventProcessFn> GuitarPostProcessList = new()
         {
@@ -193,7 +197,8 @@ namespace MoonscraperChartEditor.Song.IO
 
         private static readonly List<EventProcessFn> EliteDrumsPostProcessList = new()
         {
-            SuppressNonStrictStompsAndSplashes
+            SuppressNonStrictStompsAndSplashes,
+            CreateKickFlams
         };
 
         private static Dictionary<int, EventProcessFn> GetNoteProcessDict(MoonChart.GameMode gameMode)
@@ -225,6 +230,7 @@ namespace MoonscraperChartEditor.Song.IO
                 MoonChart.GameMode.Drums => DrumsPhraseSettings,
                 MoonChart.GameMode.Vocals => VocalsPhraseSettings,
                 MoonChart.GameMode.ProKeys => ProKeysPhraseSettings,
+                MoonChart.GameMode.EliteDrums => EliteDrumsPhraseSettings,
                 _ => throw new NotImplementedException($"No process map for game mode {gameMode}!")
             };
             phraseSettings.starPowerNote = spNote;
@@ -246,6 +252,7 @@ namespace MoonscraperChartEditor.Song.IO
                 MoonChart.GameMode.Drums => DrumsTextProcessMap,
                 MoonChart.GameMode.Vocals => VocalsTextProcessMap,
                 MoonChart.GameMode.ProKeys => ProKeysTextProcessMap,
+                MoonChart.GameMode.EliteDrums => EliteDrumsTextProcessMap,
                 _ => throw new NotImplementedException($"No process map for game mode {gameMode}!")
             };
         }
@@ -260,6 +267,7 @@ namespace MoonscraperChartEditor.Song.IO
                 MoonChart.GameMode.Drums => DrumsSysExProcessMap,
                 MoonChart.GameMode.Vocals => VocalsSysExProcessMap,
                 MoonChart.GameMode.ProKeys => ProKeysSysExProcessMap,
+                MoonChart.GameMode.EliteDrums => EliteDrumsSysExProcessMap,
                 _ => throw new NotImplementedException($"No process map for game mode {gameMode}!")
             };
         }
@@ -274,6 +282,7 @@ namespace MoonscraperChartEditor.Song.IO
                 MoonChart.GameMode.Drums => DrumsPostProcessList,
                 MoonChart.GameMode.Vocals => VocalsPostProcessList,
                 MoonChart.GameMode.ProKeys => ProKeysPostProcessList,
+                MoonChart.GameMode.EliteDrums => EliteDrumsPostProcessList,
                 _ => throw new NotImplementedException($"No process map for game mode {gameMode}!")
             };
         }
@@ -388,25 +397,35 @@ namespace MoonscraperChartEditor.Song.IO
                         } 
                     }
                 }
+            }
+        }
 
-                // Find non-indifferent hi-hats that are chorded with non-strict pedal notes and suppress those pedal notes
-                // TO INVESTIGATE: This is redundant if MoonChart.notes iterates over every note of every chord, rather than every chord parent note; remove if so
-                foreach (var nonIndifferentHat in chart.notes)
+        private static void CreateKickFlams(ref EventProcessParams processParams)
+        {
+            if (processParams.instrument is not MoonSong.MoonInstrument.EliteDrums)
+                return;
+
+            foreach (var difficulty in EnumExtensions<MoonSong.Difficulty>.Values)
+            {
+                var chart = processParams.song.GetChart(processParams.instrument, difficulty);
+
+                // Find and suppress non-strict hat pedal notes that are chorded with non-indifferent hi-hats
+                foreach (var kick in chart.notes)
                 {
                     if (
-                        nonIndifferentHat.eliteDrumPad is MoonNote.EliteDrumPad.HiHat &&
-                        ((nonIndifferentHat.flags & MoonNote.Flags.EliteDrums_ForcedIndifferent) == 0) &&
-                        nonIndifferentHat.isChord
+                        kick.eliteDrumPad is MoonNote.EliteDrumPad.Kick &&
+                        ((kick.flags & MoonNote.Flags.InstrumentPlus) != 0) &&
+                        kick.isChord
                     )
                     {
-                        foreach (var nonStrictPedal in nonIndifferentHat.chord)
+                        foreach (var otherKick in kick.chord)
                         {
                             if (
-                                nonStrictPedal.eliteDrumPad is MoonNote.EliteDrumPad.HatPedal &&
-                                ((nonStrictPedal.flags & MoonNote.Flags.EliteDrums_StrictHatState) == 0)
+                                otherKick.eliteDrumPad is MoonNote.EliteDrumPad.Kick &&
+                                ((otherKick.flags & MoonNote.Flags.InstrumentPlus) != 0)
                             )
                             {
-                                nonStrictPedal.flags |= MoonNote.Flags.EliteDrums_InvisibleTerminator;
+                                kick.flags |= MoonNote.Flags.EliteDrums_Flam;
                             }
                         }
                     }
@@ -968,6 +987,7 @@ namespace MoonscraperChartEditor.Song.IO
                             ProcessNoteOnEventAsNote(ref eventProcessParams, difficulty, fret, flags);
                         });
 
+                        // Double kick
                         if (pad == MoonNote.EliteDrumPad.Kick)
                         {
                             processFnDict.Add(key - 1, (ref EventProcessParams eventProcessParams) => {
