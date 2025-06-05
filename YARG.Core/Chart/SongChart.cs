@@ -4,6 +4,7 @@ using System.Linq;
 using Melanchall.DryWetMidi.Core;
 using YARG.Core.Logging;
 using YARG.Core.Parsing;
+using YARG.Core.Song;
 
 namespace YARG.Core.Chart
 {
@@ -59,6 +60,8 @@ namespace YARG.Core.Chart
         public InstrumentTrack<DrumNote> FourLaneDrums { get; set; } = new(Instrument.FourLaneDrums);
         public InstrumentTrack<DrumNote> ProDrums { get; set; } = new(Instrument.ProDrums);
         public InstrumentTrack<DrumNote> FiveLaneDrums { get; set; } = new(Instrument.FiveLaneDrums);
+
+        public InstrumentTrack<EliteDrumNote> EliteDrums { get; set; } = new(Instrument.EliteDrums);
 
         // public InstrumentTrack<DrumNote> EliteDrums { get; set; } = new(Instrument.EliteDrums);
 
@@ -129,11 +132,10 @@ namespace YARG.Core.Chart
             SixFretRhythm = loader.LoadGuitarTrack(Instrument.SixFretRhythm);
             SixFretBass = loader.LoadGuitarTrack(Instrument.SixFretBass);
 
+            EliteDrums = loader.LoadEliteDrumsTrack(Instrument.EliteDrums); // Load elite first, because the others will fall back to it if they don't natively exist
             FourLaneDrums = loader.LoadDrumsTrack(Instrument.FourLaneDrums);
             ProDrums = loader.LoadDrumsTrack(Instrument.ProDrums);
             FiveLaneDrums = loader.LoadDrumsTrack(Instrument.FiveLaneDrums);
-
-            // EliteDrums = loader.LoadDrumsTrack(Instrument.EliteDrums);
 
             ProGuitar_17Fret = loader.LoadProGuitarTrack(Instrument.ProGuitar_17Fret);
             ProGuitar_22Fret = loader.LoadProGuitarTrack(Instrument.ProGuitar_22Fret);

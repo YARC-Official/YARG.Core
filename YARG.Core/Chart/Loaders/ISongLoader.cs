@@ -17,7 +17,7 @@ namespace YARG.Core.Chart
         InstrumentTrack<ProGuitarNote> LoadProGuitarTrack(Instrument instrument);
         InstrumentTrack<ProKeysNote> LoadProKeysTrack(Instrument instrument);
         InstrumentTrack<DrumNote> LoadDrumsTrack(Instrument instrument);
-
+        InstrumentTrack<EliteDrumNote> LoadEliteDrumsTrack(Instrument instrument);
         VocalsTrack LoadVocalsTrack(Instrument instrument);
     }
 }
