@@ -1,6 +1,7 @@
 ﻿// Copyright (c) 2016-2020 Alexander Ong
 // See LICENSE in project root for license information.
 
+using MoonscraperChartEditor.Song.IO;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -113,9 +114,13 @@ namespace MoonscraperChartEditor.Song
             EliteDrums_Splash = 1 << 13,
             EliteDrums_InvisibleTerminator = 1 << 14,
             EliteDrums_StrictHatState = 1 << 15,
-            EliteDrums_Sizzle = 1 << 16, // Reserved, not MVP
-            EliteDrums_RimBell = 1 << 17, // Reserved, not MVP
-            EliteDrums_Choke = 1 << 18, // Reserved, not MVP
+            EliteDrums_ChannelFlagRed = 1 << 16,
+            EliteDrums_ChannelFlagYellow = 1 << 17,
+            EliteDrums_ChannelFlagBlue = 1 << 18,
+            EliteDrums_ChannelFlagGreen = 1 << 19,
+            EliteDrums_Sizzle = 1 << 20, // Reserved, not MVP
+            EliteDrums_RimBell = 1 << 21, // Reserved, not MVP
+            EliteDrums_Choke = 1 << 22, // Reserved, not MVP
         }
 
         public uint length;

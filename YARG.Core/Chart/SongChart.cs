@@ -63,8 +63,6 @@ namespace YARG.Core.Chart
 
         public InstrumentTrack<EliteDrumNote> EliteDrums { get; set; } = new(Instrument.EliteDrums);
 
-        // public InstrumentTrack<DrumNote> EliteDrums { get; set; } = new(Instrument.EliteDrums);
-
         public IEnumerable<InstrumentTrack<DrumNote>> DrumsTracks
         {
             get
@@ -133,9 +131,9 @@ namespace YARG.Core.Chart
             SixFretBass = loader.LoadGuitarTrack(Instrument.SixFretBass);
 
             EliteDrums = loader.LoadEliteDrumsTrack(Instrument.EliteDrums); // Load elite first, because the others will fall back to it if they don't natively exist
-            FourLaneDrums = loader.LoadDrumsTrack(Instrument.FourLaneDrums);
-            ProDrums = loader.LoadDrumsTrack(Instrument.ProDrums);
-            FiveLaneDrums = loader.LoadDrumsTrack(Instrument.FiveLaneDrums);
+            FourLaneDrums = loader.LoadDrumsTrack(Instrument.FourLaneDrums, EliteDrums.IsEmpty ? null : EliteDrums);
+            ProDrums = loader.LoadDrumsTrack(Instrument.ProDrums, EliteDrums.IsEmpty ? null : EliteDrums);
+            FiveLaneDrums = loader.LoadDrumsTrack(Instrument.FiveLaneDrums, null);
 
             ProGuitar_17Fret = loader.LoadProGuitarTrack(Instrument.ProGuitar_17Fret);
             ProGuitar_22Fret = loader.LoadProGuitarTrack(Instrument.ProGuitar_22Fret);

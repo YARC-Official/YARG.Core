@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using MoonscraperChartEditor.Song;
 using YARG.Core.Parsing;
 
@@ -9,18 +10,18 @@ namespace YARG.Core.Chart
     {
         private bool _discoFlip = false;
 
-        public InstrumentTrack<DrumNote> LoadDrumsTrack(Instrument instrument)
+        public InstrumentTrack<DrumNote> LoadDrumsTrack(Instrument instrument, InstrumentTrack<EliteDrumNote>? eliteDrumsFallback)
         {
             _discoFlip = false;
             return instrument.ToGameMode() switch
             {
-                GameMode.FourLaneDrums => LoadDrumsTrack(instrument, CreateFourLaneDrumNote),
-                GameMode.FiveLaneDrums => LoadDrumsTrack(instrument, CreateFiveLaneDrumNote),
+                GameMode.FourLaneDrums => LoadDrumsTrack(instrument, CreateFourLaneDrumNote, eliteDrumsFallback),
+                GameMode.FiveLaneDrums => LoadDrumsTrack(instrument, CreateFiveLaneDrumNote, eliteDrumsFallback),
                 _ => throw new ArgumentException($"Instrument {instrument} is not a drums instrument!", nameof(instrument))
             };
         }
 
-        private InstrumentTrack<DrumNote> LoadDrumsTrack(Instrument instrument, CreateNoteDelegate<DrumNote> createNote)
+        private InstrumentTrack<DrumNote> LoadDrumsTrack(Instrument instrument, CreateNoteDelegate<DrumNote> createNote, InstrumentTrack<EliteDrumNote>? eliteDrumsFallback)
         {
             var difficulties = new Dictionary<Difficulty, InstrumentDifficulty<DrumNote>>()
             {
@@ -30,6 +31,12 @@ namespace YARG.Core.Chart
                 { Difficulty.Expert, LoadDifficulty(instrument, Difficulty.Expert, createNote, HandleTextEvent) },
                 { Difficulty.ExpertPlus, LoadDifficulty(instrument, Difficulty.ExpertPlus, createNote, HandleTextEvent) },
             };
+
+            if (eliteDrumsFallback is not null && difficulties.All(keyval => keyval.Value.IsEmpty))
+            {
+                return LoadDrumsTrack(instrument, DownchartNote, null);
+            }
+
             return new(instrument, difficulties);
         }
 
@@ -53,6 +60,11 @@ namespace YARG.Core.Chart
 
             double time = _moonSong.TickToTime(moonNote.tick);
             return new DrumNote(pad, noteType, drumFlags, generalFlags, time, moonNote.tick);
+        }
+
+        private DrumNote DownchartNote(MoonNote moonNote, Dictionary<MoonPhrase.Type, MoonPhrase> currentPhrases)
+        {
+            throw new NotImplementedException();
         }
 
         private void HandleTextEvent(MoonText text)

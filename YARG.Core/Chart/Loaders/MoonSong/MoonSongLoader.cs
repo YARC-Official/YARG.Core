@@ -402,6 +402,7 @@ namespace YARG.Core.Chart
 
             GameMode.FourLaneDrums => MoonChart.GameMode.Drums,
             GameMode.FiveLaneDrums => MoonChart.GameMode.Drums,
+            GameMode.EliteDrums => MoonChart.GameMode.EliteDrums,
 
             GameMode.ProGuitar => MoonChart.GameMode.ProGuitar,
             GameMode.ProKeys => MoonChart.GameMode.ProKeys,
@@ -427,6 +428,7 @@ namespace YARG.Core.Chart
             Instrument.FourLaneDrums or
             Instrument.FiveLaneDrums or
             Instrument.ProDrums => MoonSong.MoonInstrument.Drums,
+            Instrument.EliteDrums => MoonSong.MoonInstrument.EliteDrums,
 
             Instrument.ProGuitar_17Fret => MoonSong.MoonInstrument.ProGuitar_17Fret,
             Instrument.ProGuitar_22Fret => MoonSong.MoonInstrument.ProGuitar_22Fret,
@@ -434,6 +436,7 @@ namespace YARG.Core.Chart
             Instrument.ProBass_22Fret   => MoonSong.MoonInstrument.ProBass_22Fret,
 
             Instrument.ProKeys => MoonSong.MoonInstrument.ProKeys,
+
 
             // Vocals and harmony need to be handled specially
             // Instrument.Vocals  => MoonSong.MoonInstrument.Vocals,

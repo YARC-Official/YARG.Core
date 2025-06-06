@@ -34,11 +34,12 @@ namespace YARG.Core.Chart
             var noteDynamics = GetEliteDrumNoteDynamics(moonNote);
             var hatState = GetEliteDrumHatState(moonNote);
             var isFlam = GetEliteDrumNoteIsFlam(moonNote);
-            var generalFlags = GetGeneralFlags(moonNote, currentPhrases);
             var drumFlags = GetDrumNoteFlags(moonNote, currentPhrases);
+            var generalFlags = GetGeneralFlags(moonNote, currentPhrases);
+            var channelFlag = GetEliteDrumsChannelFlag(moonNote);
 
             double time = _moonSong.TickToTime(moonNote.tick);
-            return new(pad, noteDynamics, drumFlags, isFlam, generalFlags, time, moonNote.tick);
+            return new(pad, noteDynamics, hatState, isFlam, drumFlags, generalFlags, channelFlag, time, moonNote.tick);
         }
 
         private void HandleEliteDrumsTextEvent(MoonText text)
@@ -109,6 +110,41 @@ namespace YARG.Core.Chart
         private bool GetEliteDrumNoteIsFlam(MoonNote moonNote)
         {
             return (moonNote.flags & MoonNote.Flags.EliteDrums_Flam) != 0;
+        }
+
+        private EliteDrumsChannelFlag GetEliteDrumsChannelFlag(MoonNote moonNote)
+        {
+            // Kicks are not affected by channel flags
+            if (moonNote.eliteDrumPad is MoonNote.EliteDrumPad.Kick)
+            {
+                return EliteDrumsChannelFlag.None;
+            }
+
+            // Only drums can be forced to red
+            if (moonNote.eliteDrumPad is MoonNote.EliteDrumPad.Snare or MoonNote.EliteDrumPad.Tom1 or MoonNote.EliteDrumPad.Tom2 or MoonNote.EliteDrumPad.Tom3)
+            {
+                if ((moonNote.flags & MoonNote.Flags.EliteDrums_ChannelFlagRed) != 0)
+                {
+                    return EliteDrumsChannelFlag.Red;
+                }
+            }
+
+            if ((moonNote.flags & MoonNote.Flags.EliteDrums_ChannelFlagYellow) != 0)
+            {
+                return EliteDrumsChannelFlag.Yellow;
+            }
+
+            if ((moonNote.flags & MoonNote.Flags.EliteDrums_ChannelFlagBlue) != 0)
+            {
+                return EliteDrumsChannelFlag.Blue;
+            }
+
+            if ((moonNote.flags & MoonNote.Flags.EliteDrums_ChannelFlagGreen) != 0)
+            {
+                return EliteDrumsChannelFlag.Green;
+            }
+
+            return EliteDrumsChannelFlag.None;
         }
     }
 }

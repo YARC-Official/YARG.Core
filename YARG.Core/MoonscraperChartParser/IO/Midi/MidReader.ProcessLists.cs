@@ -950,6 +950,7 @@ namespace MoonscraperChartEditor.Song.IO
 
                             var flags = defaultFlags;
 
+                            // Process velocity
                             if (pad == MoonNote.EliteDrumPad.HatPedal)
                             {
                                 switch (noteEvent.Velocity)
@@ -978,6 +979,31 @@ namespace MoonscraperChartEditor.Song.IO
                                         break;
                                     case MidIOHelper.VELOCITY_GHOST:
                                         flags |= MoonNote.Flags.ProDrums_Ghost;
+                                        break;
+                                    default:
+                                        break;
+                                }
+                            }
+
+                            // Process channel. Kicks are not affected by channel flags
+                            if (pad != MoonNote.EliteDrumPad.Kick)
+                            {
+                                switch (noteEvent.Channel)
+                                {
+                                    case MidIOHelper.ELITE_DRUMS_CHANNEL_FLAG_RED:
+                                        if (pad is MoonNote.EliteDrumPad.Snare or MoonNote.EliteDrumPad.Tom1 or MoonNote.EliteDrumPad.Tom2 or MoonNote.EliteDrumPad.Tom3)
+                                        {
+                                            flags |= MoonNote.Flags.EliteDrums_ChannelFlagRed;
+                                        }
+                                        break;
+                                    case MidIOHelper.ELITE_DRUMS_CHANNEL_FLAG_YELLOW:
+                                        flags |= MoonNote.Flags.EliteDrums_ChannelFlagYellow;
+                                        break;
+                                    case MidIOHelper.ELITE_DRUMS_CHANNEL_FLAG_BLUE:
+                                        flags |= MoonNote.Flags.EliteDrums_ChannelFlagBlue;
+                                        break;
+                                    case MidIOHelper.ELITE_DRUMS_CHANNEL_FLAG_GREEN:
+                                        flags |= MoonNote.Flags.EliteDrums_ChannelFlagGreen;
                                         break;
                                     default:
                                         break;

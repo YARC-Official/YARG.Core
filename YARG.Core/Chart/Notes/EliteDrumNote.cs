@@ -1,4 +1,6 @@
-﻿namespace YARG.Core.Chart
+﻿using MoonscraperChartEditor.Song.IO;
+
+namespace YARG.Core.Chart
 {
     public class EliteDrumNote : Note<EliteDrumNote>
     {
@@ -17,23 +19,24 @@
         public bool IsOpen => HatState == EliteDrumsHatState.Open;
         public bool IsClosed => HatState == EliteDrumsHatState.Closed;
         public bool IsIndifferent => HatState == EliteDrumsHatState.Indifferent;
-
         public bool IsFlam { get; set; }
+        public EliteDrumsChannelFlag ChannelFlag { get; set; }
 
         public float? HitVelocity;
 
         public bool IsStarPowerActivator => (DrumFlags & DrumNoteFlags.StarPowerActivator) != 0;
 
-        public EliteDrumNote (EliteDrumPad pad, DrumNoteType dynamics, DrumNoteFlags drumFlags, bool isFlam, NoteFlags flags, double time, uint tick)
-            : this((int)pad, dynamics, drumFlags, isFlam, flags, time, tick)
+        public EliteDrumNote (EliteDrumPad pad, DrumNoteType dynamics, EliteDrumsHatState hatState, bool isFlam, DrumNoteFlags drumFlags, NoteFlags flags, EliteDrumsChannelFlag channelFlag, double time, uint tick)
+            : this((int)pad, dynamics, hatState, isFlam, drumFlags, flags, channelFlag, time, tick)
         {
         }
 
-        public EliteDrumNote(int pad, DrumNoteType dynamics, DrumNoteFlags drumFlags, bool isFlam, NoteFlags flags, double time, uint tick)
+        public EliteDrumNote(int pad, DrumNoteType dynamics, EliteDrumsHatState hatState, bool isFlam, DrumNoteFlags drumFlags, NoteFlags flags, EliteDrumsChannelFlag channelFlag, double time, uint tick)
             : base(flags, time, 0, tick, 0)
         {
             Pad = pad;
             Dynamics = dynamics;
+            HatState = hatState;
             IsFlam = isFlam;
             DrumFlags = _drumFlags = drumFlags;
             _padMask = 1 << pad;
@@ -103,6 +106,15 @@
             Open,
             Closed,
             Indifferent
+        }
+
+        public enum EliteDrumsChannelFlag
+        {
+            None = 0,
+            Red = MidIOHelper.ELITE_DRUMS_CHANNEL_FLAG_RED,
+            Yellow = MidIOHelper.ELITE_DRUMS_CHANNEL_FLAG_YELLOW,
+            Blue = MidIOHelper.ELITE_DRUMS_CHANNEL_FLAG_BLUE,
+            Green = MidIOHelper.ELITE_DRUMS_CHANNEL_FLAG_GREEN,
         }
     }
 }

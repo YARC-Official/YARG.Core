@@ -124,6 +124,15 @@ namespace MoonscraperChartEditor.Song.IO
         public const byte ELITE_DRUMS_HAT_PEDAL_ROLL_LANE_NOTE = 108;
         public const byte ELITE_DRUMS_STARPOWER_NOTE = 104;
 
+        // Elite Drums channels
+        public const byte ELITE_DRUMS_CHANNEL_FLAG_RED = 12;
+        public const byte ELITE_DRUMS_CHANNEL_FLAG_YELLOW = 13;
+        public const byte ELITE_DRUMS_CHANNEL_FLAG_BLUE = 14;
+        public const byte ELITE_DRUMS_CHANNEL_FLAG_GREEN = 15;
+
+
+
+
 
         // Beat track notes
         public const byte BEAT_MEASURE = 12;
