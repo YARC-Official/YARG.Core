@@ -43,9 +43,10 @@ namespace YARG.Core.Chart
         /// <param name="endTime">
         /// The time to generate beatlines up to.
         /// </param>
-        public void GenerateBeatlines(double endTime)
+        /// <param name="keepExisting"></param>
+        public void GenerateBeatlines(double endTime, bool keepExisting = false)
         {
-            GenerateBeatlines(TimeToTick(endTime));
+            GenerateBeatlines(TimeToTick(endTime), keepExisting);
         }
 
         /// <summary>
@@ -55,9 +56,10 @@ namespace YARG.Core.Chart
         /// <param name="lastTick">
         /// The tick to generate beatlines up to, inclusive.
         /// </param>
-        public void GenerateBeatlines(uint lastTick)
+        /// <param name="keepExisting"></param>
+        public void GenerateBeatlines(uint lastTick, bool keepExisting = false)
         {
-            GenerateBeatlines(lastTick, GetBeatlinePower, GetBeatlineType);
+            GenerateBeatlines(lastTick, GetBeatlinePower, GetBeatlineType, keepExisting);
 
             static uint GetBeatlinePower(TimeSignatureChange currentTimeSig)
             {
@@ -116,23 +118,50 @@ namespace YARG.Core.Chart
         /// <param name="endTime">
         /// The time to generate beatlines up to.
         /// </param>
-        public void GenerateBeatlines(double endTime, GetBeatlineRatePower getBeatlinePower, GetBeatlineType getBeatlineType)
+        /// <param name="getBeatlinePower"></param>
+        /// <param name="getBeatlineType"></param>
+        /// <param name="keepExisting"></param>
+        public void GenerateBeatlines(double endTime, GetBeatlineRatePower getBeatlinePower, GetBeatlineType getBeatlineType, bool keepExisting = false)
         {
-            GenerateBeatlines(TimeToTick(endTime), getBeatlinePower, getBeatlineType);
+            GenerateBeatlines(TimeToTick(endTime), getBeatlinePower, getBeatlineType, keepExisting);
         }
 
         /// <summary>
         /// Generates beatlines based on the tempo map and provided configuration delegates.
-        /// Overwrites <see cref="Beatlines"/>.
+        /// Overwrites <see cref="Beatlines"/> unless <see cref="keepExisting"/> is set.
         /// </summary>
         /// <param name="lastTick">
         /// The tick to generate beatlines up to, inclusive.
         /// </param>
-        public void GenerateBeatlines(uint lastTick, GetBeatlineRatePower getBeatlinePower, GetBeatlineType getBeatlineType)
+        /// <param name="getBeatlinePower"></param>
+        /// <param name="getBeatlineType"></param>
+        /// <param name="keepExisting"></param>
+        public void GenerateBeatlines(uint lastTick, GetBeatlineRatePower getBeatlinePower, GetBeatlineType getBeatlineType, bool keepExisting = false)
         {
             lastTick++;
-            Beatlines.Clear();
-            Beatlines.Capacity = (int) (lastTick / Resolution);
+
+            uint lastBeatlineTick = 0;
+
+            if (!keepExisting)
+            {
+                Beatlines.Clear();
+                Beatlines.Capacity = (int) (lastTick / Resolution);
+            }
+            else
+            {
+                // Find the current last beatline
+                if (Beatlines.Count > 0)
+                {
+                    lastBeatlineTick = Beatlines[^1].Tick;
+                }
+
+                // In case lastTick is before the current final beatline, do nothing
+                if (lastTick <= lastBeatlineTick)
+                {
+                    return;
+                }
+            }
+
 
             // List indexes
             int tempoIndex = 0;
@@ -148,13 +177,24 @@ namespace YARG.Core.Chart
                 uint startTick = currentTimeSig.Tick;
                 uint endTick = nextTimeSig.Tick - 1;
 
+                // If startTick and endTick are both prior to the current last beatline, we don't need to do anything
+                if (startTick <= lastBeatlineTick && endTick <= lastBeatlineTick)
+                {
+                    continue;
+                }
+
+                // If startTick is prior to the current last beatline, we need to move it to the last beatline
+                startTick = Math.Min(startTick, lastBeatlineTick);
+
                 // Generate beatlines for this time signature
                 GenerateBeatsForTimeSignature(currentTimeSig, startTick, endTick);
                 currentTimeSig = nextTimeSig;
             }
 
+
+            uint finalStartTick = Math.Min(currentTimeSig.Tick, lastBeatlineTick);
             // Final time signature
-            GenerateBeatsForTimeSignature(currentTimeSig, currentTimeSig.Tick, lastTick);
+            GenerateBeatsForTimeSignature(currentTimeSig, finalStartTick, lastTick);
 
             Beatlines.TrimExcess();
 
