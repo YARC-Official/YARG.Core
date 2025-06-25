@@ -608,7 +608,10 @@ namespace YARG.Core.UnitTests.Parsing
             Assert.Multiple(() =>
             {
                 Assert.That(parsedSong.resolution, Is.EqualTo(sourceSong.resolution), "Resolution was not parsed correctly!");
+
                 CollectionAssert.AreEqual(sourceSong.events, parsedSong.events, "Global events do not match!");
+                CollectionAssert.AreEqual(sourceSong.sections, parsedSong.sections, "Sections do not match!");
+                CollectionAssert.AreEqual(sourceSong.venue, parsedSong.venue, "Venue events do not match!");
 
                 CollectionAssert.AreEqual(sourceSong.syncTrack.Tempos, parsedSong.syncTrack.Tempos, "BPMs do not match!");
                 CollectionAssert.AreEqual(sourceSong.syncTrack.TimeSignatures, parsedSong.syncTrack.TimeSignatures, "Time signatures do not match!");
