@@ -17,6 +17,7 @@ namespace YARG.Core.Chart
             var postProcessingEvents = new List<PostProcessingEvent>();
             var performerEvents = new List<PerformerEvent>();
             var stageEvents = new List<StageEffectEvent>();
+            var cameraCutEvents = new List<CameraCutEvent>();
 
             // For merging spotlights/singalongs into a single event
             MoonVenue? spotlightCurrentEvent = null;
@@ -89,6 +90,31 @@ namespace YARG.Core.Chart
                         break;
                     }
 
+                    case VenueLookup.Type.CameraCut:
+                    {
+                        double time = _moonSong.TickToTime(moonVenue.tick);
+                        if (!CameraCutSubjectLookup.TryGetValue(text, out var subject))
+                        {
+                            continue;
+                        }
+
+                        // Hopes and dreams say that the lower note number will be processed first
+                        // TODO: Don't rely on hopes and dreams
+                        if (cameraCutEvents.Count > 0 && cameraCutEvents[^1].Tick == moonVenue.tick)
+                        {
+                            cameraCutEvents[^1].RandomChoices.Add(subject);
+                            continue;
+                        }
+
+                        var length = GetLengthInTime(moonVenue);
+
+                        // TODO: Actually use the correct priority and constraints, but it doesn't matter for now
+                        // since they aren't implemented in the venue camera system yet...
+                        cameraCutEvents.Add(new(CameraCutEvent.CameraCutPriority.Directed,
+                            CameraCutEvent.CameraCutConstraint.None, subject, time, length, moonVenue.tick, moonVenue.length));
+                        break;
+                }
+
                     default:
                     {
                         YargLogger.LogFormatDebug("Unrecognized venue text event '{0}'!", text);
@@ -105,8 +131,9 @@ namespace YARG.Core.Chart
             postProcessingEvents.TrimExcess();
             performerEvents.TrimExcess();
             stageEvents.TrimExcess();
+            cameraCutEvents.TrimExcess();
 
-            return new(lightingEvents, postProcessingEvents, performerEvents, stageEvents);
+            return new(lightingEvents, postProcessingEvents, performerEvents, stageEvents, cameraCutEvents);
         }
 
         private void HandlePerformerEvent(

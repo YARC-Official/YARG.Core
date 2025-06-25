@@ -14,6 +14,7 @@ namespace YARG.Core.Chart
             Singalong,
             Spotlight,
             StageEffect,
+            CameraCut,
 
             Unknown = 99
         }
@@ -102,6 +103,41 @@ namespace YARG.Core.Chart
             { "strobe_slow",      VENUE_LIGHTING_STROBE_SLOW },
             { "sweep",            VENUE_LIGHTING_SWEEP },
             #endregion
+        };
+
+        // This is the inverse of everything in the Camera cuts region
+        public static readonly Dictionary<string, string> VENUE_DIRECTED_CUT_LOOKUP = new()
+        {
+            { "directed_guitar", VENUE_CAMERA_DIRECTED_GUITAR },
+            { "directed_bass",   VENUE_CAMERA_DIRECTED_BASS },
+            { "directed_drums",  VENUE_CAMERA_DIRECTED_DRUMS },
+            { "directed_vocals", VENUE_CAMERA_DIRECTED_VOCALS },
+            { "directed_stagedive", VENUE_CAMERA_DIRECTED_STAGEDIVE },
+            { "directed_crowdsurf", VENUE_CAMERA_DIRECTED_CROWDSURF },
+            { "directed_all", VENUE_CAMERA_DIRECTED_ALL },
+            { "directed_bre", VENUE_CAMERA_DIRECTED_BRE },
+            { "directed_brej", VENUE_CAMERA_DIRECTED_BREJ },
+            { "directed_guitar_cam", VENUE_CAMERA_DIRECTED_GUITAR_CAM },
+            { "directed_bass_cam",   VENUE_CAMERA_DIRECTED_BASS_CAM },
+            { "directed_drums_kd",  VENUE_CAMERA_DIRECTED_DRUMS_KD },
+            { "directed_drums_lt",  VENUE_CAMERA_DIRECTED_DRUMS_LT },
+            { "directed_drums_np",  VENUE_CAMERA_DIRECTED_DRUMS_NP },
+            { "directed_crowd_g",   VENUE_CAMERA_DIRECTED_CROWD_G },
+            { "directed_crowd_b",   VENUE_CAMERA_DIRECTED_CROWD_B },
+            { "directed_crowd_pnt", VENUE_CAMERA_DIRECTED_CROWD_PNT },
+            { "directed_duo_drums", VENUE_CAMERA_DIRECTED_DUO_DRUMS },
+            { "directed_guitar_cls", VENUE_CAMERA_DIRECTED_GUITAR_CLS },
+            { "directed_bass_cls",   VENUE_CAMERA_DIRECTED_BASS_CLS },
+            { "directed_vocals_cam", VENUE_CAMERA_DIRECTED_VOCALS_CAM },
+            { "directed_vocals_cls", VENUE_CAMERA_DIRECTED_VOCALS_CLS },
+            { "directed_all_cam", VENUE_CAMERA_DIRECTED_ALL_CAM },
+            { "directed_all_lt", VENUE_CAMERA_DIRECTED_ALL_LT },
+            { "directed_all_yeah", VENUE_CAMERA_DIRECTED_ALL_YEAH },
+            { "default", VENUE_CAMERA_DEFAULT },
+            { "directed_guitar_np", VENUE_CAMERA_DIRECTED_GUITAR_NP },
+            { "directed_bass_np",   VENUE_CAMERA_DIRECTED_BASS_NP },
+            { "directed_vocals_np", VENUE_CAMERA_DIRECTED_VOCALS_NP },
+            { "directed_drums_pnt",  VENUE_CAMERA_DIRECTED_CROWD_PNT },
         };
 
         #region Venue
@@ -213,9 +249,84 @@ namespace YARG.Core.Chart
         VENUE_STAGE_FOG_OFF = "fog_off";
         #endregion
 
+        #region Camera cuts
+
+        public const string
+            // Guitarist
+            VENUE_CAMERA_DIRECTED_GUITAR     = "directed_guitar",
+            VENUE_CAMERA_DIRECTED_GUITAR_CAM = "directed_guitar_cam",
+            VENUE_CAMERA_DIRECTED_GUITAR_CLS = "directed_guitar_cls",
+            VENUE_CAMERA_DIRECTED_GUITAR_NP  = "directed_guitar_np",
+            VENUE_CAMERA_DIRECTED_CROWD_G    = "directed_crowd_g",
+            // Bassist
+            VENUE_CAMERA_DIRECTED_BASS     = "directed_bass",
+            VENUE_CAMERA_DIRECTED_BASS_CAM = "directed_bass_cam",
+            VENUE_CAMERA_DIRECTED_BASS_CLS = "directed_bass_cls",
+            VENUE_CAMERA_DIRECTED_BASS_NP  = "directed_bass_np",
+            VENUE_CAMERA_DIRECTED_CROWD_B  = "directed_crowd_b",
+            // Drummer
+            VENUE_CAMERA_DIRECTED_DRUMS     = "directed_drums",
+            VENUE_CAMERA_DIRECTED_DRUMS_KD  = "directed_drums_kd",
+            VENUE_CAMERA_DIRECTED_DRUMS_LT  = "directed_drums_lt",
+            VENUE_CAMERA_DIRECTED_DRUMS_NP  = "directed_drums_np",
+            VENUE_CAMERA_DIRECTED_CROWD_PNT = "directed_drums_pnt",
+            VENUE_CAMERA_DIRECTED_DUO_DRUMS = "directed_duo_drums",
+            // Vocalist
+            VENUE_CAMERA_DIRECTED_VOCALS     = "directed_vocals",
+            VENUE_CAMERA_DIRECTED_VOCALS_CAM = "directed_vocals_cam",
+            VENUE_CAMERA_DIRECTED_VOCALS_CLS = "directed_vocals_cls",
+            VENUE_CAMERA_DIRECTED_VOCALS_NP  = "directed_vocals_np",
+            VENUE_CAMERA_DIRECTED_STAGEDIVE  = "directed_stagedive",
+            VENUE_CAMERA_DIRECTED_CROWDSURF  = "directed_crowdsurf",
+            // Full Band
+            VENUE_CAMERA_DIRECTED_ALL      = "directed_all",
+            VENUE_CAMERA_DIRECTED_ALL_CAM  = "directed_all_cam",
+            VENUE_CAMERA_DIRECTED_ALL_LT   = "directed_all_lt",
+            VENUE_CAMERA_DIRECTED_ALL_YEAH = "directed_all_yeah",
+            VENUE_CAMERA_DIRECTED_BRE      = "directed_bre",
+            VENUE_CAMERA_DIRECTED_BREJ     = "directed_brej",
+            VENUE_CAMERA_DEFAULT           = "default",
+            VENUE_CAMERA_RANDOM            = "random";
+
+        #endregion // Camera cuts
+
         #endregion // Venue
 
         #region Lookups
+
+        public static readonly Dictionary<string, CameraCutEvent.CameraCutSubject> CameraCutSubjectLookup = new()
+        {
+            { VENUE_CAMERA_DIRECTED_ALL, CameraCutEvent.CameraCutSubject.Stage },
+            { VENUE_CAMERA_DIRECTED_ALL_CAM, CameraCutEvent.CameraCutSubject.Stage },
+            { VENUE_CAMERA_DIRECTED_ALL_LT, CameraCutEvent.CameraCutSubject.Stage },
+            { VENUE_CAMERA_DIRECTED_ALL_YEAH, CameraCutEvent.CameraCutSubject.Stage },
+            { VENUE_CAMERA_DIRECTED_BRE, CameraCutEvent.CameraCutSubject.Stage },
+            { VENUE_CAMERA_DIRECTED_BREJ, CameraCutEvent.CameraCutSubject.Stage },
+            { VENUE_CAMERA_DIRECTED_GUITAR, CameraCutEvent.CameraCutSubject.Guitar },
+            { VENUE_CAMERA_DIRECTED_GUITAR_CAM, CameraCutEvent.CameraCutSubject.Guitar },
+            { VENUE_CAMERA_DIRECTED_GUITAR_CLS, CameraCutEvent.CameraCutSubject.Guitar },
+            { VENUE_CAMERA_DIRECTED_GUITAR_NP, CameraCutEvent.CameraCutSubject.Guitar },
+            { VENUE_CAMERA_DIRECTED_CROWD_G, CameraCutEvent.CameraCutSubject.Stage},
+            { VENUE_CAMERA_DIRECTED_BASS, CameraCutEvent.CameraCutSubject.Bass },
+            { VENUE_CAMERA_DIRECTED_BASS_CAM, CameraCutEvent.CameraCutSubject.Bass },
+            { VENUE_CAMERA_DIRECTED_BASS_CLS, CameraCutEvent.CameraCutSubject.Bass },
+            { VENUE_CAMERA_DIRECTED_BASS_NP, CameraCutEvent.CameraCutSubject.Bass },
+            { VENUE_CAMERA_DIRECTED_CROWD_B, CameraCutEvent.CameraCutSubject.Bass },
+            { VENUE_CAMERA_DIRECTED_DRUMS, CameraCutEvent.CameraCutSubject.Drums },
+            { VENUE_CAMERA_DIRECTED_DRUMS_KD, CameraCutEvent.CameraCutSubject.Drums },
+            { VENUE_CAMERA_DIRECTED_DRUMS_LT, CameraCutEvent.CameraCutSubject.Drums },
+            { VENUE_CAMERA_DIRECTED_DRUMS_NP, CameraCutEvent.CameraCutSubject.Drums },
+            { VENUE_CAMERA_DIRECTED_DUO_DRUMS, CameraCutEvent.CameraCutSubject.Drums },
+            { VENUE_CAMERA_DIRECTED_CROWD_PNT, CameraCutEvent.CameraCutSubject.Stage },
+            { VENUE_CAMERA_DIRECTED_STAGEDIVE, CameraCutEvent.CameraCutSubject.Stage },
+            { VENUE_CAMERA_DIRECTED_CROWDSURF, CameraCutEvent.CameraCutSubject.Stage },
+            { VENUE_CAMERA_DIRECTED_VOCALS, CameraCutEvent.CameraCutSubject.Vocals },
+            { VENUE_CAMERA_DIRECTED_VOCALS_CAM, CameraCutEvent.CameraCutSubject.Vocals },
+            { VENUE_CAMERA_DIRECTED_VOCALS_CLS, CameraCutEvent.CameraCutSubject.Vocals },
+            { VENUE_CAMERA_DIRECTED_VOCALS_NP, CameraCutEvent.CameraCutSubject.Vocals },
+            { VENUE_CAMERA_DEFAULT, CameraCutEvent.CameraCutSubject.Stage },
+            { VENUE_CAMERA_RANDOM, CameraCutEvent.CameraCutSubject.Random }
+        };
         public static readonly Dictionary<string, VenueEventFlags> FlagPrefixLookup = new()
         {
             { VENUE_OPTIONAL_EVENT_PREFIX, VenueEventFlags.Optional },
