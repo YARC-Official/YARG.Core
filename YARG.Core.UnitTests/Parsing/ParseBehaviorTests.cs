@@ -1,4 +1,4 @@
-using System.Collections;
+﻿using System.Collections;
 using MoonscraperChartEditor.Song;
 using MoonscraperChartEditor.Song.IO;
 using NUnit.Framework;
@@ -518,6 +518,7 @@ namespace YARG.Core.UnitTests.Parsing
         public static void PopulateDifficulty(MoonSong song, MoonInstrument instrument, Difficulty difficulty, MoonChart track)
         {
             var chart = song.GetChart(instrument, difficulty);
+
             foreach (var note in track.notes)
             {
                 chart.Add(note.Clone());
@@ -526,6 +527,11 @@ namespace YARG.Core.UnitTests.Parsing
             foreach (var phrase in track.specialPhrases)
             {
                 chart.Add(phrase.Clone());
+            }
+
+            foreach (var ev in track.events)
+            {
+                chart.Add(ev.Clone());
             }
         }
 
