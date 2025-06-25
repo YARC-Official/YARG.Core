@@ -465,15 +465,42 @@ namespace YARG.Core.UnitTests.Parsing
         public static MoonSong GenerateSong()
         {
             var song = new MoonSong(RESOLUTION);
+
             PopulateSyncTrack(song);
-            PopulateGlobalEvents(song, GlobalEvents);
+            PopulateGlobalEvents(song);
+
             foreach (var instrument in EnumExtensions<MoonInstrument>.Values)
             {
                 var gameMode = MoonSong.InstrumentToChartGameMode(instrument);
                 var track = GameModeToChartData(gameMode);
                 PopulateInstrument(song, instrument, track);
             }
+
             return song;
+        }
+
+        public static void PopulateSyncTrack(MoonSong song)
+        {
+            song.AddTempo(TEMPO, 0);
+            song.AddTimeSignature(NUMERATOR, DENOMINATOR, 0);
+        }
+
+        public static void PopulateGlobalEvents(MoonSong song)
+        {
+            foreach (var text in GlobalEvents)
+            {
+                song.AddText(text.Clone());
+            }
+
+            // foreach (var section in Sections)
+            // {
+            //     song.AddSection(section.Clone());
+            // }
+
+            // foreach (var venue in VenueEvents)
+            // {
+            //     song.Add(venue.Clone());
+            // }
         }
 
         public static MoonChart GameModeToChartData(GameMode gameMode)
@@ -491,20 +518,6 @@ namespace YARG.Core.UnitTests.Parsing
 
             // ParseBehavior is simply an initialization wrapper, don't return it directly
             return behavior.chart;
-        }
-
-        public static void PopulateSyncTrack(MoonSong song)
-        {
-            song.AddTempo(TEMPO, 0);
-            song.AddTimeSignature(NUMERATOR, DENOMINATOR, 0);
-        }
-
-        public static void PopulateGlobalEvents(MoonSong song, List<MoonText> events)
-        {
-            foreach (var text in events)
-            {
-                song.AddText(text.Clone());
-            }
         }
 
         public static void PopulateInstrument(MoonSong song, MoonInstrument instrument, MoonChart track)
