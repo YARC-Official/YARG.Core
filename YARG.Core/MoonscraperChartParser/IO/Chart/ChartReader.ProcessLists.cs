@@ -204,9 +204,15 @@ namespace MoonscraperChartEditor.Song.IO
         private static void ConvertSoloEvents(ref NoteProcessParams noteProcessParams)
         {
             var chart = noteProcessParams.chart;
+
             // Keeps tracks of soloes that start on the same tick when another solo ends
             uint startTick = uint.MaxValue;
             uint nextStartTick = uint.MaxValue;
+
+            // Manually move over events so we can avoid excessive element moves
+            // from using RemoveAt or RemoveAll
+            int moveOffset = 0;
+
             for (int i = 0; i < chart.events.Count; ++i)
             {
                 var ev = chart.events[i];
@@ -220,6 +226,10 @@ namespace MoonscraperChartEditor.Song.IO
                     {
                         nextStartTick = ev.tick;
                     }
+
+                    // Remove from list by not moving element over
+                    moveOffset++;
+                    continue;
                 }
                 else if (ev.text == TextEvents.SOLO_END)
                 {
@@ -242,10 +252,24 @@ namespace MoonscraperChartEditor.Song.IO
                             nextStartTick = uint.MaxValue;
                         }
                     }
+
+                    // Remove from list by not moving element over
+                    moveOffset++;
+                    continue;
+                }
+
+                // If we've removed events, move all successive ones down in the list
+                if (moveOffset > 0)
+                {
+                    chart.events[i - moveOffset] = ev;
                 }
             }
 
-            chart.events.RemoveAll((ev) => ev.text is TextEvents.SOLO_START or TextEvents.SOLO_END);
+            // Trim off remaining excess elements from any removals
+            if (moveOffset > 0)
+            {
+                chart.events.RemoveRange(chart.events.Count - moveOffset, moveOffset);
+            }
         }
 
         private static void DisambiguateDrumsType(ref NoteProcessParams processParams)
