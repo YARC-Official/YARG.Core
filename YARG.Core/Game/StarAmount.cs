@@ -1,6 +1,6 @@
 namespace YARG.Core.Game
 {
-    public enum StarAmount : byte
+    public enum StarAmount : sbyte
     {
         None = 0,
 
@@ -14,7 +14,7 @@ namespace YARG.Core.Game
         StarSilver,
         StarBrutal,
 
-        NoPart
+        NoPart = -1
     }
 
     public static class StarAmountHelper
@@ -49,8 +49,7 @@ namespace YARG.Core.Game
                 StarAmount.Star2    => 2,
                 StarAmount.Star1    => 1,
                 StarAmount.None     => 0,
-                StarAmount.NoPart   => -1,
-                _ => -2
+                StarAmount.NoPart   => -1
             };
         }
 
