@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using MoonscraperChartEditor.Song;
+using MoonscraperChartEditor.Song.IO;
 
 namespace YARG.Core.Chart
 {
@@ -26,7 +27,15 @@ namespace YARG.Core.Chart
                 { Difficulty.Hard, LoadDifficulty(instrument, Difficulty.Hard, createNote) },
                 { Difficulty.Expert, LoadDifficulty(instrument, Difficulty.Expert, createNote) },
             };
-            return new(instrument, difficulties);
+
+            var track = new InstrumentTrack<GuitarNote>(instrument, difficulties);
+
+            // Add animation events
+            // TODO: How to get the notes?
+            var animationEvents = GetGuitarAnimationEvents(track);
+            track.AddAnimationEvent(animationEvents);
+
+            return track;
         }
 
         private GuitarNote CreateFiveFretGuitarNote(MoonNote moonNote, Dictionary<MoonPhrase.Type, MoonPhrase> currentPhrases)
@@ -165,6 +174,60 @@ namespace YARG.Core.Chart
             }
 
             return flags;
+        }
+
+        private List<AnimationEvent> GetGuitarAnimationEvents(InstrumentTrack<GuitarNote> track)
+        {
+            var events = new List<AnimationEvent>();
+            var instrument = track.Instrument;
+
+            // Find a difficulty
+            // var difficulty = track.FirstDifficulty().Difficulty;
+            var difficulty = Difficulty.Expert;
+
+            // Get the relevant MoonChart
+            var chart = GetMoonChart(instrument, difficulty);
+
+            foreach (var animNote in chart.animationNotes)
+            {
+                // Look up the note number and create an appropriate animation event
+                var animType = GetGuitarAnimationType((byte) animNote.noteNumber);
+
+                if (!animType.HasValue) continue;
+
+                events.Add(new AnimationEvent(animType.Value,
+                    _moonSong.TickToTime(animNote.tick), GetLengthInTime(animNote), animNote.tick, animNote.length));
+            }
+
+            return events;
+        }
+
+        private AnimationEvent.AnimationType? GetGuitarAnimationType(byte noteNumber)
+        {
+            return noteNumber switch
+            {
+                MidIOHelper.LEFT_HAND_POSITION_1 => AnimationEvent.AnimationType.LeftHandPosition1,
+                MidIOHelper.LEFT_HAND_POSITION_2 => AnimationEvent.AnimationType.LeftHandPosition2,
+                MidIOHelper.LEFT_HAND_POSITION_3 => AnimationEvent.AnimationType.LeftHandPosition3,
+                MidIOHelper.LEFT_HAND_POSITION_4 => AnimationEvent.AnimationType.LeftHandPosition4,
+                MidIOHelper.LEFT_HAND_POSITION_5 => AnimationEvent.AnimationType.LeftHandPosition5,
+                MidIOHelper.LEFT_HAND_POSITION_6 => AnimationEvent.AnimationType.LeftHandPosition6,
+                MidIOHelper.LEFT_HAND_POSITION_7 => AnimationEvent.AnimationType.LeftHandPosition7,
+                MidIOHelper.LEFT_HAND_POSITION_8 => AnimationEvent.AnimationType.LeftHandPosition8,
+                MidIOHelper.LEFT_HAND_POSITION_9 => AnimationEvent.AnimationType.LeftHandPosition9,
+                MidIOHelper.LEFT_HAND_POSITION_10 => AnimationEvent.AnimationType.LeftHandPosition10,
+                MidIOHelper.LEFT_HAND_POSITION_11 => AnimationEvent.AnimationType.LeftHandPosition11,
+                MidIOHelper.LEFT_HAND_POSITION_12 => AnimationEvent.AnimationType.LeftHandPosition12,
+                MidIOHelper.LEFT_HAND_POSITION_13 => AnimationEvent.AnimationType.LeftHandPosition13,
+                MidIOHelper.LEFT_HAND_POSITION_14 => AnimationEvent.AnimationType.LeftHandPosition14,
+                MidIOHelper.LEFT_HAND_POSITION_15 => AnimationEvent.AnimationType.LeftHandPosition15,
+                MidIOHelper.LEFT_HAND_POSITION_16 => AnimationEvent.AnimationType.LeftHandPosition16,
+                MidIOHelper.LEFT_HAND_POSITION_17 => AnimationEvent.AnimationType.LeftHandPosition17,
+                MidIOHelper.LEFT_HAND_POSITION_18 => AnimationEvent.AnimationType.LeftHandPosition18,
+                MidIOHelper.LEFT_HAND_POSITION_19 => AnimationEvent.AnimationType.LeftHandPosition19,
+                MidIOHelper.LEFT_HAND_POSITION_20 => AnimationEvent.AnimationType.LeftHandPosition20,
+                _ => null
+            };
         }
     }
 }

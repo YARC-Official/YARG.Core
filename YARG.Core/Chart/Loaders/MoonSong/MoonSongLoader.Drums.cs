@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using MoonscraperChartEditor.Song;
+using MoonscraperChartEditor.Song.IO;
 using YARG.Core.Parsing;
 
 namespace YARG.Core.Chart
@@ -30,7 +31,14 @@ namespace YARG.Core.Chart
                 { Difficulty.Expert, LoadDifficulty(instrument, Difficulty.Expert, createNote, HandleTextEvent) },
                 { Difficulty.ExpertPlus, LoadDifficulty(instrument, Difficulty.ExpertPlus, createNote, HandleTextEvent) },
             };
-            return new(instrument, difficulties);
+
+            var track = new InstrumentTrack<DrumNote>(instrument, difficulties);
+
+            // Add animation events
+            var animationEvents = GetDrumAnimationEvents(track);
+            track.AddAnimationEvent(animationEvents);
+
+            return track;
         }
 
         private DrumNote CreateFourLaneDrumNote(MoonNote moonNote, Dictionary<MoonPhrase.Type, MoonPhrase> currentPhrases)
@@ -289,6 +297,67 @@ namespace YARG.Core.Chart
             // Can be populated later if additional note flags are added
             // Activation note marking is done within DrumsPlayer
             return DrumNoteFlags.None;
+        }
+
+        private List<AnimationEvent> GetDrumAnimationEvents(InstrumentTrack<DrumNote> track)
+        {
+            var events = new List<AnimationEvent>();
+            var instrument = track.Instrument;
+
+            // Find a difficulty
+            // var difficulty = track.FirstDifficulty().Difficulty;
+            var difficulty = Difficulty.Expert;
+
+            // Get the relevant MoonChart
+            var chart = GetMoonChart(instrument, difficulty);
+
+            foreach (var animNote in chart.animationNotes)
+            {
+                // Look up the note number and create an appropriate animation event
+                var animType = GetDrumAnimationType((byte) animNote.noteNumber);
+
+                if (!animType.HasValue) continue;
+
+                events.Add(new AnimationEvent(animType.Value,
+                    _moonSong.TickToTime(animNote.tick), GetLengthInTime(animNote), animNote.tick, animNote.length));
+            }
+
+            return events;
+        }
+
+        private static AnimationEvent.AnimationType? GetDrumAnimationType(byte noteNumber)
+        {
+            return noteNumber switch
+            {
+                MidIOHelper.KICK => AnimationEvent.AnimationType.Kick,
+                MidIOHelper.HIHAT_OPEN => AnimationEvent.AnimationType.OpenHiHat,
+                MidIOHelper.SNARE_LH_HARD => AnimationEvent.AnimationType.SnareLhHard,
+                MidIOHelper.SNARE_LH_SOFT => AnimationEvent.AnimationType.SnareLhSoft,
+                MidIOHelper.SNARE_RH_HARD => AnimationEvent.AnimationType.SnareRhHard,
+                MidIOHelper.SNARE_RH_SOFT => AnimationEvent.AnimationType.SnareRhSoft,
+                MidIOHelper.HIHAT_LH => AnimationEvent.AnimationType.HihatLeftHand,
+                MidIOHelper.HIHAT_RH => AnimationEvent.AnimationType.HihatRightHand,
+                MidIOHelper.PERCUSSION_RH => AnimationEvent.AnimationType.PercussionRightHand,
+                MidIOHelper.CRASH_1_LH_HARD => AnimationEvent.AnimationType.Crash1LhHard,
+                MidIOHelper.CRASH_1_LH_SOFT => AnimationEvent.AnimationType.Crash1LhSoft,
+                MidIOHelper.CRASH_1_RH_HARD => AnimationEvent.AnimationType.Crash1RhHard,
+                MidIOHelper.CRASH_1_RH_SOFT => AnimationEvent.AnimationType.Crash1RhSoft,
+                MidIOHelper.CRASH_2_RH_HARD => AnimationEvent.AnimationType.Crash2RhHard,
+                MidIOHelper.CRASH_2_RH_SOFT => AnimationEvent.AnimationType.Crash2RhSoft,
+                MidIOHelper.CRASH_1_CHOKE => AnimationEvent.AnimationType.Crash1Choke,
+                MidIOHelper.CRASH_2_CHOKE => AnimationEvent.AnimationType.Crash2Choke,
+                MidIOHelper.RIDE_RH => AnimationEvent.AnimationType.RideRh,
+                MidIOHelper.RIDE_LH => AnimationEvent.AnimationType.RideLh,
+                MidIOHelper.CRASH_2_LH_HARD => AnimationEvent.AnimationType.Crash2LhHard,
+                MidIOHelper.CRASH_2_LH_SOFT => AnimationEvent.AnimationType.Crash2LhSoft,
+                MidIOHelper.TOM_1_LH => AnimationEvent.AnimationType.Tom1LeftHand,
+                MidIOHelper.TOM_1_RH => AnimationEvent.AnimationType.Tom1RightHand,
+                MidIOHelper.TOM_2_LH => AnimationEvent.AnimationType.Tom2LeftHand,
+                MidIOHelper.TOM_2_RH => AnimationEvent.AnimationType.Tom2RightHand,
+                MidIOHelper.FLOOR_TOM_LH => AnimationEvent.AnimationType.FloorTomLeftHand,
+                MidIOHelper.FLOOR_TOM_RH => AnimationEvent.AnimationType.FloorTomRightHand,
+                _ => null
+            };
         }
     }
 }

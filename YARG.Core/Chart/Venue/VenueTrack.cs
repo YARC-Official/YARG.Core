@@ -15,6 +15,9 @@ namespace YARG.Core.Chart
         public List<PerformerEvent> Performer { get; } = new();
         public List<StageEffectEvent> Stage { get; } = new();
         public List<CameraCutEvent> CameraCuts { get; } = new();
+        public List<AnimationEvent> GuitarAnimations { get; } = new();
+        public List<AnimationEvent> BassAnimations { get; } = new();
+        public List<AnimationEvent> DrumsAnimations { get; } = new();
 
         public VenueTrack() { }
 

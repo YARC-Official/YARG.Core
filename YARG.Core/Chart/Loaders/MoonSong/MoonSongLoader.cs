@@ -316,6 +316,12 @@ namespace YARG.Core.Chart
             return GetLengthInTime(time, phrase.tick, phrase.length);
         }
 
+        private double GetLengthInTime(MoonAnimation animation)
+        {
+            double time = _moonSong.TickToTime(animation.tick);
+            return GetLengthInTime(time, animation.tick, animation.length);
+        }
+
         private static bool IsEventInPhrase(MoonObject songObj, MoonPhrase phrase)
         {
             if (songObj == null || phrase == null)

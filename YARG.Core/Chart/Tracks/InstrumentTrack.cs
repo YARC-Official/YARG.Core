@@ -13,6 +13,9 @@ namespace YARG.Core.Chart
     {
         public Instrument Instrument { get; }
 
+        // TODO: Not sure this is really the best place for this, but it will do for now
+        public List<AnimationEvent> AnimationEvents { get; } = new();
+
         private Dictionary<Difficulty, InstrumentDifficulty<TNote>> _difficulties { get; } = new();
 
         /// <summary>
@@ -43,6 +46,12 @@ namespace YARG.Core.Chart
             _difficulties = difficulties;
         }
 
+        public InstrumentTrack(Instrument instrument, Dictionary<Difficulty, InstrumentDifficulty<TNote>> difficulties,
+            List<AnimationEvent> animationEvents) : this(instrument, difficulties)
+        {
+            AnimationEvents = animationEvents;
+        }
+
         public InstrumentTrack(InstrumentTrack<TNote> other)
             : this(other.Instrument)
         {
@@ -50,7 +59,16 @@ namespace YARG.Core.Chart
             {
                 _difficulties.Add(difficulty, diffTrack.Clone());
             }
+
+            foreach (var animationEvent in other.AnimationEvents)
+            {
+                AddAnimationEvent(animationEvent.Clone());
+            }
         }
+
+        public void AddAnimationEvent(AnimationEvent animationEvent) => AnimationEvents.Add(animationEvent);
+
+        public void AddAnimationEvent(IEnumerable<AnimationEvent> animationEvents) => AnimationEvents.AddRange(animationEvents);
 
         public void AddDifficulty(Difficulty difficulty, InstrumentDifficulty<TNote> track)
             => _difficulties.Add(difficulty, track);

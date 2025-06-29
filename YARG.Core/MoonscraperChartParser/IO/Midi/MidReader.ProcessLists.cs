@@ -46,6 +46,10 @@ namespace MoonscraperChartEditor.Song.IO
         private static readonly Dictionary<int, EventProcessFn> VocalsNoteProcessMap = BuildVocalsNoteProcessDict();
         private static readonly Dictionary<int, EventProcessFn> ProKeysNoteProcessMap = BuildProKeysNoteProcessDict();
 
+        private static readonly Dictionary<int, EventProcessFn> GuitarAnimationProcessMap = BuildGuitarAnimationProcessDict();
+        private static readonly Dictionary<int, EventProcessFn> DrumsAnimationProcessMap = BuildDrumsAnimationProcessDict();
+        private static readonly Dictionary<int, EventProcessFn> DummyAnimationProcessMap = new();
+
         private static readonly CommonPhraseSettings GuitarPhraseSettings = new()
         {
             soloNote = MidIOHelper.SOLO_NOTE,
@@ -187,6 +191,16 @@ namespace MoonscraperChartEditor.Song.IO
                 MoonChart.GameMode.Vocals => VocalsNoteProcessMap,
                 MoonChart.GameMode.ProKeys => ProKeysNoteProcessMap,
                 _ => throw new NotImplementedException($"No process map for game mode {gameMode}!")
+            };
+        }
+
+        private static Dictionary<int, EventProcessFn> GetAnimationProcessDict(MoonChart.GameMode gameMode)
+        {
+            return gameMode switch
+            {
+                MoonChart.GameMode.Guitar => GuitarAnimationProcessMap,
+                MoonChart.GameMode.Drums  => DrumsAnimationProcessMap,
+                _ => DummyAnimationProcessMap
             };
         }
 
@@ -535,6 +549,26 @@ namespace MoonscraperChartEditor.Song.IO
             return processFnDict;
         }
 
+        private static Dictionary<int, EventProcessFn> BuildGuitarAnimationProcessDict()
+        {
+            var processFnDict = new Dictionary<int, EventProcessFn>();
+
+            // Difficulty doesn't actually matter
+            var difficulty = MoonSong.Difficulty.Expert;
+
+            // TODO: Make this go to 59 when enhanced opens isn't enabled
+            for (int i = 40; i <= 58; i++)
+            {
+                var noteNum = i;
+                processFnDict.Add(i, (ref EventProcessParams eventProcessParams) =>
+                {
+                    ProcessNoteOnEventAsAnimation(ref eventProcessParams, difficulty, noteNum);
+                });
+            }
+
+            return processFnDict;
+        }
+
         private static Dictionary<int, EventProcessFn> BuildProGuitarNoteProcessDict()
         {
             var processFnDict = new Dictionary<int, EventProcessFn>()
@@ -685,6 +719,25 @@ namespace MoonscraperChartEditor.Song.IO
                 processFnDict.Add(midiKey, (ref EventProcessParams eventProcessParams) =>
                 {
                     ProcessNoteOnEventAsFlagToggle(ref eventProcessParams, MoonNote.Flags.ProDrums_Cymbal, pad);
+                });
+            }
+
+            return processFnDict;
+        }
+
+        private static Dictionary<int, EventProcessFn> BuildDrumsAnimationProcessDict()
+        {
+            var processFnDict = new Dictionary<int, EventProcessFn>();
+
+            // Difficulty doesn't actually matter
+            var difficulty = MoonSong.Difficulty.Expert;
+
+            for (int i = 24; i <= 51; i++)
+            {
+                var noteNum = i;
+                processFnDict.Add(i, (ref EventProcessParams eventProcessParams) =>
+                {
+                    ProcessNoteOnEventAsAnimation(ref eventProcessParams, difficulty, noteNum);
                 });
             }
 

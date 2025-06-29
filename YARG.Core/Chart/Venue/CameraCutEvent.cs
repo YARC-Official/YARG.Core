@@ -25,8 +25,11 @@ namespace YARG.Core.Chart
         {
             Stage,
             Guitar,
+            GuitarCloseup,
             Drums,
+            DrumsKick,
             Bass,
+            BassCloseup,
             Vocals,
             Keys,
             Random

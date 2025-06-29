@@ -115,6 +115,59 @@ namespace MoonscraperChartEditor.Song.IO
         public const byte BEAT_STRONG = 13;
         public const byte BEAT_WEAK = 14;
 
+        // Animation notes
+
+        // 5-fret
+        public const byte LEFT_HAND_POSITION_1 = 40;  // Nearest to headstock
+        public const byte LEFT_HAND_POSITION_2 = 41;
+        public const byte LEFT_HAND_POSITION_3 = 42;
+        public const byte LEFT_HAND_POSITION_4 = 43;
+        public const byte LEFT_HAND_POSITION_5 = 44;
+        public const byte LEFT_HAND_POSITION_6 = 45;
+        public const byte LEFT_HAND_POSITION_7 = 46;
+        public const byte LEFT_HAND_POSITION_8 = 47;
+        public const byte LEFT_HAND_POSITION_9 = 48;
+        public const byte LEFT_HAND_POSITION_10 = 49;
+        public const byte LEFT_HAND_POSITION_11 = 50;
+        public const byte LEFT_HAND_POSITION_12 = 51;
+        public const byte LEFT_HAND_POSITION_13 = 52;
+        public const byte LEFT_HAND_POSITION_14 = 53;
+        public const byte LEFT_HAND_POSITION_15 = 54;
+        public const byte LEFT_HAND_POSITION_16 = 55;
+        public const byte LEFT_HAND_POSITION_17 = 56;
+        public const byte LEFT_HAND_POSITION_18 = 57;
+        public const byte LEFT_HAND_POSITION_19 = 58;
+        public const byte LEFT_HAND_POSITION_20 = 59;
+
+        // Drums
+        public const byte KICK            = 24;
+        public const byte HIHAT_OPEN      = 25;
+        public const byte SNARE_LH_HARD   = 26;
+        public const byte SNARE_RH_HARD   = 27;
+        public const byte SNARE_LH_SOFT   = 28;
+        public const byte SNARE_RH_SOFT   = 29;
+        public const byte HIHAT_LH        = 30;
+        public const byte HIHAT_RH        = 31;
+        public const byte PERCUSSION_RH   = 32;
+        public const byte CRASH_1_LH_HARD = 33;
+        public const byte CRASH_1_LH_SOFT = 34;
+        public const byte CRASH_1_RH_HARD = 35;
+        public const byte CRASH_1_RH_SOFT = 36;
+        public const byte CRASH_2_RH_HARD = 37;
+        public const byte CRASH_2_RH_SOFT = 38;
+        public const byte CRASH_1_CHOKE   = 40;
+        public const byte CRASH_2_CHOKE   = 41;
+        public const byte RIDE_RH         = 42;
+        public const byte RIDE_LH         = 43;
+        public const byte CRASH_2_LH_HARD = 44;
+        public const byte CRASH_2_LH_SOFT = 45;
+        public const byte TOM_1_LH        = 46;
+        public const byte TOM_1_RH        = 47;
+        public const byte TOM_2_LH        = 48;
+        public const byte TOM_2_RH        = 49;
+        public const byte FLOOR_TOM_LH    = 50;
+        public const byte FLOOR_TOM_RH    = 51;
+
         // These events are valid both with and without brackets.
         // The bracketed versions follow the style of other existing .mid text events.
         public const string CHART_DYNAMICS_TEXT = "ENABLE_CHART_DYNAMICS";
