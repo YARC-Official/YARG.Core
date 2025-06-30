@@ -555,15 +555,16 @@ namespace MoonscraperChartEditor.Song.IO
 
             // Difficulty doesn't actually matter
             var difficulty = MoonSong.Difficulty.Expert;
-
             // TODO: Make this go to 59 when enhanced opens isn't enabled
             for (int i = 40; i <= 58; i++)
             {
                 var noteNum = i;
-                processFnDict.Add(i, (ref EventProcessParams eventProcessParams) =>
-                {
-                    ProcessNoteOnEventAsAnimation(ref eventProcessParams, difficulty, noteNum);
-                });
+                processFnDict.Add(i,
+                    (ref EventProcessParams eventProcessParams) =>
+                    {
+                        ProcessNoteOnEventAsAnimation(ref eventProcessParams, difficulty, noteNum);
+                    });
+
             }
 
             return processFnDict;
@@ -731,14 +732,14 @@ namespace MoonscraperChartEditor.Song.IO
 
             // Difficulty doesn't actually matter
             var difficulty = MoonSong.Difficulty.Expert;
-
             for (int i = 24; i <= 51; i++)
             {
                 var noteNum = i;
-                processFnDict.Add(i, (ref EventProcessParams eventProcessParams) =>
-                {
-                    ProcessNoteOnEventAsAnimation(ref eventProcessParams, difficulty, noteNum);
-                });
+                processFnDict.Add(i,
+                    (ref EventProcessParams eventProcessParams) =>
+                    {
+                        ProcessNoteOnEventAsAnimation(ref eventProcessParams, difficulty, noteNum);
+                    });
             }
 
             return processFnDict;

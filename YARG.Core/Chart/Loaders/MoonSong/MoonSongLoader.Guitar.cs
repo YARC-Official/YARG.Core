@@ -31,7 +31,6 @@ namespace YARG.Core.Chart
             var track = new InstrumentTrack<GuitarNote>(instrument, difficulties);
 
             // Add animation events
-            // TODO: How to get the notes?
             var animationEvents = GetGuitarAnimationEvents(track);
             track.AddAnimationEvent(animationEvents);
 

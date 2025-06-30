@@ -55,6 +55,7 @@ namespace MoonscraperChartEditor.Song.IO
         // 'lighting ()' -> ''
         public static readonly Regex LightingRegex = new(@"lighting\s+\((.*)\)", RegexOptions.Compiled | RegexOptions.Singleline);
         public static readonly Regex DirectedCutRegex = new(@"do_directed_cut\s+(.*)", RegexOptions.Compiled | RegexOptions.Singleline);
+        public static readonly Regex CameraCutRegex = new(@"coop_(\w+_\w+)", RegexOptions.Compiled | RegexOptions.Singleline);
 
         // Note numbers
         public const byte DOUBLE_KICK_NOTE = 95;
@@ -325,12 +326,20 @@ namespace MoonscraperChartEditor.Song.IO
             { 63, (VenueLookup.Type.CameraCut, VENUE_CAMERA_DIRECTED_GUITAR) },
             { 64, (VenueLookup.Type.CameraCut, VENUE_CAMERA_DIRECTED_VOCALS) },
             #endregion
+
+            #region Camera cut constraints
+            { 70, (VenueLookup.Type.CameraCutConstraint, VENUE_CAMERA_CONSTRAINT_NO_BEHIND) },
+            { 71, (VenueLookup.Type.CameraCutConstraint, VENUE_CAMERA_CONSTRAINT_ONLY_FAR) },
+            { 72, (VenueLookup.Type.CameraCutConstraint, VENUE_CAMERA_CONSTRAINT_ONLY_CLOSE) },
+            { 73, (VenueLookup.Type.CameraCutConstraint, VENUE_CAMERA_CONSTRAINT_NO_CLOSE) },
+            #endregion
         };
 
         public static readonly Dictionary<Regex, (Dictionary<string, string> lookup, VenueLookup.Type type, string defaultValue)> VENUE_EVENT_REGEX_TO_LOOKUP = new()
         {
             { LightingRegex,    (VENUE_LIGHTING_CONVERSION_LOOKUP, VenueLookup.Type.Lighting, VENUE_LIGHTING_DEFAULT) },
-            { DirectedCutRegex, (VENUE_DIRECTED_CUT_LOOKUP, VenueLookup.Type.CameraCut, VENUE_CAMERA_DEFAULT)}
+            { DirectedCutRegex, (VENUE_DIRECTED_CUT_LOOKUP, VenueLookup.Type.CameraCut, VENUE_CAMERA_DEFAULT) },
+            { CameraCutRegex, (VENUE_CAMERA_CUT_LOOKUP, VenueLookup.Type.CameraCut, VENUE_CAMERA_DEFAULT) }
         };
 
         public static bool IsTextEvent(MidiEvent trackEvent, [NotNullWhen(true)] out BaseTextEvent? text)
