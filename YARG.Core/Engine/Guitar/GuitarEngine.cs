@@ -337,23 +337,36 @@ namespace YARG.Core.Engine.Guitar
 
         protected sealed override int CalculateBaseScore()
         {
-            int score = 0;
+            double score = 0;
+            int combo = 0;
+            int multiplier;
+            double weight;
             foreach (var note in Notes)
             {
-                score += POINTS_PER_NOTE * (1 + note.ChildNotes.Count);
-                score += (int) Math.Ceiling(note.TickLength / TicksPerSustainPoint);
+                // Get the current multiplier given the current combo
+                multiplier = Math.Min((combo / 10) + 1, BaseParameters.MaxMultiplier);
 
+                // invert it to calculate leniency
+                weight = 1.0 * multiplier / BaseParameters.MaxMultiplier;
+
+                score += weight * (POINTS_PER_NOTE * (1 + note.ChildNotes.Count));
+                score += weight * Math.Ceiling(note.TickLength / TicksPerSustainPoint);
+                combo++;
                 // If a note is disjoint, each sustain is counted separately.
                 if (note.IsDisjoint)
                 {
                     foreach (var child in note.ChildNotes)
                     {
-                        score += (int) Math.Ceiling(child.TickLength / TicksPerSustainPoint);
+                        score += Math.Ceiling(child.TickLength / TicksPerSustainPoint);
+
+                        //TODO: Check if disjoint notes should increase combo
+                        combo++;
                     }
                 }
             }
 
-            return score;
+            YargLogger.LogDebug($"[Vocals] Base score: {score}, Max Combo: {combo}");
+            return (int) Math.Round(score);
         }
 
         protected void ToggleFret(int fret, bool active)

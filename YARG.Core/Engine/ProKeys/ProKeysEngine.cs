@@ -308,18 +308,30 @@ namespace YARG.Core.Engine.ProKeys
 
         protected sealed override int CalculateBaseScore()
         {
-            int score = 0;
+            double score = 0;
+            int combo = 0;
+            int multiplier;
+            double weight;
             foreach (var note in Notes)
             {
-                score += POINTS_PER_PRO_KEYS_NOTE * (1 + note.ChildNotes.Count);
+                // Get the current multiplier given the current combo
+                multiplier = Math.Min((combo / 10) + 1, BaseParameters.MaxMultiplier);
+
+                // invert it to calculate leniency
+                weight = 1.0 * multiplier / BaseParameters.MaxMultiplier;
+                score += weight * (POINTS_PER_PRO_KEYS_NOTE * (1 + note.ChildNotes.Count));
 
                 foreach (var child in note.AllNotes)
                 {
-                    score += (int) Math.Ceiling(child.TickLength / TicksPerSustainPoint);
+                    score += weight * (int) Math.Ceiling(child.TickLength / TicksPerSustainPoint);
                 }
+
+                // Pro Keys combo increments per chord, not per note.
+                combo++;
             }
 
-            return score;
+            YargLogger.LogDebug($"[Pro Keys] Base score: {score}, Max Combo: {combo}");
+            return (int) Math.Round(score);
         }
 
         protected void ToggleKey(int key, bool active)
