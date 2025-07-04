@@ -347,6 +347,8 @@ namespace YARG.Core.Engine.ProKeys.Engines
                 return;
             }
 
+            IsStarPowerInputActive = CanStarPowerActivate && !IsStarPowerInputActive;
+
             if (NoteIndex < Notes.Count)
             {
                 note = Notes[NoteIndex];

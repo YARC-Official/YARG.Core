@@ -145,6 +145,8 @@ namespace YARG.Core.Engine.Drums.Engines
                 return;
             }
 
+            IsStarPowerInputActive = CanStarPowerActivate && !IsStarPowerInputActive;
+
             var note = Notes[NoteIndex];
 
             if (time < note.Time)

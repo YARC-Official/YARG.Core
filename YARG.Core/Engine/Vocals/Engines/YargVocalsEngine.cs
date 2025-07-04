@@ -20,6 +20,8 @@ namespace YARG.Core.Engine.Vocals.Engines
                 return;
             }
 
+            IsStarPowerInputActive = CanStarPowerActivate && !IsStarPowerInputActive;
+
             var phrase = Notes[NoteIndex];
 
             // Handle singing notes

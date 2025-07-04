@@ -20,6 +20,8 @@ namespace YARG.Core.Engine.Guitar.Engines
                 return;
             }
 
+            IsStarPowerInputActive = CanStarPowerActivate && !IsStarPowerInputActive;
+
             var note = Notes[NoteIndex];
 
             if (time < note.Time)
