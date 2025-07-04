@@ -155,6 +155,8 @@ namespace YARG.Core.Chart
 
             // Use beatlines to place auto-generated drum activation phrases for charts without manually authored phrases
             CreateDrumActivationPhrases();
+            // Add range shift phrases, done here since they are parsed from text events
+            CreateRangeShiftPhrases();
 
             PostProcessSections();
             FixDrumPhraseEnds();
@@ -232,7 +234,7 @@ namespace YARG.Core.Chart
             return new(loader);
         }
 
-        public static SongChart FromDotChart(in ParseSettings settings, string chartText)
+        public static SongChart FromDotChart(in ParseSettings settings, ReadOnlySpan<char> chartText)
         {
             var loader = MoonSongLoader.LoadDotChart(settings, chartText);
             return new(loader);

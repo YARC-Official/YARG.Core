@@ -9,6 +9,7 @@ namespace YARG.Core.Engine.ProKeys
         ProKeysStats>
     {
         protected const double DEFAULT_PRESS_TIME = -9999;
+        protected const int POINTS_PER_PRO_KEYS_NOTE = 120;
 
         public delegate void KeyStateChangeEvent(int key, bool isPressed);
         public delegate void OverhitEvent(int key);
@@ -27,12 +28,12 @@ namespace YARG.Core.Engine.ProKeys
         /// <summary>
         /// The integer value for the key that was hit this update. <c>null</c> is none.
         /// </summary>
-        protected int? KeyHit;
+        protected int? KeyHitThisUpdate;
 
         /// <summary>
         /// The integer value for the key that was released this update. <c>null</c> is none.
         /// </summary>
-        protected int? KeyReleased;
+        protected int? KeyReleasedThisUpdate;
 
         protected int? FatFingerKey;
 
@@ -45,8 +46,8 @@ namespace YARG.Core.Engine.ProKeys
             ProKeysEngineParameters engineParameters, bool isBot)
             : base(chart, syncTrack, engineParameters, true, isBot)
         {
-            ChordStaggerTimer = new(engineParameters.ChordStaggerWindow);
-            FatFingerTimer = new(engineParameters.FatFingerWindow);
+            ChordStaggerTimer = new("Chord Stagger",engineParameters.ChordStaggerWindow);
+            FatFingerTimer = new("Fat Finger",engineParameters.FatFingerWindow);
 
             KeyPressTimes = new double[(int)ProKeysAction.Key25 + 1];
             for(int i = 0; i < KeyPressTimes.Length; i++)
@@ -95,13 +96,13 @@ namespace YARG.Core.Engine.ProKeys
                 KeyPressTimes[i] = -9999;
             }
 
-            KeyHit = null;
-            KeyReleased = null;
+            KeyHitThisUpdate = null;
+            KeyReleasedThisUpdate = null;
 
             FatFingerKey = null;
 
-            ChordStaggerTimer.Disable();
-            FatFingerTimer.Disable();
+            ChordStaggerTimer.Reset();
+            FatFingerTimer.Reset();
 
             FatFingerNote = null;
 
@@ -153,7 +154,7 @@ namespace YARG.Core.Engine.ProKeys
                 }
             }
 
-            EngineStats.Combo = 0;
+            ResetCombo();
             EngineStats.Overhits++;
 
             UpdateMultiplier();
@@ -215,18 +216,13 @@ namespace YARG.Core.Engine.ProKeys
 
             if (note.ParentOrSelf.WasFullyHit())
             {
-                ChordStaggerTimer.Disable();
+                ChordStaggerTimer.Disable(CurrentTime, early: true);
             }
 
             // Only increase combo for the first note in a chord
             if (!partiallyHit)
             {
-                EngineStats.Combo++;
-
-                if (EngineStats.Combo > EngineStats.MaxCombo)
-                {
-                    EngineStats.MaxCombo = EngineStats.Combo;
-                }
+                IncrementCombo();
             }
 
             EngineStats.NotesHit++;
@@ -262,12 +258,26 @@ namespace YARG.Core.Engine.ProKeys
                 StripStarPower(note);
             }
 
-            if (note.IsSoloEnd && note.ParentOrSelf.WasFullyHitOrMissed())
+            if (note is { IsSoloStart: true, IsSoloEnd: true } && note.ParentOrSelf.WasFullyHitOrMissed())
+            {
+                // While a solo is active, end the current solo and immediately start the next.
+                if (IsSoloActive)
+                {
+                    EndSolo();
+                    StartSolo();
+                }
+                else
+                {
+                    // If no solo is currently active, start and immediately end the solo.
+                    StartSolo();
+                    EndSolo();
+                }
+            }
+            else if (note.IsSoloEnd && note.ParentOrSelf.WasFullyHitOrMissed())
             {
                 EndSolo();
             }
-
-            if (note.IsSoloStart)
+            else if (note.IsSoloStart)
             {
                 StartSolo();
             }
@@ -275,12 +285,13 @@ namespace YARG.Core.Engine.ProKeys
             // If no notes within a chord were hit, combo is 0
             if (note.ParentOrSelf.WasFullyMissed())
             {
-                EngineStats.Combo = 0;
+                ResetCombo();
             }
             else
             {
                 // If any of the notes in a chord were hit, the combo for that note is rewarded, but it is reset back to 1
-                EngineStats.Combo = 1;
+                ResetCombo();
+                IncrementCombo();
             }
 
             UpdateMultiplier();
@@ -291,8 +302,8 @@ namespace YARG.Core.Engine.ProKeys
 
         protected override void AddScore(ProKeysNote note)
         {
-            AddScore(POINTS_PER_PRO_NOTE);
-            EngineStats.NoteScore += POINTS_PER_PRO_NOTE;
+            AddScore(POINTS_PER_PRO_KEYS_NOTE);
+            EngineStats.NoteScore += POINTS_PER_PRO_KEYS_NOTE;
         }
 
         protected sealed override int CalculateBaseScore()
@@ -308,7 +319,7 @@ namespace YARG.Core.Engine.ProKeys
 
                 // invert it to calculate leniency
                 weight = 1.0 * multiplier / BaseParameters.MaxMultiplier;
-                score += weight * (POINTS_PER_PRO_NOTE * (1 + note.ChildNotes.Count));
+                score += weight * (POINTS_PER_PRO_KEYS_NOTE * (1 + note.ChildNotes.Count));
 
                 foreach (var child in note.AllNotes)
                 {

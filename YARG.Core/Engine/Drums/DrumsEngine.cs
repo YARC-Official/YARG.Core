@@ -29,6 +29,21 @@ namespace YARG.Core.Engine.Drums
             DrumsEngineParameters engineParameters, bool isBot)
             : base(chart, syncTrack, engineParameters, true, isBot)
         {
+            foreach(var note in Notes)
+            {
+                foreach(var all in note.AllNotes)
+                {
+                    if(all.IsAccent)
+                    {
+                        EngineStats.TotalAccents++;
+                    }
+                    else if(all.IsGhost)
+                    {
+                        EngineStats.TotalGhosts++;
+                    }
+                }
+            }
+
             GetWaitCountdowns(Notes);
         }
 
@@ -72,7 +87,7 @@ namespace YARG.Core.Engine.Drums
                 }
             }
 
-            EngineStats.Combo = 0;
+            ResetCombo();
             EngineStats.Overhits++;
 
             UpdateMultiplier();
@@ -127,12 +142,7 @@ namespace YARG.Core.Engine.Drums
                 ActivateStarPower();
             }
 
-            EngineStats.Combo++;
-
-            if (EngineStats.Combo > EngineStats.MaxCombo)
-            {
-                EngineStats.MaxCombo = EngineStats.Combo;
-            }
+            IncrementCombo();
 
             EngineStats.NotesHit++;
 
@@ -252,17 +262,31 @@ namespace YARG.Core.Engine.Drums
                 StripStarPower(note);
             }
 
-            if (note.IsSoloEnd && note.ParentOrSelf.WasFullyHitOrMissed())
+            if (note is { IsSoloStart: true, IsSoloEnd: true } && note.ParentOrSelf.WasFullyHitOrMissed())
+            {
+                // While a solo is active, end the current solo and immediately start the next.
+                if (IsSoloActive)
+                {
+                    EndSolo();
+                    StartSolo();
+                }
+                else
+                {
+                    // If no solo is currently active, start and immediately end the solo.
+                    StartSolo();
+                    EndSolo();
+                }
+            }
+            else if (note.IsSoloEnd && note.ParentOrSelf.WasFullyHitOrMissed())
             {
                 EndSolo();
             }
-
-            if (note.IsSoloStart)
+            else if (note.IsSoloStart)
             {
                 StartSolo();
             }
 
-            EngineStats.Combo = 0;
+            ResetCombo();
 
             UpdateMultiplier();
 

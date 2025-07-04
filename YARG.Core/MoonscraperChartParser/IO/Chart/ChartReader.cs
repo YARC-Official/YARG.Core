@@ -174,30 +174,44 @@ namespace MoonscraperChartEditor.Song.IO
 
             var search = chartText[index..];
 
-            // Find section name
-            int nameStartIndex = search.IndexOf('[');
-            int nameEndIndex = search.IndexOf(']');
-            if (nameStartIndex < 0)
-                // No more sections present
-                return false;
+            int nameStartIndex;
+            while (true)
+            {
+                nameStartIndex = search.IndexOf('[');
+                if (nameStartIndex < 0)
+                {
+                    // No more sections present
+                    return false;
+                }
 
+                int test = nameStartIndex++;
+                while (test > 0)
+                {
+                    --test;
+                    if (search[test] > 32 || search[test] == '\n')
+                    {
+                        break;
+                    }
+                }
+
+                index += nameStartIndex;
+
+                var curr = search[test];
+                search = search[nameStartIndex..];
+                if (test == 0 || curr == '\n')
+                {
+                    break;
+                }
+            }
+
+            int nameEndIndex = search.IndexOf(']');
             if (nameEndIndex < 0)
             {
                 int startLine = GetLineCount(chartText, index, nameStartIndex);
                 throw new Exception($"Missing end bracket for section name on line {startLine}!");
             }
 
-            if (nameEndIndex < nameStartIndex)
-            {
-                int startLine = GetLineCount(chartText, index, nameStartIndex);
-                int endLine = GetLineCount(chartText, index, nameEndIndex);
-                if (startLine == endLine)
-                    throw new Exception($"Misordered section name brackets on line {startLine}!");
-                else
-                    throw new Exception($"Misordered section name brackets! Start bracket on line {startLine}, end on line {endLine}");
-            }
-
-            sectionName = search[++nameStartIndex..nameEndIndex];
+            sectionName = search[..nameEndIndex++];
             search = search[nameEndIndex..];
             index += nameEndIndex;
 
@@ -209,28 +223,45 @@ namespace MoonscraperChartEditor.Song.IO
 
             // Find section body
             int sectionStartIndex = search.IndexOf('{');
-            int sectionEndIndex = search.IndexOf('}');
             if (sectionStartIndex < 0)
             {
                 int startLine = GetLineCount(chartText, index, nameStartIndex);
                 throw new Exception($"Missing section body for section [{sectionName.ToString()}]! (starting on line {startLine})");
             }
+            ++sectionStartIndex;
+            search = search[sectionStartIndex..];
+            index += sectionStartIndex;
 
-            if (sectionEndIndex < 0)
+            int sectionEndIndex = 0;
+            while (true)
             {
-                int startLine = GetLineCount(chartText, index, nameStartIndex);
-                throw new Exception($"Missing body end bracket for section [{sectionName.ToString()}]! (starting on line {startLine})");
+                int sectionEndOffset = search[sectionEndIndex..].IndexOf('}');
+                if (sectionEndOffset < 0)
+                {
+                    int startLine = GetLineCount(chartText, index + sectionEndIndex, nameStartIndex);
+                    throw new Exception($"Missing body end bracket for section [{sectionName.ToString()}]! (starting on line {startLine})");
+                }
+
+                int test = sectionEndIndex + sectionEndOffset;
+                while (test > sectionEndIndex)
+                {
+                    --test;
+                    if (search[test] > 32 || search[test] == '\n')
+                    {
+                        break;
+                    }
+                }
+
+                sectionEndIndex += sectionEndOffset;
+                if (test == 0 || search[test] == '\n')
+                {
+                    break;
+                }
+                ++sectionEndIndex;
             }
 
-            if (sectionEndIndex < sectionStartIndex)
-            {
-                int startLine = GetLineCount(chartText, index, sectionStartIndex);
-                int endLine = GetLineCount(chartText, index, sectionEndIndex);
-                throw new Exception($"Misordered section body brackets! Start bracket on line {startLine}, end on line {endLine}");
-            }
-
-            sectionBody = search[++sectionStartIndex..sectionEndIndex].SplitTrimmedAscii('\n');
-            index += ++sectionEndIndex;
+            sectionBody = search[..sectionEndIndex].SplitTrimmedAscii('\n');
+            index += sectionEndIndex + 1;
             return true;
         }
 
@@ -282,9 +313,6 @@ namespace MoonscraperChartEditor.Song.IO
         private static void SubmitDataSync(MoonSong song, AsciiTrimSplitter sectionLines)
         {
             uint prevTick = 0;
-
-            // This is valid since we are guaranteed to have at least one tempo event at all times
-            var tempoTracker = new ChartEventTickTracker<TempoChange>(song.syncTrack.Tempos);
             foreach (var _line in sectionLines)
             {
                 var line = _line.Trim();
@@ -297,11 +325,11 @@ namespace MoonscraperChartEditor.Song.IO
 
                     // Get tick
                     uint tick = (uint) FastInt32Parse(tickText);
-
-                    if (prevTick > tick) throw new Exception("Tick value not in ascending order");
+                    if (prevTick > tick)
+                    {
+                        throw new Exception("Tick value not in ascending order");
+                    }
                     prevTick = tick;
-
-                    tempoTracker.Update(tick);
 
                     // Get event type
                     var typeCode = remaining.GetNextWord(out remaining);
@@ -311,7 +339,7 @@ namespace MoonscraperChartEditor.Song.IO
                         var tempoText = remaining.GetNextWord(out remaining);
                         uint tempo = (uint) FastInt32Parse(tempoText);
 
-                        song.Add(new TempoChange(tempo / 1000f, song.TickToTime(tick, tempoTracker.Current!), tick));
+                        song.AddTempo(tempo / 1000.0, tick);
                     }
                     else if (typeCode.Equals("TS", StringComparison.Ordinal))
                     {
@@ -322,8 +350,8 @@ namespace MoonscraperChartEditor.Song.IO
                         // Get denominator
                         var denominatorText = remaining.GetNextWord(out remaining);
                         uint denominator = denominatorText.IsEmpty ? 2 : (uint) FastInt32Parse(denominatorText);
-                        song.Add(new TimeSignatureChange(numerator, (uint) Math.Pow(2, denominator),
-                            song.TickToTime(tick, tempoTracker.Current!), tick));
+
+                        song.AddTimeSignature(numerator, (uint) Math.Pow(2, denominator), tick);
                     }
                     else if (typeCode.Equals("A", StringComparison.Ordinal))
                     {
@@ -365,7 +393,7 @@ namespace MoonscraperChartEditor.Song.IO
                     if (typeCodeText[0] == 'E')
                     {
                         // Get event text
-                        var eventText = TextEvents.NormalizeTextEvent(remaining.TrimOnce('"'));
+                        var eventText = TextEvents.NormalizeTextEvent(remaining.TrimOnce('"').Trim());
 
                         // Check for section events
                         if (TextEvents.TryParseSectionEvent(eventText, out var sectionName))

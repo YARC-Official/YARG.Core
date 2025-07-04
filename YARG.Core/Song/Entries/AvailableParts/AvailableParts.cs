@@ -3,7 +3,7 @@
 namespace YARG.Core.Song
 {
     [Serializable]
-    public partial struct AvailableParts
+    public struct AvailableParts
     {
         public static readonly AvailableParts Default = new()
         {
@@ -63,8 +63,6 @@ namespace YARG.Core.Song
         public PartValues ProBass_22Fret;
 
         public PartValues ProKeys;
-
-        // private PartValues DJ;
 
         public PartValues LeadVocals;
         public PartValues HarmonyVocals;

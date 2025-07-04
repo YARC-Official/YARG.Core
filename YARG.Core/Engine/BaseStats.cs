@@ -1,5 +1,6 @@
 ﻿using System.IO;
 using YARG.Core.Extensions;
+using YARG.Core.IO;
 using YARG.Core.Replays;
 
 namespace YARG.Core.Engine
@@ -60,6 +61,16 @@ namespace YARG.Core.Engine
         public int Combo;
 
         /// <summary>
+        /// The player's current combo, when counted as part of the Band Streak.
+        /// </summary>
+        public virtual int ComboInBandUnits => Combo * BandComboUnits;
+
+        /// <summary>
+        /// How much the band combo should increment per note or phrase hit for this instrument.
+        /// </summary>
+        public virtual int BandComboUnits => 1;
+
+        /// <summary>
         /// The player's highest combo achieved.
         /// </summary>
         public int MaxCombo;
@@ -90,23 +101,38 @@ namespace YARG.Core.Engine
         /// </summary>
         public virtual float Percent => TotalNotes == 0 ? 1f : (float) NotesHit / TotalNotes;
 
+        /// <summary>
+        /// Current amount of Star Power ticks the player has.
+        /// </summary>
         public uint StarPowerTickAmount;
 
+        /// <summary>
+        /// Total ticks of Star Power earned.
+        /// </summary>
         public uint TotalStarPowerTicks;
 
+        /// <summary>
+        /// Total bars of Star Power filled.
+        /// </summary>
         public double TotalStarPowerBarsFilled;
 
+        /// <summary>
+        /// Number of times the player has activated Star Power.
+        /// </summary>
         public int StarPowerActivationCount;
 
+        /// <summary>
+        /// Total amount of time the player has been in Star Power.
+        /// </summary>
         public double TimeInStarPower;
 
         /// <summary>
-        /// Amount of Star Power/Overdrive gained from whammy during the current whammy period.
+        /// Amount of Star Power/Overdrive gained from whammy.
         /// </summary>
         public uint StarPowerWhammyTicks;
 
         /// <summary>
-        /// True if the player currently has Star Power/Overdrive active.
+        /// True if the player currently has Star Power active.
         /// </summary>
         public bool IsStarPowerActive;
 
@@ -131,6 +157,9 @@ namespace YARG.Core.Engine
         /// </summary>
         public int SoloBonuses;
 
+        /// <summary>
+        /// Amount of points earned from Star Power.
+        /// </summary>
         public int StarPowerScore;
 
         /// <summary>
@@ -146,6 +175,9 @@ namespace YARG.Core.Engine
         {
             CommittedScore = stats.CommittedScore;
             PendingScore = stats.PendingScore;
+            NoteScore = stats.NoteScore;
+            SustainScore = stats.SustainScore;
+            MultiplierScore = stats.MultiplierScore;
             Combo = stats.Combo;
             MaxCombo = stats.MaxCombo;
             ScoreMultiplier = stats.ScoreMultiplier;
@@ -169,10 +201,13 @@ namespace YARG.Core.Engine
             Stars = stats.Stars;
         }
 
-        protected BaseStats(UnmanagedMemoryStream stream, int version)
+        protected BaseStats(ref FixedArrayStream stream, int version)
         {
             CommittedScore = stream.Read<int>(Endianness.Little);
             PendingScore = stream.Read<int>(Endianness.Little);
+            NoteScore = stream.Read<int>(Endianness.Little);
+            SustainScore = stream.Read<int>(Endianness.Little);
+            MultiplierScore = stream.Read<int>(Endianness.Little);
 
             Combo = stream.Read<int>(Endianness.Little);
             MaxCombo = stream.Read<int>(Endianness.Little);
@@ -185,6 +220,7 @@ namespace YARG.Core.Engine
             TotalStarPowerTicks = stream.Read<uint>(Endianness.Little);
             TimeInStarPower = stream.Read<double>(Endianness.Little);
             StarPowerWhammyTicks = stream.Read<uint>(Endianness.Little);
+            StarPowerActivationCount = stream.Read<int>(Endianness.Little);
             IsStarPowerActive = stream.ReadBoolean();
 
             StarPowerPhrasesHit = stream.Read<int>(Endianness.Little);
@@ -201,6 +237,9 @@ namespace YARG.Core.Engine
         {
             CommittedScore = 0;
             PendingScore = 0;
+            NoteScore = 0;
+            SustainScore = 0;
+            MultiplierScore = 0;
             Combo = 0;
             MaxCombo = 0;
             ScoreMultiplier = 1;
@@ -229,6 +268,9 @@ namespace YARG.Core.Engine
         {
             writer.Write(CommittedScore);
             writer.Write(PendingScore);
+            writer.Write(NoteScore);
+            writer.Write(SustainScore);
+            writer.Write(MultiplierScore);
 
             writer.Write(Combo);
             writer.Write(MaxCombo);
@@ -241,6 +283,7 @@ namespace YARG.Core.Engine
             writer.Write(TotalStarPowerTicks);
             writer.Write(TimeInStarPower);
             writer.Write(StarPowerWhammyTicks);
+            writer.Write(StarPowerActivationCount);
             writer.Write(IsStarPowerActive);
 
             writer.Write(StarPowerPhrasesHit);

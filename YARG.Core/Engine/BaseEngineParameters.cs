@@ -2,6 +2,7 @@
 using System.IO;
 using System.Linq;
 using YARG.Core.Extensions;
+using YARG.Core.IO;
 
 namespace YARG.Core.Engine
 {
@@ -29,9 +30,9 @@ namespace YARG.Core.Engine
             StarMultiplierThresholds = starMultiplierThresholds;
         }
 
-        protected BaseEngineParameters(UnmanagedMemoryStream stream, int version)
+        protected BaseEngineParameters(ref FixedArrayStream stream, int version)
         {
-            HitWindow = new HitWindowSettings(stream, version);
+            HitWindow = new HitWindowSettings(ref stream, version);
             MaxMultiplier = stream.Read<int>(Endianness.Little);
             StarPowerWhammyBuffer = stream.Read<double>(Endianness.Little);
 

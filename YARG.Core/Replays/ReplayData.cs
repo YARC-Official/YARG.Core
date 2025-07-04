@@ -5,6 +5,7 @@ using YARG.Core.Extensions;
 using YARG.Core.Game;
 using Newtonsoft.Json;
 using YARG.Core.Utility;
+using YARG.Core.IO;
 
 namespace YARG.Core.Replays
 {
@@ -15,26 +16,36 @@ namespace YARG.Core.Replays
         private readonly Dictionary<Guid, CameraPreset> _cameraPresets;
         public readonly ReplayFrame[] Frames;
 
+        public readonly double[] FrameTimes;
+
         public int PlayerCount => Frames.Length;
 
-        public ReplayData(Dictionary<Guid, ColorProfile> colors, Dictionary<Guid, CameraPreset> cameras, ReplayFrame[] frames)
+        public ReplayData(Dictionary<Guid, ColorProfile> colors, Dictionary<Guid, CameraPreset> cameras, ReplayFrame[] frames, double[] frameTimes)
         {
             _colorProfiles = colors;
             _cameraPresets = cameras;
             Frames = frames;
+            FrameTimes = frameTimes;
         }
 
-        public ReplayData(UnmanagedMemoryStream stream, int version)
+        public ReplayData(FixedArrayStream stream, int version)
         {
             int _ = stream.Read<int>(Endianness.Little);
-            _colorProfiles = DeserializeDict<ColorProfile>(stream);
-            _cameraPresets = DeserializeDict<CameraPreset>(stream);
+            _colorProfiles = DeserializeDict<ColorProfile>(ref stream);
+            _cameraPresets = DeserializeDict<CameraPreset>(ref stream);
 
             int count = stream.Read<int>(Endianness.Little);
             Frames = new ReplayFrame[count];
             for (int i = 0; i != count; i++)
             {
-                Frames[i] = new ReplayFrame(stream, version);
+                Frames[i] = new ReplayFrame(ref stream, version);
+            }
+
+            int frameCount = stream.Read<int>(Endianness.Little);
+            FrameTimes = new double[frameCount];
+            for (int i = 0; i < frameCount; i++)
+            {
+                FrameTimes[i] = stream.Read<double>(Endianness.Little);
             }
         }
 
@@ -53,6 +64,13 @@ namespace YARG.Core.Replays
             {
                 frame.Serialize(writer);
             }
+
+            writer.Write(FrameTimes.Length);
+            foreach (var time in FrameTimes)
+            {
+                writer.Write(time);
+            }
+
             return new ReadOnlySpan<byte>(stream.GetBuffer(), 0, (int) stream.Length);
         }
 
@@ -96,7 +114,7 @@ namespace YARG.Core.Replays
             }
         }
 
-        private static Dictionary<Guid, T> DeserializeDict<T>(Stream stream)
+        private static Dictionary<Guid, T> DeserializeDict<T>(ref FixedArrayStream stream)
         {
             var dict = new Dictionary<Guid, T>();
             int len = stream.Read<int>(Endianness.Little);

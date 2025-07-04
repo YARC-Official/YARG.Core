@@ -7,6 +7,14 @@ namespace YARG.Core.Engine.ProKeys.Engines
 {
     public class YargProKeysEngine : ProKeysEngine
     {
+        private struct KeyPressedTimes
+        {
+            public int    NoteIndex;
+            public double Time;
+        }
+
+        private KeyPressedTimes[] _keyPressedTimes = new KeyPressedTimes[(int)ProKeysAction.Key25 + 1];
+
         public YargProKeysEngine(InstrumentDifficulty<ProKeysNote> chart, SyncTrack syncTrack,
             ProKeysEngineParameters engineParameters, bool isBot) : base(chart, syncTrack, engineParameters, isBot)
         {
@@ -14,6 +22,10 @@ namespace YARG.Core.Engine.ProKeys.Engines
 
         protected override void MutateStateWithInput(GameInput gameInput)
         {
+            // These should always be null before inputs are processed
+            YargLogger.Assert(KeyHitThisUpdate != null);
+            YargLogger.Assert(KeyReleasedThisUpdate != null);
+
             var action = gameInput.GetAction<ProKeysAction>();
 
             if (action is ProKeysAction.StarPower)
@@ -28,11 +40,13 @@ namespace YARG.Core.Engine.ProKeys.Engines
             {
                 if (gameInput.Button)
                 {
-                    KeyHit = (int) action;
+                    KeyHitThisUpdate = (int) action;
+                    _keyPressedTimes[(int) action].NoteIndex = NoteIndex;
+                    _keyPressedTimes[(int) action].Time = gameInput.Time;
                 }
                 else
                 {
-                    KeyReleased = (int) action;
+                    KeyReleasedThisUpdate = (int) action;
                 }
 
                 PreviousKeyMask = KeyMask;
@@ -45,25 +59,25 @@ namespace YARG.Core.Engine.ProKeys.Engines
 
         protected override void UpdateHitLogic(double time)
         {
-            UpdateStarPower();
-
             // Update bot (will return if not enabled)
             UpdateBot(time);
 
             if (FatFingerTimer.IsActive)
             {
                 // Fat Fingered key was released before the timer expired
-                if (KeyReleased == FatFingerKey && !FatFingerTimer.IsExpired(CurrentTime))
+                if (KeyReleasedThisUpdate == FatFingerKey && !FatFingerTimer.IsExpired(CurrentTime))
                 {
                     YargLogger.LogFormatTrace("Released fat fingered key at {0}. Note was hit: {1}", CurrentTime, FatFingerNote!.WasHit);
 
                     // The note must be hit to disable the timer
                     if (FatFingerNote!.WasHit)
                     {
-                        YargLogger.LogDebug("Disabling fat finger timer as the note has been hit.");
-                        FatFingerTimer.Disable();
+                        YargLogger.LogTrace("Disabling fat finger timer as the note has been hit. Fat Finger was Ignored.");
+                        FatFingerTimer.Disable(time, early: true);
                         FatFingerKey = null;
                         FatFingerNote = null;
+
+                        EngineStats.FatFingersIgnored++;
                     }
                 }
                 else if(FatFingerTimer.IsExpired(CurrentTime))
@@ -74,30 +88,34 @@ namespace YARG.Core.Engine.ProKeys.Engines
 
                     var isHoldingWrongKey = (KeyMask & fatFingerKeyMask) == fatFingerKeyMask;
 
-                    // Overhit if key is still held OR if key is not held but note was not hit either
-                    if (isHoldingWrongKey || (!isHoldingWrongKey && !FatFingerNote!.WasHit))
+                    // Overhit if key is still held OR note was not hit
+                    if (isHoldingWrongKey || !FatFingerNote!.WasHit)
                     {
                         YargLogger.LogFormatTrace("Overhit due to fat finger with key {0}. KeyMask: {1}. Holding: {2}. WasHit: {3}",
                             FatFingerKey, KeyMask, isHoldingWrongKey, FatFingerNote!.WasHit);
                         Overhit(FatFingerKey!.Value);
                     }
+                    else
+                    {
+                        EngineStats.FatFingersIgnored++;
+                        YargLogger.LogFormatTrace("Fat finger was ignored. KeyMask: {0}. Holding: {1}. WasHit: {2}",
+                            KeyMask, isHoldingWrongKey, FatFingerNote!.WasHit);
+                    }
 
-                    FatFingerTimer.Disable();
+                    FatFingerTimer.Disable(time);
                     FatFingerKey = null;
                     FatFingerNote = null;
                 }
             }
 
-            // Quit early if there are no notes left
-            if (NoteIndex >= Notes.Count)
+            // Only check note logic if note index is within bounds
+            if (NoteIndex < Notes.Count)
             {
-                KeyHit = null;
-                KeyReleased = null;
-                UpdateSustains();
-                return;
+                CheckForNoteHit();
             }
 
-            CheckForNoteHit();
+            KeyHitThisUpdate = null;
+            KeyReleasedThisUpdate = null;
             UpdateSustains();
         }
 
@@ -132,7 +150,7 @@ namespace YARG.Core.Engine.ProKeys.Engines
                         HitNote(childNote);
                     }
 
-                    KeyHit = null;
+                    KeyHitThisUpdate = null;
                 }
                 else
                 {
@@ -159,14 +177,14 @@ namespace YARG.Core.Engine.ProKeys.Engines
                                 }
                             }
 
-                            ChordStaggerTimer.Disable();
+                            ChordStaggerTimer.Disable(CurrentTime);
                         }
                         else
                         {
                             foreach (var note in parentNote.AllNotes)
                             {
                                 // Go to next note if the key hit does not match the note's key
-                                if (KeyHit != note.Key)
+                                if (KeyHitThisUpdate != note.Key)
                                 {
                                     continue;
                                 }
@@ -193,7 +211,7 @@ namespace YARG.Core.Engine.ProKeys.Engines
                                     }
                                 }
 
-                                KeyHit = null;
+                                KeyHitThisUpdate = null;
                                 break;
                             }
                         }
@@ -202,7 +220,7 @@ namespace YARG.Core.Engine.ProKeys.Engines
             }
 
             // If no note was hit but the user hit a key, then over hit
-            if (KeyHit != null)
+            if (KeyHitThisUpdate != null)
             {
                 static ProKeysNote? CheckForAdjacency(ProKeysNote fullNote, int key)
                 {
@@ -228,7 +246,7 @@ namespace YARG.Core.Engine.ProKeys.Engines
                 if (parentNote.PreviousNote is not null
                     && CurrentTime - parentNote.PreviousNote.Time < FatFingerTimer.SpeedAdjustedThreshold)
                 {
-                    adjacentNote = CheckForAdjacency(parentNote.PreviousNote, KeyHit.Value);
+                    adjacentNote = CheckForAdjacency(parentNote.PreviousNote, KeyHitThisUpdate.Value);
                     isAdjacent = adjacentNote != null;
                     inWindow = IsNoteInWindow(parentNote.PreviousNote, out _);
 
@@ -236,7 +254,7 @@ namespace YARG.Core.Engine.ProKeys.Engines
                 // Try to fat finger current note (upcoming note)
                 else
                 {
-                    adjacentNote = CheckForAdjacency(parentNote, KeyHit.Value);
+                    adjacentNote = CheckForAdjacency(parentNote, KeyHitThisUpdate.Value);
                     isAdjacent = adjacentNote != null;
                     inWindow = IsNoteInWindow(parentNote, out _);
                 }
@@ -245,18 +263,18 @@ namespace YARG.Core.Engine.ProKeys.Engines
 
                 if (!inWindow || !isAdjacent || isFatFingerActive)
                 {
-                    Overhit(KeyHit.Value);
+                    Overhit(KeyHitThisUpdate.Value);
 
                     // TODO Maybe don't disable the timer/use a flag saying no more fat fingers allowed for the current note.
 
-                    FatFingerTimer.Disable();
+                    FatFingerTimer.Disable(CurrentTime);
                     FatFingerKey = null;
                     FatFingerNote = null;
                 }
                 else
                 {
                     StartTimer(ref FatFingerTimer, CurrentTime);
-                    FatFingerKey = KeyHit.Value;
+                    FatFingerKey = KeyHitThisUpdate.Value;
 
                     FatFingerNote = adjacentNote;
 
@@ -264,7 +282,7 @@ namespace YARG.Core.Engine.ProKeys.Engines
                         FatFingerTimer.EndTime, FatFingerKey);
                 }
 
-                KeyHit = null;
+                KeyHitThisUpdate = null;
             }
         }
 
@@ -320,30 +338,112 @@ namespace YARG.Core.Engine.ProKeys.Engines
 
         protected override void UpdateBot(double time)
         {
-            if (!IsBot || NoteIndex >= Notes.Count)
+            float        botNoteHoldTime = 0.166f;
+            ProKeysNote? note = null;
+            int          keysInSustain = 0;
+
+            if (!IsBot)
             {
                 return;
             }
 
-            var note = Notes[NoteIndex];
+            IsStarPowerInputActive = CanStarPowerActivate && !IsStarPowerInputActive;
 
-            if (time < note.Time)
+            if (NoteIndex < Notes.Count)
             {
-                return;
+                note = Notes[NoteIndex];
             }
 
-            // Disables keys that are not in the current note
+            // Find the active sustains
+            foreach (var sustain in ActiveSustains)
+            {
+                keysInSustain |= 1 << sustain.Note.Key;
+            }
+
+            // Release no longer needed keys
             int key = 0;
             for (var mask = KeyMask; mask > 0; mask >>= 1)
             {
-                if ((mask & 1) == 1)
+                // Keys are not released if they are part of an active sustain
+                // or were pressed less than botNoteHoldTime in the past,
+                // unless the key is going to be pressed again this update
+                // or it is the next key to be pressed and half of the time
+                // between press and next press has already elapsed or another
+                // key is being pressed this update
+                bool keyProtected = false;
+                bool currentKey;
+
+                if (note is not null)
                 {
-                    MutateStateWithInput(new GameInput(note.Time, key, false));
+                    currentKey = time >= note.Time && note.Key == key;
+                }
+                else
+                {
+                    currentKey = false;
+                }
+
+                if (!currentKey)
+                {
+                    if ((keysInSustain & 1 << key) != 0)
+                    {
+                        keyProtected = true;
+                    }
+                    else if (_keyPressedTimes[key].Time > time - botNoteHoldTime)
+                    {
+                        keyProtected = true;
+
+                        // Release the key if the next note is on this key and
+                        // half of the time between press and the next note has elapsed
+                        if (note is not null)
+                        {
+                            // Despite the name chordNote, this also applies to single notes
+                            foreach (var chordNote in note.AllNotes)
+                            {
+                                if (chordNote.Key == key && chordNote.Time - time < time - _keyPressedTimes[key].Time)
+                                {
+                                    keyProtected = false;
+                                    break;
+                                }
+                            }
+                        }
+                    }
+
+                    // if the key isn't protected due to a sustain and another note is being played, release the key
+                    if (note is not null && (keysInSustain & 1 << key) == 0 && time >= note.Time)
+                    {
+                        keyProtected = false;
+                    }
+                }
+
+                if ((mask & 1) == 1 && (!keyProtected || currentKey))
+                {
+                    var pressedNote = Notes[_keyPressedTimes[key].NoteIndex];
+
+                    // We loop to ensure that all notes in a chord are released at the same time
+                    foreach (var chordNote in pressedNote.AllNotes)
+                    {
+                        if ((keysInSustain & 1 << chordNote.Key) == 0)
+                        {
+                            MutateStateWithInput(new GameInput(time, chordNote.Key, false));
+                        }
+                    }
                 }
 
                 key++;
             }
 
+
+            if (NoteIndex >= Notes.Count)
+            {
+                // Nothing left to press
+                return;
+            }
+
+            if (time < note!.Time)
+            {
+                // It isn't time to press another key yet
+                return;
+            }
 
             // Press keys for current note
             foreach (var chordNote in note.AllNotes)

@@ -3,6 +3,7 @@ using System.IO;
 using System.Text.RegularExpressions;
 using YARG.Core.Extensions;
 using YARG.Core.Game;
+using YARG.Core.IO;
 using YARG.Core.Song;
 using YARG.Core.Utility;
 
@@ -50,18 +51,21 @@ namespace YARG.Core.Replays
             Stats = stats;
         }
 
-        public ReplayInfo(string path, UnmanagedMemoryStream stream)
+        public ReplayInfo(string path, FixedArrayStream stream)
+            : this(path, ref stream) {}
+
+        public ReplayInfo(string path, ref FixedArrayStream stream)
         {
             FilePath = path;
 
             ReplayVersion = stream.Read<int>(Endianness.Little);
             EngineVersion = stream.Read<int>(Endianness.Little);
-            ReplayChecksum = HashWrapper.Deserialize(stream);
+            ReplayChecksum = HashWrapper.Deserialize(ref stream);
 
             SongName = stream.ReadString();
             ArtistName = stream.ReadString();
             CharterName = stream.ReadString();
-            SongChecksum = HashWrapper.Deserialize(stream);
+            SongChecksum = HashWrapper.Deserialize(ref stream);
             Date = DateTime.FromBinary(stream.Read<long>(Endianness.Little));
             SongSpeed = stream.Read<float>(Endianness.Little);
             ReplayLength = stream.Read<double>(Endianness.Little);
@@ -78,11 +82,11 @@ namespace YARG.Core.Replays
                 Stats[i] = mode switch
                 {
                     GameMode.FiveFretGuitar or
-                    GameMode.SixFretGuitar => new GuitarReplayStats(stream, ReplayVersion),
+                    GameMode.SixFretGuitar => new GuitarReplayStats(ref stream, ReplayVersion),
                     GameMode.FourLaneDrums or
-                    GameMode.FiveLaneDrums => new DrumsReplayStats(stream, ReplayVersion),
-                    GameMode.ProKeys       => new ProKeysReplayStats(stream, ReplayVersion),
-                    GameMode.Vocals        => new VocalsReplayStats(stream, ReplayVersion),
+                    GameMode.FiveLaneDrums => new DrumsReplayStats(ref stream, ReplayVersion),
+                    GameMode.ProKeys => new ProKeysReplayStats(ref stream, ReplayVersion),
+                    GameMode.Vocals => new VocalsReplayStats(ref stream, ReplayVersion),
                     _ => throw new Exception($"Stats for {mode} not supported"),
                 };
             }

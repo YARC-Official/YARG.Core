@@ -1,5 +1,6 @@
 ﻿using System.IO;
 using YARG.Core.Extensions;
+using YARG.Core.IO;
 
 namespace YARG.Core.Engine.Drums
 {
@@ -32,8 +33,8 @@ namespace YARG.Core.Engine.Drums
             SituationalVelocityWindow = 1.5f;
         }
 
-        public DrumsEngineParameters(UnmanagedMemoryStream stream, int version)
-            : base(stream, version)
+        public DrumsEngineParameters(ref FixedArrayStream stream, int version)
+            : base(ref stream, version)
         {
             Mode = (DrumMode) stream.ReadByte();
             VelocityThreshold = stream.Read<float>(Endianness.Little);

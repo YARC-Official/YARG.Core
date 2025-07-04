@@ -1,84 +1,48 @@
-﻿using System;
-using System.IO;
-using System.Threading.Tasks;
+﻿using System.Threading.Tasks;
 using YARG.Core.Extensions;
+using YARG.Core.IO;
 
-namespace YARG.Core.Song.Cache
+namespace YARG.Core.Song
 {
-    public sealed class CategoryCacheWriteNode
+    internal sealed class CacheWriteIndices
     {
-        public int title;
-        public int artist;
-        public int album;
-        public int genre;
-        public int year;
-        public int charter;
-        public int playlist;
-        public int source;
+        public int Title;
+        public int Artist;
+        public int Album;
+        public int Genre;
+        public int Year;
+        public int Charter;
+        public int Playlist;
+        public int Source;
     }
 
-    public sealed class CategoryCacheStrings
+    internal class CacheReadStrings
     {
-        public string[] titles = Array.Empty<string>();
-        public string[] artists = Array.Empty<string>();
-        public string[] albums = Array.Empty<string>();
-        public string[] genres = Array.Empty<string>();
-        public string[] years = Array.Empty<string>();
-        public string[] charters = Array.Empty<string>();
-        public string[] playlists = Array.Empty<string>();
-        public string[] sources = Array.Empty<string>();
+        public const int NUM_CATEGORIES = 8;
 
-        public CategoryCacheStrings(UnmanagedMemoryStream stream, bool multithreaded)
+        private string[][] _categories = new string[NUM_CATEGORIES][];
+
+        public string[] Titles    => _categories[0];
+        public string[] Artists   => _categories[1];
+        public string[] Albums    => _categories[2];
+        public string[] Genres    => _categories[3];
+        public string[] Years     => _categories[4];
+        public string[] Charters  => _categories[5];
+        public string[] Playlists => _categories[6];
+        public string[] Sources   => _categories[7];
+
+        public unsafe CacheReadStrings(FixedArrayStream* stream)
         {
-            const int NUM_CATEGORIES = 8;
-            if (multithreaded)
+            Parallel.ForEach(new CacheLoopable() { Stream = stream, Count = NUM_CATEGORIES },
+                node =>
             {
-                var tasks = new Task[NUM_CATEGORIES];
-                for (int i = 0; i < NUM_CATEGORIES; ++i)
-                {
-                    int length = stream.Read<int>(Endianness.Little);
-                    var slice = stream.Slice(length);
-
-                    int strIndex = i;
-                    tasks[i] = Task.Run(() => { GetArray(strIndex) = ReadStrings(slice); });
-                }
-                Task.WaitAll(tasks);
-            }
-            else
-            {
-                for (int i = 0; i < NUM_CATEGORIES; ++i)
-                {
-                    int length = stream.Read<int>(Endianness.Little);
-                    var slice = stream.Slice(length);
-                    GetArray(i) = ReadStrings(slice);
-                }
-            }
-
-            static string[] ReadStrings(UnmanagedMemoryStream stream)
-            {
-                int count = stream.Read<int>(Endianness.Little);
-                string[] strings = new string[count];
+                int count = node.Slice.Read<int>(Endianness.Little);
+                var strings = _categories[node.Index] = new string[count];
                 for (int i = 0; i < count; ++i)
-                    strings[i] = stream.ReadString();
-                return strings;
-            }
-        }
-
-        private ref string[] GetArray(int index)
-        {
-            switch(index)
-            {
-                case 0: return ref titles;
-                case 1: return ref artists;
-                case 2: return ref albums;
-                case 3: return ref genres;
-                case 4: return ref years;
-                case 5: return ref charters;
-                case 6: return ref playlists;
-                case 7: return ref sources;
-                default:
-                    throw new NotImplementedException();
-            }
+                {
+                    strings[i] = node.Slice.ReadString();
+                }
+            });
         }
     }
 }

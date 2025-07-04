@@ -1,11 +1,13 @@
-using NUnit.Framework;
+using System.Diagnostics;
 using YARG.Core.Chart;
 using YARG.Core.Engine;
 using YARG.Core.Engine.Drums;
 using YARG.Core.Engine.Guitar;
 using YARG.Core.Engine.ProKeys;
 using YARG.Core.Engine.Vocals;
+using YARG.Core.Logging;
 using YARG.Core.Replays;
+using YARG.Core.Song.Cache;
 
 namespace ReplayCli;
 
@@ -15,8 +17,15 @@ public partial class Cli
     private string _replayPath;
     private AnalyzerMode _runMode;
 
+    private int _framesPerSecond = 0;
+    private int _frameIndex = -1;
+
+    private string _logPath;
+
     private ReplayInfo _replayInfo;
     private ReplayData _replayData;
+
+    private BaseYargLogListener _logListener;
 
     /// <summary>
     /// Parses the specified arguments.
@@ -67,11 +76,95 @@ public partial class Cli
                 case "-s":
                 {
                     i++;
+                    if (i >= args.Length)
+                    {
+                        Console.WriteLine("ERROR: Missing song folder path.");
+                        PrintHelpMessage();
+                        return false;
+                    }
 
                     _songPath = args[i].Trim();
-                    if (!Directory.Exists(_songPath))
+
+                    break;
+                }
+                case "--fps":
+                case "-f":
+                {
+                    i++;
+                    if (i >= args.Length)
                     {
-                        Console.WriteLine("ERROR: Song folder does not exist!");
+                        Console.WriteLine("ERROR: Missing FPS value.");
+                        PrintHelpMessage();
+                        return false;
+                    }
+
+                    if (!int.TryParse(args[i], out _framesPerSecond) || _framesPerSecond <= 0)
+                    {
+                        Console.WriteLine("ERROR: Invalid FPS value!");
+                        return false;
+                    }
+
+                    break;
+                }
+                case "--frame-index":
+                case "-fi":
+                {
+                    i++;
+                    if (i >= args.Length)
+                    {
+                        Console.WriteLine("ERROR: Missing frame index value.");
+                        PrintHelpMessage();
+                        return false;
+                    }
+
+                    if (!int.TryParse(args[i], out _frameIndex) || _frameIndex < 0)
+                    {
+                        Console.WriteLine("ERROR: Invalid frame index!");
+                        return false;
+                    }
+
+                    break;
+                }
+                case "--log-file":
+                case "-l":
+                {
+                    i++;
+                    if (i >= args.Length)
+                    {
+                        Console.WriteLine("ERROR: Missing log file path.");
+                        PrintHelpMessage();
+                        return false;
+                    }
+
+                    _logPath = args[i];
+
+                    break;
+                }
+                case "--log-level":
+                case "-lv":
+                {
+                    i++;
+                    if (i >= args.Length)
+                    {
+                        Console.WriteLine("ERROR: Missing log file path.");
+                        PrintHelpMessage();
+                        return false;
+                    }
+
+                    string level = args[i];
+                    switch (level)
+                    {
+                        case "error":   YargLogger.MinimumLogLevel = LogLevel.Error;   break;
+                        case "warning": YargLogger.MinimumLogLevel = LogLevel.Warning; break;
+                        case "info":    YargLogger.MinimumLogLevel = LogLevel.Info;    break;
+                        case "debug":   YargLogger.MinimumLogLevel = LogLevel.Debug;   break;
+                        case "trace":   YargLogger.MinimumLogLevel = LogLevel.Trace;   break;
+                        default:
+                        {
+                            Console.WriteLine($"ERROR: Invalid log level '{level}'.");
+                            PrintHelpMessage();
+                            return false;
+                        }
                     }
 
                     break;
@@ -82,6 +175,22 @@ public partial class Cli
                     PrintHelpMessage();
                     return false;
                 }
+                default:
+                {
+                    Console.WriteLine($"WARNING: Unrecognized argument '{args[i]}'");
+                    break;
+                }
+            }
+        }
+
+        // Argument validation/warnings
+
+        if (_frameIndex >= 0)
+        {
+            if (_framesPerSecond > 0 || _runMode == AnalyzerMode.SimulateFps)
+            {
+                _frameIndex = -1;
+                Console.WriteLine("WARNING: Frame index is ignored when simulating FPS, as frame times from the replay are not used.");
             }
         }
 
@@ -92,19 +201,32 @@ public partial class Cli
     {
         Console.WriteLine(
             """
-            Usage: ReplayCli [mode] [replay-path] [options...]
+            Usage: ReplayCli <mode> <replay-path> [options...]
 
-            Mode: the run mode of the analyzer
-              verify         Verifies the replay's metadata.
-              simulate_fps   Simulates FPS updates to verify the engines consistency.
-              dump_inputs    Dumps the replay's inputs.
+              mode: the mode to run the analyzer in
+                verify              Verifies the replay's metadata.
+                simulate_fps        Simulates FPS updates to verify the engines consistency.
+                dump_inputs         Dumps the replay's inputs.
 
-            Replay Path: the path to the replay
+              replay-path: the path to the replay file
 
             Options:
-              --song     | -s    Path to `song.ini` folder (required in `verify` and `simulate_fps` modes).
-              --help     | -h    Show this help message.
-            """);
+              -h  | --help                      Show this help message.
+
+              -s  | --song <path>               Path to the song. (required in `verify` and `simulate_fps` modes)
+              -f  | --fps <value>               The framerate value to simulate with. (optional)
+              -fi | --frame-index <value>       Place a debug break at a specific frame index. (optional)
+
+              -l  | --log-file <path>           Output log messages to the specified path.
+                                                By default, log messages are output to the console.
+              -lv | --log-level <level>         The logging level to use.
+                error                             Only errors.
+                warning                           Warnings and errors.
+                info                              General information.
+                debug                             Verbose information for troubleshooting. (forces log file)
+                trace                             Log spam for thorough analysis. (forces log file)
+            """
+        );
     }
 
     private void PrintReplayMetadata()
@@ -149,41 +271,93 @@ public partial class Cli
         };
     }
 
-    private SongChart ReadChart()
+    private void StartLogging()
     {
-        string songIni = Path.Combine(_songPath, "song.ini");
-        string notesMid = Path.Combine(_songPath, "notes.mid");
-        string notesChart = Path.Combine(_songPath, "notes.chart");
-        if (!File.Exists(songIni) || (!File.Exists(notesMid) && !File.Exists(notesChart)))
+        if (_logListener != null)
         {
-            Console.WriteLine(
-                "ERROR: Song directory does not contain necessary song files (song.ini, notes.mid/chart).");
-            return null;
+            throw new InvalidOperationException("Logging is still running!");
         }
 
-        SongChart chart;
+        if (YargLogger.MinimumLogLevel < LogLevel.Info && string.IsNullOrEmpty(_logPath))
+        {
+            _logPath = $"ReplayCLI-{DateTime.Now:yyyy-MM-dd-HH-mm-ss}.log";
+        }
+
+        if (!string.IsNullOrEmpty(_logPath))
+        {
+            _logListener = new FileYargLogListener(_logPath, new BasicYargLogFormatter());
+        }
+        else
+        {
+            _logListener = new ConsoleYargLogListener();
+        }
+
+        YargLogger.AddLogListener(_logListener);
+    }
+
+    private void StopLogging()
+    {
+        if (_logListener != null)
+        {
+            YargLogger.FlushLogQueue();
+            YargLogger.RemoveLogListener(_logListener);
+        }
+    }
+
+    private SongChart ReadChart()
+    {
+        string tempDir = Path.Combine(Path.GetTempPath(), $"ReplayCLI-{Guid.NewGuid()}");
+
         try
         {
-            // TODO: Prevent this workaround from being needed
-            var parseSettings = ParseSettings.Default;
-            parseSettings.DrumsType = DrumsType.FourLane;
+            string tempCache = Path.Combine(tempDir, "songcache.bin");
+            string tempBadSongs = Path.Combine(tempDir, "badsongs.txt");
 
-            if (File.Exists(notesMid))
+            if (File.Exists(_songPath))
             {
-                chart = SongChart.FromFile(parseSettings, notesMid);
+                // CON files can't be scanned in via their direct file path
+                // This also allows a file within song.ini charts to be passed in instead
+                _songPath = Path.GetDirectoryName(_songPath);
             }
-            else
+            else if (!Directory.Exists(_songPath))
             {
-                chart = SongChart.FromFile(parseSettings, notesChart);
+                Console.WriteLine("ERROR: Song path does not exist!");
+                return null;
             }
+
+            Console.Write("Running song scan... ");
+            var directories = new List<string>() { _songPath };
+            var cache = CacheHandler.RunScan(
+                tryQuickScan: false,
+                tempCache,
+                tempBadSongs,
+                fullDirectoryPlaylists: false,
+                directories
+            );
+
+            Console.WriteLine($"Found {cache.Entries.Count} entries.");
+            Console.WriteLine();
+
+            if (!cache.Entries.TryGetValue(_replayInfo.SongChecksum, out var entries))
+            {
+                Console.WriteLine("ERROR: Could not load song from given song path!");
+                return null;
+            }
+
+            return entries[0].LoadChart();
         }
         catch (Exception e)
         {
             Console.WriteLine($"ERROR: Failed to load notes file. \n{e}");
             return null;
         }
-
-        return chart;
+        finally
+        {
+            if (Directory.Exists(tempDir))
+            {
+                Directory.Delete(tempDir, recursive: true);
+            }
+        }
     }
 
     private static void PrintStatDifferences(BaseStats originalStats, BaseStats resultStats)
@@ -200,6 +374,9 @@ public partial class Cli
         Console.WriteLine($"Base stats:");
         PrintStatDifference("CommittedScore",         originalStats.CommittedScore,         resultStats.CommittedScore);
         PrintStatDifference("PendingScore",           originalStats.PendingScore,           resultStats.PendingScore);
+        PrintStatDifference("NoteScore",              originalStats.NoteScore,              resultStats.NoteScore);
+        PrintStatDifference("SustainScore",           originalStats.SustainScore,           resultStats.SustainScore);
+        PrintStatDifference("MultiplierScore",        originalStats.MultiplierScore,        resultStats.MultiplierScore);
         PrintStatDifference("TotalScore",             originalStats.TotalScore,             resultStats.TotalScore);
         PrintStatDifference("StarScore",              originalStats.StarScore,              resultStats.StarScore);
         PrintStatDifference("Combo",                  originalStats.Combo,                  resultStats.Combo);
@@ -210,6 +387,7 @@ public partial class Cli
         PrintStatDifference("NotesMissed",            originalStats.NotesMissed,            resultStats.NotesMissed);
         PrintStatDifference("Percent",                originalStats.Percent,                resultStats.Percent);
         PrintStatDifference("StarPowerTickAmount",    originalStats.StarPowerTickAmount,    resultStats.StarPowerTickAmount);
+        PrintStatDifference("StarPowerWhammyTicks",   originalStats.StarPowerWhammyTicks,   resultStats.StarPowerWhammyTicks);
         PrintStatDifference("TotalStarPowerTicks",    originalStats.TotalStarPowerTicks,    resultStats.TotalStarPowerTicks);
         PrintStatDifference("TimeInStarPower",        originalStats.TimeInStarPower,        resultStats.TimeInStarPower);
         PrintStatDifference("IsStarPowerActive",      originalStats.IsStarPowerActive,      resultStats.IsStarPowerActive);
@@ -229,14 +407,17 @@ public partial class Cli
                 PrintStatDifference("Overstrums",             originalGuitar.Overstrums,             resultGuitar.Overstrums);
                 PrintStatDifference("HoposStrummed",          originalGuitar.HoposStrummed,          resultGuitar.HoposStrummed);
                 PrintStatDifference("GhostInputs",            originalGuitar.GhostInputs,            resultGuitar.GhostInputs);
-                PrintStatDifference("StarPowerWhammyTicks",   originalGuitar.StarPowerWhammyTicks,   resultGuitar.StarPowerWhammyTicks);
-                PrintStatDifference("SustainScore",           originalGuitar.SustainScore,           resultGuitar.SustainScore);
                 break;
             }
             case (DrumsStats originalDrums, DrumsStats resultDrums):
             {
                 Console.WriteLine("Drums stats:");
                 PrintStatDifference("Overhits",      originalDrums.Overhits,      resultDrums.Overhits);
+                PrintStatDifference("GhostsHit",     originalDrums.GhostsHit,     resultDrums.GhostsHit);
+                PrintStatDifference("TotalGhosts",   originalDrums.TotalGhosts,   resultDrums.TotalGhosts);
+                PrintStatDifference("AccentsHit",    originalDrums.AccentsHit,    resultDrums.AccentsHit);
+                PrintStatDifference("TotalAccents",  originalDrums.TotalAccents,  resultDrums.TotalAccents);
+                PrintStatDifference("DynamicsBonus", originalDrums.DynamicsBonus, resultDrums.DynamicsBonus);
                 break;
             }
             case (VocalsStats originalVocals, VocalsStats resultVocals):
@@ -251,6 +432,7 @@ public partial class Cli
             {
                 Console.WriteLine("Pro Keys stats:");
                 PrintStatDifference("Overhits",      originalKeys.Overhits,      resultKeys.Overhits);
+                PrintStatDifference("FatFingersIgnored", originalKeys.FatFingersIgnored, resultKeys.FatFingersIgnored);
                 break;
             }
             default:

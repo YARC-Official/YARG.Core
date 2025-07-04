@@ -1,6 +1,4 @@
 ﻿using System;
-using System.Buffers.Binary;
-using System.IO;
 using System.Runtime.InteropServices;
 
 namespace YARG.Core.IO
@@ -15,87 +13,97 @@ namespace YARG.Core.IO
         DXT5,
     }
 
-    public unsafe class YARGImage : IDisposable
+    public class YARGImage : IDisposable
     {
-        public readonly byte* Data;
-        public readonly int Width;
-        public readonly int Height;
-        public readonly ImageFormat Format;
+        private FixedArray<byte>? _handle;
 
-        private readonly FixedArray<byte> _handle;
-        private bool _disposed;
+        public unsafe byte*       Data { get; private set; }
 
-        public static YARGImage? Load(FileInfo file)
+        public        int         Width { get; private set; }
+
+        public        int         Height { get; private set; }
+
+        public        ImageFormat Format { get; private set; }
+
+        public static YARGImage? Load(string path)
         {
-            using var bytes = FixedArray<byte>.Load(file.FullName);
-            return bytes.IsAllocated ? Load(in bytes) : null;
+            using var bytes = FixedArray.LoadFile(path);
+            return Load(bytes);
         }
 
-        public static YARGImage? Load(in SngFileListing listing, SngFile sngFile)
+        public static unsafe YARGImage? Load(FixedArray<byte> file)
         {
-            using var bytes = listing.LoadAllBytes(sngFile);
-            return bytes.IsAllocated ? Load(in bytes) : null;
-        }
-
-        private static YARGImage? Load(in FixedArray<byte> file)
-        {
-            var result = LoadNative(file.Ptr, (int)file.Length, out int width, out int height, out int components);
-            return result != null ? new YARGImage(result, width, height, components) : null;
-        }
-
-        public unsafe YARGImage(in FixedArray<byte> bytes)
-        {
-            _handle = bytes;
-            Data = bytes.Ptr + 32;
-
-            Width = *(short*)(bytes.Ptr + 7);
-            Height = *(short*)(bytes.Ptr + 9);
-
-            byte bitsPerPixel = bytes[1];
-            int format = *(int*)(bytes.Ptr + 2);
-            bool isDXT1 = bitsPerPixel == 0x04 && format == 0x08;
-            Format = isDXT1 ? ImageFormat.DXT1 : ImageFormat.DXT5;
-        }
-
-        private YARGImage(byte* data, int width, int height, int components)
-        {
-            Data = data;
-            Width = width;
-            Height = height;
-            Format = (ImageFormat) components;
-        }
-
-        private void _Dispose()
-        {
-            if (!_disposed)
+            var result = LoadNative(file.Ptr, (int) file.Length, out int width, out int height, out int components);
+            if (result == null)
             {
-                if (_handle.IsAllocated)
+                return null;
+            }
+            return new YARGImage
+            {
+                Data = result,
+                Width = width,
+                Height = height,
+                Format = (ImageFormat) components
+            };
+        }
+
+        public static YARGImage LoadDXT(string path)
+        {
+            using var data = FixedArray.LoadFile(path);
+            return TransferDXT(data);
+        }
+
+        public static unsafe YARGImage TransferDXT(FixedArray<byte> file)
+        {
+            byte bitsPerPixel = file[1];
+            int format = *(int*) (file.Ptr + 2);
+            bool isDXT1 = bitsPerPixel == 0x04 && format == 0x08;
+            return new YARGImage()
+            {
+                _handle = file.TransferOwnership(),
+                Data = file.Ptr + 32,
+                Width = *(short*) (file.Ptr + 7),
+                Height = *(short*) (file.Ptr + 9),
+                Format = isDXT1 ? ImageFormat.DXT1 : ImageFormat.DXT5
+            };
+        }
+
+        private void _Dispose(bool disposing)
+        {
+            unsafe
+            {
+                if (Data == null)
                 {
-                    _handle.Dispose();
+                    return;
                 }
-                else
+
+                if (_handle == null)
                 {
                     FreeNative(Data);
                 }
-                _disposed = true;
+                else if (disposing)
+                {
+                    _handle.Dispose();
+                }
+                Data = null;
             }
         }
 
         public void Dispose()
         {
-            _Dispose();
+            _Dispose(true);
             GC.SuppressFinalize(this);
         }
 
         ~YARGImage()
         {
-            _Dispose();
+            _Dispose(false);
         }
 
         [DllImport("STB2CSharp", EntryPoint = "load_image_from_memory")]
-        private static extern byte* LoadNative(byte* data, int length, out int width, out int height, out int components);
+        private static extern unsafe byte* LoadNative(byte* data, int length, out int width, out int height, out int components);
 
         [DllImport("STB2CSharp", EntryPoint = "free_image")]
-        private static extern void FreeNative(byte* image);
+        private static extern unsafe void FreeNative(byte* image);
     }
 }
