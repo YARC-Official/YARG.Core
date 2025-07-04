@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using YARG.Core.Extensions;
+using YARG.Core.Logging;
 
 namespace YARG.Core.Chart
 {
@@ -39,6 +40,118 @@ namespace YARG.Core.Chart
             }
 
             return newNotes;
+        }
+
+        // Remove note from list in place, adjusting references as required
+        public static void RemoveNoteAt(this List<GuitarNote> notes, int index)
+        {
+            var note = notes[index];
+
+            // Check for invalid index
+            if (index < 0 || index >= notes.Count)
+            {
+                YargLogger.LogFormatDebug("RemoveNoteAt called with index out of range: {0}", index);
+                return;
+            }
+
+            if (note.ChildNotes.Count == 0)
+            {
+                // If there are no children, we have to deal with moving flags
+                if (note.IsSoloStart && !note.IsSoloEnd)
+                {
+                    // This is a single note that is a solo start, we have to move it to the
+                    // NEXT note (we don't want to extend the solo).
+                    if (note.NextNote != null)
+                    {
+                        note.NextNote.Flags |= NoteFlags.SoloStart;
+                        // Also add it to the child notes
+                        foreach (var childNote in note.NextNote.ChildNotes)
+                        {
+                            childNote.Flags |= NoteFlags.SoloStart;
+                        }
+                    }
+                }
+                else if (!note.IsSoloStart && note.IsSoloEnd)
+                {
+                    // This is a single note that is a solo end, we have to move it to the
+                    // PREVIOUS note (we don't want to extend the solo).
+                    if (note.PreviousNote != null)
+                    {
+                        note.PreviousNote.Flags |= NoteFlags.SoloEnd;
+                        // Also add it to the child notes
+                        foreach (var childNote in note.PreviousNote.ChildNotes)
+                        {
+                            childNote.Flags |= NoteFlags.SoloEnd;
+                        }
+                    }
+                }
+
+
+                if (note.IsStarPowerStart && !note.IsStarPowerEnd)
+                {
+                    // Make the next note the SP start, so as to not extend the SP section
+                    if (note.NextNote != null)
+                    {
+                        note.NextNote.Flags |= NoteFlags.StarPowerStart;
+                        // Also add it to the child notes
+                        foreach (var childNote in note.NextNote.ChildNotes)
+                        {
+                            childNote.Flags |= NoteFlags.StarPowerStart;
+                        }
+                    }
+                }
+
+                if (!note.IsStarPowerStart && note.IsStarPowerEnd)
+                {
+                    // This is a single kick drum note that is a starpower end, we have to move it to the
+                    // PREVIOUS note (we don't want to extend the starpower section).
+                    if (note.PreviousNote != null)
+                    {
+                        note.PreviousNote.Flags |= NoteFlags.StarPowerEnd;
+                        // Also add it to the child notes
+                        foreach (var childNote in note.PreviousNote.ChildNotes)
+                        {
+                            childNote.Flags |= NoteFlags.StarPowerEnd;
+                        }
+                    }
+                }
+
+                notes.RemoveAt(index);
+
+                if (note.PreviousNote != null)
+                {
+                    note.PreviousNote.NextNote = note.NextNote;
+                }
+
+                if (note.NextNote != null)
+                {
+                    note.NextNote.PreviousNote = note.PreviousNote;
+                }
+            }
+            else
+            {
+                // Promote first child to parent, reparent other children, and stitch references
+                var newParent = note.ChildNotes[0].Clone();
+                for (var i = 1; i < note.ChildNotes.Count; i++)
+                {
+                    newParent.AddChildNote(note.ChildNotes[i]);
+                }
+
+                newParent.PreviousNote = note.PreviousNote;
+                newParent.NextNote = note.NextNote;
+
+                if (newParent.PreviousNote != null)
+                {
+                    newParent.PreviousNote.NextNote = newParent;
+                }
+
+                if (newParent.NextNote != null)
+                {
+                    newParent.NextNote.PreviousNote = newParent;
+                }
+
+                notes[index] = newParent;
+            }
         }
 
         public static double GetStartTime<TEvent>(this List<TEvent> events)

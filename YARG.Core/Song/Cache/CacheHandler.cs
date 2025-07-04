@@ -71,17 +71,17 @@ namespace YARG.Core.Song.Cache
         /// </summary>
         /// <param name="handler">A parallel or sequential handler</param>
         /// <param name="cacheLocation">File path of the cache</param>
-        /// <returns>Whether the scan sucessfully parsed entries</returns>
+        /// <returns>Whether the scan successfully parsed entries</returns>
         private static bool QuickScan(CacheHandler handler, string cacheLocation, bool fullDirectoryPlaylists)
         {
             try
             {
                 using var cacheFile = LoadCacheToMemory(cacheLocation, fullDirectoryPlaylists);
-                if (cacheFile.IsAllocated)
+                if (cacheFile != null)
                 {
                     _progress.Stage = ScanStage.LoadingCache;
                     YargLogger.LogDebug("Quick Read start");
-                    handler.Deserialize_Quick(in cacheFile);
+                    handler.Deserialize_Quick(cacheFile);
                 }
             }
             catch (Exception ex)
@@ -119,11 +119,11 @@ namespace YARG.Core.Song.Cache
                 try
                 {
                     using var cacheFile = LoadCacheToMemory(cacheLocation, fullDirectoryPlaylists);
-                    if (cacheFile.IsAllocated)
+                    if (cacheFile != null)
                     {
                         _progress.Stage = ScanStage.LoadingCache;
                         YargLogger.LogDebug("Full Read start");
-                        handler.Deserialize(in cacheFile, fullDirectoryPlaylists);
+                        handler.Deserialize(cacheFile, fullDirectoryPlaylists);
                     }
                 }
                 catch (Exception ex)
@@ -915,26 +915,26 @@ namespace YARG.Core.Song.Cache
         /// <param name="cacheLocation">File location for the cache</param>
         /// <param name="fullDirectoryPlaylists">Toggle for the display style of directory-based playlists</param>
         /// <returns>A FixedArray instance pointing to a buffer of the cache file's data, or <see cref="FixedArray&lt;&rt;"/>.Null if invalid</returns>
-        private static FixedArray<byte> LoadCacheToMemory(string cacheLocation, bool fullDirectoryPlaylists)
+        private static FixedArray<byte>? LoadCacheToMemory(string cacheLocation, bool fullDirectoryPlaylists)
         {
             FileInfo info = new(cacheLocation);
             if (!info.Exists || info.Length < MIN_CACHEFILESIZE)
             {
                 YargLogger.LogDebug("Cache invalid or not found");
-                return FixedArray<byte>.Null;
+                return null;
             }
 
             using var stream = new FileStream(cacheLocation, FileMode.Open, FileAccess.Read);
             if (stream.Read<int>(Endianness.Little) != CACHE_VERSION)
             {
                 YargLogger.LogDebug($"Cache outdated");
-                return FixedArray<byte>.Null;
+                return null;
             }
 
             if (stream.ReadBoolean() != fullDirectoryPlaylists)
             {
                 YargLogger.LogDebug($"FullDirectoryFlag flipped");
-                return FixedArray<byte>.Null;
+                return null;
             }
             return FixedArray.ReadRemainder(stream);
         }
@@ -963,7 +963,7 @@ namespace YARG.Core.Song.Cache
         /// Deserializes a cache file into the separate song entries with all validation checks
         /// </summary>
         /// <param name="stream">The stream containging the cache file data</param>
-        private unsafe void Deserialize(in FixedArray<byte> data, bool fullDirectoryPlaylists)
+        private unsafe void Deserialize(FixedArray<byte> data, bool fullDirectoryPlaylists)
         {
             var stream = data.ToValueStream();
             var strings = new CacheReadStrings(&stream);
@@ -997,7 +997,7 @@ namespace YARG.Core.Song.Cache
         /// Deserializes a cache file into the separate song entries with minimal validations
         /// </summary>
         /// <param name="stream">The stream containging the cache file data</param>
-        private unsafe void Deserialize_Quick(in FixedArray<byte> data)
+        private unsafe void Deserialize_Quick(FixedArray<byte> data)
         {
             var stream = data.ToValueStream();
             var strings = new CacheReadStrings(&stream);

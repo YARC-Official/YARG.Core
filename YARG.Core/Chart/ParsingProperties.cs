@@ -19,6 +19,14 @@ namespace YARG.Core.Chart
         Any = FourOrFive | FiveLane | ProDrums,
     }
 
+    public static class DrumsTypeQuery
+    {
+        public static bool Has(this DrumsType type, DrumsType value)
+        {
+            return (type & value) == value;
+        }
+    }
+
     /// <summary>
     /// Settings used when parsing charts.
     /// </summary>

@@ -28,7 +28,7 @@ namespace YARG.Core.IO
         public static readonly Encoding UTF8Strict = new UTF8Encoding(false, true);
         public const int WHITESPACE_LIMIT = 32;
 
-        public static bool TryUTF8(in FixedArray<byte> data, out YARGTextContainer<byte> container)
+        public static bool TryUTF8(FixedArray<byte> data, out YARGTextContainer<byte> container)
         {
             // If it doesn't throw with `At(1)`, then 0 and 1 are valid indices.
             // We can therefore skip bounds checking
@@ -48,18 +48,19 @@ namespace YARG.Core.IO
             return true;
         }
 
-        public static FixedArray<char> TryUTF16Cast(in FixedArray<byte> data)
+        public static FixedArray<char>? TryUTF16Cast(FixedArray<byte> data)
         {
-            var buffer = FixedArray<char>.Null;
+            var buffer = default(FixedArray<char>);
             if (data.At(2) != 0)
             {
                 const int UTF16BOM_OFFSET = 2;
-                long length = (data.Length - UTF16BOM_OFFSET) / sizeof(char);
+                int length = (data.Length - UTF16BOM_OFFSET) / sizeof(char);
                 if ((data[0] == 0xFF) != BitConverter.IsLittleEndian)
                 {
                     // We have to swap the endian of the data so string conversion works properly
                     // but we can't just use the original buffer as we create a hash off it.
                     buffer = FixedArray<char>.Alloc(length);
+
                     for (int i = 0, j = UTF16BOM_OFFSET; i < buffer.Length; ++i, j += sizeof(char))
                     {
                         buffer[i] = (char) (data[j] << 8 | data[j + 1]);
@@ -67,25 +68,26 @@ namespace YARG.Core.IO
                 }
                 else
                 {
-                    buffer = FixedArray<char>.Cast(in data, UTF16BOM_OFFSET, length);
+                    buffer = FixedArray<char>.Cast(data, UTF16BOM_OFFSET, length);
                 }
             }
             return buffer;
         }
 
-        public static YARGTextContainer<char> CreateUTF16Container(in FixedArray<char> data)
+        public static YARGTextContainer<char> CreateUTF16Container(FixedArray<char> data)
         {
-            var container = new YARGTextContainer<char>(in data, Encoding.Unicode);
+            var container = new YARGTextContainer<char>(data, Encoding.Unicode);
             SkipPureWhitespace(ref container);
             return container;
         }
 
-        public static FixedArray<int> CastUTF32(in FixedArray<byte> data)
+        public static FixedArray<int> CastUTF32(FixedArray<byte> data)
         {
             const int UTF32BOM_OFFSET = 3;
 
             FixedArray<int> buffer;
-            long length = (data.Length - UTF32BOM_OFFSET) / sizeof(int);
+            int length = (data.Length - UTF32BOM_OFFSET) / sizeof(int);
+
             // We already know by this point that index `0` is valid
             if ((data[0] == 0xFF) != BitConverter.IsLittleEndian)
             {
@@ -102,14 +104,14 @@ namespace YARG.Core.IO
             }
             else
             {
-                buffer = FixedArray<int>.Cast(in data, UTF32BOM_OFFSET, length);
+                buffer = FixedArray<int>.Cast(data, UTF32BOM_OFFSET, length);
             }
             return buffer;
         }
 
-        public static YARGTextContainer<int> CreateUTF32Container(in FixedArray<int> data)
+        public static YARGTextContainer<int> CreateUTF32Container(FixedArray<int> data)
         {
-            var container = new YARGTextContainer<int>(in data, Encoding.UTF32);
+            var container = new YARGTextContainer<int>(data, Encoding.UTF32);
             SkipPureWhitespace(ref container);
             return container;
         }
@@ -357,10 +359,14 @@ namespace YARG.Core.IO
             int ch = text.Get();
             long sign = 1;
 
+            bool signedType = typeof(TNumber) == typeof(long)
+                || typeof(TNumber) == typeof(int)
+                || typeof(TNumber) == typeof(short);
+
             switch (ch)
             {
                 case '-':
-                    if (!NumericalLimits<TNumber>.IS_SIGNED)
+                    if (!signedType)
                     {
                         return false;
                     }
@@ -381,6 +387,34 @@ namespace YARG.Core.IO
                 return false;
             }
 
+            ulong softMax;
+            if (typeof(TNumber) == typeof(ulong))
+            {
+                softMax = ulong.MaxValue / 10;
+            }
+            else if (typeof(TNumber) == typeof(uint))
+            {
+                softMax = uint.MaxValue / 10;
+            }
+            else if (typeof(TNumber) == typeof(ushort))
+            {
+                softMax = ushort.MaxValue / 10;
+            }
+            else if (typeof(TNumber) == typeof(long))
+            {
+                softMax = long.MaxValue / 10;
+            }
+            else if (typeof(TNumber) == typeof(int))
+            {
+                softMax = int.MaxValue / 10;
+            }
+            else
+            {
+                softMax = (ulong)short.MaxValue / 10;
+            }
+
+            char lastDigit = signedType ? '7' : '5';
+
             ulong tmp = 0;
             while (true)
             {
@@ -398,60 +432,59 @@ namespace YARG.Core.IO
                     break;
                 }
 
-                if (!NumericalLimits<TNumber>.IS_SIGNED)
+                if (tmp < softMax || (tmp == softMax && ch <= lastDigit))
                 {
-                    const char LAST_DIGIT_UNSIGNED = '5';
-                    if (tmp < NumericalLimits<TNumber>.UNSIGNED_SOFT_MAX || tmp == NumericalLimits<TNumber>.UNSIGNED_SOFT_MAX && ch <= LAST_DIGIT_UNSIGNED)
-                    {
-                        tmp *= 10;
-                        continue;
-                    }
+                    tmp *= 10;
+                    continue;
+                }
 
-                    while (!text.IsAtEnd())
+                while (!text.IsAtEnd())
+                {
+                    ch = text.Get();
+                    if (ch < '0' || '9' < ch)
                     {
-                        ch = text.Get();
-                        if (ch < '0' || '9' < ch)
-                        {
-                            break;
-                        }
-                        ++text.Position;
+                        break;
                     }
-                    value = NumericalLimits<TNumber>.UNSIGNED_MAX;
-                    return true;
+                    ++text.Position;
+                }
+
+                if (typeof(TNumber) == typeof(ulong))
+                {
+                    value = (TNumber)(object)ulong.MaxValue;
+                }
+                else if (typeof(TNumber) == typeof(uint))
+                {
+                    value = (TNumber)(object)uint.MaxValue;
+                }
+                else if (typeof(TNumber) == typeof(ushort))
+                {
+                    value = (TNumber)(object)ushort.MaxValue;
+                }
+                else if (typeof(TNumber) == typeof(long))
+                {
+                    value = (TNumber)(object)(sign == 1 ? long.MaxValue : long.MinValue);
+                }
+                else if (typeof(TNumber) == typeof(int))
+                {
+                    value = (TNumber)(object)(sign == 1 ? int.MaxValue : int.MinValue);
                 }
                 else
                 {
-                    const char LAST_DIGIT_SIGNED = '7';
-                    if (tmp < NumericalLimits<TNumber>.SIGNED_SOFT_MAX || tmp == NumericalLimits<TNumber>.SIGNED_SOFT_MAX && ch <= LAST_DIGIT_SIGNED)
-                    {
-                        tmp *= 10;
-                        continue;
-                    }
-
-                    while (!text.IsAtEnd())
-                    {
-                        ch = text.Get();
-                        if (ch < '0' || '9' < ch)
-                        {
-                            break;
-                        }
-                        ++text.Position;
-                    }
-                    value = sign == -1 ? NumericalLimits<TNumber>.SIGNED_MIN : NumericalLimits<TNumber>.SIGNED_MAX;
-                    return true;
+                    value = (TNumber)(object)(sign == 1 ? short.MaxValue : short.MinValue);
                 }
+                return true;
             }
 
             unsafe
             {
-                if (NumericalLimits<TNumber>.IS_SIGNED)
+                if (signedType)
                 {
                     long signed = (long) tmp * sign;
-                    value = *(TNumber*) &signed;
+                    value = *(TNumber*)&signed;
                 }
                 else
                 {
-                    value = *(TNumber*) &tmp;
+                    value = *(TNumber*)&tmp;
                 }
             }
             return true;
@@ -573,47 +606,9 @@ namespace YARG.Core.IO
                 {
                     return text.Encoding.GetString((byte*) data, (int) (count * sizeof(TChar)));
                 }
-                catch
+                catch when(ReferenceEquals(text.Encoding, UTF8Strict))
                 {
-                    if (text.Encoding != UTF8Strict)
-                    {
-                        throw;
-                    }
                     text.Encoding = Latin1;
-                }
-            }
-        }
-
-        private static class NumericalLimits<TNumber>
-            where TNumber : unmanaged, IComparable, IComparable<TNumber>, IConvertible, IEquatable<TNumber>, IFormattable
-        {
-            public static readonly TNumber SIGNED_MAX;
-            public static readonly ulong SIGNED_SOFT_MAX;
-            public static readonly TNumber SIGNED_MIN;
-            public static readonly TNumber UNSIGNED_MAX;
-            public static readonly ulong UNSIGNED_SOFT_MAX;
-
-            public static readonly bool IS_SIGNED;
-
-            static unsafe NumericalLimits()
-            {
-                ulong ZERO = 0;
-                ulong MAX = ulong.MaxValue >> ((8 - sizeof(TNumber)) * 8);
-                UNSIGNED_MAX = *(TNumber*) &MAX;
-                if (IS_SIGNED = UNSIGNED_MAX.CompareTo(*(TNumber*)&ZERO) < 0)
-                {
-                    ulong sMAX = (ulong)long.MaxValue >> ((8 - sizeof(TNumber)) * 8);
-                    SIGNED_MAX = *(TNumber*) &sMAX;
-                    sMAX /= 10;
-                    SIGNED_SOFT_MAX = sMAX;
-
-                    long sMin = long.MinValue >> ((8 - sizeof(TNumber)) * 8);
-                    SIGNED_MIN = *(TNumber*) &sMin;
-                }
-                else
-                {
-                    MAX /= 10;
-                    UNSIGNED_SOFT_MAX = MAX;
                 }
             }
         }

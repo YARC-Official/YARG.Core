@@ -8,7 +8,7 @@ namespace YARG.Core.Engine.Guitar
     public abstract class GuitarEngine : BaseEngine<GuitarNote, GuitarEngineParameters,
         GuitarStats>
     {
-        protected const byte OPEN_MASK = 64;
+        public const byte OPEN_MASK = 64;
 
         public delegate void OverstrumEvent();
 
