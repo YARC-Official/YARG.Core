@@ -358,11 +358,18 @@ namespace YARG.Core.Engine.Guitar
 
         protected void ToggleFret(int fret, bool active)
         {
-            InputButtonMask = (ushort) (active ? InputButtonMask | (1 << fret) : InputButtonMask & ~(1 << fret));
+            if (active)
+            {
+                InputButtonMask |= (ushort) (1 << fret);
+            }
+            else
+            {
+                InputButtonMask &= (ushort) ~(1 << fret);
+            }
 
             // What we're doing here is transposing bits 10-14 of the input mask down to 0-4 of the effective mask
             // used elsewhere so that solo buttons are treated as if they were regular buttons
-            byte soloButtonMask = (byte) (InputButtonMask >> 10);
+            byte soloButtonMask = (byte) (InputButtonMask >> (int) GuitarAction.SoloGreenFret);
 
             // EffectiveButtonMask is the bitwise or of the low 8 bits of InputButtonMask and soloButtonMask
             EffectiveButtonMask = (byte) (InputButtonMask | soloButtonMask);

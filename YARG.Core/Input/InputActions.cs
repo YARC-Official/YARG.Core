@@ -67,6 +67,7 @@
         Fret13 = 12,
         Fret14 = 13,
         Fret15 = 14,
+
         /// <summary>(5-fret) Green fret button.</summary>
         /// <remarks>Alias of <see cref="Fret1"/>.</remarks>
         GreenFret = Fret1,
