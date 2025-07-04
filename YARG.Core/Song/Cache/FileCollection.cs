@@ -15,20 +15,23 @@ namespace YARG.Core.Song.Cache
         private const FileAttributes RECALL_ON_DATA_ACCESS = (FileAttributes) 0x00400000;
         private static readonly EnumerationOptions OPTIONS = new()
         {
-            AttributesToSkip = FileAttributes.Hidden | FileAttributes.System | RECALL_ON_DATA_ACCESS
+            MatchType = MatchType.Win32,
+            AttributesToSkip = RECALL_ON_DATA_ACCESS,
+            IgnoreInaccessible = false,
         };
 
         public FileCollection(DirectoryInfo directory)
         {
             Directory = directory.FullName;
-            _entries = new Dictionary<string, FileSystemInfo>(StringComparer.InvariantCultureIgnoreCase);
+            _entries = new Dictionary<string, FileSystemInfo>(StringComparer.Ordinal);
             var dupes = new HashSet<string>();
 
             foreach (var entry in directory.EnumerateFileSystemInfos("*", OPTIONS))
             {
-                if (!_entries.TryAdd(entry.Name, entry))
+                string name = entry.Name.ToLowerInvariant();
+                if (!_entries.TryAdd(name, entry))
                 {
-                    dupes.Add(entry.Name);
+                    dupes.Add(name);
                 }
             }
 
@@ -42,24 +45,22 @@ namespace YARG.Core.Song.Cache
 
         public bool FindFile(string name, out FileInfo file)
         {
-            if (_entries.TryGetValue(name, out var entry) && entry is FileInfo result)
-            {
-                file = result;
-                return true;
-            }
             file = null!;
-            return false;
+            if (_entries.TryGetValue(name, out var entry))
+            {
+                file = (entry as FileInfo)!;
+            }
+            return file != null!;
         }
 
         public bool FindDirectory(string name, out DirectoryInfo directory)
         {
-            if (_entries.TryGetValue(name, out var entry) && entry is DirectoryInfo result)
-            {
-                directory = result;
-                return true;
-            }
             directory = null!;
-            return false;
+            if (_entries.TryGetValue(name, out var entry))
+            {
+                directory = (entry as DirectoryInfo)!;
+            }
+            return directory != null!;
         }
 
         public bool ContainsDirectory()
@@ -86,14 +87,19 @@ namespace YARG.Core.Song.Cache
             return false;
         }
 
-        public IEnumerator<KeyValuePair<string, FileSystemInfo>> GetEnumerator()
+        public Dictionary<string, FileSystemInfo>.Enumerator GetEnumerator()
         {
-            return ((IEnumerable<KeyValuePair<string, FileSystemInfo>>) _entries).GetEnumerator();
+            return _entries.GetEnumerator();
+        }
+
+        IEnumerator<KeyValuePair<string, FileSystemInfo>> IEnumerable<KeyValuePair<string, FileSystemInfo>>.GetEnumerator()
+        {
+            return _entries.GetEnumerator();
         }
 
         IEnumerator IEnumerable.GetEnumerator()
         {
-            return ((IEnumerable) _entries).GetEnumerator();
+            return _entries.GetEnumerator();
         }
     }
 }

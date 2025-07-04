@@ -1,4 +1,5 @@
-using System;
+﻿using System;
+using System.Linq;
 
 namespace YARG.Core.Chart
 {
@@ -69,6 +70,11 @@ namespace YARG.Core.Chart
         /// Whether or not this note is a vocal phrase.
         /// </summary>
         public bool IsPhrase => Type == VocalNoteType.Phrase;
+
+        /// <summary>
+        /// Whether or not this note is a vocal phrase that contains no notes.
+        /// </summary>
+        public bool IsEmptyPhrase => Type == VocalNoteType.Phrase && ChildNotes.Count == 0;
 
         /// <summary>
         /// Creates a new <see cref="VocalNote"/> with the given properties.
@@ -202,6 +208,11 @@ namespace YARG.Core.Chart
         protected override VocalNote CloneNote()
         {
             return new(this);
+        }
+
+        public void RemovePercussionChildNotes()
+        {
+            _childNotes.RemoveAll(e => e.Type == VocalNoteType.Percussion);
         }
     }
 

@@ -224,19 +224,14 @@ namespace MoonscraperChartEditor.Song.IO
 
                 uint tick = (uint) absoluteTick;
 
-                // This is valid since we are guaranteed to have at least one tempo event at all times
-                var currentTempo = song.syncTrack.Tempos[^1];
-
                 if (trackEvent is SetTempoEvent tempo)
                 {
                     double bpm = TempoChange.MicroSecondsToBpm(tempo.MicrosecondsPerQuarterNote);
-                    song.Add(new TempoChange(bpm,
-                        song.TickToTime(tick, currentTempo), tick));
+                    song.AddTempo(bpm, tick);
                 }
                 else if (trackEvent is TimeSignatureEvent timesig)
                 {
-                    song.Add(new TimeSignatureChange(timesig.Numerator, timesig.Denominator,
-                        song.TickToTime(tick, currentTempo), tick));
+                    song.AddTimeSignature(timesig.Numerator, timesig.Denominator, tick);
                 }
             }
         }
@@ -259,11 +254,14 @@ namespace MoonscraperChartEditor.Song.IO
                     BeatlineType beatType;
                     switch ((byte)note.NoteNumber)
                     {
-                        case MidIOHelper.BEAT_STRONG:
+                        case MidIOHelper.BEAT_MEASURE:
                             beatType = BeatlineType.Measure;
                             break;
-                        case MidIOHelper.BEAT_WEAK:
+                        case MidIOHelper.BEAT_STRONG:
                             beatType = BeatlineType.Strong;
+                            break;
+                        case MidIOHelper.BEAT_WEAK:
+                            beatType = BeatlineType.Weak;
                             break;
                         default:
                             continue;

@@ -72,7 +72,6 @@ namespace YARG.Core.Engine.Guitar.Engines
             }
             else if (action is GuitarAction.Whammy)
             {
-                LastWhammyTimerState = StarPowerWhammyTimer.IsActive;
                 StarPowerWhammyTimer.Start(gameInput.Time);
             }
             else if (action is GuitarAction.StrumDown or GuitarAction.StrumUp && gameInput.Button)
@@ -115,10 +114,10 @@ namespace YARG.Core.Engine.Guitar.Engines
                 // Hopo was hit recently, eat strum input
                 if (HopoLeniencyTimer.IsActive)
                 {
-                    StrumLeniencyTimer.Disable();
+                    StrumLeniencyTimer.Disable(time, early: true);
 
                     // Disable hopo leniency as hopos can only eat one strum
-                    HopoLeniencyTimer.Disable();
+                    HopoLeniencyTimer.Disable(time, early: true);
 
                     strumEatenByHopo = true;
                     ReRunHitLogic = true;
@@ -441,7 +440,7 @@ namespace YARG.Core.Engine.Guitar.Engines
                 EngineTimer.Reset(ref FrontEndExpireTime);
             }
 
-            StrumLeniencyTimer.Disable();
+            StrumLeniencyTimer.Disable(CurrentTime, early: true);
 
             for(int i = 0; i < ActiveSustains.Count; i++)
             {
@@ -467,7 +466,7 @@ namespace YARG.Core.Engine.Guitar.Engines
         {
             if (HopoLeniencyTimer.IsActive && HopoLeniencyTimer.IsExpired(CurrentTime))
             {
-                HopoLeniencyTimer.Disable();
+                HopoLeniencyTimer.Disable(CurrentTime);
 
                 ReRunHitLogic = true;
             }
@@ -479,7 +478,7 @@ namespace YARG.Core.Engine.Guitar.Engines
                 {
                     //YargTrace.LogInfo("Strum Leniency: Expired. Overstrumming");
                     Overstrum();
-                    StrumLeniencyTimer.Disable();
+                    StrumLeniencyTimer.Disable(CurrentTime);
 
                     ReRunHitLogic = true;
                 }

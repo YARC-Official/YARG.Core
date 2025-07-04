@@ -14,20 +14,20 @@ namespace YARG.Core.Song
             long statusBitMask = 0;
 
             var note = default(MidiNote);
-            var stats = default(YARGMidiTrack.Stats);
+            var stats = default(MidiStats);
             while (track.ParseEvent(ref stats))
             {
                 if (stats.Type is MidiEventType.Note_On or MidiEventType.Note_Off)
                 {
                     track.ExtractMidiNote(ref note);
                     // Minimum is 0, so no minimum check required
-                    if (note.value > ELITE_MAX)
+                    if (note.Value > ELITE_MAX)
                     {
                         continue;
                     }
 
-                    int diffIndex = MidiPreparser_Constants.EXTENDED_DIFF_INDICES[note.value];
-                    int laneIndex = MidiPreparser_Constants.EXTENDED_LANE_INDICES[note.value];
+                    int diffIndex = MidiPreparser_Constants.EXTENDED_DIFF_INDICES[note.Value];
+                    int laneIndex = MidiPreparser_Constants.EXTENDED_LANE_INDICES[note.Value];
                     var diffMask = (DifficultyMask)(1 << (diffIndex + 1));
                     if ((validations & diffMask) > 0 || laneIndex >= NUM_LANES)
                     {
@@ -36,7 +36,7 @@ namespace YARG.Core.Song
 
                     long statusMask = 1L << (diffIndex * NUM_LANES + laneIndex);
                     // Note Ons with no velocity equates to a note Off by spec
-                    if (stats.Type == MidiEventType.Note_On && note.velocity > 0)
+                    if (stats.Type == MidiEventType.Note_On && note.Velocity > 0)
                     {
                         statusBitMask |= statusMask;
                     }

@@ -8,12 +8,12 @@ namespace YARG.Core.IO
     public struct FixedArrayStream
     {
         private readonly unsafe byte* _data;
-        private readonly long _length;
-        private long _position;
+        private readonly        int   _length;
+        private                 int   _position;
 
-        public long Position
+        public int Position
         {
-            readonly get { return _position; }
+            readonly get => _position;
             set
             {
                 if (value < 0 || value > _length)
@@ -26,18 +26,16 @@ namespace YARG.Core.IO
 
         public unsafe byte* PositionPointer
         {
-            readonly get { return _data + _position; }
+            readonly get => _data + _position;
             set
             {
                 if (value < _data || value > _data + _length)
                 {
-                    throw new ArgumentOutOfRangeException("value");
+                    throw new ArgumentOutOfRangeException(nameof(value));
                 }
-                _position = value - _data;
+                _position = (int)(value - _data);
             }
         }
-
-        public readonly long Length => _length;
 
         public byte ReadByte()
         {
@@ -74,11 +72,11 @@ namespace YARG.Core.IO
             }
         }
 
-        public unsafe void Read(void* pos, long count)
+        public unsafe void Read(void* pos, int count)
         {
             if (count < 0 || _position + count > _length)
             {
-                throw new ArgumentOutOfRangeException("count");
+                throw new ArgumentOutOfRangeException(nameof(count));
             }
             Unsafe.CopyBlock(pos, _data + _position, (uint)count);
             _position += count;
@@ -90,7 +88,7 @@ namespace YARG.Core.IO
             string str;
             unsafe
             {
-                str = Encoding.UTF8.GetString(_data + _position, length); 
+                str = Encoding.UTF8.GetString(_data + _position, length);
             }
             _position += length;
             return str;
@@ -132,11 +130,11 @@ namespace YARG.Core.IO
             }
         }
 
-        public FixedArrayStream Slice(long length)
+        public FixedArrayStream Slice(int length)
         {
             if (length < 0 || _position + length > _length)
             {
-                throw new ArgumentOutOfRangeException("length");
+                throw new ArgumentOutOfRangeException(nameof(length));
             }
 
             var slice = _position;
@@ -147,22 +145,19 @@ namespace YARG.Core.IO
             }
         }
 
-        public FixedArrayStream(in FixedArray<byte> data)
+        public FixedArrayStream(FixedArray<byte> data)
         {
             unsafe
             {
-                _data = data.Ptr; 
+                _data = data.Ptr;
             }
             _length = data.Length;
             _position = 0;
         }
 
-        private unsafe FixedArrayStream(byte* ptr, long length)
+        private unsafe FixedArrayStream(byte* ptr, int length)
         {
-            unsafe
-            {
-                _data = ptr;
-            }
+            _data = ptr;
             _length = length;
             _position = 0;
         }

@@ -36,7 +36,7 @@ namespace YARG.Core.Song
 
         public override string ToString()
         {
-            return _original.ToString();
+            return _original;
         }
 
         public int CompareTo(SortString other)

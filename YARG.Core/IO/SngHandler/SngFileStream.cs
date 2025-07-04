@@ -11,17 +11,15 @@ namespace YARG.Core.IO
         //                1MB
         private const int BUFFER_SIZE = 1024 * 1024;
         private const int SEEK_MODULUS = BUFFER_SIZE - 1;
-        private const int SEEK_MODULUS_MINUS = ~SEEK_MODULUS;
 
         private readonly SngTracker _tracker;
         private readonly string _filename;
         private readonly SngFileListing _listing;
         private readonly FixedArray<byte> _dataBuffer = FixedArray<byte>.AllocVectorAligned(BUFFER_SIZE);
 
-        private long _bufferIndex = 0;
-        private long _bufferPosition = 0;
-        private long _position = 0;
-        private bool _disposed = false;
+        private int  _bufferIndex;
+        private int  _bufferPosition;
+        private int  _position;
 
         public override bool CanRead => _tracker.Stream.CanRead;
         public override bool CanWrite => false;
@@ -38,7 +36,7 @@ namespace YARG.Core.IO
                     throw new ArgumentOutOfRangeException();
                 }
 
-                _position = value;
+                _position = (int)value;
                 long index = _position / BUFFER_SIZE;
                 if (_bufferIndex != index)
                 {
@@ -83,7 +81,7 @@ namespace YARG.Core.IO
                 return 0;
             }
 
-            long read = 0;
+            int read = 0;
             while (read < count && _position < _listing.Length)
             {
                 if (_bufferIndex == -1 ||_bufferPosition == BUFFER_SIZE)
@@ -91,14 +89,14 @@ namespace YARG.Core.IO
                     UpdateBuffer();
                 }
 
-                long available = BUFFER_SIZE - _bufferPosition;
+                int available = BUFFER_SIZE - _bufferPosition;
                 long remainingInFile = _listing.Length - _position;
                 if (available > remainingInFile)
                 {
-                    available = remainingInFile;
+                    available = (int)remainingInFile;
                 }
 
-                long amount = count - read;
+                int amount = count - read;
                 if (amount > available)
                 {
                     amount = available;
@@ -109,7 +107,7 @@ namespace YARG.Core.IO
                 _position += amount;
                 _bufferPosition += amount;
             }
-            return (int)read;
+            return read;
         }
 
 
@@ -150,11 +148,10 @@ namespace YARG.Core.IO
 
         protected override void Dispose(bool disposing)
         {
-            if (!_disposed)
+            if (disposing)
             {
                 _dataBuffer.Dispose();
                 _tracker.Dispose();
-                _disposed = true;
             }
         }
 
@@ -163,7 +160,7 @@ namespace YARG.Core.IO
         private unsafe void UpdateBuffer()
         {
             _bufferPosition = _position % BUFFER_SIZE;
-            long index = _position / BUFFER_SIZE;
+            int index = _position / BUFFER_SIZE;
             if (index == _bufferIndex)
             {
                 return;
@@ -180,7 +177,7 @@ namespace YARG.Core.IO
             lock (_tracker.Stream)
             {
                 _tracker.Stream.Position = readPosition + _listing.Position;
-                if (_tracker.Stream.Read(_dataBuffer.Slice(0, readCount)) != readCount)
+                if (_tracker.Stream.Read(_dataBuffer[..(int)readCount]) != readCount)
                 {
                     throw new IOException("Read error in SNGPKG subfile");
                 }
@@ -190,10 +187,10 @@ namespace YARG.Core.IO
 
         public static unsafe void DecryptVectorized(byte* position, SngMask mask, byte* end)
         {
-            byte* key_position = mask.Ptr;
+            byte* keyPosition = mask.Ptr;
             Parallel.For(0, SngMask.NUM_VECTORS, i =>
             {
-                var xor = *((Vector<byte>*) key_position + i);
+                var xor = *((Vector<byte>*) keyPosition + i);
                 for (var loc = (Vector<byte>*) position + i; loc + 1 <= end; loc += SngMask.NUM_VECTORS)
                 {
                     *loc ^= xor;
@@ -202,11 +199,11 @@ namespace YARG.Core.IO
 
             long numVecs = (end - position) / sizeof(Vector<byte>);
             position += numVecs * sizeof(Vector<byte>);
-            key_position += (numVecs % SngMask.NUM_VECTORS) * sizeof(Vector<byte>);
+            keyPosition += (numVecs % SngMask.NUM_VECTORS) * sizeof(Vector<byte>);
 
             while (position < end)
             {
-                *position++ ^= *key_position++;
+                *position++ ^= *keyPosition++;
             }
         }
     }

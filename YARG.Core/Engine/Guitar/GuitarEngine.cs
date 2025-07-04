@@ -8,9 +8,10 @@ namespace YARG.Core.Engine.Guitar
     public abstract class GuitarEngine : BaseEngine<GuitarNote, GuitarEngineParameters,
         GuitarStats>
     {
-        protected const byte OPEN_MASK = 64;
         // Mask of all the solo buttons in bit math
         protected const ushort SOLO_MASK = 31744;
+
+        public const byte OPEN_MASK = 64;
 
         public delegate void OverstrumEvent();
 
@@ -49,8 +50,8 @@ namespace YARG.Core.Engine.Guitar
             GuitarEngineParameters engineParameters, bool isBot)
             : base(chart, syncTrack, engineParameters, false, isBot)
         {
-            StrumLeniencyTimer = new EngineTimer(engineParameters.StrumLeniency);
-            HopoLeniencyTimer = new EngineTimer(engineParameters.HopoLeniency);
+            StrumLeniencyTimer = new EngineTimer("Strum Leniency", engineParameters.StrumLeniency);
+            HopoLeniencyTimer = new EngineTimer("HOPO Leniency", engineParameters.HopoLeniency);
 
             GetWaitCountdowns(Notes);
         }
@@ -97,8 +98,8 @@ namespace YARG.Core.Engine.Guitar
 
             WasNoteGhosted = false;
 
-            StrumLeniencyTimer.Disable();
-            HopoLeniencyTimer.Disable();
+            StrumLeniencyTimer.Reset();
+            HopoLeniencyTimer.Reset();
 
             FrontEndExpireTime = 0;
 

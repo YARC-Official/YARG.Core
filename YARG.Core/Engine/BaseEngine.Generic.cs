@@ -13,18 +13,6 @@ namespace YARG.Core.Engine
         where TEngineParams : BaseEngineParameters
         where TEngineStats : BaseStats, new()
     {
-        // Max number of measures that SP will last when draining
-        // SP draining is done based on measures
-        protected const double STAR_POWER_MEASURE_AMOUNT = 1.0 / STAR_POWER_MAX_MEASURES;
-
-        // Max number of beats that it takes to fill SP when gaining
-        // SP gain from whammying is done based on beats
-        protected const double STAR_POWER_BEAT_AMOUNT = 1.0 / STAR_POWER_MAX_BEATS;
-
-        // Number of measures that SP phrases will grant when hit
-        protected const int    STAR_POWER_PHRASE_MEASURE_COUNT = 2;
-        protected const double STAR_POWER_PHRASE_AMOUNT = STAR_POWER_PHRASE_MEASURE_COUNT * STAR_POWER_MEASURE_AMOUNT;
-
         public delegate void NoteHitEvent(int noteIndex, TNoteType note);
 
         public delegate void NoteMissedEvent(int noteIndex, TNoteType note);
@@ -74,7 +62,7 @@ namespace YARG.Core.Engine
             Notes = Chart.Notes;
             EngineParameters = engineParameters;
 
-            StarPowerWhammyTimer = new EngineTimer(engineParameters.StarPowerWhammyBuffer);
+            StarPowerWhammyTimer = new EngineTimer("Star Power Whammy", engineParameters.StarPowerWhammyBuffer);
 
             EngineStats = new TEngineStats();
             Reset();
@@ -94,8 +82,8 @@ namespace YARG.Core.Engine
 
             EngineStats.TotalStarPowerPhrases = Chart.Phrases.Count((phrase) => phrase.Type == PhraseType.StarPower);
 
-            TicksPerSustainPoint = Resolution / (double) POINTS_PER_BEAT;
-            SustainBurstThreshold = Resolution / SUSTAIN_BURST_FRACTION;
+            TicksPerSustainPoint = SyncTrack.Resolution / (double) POINTS_PER_BEAT;
+            SustainBurstThreshold = SyncTrack.Resolution / SUSTAIN_BURST_FRACTION;
 
             // This method should only rely on the `Notes` property (which is assigned above).
             // ReSharper disable once VirtualMemberCallInConstructor
@@ -114,7 +102,10 @@ namespace YARG.Core.Engine
         protected override void GenerateQueuedUpdates(double nextTime)
         {
             base.GenerateQueuedUpdates(nextTime);
-            var previousTime = CurrentTime;
+
+            double previousTime = CurrentTime;
+            uint previousTick = CurrentTick;
+            uint previousSpTick = StarPowerTickPosition;
 
             foreach (var sustain in ActiveSustains)
             {
@@ -204,93 +195,57 @@ namespace YARG.Core.Engine
                     QueueUpdateTime(StarPowerWhammyTimer.EndTime, "Star Power Whammy End");
                 }
 
-                if (ActiveSustains.Count > 0)
+                if (IsStarPowerSustainActive())
                 {
-                    double maxTime = Math.Min(StarPowerWhammyTimer.EndTime, nextTime);
+                    uint lastSpTickAmount = BaseStats.StarPowerTickAmount;
+                    uint spTickAmount = BaseStats.StarPowerTickAmount;
 
-                    // Get the Sync change where the max time occurs
-                    int maxSpTickSync = CurrentSyncIndex;
-                    int nextMaxSpTickSync = CurrentSyncIndex + 1;
+                    double maxWhammyTime = Math.Min(StarPowerWhammyTimer.EndTime, nextTime);
+                    uint maxWhammySpTick = SyncTrack.TimeToMeasureTick(maxWhammyTime);
+                    uint maxWhammyTick = SyncTrack.MeasureTickToQuarterTick(maxWhammySpTick);
 
-                    while (nextMaxSpTickSync < SyncTrackChanges.Count && maxTime >= SyncTrackChanges[nextMaxSpTickSync].Time)
+                    // Simulate whammy gain
+                    uint whammyGain = CalculateStarPowerGain(maxWhammyTick, previousTick);
+                    spTickAmount += whammyGain;
+
+                    if (BaseStats.IsStarPowerActive)
                     {
-                        maxSpTickSync++;
-                        nextMaxSpTickSync++;
+                        // Simulate SP drain
+                        uint spDrain = CalculateStarPowerDrain(maxWhammySpTick, previousSpTick);
+
+                        // Check if the ticks the player would have drops to zero or less
+                        if (spTickAmount <= spDrain)
+                        {
+                            spTickAmount = 0;
+
+                            YargLogger.LogFormatDebug("Simulated SP gain/drain and found an end time at {0}", maxWhammyTime);
+                            QueueUpdateTime(maxWhammyTime, "SP End Time");
+                        }
+                        else
+                        {
+                            spTickAmount -= spDrain;
+                        }
                     }
 
-                    // Get the max SP tick to the maxTime
-                    uint maxSpTick = GetStarPowerDrainTimeToTicks(maxTime, SyncTrackChanges[maxSpTickSync]);
-
-                    uint lastChartTick = CurrentTick;
-                    uint lastSpTick = StarPowerTickPosition;
-
-                    int spTickAmount = (int) BaseStats.StarPowerTickAmount;
-
-                    int syncIndex = CurrentSyncIndex;
-                    int nextSyncIndex = CurrentSyncIndex + 1;
-
-                    for(uint spTick = StarPowerTickPosition + 1; spTick <= maxSpTick; spTick++)
+                    // Synchronize the point at which SP can be activated
+                    if (lastSpTickAmount < TicksPerHalfSpBar && spTickAmount >= TicksPerHalfSpBar)
                     {
-                        // Get the Sync change where this SP tick occurs
-                        while (nextSyncIndex < SyncTrackChanges.Count && spTick >= StarPowerTempoTsTicks[nextSyncIndex])
+                        var ticksToHalfBar = TicksPerHalfSpBar - BaseStats.StarPowerTickAmount;
+                        var timeOfHalfBar = SyncTrack.TickToTime(previousTick + ticksToHalfBar);
+
+                        if (IsTimeBetween(timeOfHalfBar, previousTime, nextTime))
                         {
-                            syncIndex++;
-                            nextSyncIndex++;
+                            YargLogger.LogFormatTrace("Queuing star power half bar time at {0}",
+                                timeOfHalfBar);
+                            QueueUpdateTime(timeOfHalfBar, "Star Power Half Bar");
                         }
+                    }
 
-                        // Time of this SP tick
-                        var time = GetStarPowerDrainTickToTime(spTick, SyncTrackChanges[syncIndex]);
-                        var newSpTick = GetStarPowerDrainTimeToTicks(time, SyncTrackChanges[syncIndex]);
-
-                        // TODO fix this SP tick round trip error.
-                        // syncIndex is sometimes 1 too many but DrainTickToTime accounts for it with a binary search
-                        // TimeToTicks does not and gets the wrong tick using the incorrect sync
-                        if (spTick != newSpTick)
-                        {
-                            YargLogger.LogFormatDebug("Round trip error: {0} -> {1}", spTick, newSpTick);
-                        }
-                        if (time > nextTime)
-                        {
-                            YargLogger.LogFormatDebug("Time exceeds next frame time: {0}. nextTime: {1}", time, nextTime);
-                        }
-
-                        uint chartTick = SyncTrack.TimeToTick(time);
-
-                        // Simulate whammy ticks
-                        uint whammyGain = chartTick - lastChartTick;
-
-                        spTickAmount += (int) whammyGain;
-
-                        if (BaseStats.IsStarPowerActive)
-                        {
-                            // Simulate SP drain
-                            uint spDrain = spTick - lastSpTick;
-
-                            spTickAmount -= (int) spDrain;
-
-                            // Check if the ticks the player would have drops to zero or less
-                            if (spTickAmount <= 0)
-                            {
-                                // Do we modify the engine state or just queue an update?
-                                // Below it will check the end time anyway and queue an update
-                                YargLogger.LogFormatDebug("Simulated SP gain/drain and found an end time at {0}", time);
-
-                                QueueUpdateTime(time, "SP End Time");
-                                break;
-                            }
-                        }
-
-                        // If the ticks exceed a full bar, they are capped and this needs to be synchronised
-                        if(spTickAmount > TicksPerFullSpBar)
-                        {
-                            spTickAmount = (int) TicksPerFullSpBar;
-                            YargLogger.LogFormatTrace("Simulated SP gain/drain and found a full SP bar at {0}", time);
-                            QueueUpdateTime(time, "SP Bar Cap Time");
-                            break;
-                        }
-
-                        lastChartTick = chartTick;
-                        lastSpTick = spTick;
+                    // If the ticks exceed a full bar, they are capped and this needs to be synchronised
+                    if (lastSpTickAmount < TicksPerFullSpBar && spTickAmount >= TicksPerFullSpBar)
+                    {
+                        YargLogger.LogFormatTrace("Simulated SP gain/drain and found a full SP bar at {0}", maxWhammyTime);
+                        QueueUpdateTime(maxWhammyTime, "SP Bar Cap Time");
                     }
                 }
             }
@@ -301,29 +256,6 @@ namespace YARG.Core.Engine
                 {
                     YargLogger.LogFormatTrace("Queuing Star Power End Time at {0}", StarPowerEndTime);
                     QueueUpdateTime(StarPowerEndTime, "SP End Time");
-                }
-            }
-            else
-            {
-                if (StarPowerWhammyTimer.IsActive)
-                {
-                    var nextTimeTick = SyncTrack.TimeToTick(nextTime);
-                    var tickDelta = nextTimeTick - CurrentTick;
-
-                    var ticksAfterWhammy = BaseStats.StarPowerTickAmount + tickDelta;
-
-                    if (ticksAfterWhammy >= TicksPerHalfSpBar)
-                    {
-                        var ticksToHalfBar = TicksPerHalfSpBar - BaseStats.StarPowerTickAmount;
-                        var timeOfHalfBar = SyncTrack.TickToTime(CurrentTick + ticksToHalfBar);
-
-                        if (IsTimeBetween(timeOfHalfBar, previousTime, nextTime))
-                        {
-                            YargLogger.LogFormatTrace("Queuing star power half bar time at {0}",
-                                timeOfHalfBar);
-                            QueueUpdateTime(timeOfHalfBar, "Star Power Half Bar");
-                        }
-                    }
                 }
             }
 
@@ -388,11 +320,6 @@ namespace YARG.Core.Engine
 
             CurrentTime = time;
             CurrentTick = GetCurrentTick(time);
-
-            while (NextSyncIndex < SyncTrackChanges.Count && CurrentTick >= SyncTrackChanges[NextSyncIndex].Tick)
-            {
-                CurrentSyncIndex++;
-            }
 
             // Only check for WaitCountdowns in this chart if there are any remaining
             if (CurrentWaitCountdownIndex < WaitCountdowns.Count)
@@ -461,7 +388,7 @@ namespace YARG.Core.Engine
 
             EngineStats.Reset();
 
-            StarPowerWhammyTimer.Disable();
+            StarPowerWhammyTimer.Reset();
 
             foreach (var note in Notes)
             {
@@ -693,21 +620,9 @@ namespace YARG.Core.Engine
 
         protected override void UpdateStarPower()
         {
-            bool isStarPowerSustainActive = false;
-            foreach (var sustain in ActiveSustains)
+            if (IsStarPowerSustainActive() && StarPowerWhammyTimer.IsActive)
             {
-                isStarPowerSustainActive |= sustain.Note.IsStarPower;
-            }
-
-            if (isStarPowerSustainActive && StarPowerWhammyTimer.IsActive)
-            {
-                var whammyTicks = CurrentTick - LastTick;
-
-                // Just started whammying, award 1 tick
-                if (!LastWhammyTimerState)
-                {
-                    whammyTicks = 1;
-                }
+                var whammyTicks = CalculateStarPowerGain(CurrentTick, LastTick);
 
                 // Don't cap until drain has been calculated
                 BaseStats.StarPowerTickAmount += whammyTicks;
@@ -721,25 +636,25 @@ namespace YARG.Core.Engine
                 }
 
                 BaseStats.TotalStarPowerBarsFilled = (double) BaseStats.TotalStarPowerTicks / TicksPerFullSpBar;
-                YargLogger.LogFormatTrace("Gained {0} whammy ticks this update (Total: {1}), {2} sustains active. SP right now: {3}", whammyTicks, EngineStats.StarPowerWhammyTicks, ActiveSustains.Count, isStarPowerSustainActive);
+                YargLogger.LogFormatTrace("Gained {0} whammy ticks this update (Total: {1}), {2} sustains active. SP right now: {3}", whammyTicks, EngineStats.StarPowerWhammyTicks, ActiveSustains.Count, BaseStats.StarPowerTickAmount);
             }
 
             PreviousStarPowerTickPosition = StarPowerTickPosition;
-            StarPowerTickPosition = GetStarPowerDrainTimeToTicks(CurrentTime, CurrentSyncTrackState);
+            StarPowerTickPosition = SyncTrack.QuarterTickToMeasureTick(CurrentTick);
 
             if (BaseStats.IsStarPowerActive)
             {
-                var drain = StarPowerTickPosition - PreviousStarPowerTickPosition;
-                if ((int) BaseStats.StarPowerTickAmount - drain <= 0)
+                var drain = CalculateStarPowerDrain(StarPowerTickPosition, PreviousStarPowerTickPosition);
+                if (BaseStats.StarPowerTickAmount <= drain)
                 {
                     BaseStats.StarPowerTickAmount = 0;
                 }
                 else
                 {
                     BaseStats.StarPowerTickAmount -= drain;
-
-                    YargLogger.LogFormatTrace("Drained {0} ticks of SP this update. New SP tick amount: {1}. Current SP Tick: {2}, Last: {3}", drain, BaseStats.StarPowerTickAmount, StarPowerTickPosition, PreviousStarPowerTickPosition);
                 }
+
+                YargLogger.LogFormatTrace("Drained {0} ticks of SP this update. New SP tick amount: {1}. Current SP Tick: {2}, Last: {3}", drain, BaseStats.StarPowerTickAmount, StarPowerTickPosition, PreviousStarPowerTickPosition);
 
                 double spTimeDelta = CurrentTime - StarPowerActivationTime;
                 BaseStats.TimeInStarPower = spTimeDelta + BaseTimeInStarPower;
@@ -758,8 +673,6 @@ namespace YARG.Core.Engine
                 }
             }
 
-            LastWhammyTimerState = StarPowerWhammyTimer.IsActive;
-
             if (BaseStats is { IsStarPowerActive: true, StarPowerTickAmount: 0 })
             {
                 ReleaseStarPower();
@@ -772,9 +685,37 @@ namespace YARG.Core.Engine
 
             if (StarPowerWhammyTimer.IsActive && StarPowerWhammyTimer.IsExpired(CurrentTime))
             {
-                StarPowerWhammyTimer.Disable();
+                StarPowerWhammyTimer.Disable(CurrentTime);
                 YargLogger.LogFormatTrace("Disabling whammy timer at {0}", CurrentTime);
             }
+        }
+
+        protected bool IsStarPowerSustainActive()
+        {
+            foreach (var sustain in ActiveSustains)
+            {
+                if (sustain.Note.IsStarPower)
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        protected uint CalculateStarPowerGain(uint quarterTick, uint lastQuarterTick)
+        {
+            const int MAX_BEATS = STAR_POWER_MAX_MEASURES * 4;
+            const double GAIN_FACTOR = MAX_BEATS / (double) (MAX_BEATS - 2); // - 2 for leniency
+
+            double gain = (quarterTick - lastQuarterTick) * GAIN_FACTOR;
+
+            return (uint) Math.Round(gain);
+        }
+
+        protected uint CalculateStarPowerDrain(uint measureTick, uint lastMeasureTick)
+        {
+            return measureTick - lastMeasureTick;
         }
 
         protected void UpdateStars()
@@ -857,8 +798,6 @@ namespace YARG.Core.Engine
             OnStarPowerPhraseMissed?.Invoke(note);
         }
 
-        protected virtual uint CalculateStarPowerGain(uint tick) => tick - LastTick;
-
         protected void AwardStarPower(TNoteType note)
         {
             GainStarPower(TicksPerQuarterSpBar);
@@ -913,25 +852,7 @@ namespace YARG.Core.Engine
             CurrentSoloIndex++;
         }
 
-        protected override void UpdateProgressValues(uint tick)
-        {
-            base.UpdateProgressValues(tick);
-
-            EngineStats.PendingScore = 0;
-            for (int i = 0; i < ActiveSustains.Count; i++)
-            {
-                ref var sustain = ref ActiveSustains[i];
-                EngineStats.PendingScore += (int) CalculateSustainPoints(ref sustain, tick);
-            }
-        }
-
-        protected override void RebaseProgressValues(uint baseTick)
-        {
-            base.RebaseProgressValues(baseTick);
-            RebaseSustains(baseTick);
-        }
-
-        protected void RebaseSustains(uint baseTick)
+        protected override void RebaseSustains(uint baseTick)
         {
             EngineStats.PendingScore = 0;
             for (int i = 0; i < ActiveSustains.Count; i++)
@@ -1076,23 +997,24 @@ namespace YARG.Core.Engine
             for (int i = 0; i < Notes.Count; i++)
             {
                 var curr = Notes[i];
-                if (curr.IsSoloStart)
+                if (!curr.IsSoloStart)
                 {
-                    int soloNoteCount = 0;
-                    uint start = curr.Tick;
-                    while (true)
-                    {
-                        soloNoteCount += GetNumberOfNotes(curr);
-                        if (curr.IsSoloEnd || i + 1 == Notes.Count)
-                        {
-                            break;
-                        }
-                        curr = Notes[++i];
-                    }
-                    soloSections.Add(new SoloSection(start, curr.Tick, soloNoteCount));
+                    continue;
                 }
-            }
 
+                int soloNoteCount = 0;
+                uint start = curr.Tick;
+                while (true)
+                {
+                    soloNoteCount += GetNumberOfNotes(curr);
+                    if (curr.IsSoloEnd || i + 1 == Notes.Count)
+                    {
+                        break;
+                    }
+                    curr = Notes[++i];
+                }
+                soloSections.Add(new SoloSection(start, curr.Tick, soloNoteCount));
+            }
             return soloSections;
         }
 

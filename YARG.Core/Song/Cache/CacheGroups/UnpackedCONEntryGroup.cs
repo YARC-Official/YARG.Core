@@ -34,7 +34,8 @@ namespace YARG.Core.Song.Cache
             try
             {
                 using var data = FixedArray.LoadFile(dtaInfo.FullName);
-                var container = YARGDTAReader.Create(in data);
+
+                var container = YARGDTAReader.Create(data);
                 while (YARGDTAReader.StartNode(ref container))
                 {
                     string name = YARGDTAReader.GetNameOfNode(ref container, true);

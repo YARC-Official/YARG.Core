@@ -16,6 +16,8 @@ namespace YARG.Core.Game
         NoKicks       = 1 << 6,
         UnpitchedOnly = 1 << 7,
         NoDynamics    = 1 << 8,
+        NoVocalPercussion = 1 << 9,
+        RangeCompress = 1 << 10,
     }
 
     public static class ModifierConflicts
@@ -39,11 +41,12 @@ namespace YARG.Core.Game
             return gameMode switch
             {
                 GameMode.FiveFretGuitar =>
-                    Modifier.AllStrums   |
-                    Modifier.AllHopos    |
-                    Modifier.AllTaps     |
-                    Modifier.HoposToTaps |
-                    Modifier.TapsToHopos,
+                    Modifier.AllStrums     |
+                    Modifier.AllHopos      |
+                    Modifier.AllTaps       |
+                    Modifier.HoposToTaps   |
+                    Modifier.TapsToHopos   |
+                    Modifier.RangeCompress,
 
                 GameMode.FourLaneDrums or
                 GameMode.FiveLaneDrums =>
@@ -51,7 +54,8 @@ namespace YARG.Core.Game
                     Modifier.NoDynamics,
 
                 GameMode.Vocals =>
-                    Modifier.UnpitchedOnly,
+                    Modifier.UnpitchedOnly |
+                    Modifier.NoVocalPercussion,
 
                 GameMode.SixFretGuitar or
             //  GameMode.EliteDrums    or

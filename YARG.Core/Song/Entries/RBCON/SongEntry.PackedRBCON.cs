@@ -11,11 +11,11 @@ namespace YARG.Core.Song
 {
     internal sealed class PackedRBCONEntry : RBCONEntry
     {
-        private CONFileListing _midiListing;
+        private CONFileListing? _midiListing;
         private CONFileListing? _moggListing;
         private CONFileListing? _miloListing;
         private CONFileListing? _imgListing;
-        private string _psuedoDirectory;
+        private string          _psuedoDirectory;
 
         public override EntryType SubType => EntryType.CON;
         public override string SortBasedLocation => _psuedoDirectory;
@@ -31,81 +31,70 @@ namespace YARG.Core.Song
         public override YARGImage LoadAlbumData()
         {
             var image = LoadUpdateAlbumData();
-            if (!image.IsAllocated && _imgListing != null)
+            if (image == null && _imgListing != null)
             {
-                var bytes = CONFileStream.LoadFile(_root.FullName, _imgListing);
-                image = YARGImage.TransferDXT(ref bytes);
+                using var bytes = CONFileStream.LoadFile(_root.FullName, _imgListing);
+                image = YARGImage.TransferDXT(bytes);
             }
             return image;
         }
 
-        public override BackgroundResult? LoadBackground(BackgroundType options)
+        public override BackgroundResult? LoadBackground()
         {
             if (_midiListing == null)
             {
                 return null;
             }
 
-            string actualDirectory = Path.GetDirectoryName(_root.FullName);
+            string actualDirectory = Path.GetDirectoryName(_root.FullName)!;
             string conName = Path.GetFileNameWithoutExtension(_root.FullName);
-            if ((options & BackgroundType.Yarground) > 0)
+            string specifcVenue = Path.Combine(actualDirectory, _subName + YARGROUND_EXTENSION);
+            if (File.Exists(specifcVenue))
             {
-                string specifcVenue = Path.Combine(actualDirectory, _subName + YARGROUND_EXTENSION);
-                if (File.Exists(specifcVenue))
-                {
-                    var stream = File.OpenRead(specifcVenue);
-                    return new BackgroundResult(BackgroundType.Yarground, stream);
-                }
-
-                specifcVenue = Path.Combine(actualDirectory, conName + YARGROUND_EXTENSION);
-                if (File.Exists(specifcVenue))
-                {
-                    var stream = File.OpenRead(specifcVenue);
-                    return new BackgroundResult(BackgroundType.Yarground, stream);
-                }
-
-                var venues = Directory.GetFiles(actualDirectory, YARGROUND_EXTENSION);
-                if (venues.Length > 0)
-                {
-                    var stream = File.OpenRead(venues[BACKROUND_RNG.Next(venues.Length)]);
-                    return new BackgroundResult(BackgroundType.Yarground, stream);
-                }
+                var stream = File.OpenRead(specifcVenue);
+                return new BackgroundResult(BackgroundType.Yarground, stream);
             }
 
-            if ((options & BackgroundType.Video) > 0)
+            specifcVenue = Path.Combine(actualDirectory, conName + YARGROUND_EXTENSION);
+            if (File.Exists(specifcVenue))
             {
-                string[] filenames = { _subName, conName, "bg", "background", "video" };
-                foreach (var name in filenames)
+                var stream = File.OpenRead(specifcVenue);
+                return new BackgroundResult(BackgroundType.Yarground, stream);
+            }
+
+            var venues = Directory.GetFiles(actualDirectory, YARGROUND_EXTENSION);
+            if (venues.Length > 0)
+            {
+                var stream = File.OpenRead(venues[BACKROUND_RNG.Next(venues.Length)]);
+                return new BackgroundResult(BackgroundType.Yarground, stream);
+            }
+
+            foreach (var name in new[]{ _subName, conName, "bg", "background", "video" })
+            {
+                string fileBase = Path.Combine(actualDirectory, name);
+                foreach (var ext in VIDEO_EXTENSIONS)
                 {
-                    string fileBase = Path.Combine(actualDirectory, name);
-                    foreach (var ext in VIDEO_EXTENSIONS)
+                    string backgroundPath = fileBase + ext;
+                    if (File.Exists(backgroundPath))
                     {
-                        string backgroundPath = fileBase + ext;
-                        if (File.Exists(backgroundPath))
-                        {
-                            var stream = File.OpenRead(backgroundPath);
-                            return new BackgroundResult(BackgroundType.Video, stream);
-                        }
+                        var stream = File.OpenRead(backgroundPath);
+                        return new BackgroundResult(BackgroundType.Video, stream);
                     }
                 }
             }
 
-            if ((options & BackgroundType.Image) > 0)
+            foreach (var name in new[]{ _subName, conName, "bg", "background" })
             {
-                string[] filenames = { _subName, conName, "bg", "background" };
-                foreach (var name in filenames)
+                var fileBase = Path.Combine(actualDirectory, name);
+                foreach (var ext in IMAGE_EXTENSIONS)
                 {
-                    var fileBase = Path.Combine(actualDirectory, name);
-                    foreach (var ext in IMAGE_EXTENSIONS)
+                    string backgroundPath = fileBase + ext;
+                    if (File.Exists(backgroundPath))
                     {
-                        string backgroundPath = fileBase + ext;
-                        if (File.Exists(backgroundPath))
+                        var image = YARGImage.Load(backgroundPath);
+                        if (image != null)
                         {
-                            var image = YARGImage.Load(backgroundPath);
-                            if (image.IsAllocated)
-                            {
-                                return new BackgroundResult(image);
-                            }
+                            return new BackgroundResult(image);
                         }
                     }
                 }
@@ -113,21 +102,21 @@ namespace YARG.Core.Song
             return null;
         }
 
-        public override FixedArray<byte> LoadMiloData()
+        public override FixedArray<byte>? LoadMiloData()
         {
             var data = LoadUpdateMiloData();
-            if (!data.IsAllocated && _miloListing != null)
+            if (data == null && _miloListing != null)
             {
                 data = CONFileStream.LoadFile(_root.FullName, _miloListing);
             }
             return data;
         }
 
-        protected override FixedArray<byte> GetMainMidiData()
+        protected override FixedArray<byte>? GetMainMidiData()
         {
             return _midiListing != null
                 ? CONFileStream.LoadFile(_root.FullName, _midiListing)
-                : FixedArray<byte>.Null;
+                : null;
         }
 
         protected override Stream? GetMoggStream()
@@ -175,7 +164,8 @@ namespace YARG.Core.Song
                     return new ScanUnexpected(ScanResult.MoggError);
                 }
 
-                var mainMidi = FixedArray<byte>.Null;
+                FixedArray<byte> mainMidi;
+
                 long moggLocation = CONFileStream.CalculateBlockLocation(entry._moggListing.BlockOffset, entry._moggListing.Shift);
                 lock (stream)
                 {
@@ -186,7 +176,7 @@ namespace YARG.Core.Song
                     mainMidi = CONFileStream.LoadFile(stream, entry._midiListing);
                 }
 
-                var result = ScanMidis(entry, in mainMidi);
+                var result = ScanMidis(entry, mainMidi);
                 mainMidi.Dispose();
                 if (result != ScanResult.Success)
                 {

@@ -9,6 +9,8 @@ namespace YARG.Core.Song.Cache
 {
     internal abstract class CONEntryGroup : IEntryGroup, IDisposable, IEnumerable<KeyValuePair<string, List<YARGTextContainer<byte>>>>
     {
+        public const string SONGS_DTA = "songs.dta";
+
         private readonly Dictionary<string, List<(int Index, RBCONEntry Entry)>> _entries;
         private readonly string _defaultPlaylist;
         protected readonly AbridgedFileInfo _root;
@@ -106,14 +108,19 @@ namespace YARG.Core.Song.Cache
             _data.Dispose();
         }
 
-        public IEnumerator<KeyValuePair<string, List<YARGTextContainer<byte>>>> GetEnumerator()
+        public Dictionary<string, List<YARGTextContainer<byte>>>.Enumerator GetEnumerator()
         {
-            return ((IEnumerable<KeyValuePair<string, List<YARGTextContainer<byte>>>>) _nodes).GetEnumerator();
+            return _nodes.GetEnumerator();
+        }
+
+        IEnumerator<KeyValuePair<string, List<YARGTextContainer<byte>>>> IEnumerable<KeyValuePair<string, List<YARGTextContainer<byte>>>>.GetEnumerator()
+        {
+            return _nodes.GetEnumerator();
         }
 
         IEnumerator IEnumerable.GetEnumerator()
         {
-            return ((IEnumerable) _nodes).GetEnumerator();
+            return _nodes.GetEnumerator();
         }
 
         protected CONEntryGroup(in AbridgedFileInfo root, string defaultPlaylist)

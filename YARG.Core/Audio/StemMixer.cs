@@ -139,7 +139,20 @@ namespace YARG.Core.Audio
             }
         }
 
-        public int GetData(float[] buffer)
+
+        /// <summary>
+        /// Get FFT Data
+        /// <paramref name="fftSize"/> is log2 of the number of samples to process
+        /// eg with <paramref name="fftSize"/> equal to 9, 512 samples will be processed
+        /// The number of bytes read from the channel (to perform the FFT) is returned
+        /// Data is returned as a float in [0; 1] range
+        /// The 1st bin contains the DC component, the 2nd contains the amplitude at 1/2048 of the channel's sample rate, followed by the amplitude at 2/2048, 3/2048, etc.
+        /// with complex == false only real part of FFT is returned
+        /// and (1 << fftSize) / 2 values are filled (the magnitudes of the first half of an FFT result are returned)
+        /// with complex == true
+        /// Return the complex FFT result rather than the magnitudes. This increases the amount of data returned (as listed above) fourfold, as it returns real and imaginary parts and the full FFT result (not only the first half). The real and imaginary parts are interleaved in the returned data. 
+        /// </summary>
+        public int GetFFTData(float[] buffer, int fftSize, bool complex)
         {
             lock (this)
             {
@@ -147,7 +160,22 @@ namespace YARG.Core.Audio
                 {
                     return -1;
                 }
-                return GetData_Internal(buffer);
+                return GetFFTData_Internal(buffer, fftSize, complex);
+            }
+        }
+
+        /// Get sample data
+        /// returned floats are in [-1; 1] range
+        /// returns value of bytes read from a channel
+        public int GetSampleData(float[] buffer)
+        {
+            lock (this)
+            {
+                if (_disposed)
+                {
+                    return -1;
+                }
+                return GetSampleData_Internal(buffer);
             }
         }
 
@@ -240,7 +268,8 @@ namespace YARG.Core.Audio
         protected abstract double GetVolume_Internal();
         protected abstract void SetPosition_Internal(double position);
         protected abstract void SetVolume_Internal(double volume);
-        protected abstract int  GetData_Internal(float[] buffer);
+        protected abstract int  GetSampleData_Internal(float[] buffer);
+        protected abstract int  GetFFTData_Internal(float[] buffer, int fftSize, bool complex);
         protected abstract void SetSpeed_Internal(float speed, bool shiftPitch);
         protected abstract bool AddChannel_Internal(SongStem stem);
         protected abstract bool AddChannel_Internal(SongStem stem, Stream stream);

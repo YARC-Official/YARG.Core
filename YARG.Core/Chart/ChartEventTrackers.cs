@@ -75,7 +75,7 @@ namespace YARG.Core.Chart
         /// </summary>
         public void ResetToTick(uint tick)
         {
-            _eventIndex = _events.GetIndexOfPrevious(tick);
+            _eventIndex = _events.LowerBound(tick);
         }
     }
 
@@ -142,7 +142,7 @@ namespace YARG.Core.Chart
         /// </summary>
         public void ResetToTime(double time)
         {
-            _eventIndex = _events.GetIndexOfPrevious(time);
+            _eventIndex = _events.LowerBound(time);
         }
     }
 

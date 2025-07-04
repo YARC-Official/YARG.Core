@@ -1,3 +1,4 @@
+﻿using YARG.Core.Logging;
 using YARG.Core.Replays.Analyzer;
 
 namespace ReplayCli;
@@ -18,8 +19,11 @@ public partial class Cli
 
         Console.WriteLine($"Analyzing replay {(_framesPerSecond > 0 ? $"at {_framesPerSecond}" : "")}...");
 
-        var results = ReplayAnalyzer.AnalyzeReplay(chart, _replayInfo, _replayData);
+        StartLogging();
+
         var results = ReplayAnalyzer.AnalyzeReplay(chart, _replayInfo, _replayData, _framesPerSecond, _frameIndex);
+
+        StopLogging();
 
         Console.WriteLine("Done!\n");
 
@@ -63,6 +67,7 @@ public partial class Cli
             Console.WriteLine($"Metadata score : {_replayInfo.BandScore}");
             Console.WriteLine($"Real score     : {bandScore}");
             Console.WriteLine($"Difference     : {Math.Abs(bandScore - _replayInfo.BandScore)}\n");
+            Console.ResetColor();
 
             for (int frameIndex = 0; frameIndex < _replayData.Frames.Length; frameIndex++)
             {

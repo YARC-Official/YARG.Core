@@ -11,7 +11,7 @@ namespace YARG.Core.Game
 {
     public class YargProfile
     {
-        private const int PROFILE_VERSION = 2;
+        private const int PROFILE_VERSION = 3;
 
         public Guid Id;
         public string Name;
@@ -24,6 +24,8 @@ namespace YARG.Core.Game
         public float HighwayLength;
 
         public bool LeftyFlip;
+
+        public bool RangeEnabled;
 
         public int? AutoConnectOrder;
 
@@ -55,18 +57,28 @@ namespace YARG.Core.Game
 
         /// <summary>
         /// The difficulty to be saved in the profile.
-        /// 
+        ///
         /// If a song does not contain this difficulty, so long as the player
         /// does not *explicitly* and *manually* change the difficulty, this value
         /// should remain unchanged.
         /// </summary>
         public Difficulty DifficultyFallback;
 
+        [JsonProperty("HarmonyIndex")]
+        private byte _harmonyIndex;
+
         /// <summary>
         /// The harmony index, used for determining what harmony part the player selected.
         /// Does nothing if <see cref="CurrentInstrument"/> is not a harmony.
         /// </summary>
-        public byte HarmonyIndex;
+        [JsonIgnore]
+        public byte HarmonyIndex
+        {
+            // Only expose harmony index when playing harmonies, ensures consistent behavior
+            // while still allowing harmony index to persist between instrument switches
+            get => CurrentInstrument == Instrument.Harmony ? _harmonyIndex : (byte) 0;
+            set => _harmonyIndex = value;
+        }
 
         /// <summary>
         /// The currently selected modifiers as a flag.
@@ -83,6 +95,7 @@ namespace YARG.Core.Game
             NoteSpeed = 6;
             HighwayLength = 1;
             LeftyFlip = false;
+            RangeEnabled = true;
 
             // Set preset IDs to default
             ColorProfile = Game.ColorProfile.Default.Id;
@@ -116,13 +129,18 @@ namespace YARG.Core.Game
             CurrentInstrument = (Instrument) stream.ReadByte();
             CurrentDifficulty = (Difficulty) stream.ReadByte();
             CurrentModifiers = (Modifier) stream.Read<ulong>(Endianness.Little);
-            HarmonyIndex = stream.ReadByte();
+            _harmonyIndex = stream.ReadByte();
 
             NoteSpeed = stream.Read<float>(Endianness.Little);
             HighwayLength = stream.Read<float>(Endianness.Little);
             LeftyFlip = stream.ReadBoolean();
 
             GameMode = CurrentInstrument.ToGameMode();
+
+            if (version >= 3)
+            {
+                RangeEnabled = stream.ReadBoolean();
+            }
         }
 
         public void AddSingleModifier(Modifier modifier)
@@ -179,6 +197,10 @@ namespace YARG.Core.Game
                     {
                         guitarTrack.ConvertFromTypeToType(GuitarNoteType.Tap, GuitarNoteType.Hopo);
                     }
+                    else if (IsModifierActive(Modifier.RangeCompress))
+                    {
+                        guitarTrack.CompressGuitarRange();
+                    }
 
                     break;
                 case GameMode.FourLaneDrums:
@@ -211,6 +233,11 @@ namespace YARG.Core.Game
             {
                 vocalsPart.ConvertAllToUnpitched();
             }
+
+            if (IsModifierActive(Modifier.NoVocalPercussion))
+            {
+                vocalsPart.RemovePercussion();
+            }
         }
 
         public void EnsureValidInstrument()
@@ -239,11 +266,13 @@ namespace YARG.Core.Game
             writer.Write((byte) CurrentInstrument);
             writer.Write((byte) CurrentDifficulty);
             writer.Write((ulong) CurrentModifiers);
-            writer.Write(HarmonyIndex);
+            writer.Write(_harmonyIndex);
 
             writer.Write(NoteSpeed);
             writer.Write(HighwayLength);
             writer.Write(LeftyFlip);
+
+            writer.Write(RangeEnabled);
         }
     }
 }

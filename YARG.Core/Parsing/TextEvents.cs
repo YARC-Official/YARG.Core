@@ -64,13 +64,18 @@ namespace YARG.Core.Parsing
         // Equivalent to reading the capture of this regex: \[(.*?)\]
         public static ReadOnlySpan<char> NormalizeTextEvent(ReadOnlySpan<char> text, out bool hadBrackets)
         {
-            hadBrackets = text.Length > 0 && text[0] == '[' && text[^1] == ']';
-            if (hadBrackets)
+            int startIndex = text.IndexOf('[');
+            int endIndex = text.IndexOf(']');
+            if (startIndex >= 0 && endIndex >= 0 && startIndex <= endIndex)
             {
-                // Remove brackets
-                text = text[1..(text.Length - 1)];
+                hadBrackets = true;
+                return text[++startIndex..endIndex].TrimAscii();
             }
-            return text;
+            else
+            {
+                hadBrackets = false;
+                return text.TrimAscii();
+            }
         }
 
         /// <inheritdoc cref="NormalizeTextEvent(ReadOnlySpan{char}, out bool)"/>

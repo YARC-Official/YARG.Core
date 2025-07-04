@@ -42,7 +42,13 @@ namespace YARG.Core.Replays.Analyzer
             _frameNum = frameNum;
 
             _fps = fps;
-            _doFrameUpdates = _fps > 0 || (replayData.FrameTimes.Length != 0 && _frameNum != -1);
+            _doFrameUpdates = _fps > 0 || (replayData.FrameTimes.Length > 0 && _frameNum >= 0);
+
+            // Ignore frame number when generating frame times
+            if (_fps > 0)
+            {
+                _frameNum = -1;
+            }
         }
 
         public static AnalysisResult[] AnalyzeReplay(SongChart chart, ReplayInfo info, ReplayData data, double fps = 0, int frameNum = -1)
@@ -185,51 +191,35 @@ namespace YARG.Core.Replays.Analyzer
             }
             else
             {
+                var frameTimes = _fps > 0
+                    ? GenerateFrameTimes(-2, maxTime).ToArray()
+                    : _replayData.FrameTimes;
+
                 // If we're doing frame updates, the inputs and frame times must be
                 // "interweaved" so nothing gets queued in the future
                 int currentInput = 0;
-                if (_replayData.FrameTimes.Length != 0)
+
+                for (int frameIndex = 0; frameIndex < frameTimes.Length; frameIndex++)
                 {
-                    for (int frameIndex = 0; frameIndex < _replayData.FrameTimes.Length; frameIndex++)
+                    double time = frameTimes[frameIndex];
+
+                    if (frameIndex == _frameNum)
                     {
-                        double time = _replayData.FrameTimes[frameIndex];
-
-                        if (frameIndex == _frameNum)
-                        {
-                            Debugger.Break();
-                        }
-
-                        for (; currentInput < frame.Inputs.Length; currentInput++)
-                        {
-                            var input = frame.Inputs[currentInput];
-                            if (input.Time > time)
-                            {
-                                break;
-                            }
-
-                            engine.QueueInput(ref input);
-                        }
-
-                        engine.Update(time);
+                        Debugger.Break();
                     }
-                }
-                else
-                {
-                    foreach (var time in GenerateFrameTimes(-2, maxTime))
+
+                    for (; currentInput < frame.Inputs.Length; currentInput++)
                     {
-                        for (; currentInput < frame.Inputs.Length; currentInput++)
+                        var input = frame.Inputs[currentInput];
+                        if (input.Time > time)
                         {
-                            var input = frame.Inputs[currentInput];
-                            if (input.Time > time)
-                            {
-                                break;
-                            }
-
-                            engine.QueueInput(ref input);
+                            break;
                         }
 
-                        engine.Update(time);
+                        engine.QueueInput(ref input);
                     }
+
+                    engine.Update(time);
                 }
             }
 
@@ -316,14 +306,13 @@ namespace YARG.Core.Replays.Analyzer
                 {
                     // Get the notes
                     var notes = _chart.GetVocalsTrack(profile.CurrentInstrument)
-                        .Parts[profile.HarmonyIndex].CloneAsInstrumentDifficulty();
-
-                    // No idea how vocals applies modifiers lol
-                    //profile.ApplyModifiers(notes);
+                        .Parts[profile.HarmonyIndex].Clone();
+                    profile.ApplyVocalModifiers(notes);
 
                     // Create engine
                     return new YargVocalsEngine(
-                        notes,
+                        // hate the double-clone lol but for now it'll be fine
+                        notes.CloneAsInstrumentDifficulty(),
                         _chart.SyncTrack,
                         (VocalsEngineParameters) parameters,
                         profile.IsBot);
@@ -433,7 +422,7 @@ namespace YARG.Core.Replays.Analyzer
                 original.MultiplierScore == result.MultiplierScore &&
                 original.SoloBonuses == result.SoloBonuses &&
                 original.StarPowerScore == result.StarPowerScore; // &&
-            // original.Stars == result.Stars;
+                // original.Stars == result.Stars;
 
             bool performancePass =
                 original.NotesHit == result.NotesHit &&
@@ -498,22 +487,19 @@ namespace YARG.Core.Replays.Analyzer
         private static bool IsInstrumentPassResult(GuitarStats original, GuitarStats result,
             ref Utf16ValueStringBuilder builder)
         {
-            if (YargLogger.MinimumLogLevel <= LogLevel.Debug)
+            void FormatStat<T>(string stat, T originalValue, T resultValue, ref Utf16ValueStringBuilder builder)
+                where T : IEquatable<T>
             {
-                void FormatStat<T>(string stat, T originalValue, T resultValue, ref Utf16ValueStringBuilder builder)
-                    where T : IEquatable<T>
-                {
-                    string format = originalValue.Equals(resultValue)
-                        ? "- {0}: {1} == {2}\n"
-                        : "- {0}: {1} != {2}\n";
-                    builder.AppendFormat(format, stat, originalValue, resultValue);
-                }
-
-                builder.AppendLine("Guitar:");
-                FormatStat("Overstrums", original.Overstrums, result.Overstrums, ref builder);
-                FormatStat("Ghost inputs", original.GhostInputs, result.GhostInputs, ref builder);
-                FormatStat("HOPOs strummed", original.HoposStrummed, result.HoposStrummed, ref builder);
+                string format = originalValue.Equals(resultValue)
+                    ? "- {0}: {1} == {2}\n"
+                    : "- {0}: {1} != {2}\n";
+                builder.AppendFormat(format, stat, originalValue, resultValue);
             }
+
+            builder.AppendLine("Guitar:");
+            FormatStat("Overstrums", original.Overstrums, result.Overstrums, ref builder);
+            FormatStat("Ghost inputs", original.GhostInputs, result.GhostInputs, ref builder);
+            FormatStat("HOPOs strummed", original.HoposStrummed, result.HoposStrummed, ref builder);
 
             return original.Overstrums == result.Overstrums &&
                 original.GhostInputs == result.GhostInputs &&
@@ -572,24 +558,19 @@ namespace YARG.Core.Replays.Analyzer
 
         // private static bool IsInstrumentPassResult(ProGuitarStats original, ProGuitarStats result)
         // {
-        //     if (YargLogger.MinimumLogLevel <= LogLevel.Debug)
+        //     using var builder = new Utf16ValueStringBuilder(true);
+
+        //     void FormatStat<T>(string stat, T originalValue, T resultValue)
+        //         where T : IEquatable<T>
         //     {
-        //         using var builder = new Utf16ValueStringBuilder(true);
-
-        //         void FormatStat<T>(string stat, T originalValue, T resultValue)
-        //             where T : IEquatable<T>
-        //         {
-        //             string format = originalValue.Equals(resultValue)
-        //                 ? "- {0}: {1} == {2}\n"
-        //                 : "- {0}: {1} != {2}\n";
-        //             builder.AppendFormat(format, stat, originalValue, resultValue);
-        //         }
-
-        //         builder.AppendLine("Pro Guitar:");
-        //         FormatStat("Stat", original.Stat, result.Stat);
-        //         YargLogger.LogDebug(builder.ToString());
-        //         builder.Clear();
+        //         string format = originalValue.Equals(resultValue)
+        //             ? "- {0}: {1} == {2}\n"
+        //             : "- {0}: {1} != {2}\n";
+        //         builder.AppendFormat(format, stat, originalValue, resultValue);
         //     }
+
+        //     builder.AppendLine("Pro Guitar:");
+        //     FormatStat("Stat", original.Stat, result.Stat);
 
         //     return original.Stat == result.Stat;
         // }

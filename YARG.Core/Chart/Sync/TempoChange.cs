@@ -22,6 +22,22 @@ namespace YARG.Core.Chart
             return new(BeatsPerMinute, Time, Tick);
         }
 
+        private void CheckTime(double time, [CallerArgumentExpression(nameof(time))] string name = "")
+        {
+            if (time < Time)
+            {
+                throw new ArgumentOutOfRangeException(name);
+            }
+        }
+
+        private void CheckTick(uint tick, [CallerArgumentExpression(nameof(tick))] string name = "")
+        {
+            if (tick < Tick)
+            {
+                throw new ArgumentOutOfRangeException(name);
+            }
+        }
+
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static long BpmToMicroSeconds(double tempo)
         {
@@ -36,6 +52,28 @@ namespace YARG.Core.Chart
             double secondsPerBeat = usecs / 1000f / 1000f;
             double tempo = SECONDS_PER_MINUTE / secondsPerBeat;
             return tempo;
+        }
+
+        public double TickToTime(uint tick, uint resolution)
+        {
+            CheckTick(tick);
+
+            double tickDelta = tick - Tick;
+            double beatDelta = tickDelta / resolution;
+            double timeDelta = beatDelta * SecondsPerBeat;
+
+            return Time + timeDelta;
+        }
+
+        public uint TimeToTick(double time, uint resolution)
+        {
+            CheckTime(time);
+
+            double timeDelta = time - Time;
+            double beatDelta = timeDelta / SecondsPerBeat;
+            double tickDelta = beatDelta * resolution;
+
+            return Tick + (uint) Math.Round(tickDelta);
         }
 
         public static bool operator ==(TempoChange? left, TempoChange? right)

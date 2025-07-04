@@ -73,8 +73,8 @@ namespace YARG.Core.Song
             ".png", ".jpg", ".jpeg", ".tga", ".bmp", ".psd", ".gif", ".pic"
         };
 
-        protected static readonly string YARGROUND_EXTENSION = ".yarground";
-        protected static readonly string YARGROUND_FULLNAME = "bg.yarground";
+        protected const string YARGROUND_EXTENSION = ".yarground";
+        protected const string YARGROUND_FULLNAME = "bg.yarground";
         protected static readonly Random BACKROUND_RNG = new();
 
         private SortString _name = SortString.Empty;
@@ -117,17 +117,45 @@ namespace YARG.Core.Song
 
         public int PlaylistTrack => _metadata.PlaylistTrack;
 
+        public SongRating SongRating => _metadata.SongRating;
+
         public string LoadingPhrase => _metadata.LoadingPhrase;
-        
-        public string CreditWrittenBy => _metadata.CreditWrittenBy;
-        
-        public string CreditPerformedBy => _metadata.CreditPerformedBy;
-        
-        public string CreditCourtesyOf => _metadata.CreditCourtesyOf;
-        
-        public string CreditAlbumCover => _metadata.CreditAlbumCover;
-        
-        public string CreditLicense => _metadata.CreditLicense;
+
+        public string LinkBandcamp  => _metadata.LinkBandcamp;
+        public string LinkBluesky   => _metadata.LinkBluesky;
+        public string LinkFacebook  => _metadata.LinkFacebook;
+        public string LinkInstagram => _metadata.LinkInstagram;
+        public string LinkSpotify   => _metadata.LinkSpotify;
+        public string LinkTwitter   => _metadata.LinkTwitter;
+        public string LinkOther     => _metadata.LinkOther;
+        public string LinkYoutube   => _metadata.LinkYoutube;
+
+        public string Location      => _metadata.Location;
+
+        public string CreditAlbumArtDesignedBy   => _metadata.CreditAlbumArtDesignedBy;
+        public string CreditArrangedBy           => _metadata.CreditArrangedBy;
+        public string CreditComposedBy           => _metadata.CreditComposedBy;
+        public string CreditCourtesyOf           => _metadata.CreditCourtesyOf;
+        public string CreditEngineeredBy         => _metadata.CreditEngineeredBy;
+        public string CreditLicense              => _metadata.CreditLicense;
+        public string CreditMasteredBy           => _metadata.CreditMasteredBy;
+        public string CreditMixedBy              => _metadata.CreditMixedBy;
+        public string CreditOther                => _metadata.CreditOther;
+        public string CreditPerformedBy          => _metadata.CreditPerformedBy;
+        public string CreditProducedBy           => _metadata.CreditProducedBy;
+        public string CreditPublishedBy          => _metadata.CreditPublishedBy;
+        public string CreditWrittenBy            => _metadata.CreditWrittenBy;
+
+        public string CharterBass       => _metadata.CharterBass;
+        public string CharterDrums      => _metadata.CharterDrums;
+        public string CharterEliteDrums => _metadata.CharterEliteDrums;
+        public string CharterGuitar     => _metadata.CharterGuitar;
+        public string CharterKeys       => _metadata.CharterKeys;
+        public string CharterLowerDiff  => _metadata.CharterLowerDiff;
+        public string CharterProBass    => _metadata.CharterProBass;
+        public string CharterProKeys    => _metadata.CharterProKeys;
+        public string CharterProGuitar  => _metadata.CharterProGuitar;
+        public string CharterVocals     => _metadata.CharterVocals;
 
         public long SongLengthMilliseconds => _metadata.SongLength;
 
@@ -293,11 +321,41 @@ namespace YARG.Core.Song
 
             stream.Write(_metadata.LoadingPhrase);
 
-            stream.Write(_metadata.CreditWrittenBy);
-            stream.Write(_metadata.CreditPerformedBy);
+            stream.Write(_metadata.LinkBandcamp);
+            stream.Write(_metadata.LinkBluesky);
+            stream.Write(_metadata.LinkFacebook);
+            stream.Write(_metadata.LinkInstagram);
+            stream.Write(_metadata.LinkSpotify);
+            stream.Write(_metadata.LinkTwitter);
+            stream.Write(_metadata.LinkOther);
+            stream.Write(_metadata.LinkYoutube);
+
+            stream.Write(_metadata.Location);
+
+            stream.Write(_metadata.CreditAlbumArtDesignedBy);
+            stream.Write(_metadata.CreditArrangedBy);
+            stream.Write(_metadata.CreditComposedBy);
             stream.Write(_metadata.CreditCourtesyOf);
-            stream.Write(_metadata.CreditAlbumCover);
+            stream.Write(_metadata.CreditEngineeredBy);
             stream.Write(_metadata.CreditLicense);
+            stream.Write(_metadata.CreditMasteredBy);
+            stream.Write(_metadata.CreditMixedBy);
+            stream.Write(_metadata.CreditOther);
+            stream.Write(_metadata.CreditPerformedBy);
+            stream.Write(_metadata.CreditProducedBy);
+            stream.Write(_metadata.CreditPublishedBy);
+            stream.Write(_metadata.CreditWrittenBy);
+
+            stream.Write(_metadata.CharterBass);
+            stream.Write(_metadata.CharterDrums);
+            stream.Write(_metadata.CharterEliteDrums);
+            stream.Write(_metadata.CharterGuitar);
+            stream.Write(_metadata.CharterKeys);
+            stream.Write(_metadata.CharterLowerDiff);
+            stream.Write(_metadata.CharterProBass);
+            stream.Write(_metadata.CharterProKeys);
+            stream.Write(_metadata.CharterProGuitar);
+            stream.Write(_metadata.CharterVocals);
 
             stream.Write(_settings.HopoThreshold, Endianness.Little);
             stream.Write(_settings.SustainCutoffThreshold, Endianness.Little);
@@ -343,11 +401,41 @@ namespace YARG.Core.Song
 
             _metadata.LoadingPhrase = stream.ReadString();
 
-            _metadata.CreditWrittenBy = stream.ReadString();
-            _metadata.CreditPerformedBy = stream.ReadString();
+            _metadata.LinkBandcamp = stream.ReadString();
+            _metadata.LinkBluesky = stream.ReadString();
+            _metadata.LinkFacebook = stream.ReadString();
+            _metadata.LinkInstagram = stream.ReadString();
+            _metadata.LinkSpotify = stream.ReadString();
+            _metadata.LinkTwitter = stream.ReadString();
+            _metadata.LinkOther = stream.ReadString();
+            _metadata.LinkYoutube = stream.ReadString();
+
+            _metadata.Location = stream.ReadString();
+
+            _metadata.CreditAlbumArtDesignedBy = stream.ReadString();
+            _metadata.CreditArrangedBy = stream.ReadString();
+            _metadata.CreditComposedBy = stream.ReadString();
             _metadata.CreditCourtesyOf = stream.ReadString();
-            _metadata.CreditAlbumCover = stream.ReadString();
+            _metadata.CreditEngineeredBy = stream.ReadString();
             _metadata.CreditLicense = stream.ReadString();
+            _metadata.CreditMasteredBy = stream.ReadString();
+            _metadata.CreditMixedBy = stream.ReadString();
+            _metadata.CreditOther = stream.ReadString();
+            _metadata.CreditPerformedBy = stream.ReadString();
+            _metadata.CreditProducedBy = stream.ReadString();
+            _metadata.CreditPublishedBy = stream.ReadString();
+            _metadata.CreditWrittenBy = stream.ReadString();
+
+            _metadata.CharterBass = stream.ReadString();
+            _metadata.CharterDrums = stream.ReadString();
+            _metadata.CharterEliteDrums = stream.ReadString();
+            _metadata.CharterGuitar = stream.ReadString();
+            _metadata.CharterKeys = stream.ReadString();
+            _metadata.CharterLowerDiff = stream.ReadString();
+            _metadata.CharterProBass = stream.ReadString();
+            _metadata.CharterProKeys = stream.ReadString();
+            _metadata.CharterProGuitar = stream.ReadString();
+            _metadata.CharterVocals = stream.ReadString();
 
             _settings.HopoThreshold = stream.Read<long>(Endianness.Little);
             _settings.SustainCutoffThreshold = stream.Read<long>(Endianness.Little);

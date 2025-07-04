@@ -68,7 +68,7 @@ namespace YARG.Core.Song
         public override string ActualLocation => _location;
         public override DateTime GetLastWriteTime() { return _chartLastWrite; }
 
-        protected abstract FixedArray<byte> GetChartData(string filename);
+        protected abstract FixedArray<byte>? GetChartData(string filename);
 
         internal override void Serialize(MemoryStream stream, CacheWriteIndices indices)
         {
@@ -81,7 +81,7 @@ namespace YARG.Core.Song
         public override SongChart? LoadChart()
         {
             using var data = GetChartData(CHART_FILE_TYPES[(int) _chartFormat].Filename);
-            if (!data.IsAllocated)
+            if (data == null)
             {
                 return null;
             }
@@ -105,9 +105,9 @@ namespace YARG.Core.Song
             return SongChart.FromDotChart(in parseSettings, reader.ReadToEnd());
         }
 
-        public override FixedArray<byte> LoadMiloData()
+        public override FixedArray<byte>? LoadMiloData()
         {
-            return FixedArray<byte>.Null;
+            return null;
         }
 
         protected new void Deserialize(ref FixedArrayStream stream, CacheReadStrings strings)
@@ -126,7 +126,7 @@ namespace YARG.Core.Song
             _chartFormat = chartFormat;
         }
 
-        protected internal static ScanResult ScanChart(IniSubEntry entry, in FixedArray<byte> file, IniModifierCollection modifiers)
+        protected internal static ScanResult ScanChart(IniSubEntry entry, FixedArray<byte> file, IniModifierCollection modifiers)
         {
             var drums_type = DrumsType.Any;
             if (modifiers.Extract("five_lane_drums", out bool fiveLaneDrums))
@@ -143,23 +143,23 @@ namespace YARG.Core.Song
                 }
                 else
                 {
-                    using var chars = YARGTextReader.TryUTF16Cast(in file);
-                    if (chars.IsAllocated)
+                    using var chars = YARGTextReader.TryUTF16Cast(file);
+                    if (chars != null)
                     {
-                        var charContainer = YARGTextReader.CreateUTF16Container(in chars);
+                        var charContainer = YARGTextReader.CreateUTF16Container(chars);
                         resolution = ParseDotChart(ref charContainer, modifiers, ref entry._parts, ref drums_type);
                     }
                     else
                     {
-                        using var ints = YARGTextReader.CastUTF32(in file);
-                        var intContainer = YARGTextReader.CreateUTF32Container(in ints);
+                        using var ints = YARGTextReader.CastUTF32(file);
+                        var intContainer = YARGTextReader.CreateUTF32Container(ints);
                         resolution = ParseDotChart(ref intContainer, modifiers, ref entry._parts, ref drums_type);
                     }
                 }
             }
             else // if (chartType == ChartType.Mid || chartType == ChartType.Midi) // Uncomment for any future file type
             {
-                resolution = ParseDotMidi(in file, modifiers, ref entry._parts, ref drums_type);
+                resolution = ParseDotMidi(file, modifiers, ref entry._parts, ref drums_type);
             }
 
             if (!resolution)
@@ -191,9 +191,9 @@ namespace YARG.Core.Song
                 {
                     entry._settings.HopoThreshold = resolution.Value / (eighthNoteHopo ? 2 : 3);
                 }
-                else if (modifiers.Extract("hopofreq", out long hopoFreq))
+                else if (modifiers.Extract("hopofreq", out int hopoFreq))
                 {
-                    int denominator = hopoFreq switch
+                    long denominator = hopoFreq switch
                     {
                         0 => 24,
                         1 => 16,
@@ -357,7 +357,7 @@ namespace YARG.Core.Song
             return resolution;
         }
 
-        private static ScanExpected<long> ParseDotMidi(in FixedArray<byte> file, IniModifierCollection modifiers, ref AvailableParts parts, ref DrumsType drumsType)
+        private static ScanExpected<long> ParseDotMidi(FixedArray<byte> file, IniModifierCollection modifiers, ref AvailableParts parts, ref DrumsType drumsType)
         {
             if (drumsType != DrumsType.FiveLane)
             {
@@ -377,7 +377,7 @@ namespace YARG.Core.Song
                     drumsType -= DrumsType.ProDrums;
                 }
             }
-            return ParseMidi(in file, ref parts, ref drumsType);
+            return ParseMidi(file, ref parts, ref drumsType);
         }
 
         /// <returns>Whether the track was fully traversed</returns>

@@ -18,30 +18,30 @@ namespace YARG.Core.Song
             long percussionPosition = -1;
 
             var note = default(MidiNote);
-            var stats = default(YARGMidiTrack.Stats);
+            var stats = default(MidiStats);
             while (track.ParseEvent(ref stats))
             {
                 if (stats.Type is MidiEventType.Note_On or MidiEventType.Note_Off)
                 {
                     track.ExtractMidiNote(ref note);
                     // Note Ons with no velocity equates to a note Off by spec
-                    if (stats.Type == MidiEventType.Note_On && note.velocity > 0)
+                    if (stats.Type == MidiEventType.Note_On && note.Velocity > 0)
                     {
-                        if (VOCAL_MIN <= note.value && note.value <= VOCAL_MAX)
+                        if (VOCAL_MIN <= note.Value && note.Value <= VOCAL_MAX)
                         {
                             vocalPosition = stats.Position;
                         }
-                        else if (note.value == VOCAL_PHRASE_1 || note.value == VOCAL_PHRASE_2)
+                        else if (note.Value == VOCAL_PHRASE_1 || note.Value == VOCAL_PHRASE_2)
                         {
                             phrasePosition = int.MaxValue;
                         }
-                        else if (note.value == PERCUSSION_NOTE && isLeadVocals)
+                        else if (note.Value == PERCUSSION_NOTE && isLeadVocals)
                         {
                             percussionPosition = stats.Position;
                         }
                     }
                     // NoteOff from this point
-                    else if (VOCAL_MIN <= note.value && note.value <= VOCAL_MAX)
+                    else if (VOCAL_MIN <= note.Value && note.Value <= VOCAL_MAX)
                     {
                         // HARM 2/3 do not use phrases defined in their own tracks to mark playable vocals
                         if (vocalPosition >= 0 && (stats.Position <= phrasePosition || !isLeadVocals))
@@ -50,12 +50,12 @@ namespace YARG.Core.Song
                         }
                         vocalPosition = -1;
                     }
-                    else if (note.value == VOCAL_PHRASE_1 || note.value == VOCAL_PHRASE_2)
+                    else if (note.Value == VOCAL_PHRASE_1 || note.Value == VOCAL_PHRASE_2)
                     {
                         // Accounts for when a phrase ends at the same time as a vocal/precussion note but is in-file first
                         phrasePosition = stats.Position;
                     }
-                    else if (note.value == PERCUSSION_NOTE)
+                    else if (note.Value == PERCUSSION_NOTE)
                     {
                         if (percussionPosition >= 0 && stats.Position <= phrasePosition)
                         {

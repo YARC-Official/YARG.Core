@@ -13,61 +13,47 @@ namespace YARG.Core.IO
         DXT5,
     }
 
-    public struct YARGImage : IDisposable
+    public class YARGImage : IDisposable
     {
-        public static readonly YARGImage Null = new()
-        {
-            _handle = FixedArray<byte>.Null,
-            _disposed = true,
-            _data = null,
-            _width = 0,
-            _height = 0,
-            _format = 0,
-        };
+        private FixedArray<byte>? _handle;
 
-        private FixedArray<byte> _handle;
-        private bool _disposed;
+        public unsafe byte*       Data { get; private set; }
 
-        private unsafe byte* _data;
-        private int _width;
-        private int _height;
-        private ImageFormat _format;
+        public        int         Width { get; private set; }
 
-        public readonly unsafe byte* Data => _data;
-        public readonly int Width => _width;
-        public readonly int Height => _height;
-        public readonly ImageFormat Format => _format;
-        public readonly unsafe bool IsAllocated => _data != null;
+        public        int         Height { get; private set; }
 
-        public static YARGImage Load(string path)
+        public        ImageFormat Format { get; private set; }
+
+        public static YARGImage? Load(string path)
         {
             using var bytes = FixedArray.LoadFile(path);
-            return Load(in bytes);
+            return Load(bytes);
         }
 
-        public static unsafe YARGImage Load(in FixedArray<byte> file)
+        public static unsafe YARGImage? Load(FixedArray<byte> file)
         {
             var result = LoadNative(file.Ptr, (int) file.Length, out int width, out int height, out int components);
             if (result == null)
             {
-                return Null;
+                return null;
             }
-            return new YARGImage()
+            return new YARGImage
             {
-                _data = result,
-                _width = width,
-                _height = height,
-                _format = (ImageFormat) components
+                Data = result,
+                Width = width,
+                Height = height,
+                Format = (ImageFormat) components
             };
         }
 
         public static YARGImage LoadDXT(string path)
         {
-            var data = FixedArray.LoadFile(path);
-            return TransferDXT(ref data);
+            using var data = FixedArray.LoadFile(path);
+            return TransferDXT(data);
         }
 
-        public static unsafe YARGImage TransferDXT(ref FixedArray<byte> file)
+        public static unsafe YARGImage TransferDXT(FixedArray<byte> file)
         {
             byte bitsPerPixel = file[1];
             int format = *(int*) (file.Ptr + 2);
@@ -75,37 +61,43 @@ namespace YARG.Core.IO
             return new YARGImage()
             {
                 _handle = file.TransferOwnership(),
-                _data = file.Ptr + 32,
-                _width = *(short*) (file.Ptr + 7),
-                _height = *(short*) (file.Ptr + 9),
-                _format = isDXT1 ? ImageFormat.DXT1 : ImageFormat.DXT5
+                Data = file.Ptr + 32,
+                Width = *(short*) (file.Ptr + 7),
+                Height = *(short*) (file.Ptr + 9),
+                Format = isDXT1 ? ImageFormat.DXT1 : ImageFormat.DXT5
             };
         }
 
-        private void _Dispose()
+        private void _Dispose(bool disposing)
         {
-            
-            if (!_disposed)
+            unsafe
             {
-                unsafe
+                if (Data == null)
                 {
-                    if (_handle.IsAllocated)
-                    {
-                        _handle.Dispose();
-                    }
-                    else if (_data != null)
-                    {
-                        FreeNative(_data);
-                    }
+                    return;
                 }
-                _disposed = true;
+
+                if (_handle == null)
+                {
+                    FreeNative(Data);
+                }
+                else if (disposing)
+                {
+                    _handle.Dispose();
+                }
+                Data = null;
             }
         }
 
         public void Dispose()
         {
-            _Dispose();
+            _Dispose(true);
             GC.SuppressFinalize(this);
+        }
+
+        ~YARGImage()
+        {
+            _Dispose(false);
         }
 
         [DllImport("STB2CSharp", EntryPoint = "load_image_from_memory")]
