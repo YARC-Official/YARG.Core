@@ -1,4 +1,4 @@
-﻿namespace ReplayCli;
+namespace ReplayCli;
 
 public enum AnalyzerMode
 {
@@ -8,4 +8,5 @@ public enum AnalyzerMode
     SimulateFps,
     DumpInputs,
     Read,
+    Fuzz,
 }

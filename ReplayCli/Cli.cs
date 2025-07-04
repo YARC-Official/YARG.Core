@@ -21,9 +21,21 @@ public partial class Cli
     private int _frameIndex = -1;
 
     private string _logPath;
+    
+    // Fuzzer-specific options (simplified for MVP)
+    private int _fuzzIterations = 100;
+    private int _fuzzSeed = -1;
+    private string _fuzzInstrument;
+    private string _fuzzDifficulty;
+    private bool _fuzzParallel = true; // Default to parallel execution
+    private int _fuzzMaxThreads = Environment.ProcessorCount;
 
     private ReplayInfo _replayInfo;
     private ReplayData _replayData;
+    
+    // Song metadata for display
+    private string _currentSongName = "Unknown";
+    private string _currentSongArtist = "Unknown";
 
     private BaseYargLogListener _logListener;
 
@@ -35,7 +47,7 @@ public partial class Cli
     /// </returns>
     public bool ParseArguments(string[] args)
     {
-        if (args.Length < 2)
+        if (args.Length < 1)
         {
             PrintHelpMessage();
             return false;
@@ -49,6 +61,7 @@ public partial class Cli
             "simulate_fps" => AnalyzerMode.SimulateFps,
             "dump_inputs"  => AnalyzerMode.DumpInputs,
             "read"         => AnalyzerMode.Read,
+            "fuzz"         => AnalyzerMode.Fuzz,
             _              => AnalyzerMode.None
         };
 
@@ -58,16 +71,27 @@ public partial class Cli
             return false;
         }
 
-        // Argument 2 is the path to the replay
-        _replayPath = args[1].Trim();
-        if (!File.Exists(_replayPath))
+        // Argument 2 is the path to the replay (not needed for fuzz mode)
+        if (_runMode != AnalyzerMode.Fuzz)
         {
-            Console.WriteLine("ERROR: Replay file does not exist!");
-            return false;
+            if (args.Length < 2)
+            {
+                Console.WriteLine("ERROR: Replay file path is required for this mode!");
+                PrintHelpMessage();
+                return false;
+            }
+            
+            _replayPath = args[1].Trim();
+            if (!File.Exists(_replayPath))
+            {
+                Console.WriteLine("ERROR: Replay file does not exist!");
+                return false;
+            }
         }
 
         // Rest of the arguments are options
-        for (int i = 2; i < args.Length; i++)
+        int startIndex = _runMode == AnalyzerMode.Fuzz ? 1 : 2;
+        for (int i = startIndex; i < args.Length; i++)
         {
             var arg = args[i];
             switch (arg)
@@ -169,6 +193,100 @@ public partial class Cli
 
                     break;
                 }
+                case "--iterations":
+                case "-i":
+                {
+                    i++;
+                    if (i >= args.Length)
+                    {
+                        Console.WriteLine("ERROR: Missing iterations value.");
+                        PrintHelpMessage();
+                        return false;
+                    }
+
+                    if (!int.TryParse(args[i], out _fuzzIterations) || _fuzzIterations <= 0)
+                    {
+                        Console.WriteLine("ERROR: Invalid iterations value!");
+                        return false;
+                    }
+
+                    break;
+                }
+
+                case "--seed":
+                {
+                    i++;
+                    if (i >= args.Length)
+                    {
+                        Console.WriteLine("ERROR: Missing seed value.");
+                        PrintHelpMessage();
+                        return false;
+                    }
+
+                    if (!int.TryParse(args[i], out _fuzzSeed))
+                    {
+                        Console.WriteLine("ERROR: Invalid seed value. Must be an integer.");
+                        PrintHelpMessage();
+                        return false;
+                    }
+
+                    break;
+                }
+                case "--instrument":
+                {
+                    i++;
+                    if (i >= args.Length)
+                    {
+                        Console.WriteLine("ERROR: Missing instrument value.");
+                        PrintHelpMessage();
+                        return false;
+                    }
+
+                    _fuzzInstrument = args[i].Trim();
+                    break;
+                }
+                case "--difficulty":
+                {
+                    i++;
+                    if (i >= args.Length)
+                    {
+                        Console.WriteLine("ERROR: Missing difficulty value.");
+                        PrintHelpMessage();
+                        return false;
+                    }
+
+                    _fuzzDifficulty = args[i].Trim();
+                    break;
+                }
+                case "--parallel":
+                {
+                    _fuzzParallel = true;
+                    break;
+                }
+                case "--no-parallel":
+                {
+                    _fuzzParallel = false;
+                    break;
+                }
+                case "--max-threads":
+                {
+                    i++;
+                    if (i >= args.Length)
+                    {
+                        Console.WriteLine("ERROR: Missing max threads value.");
+                        PrintHelpMessage();
+                        return false;
+                    }
+
+                    if (!int.TryParse(args[i], out _fuzzMaxThreads) || _fuzzMaxThreads <= 0)
+                    {
+                        Console.WriteLine("ERROR: Invalid max threads value. Must be a positive integer.");
+                        return false;
+                    }
+
+                    break;
+                }
+
                 case "--help":
                 case "-h":
                 {
@@ -194,6 +312,16 @@ public partial class Cli
             }
         }
 
+        // Validate required arguments for fuzz mode
+        if (_runMode == AnalyzerMode.Fuzz)
+        {
+            if (string.IsNullOrEmpty(_songPath))
+            {
+                Console.WriteLine("ERROR: Song path is required for fuzz mode!");
+                return false;
+            }
+        }
+
         return true;
     }
 
@@ -207,15 +335,24 @@ public partial class Cli
                 verify              Verifies the replay's metadata.
                 simulate_fps        Simulates FPS updates to verify the engines consistency.
                 dump_inputs         Dumps the replay's inputs.
+                fuzz                Runs fuzzy testing to detect engine inconsistencies.
 
-              replay-path: the path to the replay file
+              replay-path: the path to the replay file (not used in fuzz mode)
 
             Options:
               -h  | --help                      Show this help message.
 
-              -s  | --song <path>               Path to the song. (required in `verify` and `simulate_fps` modes)
+              -s  | --song <path>               Path to the song. (required in `verify`, `simulate_fps`, and `fuzz` modes)
               -f  | --fps <value>               The framerate value to simulate with. (optional)
               -fi | --frame-index <value>       Place a debug break at a specific frame index. (optional)
+
+              -i  | --iterations <value>        Number of fuzzing iterations to run. (fuzz mode only, default: 100)
+              --seed <value>                    Random seed for reproducible test generation. (fuzz mode only)
+              --instrument <value>              Target instrument (e.g., FiveFretGuitar, FourLaneDrums). (fuzz mode only)
+              --difficulty <value>              Target difficulty (e.g., Expert, Hard). (fuzz mode only)
+              --parallel                        Enable parallel test execution. (fuzz mode only, default: enabled)
+              --no-parallel                     Disable parallel test execution. (fuzz mode only)
+              --max-threads <value>             Maximum number of parallel threads to use. (fuzz mode only, default: CPU count)
 
               -l  | --log-file <path>           Output log messages to the specified path.
                                                 By default, log messages are output to the console.
@@ -254,6 +391,12 @@ public partial class Cli
     /// </returns>
     public bool Run()
     {
+        // Handle fuzz mode specially since it may not need a replay file
+        if (_runMode == AnalyzerMode.Fuzz)
+        {
+            return RunFuzz();
+        }
+
         (var result, _replayInfo, _replayData) = ReplayIO.TryDeserialize(_replayPath);
         if (result != ReplayReadResult.Valid)
         {
@@ -306,10 +449,19 @@ public partial class Cli
 
     private SongChart ReadChart()
     {
+        // For fuzz mode, use the fuzz-specific chart loading
+        if (_runMode == AnalyzerMode.Fuzz)
+        {
+            return ReadChartForFuzz(_songPath);
+        }
+
         string tempDir = Path.Combine(Path.GetTempPath(), $"ReplayCLI-{Guid.NewGuid()}");
 
         try
         {
+            // Ensure the temporary directory exists
+            Directory.CreateDirectory(tempDir);
+            
             string tempCache = Path.Combine(tempDir, "songcache.bin");
             string tempBadSongs = Path.Combine(tempDir, "badsongs.txt");
 
@@ -345,6 +497,94 @@ public partial class Cli
             }
 
             return entries[0].LoadChart();
+        }
+        catch (Exception e)
+        {
+            Console.WriteLine($"ERROR: Failed to load notes file. \n{e}");
+            return null;
+        }
+        finally
+        {
+            if (Directory.Exists(tempDir))
+            {
+                Directory.Delete(tempDir, recursive: true);
+            }
+        }
+    }
+
+    private SongChart ReadChartForFuzz(string songPath)
+    {
+        string tempDir = Path.Combine(Path.GetTempPath(), $"ReplayCLI-{Guid.NewGuid()}");
+
+        try
+        {
+            // Ensure the temporary directory exists
+            Directory.CreateDirectory(tempDir);
+            
+            string tempCache = Path.Combine(tempDir, "songcache.bin");
+            string tempBadSongs = Path.Combine(tempDir, "badsongs.txt");
+
+            string scanPath = songPath;
+            if (File.Exists(songPath))
+            {
+                // If it's a file, scan the directory containing it
+                scanPath = Path.GetDirectoryName(songPath);
+            }
+            else if (!Directory.Exists(songPath))
+            {
+                Console.WriteLine("ERROR: Song path does not exist!");
+                return null;
+            }
+
+            Console.Write("Running song scan... ");
+            Console.WriteLine($"Scanning path: {scanPath}");
+            var directories = new List<string>() { scanPath };
+            var cache = CacheHandler.RunScan(
+                tryQuickScan: false,
+                tempCache,
+                tempBadSongs,
+                fullDirectoryPlaylists: false,
+                directories
+            );
+
+            Console.WriteLine($"Found {cache.Entries.Count} entries.");
+            Console.WriteLine();
+
+            if (cache.Entries.Count == 0)
+            {
+                Console.WriteLine("ERROR: No songs found in the specified path!");
+                return null;
+            }
+
+            // For fuzz mode, just take the first available chart
+            // If a specific file was provided, try to find it by name
+            if (File.Exists(songPath))
+            {
+                var fileName = Path.GetFileNameWithoutExtension(songPath);
+                foreach (var kvp in cache.Entries)
+                {
+                    foreach (var entry in kvp.Value)
+                    {
+                        // Try to match by filename or song name
+                        if (entry.ActualLocation.Contains(fileName) || 
+                            ((string)entry.Name).Contains(fileName))
+                        {
+                            // Store song metadata for display
+                            _currentSongName = entry.Name;
+                            _currentSongArtist = entry.Artist;
+                            return entry.LoadChart();
+                        }
+                    }
+                }
+            }
+
+            // Fallback: just use the first available chart
+            var firstEntry = cache.Entries.Values.First()[0];
+            Console.WriteLine($"Using chart: {(string)firstEntry.Name}");
+            // Store song metadata for display
+            _currentSongName = firstEntry.Name;
+            _currentSongArtist = firstEntry.Artist;
+            return firstEntry.LoadChart();
         }
         catch (Exception e)
         {
