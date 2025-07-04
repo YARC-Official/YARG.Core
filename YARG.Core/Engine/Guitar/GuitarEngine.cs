@@ -8,15 +8,20 @@ namespace YARG.Core.Engine.Guitar
     public abstract class GuitarEngine : BaseEngine<GuitarNote, GuitarEngineParameters,
         GuitarStats>
     {
+        // Mask of all the solo buttons in bit math
+        protected const ushort SOLO_MASK = 31744;
+
         public const byte OPEN_MASK = 64;
 
         public delegate void OverstrumEvent();
 
         public OverstrumEvent? OnOverstrum;
 
-        public byte ButtonMask { get; protected set; } = OPEN_MASK;
-
+        public byte EffectiveButtonMask { get; protected set; } = OPEN_MASK;
+        public ushort InputButtonMask { get; protected set; }
         public byte LastButtonMask { get; protected set; }
+
+        public bool StandardButtonHeld  { get; private set; }
 
         protected bool HasFretted;
         protected bool HasStrummed;
@@ -83,9 +88,9 @@ namespace YARG.Core.Engine.Guitar
 
         public override void Reset(bool keepCurrentButtons = false)
         {
-            byte buttons = ButtonMask;
+            byte buttons = EffectiveButtonMask;
 
-            ButtonMask = OPEN_MASK;
+            EffectiveButtonMask = OPEN_MASK;
 
             HasFretted = false;
             HasStrummed = false;
@@ -104,7 +109,7 @@ namespace YARG.Core.Engine.Guitar
 
             if (keepCurrentButtons)
             {
-                ButtonMask = buttons;
+                EffectiveButtonMask = buttons;
             }
         }
 
@@ -165,7 +170,7 @@ namespace YARG.Core.Engine.Guitar
         {
             var mask = note.IsDisjoint ? note.DisjointMask : note.NoteMask;
 
-            var buttonsMasked = ButtonMask;
+            var buttonsMasked = EffectiveButtonMask;
             if ((mask & OPEN_MASK) != 0)
             {
                 buttonsMasked |= OPEN_MASK;
@@ -353,12 +358,20 @@ namespace YARG.Core.Engine.Guitar
 
         protected void ToggleFret(int fret, bool active)
         {
-            ButtonMask = (byte) (active ? ButtonMask | (1 << fret) : ButtonMask & ~(1 << fret));
+            InputButtonMask = (ushort) (active ? InputButtonMask | (1 << fret) : InputButtonMask & ~(1 << fret));
+
+            // What we're doing here is transposing bits 10-14 of the input mask down to 0-4 of the effective mask
+            // used elsewhere so that solo buttons are treated as if they were regular buttons
+            byte soloButtonMask = (byte) (InputButtonMask >> 10);
+
+            // EffectiveButtonMask is the bitwise or of the low 8 bits of InputButtonMask and soloButtonMask
+            EffectiveButtonMask = (byte) (InputButtonMask | soloButtonMask);
+            StandardButtonHeld = (InputButtonMask & ~OPEN_MASK & ~SOLO_MASK) > 0;
         }
 
         public bool IsFretHeld(GuitarAction fret)
         {
-            return (ButtonMask & (1 << (int) fret)) != 0;
+            return (EffectiveButtonMask & (1 << (int) fret)) != 0;
         }
 
         protected static bool IsFretInput(GameInput input)
@@ -370,6 +383,11 @@ namespace YARG.Core.Engine.Guitar
                     GuitarAction.YellowFret or
                     GuitarAction.BlueFret or
                     GuitarAction.OrangeFret or
+                    GuitarAction.SoloGreenFret or
+                    GuitarAction.SoloRedFret or
+                    GuitarAction.SoloYellowFret or
+                    GuitarAction.SoloBlueFret or
+                    GuitarAction.SoloOrangeFret or
                     GuitarAction.White3Fret => true,
                 _ => false,
             };
