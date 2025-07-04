@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Text;
 using YARG.Core.Chart;
 using YARG.Core.Engine;
@@ -25,7 +24,7 @@ namespace YARG.Core.Replays.Analyzer
         private readonly ReplayInfo _replayInfo;
         private readonly ReplayData _replayData;
 
-        private readonly double _fps;
+        private double _fps;
         private readonly bool   _doFrameUpdates;
 
         private readonly int _frameNum;
@@ -148,91 +147,76 @@ namespace YARG.Core.Replays.Analyzer
 
         private AnalysisResult[] Analyze()
         {
-            var results = new AnalysisResult[_replayData.Frames.Length];
-
-            for (int i = 0; i < results.Length; i++)
+            var frames = new List<ReplayFrame>();
+            for (int i = 0; i < _replayData.Frames.Length; i++)
             {
-                var frame = _replayData.Frames[i];
-                var result = RunFrame(frame);
-
-                results[i] = result;
+                frames.Add(_replayData.Frames[i]);
             }
 
-            return results;
+            var replayResults = RunFrames(frames);
+            return replayResults.ToArray();
         }
 
-        private AnalysisResult RunFrame(ReplayFrame frame)
+        private List<AnalysisResult> RunFrames(List<ReplayFrame> frames)
         {
-            var engine = CreateEngine(frame.Profile, frame.EngineParameters);
-            engine.SetSpeed(frame.EngineParameters.SongSpeed);
-            engine.Reset();
-
-            double maxTime = _replayInfo.ReplayLength;
-            if (frame.Inputs.Length > 0)
+            var engines = new List<BaseEngine>();
+            var manager = new EngineManager();
+            double maxTime = 0;
+            var results = new List<AnalysisResult>();
+            foreach (var frame in frames)
             {
-                double last = frame.Inputs[^1].Time;
-                if (last > maxTime)
+                var engine = CreateEngine(frame.Profile, frame.EngineParameters);
+                engines.Add(engine);
+                manager.Register(engine, frame.Profile.CurrentInstrument, _chart);
+                engine.SetSpeed(frame.EngineParameters.SongSpeed);
+                engine.Reset();
+
+                maxTime = _chart.GetEndTime();
+                if (frame.Inputs.Length > 0)
                 {
-                    maxTime = last;
-                }
-            }
-
-            if (!_doFrameUpdates)
-            {
-                // If we're not doing frame updates, just queue all of the inputs at once
-                foreach (var input in frame.Inputs)
-                {
-                    var inp = input;
-                    engine.QueueInput(ref inp);
-                }
-
-                // Run the engine updates
-                engine.Update(maxTime);
-            }
-            else
-            {
-                var frameTimes = _fps > 0
-                    ? GenerateFrameTimes(-2, maxTime).ToArray()
-                    : _replayData.FrameTimes;
-
-                // If we're doing frame updates, the inputs and frame times must be
-                // "interweaved" so nothing gets queued in the future
-                int currentInput = 0;
-
-                for (int frameIndex = 0; frameIndex < frameTimes.Length; frameIndex++)
-                {
-                    double time = frameTimes[frameIndex];
-
-                    if (frameIndex == _frameNum)
+                    double last = frame.Inputs[^1].Time;
+                    if (last > maxTime)
                     {
-                        Debugger.Break();
+                        maxTime = last;
                     }
+                }
+                maxTime += 2;
+            }
 
-                    for (; currentInput < frame.Inputs.Length; currentInput++)
+            // Seems like a sensible default?
+            _fps = _fps > 0 ? _fps : 60;
+            int currentInput = 0;
+            foreach (var time in GenerateFrameTimes(-2, maxTime))
+            {
+                for (var i = 0;i < engines.Count; i++) {
+                    for (; currentInput < frames[i].Inputs.Length; currentInput++)
                     {
-                        var input = frame.Inputs[currentInput];
+                        var input = frames[i].Inputs[currentInput];
                         if (input.Time > time)
                         {
                             break;
                         }
-
-                        engine.QueueInput(ref input);
+                        // TODO: Consider running this through EngineManager as well
+                        engines[i].QueueInput(ref input);
                     }
-
-                    engine.Update(time);
                 }
+
+                manager.UpdateEngines(time);
             }
 
-            bool passed = IsPassResult(frame.Stats, engine.BaseStats, out string log);
-
-            return new AnalysisResult
+            for (var i = 0; i < frames.Count; i++)
             {
-                Passed = passed,
-                Frame = frame,
-                OriginalStats = frame.Stats,
-                ResultStats = engine.BaseStats,
-                StatLog = log,
-            };
+                bool passed = IsPassResult(frames[i].Stats, engines[i].BaseStats, out string log);
+                results.Add(new AnalysisResult
+                {
+                    Passed = passed,
+                    Frame = frames[i],
+                    OriginalStats = frames[i].Stats,
+                    ResultStats = engines[i].BaseStats,
+                    StatLog = log,
+                });
+            }
+            return results;
         }
 
         private BaseEngine CreateEngine(YargProfile profile, BaseEngineParameters parameters)
