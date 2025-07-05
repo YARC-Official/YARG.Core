@@ -75,6 +75,11 @@ namespace YARG.Core.Chart
             return totalEndTime;
         }
 
+        public double GetLastNoteEndTime()
+        {
+            return Notes.GetEndTime();
+        }
+
         public uint GetFirstTick()
         {
             uint totalFirstTick = 0;

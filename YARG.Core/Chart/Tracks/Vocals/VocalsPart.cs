@@ -66,6 +66,18 @@ namespace YARG.Core.Chart
             return totalEndTime;
         }
 
+        public double GetLastNoteEndTime()
+        {
+            if (NotePhrases.Count > 0)
+            {
+                return NotePhrases[^1].TimeEnd;
+            }
+
+            // Not sure if we should be returning 0 or MaxValue or something else.
+            // 0 should be fine given what this is used for, but it feels somehow wrong
+            return 0;
+        }
+
         public uint GetFirstTick()
         {
             uint totalFirstTick = 0;

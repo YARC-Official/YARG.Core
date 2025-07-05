@@ -362,7 +362,28 @@ namespace YARG.Core.Chart
             return totalEndTime;
         }
 
-        public double GetLastNoteEndTime() => GetEndTime(true);
+        public double GetLastNoteEndTime()
+        {
+            double TrackMax<TNote>(IEnumerable<InstrumentTrack<TNote>> tracks) where TNote : Note<TNote>
+                => tracks.Max((track) => track.GetLastNoteEndTime());
+            double VoxMax(IEnumerable<VocalsTrack> tracks)
+                => tracks.Max((track) => track.GetLastNoteEndTime());
+
+            double totalEndTime = 0;
+
+            totalEndTime = Math.Max(TrackMax(FiveFretTracks), totalEndTime);
+            totalEndTime = Math.Max(TrackMax(SixFretTracks), totalEndTime);
+            totalEndTime = Math.Max(TrackMax(DrumsTracks), totalEndTime);
+            totalEndTime = Math.Max(TrackMax(ProGuitarTracks), totalEndTime);
+
+            totalEndTime = Math.Max(ProKeys.GetEndTime(), totalEndTime);
+
+            totalEndTime = Math.Max(VoxMax(VocalsTracks), totalEndTime);
+
+            return totalEndTime;
+        }
+
+        // public double GetLastNoteEndTime() => GetEndTime(true);
 
         public uint GetFirstTick()
         {
