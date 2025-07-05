@@ -383,8 +383,6 @@ namespace YARG.Core.Chart
             return totalEndTime;
         }
 
-        // public double GetLastNoteEndTime() => GetEndTime(true);
-
         public uint GetFirstTick()
         {
             static uint TrackMin<TNote>(IEnumerable<InstrumentTrack<TNote>> tracks) where TNote : Note<TNote>
