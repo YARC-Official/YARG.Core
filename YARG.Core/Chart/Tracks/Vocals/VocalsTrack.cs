@@ -61,12 +61,12 @@ namespace YARG.Core.Chart
             return totalStartTime;
         }
 
-        public double GetEndTime(bool noteOnly = false)
+        public double GetEndTime()
         {
             double totalEndTime = 0;
             foreach (var part in Parts)
             {
-                totalEndTime = Math.Max(part.GetEndTime(noteOnly), totalEndTime);
+                totalEndTime = Math.Max(part.GetEndTime(), totalEndTime);
             }
 
             return totalEndTime;

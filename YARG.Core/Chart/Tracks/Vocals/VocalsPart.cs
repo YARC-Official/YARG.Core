@@ -48,17 +48,12 @@ namespace YARG.Core.Chart
             return totalStartTime;
         }
 
-        public double GetEndTime(bool noteOnly = false)
+        public double GetEndTime()
         {
             double totalEndTime = 0;
 
             if (NotePhrases.Count > 0)
                 totalEndTime = Math.Max(NotePhrases[^1].TimeEnd, totalEndTime);
-
-            if (noteOnly)
-            {
-                return totalEndTime;
-            }
 
             totalEndTime = Math.Max(OtherPhrases.GetEndTime(), totalEndTime);
             totalEndTime = Math.Max(TextEvents.GetEndTime(), totalEndTime);

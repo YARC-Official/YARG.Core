@@ -329,12 +329,12 @@ namespace YARG.Core.Chart
             return totalStartTime;
         }
 
-        public double GetEndTime(bool noteOnly = false)
+        public double GetEndTime()
         {
             double TrackMax<TNote>(IEnumerable<InstrumentTrack<TNote>> tracks) where TNote : Note<TNote>
-                => tracks.Max((track) => track.GetEndTime(noteOnly));
+                => tracks.Max((track) => track.GetEndTime());
             double VoxMax(IEnumerable<VocalsTrack> tracks)
-                => tracks.Max((track) => track.GetEndTime(noteOnly));
+                => tracks.Max((track) => track.GetEndTime());
 
             double totalEndTime = 0;
 
