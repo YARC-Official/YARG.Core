@@ -10,7 +10,7 @@ namespace YARG.Core.Song
         public const string UPGRADES_MIDI_EXT = "_plus.mid";
 
         public abstract DateTime LastWriteTime { get; }
-        public abstract FixedArray<byte> LoadUpgradeMidi();
+        public abstract FixedArray<byte>? LoadUpgradeMidi();
 
         protected readonly AbridgedFileInfo _root;
         protected RBProUpgrade(in AbridgedFileInfo root)
@@ -34,11 +34,11 @@ namespace YARG.Core.Song
             _listing = listing;
         }
 
-        public override FixedArray<byte> LoadUpgradeMidi()
+        public override FixedArray<byte>? LoadUpgradeMidi()
         {
             return _listing != null && _root.IsStillValid()
                 ? CONFileStream.LoadFile(_root.FullName, _listing)
-                : FixedArray<byte>.Null;
+                : null;
         }
     }
 
@@ -57,9 +57,9 @@ namespace YARG.Core.Song
             _lastWritetime = lastWriteTime;
         }
 
-        public override FixedArray<byte> LoadUpgradeMidi()
+        public override FixedArray<byte>? LoadUpgradeMidi()
         {
-            var data = FixedArray<byte>.Null;
+            var data = default(FixedArray<byte>);
             if (AbridgedFileInfo.Validate(Path.Combine(_root.FullName, UPGRADES_DTA), in _root.LastWriteTime))
             {
                 string file = Path.Combine(_root.FullName, _name + UPGRADES_MIDI_EXT);

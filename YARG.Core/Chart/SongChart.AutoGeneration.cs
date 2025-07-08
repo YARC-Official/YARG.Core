@@ -205,17 +205,17 @@ namespace YARG.Core.Chart
             // Align activation phrases with measure boundaries that have already been evaluated
             var measureBeatLines = SyncTrack.Beatlines.Where(x => x.Type == BeatlineType.Measure).ToList();
 
-            int currentMeasureIndex = measureBeatLines.GetIndexOfPrevious(spacingRefTime);
+            int currentMeasureIndex = measureBeatLines.LowerBound(spacingRefTime);
             int totalMeasures = measureBeatLines.Count;
 
             // Prefer section boundaries and time signature changes for activation placement when possible
-            int currentSectionIndex = Sections.GetIndexOfPrevious(spacingRefTime);
+            int currentSectionIndex = Sections.LowerBound(spacingRefTime);
 
             var timeSigChanges = SyncTrack.TimeSignatures;
-            int currentTimeSigIndex = timeSigChanges.GetIndexOfPrevious(spacingRefTime);
+            int currentTimeSigIndex = timeSigChanges.LowerBound(spacingRefTime);
 
             // Do not place activation phrases inside of solo phrases
-            int currentSoloIndex = soloPhrases.GetIndexOfPrevious(spacingRefTime);
+            int currentSoloIndex = soloPhrases.LowerBound(spacingRefTime);
             uint lastSoloTick = soloPhrases.GetLastTick();
 
             while (currentMeasureIndex < totalMeasures - 4)
@@ -233,7 +233,7 @@ namespace YARG.Core.Chart
 
                 var currentMeasureLine = measureBeatLines[currentMeasureIndex];
 
-                int newSectionIndex = Sections.GetIndexOfPrevious(currentMeasureLine.Tick);
+                int newSectionIndex = Sections.LowerBound(currentMeasureLine.Tick);
                 if (newSectionIndex > currentSectionIndex)
                 {
                     // Moved forward into a new section
@@ -241,13 +241,13 @@ namespace YARG.Core.Chart
                     var currentSection = Sections[currentSectionIndex];
 
                     //move the activation point to the start of this section
-                    currentMeasureIndex = measureBeatLines.GetIndexOfPrevious(currentSection.Tick);
+                    currentMeasureIndex = measureBeatLines.LowerBound(currentSection.Tick);
                     currentMeasureLine = measureBeatLines[currentMeasureIndex];
                 }
                 else
                 {
                     // Still in the same section (or no sections exist), look for a time signature change
-                    int newTimeSigIndex = timeSigChanges.GetIndexOfPrevious(currentMeasureLine.Tick);
+                    int newTimeSigIndex = timeSigChanges.LowerBound(currentMeasureLine.Tick);
                     if (newTimeSigIndex > currentTimeSigIndex)
                     {
                         // Moved forward into a new time signature
@@ -255,14 +255,14 @@ namespace YARG.Core.Chart
                         var currentTimeSig = timeSigChanges[currentTimeSigIndex];
 
                         //move the activation point to the start of this time signature
-                        currentMeasureIndex = measureBeatLines.GetIndexOfPrevious(currentTimeSig.Tick);
+                        currentMeasureIndex = measureBeatLines.LowerBound(currentTimeSig.Tick);
                         currentMeasureLine = measureBeatLines[currentMeasureIndex];
                     }
                 }
 
                 uint currentMeasureTick = currentMeasureLine.Tick;
 
-                int newSPPhraseIndex = starPowerPhrases.GetIndexOfPrevious(currentMeasureTick);
+                int newSPPhraseIndex = starPowerPhrases.LowerBound(currentMeasureTick);
                 if (newSPPhraseIndex > currentSPPhraseIndex)
                 {
                     // New SP phrase encountered. Update reference time to the end of this SP phrase
@@ -274,7 +274,7 @@ namespace YARG.Core.Chart
                 // Prevent placing an activation phrase here if it overlaps with a solo section
                 if (soloPhrases.Count > 0 && currentMeasureTick < lastSoloTick)
                 {
-                    int newSoloIndex = soloPhrases.GetIndexOfPrevious(currentMeasureTick);
+                    int newSoloIndex = soloPhrases.LowerBound(currentMeasureTick);
 
                     if (newSoloIndex > currentSoloIndex)
                     {
@@ -297,7 +297,7 @@ namespace YARG.Core.Chart
                 uint starPowerEndTick = measureBeatLines[starPowerEndMeasureIndex].Tick;
 
                 int totalNotesForStarPower = 0;
-                var testNote = diffChart.Notes.GetNext(currentMeasureTick);
+                var testNote = diffChart.Notes.UpperBoundElement(currentMeasureTick);
                 while (totalNotesForStarPower < SP_MIN_NOTES && testNote != null && testNote.Tick <= starPowerEndTick)
                 {
                     totalNotesForStarPower += testNote.ChildNotes.Count + 1;
@@ -346,7 +346,7 @@ namespace YARG.Core.Chart
                 }
 
                 // Attempt to retrieve an activation note directly on the bar line
-                var activationNote = allNotes.GetNext(barLineTick - 1);
+                var activationNote = allNotes.UpperBoundElement(barLineTick - 1);
 
                 bool searchForAltNote = false;
 
@@ -368,7 +368,7 @@ namespace YARG.Core.Chart
                     // Allow a window of +/- an eighth note for syncopated activator notes
                     uint eighthNoteTickLength = newPhrase.TickLength / 8;
 
-                    var testNote = allNotes.GetNext(barLineTick - eighthNoteTickLength - 1);
+                    var testNote = allNotes.UpperBoundElement(barLineTick - eighthNoteTickLength - 1);
                     while (testNote != null && testNote.Tick <= barLineTick + eighthNoteTickLength)
                     {
                         if (activationNote == null)
@@ -409,7 +409,7 @@ namespace YARG.Core.Chart
                     phraseToApply.TimeLength = activationNote.Time - phraseToApply.Time;
                 }
 
-                int newPhraseIndex = diffChart.Phrases.GetIndexOfNext(phraseToApply.Tick);
+                int newPhraseIndex = diffChart.Phrases.UpperBound(phraseToApply.Tick);
 
                 if (newPhraseIndex != -1)
                 {
@@ -463,5 +463,159 @@ namespace YARG.Core.Chart
 
             return containsCrash && (containsKick || containsSnare);
         }
+
+        // Add range shift events to the InstrumentDifficulty
+        private void CreateRangeShiftPhrases()
+        {
+            var allPossibleDifficulties = Enum.GetValues(typeof(Difficulty));
+
+            // Only guitar/bass have range shifts
+            foreach (var track in FiveFretTracks)
+            {
+
+                foreach (Difficulty difficulty in allPossibleDifficulties)
+                {
+                    if (!track.TryGetDifficulty(difficulty, out var instrumentDifficulty))
+                    {
+                        continue;
+                    }
+
+                    if (instrumentDifficulty.Notes.Count == 0)
+                    {
+                        // No notes in this difficulty, nothing to do
+                        continue;
+                    }
+
+                    var rangeShiftEvents = ParseRangeShifts(instrumentDifficulty);
+
+                    for (var i = 0; i < rangeShiftEvents.Count; i++)
+                    {
+                        var time = rangeShiftEvents[i].Time;
+                        var tick = rangeShiftEvents[i].Tick;
+                        double timeEnd;
+                        uint tickEnd;
+
+                        // Overlaps will lead to bad things, so the end of one phrase is a tick before the beginning of the next
+                        if (i + 1 < rangeShiftEvents.Count)
+                        {
+                            tickEnd = rangeShiftEvents[i + 1].Tick - 1;
+                            timeEnd = SyncTrack.TickToTime(tickEnd);
+                        }
+                        else
+                        {
+                            // This is the last range shift, so it ends once all the notes are over
+                            var lastNote = instrumentDifficulty.Notes[^1];
+                            tickEnd = lastNote.TickEnd;
+                            timeEnd = lastNote.TimeEnd;
+                        }
+
+                        var range = rangeShiftEvents[i].Range;
+                        var size = rangeShiftEvents[i].Size;
+
+                        var newPhrase = new RangeShift(time, timeEnd - time, tick, tickEnd - tick, range, size);
+                        int newPhraseIndex = instrumentDifficulty.RangeShiftEvents.UpperBound(newPhrase.Tick);
+
+                        // Add or insert the new event into the list for the given instrument difficulty
+                        if (newPhraseIndex == -1)
+                        {
+                            instrumentDifficulty.RangeShiftEvents.Add(newPhrase);
+                        }
+                        else
+                        {
+                            instrumentDifficulty.RangeShiftEvents.Insert(newPhraseIndex, newPhrase);
+                        }
+                    }
+                }
+            }
+        }
+
+        private static List<RangeShiftEvent> ParseRangeShifts(InstrumentDifficulty<GuitarNote> instrumentDifficulty)
+        {
+            // List<TextEvent> textEvents = new List<TextEvent>();
+            List<RangeShiftEvent> rangeShiftEvents = new List<RangeShiftEvent>();
+            int size;
+
+            foreach (var textEvent in instrumentDifficulty.TextEvents)
+            {
+                if (!textEvent.Text.StartsWith("ld_range_shift"))
+                {
+                    continue;
+                }
+
+                // Validate the event and add it to the list
+                // My natural inclination here would be to use a regex, but they're not really used
+                // anywhere else in YARG, so...
+                var splitEvent = textEvent.Text.Split(' ');
+
+                // 3 uses default size, 4 explicitly defines range size
+                if (splitEvent.Length != 3 && splitEvent.Length != 4)
+                {
+                    YargLogger.LogDebug("Invalid range shift event. (Improper parameter count)");
+                    continue;
+                }
+
+                if (!(int.TryParse(splitEvent[1], out int eventDifficulty) &&
+                    int.TryParse(splitEvent[2], out int range)))
+                {
+                    YargLogger.LogDebug("Invalid range shift event. (Unable to parse difficulty and range)");
+                    continue;
+                }
+
+                // Add one to eventDifficulty to make it match the Difficulty enum
+                eventDifficulty++;
+
+                if (splitEvent.Length == 4 && !int.TryParse(splitEvent[3], out size))
+                {
+                    YargLogger.LogDebug("Invalid range shift event. (Unable to parse size)");
+                    continue;
+                }
+                else
+                {
+                    size = eventDifficulty switch
+                    {
+                        (int) Difficulty.Easy    => 3,
+                        (int) Difficulty.Medium  => 4,
+                        _                        => 5,
+                    };
+                }
+
+                // Further validation
+                // 1) Is the range index valid
+                if (range < 1 || range > 5)
+                {
+                    continue;
+                }
+
+                // 2) Is the size valid for the range index
+                if (range + size > 6)
+                {
+                    continue;
+                }
+
+                // 3) Does it apply to this difficulty?
+                if ((int) instrumentDifficulty.Difficulty != eventDifficulty)
+                {
+                    continue;
+                }
+
+                // We have a syntactically valid range shift, so add it to the list
+                rangeShiftEvents.Add(new RangeShiftEvent
+                {
+                    Time = textEvent.Time,
+                    Tick = textEvent.Tick,
+                    Range = range,
+                    Size = size
+                });
+            }
+            return rangeShiftEvents;
+        }
+    }
+
+    internal struct RangeShiftEvent
+    {
+        public double Time;
+        public uint Tick;
+        public int Range;
+        public int Size;
     }
 }

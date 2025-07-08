@@ -67,7 +67,7 @@ namespace YARG.Core.Chart
         public uint SustainTicksHeld;
 
         public TNote? Parent { get; private set; }
-        public IReadOnlyList<TNote> ChildNotes => _childNotes;
+        public List<TNote> ChildNotes => _childNotes;
 
         /// <summary>
         /// Returns this note's parent, and if it's null, returns itself instead.

@@ -1,6 +1,4 @@
 ﻿using System;
-using System.Collections;
-using System.Collections.Generic;
 using System.IO;
 
 namespace YARG.Core.IO
@@ -19,14 +17,14 @@ namespace YARG.Core.IO
         private ushort _numTracks;
         private ushort _resolution;
 
-        private long _position;
+        private int    _position;
         private ushort _trackNumber;
 
         public readonly ushort Format => _format;
         public readonly ushort NumTracks => _numTracks;
         public readonly ushort Resolution => _resolution;
 
-        public static YARGMidiFile Load(in FixedArray<byte> data)
+        public static YARGMidiFile Load(FixedArray<byte> data)
         {
             if (TAG_SIZE > data.Length
             || !HEADER_TAG.Matches(data.ReadonlySlice(0, TAG_SIZE)))
