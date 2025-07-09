@@ -211,9 +211,10 @@ namespace MoonscraperChartEditor.Song.IO
 
             // Manually move over events so we can avoid excessive element moves
             // from using RemoveAt or RemoveAll
-            int moveOffset = 0;
+            int insertIndex = 0;
 
-            for (int i = 0; i < chart.events.Count; ++i)
+            int i;
+            for (i = 0; i < chart.events.Count; i++, insertIndex++)
             {
                 var ev = chart.events[i];
                 if (ev.text == TextEvents.SOLO_START)
@@ -227,8 +228,8 @@ namespace MoonscraperChartEditor.Song.IO
                         nextStartTick = ev.tick;
                     }
 
-                    // Remove from list by not moving element over
-                    moveOffset++;
+                    // Remove from list by overwriting
+                    insertIndex--;
                     continue;
                 }
                 else if (ev.text == TextEvents.SOLO_END)
@@ -253,23 +254,18 @@ namespace MoonscraperChartEditor.Song.IO
                         }
                     }
 
-                    // Remove from list by not moving element over
-                    moveOffset++;
+                    // Remove from list by overwriting
+                    insertIndex--;
                     continue;
                 }
 
-                // If we've removed events, move all successive ones down in the list
-                if (moveOffset > 0)
-                {
-                    chart.events[i - moveOffset] = ev;
-                }
+                // Move element to its new position
+                chart.events[insertIndex] = ev;
             }
 
             // Trim off remaining excess elements from any removals
-            if (moveOffset > 0)
-            {
-                chart.events.RemoveRange(chart.events.Count - moveOffset, moveOffset);
-            }
+            int removed = i - insertIndex;
+            chart.events.RemoveRange(chart.events.Count - removed, removed);
         }
 
         private static void DisambiguateDrumsType(ref NoteProcessParams processParams)
