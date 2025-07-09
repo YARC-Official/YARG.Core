@@ -213,8 +213,7 @@ namespace MoonscraperChartEditor.Song.IO
             // from using RemoveAt or RemoveAll
             int insertIndex = 0;
 
-            int i;
-            for (i = 0; i < chart.events.Count; i++, insertIndex++)
+            for (int i = 0; i < chart.events.Count; i++)
             {
                 var ev = chart.events[i];
                 if (ev.text == TextEvents.SOLO_START)
@@ -229,7 +228,6 @@ namespace MoonscraperChartEditor.Song.IO
                     }
 
                     // Remove from list by overwriting
-                    insertIndex--;
                     continue;
                 }
                 else if (ev.text == TextEvents.SOLO_END)
@@ -255,17 +253,15 @@ namespace MoonscraperChartEditor.Song.IO
                     }
 
                     // Remove from list by overwriting
-                    insertIndex--;
                     continue;
                 }
 
                 // Move element to its new position
-                chart.events[insertIndex] = ev;
+                chart.events[insertIndex++] = ev;
             }
 
             // Trim off remaining excess elements from any removals
-            int removed = i - insertIndex;
-            chart.events.RemoveRange(chart.events.Count - removed, removed);
+            chart.events.RemoveRange(insertIndex, chart.events.Count - insertIndex);
         }
 
         private static void DisambiguateDrumsType(ref NoteProcessParams processParams)
