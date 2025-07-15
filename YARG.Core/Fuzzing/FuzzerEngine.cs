@@ -160,6 +160,24 @@ namespace YARG.Core.Fuzzing
                 result.Inconsistencies = inconsistencies.ToArray();
                 result.Passed = inconsistencies.Count == 0;
 
+                // Capture final engine stats from the last execution for display purposes
+                if (executionCount > 0)
+                {
+                    try
+                    {
+                        // Execute one final time with regular timing to get clean final stats
+                        var finalExecution = ExecuteEngineWithInputsAndStats(chart, testCase, testCase.InputSequence, FrameTimingPattern.Regular, cancellationToken);
+                        if (finalExecution.HasValue)
+                        {
+                            result.FinalEngineStats = finalExecution.Value.Stats;
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        YargLogger.LogWarning($"Failed to capture final stats: {ex.Message}");
+                    }
+                }
+
                 // Update statistics
                 if (iterationTimes.Count > 0)
                 {

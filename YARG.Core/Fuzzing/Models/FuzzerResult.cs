@@ -1,4 +1,5 @@
 using System;
+using YARG.Core.Engine;
 using YARG.Core.Fuzzing.Interfaces;
 
 namespace YARG.Core.Fuzzing.Models
@@ -40,6 +41,9 @@ namespace YARG.Core.Fuzzing.Models
 
         /// <summary>CLI command to reproduce this test failure</summary>
         public string ReproductionCommand { get; set; } = string.Empty;
+
+        /// <summary>Final engine stats from the last successful execution</summary>
+        public BaseStats? FinalEngineStats { get; set; }
     }
 
     /// <summary>

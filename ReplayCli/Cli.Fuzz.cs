@@ -132,6 +132,9 @@ public partial class Cli
         Console.WriteLine($"Failed: {failedTests}");
         Console.WriteLine();
         
+        // Display final stats from the test cases
+        PrintFinalStats(results);
+        
         if (failedTests > 0)
         {
             Console.ForegroundColor = ConsoleColor.Red;
@@ -192,5 +195,61 @@ public partial class Cli
         Console.WriteLine();
     }
 
+    private void PrintFinalStats(FuzzerResult[] results)
+    {
+        Console.WriteLine("=== FINAL STATS SUMMARY ===");
+        
+        // Group results by test case name to show stats for each scenario
+        var groupedResults = results.GroupBy(r => r.TestCase.Name).ToList();
+        
+        foreach (var group in groupedResults)
+        {
+            var testCaseName = group.Key;
+            var testResults = group.ToList();
+            
+            Console.WriteLine($"\n{testCaseName}:");
+            
+            // Try to extract stats from the test case execution
+            // Since we don't have direct access to final stats in FuzzerResult,
+            // we'll extract them from the detailed report or reproduction command
+            var sampleResult = testResults.FirstOrDefault();
+            if (sampleResult != null)
+            {
+                ExtractAndDisplayStats(sampleResult);
+            }
+        }
+        
+        Console.WriteLine();
+    }
+    
+    private void ExtractAndDisplayStats(FuzzerResult result)
+    {
+        Console.WriteLine($"  Executions: {result.TotalExecutions}");
+        Console.WriteLine($"  Execution time: {result.ExecutionTime.TotalMilliseconds:F2}ms");
+        
+        if (result.Statistics != null)
+        {
+            Console.WriteLine($"  Avg iteration time: {result.Statistics.AverageIterationTime.TotalMilliseconds:F2}ms");
+            Console.WriteLine($"  Frame timing patterns: {result.Statistics.FrameTimingPatternsCount}");
+            Console.WriteLine($"  State comparisons: {result.Statistics.StateComparisonsCount}");
+        }
+        
+        // Display final engine stats if available
+        if (result.FinalEngineStats != null)
+        {
+            var stats = result.FinalEngineStats;
+            Console.WriteLine($"  Final Score: {stats.TotalScore:N0}");
+            Console.WriteLine($"  Star Power Ticks: {stats.TotalStarPowerTicks:N0}");
+            Console.WriteLine($"  Whammy Ticks: {stats.StarPowerWhammyTicks:N0}");
+            Console.WriteLine($"  Notes Hit: {stats.NotesHit}/{stats.TotalNotes} ({stats.Percent:P1})");
+            Console.WriteLine($"  Max Combo: {stats.MaxCombo:N0}");
+            Console.WriteLine($"  Star Power Activations: {stats.StarPowerActivationCount}");
+            Console.WriteLine($"  Time in Star Power: {stats.TimeInStarPower:F2}s");
+        }
+        else
+        {
+            Console.WriteLine("  [Final stats not captured]");
+        }
+    }
 
 }
