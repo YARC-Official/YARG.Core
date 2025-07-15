@@ -183,13 +183,24 @@ namespace YARG.Core.Chart
 
         private void TrimOrphanPhrases(List<VocalsPhrase> vocalPhrases, List<Phrase> otherPhrases)
         {
-            for (int i = 0; i < otherPhrases.Count; i++)
+            int vocalPhraseIndex = 0;
+
+            foreach (var otherPhrase in otherPhrases.ToList())
             {
-                if (!vocalPhrases.Any(e => e.Tick == otherPhrases[i].Tick))
+                while (vocalPhraseIndex < vocalPhrases.Count
+                    && vocalPhrases[vocalPhraseIndex].Tick > otherPhrase.Tick)
                 {
-                    otherPhrases.RemoveAt(i);
-                    i--;
+                    vocalPhraseIndex++;
                 }
+
+                if (vocalPhraseIndex >= vocalPhrases.Count
+                    || vocalPhrases[vocalPhraseIndex].Tick < otherPhrase.Tick)
+                {
+                    // No match found.
+                    otherPhrases.Remove(otherPhrase);
+                }
+
+                // Otherwise, match found. Keep the other phrase.
             }
         }
 
@@ -422,7 +433,7 @@ namespace YARG.Core.Chart
             // No need to check the start of the phrase, as entering the function
             // already guarantees that condition *if* the below is true
             var starPower = phrasetracker[MoonPhrase.Type.Starpower];
-            if (starPower != null &&  moonPhrase.tick < starPower.tick + starPower.length)
+            if (starPower != null && moonPhrase.tick < starPower.tick + starPower.length)
             {
                 phraseFlags |= NoteFlags.StarPower;
             }

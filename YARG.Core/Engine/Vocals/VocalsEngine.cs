@@ -229,8 +229,13 @@ namespace YARG.Core.Engine.Vocals
         protected uint GetTicksInPhrase(VocalNote phrase)
         {
             uint totalTime = 0;
-            foreach (var noteInPhrase in phrase.ChildNotes.Where(e => !e.IsPercussion))
+            foreach (var noteInPhrase in phrase.ChildNotes)
             {
+                if (noteInPhrase.IsPercussion)
+                {
+                    continue;
+                }
+
                 // If the note continues past the end of the current phrase, clamp it to the end of the phrase instead.
                 totalTime += phrase.GetTicksForNote(noteInPhrase);
             }
@@ -336,7 +341,16 @@ namespace YARG.Core.Engine.Vocals
                 return;
             }
 
-            CarriedVocalNote = phrase.ChildNotes.FirstOrDefault(e => !e.IsPercussion && e.TotalTickEnd > phrase.TickEnd);
+            CarriedVocalNote = null;
+            foreach (var note in phrase.ChildNotes)
+            {
+                if (!note.IsPercussion && note.TotalTickEnd > phrase.TickEnd)
+                {
+                    CarriedVocalNote = note;
+                    break;
+                }
+            }
+
             EngineStats.HasCarryNote = CarriedVocalNote != null;
         }
     }
