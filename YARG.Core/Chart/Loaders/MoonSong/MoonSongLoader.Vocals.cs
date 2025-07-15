@@ -188,13 +188,13 @@ namespace YARG.Core.Chart
             foreach (var otherPhrase in otherPhrases.ToList())
             {
                 while (vocalPhraseIndex < vocalPhrases.Count
-                    && vocalPhrases[vocalPhraseIndex].Tick > otherPhrase.Tick)
+                    && vocalPhrases[vocalPhraseIndex].Tick < otherPhrase.Tick)
                 {
                     vocalPhraseIndex++;
                 }
 
                 if (vocalPhraseIndex >= vocalPhrases.Count
-                    || vocalPhrases[vocalPhraseIndex].Tick < otherPhrase.Tick)
+                    || vocalPhrases[vocalPhraseIndex].Tick > otherPhrase.Tick)
                 {
                     // No match found.
                     otherPhrases.Remove(otherPhrase);
