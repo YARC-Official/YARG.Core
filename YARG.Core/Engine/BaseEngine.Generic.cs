@@ -40,6 +40,8 @@ namespace YARG.Core.Engine
 
         protected SustainList<TNoteType> ActiveSustains = new(10);
 
+        protected double WhammyTicksRemainder = 0.0;
+
         protected          int[]  StarScoreThresholds { get; }
         protected readonly double TicksPerSustainPoint;
         protected readonly uint   SustainBurstThreshold;
@@ -205,7 +207,8 @@ namespace YARG.Core.Engine
                     uint maxWhammyTick = SyncTrack.MeasureTickToQuarterTick(maxWhammySpTick);
 
                     // Simulate whammy gain
-                    uint whammyGain = CalculateStarPowerGain(maxWhammyTick, previousTick);
+                    double whammyTickRemainder = WhammyTicksRemainder;
+                    uint whammyGain = CalculateStarPowerGain(maxWhammyTick, Math.Max(previousTick, FirstWhammyTick), ref whammyTickRemainder);
                     spTickAmount += whammyGain;
 
                     if (BaseStats.IsStarPowerActive)
@@ -305,6 +308,17 @@ namespace YARG.Core.Engine
                     }
                 }
             }
+        }
+
+        protected void StartWhammyTimer(double time)
+        {
+            if (!StarPowerWhammyTimer.IsActive)
+            {
+                FirstWhammyTick = SyncTrack.TimeToTick(time);
+                WhammyTicksRemainder = 0;
+                YargLogger.LogTrace($"Setting FirstWhammyTick to {FirstWhammyTick}");
+            }
+            StarPowerWhammyTimer.Start(time);
         }
 
         protected override void UpdateTimeVariables(double time)
@@ -622,7 +636,7 @@ namespace YARG.Core.Engine
         {
             if (IsStarPowerSustainActive() && StarPowerWhammyTimer.IsActive)
             {
-                var whammyTicks = CalculateStarPowerGain(CurrentTick, LastTick);
+                var whammyTicks = CalculateStarPowerGain(CurrentTick, Math.Max(LastTick, FirstWhammyTick), ref WhammyTicksRemainder);
 
                 // Don't cap until drain has been calculated
                 BaseStats.StarPowerTickAmount += whammyTicks;
@@ -703,14 +717,18 @@ namespace YARG.Core.Engine
             return false;
         }
 
-        protected uint CalculateStarPowerGain(uint quarterTick, uint lastQuarterTick)
+        protected uint CalculateStarPowerGain(uint quarterTick, uint lastQuarterTick, ref double tickRemainder)
         {
+
             const int MAX_BEATS = STAR_POWER_MAX_MEASURES * 4;
             const double GAIN_FACTOR = MAX_BEATS / (double) (MAX_BEATS - 2); // - 2 for leniency
 
-            double gain = (quarterTick - lastQuarterTick) * GAIN_FACTOR;
+            double gain = (quarterTick - lastQuarterTick) * GAIN_FACTOR + tickRemainder;
+            double rounded = Math.Round(gain);
+            YargLogger.LogTrace($"Calculating whammy whammy gain, quarterTick: {quarterTick}, lastQuarterTick: {lastQuarterTick}, gain: {gain}, rounded: {rounded}, remainderIn: {tickRemainder}");
+            tickRemainder = gain - rounded;
 
-            return (uint) Math.Round(gain);
+            return (uint) rounded;
         }
 
         protected uint CalculateStarPowerDrain(uint measureTick, uint lastMeasureTick)

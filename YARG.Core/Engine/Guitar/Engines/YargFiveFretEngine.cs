@@ -74,7 +74,7 @@ namespace YARG.Core.Engine.Guitar.Engines
             }
             else if (action is GuitarAction.Whammy)
             {
-                StarPowerWhammyTimer.Start(gameInput.Time);
+                StartWhammyTimer(gameInput.Time);
             }
             else if (action is GuitarAction.StrumDown or GuitarAction.StrumUp && gameInput.Button)
             {

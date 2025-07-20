@@ -65,6 +65,7 @@ namespace YARG.Core.Engine
 
         public uint CurrentTick { get; protected set; }
         public uint LastTick { get; protected set; }
+        public uint FirstWhammyTick { get; protected set; }
 
         public int CurrentSoloIndex { get; protected set; }
         public int CurrentStarIndex { get; protected set; }
