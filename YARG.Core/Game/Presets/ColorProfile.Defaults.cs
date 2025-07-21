@@ -116,12 +116,18 @@ namespace YARG.Core.Game
                 YellowFret = AprilFoolsYellow,
                 BlueFret   = AprilFoolsBlue,
                 GreenFret  = AprilFoolsGreen,
+                YellowCymbalFret = AprilFoolsYellow,
+                BlueCymbalFret = AprilFoolsBlue,
+                GreenCymbalFret = AprilFoolsGreen,
 
                 KickFretInner   = AprilFoolsPurple,
                 RedFretInner    = AprilFoolsRed,
                 YellowFretInner = AprilFoolsYellow,
                 BlueFretInner   = AprilFoolsBlue,
                 GreenFretInner  = AprilFoolsGreen,
+                YellowCymbalFretInner = AprilFoolsYellow,
+                BlueCymbalFretInner = AprilFoolsBlue,
+                GreenCymbalFretInner = AprilFoolsGreen,
 
                 KickNote = AprilFoolsPurple,
 
