@@ -48,7 +48,7 @@ namespace MoonscraperChartEditor.Song
             for (int i = 0; i < charts.Length; ++i)
             {
                 var instrument = (MoonInstrument)(i / EnumExtensions<Difficulty>.Count);
-                charts[i] = new MoonChart(this, instrument);
+                charts[i] = new MoonChart(instrument);
             }
         }
 
@@ -193,17 +193,32 @@ namespace MoonscraperChartEditor.Song
             AddSyncEvent(syncTrack.Beatlines, beat);
         }
 
-        public void Add(MoonText ev)
+        public void AddText(MoonText ev)
         {
-            MoonObjectHelper.Insert(ev, events);
+            MoonObjectHelper.AddToEnd(ev, events);
         }
 
         public void AddSection(MoonText section)
         {
-            MoonObjectHelper.Insert(section, sections);
+            MoonObjectHelper.AddToEnd(section, sections);
         }
 
         public void Add(MoonVenue venueEvent)
+        {
+            MoonObjectHelper.AddToEnd(venueEvent, venue);
+        }
+
+        public void InsertText(MoonText ev)
+        {
+            MoonObjectHelper.Insert(ev, events);
+        }
+
+        public void InsertSection(MoonText section)
+        {
+            MoonObjectHelper.Insert(section, sections);
+        }
+
+        public void Insert(MoonVenue venueEvent)
         {
             MoonObjectHelper.Insert(venueEvent, venue);
         }
