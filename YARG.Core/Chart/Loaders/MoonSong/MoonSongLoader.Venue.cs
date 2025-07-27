@@ -25,6 +25,13 @@ namespace YARG.Core.Chart
             var spotlightPerformers = Performer.None;
             var singalongPerformers = Performer.None;
 
+            // We need to do the same for camera cut events
+            MoonVenue? cameraCutCurrentEvent = null;
+            var currentCutSubject = CameraCutEvent.CameraCutSubject.Random;
+            var currentCutConstraints = CameraCutEvent.CameraCutConstraint.None;
+            List<CameraCutEvent.CameraCutSubject> currentCutSubjects = new();
+            double lastCameraEventTime;
+
             foreach (var moonVenue in _moonSong.venue)
             {
                 // Prefix flags
@@ -92,28 +99,15 @@ namespace YARG.Core.Chart
 
                     case VenueLookup.Type.CameraCut:
                     {
-                        double time = _moonSong.TickToTime(moonVenue.tick);
-                        if (!CameraCutSubjectLookup.TryGetValue(text, out var subject))
-                        {
-                            continue;
-                        }
-
-                        // Hopes and dreams say that the lower note number will be processed first
-                        // TODO: Don't rely on hopes and dreams
-                        if (cameraCutEvents.Count > 0 && cameraCutEvents[^1].Tick == moonVenue.tick)
-                        {
-                            cameraCutEvents[^1].RandomChoices.Add(subject);
-                            continue;
-                        }
-
-                        var length = GetLengthInTime(moonVenue);
-
-                        // TODO: Actually use the correct priority and constraints, but it doesn't matter for now
-                        // since they aren't implemented in the venue camera system yet...
-                        cameraCutEvents.Add(new(CameraCutEvent.CameraCutPriority.Directed,
-                            CameraCutEvent.CameraCutConstraint.None, subject, time, length, moonVenue.tick, moonVenue.length));
+                        HandleCameraCutEvent(cameraCutEvents, moonVenue, ref cameraCutCurrentEvent, ref currentCutConstraints, ref currentCutSubjects);
                         break;
-                }
+                    }
+
+                    case VenueLookup.Type.CameraCutConstraint:
+                    {
+                        HandleCameraCutEvent(cameraCutEvents, moonVenue, ref cameraCutCurrentEvent, ref currentCutConstraints, ref currentCutSubjects);
+                        break;
+                    }
 
                     default:
                     {
@@ -134,6 +128,85 @@ namespace YARG.Core.Chart
             cameraCutEvents.TrimExcess();
 
             return new(lightingEvents, postProcessingEvents, performerEvents, stageEvents, cameraCutEvents);
+        }
+
+        private void HandleCameraCutEvent(List<CameraCutEvent> events, MoonVenue moonEvent,
+            ref MoonVenue? currentEvent, ref CameraCutEvent.CameraCutConstraint constraints, ref List<CameraCutEvent.CameraCutSubject> currentCutSubjects)
+        {
+            // First event
+            if (currentEvent == null)
+            {
+                // It's possible we got the constraint before the subject, so check for that
+                if (moonEvent.type == VenueLookup.Type.CameraCutConstraint)
+                {
+                    if (!CameraCutConstraintLookup.TryGetValue(moonEvent.text, out constraints))
+                    {
+                        // Invalid event, so just return (this should never be possible)
+                        YargLogger.LogFormatDebug("Invalid camera cut constraint '{0}'!", moonEvent.text);
+                        return;
+                    }
+                }
+                else
+                {
+                    if (!CameraCutSubjectLookup.TryGetValue(moonEvent.text, out var currentCutSubject))
+                    {
+                        // Invalid event, so just return (this should never be possible)
+                        YargLogger.LogFormatDebug("Invalid camera cut subject '{0}'!", moonEvent.text);
+                        return;
+                    }
+
+                    // If we are here, we are at the first event and were not preceded by a constraint
+                    currentCutSubjects.Add(currentCutSubject);
+                    constraints = CameraCutEvent.CameraCutConstraint.None;
+                }
+
+                currentEvent = moonEvent;
+            }
+            else if (currentEvent.tick != moonEvent.tick)
+            {
+                // Moving on to the next event, so save previous
+                double time = _moonSong.TickToTime(currentEvent.tick);
+                double length = GetLengthInTime(currentEvent);
+                var subject = CameraCutEvent.CameraCutSubject.Random;
+
+                if (currentCutSubjects.Count == 1)
+                {
+                    subject = currentCutSubjects[0];
+                }
+
+                var cameraCut = new CameraCutEvent(CameraCutEvent.CameraCutPriority.Normal, constraints, subject, time, length, currentEvent.tick, currentEvent.length);
+
+                if (currentCutSubjects.Count > 1)
+                {
+                    // It's only a choice if there is more than one
+                    cameraCut.RandomChoices.AddRange(currentCutSubjects);
+
+                    // Also, remove random because it makes no sense in this context
+                    cameraCut.RandomChoices.RemoveAll(x => x == CameraCutEvent.CameraCutSubject.Random);
+                }
+
+                events.Add(cameraCut);
+
+                currentEvent = moonEvent;
+                constraints = CameraCutEvent.CameraCutConstraint.None;
+                currentCutSubjects.Clear();
+            }
+
+            // we could have gotten the subject or a constraint first, so act accordingly
+            if (moonEvent.type == VenueLookup.Type.CameraCutConstraint)
+            {
+                if (CameraCutConstraintLookup.TryGetValue(moonEvent.text, out var constraint))
+                {
+                    constraints |= constraint;
+                }
+            }
+            else if (moonEvent.type == VenueLookup.Type.CameraCut)
+            {
+                if (CameraCutSubjectLookup.TryGetValue(moonEvent.text, out var subject))
+                {
+                    currentCutSubjects.Add(subject);
+                }
+            }
         }
 
         private void HandlePerformerEvent(

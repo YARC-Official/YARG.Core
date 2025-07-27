@@ -486,6 +486,14 @@ namespace YARG.Core.Chart
             { VENUE_CAMERA_GUITAR_KEYS_NEAR, CameraCutEvent.CameraCutSubject.GuitarKeys }
         };
 
+        public static readonly Dictionary<string, CameraCutEvent.CameraCutConstraint> CameraCutConstraintLookup = new()
+        {
+            { VENUE_CAMERA_CONSTRAINT_NO_BEHIND, CameraCutEvent.CameraCutConstraint.NoBehind },
+            { VENUE_CAMERA_CONSTRAINT_ONLY_FAR, CameraCutEvent.CameraCutConstraint.OnlyFar },
+            { VENUE_CAMERA_CONSTRAINT_NO_CLOSE, CameraCutEvent.CameraCutConstraint.NoClose },
+            { VENUE_CAMERA_CONSTRAINT_ONLY_CLOSE, CameraCutEvent.CameraCutConstraint.OnlyClose }
+        };
+
         public static readonly Dictionary<string, VenueEventFlags> FlagPrefixLookup = new()
         {
             { VENUE_OPTIONAL_EVENT_PREFIX, VenueEventFlags.Optional },

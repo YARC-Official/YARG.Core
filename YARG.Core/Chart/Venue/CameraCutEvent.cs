@@ -12,13 +12,14 @@ namespace YARG.Core.Chart
             Directed
         }
 
+        [Flags]
         public enum CameraCutConstraint
         {
-            OnlyClose,
-            OnlyFar,
-            NoClose,
-            NoBehind,
-            None
+            None = 0,
+            OnlyClose = 1 << 0,
+            OnlyFar = 1 << 1,
+            NoClose = 1 << 2,
+            NoBehind = 1 << 3,
         }
 
         public enum CameraCutSubject
