@@ -28,7 +28,7 @@ namespace YARG.Core.Replays
             FrameTimes = frameTimes;
         }
 
-        public ReplayData(FixedArrayStream stream, int version, bool keepFrameTimes)
+        public ReplayData(FixedArrayStream stream, int version, ReplayReadOptions readOptions)
         {
             int _ = stream.Read<int>(Endianness.Little);
             _colorProfiles = DeserializeDict<ColorProfile>(ref stream);
@@ -49,7 +49,7 @@ namespace YARG.Core.Replays
                 frameTimes[i] = stream.Read<double>(Endianness.Little);
             }
 
-            if (keepFrameTimes)
+            if (readOptions.KeepFrameTimes)
             {
                 FrameTimes = frameTimes;
             }
