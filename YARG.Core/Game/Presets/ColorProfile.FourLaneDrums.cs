@@ -130,10 +130,10 @@ namespace YARG.Core.Game
             public Color BlueDrum   = DefaultBlue;
             public Color GreenDrum  = DefaultGreen;
 
-            public Color RedCymbal    = DefaultRed;
-            public Color YellowCymbal = DefaultYellow;
-            public Color BlueCymbal   = DefaultBlue;
-            public Color GreenCymbal  = DefaultGreen;
+            public Color RedCymbal    = DefaultRedCymbal;
+            public Color YellowCymbal = DefaultYellowCymbal;
+            public Color BlueCymbal   = DefaultBlueCymbal;
+            public Color GreenCymbal  = DefaultGreenCymbal;
 
             /// <summary>
             /// Gets the note color for a specific note index.
