@@ -14,6 +14,12 @@ namespace YARG.Core.Game
         private static readonly Color DefaultBlue   = Color.FromArgb(0xFF, 0x00, 0xBF, 0xFF); // #00BFFF
         private static readonly Color DefaultOrange = Color.FromArgb(0xFF, 0xFF, 0x84, 0x00); // #FF8400
 
+        // By default, use these colors for notes only, not fret coloring or particles
+        private static readonly Color DefaultRedCymbal    = Color.FromArgb(0xFF, 0xF0, 0x20, 0x40); // #F02040
+        private static readonly Color DefaultYellowCymbal = Color.FromArgb(0xFF, 0xFF, 0xD0, 0x10); // #FFD010
+        private static readonly Color DefaultBlueCymbal   = Color.FromArgb(0xFF, 0x20, 0x90, 0xFF); // #2090FF
+        private static readonly Color DefaultGreenCymbal  = Color.FromArgb(0xFF, 0xA0, 0xD0, 0x10); // #A0D010
+
         private static readonly Color DefaultStarpower = Color.White; // #FFFFFF
 
         #endregion
