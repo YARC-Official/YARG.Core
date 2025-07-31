@@ -28,7 +28,7 @@ namespace YARG.Core.Replays
             FrameTimes = frameTimes;
         }
 
-        public ReplayData(FixedArrayStream stream, int version)
+        public ReplayData(FixedArrayStream stream, int version, bool keepFrameTimes)
         {
             int _ = stream.Read<int>(Endianness.Little);
             _colorProfiles = DeserializeDict<ColorProfile>(ref stream);
@@ -42,10 +42,20 @@ namespace YARG.Core.Replays
             }
 
             int frameCount = stream.Read<int>(Endianness.Little);
-            FrameTimes = new double[frameCount];
+            var frameTimes = new double[frameCount];
+
             for (int i = 0; i < frameCount; i++)
             {
-                FrameTimes[i] = stream.Read<double>(Endianness.Little);
+                frameTimes[i] = stream.Read<double>(Endianness.Little);
+            }
+
+            if (keepFrameTimes)
+            {
+                FrameTimes = frameTimes;
+            }
+            else
+            {
+                FrameTimes = Array.Empty<double>();
             }
         }
 
