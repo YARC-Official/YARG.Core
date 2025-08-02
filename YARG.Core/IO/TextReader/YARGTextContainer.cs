@@ -9,9 +9,9 @@ namespace YARG.Core.IO
     {
         private readonly unsafe TChar* _data;
 
-        public long Length { get; }
+        public int Length { get; }
 
-        public long Position { get; set; }
+        public int Position { get; set; }
 
         public Encoding Encoding { get; set; }
 
@@ -25,7 +25,7 @@ namespace YARG.Core.IO
         {
             unsafe
             {
-                return new ReadOnlySpan<TChar>(_data + Position, (int) (Length - Position));
+                return new ReadOnlySpan<TChar>(_data + Position, Length - Position);
             }
         }
 
@@ -52,7 +52,7 @@ namespace YARG.Core.IO
             }
         }
 
-        public readonly int this[long index]
+        public readonly int this[int index]
         {
             get
             {
@@ -63,9 +63,9 @@ namespace YARG.Core.IO
             }
         }
 
-        public readonly int At(long index)
+        public readonly int At(int index)
         {
-            long pos = Position + index;
+            int pos = Position + index;
             if (pos < 0 || pos >= Length)
             {
                 throw new InvalidOperationException();
@@ -80,7 +80,7 @@ namespace YARG.Core.IO
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public readonly bool IsAtEnd() { return Position >= Length; }
 
-        public YARGTextContainer(in FixedArray<TChar> data, Encoding encoding)
+        public YARGTextContainer(FixedArray<TChar> data, Encoding encoding)
         {
             unsafe
             {

@@ -31,10 +31,10 @@ namespace YARG.Core.Song
         public override YARGImage LoadAlbumData()
         {
             var image = LoadUpdateAlbumData();
-            if (!image.IsAllocated && _imgListing != null)
+            if (image == null && _imgListing != null)
             {
-                var bytes = CONFileStream.LoadFile(_root.FullName, _imgListing);
-                image = YARGImage.TransferDXT(ref bytes);
+                using var bytes = CONFileStream.LoadFile(_root.FullName, _imgListing);
+                image = YARGImage.TransferDXT(bytes);
             }
             return image;
         }
@@ -92,7 +92,7 @@ namespace YARG.Core.Song
                     if (File.Exists(backgroundPath))
                     {
                         var image = YARGImage.Load(backgroundPath);
-                        if (image.IsAllocated)
+                        if (image != null)
                         {
                             return new BackgroundResult(image);
                         }
@@ -102,21 +102,21 @@ namespace YARG.Core.Song
             return null;
         }
 
-        public override FixedArray<byte> LoadMiloData()
+        public override FixedArray<byte>? LoadMiloData()
         {
             var data = LoadUpdateMiloData();
-            if (!data.IsAllocated && _miloListing != null)
+            if (data == null && _miloListing != null)
             {
                 data = CONFileStream.LoadFile(_root.FullName, _miloListing);
             }
             return data;
         }
 
-        protected override FixedArray<byte> GetMainMidiData()
+        protected override FixedArray<byte>? GetMainMidiData()
         {
             return _midiListing != null
                 ? CONFileStream.LoadFile(_root.FullName, _midiListing)
-                : FixedArray<byte>.Null;
+                : null;
         }
 
         protected override Stream? GetMoggStream()
@@ -164,7 +164,8 @@ namespace YARG.Core.Song
                     return new ScanUnexpected(ScanResult.MoggError);
                 }
 
-                var mainMidi = FixedArray<byte>.Null;
+                FixedArray<byte> mainMidi;
+
                 long moggLocation = CONFileStream.CalculateBlockLocation(entry._moggListing.BlockOffset, entry._moggListing.Shift);
                 lock (stream)
                 {
@@ -175,7 +176,7 @@ namespace YARG.Core.Song
                     mainMidi = CONFileStream.LoadFile(stream, entry._midiListing);
                 }
 
-                var result = ScanMidis(entry, in mainMidi);
+                var result = ScanMidis(entry, mainMidi);
                 mainMidi.Dispose();
                 if (result != ScanResult.Success)
                 {

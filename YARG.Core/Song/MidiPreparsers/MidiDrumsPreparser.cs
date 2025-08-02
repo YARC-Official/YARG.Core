@@ -27,7 +27,7 @@ namespace YARG.Core.Song
             var validations = DifficultyMask.None;
             int statusBitMask = 0;
             var note = default(MidiNote);
-            var stats = default(YARGMidiTrack.Stats);
+            var stats = default(MidiStats);
             while (track.ParseEvent(ref stats))
             {
                 if (stats.Type != MidiEventType.Note_On && stats.Type != MidiEventType.Note_Off)
@@ -37,7 +37,7 @@ namespace YARG.Core.Song
 
                 track.ExtractMidiNote(ref note);
                 // Must be checked first as it still resides in the normal note range window
-                if (note.value == DOUBLE_KICK_NOTE)
+                if (note.Value == DOUBLE_KICK_NOTE)
                 {
                     if ((validations & DifficultyMask.ExpertPlus) > 0)
                     {
@@ -45,7 +45,7 @@ namespace YARG.Core.Song
                     }
 
                     // Note Ons with no velocity equates to a note Off by spec
-                    if (stats.Type == MidiEventType.Note_On && note.velocity > 0)
+                    if (stats.Type == MidiEventType.Note_On && note.Velocity > 0)
                     {
                         statusBitMask |= DOUBLE_KICK_MASK;
                     }
@@ -55,9 +55,9 @@ namespace YARG.Core.Song
                         validations |= DifficultyMask.Expert | DifficultyMask.ExpertPlus;
                     }
                 }
-                else if (MidiPreparser_Constants.DEFAULT_NOTE_MIN <= note.value && note.value <= DRUMNOTE_MAX)
+                else if (MidiPreparser_Constants.DEFAULT_NOTE_MIN <= note.Value && note.Value <= DRUMNOTE_MAX)
                 {
-                    int noteOffset = note.value - MidiPreparser_Constants.DEFAULT_NOTE_MIN;
+                    int noteOffset = note.Value - MidiPreparser_Constants.DEFAULT_NOTE_MIN;
                     int diffIndex = MidiPreparser_Constants.DIFF_INDICES[noteOffset];
                     var diffMask = (DifficultyMask) (1 << (diffIndex + 1));
                     // Necessary to account for undetermined five lane
@@ -80,7 +80,7 @@ namespace YARG.Core.Song
 
                     int statusMask = 1 << (diffIndex * MAX_NUMPADS + laneIndex);
                     // Note Ons with no velocity equates to a note Off by spec
-                    if (stats.Type == MidiEventType.Note_On && note.velocity > 0)
+                    if (stats.Type == MidiEventType.Note_On && note.Velocity > 0)
                     {
                         statusBitMask |= statusMask;
                         if (laneIndex == FIVE_LANE_INDEX)
@@ -94,7 +94,7 @@ namespace YARG.Core.Song
                         validations |= diffMask;
                     }
                 }
-                else if (YELLOW_FLAG <= note.value && note.value <= GREEN_FLAG && (drumsType & DrumsType.ProDrums) == DrumsType.ProDrums)
+                else if (YELLOW_FLAG <= note.Value && note.Value <= GREEN_FLAG && drumsType.Has(DrumsType.ProDrums))
                 {
                     drumsType = DrumsType.ProDrums;
                 }

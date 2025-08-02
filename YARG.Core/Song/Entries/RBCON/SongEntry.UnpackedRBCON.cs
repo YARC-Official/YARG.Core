@@ -24,10 +24,10 @@ namespace YARG.Core.Song
             base.Serialize(stream, node);
         }
 
-        public override YARGImage LoadAlbumData()
+        public override YARGImage? LoadAlbumData()
         {
             var image = LoadUpdateAlbumData();
-            if (!image.IsAllocated)
+            if (image == null)
             {
                 string path = Path.Combine(_root.FullName, _subName, "gen", _subName + "_keep.png_xbox");
                 if (File.Exists(path))
@@ -71,7 +71,7 @@ namespace YARG.Core.Song
                     if (File.Exists(imageFile))
                     {
                         var image = YARGImage.Load(imageFile);
-                        if (image.IsAllocated)
+                        if (image != null)
                         {
                             return new BackgroundResult(image);
                         }
@@ -81,10 +81,10 @@ namespace YARG.Core.Song
             return null;
         }
 
-        public override FixedArray<byte> LoadMiloData()
+        public override FixedArray<byte>? LoadMiloData()
         {
             var data = LoadUpdateMiloData();
-            if (!data.IsAllocated)
+            if (data == null)
             {
                 string path = Path.Combine(_root.FullName, _subName, "gen", _subName + ".mogg");
                 if (File.Exists(path))
@@ -95,10 +95,10 @@ namespace YARG.Core.Song
             return data;
         }
 
-        protected override FixedArray<byte> GetMainMidiData()
+        protected override FixedArray<byte>? GetMainMidiData()
         {
             string path = Path.Combine(_root.FullName, _subName, _subName + ".mid");
-            return File.Exists(path) ? FixedArray.LoadFile(path) : FixedArray<byte>.Null;
+            return File.Exists(path) ? FixedArray.LoadFile(path) : null;
         }
 
         protected override Stream? GetMoggStream()
@@ -160,7 +160,8 @@ namespace YARG.Core.Song
                 }
 
                 using var mainMidi = FixedArray.LoadFile(midiInfo.FullName);
-                var result = ScanMidis(entry, in mainMidi);
+
+                var result = ScanMidis(entry, mainMidi);
                 if (result != ScanResult.Success)
                 {
                     return new ScanUnexpected(result);

@@ -12,16 +12,16 @@ namespace YARG.Core.Song
         {
             int statusBitMask = 0;
             var note = default(MidiNote);
-            var stats = default(YARGMidiTrack.Stats);
+            var stats = default(MidiStats);
             while (track.ParseEvent(ref stats))
             {
                 if (stats.Type is MidiEventType.Note_On or MidiEventType.Note_Off)
                 {
                     track.ExtractMidiNote(ref note);
-                    if (PROKEYS_MIN <= note.value && note.value <= PROKEYS_MAX)
+                    if (PROKEYS_MIN <= note.Value && note.Value <= PROKEYS_MAX)
                     {
-                        int statusMask = 1 << (note.value - PROKEYS_MIN);
-                        if (stats.Type == MidiEventType.Note_On && note.velocity > 0)
+                        int statusMask = 1 << (note.Value - PROKEYS_MIN);
+                        if (stats.Type == MidiEventType.Note_On && note.Velocity > 0)
                         {
                             statusBitMask |= statusMask;
                         }

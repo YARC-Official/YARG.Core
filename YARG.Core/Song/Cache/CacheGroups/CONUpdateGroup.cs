@@ -11,8 +11,8 @@ namespace YARG.Core.Song.Cache
     {
         private readonly Dictionary<string, (List<YARGTextContainer<byte>> Containers, DateTime? Update)> _updates = new();
         private AbridgedFileInfo _root;
-        private FixedArray<byte> _data;
-       
+        private FixedArray<byte> _data = null!;
+
         public AbridgedFileInfo Root => _root;
         public Dictionary<string, (List<YARGTextContainer<byte>> Containers, DateTime? Update)> Updates => _updates;
 
@@ -25,15 +25,16 @@ namespace YARG.Core.Song.Cache
 
         public static bool Create(string directory, FileInfo dtaInfo, out CONUpdateGroup group)
         {
-            group = new CONUpdateGroup()
-            {
-                _root = new AbridgedFileInfo(directory, AbridgedFileInfo.NormalizedLastWrite(dtaInfo)),
-            };
-
             try
             {
+                group = new CONUpdateGroup()
+                {
+                    _root = new AbridgedFileInfo(directory, AbridgedFileInfo.NormalizedLastWrite(dtaInfo)),
+                };
+
                 using var data = FixedArray.LoadFile(dtaInfo.FullName);
-                var container = YARGDTAReader.Create(in data);
+
+                var container = YARGDTAReader.Create(data);
                 while (YARGDTAReader.StartNode(ref container))
                 {
                     string name = YARGDTAReader.GetNameOfNode(ref container, true);

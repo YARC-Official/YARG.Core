@@ -26,7 +26,7 @@ namespace YARG.Core.IO
             {
                 if (_count == 0)
                 {
-                    throw new ObjectDisposedException("");
+                    throw new ObjectDisposedException(nameof(SngTracker));
                 }
                 ++_count;
             }
@@ -39,7 +39,7 @@ namespace YARG.Core.IO
             {
                 if (_count == 0)
                 {
-                    throw new ObjectDisposedException("");
+                    throw new ObjectDisposedException(nameof(SngTracker));
                 }
 
                 if (--_count == 0)
@@ -57,19 +57,17 @@ namespace YARG.Core.IO
     {
         private SngTracker _tracker;
 
-        private uint _version;
-        private IniModifierCollection _modifiers;
-        private Dictionary<string, SngFileListing> _listings;
+        public uint Version { get; private set; }
 
-        public readonly uint Version => _version;
-        public readonly IniModifierCollection Modifiers => _modifiers;
-        public readonly Dictionary<string, SngFileListing> Listings => _listings;
+        public IniModifierCollection Modifiers { get; private set; }
+
+        public Dictionary<string, SngFileListing> Listings { get; private set; }
 
         public readonly bool IsLoaded => _tracker != null;
 
         public readonly bool TryGetListing(string name, out SngFileListing listing)
         {
-            return _listings.TryGetValue(name, out listing);
+            return Listings.TryGetValue(name, out listing);
         }
 
         public readonly FixedArray<byte> LoadAllBytes(in SngFileListing listing)
@@ -121,14 +119,14 @@ namespace YARG.Core.IO
 
             SngFile sng = new()
             {
-                _version = tracker.Stream.Read<uint>(Endianness.Little)
+                Version = tracker.Stream.Read<uint>(Endianness.Little)
             };
 
             tracker.Mask = SngMask.LoadMask(tracker.Stream);
             if (loadMetadata)
             {
-                sng._modifiers = new IniModifierCollection();
-                LoadMetadata(sng._modifiers, tracker.Stream);
+                sng.Modifiers = new IniModifierCollection();
+                LoadMetadata(sng.Modifiers, tracker.Stream);
             }
             else
             {
@@ -136,8 +134,8 @@ namespace YARG.Core.IO
                 tracker.Stream.Position += length;
             }
 
-            sng._listings = new Dictionary<string, SngFileListing>();
-            LoadListings(sng._listings, tracker.Stream);
+            sng.Listings = new Dictionary<string, SngFileListing>();
+            LoadListings(sng.Listings, tracker.Stream);
             // Allow the SngFile instance to own the tracker after the `using` call
             sng._tracker = tracker.AddOwner();
             return sng;
@@ -175,11 +173,7 @@ namespace YARG.Core.IO
             ulong numPairs = stream.Read<ulong>(Endianness.Little);
 
             using var bytes = FixedArray.Read(stream, length);
-            YARGTextContainer<byte> container;
-            unsafe
-            {
-                container = new YARGTextContainer<byte>(in bytes, null!);
-            }
+            var container = new YARGTextContainer<byte>(bytes, null!);
 
             for (ulong i = 0; i < numPairs; ++i)
             {
@@ -192,7 +186,8 @@ namespace YARG.Core.IO
                 container.Position += strLength;
 
                 strLength = GetLength(ref container);
-                long next = container.Position + strLength;
+
+                int next = container.Position + strLength;
                 if (SongIniHandler.SONG_INI_OUTLINES.TryGetValue(key, out var outline))
                 {
                     modifiers.AddSng(ref container, strLength, outline);
@@ -210,7 +205,7 @@ namespace YARG.Core.IO
             listings.EnsureCapacity((int)numListings);
 
             ulong listingIndex = 0;
-            long buffPosition = 0;
+            int buffPosition = 0;
             while (listingIndex < numListings)
             {
                 if (buffPosition == bytes.Length)

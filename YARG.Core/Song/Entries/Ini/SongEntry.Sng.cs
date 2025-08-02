@@ -68,7 +68,7 @@ namespace YARG.Core.Song
             return CreateAudioMixer(speed, 0, sngFile, SongStem.Crowd);
         }
 
-        public override YARGImage LoadAlbumData()
+        public override YARGImage? LoadAlbumData()
         {
             using var sngFile = SngFile.TryLoadFromFile(_location, false);
             if (sngFile.IsLoaded)
@@ -87,15 +87,15 @@ namespace YARG.Core.Song
                 if (listing.Length > 0)
                 {
                     using var file = sngFile.LoadAllBytes(in listing);
-                    var image = YARGImage.Load(in file);
-                    if (image.IsAllocated)
+                    var image = YARGImage.Load(file);
+                    if (image != null)
                     {
                         return image;
                     }
                     YargLogger.LogError("Failed to load SNG album art");
                 }
             }
-            return YARGImage.Null;
+            return null;
         }
 
         public override BackgroundResult? LoadBackground()
@@ -146,8 +146,8 @@ namespace YARG.Core.Song
             if (sngFile.TryGetListing(_background, out listing) || TryGetRandomBackgroundImage(sngFile.Listings, out listing))
             {
                 using var data = sngFile.LoadAllBytes(in listing);
-                var image = YARGImage.Load(in data);
-                if (image.IsAllocated)
+                var image = YARGImage.Load(data);
+                if (image != null)
                 {
                     return new BackgroundResult(image);
                 }
@@ -161,8 +161,8 @@ namespace YARG.Core.Song
                 if (File.Exists(path))
                 {
                     using var data = FixedArray.LoadFile(path);
-                    var image = YARGImage.Load(in data);
-                    if (image.IsAllocated)
+                    var image = YARGImage.Load(data);
+                    if (image != null)
                     {
                         return new BackgroundResult(image);
                     }
@@ -172,14 +172,14 @@ namespace YARG.Core.Song
             return null;
         }
 
-        public override FixedArray<byte> LoadMiloData()
+        public override FixedArray<byte>? LoadMiloData()
         {
-            return FixedArray<byte>.Null;
+            return null;
         }
 
-        protected override FixedArray<byte> GetChartData(string filename)
+        protected override FixedArray<byte>? GetChartData(string filename)
         {
-            var data = FixedArray<byte>.Null;
+            var data = default(FixedArray<byte>);
             if (AbridgedFileInfo.Validate(_location, _chartLastWrite))
             {
                 using var sng = SngFile.TryLoadFromFile(_location, false);
@@ -246,7 +246,7 @@ namespace YARG.Core.Song
             _version = version;
         }
 
-        public static unsafe ScanExpected<SngEntry> ProcessNewEntry(in SngFile sng, in SngFileListing listing, FileInfo info, ChartFormat format, string defaultPlaylist)
+        public static ScanExpected<SngEntry> ProcessNewEntry(in SngFile sng, in SngFileListing listing, FileInfo info, ChartFormat format, string defaultPlaylist)
         {
             var entry = new SngEntry(sng.Version, info.FullName, AbridgedFileInfo.NormalizedLastWrite(info), format);
             entry._metadata.Playlist = defaultPlaylist;

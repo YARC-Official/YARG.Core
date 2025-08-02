@@ -51,12 +51,12 @@ namespace YARG.Core.Song.Cache
         public static bool Create(Stream stream, List<CONFileListing> listings, in AbridgedFileInfo root, string defaultPlaylist, out PackedCONEntryGroup group)
         {
             const string SONGS_PATH = "songs/songs.dta";
-            group = null!;
+            group = null;
             if (listings.FindListing(SONGS_PATH, out var listing))
             {
                 group = new PackedCONEntryGroup(listings, in root, defaultPlaylist);
                 using var data = CONFileStream.LoadFile(stream, listing);
-                var container = YARGDTAReader.Create(in data);
+                var container = YARGDTAReader.Create(data);
                 while (YARGDTAReader.StartNode(ref container))
                 {
                     string name = YARGDTAReader.GetNameOfNode(ref container, true);
