@@ -953,6 +953,8 @@ namespace MoonscraperChartEditor.Song.IO
                             // Process velocity
                             if (pad == MoonNote.EliteDrumPad.HatPedal)
                             {
+                                ProcessNoteOnEventAsFlagToggle(ref eventProcessParams, MoonNote.Flags.EliteDrums_ForcedClosed, (int) MoonNote.EliteDrumPad.HiHat);
+
                                 switch (noteEvent.Velocity)
                                 {
                                     case MidIOHelper.VELOCITY_ACCENT:
@@ -1016,53 +1018,47 @@ namespace MoonscraperChartEditor.Song.IO
                         // Double kick
                         if (pad == MoonNote.EliteDrumPad.Kick)
                         {
-                            processFnDict.Add(key - 1, (ref EventProcessParams eventProcessParams) => {
+                            processFnDict.Add(key - 1, (ref EventProcessParams eventProcessParams) =>
+                            {
                                 ProcessNoteOnEventAsNote(ref eventProcessParams, difficulty, fret, MoonNote.Flags.InstrumentPlus);
                             });
                         }
-
-                        // Process per-difficulty markers
-                        {
-                            // Disco flip
-                            int flagKey = difficultyStartRange + 16;
-                            processFnDict.Add(flagKey, (ref EventProcessParams eventProcessParams) =>
-                            {
-                                ProcessNoteOnEventAsSpecialPhrase(ref eventProcessParams, MoonPhrase.Type.EliteDrums_DiscoFlip, difficulty);
-                            });
-                        }
-                        {
-                            // Indifferent hat
-                            int flagKey = difficultyStartRange + 14;
-                            processFnDict.Add(flagKey, (ref EventProcessParams eventProcessParams) => {
-                                ProcessNoteOnEventAsFlagToggle(ref eventProcessParams, MoonNote.Flags.EliteDrums_ForcedIndifferent, (int) MoonNote.EliteDrumPad.HiHat);
-                            });
-                        }
-                        {
-                            // Flam
-                            int flagKey = difficultyStartRange + 13;
-                            processFnDict.Add(flagKey, (ref EventProcessParams eventProcessParams) =>
-                            {
-                                foreach (var pad in EnumExtensions<MoonNote.EliteDrumPad>.Values)
-                                {
-                                    // Kick flams are marked differently. Stomp and splash flams don't exist at all
-                                    if (pad is MoonNote.EliteDrumPad.Kick or MoonNote.EliteDrumPad.HatPedal)
-                                    {
-                                        continue;
-                                    }
-
-                                    ProcessNoteOnEventAsFlagToggle(ref eventProcessParams, MoonNote.Flags.EliteDrums_Flam, (int)pad);
-                                }
-                            });
-                        }
-                        {
-                            // Closed hat
-                            int flagKey = difficultyStartRange - 2; // This is the same note that produces stomp/splash gems; it performs double duty
-                            processFnDict.Add(flagKey, (ref EventProcessParams eventProcessParams) =>
-                            {
-                                ProcessNoteOnEventAsFlagToggle(ref eventProcessParams, MoonNote.Flags.EliteDrums_ForcedClosed, (int) MoonNote.EliteDrumPad.HiHat);
-                            });
-                        }
                     }
+                }
+
+                // Process per-difficulty markers
+                {
+                    // Disco flip
+                    int flagKey = difficultyStartRange + 16;
+                    processFnDict.Add(flagKey, (ref EventProcessParams eventProcessParams) =>
+                    {
+                        ProcessNoteOnEventAsSpecialPhrase(ref eventProcessParams, MoonPhrase.Type.EliteDrums_DiscoFlip, difficulty);
+                    });
+                }
+                {
+                    // Indifferent hat
+                    int flagKey = difficultyStartRange + 14;
+                    processFnDict.Add(flagKey, (ref EventProcessParams eventProcessParams) =>
+                    {
+                        ProcessNoteOnEventAsFlagToggle(ref eventProcessParams, MoonNote.Flags.EliteDrums_ForcedIndifferent, (int) MoonNote.EliteDrumPad.HiHat);
+                    });
+                }
+                {
+                    // Flam
+                    int flagKey = difficultyStartRange + 13;
+                    processFnDict.Add(flagKey, (ref EventProcessParams eventProcessParams) =>
+                    {
+                        foreach (var pad in EnumExtensions<MoonNote.EliteDrumPad>.Values)
+                        {
+                            // Kick flams are marked differently. Stomp and splash flams don't exist at all
+                            if (pad is MoonNote.EliteDrumPad.Kick or MoonNote.EliteDrumPad.HatPedal)
+                            {
+                                continue;
+                            }
+
+                            ProcessNoteOnEventAsFlagToggle(ref eventProcessParams, MoonNote.Flags.EliteDrums_Flam, (int) pad);
+                        }
+                    });
                 }
             }
 

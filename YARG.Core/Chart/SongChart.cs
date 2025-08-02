@@ -113,6 +113,8 @@ namespace YARG.Core.Chart
 
         internal SongChart(ISongLoader loader)
         {
+            Console.WriteLine("QWERTY");
+
             GlobalEvents = loader.LoadGlobalEvents();
             SyncTrack = loader.LoadSyncTrack();
             VenueTrack = loader.LoadVenueTrack();
