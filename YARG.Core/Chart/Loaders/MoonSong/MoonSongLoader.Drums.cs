@@ -121,15 +121,15 @@ namespace YARG.Core.Chart
             return (EliteDrumNote.EliteDrumPad) eliteDrumNote.Pad switch
             {
                 EliteDrumNote.EliteDrumPad.HatPedal => null,
-                EliteDrumNote.EliteDrumPad.Kick => new(FourLaneDrumPad.Kick, DrumNoteType.Neutral, DrumNoteFlags.None, NoteFlags.None, eliteDrumNote.Time, eliteDrumNote.Tick),
-                EliteDrumNote.EliteDrumPad.Snare => new(FourLaneDrumPad.RedDrum, DrumNoteType.Neutral, DrumNoteFlags.None, NoteFlags.None, eliteDrumNote.Time, eliteDrumNote.Tick),
-                EliteDrumNote.EliteDrumPad.HiHat => new(FourLaneDrumPad.YellowCymbal, DrumNoteType.Neutral, DrumNoteFlags.None, NoteFlags.None, eliteDrumNote.Time, eliteDrumNote.Tick),
-                EliteDrumNote.EliteDrumPad.LeftCrash => new(FourLaneDrumPad.BlueCymbal, DrumNoteType.Neutral, DrumNoteFlags.None, NoteFlags.None, eliteDrumNote.Time, eliteDrumNote.Tick),
-                EliteDrumNote.EliteDrumPad.Tom1 => new(FourLaneDrumPad.YellowDrum, DrumNoteType.Neutral, DrumNoteFlags.None, NoteFlags.None, eliteDrumNote.Time, eliteDrumNote.Tick),
-                EliteDrumNote.EliteDrumPad.Tom2 => new(FourLaneDrumPad.BlueDrum, DrumNoteType.Neutral, DrumNoteFlags.None, NoteFlags.None, eliteDrumNote.Time, eliteDrumNote.Tick),
-                EliteDrumNote.EliteDrumPad.Tom3 => new(FourLaneDrumPad.GreenDrum, DrumNoteType.Neutral, DrumNoteFlags.None, NoteFlags.None, eliteDrumNote.Time, eliteDrumNote.Tick),
-                EliteDrumNote.EliteDrumPad.Ride => new(FourLaneDrumPad.BlueCymbal, DrumNoteType.Neutral, DrumNoteFlags.None, NoteFlags.None, eliteDrumNote.Time, eliteDrumNote.Tick),
-                EliteDrumNote.EliteDrumPad.RightCrash => new(FourLaneDrumPad.GreenCymbal, DrumNoteType.Neutral, DrumNoteFlags.None, NoteFlags.None, eliteDrumNote.Time, eliteDrumNote.Tick),
+                EliteDrumNote.EliteDrumPad.Kick => new(FourLaneDrumPad.Kick, DrumNoteType.Neutral, eliteDrumNote.DrumFlags, eliteDrumNote.Flags, eliteDrumNote.Time, eliteDrumNote.Tick),
+                EliteDrumNote.EliteDrumPad.Snare => new(FourLaneDrumPad.RedDrum, eliteDrumNote.Dynamics, eliteDrumNote.DrumFlags, eliteDrumNote.Flags, eliteDrumNote.Time, eliteDrumNote.Tick),
+                EliteDrumNote.EliteDrumPad.HiHat => new(FourLaneDrumPad.YellowCymbal, eliteDrumNote.Dynamics, eliteDrumNote.DrumFlags, eliteDrumNote.Flags, eliteDrumNote.Time, eliteDrumNote.Tick),
+                EliteDrumNote.EliteDrumPad.LeftCrash => new(FourLaneDrumPad.BlueCymbal, eliteDrumNote.Dynamics, eliteDrumNote.DrumFlags, eliteDrumNote.Flags, eliteDrumNote.Time, eliteDrumNote.Tick),
+                EliteDrumNote.EliteDrumPad.Tom1 => new(FourLaneDrumPad.YellowDrum, eliteDrumNote.Dynamics, eliteDrumNote.DrumFlags, eliteDrumNote.Flags, eliteDrumNote.Time, eliteDrumNote.Tick),
+                EliteDrumNote.EliteDrumPad.Tom2 => new(FourLaneDrumPad.BlueDrum, eliteDrumNote.Dynamics, eliteDrumNote.DrumFlags, eliteDrumNote.Flags, eliteDrumNote.Time, eliteDrumNote.Tick),
+                EliteDrumNote.EliteDrumPad.Tom3 => new(FourLaneDrumPad.GreenDrum, eliteDrumNote.Dynamics, eliteDrumNote.DrumFlags, eliteDrumNote.Flags, eliteDrumNote.Time, eliteDrumNote.Tick),
+                EliteDrumNote.EliteDrumPad.Ride => new(FourLaneDrumPad.BlueCymbal, eliteDrumNote.Dynamics, eliteDrumNote.DrumFlags, eliteDrumNote.Flags, eliteDrumNote.Time, eliteDrumNote.Tick),
+                EliteDrumNote.EliteDrumPad.RightCrash => new(FourLaneDrumPad.GreenCymbal, eliteDrumNote.Dynamics, eliteDrumNote.DrumFlags, eliteDrumNote.Flags, eliteDrumNote.Time, eliteDrumNote.Tick),
                 _ => throw new Exception("Unreachable")
             };
         }
