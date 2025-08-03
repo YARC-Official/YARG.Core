@@ -134,7 +134,7 @@ namespace YARG.Core.Chart
                             parent.AddChildNote(note);
                         } else if (handGemCount < 2)
                         {
-                            parent.AddChildNote(note);
+                            AddChildHandGem(parent, note);
                             handGemCount++;
                         }
                     }
