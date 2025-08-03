@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Diagnostics.CodeAnalysis;
 
 namespace YARG.Core.Chart
 {
@@ -21,6 +22,7 @@ namespace YARG.Core.Chart
             return new AnimationEvent(this);
         }
 
+        [SuppressMessage("ReSharper", "InconsistentNaming")]
         public enum AnimationType
         {
             Kick,

@@ -4,6 +4,7 @@ using System.IO;
 using Melanchall.DryWetMidi.Core;
 using MoonscraperChartEditor.Song;
 using MoonscraperChartEditor.Song.IO;
+using YARG.Core.Chart.Events;
 using YARG.Core.Logging;
 
 namespace YARG.Core.Chart
@@ -72,6 +73,19 @@ namespace YARG.Core.Chart
 
             return textEvents;
         }
+
+        public List<CharacterState> LoadCharacterStates(MoonChart moonChart)
+        {
+            var characterStates = new List<CharacterState>();
+
+
+
+            return characterStates;
+        }
+
+        public List<HandMap> LoadHandMaps() => new List<HandMap>();
+
+        public List<StrumMap> LoadStrumMaps() => new List<StrumMap>();
 
         public List<Section> LoadSections()
         {

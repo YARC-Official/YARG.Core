@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
+using YARG.Core.Chart.Events;
 
 namespace YARG.Core.Chart
 {
@@ -13,8 +14,9 @@ namespace YARG.Core.Chart
     {
         public Instrument Instrument { get; }
 
-        // TODO: Not sure this is really the best place for this, but it will do for now
-        public List<AnimationEvent> AnimationEvents { get; } = new();
+        // TODO: Smerge these...
+        public List<AnimationEvent> AnimationEvents { get; }      = new();
+        public AnimationTrack       Animations      { get; }      = new();
 
         private Dictionary<Difficulty, InstrumentDifficulty<TNote>> _difficulties { get; } = new();
 
@@ -50,6 +52,12 @@ namespace YARG.Core.Chart
             List<AnimationEvent> animationEvents) : this(instrument, difficulties)
         {
             AnimationEvents = animationEvents;
+        }
+
+        public InstrumentTrack(Instrument instrument, Dictionary<Difficulty, InstrumentDifficulty<TNote>> difficulties,
+            AnimationTrack animations) : this(instrument, difficulties)
+        {
+            Animations = animations;
         }
 
         public InstrumentTrack(InstrumentTrack<TNote> other)

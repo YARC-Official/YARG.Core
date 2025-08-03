@@ -10,7 +10,6 @@ namespace YARG.Core.Chart
 
     internal partial class MoonSongLoader : ISongLoader
     {
-
         public VenueTrack LoadVenueTrack()
         {
             var lightingEvents = new List<LightingEvent>();

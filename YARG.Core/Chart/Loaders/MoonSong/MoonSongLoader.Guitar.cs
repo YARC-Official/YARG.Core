@@ -1,8 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
 using MoonscraperChartEditor.Song;
 using MoonscraperChartEditor.Song.IO;
+using YARG.Core.Chart.Events;
 
 namespace YARG.Core.Chart
 {
@@ -175,6 +175,37 @@ namespace YARG.Core.Chart
             return flags;
         }
 
+        private AnimationTrack GetGuitarAnimationTrack(InstrumentTrack<GuitarNote> track)
+        {
+            var characterStates = new List<CharacterState>();
+            var handMaps = new List<HandMap>();
+            var strumMaps = new List<StrumMap>();
+            var animationEvents = GetGuitarAnimationEvents(track);
+
+
+            return new AnimationTrack(characterStates, handMaps, strumMaps, animationEvents);
+        }
+
+        private List<StrumMap> GetGuitarStrumMaps(InstrumentTrack<GuitarNote> track)
+        {
+            var strumMaps = new List<StrumMap>();
+
+            // Only bass has StrumMaps
+            if (track.Instrument != Instrument.FiveFretBass)
+            {
+                return strumMaps;
+            }
+
+            var chart = GetMoonChart(track.Instrument, Difficulty.Expert);
+
+            foreach (var text in chart.events)
+            {
+
+            }
+
+            return strumMaps;
+        }
+
         private List<AnimationEvent> GetGuitarAnimationEvents(InstrumentTrack<GuitarNote> track)
         {
             var events = new List<AnimationEvent>();
@@ -182,6 +213,8 @@ namespace YARG.Core.Chart
 
             // Find a difficulty
             // var difficulty = track.FirstDifficulty().Difficulty;
+
+            // TODO: What if expert doesn't exist?
             var difficulty = Difficulty.Expert;
 
             // Get the relevant MoonChart
@@ -190,7 +223,7 @@ namespace YARG.Core.Chart
             foreach (var animNote in chart.animationNotes)
             {
                 // Look up the note number and create an appropriate animation event
-                var animType = GetGuitarAnimationType((byte) animNote.noteNumber);
+                var animType = GetGuitarAnimationType(animNote.text);
 
                 if (!animType.HasValue) continue;
 
@@ -201,32 +234,56 @@ namespace YARG.Core.Chart
             return events;
         }
 
-        private AnimationEvent.AnimationType? GetGuitarAnimationType(byte noteNumber)
+        private AnimationEvent.AnimationType? GetGuitarAnimationType(string eventText)
         {
-            return noteNumber switch
+            return eventText switch
             {
-                MidIOHelper.LEFT_HAND_POSITION_1 => AnimationEvent.AnimationType.LeftHandPosition1,
-                MidIOHelper.LEFT_HAND_POSITION_2 => AnimationEvent.AnimationType.LeftHandPosition2,
-                MidIOHelper.LEFT_HAND_POSITION_3 => AnimationEvent.AnimationType.LeftHandPosition3,
-                MidIOHelper.LEFT_HAND_POSITION_4 => AnimationEvent.AnimationType.LeftHandPosition4,
-                MidIOHelper.LEFT_HAND_POSITION_5 => AnimationEvent.AnimationType.LeftHandPosition5,
-                MidIOHelper.LEFT_HAND_POSITION_6 => AnimationEvent.AnimationType.LeftHandPosition6,
-                MidIOHelper.LEFT_HAND_POSITION_7 => AnimationEvent.AnimationType.LeftHandPosition7,
-                MidIOHelper.LEFT_HAND_POSITION_8 => AnimationEvent.AnimationType.LeftHandPosition8,
-                MidIOHelper.LEFT_HAND_POSITION_9 => AnimationEvent.AnimationType.LeftHandPosition9,
-                MidIOHelper.LEFT_HAND_POSITION_10 => AnimationEvent.AnimationType.LeftHandPosition10,
-                MidIOHelper.LEFT_HAND_POSITION_11 => AnimationEvent.AnimationType.LeftHandPosition11,
-                MidIOHelper.LEFT_HAND_POSITION_12 => AnimationEvent.AnimationType.LeftHandPosition12,
-                MidIOHelper.LEFT_HAND_POSITION_13 => AnimationEvent.AnimationType.LeftHandPosition13,
-                MidIOHelper.LEFT_HAND_POSITION_14 => AnimationEvent.AnimationType.LeftHandPosition14,
-                MidIOHelper.LEFT_HAND_POSITION_15 => AnimationEvent.AnimationType.LeftHandPosition15,
-                MidIOHelper.LEFT_HAND_POSITION_16 => AnimationEvent.AnimationType.LeftHandPosition16,
-                MidIOHelper.LEFT_HAND_POSITION_17 => AnimationEvent.AnimationType.LeftHandPosition17,
-                MidIOHelper.LEFT_HAND_POSITION_18 => AnimationEvent.AnimationType.LeftHandPosition18,
-                MidIOHelper.LEFT_HAND_POSITION_19 => AnimationEvent.AnimationType.LeftHandPosition19,
-                MidIOHelper.LEFT_HAND_POSITION_20 => AnimationEvent.AnimationType.LeftHandPosition20,
-                _ => null
+                AnimationLookup.LH_POSITION_1  => AnimationEvent.AnimationType.LeftHandPosition1,
+                AnimationLookup.LH_POSITION_2  => AnimationEvent.AnimationType.LeftHandPosition2,
+                AnimationLookup.LH_POSITION_3  => AnimationEvent.AnimationType.LeftHandPosition3,
+                AnimationLookup.LH_POSITION_4  => AnimationEvent.AnimationType.LeftHandPosition4,
+                AnimationLookup.LH_POSITION_5  => AnimationEvent.AnimationType.LeftHandPosition5,
+                AnimationLookup.LH_POSITION_6  => AnimationEvent.AnimationType.LeftHandPosition6,
+                AnimationLookup.LH_POSITION_7  => AnimationEvent.AnimationType.LeftHandPosition7,
+                AnimationLookup.LH_POSITION_8  => AnimationEvent.AnimationType.LeftHandPosition8,
+                AnimationLookup.LH_POSITION_9  => AnimationEvent.AnimationType.LeftHandPosition9,
+                AnimationLookup.LH_POSITION_10 => AnimationEvent.AnimationType.LeftHandPosition10,
+                AnimationLookup.LH_POSITION_11 => AnimationEvent.AnimationType.LeftHandPosition11,
+                AnimationLookup.LH_POSITION_12 => AnimationEvent.AnimationType.LeftHandPosition12,
+                AnimationLookup.LH_POSITION_13 => AnimationEvent.AnimationType.LeftHandPosition13,
+                AnimationLookup.LH_POSITION_14 => AnimationEvent.AnimationType.LeftHandPosition14,
+                AnimationLookup.LH_POSITION_15 => AnimationEvent.AnimationType.LeftHandPosition15,
+                AnimationLookup.LH_POSITION_16 => AnimationEvent.AnimationType.LeftHandPosition16,
+                AnimationLookup.LH_POSITION_17 => AnimationEvent.AnimationType.LeftHandPosition17,
+                AnimationLookup.LH_POSITION_18 => AnimationEvent.AnimationType.LeftHandPosition18,
+                AnimationLookup.LH_POSITION_19 => AnimationEvent.AnimationType.LeftHandPosition19,
+                AnimationLookup.LH_POSITION_20 => AnimationEvent.AnimationType.LeftHandPosition20
             };
+
+            // return noteNumber switch
+            // {
+            //     MidIOHelper.LEFT_HAND_POSITION_1 => AnimationEvent.AnimationType.LeftHandPosition1,
+            //     MidIOHelper.LEFT_HAND_POSITION_2 => AnimationEvent.AnimationType.LeftHandPosition2,
+            //     MidIOHelper.LEFT_HAND_POSITION_3 => AnimationEvent.AnimationType.LeftHandPosition3,
+            //     MidIOHelper.LEFT_HAND_POSITION_4 => AnimationEvent.AnimationType.LeftHandPosition4,
+            //     MidIOHelper.LEFT_HAND_POSITION_5 => AnimationEvent.AnimationType.LeftHandPosition5,
+            //     MidIOHelper.LEFT_HAND_POSITION_6 => AnimationEvent.AnimationType.LeftHandPosition6,
+            //     MidIOHelper.LEFT_HAND_POSITION_7 => AnimationEvent.AnimationType.LeftHandPosition7,
+            //     MidIOHelper.LEFT_HAND_POSITION_8 => AnimationEvent.AnimationType.LeftHandPosition8,
+            //     MidIOHelper.LEFT_HAND_POSITION_9 => AnimationEvent.AnimationType.LeftHandPosition9,
+            //     MidIOHelper.LEFT_HAND_POSITION_10 => AnimationEvent.AnimationType.LeftHandPosition10,
+            //     MidIOHelper.LEFT_HAND_POSITION_11 => AnimationEvent.AnimationType.LeftHandPosition11,
+            //     MidIOHelper.LEFT_HAND_POSITION_12 => AnimationEvent.AnimationType.LeftHandPosition12,
+            //     MidIOHelper.LEFT_HAND_POSITION_13 => AnimationEvent.AnimationType.LeftHandPosition13,
+            //     MidIOHelper.LEFT_HAND_POSITION_14 => AnimationEvent.AnimationType.LeftHandPosition14,
+            //     MidIOHelper.LEFT_HAND_POSITION_15 => AnimationEvent.AnimationType.LeftHandPosition15,
+            //     MidIOHelper.LEFT_HAND_POSITION_16 => AnimationEvent.AnimationType.LeftHandPosition16,
+            //     MidIOHelper.LEFT_HAND_POSITION_17 => AnimationEvent.AnimationType.LeftHandPosition17,
+            //     MidIOHelper.LEFT_HAND_POSITION_18 => AnimationEvent.AnimationType.LeftHandPosition18,
+            //     MidIOHelper.LEFT_HAND_POSITION_19 => AnimationEvent.AnimationType.LeftHandPosition19,
+            //     MidIOHelper.LEFT_HAND_POSITION_20 => AnimationEvent.AnimationType.LeftHandPosition20,
+            //     _ => null
+            // };
         }
     }
 }

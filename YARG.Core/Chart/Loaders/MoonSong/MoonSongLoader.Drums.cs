@@ -314,7 +314,7 @@ namespace YARG.Core.Chart
             foreach (var animNote in chart.animationNotes)
             {
                 // Look up the note number and create an appropriate animation event
-                var animType = GetDrumAnimationType((byte) animNote.noteNumber);
+                var animType = GetDrumAnimationType(animNote.text);
 
                 if (!animType.HasValue) continue;
 
@@ -325,39 +325,71 @@ namespace YARG.Core.Chart
             return events;
         }
 
-        private static AnimationEvent.AnimationType? GetDrumAnimationType(byte noteNumber)
+        private static AnimationEvent.AnimationType? GetDrumAnimationType(string animText)
         {
-            return noteNumber switch
+            // This whole thing should be moved into AnimationLookup
+            return animText switch
             {
-                MidIOHelper.KICK => AnimationEvent.AnimationType.Kick,
-                MidIOHelper.HIHAT_OPEN => AnimationEvent.AnimationType.OpenHiHat,
-                MidIOHelper.SNARE_LH_HARD => AnimationEvent.AnimationType.SnareLhHard,
-                MidIOHelper.SNARE_LH_SOFT => AnimationEvent.AnimationType.SnareLhSoft,
-                MidIOHelper.SNARE_RH_HARD => AnimationEvent.AnimationType.SnareRhHard,
-                MidIOHelper.SNARE_RH_SOFT => AnimationEvent.AnimationType.SnareRhSoft,
-                MidIOHelper.HIHAT_LH => AnimationEvent.AnimationType.HihatLeftHand,
-                MidIOHelper.HIHAT_RH => AnimationEvent.AnimationType.HihatRightHand,
-                MidIOHelper.PERCUSSION_RH => AnimationEvent.AnimationType.PercussionRightHand,
-                MidIOHelper.CRASH_1_LH_HARD => AnimationEvent.AnimationType.Crash1LhHard,
-                MidIOHelper.CRASH_1_LH_SOFT => AnimationEvent.AnimationType.Crash1LhSoft,
-                MidIOHelper.CRASH_1_RH_HARD => AnimationEvent.AnimationType.Crash1RhHard,
-                MidIOHelper.CRASH_1_RH_SOFT => AnimationEvent.AnimationType.Crash1RhSoft,
-                MidIOHelper.CRASH_2_RH_HARD => AnimationEvent.AnimationType.Crash2RhHard,
-                MidIOHelper.CRASH_2_RH_SOFT => AnimationEvent.AnimationType.Crash2RhSoft,
-                MidIOHelper.CRASH_1_CHOKE => AnimationEvent.AnimationType.Crash1Choke,
-                MidIOHelper.CRASH_2_CHOKE => AnimationEvent.AnimationType.Crash2Choke,
-                MidIOHelper.RIDE_RH => AnimationEvent.AnimationType.RideRh,
-                MidIOHelper.RIDE_LH => AnimationEvent.AnimationType.RideLh,
-                MidIOHelper.CRASH_2_LH_HARD => AnimationEvent.AnimationType.Crash2LhHard,
-                MidIOHelper.CRASH_2_LH_SOFT => AnimationEvent.AnimationType.Crash2LhSoft,
-                MidIOHelper.TOM_1_LH => AnimationEvent.AnimationType.Tom1LeftHand,
-                MidIOHelper.TOM_1_RH => AnimationEvent.AnimationType.Tom1RightHand,
-                MidIOHelper.TOM_2_LH => AnimationEvent.AnimationType.Tom2LeftHand,
-                MidIOHelper.TOM_2_RH => AnimationEvent.AnimationType.Tom2RightHand,
-                MidIOHelper.FLOOR_TOM_LH => AnimationEvent.AnimationType.FloorTomLeftHand,
-                MidIOHelper.FLOOR_TOM_RH => AnimationEvent.AnimationType.FloorTomRightHand,
-                _ => null
+                AnimationLookup.DRUM_KICK           => AnimationEvent.AnimationType.Kick,
+                AnimationLookup.DRUM_HIHAT_OPEN     => AnimationEvent.AnimationType.OpenHiHat,
+                AnimationLookup.DRUM_SNARE_LH_HARD  => AnimationEvent.AnimationType.SnareLhHard,
+                AnimationLookup.DRUM_SNARE_LH_SOFT  => AnimationEvent.AnimationType.SnareLhSoft,
+                AnimationLookup.DRUM_SNARE_RH_HARD  => AnimationEvent.AnimationType.SnareRhHard,
+                AnimationLookup.DRUM_SNARE_RH_SOFT  => AnimationEvent.AnimationType.SnareRhSoft,
+                AnimationLookup.DRUM_HIHAT_LH       => AnimationEvent.AnimationType.HihatLeftHand,
+                AnimationLookup.DRUM_HIHAT_RH       => AnimationEvent.AnimationType.HihatRightHand,
+                AnimationLookup.DRUM_PERCUSSION_RH  => AnimationEvent.AnimationType.PercussionRightHand,
+                AnimationLookup.DRUM_CRASH1_LH_HARD => AnimationEvent.AnimationType.Crash1LhHard,
+                AnimationLookup.DRUM_CRASH1_LH_SOFT => AnimationEvent.AnimationType.Crash1LhSoft,
+                AnimationLookup.DRUM_CRASH1_RH_HARD => AnimationEvent.AnimationType.Crash1RhHard,
+                AnimationLookup.DRUM_CRASH1_RH_SOFT => AnimationEvent.AnimationType.Crash1RhSoft,
+                AnimationLookup.DRUM_CRASH2_RH_HARD => AnimationEvent.AnimationType.Crash2RhHard,
+                AnimationLookup.DRUM_CRASH2_RH_SOFT => AnimationEvent.AnimationType.Crash2RhSoft,
+                AnimationLookup.DRUM_CRASH1_CHOKE   => AnimationEvent.AnimationType.Crash1Choke,
+                AnimationLookup.DRUM_CRASH2_CHOKE   => AnimationEvent.AnimationType.Crash2Choke,
+                AnimationLookup.DRUM_RIDE_RH        => AnimationEvent.AnimationType.RideRh,
+                AnimationLookup.DRUM_RIDE_LH        => AnimationEvent.AnimationType.RideLh,
+                AnimationLookup.DRUM_CRASH2_LH_HARD => AnimationEvent.AnimationType.Crash2LhHard,
+                AnimationLookup.DRUM_CRASH2_LH_SOFT => AnimationEvent.AnimationType.Crash2LhSoft,
+                AnimationLookup.DRUM_TOM1_LH        => AnimationEvent.AnimationType.Tom1LeftHand,
+                AnimationLookup.DRUM_TOM1_RH        => AnimationEvent.AnimationType.Tom1RightHand,
+                AnimationLookup.DRUM_TOM2_LH        => AnimationEvent.AnimationType.Tom2LeftHand,
+                AnimationLookup.DRUM_TOM2_RH        => AnimationEvent.AnimationType.Tom2RightHand,
+                AnimationLookup.DRUM_FLOOR_TOM_LH   => AnimationEvent.AnimationType.FloorTomLeftHand,
+                AnimationLookup.DRUM_FLOOR_TOM_RH   => AnimationEvent.AnimationType.FloorTomRightHand,
+                _                                   => null
             };
+            // return noteNumber switch
+            // {
+            //     MidIOHelper.KICK => AnimationEvent.AnimationType.Kick,
+            //     MidIOHelper.HIHAT_OPEN => AnimationEvent.AnimationType.OpenHiHat,
+            //     MidIOHelper.SNARE_LH_HARD => AnimationEvent.AnimationType.SnareLhHard,
+            //     MidIOHelper.SNARE_LH_SOFT => AnimationEvent.AnimationType.SnareLhSoft,
+            //     MidIOHelper.SNARE_RH_HARD => AnimationEvent.AnimationType.SnareRhHard,
+            //     MidIOHelper.SNARE_RH_SOFT => AnimationEvent.AnimationType.SnareRhSoft,
+            //     MidIOHelper.HIHAT_LH => AnimationEvent.AnimationType.HihatLeftHand,
+            //     MidIOHelper.HIHAT_RH => AnimationEvent.AnimationType.HihatRightHand,
+            //     MidIOHelper.PERCUSSION_RH => AnimationEvent.AnimationType.PercussionRightHand,
+            //     MidIOHelper.CRASH_1_LH_HARD => AnimationEvent.AnimationType.Crash1LhHard,
+            //     MidIOHelper.CRASH_1_LH_SOFT => AnimationEvent.AnimationType.Crash1LhSoft,
+            //     MidIOHelper.CRASH_1_RH_HARD => AnimationEvent.AnimationType.Crash1RhHard,
+            //     MidIOHelper.CRASH_1_RH_SOFT => AnimationEvent.AnimationType.Crash1RhSoft,
+            //     MidIOHelper.CRASH_2_RH_HARD => AnimationEvent.AnimationType.Crash2RhHard,
+            //     MidIOHelper.CRASH_2_RH_SOFT => AnimationEvent.AnimationType.Crash2RhSoft,
+            //     MidIOHelper.CRASH_1_CHOKE => AnimationEvent.AnimationType.Crash1Choke,
+            //     MidIOHelper.CRASH_2_CHOKE => AnimationEvent.AnimationType.Crash2Choke,
+            //     MidIOHelper.RIDE_RH => AnimationEvent.AnimationType.RideRh,
+            //     MidIOHelper.RIDE_LH => AnimationEvent.AnimationType.RideLh,
+            //     MidIOHelper.CRASH_2_LH_HARD => AnimationEvent.AnimationType.Crash2LhHard,
+            //     MidIOHelper.CRASH_2_LH_SOFT => AnimationEvent.AnimationType.Crash2LhSoft,
+            //     MidIOHelper.TOM_1_LH => AnimationEvent.AnimationType.Tom1LeftHand,
+            //     MidIOHelper.TOM_1_RH => AnimationEvent.AnimationType.Tom1RightHand,
+            //     MidIOHelper.TOM_2_LH => AnimationEvent.AnimationType.Tom2LeftHand,
+            //     MidIOHelper.TOM_2_RH => AnimationEvent.AnimationType.Tom2RightHand,
+            //     MidIOHelper.FLOOR_TOM_LH => AnimationEvent.AnimationType.FloorTomLeftHand,
+            //     MidIOHelper.FLOOR_TOM_RH => AnimationEvent.AnimationType.FloorTomRightHand,
+            //     _ => null
+            // };
         }
     }
 }

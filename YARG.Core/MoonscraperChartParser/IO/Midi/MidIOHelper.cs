@@ -11,6 +11,7 @@ using YARG.Core.Chart;
 namespace MoonscraperChartEditor.Song.IO
 {
     using static VenueLookup;
+    using static AnimationLookup;
 
     internal static class MidIOHelper
     {
@@ -56,6 +57,13 @@ namespace MoonscraperChartEditor.Song.IO
         public static readonly Regex LightingRegex = new(@"lighting\s+\((.*)\)", RegexOptions.Compiled | RegexOptions.Singleline);
         public static readonly Regex DirectedCutRegex = new(@"do_directed_cut\s+(.*)", RegexOptions.Compiled | RegexOptions.Singleline);
         public static readonly Regex CameraCutRegex = new(@"coop_(\w+_\w+)", RegexOptions.Compiled | RegexOptions.Singleline);
+
+        // Hand map regex
+        public static readonly Regex LeftHandMapRegex = new("map HandMap_(.*)", RegexOptions.Compiled | RegexOptions.Singleline);
+        public static readonly Regex RightHandMapRegex = new("map StrumMap_(.*)", RegexOptions.Compiled | RegexOptions.Singleline);
+
+        // For good measure, we'll make a regex that we may end up not using
+        public static readonly Regex CharacterStateRegex = new("^(idle(_realtime?|_intense?)|play(_solo?)|intense|mellow)$", RegexOptions.Compiled | RegexOptions.Singleline);
 
         // Note numbers
         public const byte DOUBLE_KICK_NOTE = 95;
@@ -335,11 +343,75 @@ namespace MoonscraperChartEditor.Song.IO
             #endregion
         };
 
+        public static readonly Dictionary<int, (AnimationLookup.Type type, string text)> DRUM_ANIMATION_NOTE_LOOKUP = new()
+        {
+            // Drums is 24-51
+            { KICK, (AnimationLookup.Type.Drum, DRUM_KICK) },
+            { HIHAT_OPEN, (AnimationLookup.Type.Drum, DRUM_HIHAT_OPEN) },
+            { SNARE_LH_HARD, (AnimationLookup.Type.Drum, DRUM_SNARE_LH_HARD) },
+            { SNARE_RH_HARD, (AnimationLookup.Type.Drum, DRUM_SNARE_RH_HARD) },
+            { SNARE_LH_SOFT, (AnimationLookup.Type.Drum, DRUM_SNARE_LH_SOFT) },
+            { SNARE_RH_SOFT, (AnimationLookup.Type.Drum, DRUM_SNARE_RH_SOFT) },
+            { HIHAT_LH, (AnimationLookup.Type.Drum, DRUM_HIHAT_LH) },
+            { HIHAT_RH, (AnimationLookup.Type.Drum, DRUM_HIHAT_RH) },
+            { PERCUSSION_RH, (AnimationLookup.Type.Drum, DRUM_PERCUSSION_RH) },
+            { CRASH_1_LH_HARD, (AnimationLookup.Type.Drum, DRUM_CRASH1_LH_HARD) },
+            { CRASH_1_LH_SOFT, (AnimationLookup.Type.Drum, DRUM_CRASH1_LH_SOFT) },
+            { CRASH_1_RH_HARD, (AnimationLookup.Type.Drum, DRUM_CRASH1_RH_HARD) },
+            { CRASH_1_RH_SOFT, (AnimationLookup.Type.Drum, DRUM_CRASH1_RH_SOFT) },
+            { CRASH_2_RH_HARD, (AnimationLookup.Type.Drum, DRUM_CRASH2_RH_HARD) },
+            { CRASH_2_RH_SOFT, (AnimationLookup.Type.Drum, DRUM_CRASH2_RH_SOFT) },
+            { CRASH_2_LH_HARD, (AnimationLookup.Type.Drum, DRUM_CRASH2_LH_HARD) },
+            { CRASH_2_LH_SOFT, (AnimationLookup.Type.Drum, DRUM_CRASH2_LH_SOFT) },
+            { CRASH_1_CHOKE, (AnimationLookup.Type.Drum, DRUM_CRASH1_CHOKE) },
+            { CRASH_2_CHOKE, (AnimationLookup.Type.Drum, DRUM_CRASH2_CHOKE) },
+            { RIDE_LH, (AnimationLookup.Type.Drum, DRUM_RIDE_LH) },
+            { RIDE_RH, (AnimationLookup.Type.Drum, DRUM_RIDE_RH) },
+            { TOM_1_LH, (AnimationLookup.Type.Drum, DRUM_TOM1_LH) },
+            { TOM_1_RH, (AnimationLookup.Type.Drum, DRUM_TOM1_RH) },
+            { TOM_2_LH, (AnimationLookup.Type.Drum, DRUM_TOM2_LH) },
+            { TOM_2_RH, (AnimationLookup.Type.Drum, DRUM_TOM2_RH) },
+            { FLOOR_TOM_LH, (AnimationLookup.Type.Drum, DRUM_FLOOR_TOM_LH) },
+            { FLOOR_TOM_RH, (AnimationLookup.Type.Drum, DRUM_FLOOR_TOM_RH) },
+        };
+
+        public static readonly Dictionary<int, (AnimationLookup.Type type, string text)> FIVEFRET_ANIMATION_NOTE_LOOKUP = new()
+        {
+            // LH position is 40-59
+            { LEFT_HAND_POSITION_1, (AnimationLookup.Type.LeftHand, LH_POSITION_1) },
+            { LEFT_HAND_POSITION_2, (AnimationLookup.Type.LeftHand, LH_POSITION_2) },
+            { LEFT_HAND_POSITION_3, (AnimationLookup.Type.LeftHand, LH_POSITION_3) },
+            { LEFT_HAND_POSITION_4, (AnimationLookup.Type.LeftHand, LH_POSITION_4) },
+            { LEFT_HAND_POSITION_5, (AnimationLookup.Type.LeftHand, LH_POSITION_5) },
+            { LEFT_HAND_POSITION_6, (AnimationLookup.Type.LeftHand, LH_POSITION_6) },
+            { LEFT_HAND_POSITION_7, (AnimationLookup.Type.LeftHand, LH_POSITION_7) },
+            { LEFT_HAND_POSITION_8, (AnimationLookup.Type.LeftHand, LH_POSITION_8) },
+            { LEFT_HAND_POSITION_9, (AnimationLookup.Type.LeftHand, LH_POSITION_9) },
+            { LEFT_HAND_POSITION_10, (AnimationLookup.Type.LeftHand, LH_POSITION_10) },
+            { LEFT_HAND_POSITION_11, (AnimationLookup.Type.LeftHand, LH_POSITION_11) },
+            { LEFT_HAND_POSITION_12, (AnimationLookup.Type.LeftHand, LH_POSITION_12) },
+            { LEFT_HAND_POSITION_13, (AnimationLookup.Type.LeftHand, LH_POSITION_13) },
+            { LEFT_HAND_POSITION_14, (AnimationLookup.Type.LeftHand, LH_POSITION_14) },
+            { LEFT_HAND_POSITION_15, (AnimationLookup.Type.LeftHand, LH_POSITION_15) },
+            { LEFT_HAND_POSITION_16, (AnimationLookup.Type.LeftHand, LH_POSITION_16) },
+            { LEFT_HAND_POSITION_17, (AnimationLookup.Type.LeftHand, LH_POSITION_17) },
+            { LEFT_HAND_POSITION_18, (AnimationLookup.Type.LeftHand, LH_POSITION_18) },
+            { LEFT_HAND_POSITION_19, (AnimationLookup.Type.LeftHand, LH_POSITION_19) },
+            { LEFT_HAND_POSITION_20, (AnimationLookup.Type.LeftHand, LH_POSITION_20) },
+        };
+
         public static readonly Dictionary<Regex, (Dictionary<string, string> lookup, VenueLookup.Type type, string defaultValue)> VENUE_EVENT_REGEX_TO_LOOKUP = new()
         {
             { LightingRegex,    (VENUE_LIGHTING_CONVERSION_LOOKUP, VenueLookup.Type.Lighting, VENUE_LIGHTING_DEFAULT) },
             { DirectedCutRegex, (VENUE_DIRECTED_CUT_LOOKUP, VenueLookup.Type.CameraCut, VENUE_CAMERA_DEFAULT) },
             { CameraCutRegex, (VENUE_CAMERA_CUT_LOOKUP, VenueLookup.Type.CameraCut, VENUE_CAMERA_DEFAULT) }
+        };
+
+        public static readonly Dictionary<Regex, (Dictionary<string, string> lookup, AnimationLookup.Type type, string defaultValue)> ANIMATION_EVENT_REGEX_TO_LOOKUP = new()
+        {
+            { CharacterStateRegex, (CHARACTER_STATE_LOOKUP, AnimationLookup.Type.CharacterState, ANIMATION_STATE_IDLE) },
+            { LeftHandMapRegex, (LEFT_HAND_MAP_LOOKUP, AnimationLookup.Type.HandMap, HAND_MAP_DEFAULT) },
+            { RightHandMapRegex, (RIGHT_HAND_MAP_LOOKUP, AnimationLookup.Type.StrumMap, STRUM_MAP_DEFAULT) }
         };
 
         public static bool IsTextEvent(MidiEvent trackEvent, [NotNullWhen(true)] out BaseTextEvent? text)

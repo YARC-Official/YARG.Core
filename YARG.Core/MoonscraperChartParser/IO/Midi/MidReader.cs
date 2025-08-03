@@ -60,6 +60,10 @@ namespace MoonscraperChartEditor.Song.IO
             public Dictionary<int, EventProcessFn>                        phraseProcessMap;
             public Dictionary<int, EventProcessFn>                        animationProcessMap;
             public Dictionary<string, ProcessModificationProcessFn>       textProcessMap;
+            // This isn't strictly necessary given that the signatures for both delegates are the same,
+            // but it seems less confusing to have text events that need to be processed into other kinds
+            // of events handled separately from ones that modify parsing behavior
+            public Dictionary<string, EventProcessFn>                     textEventProcessMap;
             public Dictionary<PhaseShiftSysEx.PhraseCode, EventProcessFn> sysexProcessMap;
 
             public List<EventProcessFn> forcingProcessList;
@@ -204,6 +208,7 @@ namespace MoonscraperChartEditor.Song.IO
 
                         YargLogger.LogFormatTrace("Loading MIDI track {0}", trackName);
                         ReadNotes(ref settings, track, song, instrument);
+                        ReadAnimations(track, song, instrument);
                         break;
                 }
             }
@@ -419,6 +424,38 @@ namespace MoonscraperChartEditor.Song.IO
             }
         }
 
+        private static void ReadAnimations(TrackChunk track, MoonSong song, MoonSong.MoonInstrument instrument)
+        {
+            // We are only dealing with the text event form here (for now)
+            if (track.Events.Count < 1)
+                return;
+
+            YargLogger.LogTrace("Reading animations track");
+
+            for(var i = 0; i < track.Events.Count; i++)
+            {
+                var trackEvent = track.Events[i];
+                if (MidIOHelper.IsTextEvent(trackEvent, out var text))
+                {
+                    bool matched = false;
+                    foreach (var (regex, (lookup, type, defaultValue)) in MidIOHelper.ANIMATION_EVENT_REGEX_TO_LOOKUP)
+                    {
+                        if (regex.Match(text.Text) is not { Success: true } match)
+                            continue;
+
+                        if (!lookup.TryGetValue(match.Groups[1].Value, out string converted))
+                        {
+                            if (string.IsNullOrEmpty(defaultValue))
+                                continue;
+                            converted = defaultValue;
+                        }
+
+                        matched = true;
+                    }
+                }
+            }
+        }
+
         private static void ReadNotes(ref ParseSettings settings, TrackChunk track, MoonSong song,
             MoonSong.MoonInstrument instrument, MoonSong.Difficulty? trackDifficulty = null)
         {
@@ -445,7 +482,8 @@ namespace MoonscraperChartEditor.Song.IO
                 noteProcessMap = GetNoteProcessDict(gameMode),
                 phraseProcessMap = GetPhraseProcessDict(settings.StarPowerNote, gameMode),
                 animationProcessMap = GetAnimationProcessDict(gameMode),
-                textProcessMap = GetTextEventProcessDict(gameMode),
+                textProcessMap = GetParsingModificationTextProcessDict(gameMode),
+                textEventProcessMap = GetAnimationTextEventProcessDict(gameMode),
                 sysexProcessMap = GetSysExEventProcessDict(gameMode),
                 forcingProcessList = new(),
                 sysexProcessList = new(),
@@ -703,7 +741,18 @@ namespace MoonscraperChartEditor.Song.IO
             uint tick = (uint)timedEvent.startTick;
             uint length = (uint)timedEvent.length;
 
-            var newMoonAnim = new MoonAnimation(noteNumber, tick, length);
+            Dictionary<int, (AnimationLookup.Type, string)> lookup = MidIOHelper.FIVEFRET_ANIMATION_NOTE_LOOKUP;
+            if (eventProcessParams.instrument == MoonSong.MoonInstrument.Drums)
+            {
+                lookup = MidIOHelper.DRUM_ANIMATION_NOTE_LOOKUP;
+            }
+
+            if (!lookup.TryGetValue((byte) noteNumber, out var eventData))
+            {
+                return;
+            }
+
+            var newMoonAnim = new MoonAnimation(eventData.Item1, eventData.Item2, tick, length);
             if (chart.animationNotes.Capacity == 0)
                 chart.animationNotes.Capacity = 5000;
 

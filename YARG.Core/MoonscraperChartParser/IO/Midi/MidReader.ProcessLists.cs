@@ -119,6 +119,18 @@ namespace MoonscraperChartEditor.Song.IO
         {
         };
 
+        private static readonly Dictionary<string, EventProcessFn> GuitarAnimationTextEventProcessMap = new()
+        {
+        };
+
+        private static readonly Dictionary<string, EventProcessFn> DrumsAnimationTextEventProcessMap = new()
+        {
+        };
+
+        private static readonly Dictionary<string, EventProcessFn> VocalsAnimationTextEventProcessMap = new()
+        {
+        };
+
         // These dictionaries map the phrase code of a SysEx event to a specific function that processes them
         private static readonly Dictionary<PhaseShiftSysEx.PhraseCode, EventProcessFn> GuitarSysExProcessMap = new()
         {
@@ -229,7 +241,7 @@ namespace MoonscraperChartEditor.Song.IO
             return BuildCommonPhraseProcessMap(phraseSettings);
         }
 
-        private static Dictionary<string, ProcessModificationProcessFn> GetTextEventProcessDict(MoonChart.GameMode gameMode)
+        private static Dictionary<string, ProcessModificationProcessFn> GetParsingModificationTextProcessDict(MoonChart.GameMode gameMode)
         {
             return gameMode switch
             {
@@ -239,6 +251,21 @@ namespace MoonscraperChartEditor.Song.IO
                 MoonChart.GameMode.Drums => DrumsTextProcessMap,
                 MoonChart.GameMode.Vocals => VocalsTextProcessMap,
                 MoonChart.GameMode.ProKeys => ProKeysTextProcessMap,
+                _ => throw new NotImplementedException($"No process map for game mode {gameMode}!")
+            };
+        }
+
+        private static Dictionary<string, EventProcessFn> GetAnimationTextEventProcessDict(MoonChart.GameMode gameMode)
+        {
+            Dictionary<string, EventProcessFn> blankDict = new();
+            return gameMode switch
+            {
+                MoonChart.GameMode.Guitar => GuitarAnimationTextEventProcessMap,
+                MoonChart.GameMode.GHLGuitar => blankDict,
+                MoonChart.GameMode.ProGuitar => blankDict,
+                MoonChart.GameMode.Drums => DrumsAnimationTextEventProcessMap,
+                MoonChart.GameMode.Vocals => VocalsAnimationTextEventProcessMap,
+                MoonChart.GameMode.ProKeys => blankDict,
                 _ => throw new NotImplementedException($"No process map for game mode {gameMode}!")
             };
         }
@@ -549,11 +576,30 @@ namespace MoonscraperChartEditor.Song.IO
             return processFnDict;
         }
 
+        private static Dictionary<string, ProcessModificationProcessFn> BuildGuitarTextAnimationProcessDict()
+        {
+            var processFnDict = new Dictionary<string, ProcessModificationProcessFn>();
+
+            // First add anything from the existing process map
+            foreach (var (key, value) in GuitarTextProcessMap)
+            {
+                processFnDict.Add(key, value);
+            }
+
+            foreach (var key in AnimationLookup.CHARACTER_STATE_LOOKUP.Keys)
+            {
+                // processFnDict.Add(key, );
+            }
+
+            return processFnDict;
+        }
+
         private static Dictionary<int, EventProcessFn> BuildGuitarAnimationProcessDict()
         {
             var processFnDict = new Dictionary<int, EventProcessFn>();
 
             // Difficulty doesn't actually matter
+            // TODO: It probably does matter when the chart doesn't have an expert diff
             var difficulty = MoonSong.Difficulty.Expert;
             // TODO: Make this go to 59 when enhanced opens isn't enabled
             for (int i = 40; i <= 58; i++)
