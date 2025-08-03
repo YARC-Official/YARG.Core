@@ -50,6 +50,13 @@ namespace YARG.Core.Chart
                 return;
             }
 
+            // Bail if the first shift event is after the first note. We could try to guess, but we may well end up
+            // with a really bad chart if we do.
+            if (difficulty.RangeShiftEvents[0].Time > difficulty.Notes[0].Time)
+            {
+                return;
+            }
+
             var shifts = difficulty.RangeShiftEvents;
 
             int firstRange = shifts[0].Range;

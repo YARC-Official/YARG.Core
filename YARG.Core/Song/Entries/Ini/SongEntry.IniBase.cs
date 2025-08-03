@@ -1,4 +1,4 @@
-﻿using MoonscraperChartEditor.Song.IO;
+using MoonscraperChartEditor.Song.IO;
 using System;
 using System.Collections.Generic;
 using System.IO;

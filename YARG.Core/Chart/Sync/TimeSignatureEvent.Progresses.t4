@@ -7,11 +7,6 @@ namespace YARG.Core.Chart
 {
     public partial class TimeSignatureChange
     {
-        private void CheckTickStart(uint tick)
-        {
-            if (tick < Tick)
-                throw new ArgumentOutOfRangeException($"The given tick ({tick}) must be greater than this event's tick ({Tick})!");
-        }
 <#
 var names = new (string name, string doc)[] {
     ("Beat", "beat"),
@@ -22,14 +17,13 @@ var names = new (string name, string doc)[] {
 foreach (var (name, doc) in names)
 {
 #>
-
         /// <summary>
         /// Calculates the fractional number of <#= doc #>s that the given tick lies at, relative to this time signature.
         /// </summary>
         public double Get<#= name #>Progress(uint tick, SyncTrack sync)
         {
-            CheckTickStart(tick);
-            return (tick - Tick) / (double) GetTicksPer<#= name #>(sync);
+            CheckTick(tick);
+            return (tick - Tick) / (double) GetTicksPer<#= name #>(sync.Resolution);
         }
 
         /// <summary>
@@ -37,8 +31,8 @@ foreach (var (name, doc) in names)
         /// </summary>
         public uint Get<#= name #>Count(uint tick, SyncTrack sync)
         {
-            CheckTickStart(tick);
-            return (tick - Tick) / GetTicksPer<#= name #>(sync);
+            CheckTick(tick);
+            return (tick - Tick) / GetTicksPer<#= name #>(sync.Resolution);
         }
 
         /// <summary>
@@ -46,34 +40,11 @@ foreach (var (name, doc) in names)
         /// </summary>
         public double Get<#= name #>Percentage(uint tick, SyncTrack sync)
         {
-            CheckTickStart(tick);
-            uint tickRate = GetTicksPer<#= name #>(sync);
+            CheckTick(tick);
+            uint tickRate = GetTicksPer<#= name #>(sync.Resolution);
             return (tick % tickRate) / (double) tickRate;
         }
 
-        /// <summary>
-        /// Calculates the fractional number of <#= doc #>s that the given time lies at, relative to this time signature.
-        /// </summary>
-        public double Get<#= name #>Progress(double time, SyncTrack sync, TempoChange tempo)
-        {
-            return Get<#= name #>Progress(sync.TimeToTick(time, tempo), sync);
-        }
-
-        /// <summary>
-        /// Calculates the whole number of <#= doc #>s that the given time lies at, relative to this time signature.
-        /// </summary>
-        public uint Get<#= name #>Count(double time, SyncTrack sync, TempoChange tempo)
-        {
-            return Get<#= name #>Count(sync.TimeToTick(time, tempo), sync);
-        }
-
-        /// <summary>
-        /// Calculates the percent of a <#= doc #> that the given time lies at, relative to this time signature.
-        /// </summary>
-        public double Get<#= name #>Percentage(double time, SyncTrack sync, TempoChange tempo)
-        {
-            return Get<#= name #>Percentage(sync.TimeToTick(time, tempo), sync);
-        }
 <#
 }
 #>

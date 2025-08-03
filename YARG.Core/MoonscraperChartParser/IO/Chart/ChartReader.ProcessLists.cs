@@ -204,10 +204,16 @@ namespace MoonscraperChartEditor.Song.IO
         private static void ConvertSoloEvents(ref NoteProcessParams noteProcessParams)
         {
             var chart = noteProcessParams.chart;
+
             // Keeps tracks of soloes that start on the same tick when another solo ends
             uint startTick = uint.MaxValue;
             uint nextStartTick = uint.MaxValue;
-            for (int i = 0; i < chart.events.Count; ++i)
+
+            // Manually move over events so we can avoid excessive element moves
+            // from using RemoveAt or RemoveAll
+            int insertIndex = 0;
+
+            for (int i = 0; i < chart.events.Count; i++)
             {
                 var ev = chart.events[i];
                 if (ev.text == TextEvents.SOLO_START)
@@ -220,6 +226,9 @@ namespace MoonscraperChartEditor.Song.IO
                     {
                         nextStartTick = ev.tick;
                     }
+
+                    // Remove from list by overwriting
+                    continue;
                 }
                 else if (ev.text == TextEvents.SOLO_END)
                 {
@@ -242,8 +251,17 @@ namespace MoonscraperChartEditor.Song.IO
                             nextStartTick = uint.MaxValue;
                         }
                     }
+
+                    // Remove from list by overwriting
+                    continue;
                 }
+
+                // Move element to its new position
+                chart.events[insertIndex++] = ev;
             }
+
+            // Trim off remaining excess elements from any removals
+            chart.events.RemoveRange(insertIndex, chart.events.Count - insertIndex);
         }
 
         private static void DisambiguateDrumsType(ref NoteProcessParams processParams)
