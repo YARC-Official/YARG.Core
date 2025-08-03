@@ -422,7 +422,7 @@ namespace MoonscraperChartEditor.Song.IO
                         {
                             if (
                                 otherKick.eliteDrumPad is MoonNote.EliteDrumPad.Kick &&
-                                ((otherKick.flags & MoonNote.Flags.InstrumentPlus) != 0)
+                                ((otherKick.flags & MoonNote.Flags.InstrumentPlus) == 0)
                             )
                             {
                                 kick.flags |= MoonNote.Flags.EliteDrums_Flam;

@@ -99,31 +99,44 @@ namespace YARG.Core.Chart
 
         private static DrumNote? DownchartEliteDrumsChord(EliteDrumNote eliteDrumChord)
         {
+            DrumNote? parent = null;
+
             // Once we've created two hand gems, ignore all others
             var handGemCount = 0;
+            List<DrumNote?> noteQueue = new();
 
-            var parent = DownchartIndividualEliteDrumsNote(eliteDrumChord);
-            if (parent is not null && parent.Pad != (int)FourLaneDrumPad.Kick)
-            {
-                handGemCount++;
-            }
+            var (parentCandidate, parentFlamPartner) = DownchartIndividualEliteDrumsNote(eliteDrumChord);
+            noteQueue.Add(parentCandidate);
+            noteQueue.Add(parentFlamPartner);
 
             foreach (var eliteDrumChild in eliteDrumChord.ChildNotes)
             {
-                var child = DownchartIndividualEliteDrumsNote(eliteDrumChild);
+                var (child, childFlamPartner) = DownchartIndividualEliteDrumsNote(eliteDrumChild);
+                noteQueue.Add(child);
+                noteQueue.Add(childFlamPartner);
+            }
 
-                if (parent is null)
+            foreach (var note in noteQueue)
+            {
+                if (note is not null)
                 {
-                    parent = child;
-                } else if (child is not null)
-                {
-                    if (child.Pad == (int)FourLaneDrumPad.Kick)
+                    if (parent is null)
                     {
-                        parent.AddChildNote(child);
-                    } else if (handGemCount < 2)
+                        parent = note;
+                        if (note.Pad is not (int)FourLaneDrumPad.Kick)
+                        {
+                            handGemCount++;
+                        }
+                    } else
                     {
-                        AddChildHandGem(parent, child);
-                        handGemCount++;
+                        if (note.Pad is (int) FourLaneDrumPad.Kick)
+                        {
+                            parent.AddChildNote(note);
+                        } else if (handGemCount < 2)
+                        {
+                            parent.AddChildNote(note);
+                            handGemCount++;
+                        }
                     }
                 }
             }
@@ -131,9 +144,13 @@ namespace YARG.Core.Chart
             return parent;
         }
 
-        private static DrumNote? DownchartIndividualEliteDrumsNote(EliteDrumNote eliteDrumNote)
+        // Usually returns 1 note. Can return 0 notes for hat pedal gems that don't have channel flags, or 2 for flams
+        private static (DrumNote? downchartedNote, DrumNote? flamPartner) DownchartIndividualEliteDrumsNote(EliteDrumNote eliteDrumNote)
         {
-            var pad = (EliteDrumPad) eliteDrumNote.Pad switch
+            DrumNote? downchartedNote = null;
+            DrumNote? flamPartner = null;
+
+            var pad = ((EliteDrumPad) eliteDrumNote.Pad) switch
             {
                 EliteDrumPad.HatPedal => GetCymbalForChannelFlag(eliteDrumNote, null),
                 EliteDrumPad.Kick => FourLaneDrumPad.Kick,
@@ -150,10 +167,27 @@ namespace YARG.Core.Chart
 
             if (pad is not null)
             {
-                return new DrumNote(pad.Value, (EliteDrumPad)eliteDrumNote.Pad, eliteDrumNote.Dynamics, eliteDrumNote.DrumFlags, eliteDrumNote.Flags, eliteDrumNote.Time, eliteDrumNote.Tick);
+                downchartedNote = new(pad.Value, (EliteDrumPad) eliteDrumNote.Pad, eliteDrumNote.Dynamics, eliteDrumNote.DrumFlags, eliteDrumNote.Flags, eliteDrumNote.Time, eliteDrumNote.Tick);
+
+                if (eliteDrumNote.IsFlam)
+                {
+                    var otherPad = pad.Value switch
+                    {
+                        FourLaneDrumPad.RedDrum => FourLaneDrumPad.YellowDrum,
+                        FourLaneDrumPad.YellowDrum => FourLaneDrumPad.BlueDrum,
+                        FourLaneDrumPad.BlueDrum => FourLaneDrumPad.GreenDrum,
+                        FourLaneDrumPad.GreenDrum => FourLaneDrumPad.BlueDrum,
+                        FourLaneDrumPad.YellowCymbal => FourLaneDrumPad.BlueCymbal,
+                        FourLaneDrumPad.BlueCymbal => FourLaneDrumPad.GreenCymbal,
+                        FourLaneDrumPad.GreenCymbal => FourLaneDrumPad.BlueCymbal,
+                        _ => throw new Exception("Unreachable.")
+                    };
+
+                    flamPartner = new(otherPad, (EliteDrumPad) eliteDrumNote.Pad, eliteDrumNote.Dynamics, eliteDrumNote.DrumFlags, eliteDrumNote.Flags, eliteDrumNote.Time, eliteDrumNote.Tick);
+                }
             }
 
-            return null;
+            return (downchartedNote, flamPartner);
         }
 
         private static void AddChildHandGem(DrumNote parent, DrumNote child)
