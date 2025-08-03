@@ -176,6 +176,7 @@ namespace MoonscraperChartEditor.Song.IO
 
             { DRUMS_TRACK,         MoonSong.MoonInstrument.Drums },
             { DRUMS_REAL_TRACK,    MoonSong.MoonInstrument.Drums },
+            { ELITE_DRUMS_TRACK,   MoonSong.MoonInstrument.EliteDrums },
 
             { GHL_GUITAR_TRACK,    MoonSong.MoonInstrument.GHLiveGuitar },
             { GHL_BASS_TRACK,      MoonSong.MoonInstrument.GHLiveBass },

@@ -32,10 +32,24 @@ namespace YARG.Core.Chart
                 { Difficulty.ExpertPlus, LoadDifficulty(instrument, Difficulty.ExpertPlus, createNote, HandleTextEvent) },
             };
 
-            if (eliteDrumsFallback is not null && difficulties.All(keyval => keyval.Value.IsEmpty))
+            if (eliteDrumsFallback is not null && difficulties.All(keyval => keyval.Value.Notes.Count == 0))
             {
-                return LoadDrumsTrack(instrument, DownchartNote, null);
+                return DownchartEliteDrumsTrack(instrument, eliteDrumsFallback);
             }
+
+            return new(instrument, difficulties);
+        }
+
+        private InstrumentTrack<DrumNote> DownchartEliteDrumsTrack(Instrument instrument, InstrumentTrack<EliteDrumNote> eliteDrumsTrack)
+        {
+            var difficulties = new Dictionary<Difficulty, InstrumentDifficulty<DrumNote>>()
+            {
+                {  Difficulty.Easy, DownchartEliteDrumsDifficulty(instrument, eliteDrumsTrack, Difficulty.Easy) },
+                {  Difficulty.Medium, DownchartEliteDrumsDifficulty(instrument, eliteDrumsTrack, Difficulty.Medium) },
+                {  Difficulty.Hard, DownchartEliteDrumsDifficulty(instrument, eliteDrumsTrack, Difficulty.Hard) },
+                {  Difficulty.Expert, DownchartEliteDrumsDifficulty(instrument, eliteDrumsTrack, Difficulty.Expert) },
+                {  Difficulty.ExpertPlus, DownchartEliteDrumsDifficulty(instrument, eliteDrumsTrack, Difficulty.ExpertPlus) },
+            };
 
             return new(instrument, difficulties);
         }
@@ -62,9 +76,62 @@ namespace YARG.Core.Chart
             return new DrumNote(pad, noteType, drumFlags, generalFlags, time, moonNote.tick);
         }
 
-        private DrumNote DownchartNote(MoonNote moonNote, Dictionary<MoonPhrase.Type, MoonPhrase> currentPhrases)
+        private InstrumentDifficulty<DrumNote> DownchartEliteDrumsDifficulty(Instrument instrument, InstrumentTrack<EliteDrumNote> eliteDrumsTrack, Difficulty difficulty)
         {
-            throw new NotImplementedException();
+            var eliteDrumsDifficulty = eliteDrumsTrack.GetDifficulty(difficulty);
+
+            List<DrumNote> notes = new();
+            List<Phrase> phrases = new();
+            List<TextEvent> text = new();
+
+            foreach (var eliteDrumNote in eliteDrumsDifficulty.Notes)
+            {
+                var note = DownchartEliteDrumsChord(eliteDrumNote);
+                if (note is not null)
+                {
+                    notes.Add(note);
+                }
+            }
+
+            return new(instrument, difficulty, notes, phrases, text);
+        }
+
+        private DrumNote? DownchartEliteDrumsChord(EliteDrumNote eliteDrumChord)
+        {
+            var parent = DownchartIndividualEliteDrumsNote(eliteDrumChord);
+
+            foreach (var eliteDrumChild in eliteDrumChord.ChildNotes)
+            {
+                var child = DownchartIndividualEliteDrumsNote(eliteDrumChild);
+
+                if (parent is null)
+                {
+                    parent = child;
+                } else if (child is not null)
+                {
+                    parent.AddChildNote(child);
+                }
+            }
+
+            return parent;
+        }
+
+        private DrumNote? DownchartIndividualEliteDrumsNote(EliteDrumNote eliteDrumNote)
+        {
+            return (EliteDrumNote.EliteDrumPad) eliteDrumNote.Pad switch
+            {
+                EliteDrumNote.EliteDrumPad.HatPedal => null,
+                EliteDrumNote.EliteDrumPad.Kick => new(FourLaneDrumPad.Kick, DrumNoteType.Neutral, DrumNoteFlags.None, NoteFlags.None, eliteDrumNote.Time, eliteDrumNote.Tick),
+                EliteDrumNote.EliteDrumPad.Snare => new(FourLaneDrumPad.RedDrum, DrumNoteType.Neutral, DrumNoteFlags.None, NoteFlags.None, eliteDrumNote.Time, eliteDrumNote.Tick),
+                EliteDrumNote.EliteDrumPad.HiHat => new(FourLaneDrumPad.YellowCymbal, DrumNoteType.Neutral, DrumNoteFlags.None, NoteFlags.None, eliteDrumNote.Time, eliteDrumNote.Tick),
+                EliteDrumNote.EliteDrumPad.LeftCrash => new(FourLaneDrumPad.BlueCymbal, DrumNoteType.Neutral, DrumNoteFlags.None, NoteFlags.None, eliteDrumNote.Time, eliteDrumNote.Tick),
+                EliteDrumNote.EliteDrumPad.Tom1 => new(FourLaneDrumPad.YellowDrum, DrumNoteType.Neutral, DrumNoteFlags.None, NoteFlags.None, eliteDrumNote.Time, eliteDrumNote.Tick),
+                EliteDrumNote.EliteDrumPad.Tom2 => new(FourLaneDrumPad.BlueDrum, DrumNoteType.Neutral, DrumNoteFlags.None, NoteFlags.None, eliteDrumNote.Time, eliteDrumNote.Tick),
+                EliteDrumNote.EliteDrumPad.Tom3 => new(FourLaneDrumPad.GreenDrum, DrumNoteType.Neutral, DrumNoteFlags.None, NoteFlags.None, eliteDrumNote.Time, eliteDrumNote.Tick),
+                EliteDrumNote.EliteDrumPad.Ride => new(FourLaneDrumPad.BlueCymbal, DrumNoteType.Neutral, DrumNoteFlags.None, NoteFlags.None, eliteDrumNote.Time, eliteDrumNote.Tick),
+                EliteDrumNote.EliteDrumPad.RightCrash => new(FourLaneDrumPad.GreenCymbal, DrumNoteType.Neutral, DrumNoteFlags.None, NoteFlags.None, eliteDrumNote.Time, eliteDrumNote.Tick),
+                _ => throw new Exception("Unreachable")
+            };
         }
 
         private void HandleTextEvent(MoonText text)
