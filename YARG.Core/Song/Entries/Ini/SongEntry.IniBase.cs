@@ -311,10 +311,6 @@ namespace YARG.Core.Song
             {
                 return DrumsType.FiveLane;
             }
-            if (parts.EliteDrums.IsActive())
-            {
-                return DrumsType.FourLane;
-            }
             return DrumsType.Unknown;
         }
 
