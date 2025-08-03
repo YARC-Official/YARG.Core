@@ -254,7 +254,9 @@ public partial class Cli
     /// </returns>
     public bool Run()
     {
-        (var result, _replayInfo, _replayData) = ReplayIO.TryDeserialize(_replayPath);
+        // I'm assuming that when running analyzer from the CLI we always want frame times if available
+        var replayOptions = new ReplayReadOptions { KeepFrameTimes = true };
+        (var result, _replayInfo, _replayData) = ReplayIO.TryDeserialize(_replayPath, replayOptions);
         if (result != ReplayReadResult.Valid)
         {
             Console.WriteLine($"ERROR: Failed to load replay. Read Result: {result}.");
