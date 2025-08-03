@@ -39,6 +39,7 @@ namespace YARG.Core.Chart
             HatState = hatState;
             IsFlam = isFlam;
             DrumFlags = _drumFlags = drumFlags;
+            ChannelFlag = channelFlag;
             _padMask = 1 << pad;
         }
 

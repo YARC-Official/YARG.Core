@@ -118,22 +118,51 @@ namespace YARG.Core.Chart
 
         private DrumNote? DownchartIndividualEliteDrumsNote(EliteDrumNote eliteDrumNote)
         {
-            return (EliteDrumNote.EliteDrumPad) eliteDrumNote.Pad switch
+            var pad = (EliteDrumNote.EliteDrumPad) eliteDrumNote.Pad switch
             {
-                EliteDrumNote.EliteDrumPad.HatPedal => null,
-                EliteDrumNote.EliteDrumPad.Kick => new(FourLaneDrumPad.Kick, DrumNoteType.Neutral, eliteDrumNote.DrumFlags, eliteDrumNote.Flags, eliteDrumNote.Time, eliteDrumNote.Tick),
-                EliteDrumNote.EliteDrumPad.Snare => new(FourLaneDrumPad.RedDrum, eliteDrumNote.Dynamics, eliteDrumNote.DrumFlags, eliteDrumNote.Flags, eliteDrumNote.Time, eliteDrumNote.Tick),
-                EliteDrumNote.EliteDrumPad.HiHat => new(FourLaneDrumPad.YellowCymbal, eliteDrumNote.Dynamics, eliteDrumNote.DrumFlags, eliteDrumNote.Flags, eliteDrumNote.Time, eliteDrumNote.Tick),
-                EliteDrumNote.EliteDrumPad.LeftCrash => new(FourLaneDrumPad.BlueCymbal, eliteDrumNote.Dynamics, eliteDrumNote.DrumFlags, eliteDrumNote.Flags, eliteDrumNote.Time, eliteDrumNote.Tick),
-                EliteDrumNote.EliteDrumPad.Tom1 => new(FourLaneDrumPad.YellowDrum, eliteDrumNote.Dynamics, eliteDrumNote.DrumFlags, eliteDrumNote.Flags, eliteDrumNote.Time, eliteDrumNote.Tick),
-                EliteDrumNote.EliteDrumPad.Tom2 => new(FourLaneDrumPad.BlueDrum, eliteDrumNote.Dynamics, eliteDrumNote.DrumFlags, eliteDrumNote.Flags, eliteDrumNote.Time, eliteDrumNote.Tick),
-                EliteDrumNote.EliteDrumPad.Tom3 => new(FourLaneDrumPad.GreenDrum, eliteDrumNote.Dynamics, eliteDrumNote.DrumFlags, eliteDrumNote.Flags, eliteDrumNote.Time, eliteDrumNote.Tick),
-                EliteDrumNote.EliteDrumPad.Ride => new(FourLaneDrumPad.BlueCymbal, eliteDrumNote.Dynamics, eliteDrumNote.DrumFlags, eliteDrumNote.Flags, eliteDrumNote.Time, eliteDrumNote.Tick),
-                EliteDrumNote.EliteDrumPad.RightCrash => new(FourLaneDrumPad.GreenCymbal, eliteDrumNote.Dynamics, eliteDrumNote.DrumFlags, eliteDrumNote.Flags, eliteDrumNote.Time, eliteDrumNote.Tick),
+                EliteDrumNote.EliteDrumPad.HatPedal => GetCymbalForChannelFlag(eliteDrumNote, null),
+                EliteDrumNote.EliteDrumPad.Kick => FourLaneDrumPad.Kick,
+                EliteDrumNote.EliteDrumPad.Snare => GetDrumForChannelFlag(eliteDrumNote, FourLaneDrumPad.RedDrum),
+                EliteDrumNote.EliteDrumPad.HiHat => GetCymbalForChannelFlag(eliteDrumNote, FourLaneDrumPad.YellowCymbal),
+                EliteDrumNote.EliteDrumPad.LeftCrash => GetCymbalForChannelFlag(eliteDrumNote, FourLaneDrumPad.BlueCymbal),
+                EliteDrumNote.EliteDrumPad.Tom1 => GetDrumForChannelFlag(eliteDrumNote, FourLaneDrumPad.YellowDrum),
+                EliteDrumNote.EliteDrumPad.Tom2 => GetDrumForChannelFlag(eliteDrumNote, FourLaneDrumPad.BlueDrum),
+                EliteDrumNote.EliteDrumPad.Tom3 => GetDrumForChannelFlag(eliteDrumNote, FourLaneDrumPad.GreenDrum),
+                EliteDrumNote.EliteDrumPad.Ride => GetCymbalForChannelFlag(eliteDrumNote, FourLaneDrumPad.BlueCymbal),
+                EliteDrumNote.EliteDrumPad.RightCrash => GetCymbalForChannelFlag(eliteDrumNote, FourLaneDrumPad.GreenCymbal),
                 _ => throw new Exception("Unreachable")
+            };
+
+            if (pad is not null)
+            {
+                return new DrumNote(pad.Value, eliteDrumNote.Dynamics, eliteDrumNote.DrumFlags, eliteDrumNote.Flags, eliteDrumNote.Time, eliteDrumNote.Tick);
+            }
+
+            return null;
+        }
+
+        private FourLaneDrumPad GetDrumForChannelFlag(EliteDrumNote drum, FourLaneDrumPad unforced)
+        {
+            return drum.ChannelFlag switch
+            {
+                EliteDrumNote.EliteDrumsChannelFlag.Red => FourLaneDrumPad.RedDrum,
+                EliteDrumNote.EliteDrumsChannelFlag.Yellow => FourLaneDrumPad.YellowDrum,
+                EliteDrumNote.EliteDrumsChannelFlag.Blue => FourLaneDrumPad.BlueDrum,
+                EliteDrumNote.EliteDrumsChannelFlag.Green => FourLaneDrumPad.GreenDrum,
+                _ => unforced
             };
         }
 
+        private FourLaneDrumPad? GetCymbalForChannelFlag(EliteDrumNote cymbal, FourLaneDrumPad? unforced)
+        {
+            return cymbal.ChannelFlag switch
+            {
+                EliteDrumNote.EliteDrumsChannelFlag.Yellow => FourLaneDrumPad.YellowCymbal,
+                EliteDrumNote.EliteDrumsChannelFlag.Blue => FourLaneDrumPad.BlueCymbal,
+                EliteDrumNote.EliteDrumsChannelFlag.Green => FourLaneDrumPad.GreenCymbal,
+                _ => unforced
+            };
+        }
         private void HandleTextEvent(MoonText text)
         {
             // Ignore on 5-lane or standard Drums

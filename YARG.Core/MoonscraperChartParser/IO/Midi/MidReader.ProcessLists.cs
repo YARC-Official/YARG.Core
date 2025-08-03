@@ -988,7 +988,7 @@ namespace MoonscraperChartEditor.Song.IO
                             }
 
                             // Process channel. Kicks are not affected by channel flags
-                            if (pad != MoonNote.EliteDrumPad.Kick)
+                            if (pad is not MoonNote.EliteDrumPad.Kick)
                             {
                                 switch (noteEvent.Channel)
                                 {
