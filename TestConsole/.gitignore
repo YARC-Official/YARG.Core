@@ -1,0 +1,4 @@
+# Song scanning
+console_songdirs.txt
+console_songcache.bin
+console_badsongs.txt

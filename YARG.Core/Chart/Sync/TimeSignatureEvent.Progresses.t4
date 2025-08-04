@@ -22,7 +22,7 @@ foreach (var (name, doc) in names)
         /// </summary>
         public double Get<#= name #>Progress(uint tick, SyncTrack sync)
         {
-            CheckTick(tick);
+            CheckQuarterTick(tick, "tick");
             return (tick - Tick) / (double) GetTicksPer<#= name #>(sync.Resolution);
         }
 
@@ -31,7 +31,7 @@ foreach (var (name, doc) in names)
         /// </summary>
         public uint Get<#= name #>Count(uint tick, SyncTrack sync)
         {
-            CheckTick(tick);
+            CheckQuarterTick(tick, "tick");
             return (tick - Tick) / GetTicksPer<#= name #>(sync.Resolution);
         }
 
@@ -40,7 +40,7 @@ foreach (var (name, doc) in names)
         /// </summary>
         public double Get<#= name #>Percentage(uint tick, SyncTrack sync)
         {
-            CheckTick(tick);
+            CheckQuarterTick(tick, "tick");
             uint tickRate = GetTicksPer<#= name #>(sync.Resolution);
             return (tick % tickRate) / (double) tickRate;
         }

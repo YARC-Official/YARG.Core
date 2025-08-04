@@ -414,7 +414,8 @@ FodyWeavers.xsd
 *.bkp
 *.dtmp
 
-# TestConsole files
-console_songdirs.txt
-console_songcache.bin
-console_badsongs.txt
+# Unity package stuff
+*.meta
+!*.asmdef.meta # Unity depends on asmdef GUIDs
+!csc.rsp
+.artifacts/

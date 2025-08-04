@@ -478,8 +478,8 @@ namespace MoonscraperChartEditor.Song.IO
                 }
             }
 
-            YargLogger.Assert(unpairedNoteQueue.Count == 0);
-            YargLogger.Assert(unpairedSysexQueue.Count == 0);
+            YargLogger.Assert(unpairedNoteQueue.Count == 0, "Chart contains unpaired note events!");
+            YargLogger.Assert(unpairedSysexQueue.Count == 0, "Chart contains unpaired SysEx events!");
 
             // Apply SysEx events first
             // These are separate to prevent forcing issues on open notes marked via SysEx
@@ -757,13 +757,12 @@ namespace MoonscraperChartEditor.Song.IO
             for (int i = index; i < index + length; ++i)
             {
                 var note = chart.notes[i];
-                var newType = noteType; // The requested type might not be able to be marked for this note
 
                 // Tap marking overrides all other forcing
                 if ((note.flags & MoonNote.Flags.Tap) != 0)
                     continue;
 
-                switch (newType)
+                switch (noteType)
                 {
                     case MoonNote.MoonNoteType.Strum:
                         note.flags |= MoonNote.Flags.Forced_Strum;
@@ -789,12 +788,12 @@ namespace MoonscraperChartEditor.Song.IO
                         break;
 
                     default:
-                        YargLogger.FailFormat("Unhandled note type {0} in .mid forced type processing!", newType);
+                        YargLogger.FailFormat("Unhandled note type {0} in .mid forced type processing!", noteType);
                         continue;
                 }
 
                 var finalType = note.GetGuitarNoteType(song.hopoThreshold);
-                YargLogger.Assert(finalType == newType);
+                YargLogger.AssertFormat(finalType == noteType, "Note type forcing was not successful! Tried to apply {0}, got {1} instead", noteType, finalType);
             }
         }
 

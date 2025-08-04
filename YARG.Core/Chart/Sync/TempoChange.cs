@@ -22,17 +22,17 @@ namespace YARG.Core.Chart
             return new(BeatsPerMinute, Time, Tick);
         }
 
-        private void CheckTime(double time, [CallerArgumentExpression(nameof(time))] string name = "")
+        private void CheckTick(uint tick, string name = "tick")
         {
-            if (time < Time)
+            if (tick < Tick)
             {
                 throw new ArgumentOutOfRangeException(name);
             }
         }
 
-        private void CheckTick(uint tick, [CallerArgumentExpression(nameof(tick))] string name = "")
+        private void CheckTime(double time, string name = "time")
         {
-            if (tick < Tick)
+            if (time < Time)
             {
                 throw new ArgumentOutOfRangeException(name);
             }

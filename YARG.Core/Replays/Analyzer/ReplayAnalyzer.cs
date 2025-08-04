@@ -455,7 +455,7 @@ namespace YARG.Core.Replays.Analyzer
                     break;
 
                 default:
-                    YargLogger.Assert(original.GetType() == result.GetType());
+                    YargLogger.Assert(original.GetType() == result.GetType(), "Tried to compare mismatching stats types!");
                     YargLogger.LogFormatDebug("Instrument-specific validation not yet implemented for {0}",
                         original.GetType());
                     instrumentPass = true;

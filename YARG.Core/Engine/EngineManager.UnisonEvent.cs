@@ -65,7 +65,7 @@ namespace YARG.Core.Engine
                 }
 
                 // If SuccessCount is ever greater than the number of players, something has gone seriously wrong
-                YargLogger.Assert(SuccessCount <= ParticipantIds.Count);
+                YargLogger.Assert(SuccessCount <= ParticipantIds.Count, "SuccessCount mismanagement detected");
                 return false;
             }
         }

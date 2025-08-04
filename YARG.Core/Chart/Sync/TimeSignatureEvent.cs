@@ -53,15 +53,15 @@ namespace YARG.Core.Chart
             return beatResolution * MEASURE_RESOLUTION_SCALE;
         }
 
-        private void CheckTick(uint tick, [CallerArgumentExpression(nameof(tick))] string name = "")
+        private void CheckQuarterTick(uint quarterTick, string name = "quarterTick")
         {
-            if (tick < Tick)
+            if (quarterTick < Tick)
             {
                 throw new ArgumentOutOfRangeException(name);
             }
         }
 
-        private void CheckMeasureTick(uint measureTick, [CallerArgumentExpression(nameof(measureTick))] string name = "")
+        private void CheckMeasureTick(uint measureTick, string name = "measureTick")
         {
             if (measureTick < MeasureTick)
             {
@@ -108,7 +108,7 @@ namespace YARG.Core.Chart
         public uint QuarterTickToMeasureTick(uint quarterTick, uint quarterResolution)
         {
             CheckInterrupted();
-            CheckTick(quarterTick);
+            CheckQuarterTick(quarterTick);
 
             uint measureResolution = GetMeasureTickResolution(quarterResolution);
             double quarterTicksPerMeasure = GetTicksPerMeasure(quarterResolution);
@@ -148,8 +148,8 @@ namespace YARG.Core.Chart
         /// </remarks>
         public uint QuarterTickToMeasureTick(uint quarterTick, TimeSignatureChange nextTimeSig)
         {
-            CheckTick(quarterTick);
-            CheckTick(nextTimeSig.Tick);
+            CheckQuarterTick(quarterTick);
+            CheckQuarterTick(nextTimeSig.Tick, "nextTimeSig.Tick");
 
             double measureProgress = YargMath.InverseLerpD(Tick, nextTimeSig.Tick, quarterTick);
             return YargMath.Lerp(MeasureTick, nextTimeSig.MeasureTick, measureProgress);
@@ -166,7 +166,7 @@ namespace YARG.Core.Chart
         public uint MeasureTickToQuarterTick(uint measureTick, TimeSignatureChange nextTimeSig)
         {
             CheckMeasureTick(measureTick);
-            CheckMeasureTick(nextTimeSig.MeasureTick);
+            CheckMeasureTick(nextTimeSig.MeasureTick, "nextTimeSig.MeasureTick");
 
             double measureProgress = YargMath.InverseLerpD(MeasureTick, nextTimeSig.MeasureTick, measureTick);
             return YargMath.Lerp(Tick, nextTimeSig.Tick, measureProgress);

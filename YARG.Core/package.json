@@ -1,0 +1,9 @@
+{
+  "name": "in.yarg.core",
+  "version": "0.13.0",
+  "displayName": "YARG.Core",
+  "description": "Common backend code used throughout various YARG projects/services.",
+  "unity": "2021.3",
+  "license": "MIT",
+  "licensesUrl": "https://github.com/YARC-Official/YARG.Core/blob/master/LICENSE"
+}

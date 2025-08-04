@@ -9,7 +9,7 @@ namespace YARG.Core.Chart
         /// </summary>
         public double GetBeatProgress(uint tick, SyncTrack sync)
         {
-            CheckTick(tick);
+            CheckQuarterTick(tick, "tick");
             return (tick - Tick) / (double) GetTicksPerBeat(sync.Resolution);
         }
 
@@ -18,7 +18,7 @@ namespace YARG.Core.Chart
         /// </summary>
         public uint GetBeatCount(uint tick, SyncTrack sync)
         {
-            CheckTick(tick);
+            CheckQuarterTick(tick, "tick");
             return (tick - Tick) / GetTicksPerBeat(sync.Resolution);
         }
 
@@ -27,7 +27,7 @@ namespace YARG.Core.Chart
         /// </summary>
         public double GetBeatPercentage(uint tick, SyncTrack sync)
         {
-            CheckTick(tick);
+            CheckQuarterTick(tick, "tick");
             uint tickRate = GetTicksPerBeat(sync.Resolution);
             return (tick % tickRate) / (double) tickRate;
         }
@@ -37,7 +37,7 @@ namespace YARG.Core.Chart
         /// </summary>
         public double GetQuarterNoteProgress(uint tick, SyncTrack sync)
         {
-            CheckTick(tick);
+            CheckQuarterTick(tick, "tick");
             return (tick - Tick) / (double) GetTicksPerQuarterNote(sync.Resolution);
         }
 
@@ -46,7 +46,7 @@ namespace YARG.Core.Chart
         /// </summary>
         public uint GetQuarterNoteCount(uint tick, SyncTrack sync)
         {
-            CheckTick(tick);
+            CheckQuarterTick(tick, "tick");
             return (tick - Tick) / GetTicksPerQuarterNote(sync.Resolution);
         }
 
@@ -55,7 +55,7 @@ namespace YARG.Core.Chart
         /// </summary>
         public double GetQuarterNotePercentage(uint tick, SyncTrack sync)
         {
-            CheckTick(tick);
+            CheckQuarterTick(tick, "tick");
             uint tickRate = GetTicksPerQuarterNote(sync.Resolution);
             return (tick % tickRate) / (double) tickRate;
         }
@@ -65,7 +65,7 @@ namespace YARG.Core.Chart
         /// </summary>
         public double GetMeasureProgress(uint tick, SyncTrack sync)
         {
-            CheckTick(tick);
+            CheckQuarterTick(tick, "tick");
             return (tick - Tick) / (double) GetTicksPerMeasure(sync.Resolution);
         }
 
@@ -74,7 +74,7 @@ namespace YARG.Core.Chart
         /// </summary>
         public uint GetMeasureCount(uint tick, SyncTrack sync)
         {
-            CheckTick(tick);
+            CheckQuarterTick(tick, "tick");
             return (tick - Tick) / GetTicksPerMeasure(sync.Resolution);
         }
 
@@ -83,7 +83,7 @@ namespace YARG.Core.Chart
         /// </summary>
         public double GetMeasurePercentage(uint tick, SyncTrack sync)
         {
-            CheckTick(tick);
+            CheckQuarterTick(tick, "tick");
             uint tickRate = GetTicksPerMeasure(sync.Resolution);
             return (tick % tickRate) / (double) tickRate;
         }
