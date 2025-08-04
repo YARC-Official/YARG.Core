@@ -9,7 +9,7 @@ namespace YARG.Core.Chart
         private DrumNoteFlags _drumFlags;
         public DrumNoteFlags DrumFlags;
 
-        public int Pad { get; set; }
+        public int Pad { get; }
 
         // Notes that were downcharted from Elite Drums need to remember what ED pad they originally were, for collision resolution
         public EliteDrumPad? DownchartingSourcePad { get; }
@@ -28,7 +28,7 @@ namespace YARG.Core.Chart
 
         public DrumNote(FourLaneDrumPad pad, EliteDrumPad? downchartingSourcePad, DrumNoteType noteType, DrumNoteFlags drumFlags,
             NoteFlags flags, double time, uint tick)
-            : this((int) pad, null, noteType, drumFlags, flags, time, tick)
+            : this((int) pad, downchartingSourcePad, noteType, drumFlags, flags, time, tick)
         {
         }
 

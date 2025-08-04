@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using Melanchall.DryWetMidi.MusicTheory;
 using MoonscraperChartEditor.Song;
 using YARG.Core.Parsing;
 using static YARG.Core.Chart.EliteDrumNote;
@@ -81,74 +82,62 @@ namespace YARG.Core.Chart
         {
             var eliteDrumsDifficulty = eliteDrumsTrack.GetDifficulty(difficulty);
 
-            List<DrumNote> notes = new();
             List<Phrase> phrases = new();
             List<TextEvent> text = new();
+
+            List <(DrumNote? kick, DrumNote? firstHandGem, DrumNote? secondHandGem)> unresolvedNotes = new();
 
             foreach (var eliteDrumNote in eliteDrumsDifficulty.Notes)
             {
                 var note = DownchartEliteDrumsChord(eliteDrumNote);
                 if (note is not null)
                 {
-                    notes.Add(note);
+                    unresolvedNotes.Add(note.Value);
                 }
             }
+
+            var notes = ResolveDownchartCollisions(unresolvedNotes);
 
             return new(instrument, difficulty, notes, phrases, text);
         }
 
-        private static DrumNote? DownchartEliteDrumsChord(EliteDrumNote eliteDrumChord)
+        private static (DrumNote? kick, DrumNote? firstHandGem, DrumNote? secondHandGem)? DownchartEliteDrumsChord(EliteDrumNote eliteDrumChord)
         {
-            DrumNote? parent = null;
+            DrumNote? kick = null;
+            DrumNote? firstHandGem = null;
+            DrumNote? secondHandGem = null;
 
-            // Once we've created two hand gems, ignore all others
-            var handGemCount = 0;
-            List<DrumNote?> noteQueue = new();
-
-            var (parentCandidate, parentFlamPartner) = DownchartIndividualEliteDrumsNote(eliteDrumChord);
-            noteQueue.Add(parentCandidate);
-            noteQueue.Add(parentFlamPartner);
-
-            foreach (var eliteDrumChild in eliteDrumChord.ChildNotes)
+            foreach (var eliteDrumNote in eliteDrumChord.AllNotes)
             {
-                var (child, childFlamPartner) = DownchartIndividualEliteDrumsNote(eliteDrumChild);
-                noteQueue.Add(child);
-                noteQueue.Add(childFlamPartner);
-            }
-
-            foreach (var note in noteQueue)
-            {
-                if (note is not null)
+                var downchartedNotes = DownchartIndividualEliteDrumsNote(eliteDrumNote);
+                foreach (var downchartedNote in downchartedNotes)
                 {
-                    if (parent is null)
+                    if (downchartedNote.Pad == (int)FourLaneDrumPad.Kick)
                     {
-                        parent = note;
-                        if (note.Pad is not (int)FourLaneDrumPad.Kick)
-                        {
-                            handGemCount++;
-                        }
-                    } else
+                        kick = downchartedNote;
+                    } else if (firstHandGem is null)
                     {
-                        if (note.Pad is (int) FourLaneDrumPad.Kick)
-                        {
-                            parent.AddChildNote(note);
-                        } else if (handGemCount < 2)
-                        {
-                            AddChildHandGem(parent, note);
-                            handGemCount++;
-                        }
+                        firstHandGem = downchartedNote;
+                    } else if (secondHandGem is null)
+                    {
+                        secondHandGem = downchartedNote;
                     }
                 }
             }
 
-            return parent;
+            if (kick is null && firstHandGem is null)
+            {
+                // Downcharted to nothing; must have been just an unforced Hat Pedal note
+                return null;
+            }
+
+            return (kick, firstHandGem, secondHandGem);
         }
 
-        // Usually returns 1 note. Can return 0 notes for hat pedal gems that don't have channel flags, or 2 for flams
-        private static (DrumNote? downchartedNote, DrumNote? flamPartner) DownchartIndividualEliteDrumsNote(EliteDrumNote eliteDrumNote)
+        // In most cases, returns 1 note. Unforced hat pedals return 0 notes, while flams return 2.
+        private static List<DrumNote> DownchartIndividualEliteDrumsNote(EliteDrumNote eliteDrumNote)
         {
-            DrumNote? downchartedNote = null;
-            DrumNote? flamPartner = null;
+            List<DrumNote> notes = new();
 
             var pad = ((EliteDrumPad) eliteDrumNote.Pad) switch
             {
@@ -162,17 +151,18 @@ namespace YARG.Core.Chart
                 EliteDrumPad.Tom3 => GetDrumForChannelFlag(eliteDrumNote, FourLaneDrumPad.GreenDrum),
                 EliteDrumPad.Ride => GetCymbalForChannelFlag(eliteDrumNote, FourLaneDrumPad.BlueCymbal),
                 EliteDrumPad.RightCrash => GetCymbalForChannelFlag(eliteDrumNote, FourLaneDrumPad.GreenCymbal),
-                _ => throw new Exception("Unreachable")
+                _ => throw new Exception("Unreachable.")
             };
 
             if (pad is not null)
             {
-                downchartedNote = new(pad.Value, (EliteDrumPad) eliteDrumNote.Pad, eliteDrumNote.Dynamics, eliteDrumNote.DrumFlags, eliteDrumNote.Flags, eliteDrumNote.Time, eliteDrumNote.Tick);
+                notes.Add(new(pad.Value, (EliteDrumPad) eliteDrumNote.Pad, eliteDrumNote.Dynamics, eliteDrumNote.DrumFlags, eliteDrumNote.Flags, eliteDrumNote.Time, eliteDrumNote.Tick));
 
                 if (eliteDrumNote.IsFlam)
                 {
-                    var otherPad = pad.Value switch
+                    FourLaneDrumPad? otherPad = pad.Value switch
                     {
+                        FourLaneDrumPad.Kick => null,
                         FourLaneDrumPad.RedDrum => FourLaneDrumPad.YellowDrum,
                         FourLaneDrumPad.YellowDrum => FourLaneDrumPad.BlueDrum,
                         FourLaneDrumPad.BlueDrum => FourLaneDrumPad.GreenDrum,
@@ -183,107 +173,178 @@ namespace YARG.Core.Chart
                         _ => throw new Exception("Unreachable.")
                     };
 
-                    flamPartner = new(otherPad, (EliteDrumPad) eliteDrumNote.Pad, eliteDrumNote.Dynamics, eliteDrumNote.DrumFlags, eliteDrumNote.Flags, eliteDrumNote.Time, eliteDrumNote.Tick);
+                    if (otherPad is not null)
+                    {
+                        notes.Add(new(otherPad.Value, (EliteDrumPad) eliteDrumNote.Pad, eliteDrumNote.Dynamics, eliteDrumNote.DrumFlags, eliteDrumNote.Flags, eliteDrumNote.Time, eliteDrumNote.Tick));
+                    }
                 }
             }
 
-            return (downchartedNote, flamPartner);
+            return notes;
         }
 
-        private static void AddChildHandGem(DrumNote parent, DrumNote child)
+        private List<DrumNote> ResolveDownchartCollisions(List<(DrumNote? kick, DrumNote? firstHandGem, DrumNote? secondHandGem)> unresolvedNotes)
         {
-            var preexistingCollider = FindCollidingHandGem(parent, DrumNote._fourLanePadToColor[(FourLaneDrumPad) child.Pad]);
-            if (preexistingCollider is null)
-            {
-                parent.AddChildNote(child);
-            }
-            else
-            {
-                var childIsCymbal = (FourLaneDrumPad) child.Pad is FourLaneDrumPad.YellowCymbal or FourLaneDrumPad.BlueCymbal or FourLaneDrumPad.GreenCymbal;
-                var collidingGemIsCymbal = (FourLaneDrumPad) preexistingCollider.Pad is FourLaneDrumPad.YellowCymbal or FourLaneDrumPad.BlueCymbal or FourLaneDrumPad.GreenCymbal;
+            List<DrumNote> notes = new();
 
-                if (childIsCymbal && collidingGemIsCymbal) // Cymbal colliding with cymbal
+            foreach (var unresolvedNote in unresolvedNotes)
+            {
+                notes.Add(ResolveDownchartCollision(unresolvedNote.kick, unresolvedNote.firstHandGem, unresolvedNote.secondHandGem));
+            }
+
+            return notes;
+        }
+
+        private DrumNote ResolveDownchartCollision(DrumNote? kick, DrumNote? firstHandGem, DrumNote? secondHandGem)
+        {
+            DrumNote note;
+
+            if (secondHandGem is null)
+            {
+                // No collisions are possible without a second hand gem, so return early
+                if (kick is not null)
                 {
-                    (var leftmost, var rightmost) = preexistingCollider.DownchartingSourcePad < child.DownchartingSourcePad ? (preexistingCollider, child) : (child, preexistingCollider);
-                    switch ((FourLaneDrumPad) child.Pad)
+                    note = kick;
+                    if (firstHandGem is not null)
+                    {
+                        note.AddChildNote(firstHandGem);
+                    }
+                    return note;
+                }
+
+                if (firstHandGem is not null)
+                {
+                    return firstHandGem;
+                }
+
+                throw new Exception("Unreachable.");
+            }
+
+            var firstHandGemColor = DrumNote._fourLanePadToColor[(FourLaneDrumPad)firstHandGem.Pad];
+            var secondHandGemColor = DrumNote._fourLanePadToColor[(FourLaneDrumPad) secondHandGem.Pad];
+
+            if (firstHandGemColor != secondHandGemColor) {
+                // Two hand gems, but no collision. Safe to return as-is
+
+                note = firstHandGem;
+                note.AddChildNote(secondHandGem);
+                if (kick is not null)
+                {
+                    note.AddChildNote(kick);
+                }
+
+                return note;
+            }
+
+            // Two hand gems with equal colors - collision!
+
+            // For tom/cymbal collisions, the tom goes on the left. For tom/tom and cym/cym collisions, preserve the
+            // handedness of the dynamics from the original Elite Drums chord
+            FourLaneDrumPad newLeftPad;
+            FourLaneDrumPad newRightPad;
+
+            var firstHandGemIsCymbal = (FourLaneDrumPad) firstHandGem.Pad is FourLaneDrumPad.YellowCymbal or FourLaneDrumPad.BlueCymbal or FourLaneDrumPad.GreenCymbal;
+            var secondHandGemIsCymbal = (FourLaneDrumPad) secondHandGem.Pad is FourLaneDrumPad.YellowCymbal or FourLaneDrumPad.BlueCymbal or FourLaneDrumPad.GreenCymbal;
+
+            if (firstHandGemIsCymbal == secondHandGemIsCymbal)
+            {
+                // This is a tom/tom or cym/cym collision, so we'll need to preserve the handedness of the dynamics
+                // from the original Elite Drums chord
+                (var leftHandGem, var rightHandGem) = firstHandGem.DownchartingSourcePad < secondHandGem.DownchartingSourcePad ? (firstHandGem, secondHandGem) : (secondHandGem, firstHandGem);
+
+                if (firstHandGemIsCymbal)
+                {
+                    /* Cymbal-Cymbal Collision Resolutions
+                     * Y -> YB
+                     * B -> BG
+                     * G -> BG
+                     */
+                    switch ((FourLaneDrumPad)firstHandGem.Pad)
                     {
                         case FourLaneDrumPad.YellowCymbal:
-                            rightmost.Pad = (int) FourLaneDrumPad.BlueCymbal;
+                            newLeftPad = FourLaneDrumPad.YellowCymbal;
+                            newRightPad = FourLaneDrumPad.BlueCymbal;
                             break;
-                        case FourLaneDrumPad.BlueCymbal:
-                            rightmost.Pad = (int) FourLaneDrumPad.GreenCymbal;
+                        case FourLaneDrumPad.BlueCymbal or FourLaneDrumPad.GreenCymbal:
+                            newLeftPad = FourLaneDrumPad.BlueCymbal;
+                            newRightPad = FourLaneDrumPad.GreenCymbal;
                             break;
-                        case FourLaneDrumPad.GreenCymbal:
-                            leftmost.Pad = (int) FourLaneDrumPad.BlueCymbal;
-                            break;
+                        default:
+                            throw new Exception("Unreachable.");
                     }
-                }
-                else if (childIsCymbal != collidingGemIsCymbal) // Tom colliding with cymbal or vice-versa
+                } else
                 {
-                    (var tom, var cymbal) = childIsCymbal ? (preexistingCollider, child) : (child, preexistingCollider);
-                    switch ((FourLaneDrumPad) cymbal.Pad)
-                    {
-                        case FourLaneDrumPad.YellowCymbal:
-                            tom.Pad = (int) FourLaneDrumPad.RedDrum;
-                            break;
-                        case FourLaneDrumPad.BlueCymbal:
-                            tom.Pad = (int) FourLaneDrumPad.YellowDrum;
-                            break;
-                        case FourLaneDrumPad.GreenCymbal:
-                            tom.Pad = (int) FourLaneDrumPad.BlueDrum;
-                            break;
-                    }
-                }
-                else // Tom colliding with tom
-                {
-                    (var leftmost, var rightmost) = preexistingCollider.DownchartingSourcePad < child.DownchartingSourcePad ? (preexistingCollider, child) : (child, preexistingCollider);
-                    switch ((FourLaneDrumPad) child.Pad)
+                    /* Tom-Tom Collision Resolutions
+                     * R -> RY
+                     * Y -> YB
+                     * B -> BG
+                     * G -> BG
+                     */
+                    switch ((FourLaneDrumPad) firstHandGem.Pad)
                     {
                         case FourLaneDrumPad.RedDrum:
-                            rightmost.Pad = (int) FourLaneDrumPad.YellowDrum;
+                            newLeftPad = FourLaneDrumPad.RedDrum;
+                            newRightPad = FourLaneDrumPad.YellowDrum;
                             break;
                         case FourLaneDrumPad.YellowDrum:
-                            rightmost.Pad = (int) FourLaneDrumPad.BlueDrum;
+                            newLeftPad = FourLaneDrumPad.YellowDrum;
+                            newRightPad = FourLaneDrumPad.BlueDrum;
                             break;
-                        case FourLaneDrumPad.BlueDrum:
-                            rightmost.Pad = (int) FourLaneDrumPad.GreenDrum;
+                        case FourLaneDrumPad.BlueDrum or FourLaneDrumPad.GreenDrum:
+                            newLeftPad = FourLaneDrumPad.BlueDrum;
+                            newRightPad = FourLaneDrumPad.GreenDrum;
                             break;
-                        case FourLaneDrumPad.GreenDrum:
-                            leftmost.Pad = (int) FourLaneDrumPad.BlueDrum;
-                            break;
+                        default:
+                            throw new Exception("Unreachable.");
                     }
                 }
-                parent.AddChildNote(child);
-            }
-        }
-
-        private static DrumNote? FindCollidingHandGem(DrumNote parent, FourLaneDrumHandGemColor color)
-        {
-
-            if ((FourLaneDrumPad) parent.Pad != FourLaneDrumPad.Kick && DrumNote._fourLanePadToColor[(FourLaneDrumPad)parent.Pad] == color)
+                firstHandGem = new(newLeftPad, leftHandGem.Type, leftHandGem.DrumFlags, leftHandGem.Flags, leftHandGem.Time, leftHandGem.Tick);
+                secondHandGem = new(newRightPad, rightHandGem.Type, rightHandGem.DrumFlags, rightHandGem.Flags, rightHandGem.Time, rightHandGem.Tick);
+            } else
             {
-                return parent;
-            }
+                // This is a tom/cym collision (or vice-versa)
+                // Nudge the tom to the left
+                (var cym, var tom) = firstHandGemIsCymbal ? (firstHandGem, secondHandGem) : (secondHandGem, firstHandGem);
 
-            foreach (var child in parent.ChildNotes)
-            {
-                if (DrumNote._fourLanePadToColor[(FourLaneDrumPad) child.Pad] == color)
+                switch ((FourLaneDrumPad) cym.Pad)
                 {
-                    return child;
+                    case FourLaneDrumPad.YellowCymbal:
+                        newLeftPad = FourLaneDrumPad.RedDrum;
+                        newRightPad = FourLaneDrumPad.YellowCymbal;
+                        break;
+                    case FourLaneDrumPad.BlueCymbal:
+                        newLeftPad = FourLaneDrumPad.YellowDrum;
+                        newRightPad = FourLaneDrumPad.BlueCymbal;
+                        break;
+                    case FourLaneDrumPad.GreenCymbal:
+                        newLeftPad = FourLaneDrumPad.BlueDrum;
+                        newRightPad = FourLaneDrumPad.GreenCymbal;
+                        break;
+                    default:
+                        throw new Exception("Unreachable.");
                 }
+
+                firstHandGem = new(newLeftPad, tom.Type, tom.DrumFlags, tom.Flags, tom.Time, tom.Tick);
+                secondHandGem = new(newRightPad, cym.Type, cym.DrumFlags, cym.Flags, cym.Time, cym.Tick);
             }
 
-            return null;
+            firstHandGem.AddChildNote(secondHandGem);
+            if (kick is not null)
+            {
+                firstHandGem.AddChildNote(new(FourLaneDrumPad.Kick, kick.Type, kick.DrumFlags, kick.Flags, kick.Time, kick.Tick));
+            }
+
+            return firstHandGem;
         }
 
         private static FourLaneDrumPad GetDrumForChannelFlag(EliteDrumNote drum, FourLaneDrumPad unforced)
         {
             return drum.ChannelFlag switch
             {
-                EliteDrumNote.EliteDrumsChannelFlag.Red => FourLaneDrumPad.RedDrum,
-                EliteDrumNote.EliteDrumsChannelFlag.Yellow => FourLaneDrumPad.YellowDrum,
-                EliteDrumNote.EliteDrumsChannelFlag.Blue => FourLaneDrumPad.BlueDrum,
-                EliteDrumNote.EliteDrumsChannelFlag.Green => FourLaneDrumPad.GreenDrum,
+                EliteDrumsChannelFlag.Red => FourLaneDrumPad.RedDrum,
+                EliteDrumsChannelFlag.Yellow => FourLaneDrumPad.YellowDrum,
+                EliteDrumsChannelFlag.Blue => FourLaneDrumPad.BlueDrum,
+                EliteDrumsChannelFlag.Green => FourLaneDrumPad.GreenDrum,
                 _ => unforced
             };
         }
@@ -292,9 +353,9 @@ namespace YARG.Core.Chart
         {
             return cymbal.ChannelFlag switch
             {
-                EliteDrumNote.EliteDrumsChannelFlag.Yellow => FourLaneDrumPad.YellowCymbal,
-                EliteDrumNote.EliteDrumsChannelFlag.Blue => FourLaneDrumPad.BlueCymbal,
-                EliteDrumNote.EliteDrumsChannelFlag.Green => FourLaneDrumPad.GreenCymbal,
+                EliteDrumsChannelFlag.Yellow => FourLaneDrumPad.YellowCymbal,
+                EliteDrumsChannelFlag.Blue => FourLaneDrumPad.BlueCymbal,
+                EliteDrumsChannelFlag.Green => FourLaneDrumPad.GreenCymbal,
                 _ => unforced
             };
         }
