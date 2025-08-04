@@ -150,7 +150,7 @@ namespace YARG.Core.Audio
         /// with complex == false only real part of FFT is returned
         /// and (1 << fftSize) / 2 values are filled (the magnitudes of the first half of an FFT result are returned)
         /// with complex == true
-        /// Return the complex FFT result rather than the magnitudes. This increases the amount of data returned (as listed above) fourfold, as it returns real and imaginary parts and the full FFT result (not only the first half). The real and imaginary parts are interleaved in the returned data. 
+        /// Return the complex FFT result rather than the magnitudes. This increases the amount of data returned (as listed above) fourfold, as it returns real and imaginary parts and the full FFT result (not only the first half). The real and imaginary parts are interleaved in the returned data.
         /// </summary>
         public int GetFFTData(float[] buffer, int fftSize, bool complex)
         {
@@ -176,6 +176,18 @@ namespace YARG.Core.Audio
                     return -1;
                 }
                 return GetSampleData_Internal(buffer);
+            }
+        }
+
+        public int GetLevel(float[] level)
+        {
+            lock (this)
+            {
+                if (_disposed)
+                {
+                    return -1;
+                }
+                return GetLevel_Internal(level);
             }
         }
 
@@ -270,6 +282,7 @@ namespace YARG.Core.Audio
         protected abstract void SetVolume_Internal(double volume);
         protected abstract int  GetSampleData_Internal(float[] buffer);
         protected abstract int  GetFFTData_Internal(float[] buffer, int fftSize, bool complex);
+        protected abstract int GetLevel_Internal(float[] level);
         protected abstract void SetSpeed_Internal(float speed, bool shiftPitch);
         protected abstract bool AddChannel_Internal(SongStem stem);
         protected abstract bool AddChannel_Internal(SongStem stem, Stream stream);

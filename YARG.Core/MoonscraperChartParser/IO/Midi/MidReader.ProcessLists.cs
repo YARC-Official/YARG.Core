@@ -363,7 +363,7 @@ namespace MoonscraperChartEditor.Song.IO
             foreach (var phrase in harm1.specialPhrases)
             {
                 // Make a new copy instead of adding the original reference
-                chart.specialPhrases.Add(phrase.Clone());
+                chart.Add(phrase.Clone());
             }
         }
 

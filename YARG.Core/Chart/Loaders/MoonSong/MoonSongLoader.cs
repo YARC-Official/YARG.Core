@@ -320,8 +320,8 @@ namespace YARG.Core.Chart
         {
             if (songObj == null || phrase == null)
             {
-                YargLogger.Assert(songObj != null);
-                YargLogger.Assert(phrase != null);
+                YargLogger.Assert(songObj != null, "Null event received");
+                YargLogger.Assert(phrase != null, "Null phrase received");
                 return false;
             }
 

@@ -15,7 +15,7 @@ namespace YARG.Core.Logging
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void LogFormat<T1>(LogLevel level, string format, T1 item1, [CallerFilePath] string source = "", [CallerLineNumber] int line = -1, [CallerMemberName] string member = "")
         {
-            if(level < MinimumLogLevel)
+            if (!IsLevelEnabled(level))
             {
                 return;
             }
@@ -27,7 +27,7 @@ namespace YARG.Core.Logging
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void LogFormat<T1, T2>(LogLevel level, string format, T1 item1, T2 item2, [CallerFilePath] string source = "", [CallerLineNumber] int line = -1, [CallerMemberName] string member = "")
         {
-            if(level < MinimumLogLevel)
+            if (!IsLevelEnabled(level))
             {
                 return;
             }
@@ -39,7 +39,7 @@ namespace YARG.Core.Logging
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void LogFormat<T1, T2, T3>(LogLevel level, string format, T1 item1, T2 item2, T3 item3, [CallerFilePath] string source = "", [CallerLineNumber] int line = -1, [CallerMemberName] string member = "")
         {
-            if(level < MinimumLogLevel)
+            if (!IsLevelEnabled(level))
             {
                 return;
             }
@@ -51,7 +51,7 @@ namespace YARG.Core.Logging
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void LogFormat<T1, T2, T3, T4>(LogLevel level, string format, T1 item1, T2 item2, T3 item3, T4 item4, [CallerFilePath] string source = "", [CallerLineNumber] int line = -1, [CallerMemberName] string member = "")
         {
-            if(level < MinimumLogLevel)
+            if (!IsLevelEnabled(level))
             {
                 return;
             }
@@ -63,7 +63,7 @@ namespace YARG.Core.Logging
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void LogFormat<T1, T2, T3, T4, T5>(LogLevel level, string format, T1 item1, T2 item2, T3 item3, T4 item4, T5 item5, [CallerFilePath] string source = "", [CallerLineNumber] int line = -1, [CallerMemberName] string member = "")
         {
-            if(level < MinimumLogLevel)
+            if (!IsLevelEnabled(level))
             {
                 return;
             }
@@ -75,7 +75,7 @@ namespace YARG.Core.Logging
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void LogFormat<T1, T2, T3, T4, T5, T6>(LogLevel level, string format, T1 item1, T2 item2, T3 item3, T4 item4, T5 item5, T6 item6, [CallerFilePath] string source = "", [CallerLineNumber] int line = -1, [CallerMemberName] string member = "")
         {
-            if(level < MinimumLogLevel)
+            if (!IsLevelEnabled(level))
             {
                 return;
             }
@@ -87,7 +87,7 @@ namespace YARG.Core.Logging
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void LogFormat<T1, T2, T3, T4, T5, T6, T7>(LogLevel level, string format, T1 item1, T2 item2, T3 item3, T4 item4, T5 item5, T6 item6, T7 item7, [CallerFilePath] string source = "", [CallerLineNumber] int line = -1, [CallerMemberName] string member = "")
         {
-            if(level < MinimumLogLevel)
+            if (!IsLevelEnabled(level))
             {
                 return;
             }
@@ -99,7 +99,7 @@ namespace YARG.Core.Logging
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void LogFormat<T1, T2, T3, T4, T5, T6, T7, T8>(LogLevel level, string format, T1 item1, T2 item2, T3 item3, T4 item4, T5 item5, T6 item6, T7 item7, T8 item8, [CallerFilePath] string source = "", [CallerLineNumber] int line = -1, [CallerMemberName] string member = "")
         {
-            if(level < MinimumLogLevel)
+            if (!IsLevelEnabled(level))
             {
                 return;
             }
@@ -111,7 +111,7 @@ namespace YARG.Core.Logging
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void LogFormat<T1, T2, T3, T4, T5, T6, T7, T8, T9>(LogLevel level, string format, T1 item1, T2 item2, T3 item3, T4 item4, T5 item5, T6 item6, T7 item7, T8 item8, T9 item9, [CallerFilePath] string source = "", [CallerLineNumber] int line = -1, [CallerMemberName] string member = "")
         {
-            if(level < MinimumLogLevel)
+            if (!IsLevelEnabled(level))
             {
                 return;
             }
@@ -123,7 +123,7 @@ namespace YARG.Core.Logging
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void LogFormat<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10>(LogLevel level, string format, T1 item1, T2 item2, T3 item3, T4 item4, T5 item5, T6 item6, T7 item7, T8 item8, T9 item9, T10 item10, [CallerFilePath] string source = "", [CallerLineNumber] int line = -1, [CallerMemberName] string member = "")
         {
-            if(level < MinimumLogLevel)
+            if (!IsLevelEnabled(level))
             {
                 return;
             }
@@ -135,661 +135,331 @@ namespace YARG.Core.Logging
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void LogTrace(string message, [CallerFilePath] string source = "", [CallerLineNumber] int line = -1, [CallerMemberName] string member = "")
         {
-            if(LogLevel.Trace < MinimumLogLevel)
-            {
-                return;
-            }
-
-            var logItem = MessageLogItem.MakeItem(message);
-            AddLogItemToQueue(LogLevel.Trace, source, line, member, logItem);
+            LogMessage(LogLevel.Trace, message, source: source, line: line, member: member);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void LogFormatTrace<T1>(string format, T1 item1, [CallerFilePath] string source = "", [CallerLineNumber] int line = -1, [CallerMemberName] string member = "")
         {
-            if(LogLevel.Trace < MinimumLogLevel)
-            {
-                return;
-            }
-
-            var logItem = FormatLogItem.MakeItem(format, item1);
-            AddLogItemToQueue(LogLevel.Trace, source, line, member, logItem);
+            LogFormat<T1>(LogLevel.Trace, format, item1, source: source, line: line, member: member);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void LogFormatTrace<T1, T2>(string format, T1 item1, T2 item2, [CallerFilePath] string source = "", [CallerLineNumber] int line = -1, [CallerMemberName] string member = "")
         {
-            if(LogLevel.Trace < MinimumLogLevel)
-            {
-                return;
-            }
-
-            var logItem = FormatLogItem.MakeItem(format, item1, item2);
-            AddLogItemToQueue(LogLevel.Trace, source, line, member, logItem);
+            LogFormat<T1, T2>(LogLevel.Trace, format, item1, item2, source: source, line: line, member: member);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void LogFormatTrace<T1, T2, T3>(string format, T1 item1, T2 item2, T3 item3, [CallerFilePath] string source = "", [CallerLineNumber] int line = -1, [CallerMemberName] string member = "")
         {
-            if(LogLevel.Trace < MinimumLogLevel)
-            {
-                return;
-            }
-
-            var logItem = FormatLogItem.MakeItem(format, item1, item2, item3);
-            AddLogItemToQueue(LogLevel.Trace, source, line, member, logItem);
+            LogFormat<T1, T2, T3>(LogLevel.Trace, format, item1, item2, item3, source: source, line: line, member: member);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void LogFormatTrace<T1, T2, T3, T4>(string format, T1 item1, T2 item2, T3 item3, T4 item4, [CallerFilePath] string source = "", [CallerLineNumber] int line = -1, [CallerMemberName] string member = "")
         {
-            if(LogLevel.Trace < MinimumLogLevel)
-            {
-                return;
-            }
-
-            var logItem = FormatLogItem.MakeItem(format, item1, item2, item3, item4);
-            AddLogItemToQueue(LogLevel.Trace, source, line, member, logItem);
+            LogFormat<T1, T2, T3, T4>(LogLevel.Trace, format, item1, item2, item3, item4, source: source, line: line, member: member);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void LogFormatTrace<T1, T2, T3, T4, T5>(string format, T1 item1, T2 item2, T3 item3, T4 item4, T5 item5, [CallerFilePath] string source = "", [CallerLineNumber] int line = -1, [CallerMemberName] string member = "")
         {
-            if(LogLevel.Trace < MinimumLogLevel)
-            {
-                return;
-            }
-
-            var logItem = FormatLogItem.MakeItem(format, item1, item2, item3, item4, item5);
-            AddLogItemToQueue(LogLevel.Trace, source, line, member, logItem);
+            LogFormat<T1, T2, T3, T4, T5>(LogLevel.Trace, format, item1, item2, item3, item4, item5, source: source, line: line, member: member);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void LogFormatTrace<T1, T2, T3, T4, T5, T6>(string format, T1 item1, T2 item2, T3 item3, T4 item4, T5 item5, T6 item6, [CallerFilePath] string source = "", [CallerLineNumber] int line = -1, [CallerMemberName] string member = "")
         {
-            if(LogLevel.Trace < MinimumLogLevel)
-            {
-                return;
-            }
-
-            var logItem = FormatLogItem.MakeItem(format, item1, item2, item3, item4, item5, item6);
-            AddLogItemToQueue(LogLevel.Trace, source, line, member, logItem);
+            LogFormat<T1, T2, T3, T4, T5, T6>(LogLevel.Trace, format, item1, item2, item3, item4, item5, item6, source: source, line: line, member: member);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void LogFormatTrace<T1, T2, T3, T4, T5, T6, T7>(string format, T1 item1, T2 item2, T3 item3, T4 item4, T5 item5, T6 item6, T7 item7, [CallerFilePath] string source = "", [CallerLineNumber] int line = -1, [CallerMemberName] string member = "")
         {
-            if(LogLevel.Trace < MinimumLogLevel)
-            {
-                return;
-            }
-
-            var logItem = FormatLogItem.MakeItem(format, item1, item2, item3, item4, item5, item6, item7);
-            AddLogItemToQueue(LogLevel.Trace, source, line, member, logItem);
+            LogFormat<T1, T2, T3, T4, T5, T6, T7>(LogLevel.Trace, format, item1, item2, item3, item4, item5, item6, item7, source: source, line: line, member: member);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void LogFormatTrace<T1, T2, T3, T4, T5, T6, T7, T8>(string format, T1 item1, T2 item2, T3 item3, T4 item4, T5 item5, T6 item6, T7 item7, T8 item8, [CallerFilePath] string source = "", [CallerLineNumber] int line = -1, [CallerMemberName] string member = "")
         {
-            if(LogLevel.Trace < MinimumLogLevel)
-            {
-                return;
-            }
-
-            var logItem = FormatLogItem.MakeItem(format, item1, item2, item3, item4, item5, item6, item7, item8);
-            AddLogItemToQueue(LogLevel.Trace, source, line, member, logItem);
+            LogFormat<T1, T2, T3, T4, T5, T6, T7, T8>(LogLevel.Trace, format, item1, item2, item3, item4, item5, item6, item7, item8, source: source, line: line, member: member);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void LogFormatTrace<T1, T2, T3, T4, T5, T6, T7, T8, T9>(string format, T1 item1, T2 item2, T3 item3, T4 item4, T5 item5, T6 item6, T7 item7, T8 item8, T9 item9, [CallerFilePath] string source = "", [CallerLineNumber] int line = -1, [CallerMemberName] string member = "")
         {
-            if(LogLevel.Trace < MinimumLogLevel)
-            {
-                return;
-            }
-
-            var logItem = FormatLogItem.MakeItem(format, item1, item2, item3, item4, item5, item6, item7, item8, item9);
-            AddLogItemToQueue(LogLevel.Trace, source, line, member, logItem);
+            LogFormat<T1, T2, T3, T4, T5, T6, T7, T8, T9>(LogLevel.Trace, format, item1, item2, item3, item4, item5, item6, item7, item8, item9, source: source, line: line, member: member);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void LogFormatTrace<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10>(string format, T1 item1, T2 item2, T3 item3, T4 item4, T5 item5, T6 item6, T7 item7, T8 item8, T9 item9, T10 item10, [CallerFilePath] string source = "", [CallerLineNumber] int line = -1, [CallerMemberName] string member = "")
         {
-            if(LogLevel.Trace < MinimumLogLevel)
-            {
-                return;
-            }
-
-            var logItem = FormatLogItem.MakeItem(format, item1, item2, item3, item4, item5, item6, item7, item8, item9, item10);
-            AddLogItemToQueue(LogLevel.Trace, source, line, member, logItem);
+            LogFormat<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10>(LogLevel.Trace, format, item1, item2, item3, item4, item5, item6, item7, item8, item9, item10, source: source, line: line, member: member);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void LogDebug(string message, [CallerFilePath] string source = "", [CallerLineNumber] int line = -1, [CallerMemberName] string member = "")
         {
-            if(LogLevel.Debug < MinimumLogLevel)
-            {
-                return;
-            }
-
-            var logItem = MessageLogItem.MakeItem(message);
-            AddLogItemToQueue(LogLevel.Debug, source, line, member, logItem);
+            LogMessage(LogLevel.Debug, message, source: source, line: line, member: member);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void LogFormatDebug<T1>(string format, T1 item1, [CallerFilePath] string source = "", [CallerLineNumber] int line = -1, [CallerMemberName] string member = "")
         {
-            if(LogLevel.Debug < MinimumLogLevel)
-            {
-                return;
-            }
-
-            var logItem = FormatLogItem.MakeItem(format, item1);
-            AddLogItemToQueue(LogLevel.Debug, source, line, member, logItem);
+            LogFormat<T1>(LogLevel.Debug, format, item1, source: source, line: line, member: member);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void LogFormatDebug<T1, T2>(string format, T1 item1, T2 item2, [CallerFilePath] string source = "", [CallerLineNumber] int line = -1, [CallerMemberName] string member = "")
         {
-            if(LogLevel.Debug < MinimumLogLevel)
-            {
-                return;
-            }
-
-            var logItem = FormatLogItem.MakeItem(format, item1, item2);
-            AddLogItemToQueue(LogLevel.Debug, source, line, member, logItem);
+            LogFormat<T1, T2>(LogLevel.Debug, format, item1, item2, source: source, line: line, member: member);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void LogFormatDebug<T1, T2, T3>(string format, T1 item1, T2 item2, T3 item3, [CallerFilePath] string source = "", [CallerLineNumber] int line = -1, [CallerMemberName] string member = "")
         {
-            if(LogLevel.Debug < MinimumLogLevel)
-            {
-                return;
-            }
-
-            var logItem = FormatLogItem.MakeItem(format, item1, item2, item3);
-            AddLogItemToQueue(LogLevel.Debug, source, line, member, logItem);
+            LogFormat<T1, T2, T3>(LogLevel.Debug, format, item1, item2, item3, source: source, line: line, member: member);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void LogFormatDebug<T1, T2, T3, T4>(string format, T1 item1, T2 item2, T3 item3, T4 item4, [CallerFilePath] string source = "", [CallerLineNumber] int line = -1, [CallerMemberName] string member = "")
         {
-            if(LogLevel.Debug < MinimumLogLevel)
-            {
-                return;
-            }
-
-            var logItem = FormatLogItem.MakeItem(format, item1, item2, item3, item4);
-            AddLogItemToQueue(LogLevel.Debug, source, line, member, logItem);
+            LogFormat<T1, T2, T3, T4>(LogLevel.Debug, format, item1, item2, item3, item4, source: source, line: line, member: member);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void LogFormatDebug<T1, T2, T3, T4, T5>(string format, T1 item1, T2 item2, T3 item3, T4 item4, T5 item5, [CallerFilePath] string source = "", [CallerLineNumber] int line = -1, [CallerMemberName] string member = "")
         {
-            if(LogLevel.Debug < MinimumLogLevel)
-            {
-                return;
-            }
-
-            var logItem = FormatLogItem.MakeItem(format, item1, item2, item3, item4, item5);
-            AddLogItemToQueue(LogLevel.Debug, source, line, member, logItem);
+            LogFormat<T1, T2, T3, T4, T5>(LogLevel.Debug, format, item1, item2, item3, item4, item5, source: source, line: line, member: member);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void LogFormatDebug<T1, T2, T3, T4, T5, T6>(string format, T1 item1, T2 item2, T3 item3, T4 item4, T5 item5, T6 item6, [CallerFilePath] string source = "", [CallerLineNumber] int line = -1, [CallerMemberName] string member = "")
         {
-            if(LogLevel.Debug < MinimumLogLevel)
-            {
-                return;
-            }
-
-            var logItem = FormatLogItem.MakeItem(format, item1, item2, item3, item4, item5, item6);
-            AddLogItemToQueue(LogLevel.Debug, source, line, member, logItem);
+            LogFormat<T1, T2, T3, T4, T5, T6>(LogLevel.Debug, format, item1, item2, item3, item4, item5, item6, source: source, line: line, member: member);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void LogFormatDebug<T1, T2, T3, T4, T5, T6, T7>(string format, T1 item1, T2 item2, T3 item3, T4 item4, T5 item5, T6 item6, T7 item7, [CallerFilePath] string source = "", [CallerLineNumber] int line = -1, [CallerMemberName] string member = "")
         {
-            if(LogLevel.Debug < MinimumLogLevel)
-            {
-                return;
-            }
-
-            var logItem = FormatLogItem.MakeItem(format, item1, item2, item3, item4, item5, item6, item7);
-            AddLogItemToQueue(LogLevel.Debug, source, line, member, logItem);
+            LogFormat<T1, T2, T3, T4, T5, T6, T7>(LogLevel.Debug, format, item1, item2, item3, item4, item5, item6, item7, source: source, line: line, member: member);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void LogFormatDebug<T1, T2, T3, T4, T5, T6, T7, T8>(string format, T1 item1, T2 item2, T3 item3, T4 item4, T5 item5, T6 item6, T7 item7, T8 item8, [CallerFilePath] string source = "", [CallerLineNumber] int line = -1, [CallerMemberName] string member = "")
         {
-            if(LogLevel.Debug < MinimumLogLevel)
-            {
-                return;
-            }
-
-            var logItem = FormatLogItem.MakeItem(format, item1, item2, item3, item4, item5, item6, item7, item8);
-            AddLogItemToQueue(LogLevel.Debug, source, line, member, logItem);
+            LogFormat<T1, T2, T3, T4, T5, T6, T7, T8>(LogLevel.Debug, format, item1, item2, item3, item4, item5, item6, item7, item8, source: source, line: line, member: member);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void LogFormatDebug<T1, T2, T3, T4, T5, T6, T7, T8, T9>(string format, T1 item1, T2 item2, T3 item3, T4 item4, T5 item5, T6 item6, T7 item7, T8 item8, T9 item9, [CallerFilePath] string source = "", [CallerLineNumber] int line = -1, [CallerMemberName] string member = "")
         {
-            if(LogLevel.Debug < MinimumLogLevel)
-            {
-                return;
-            }
-
-            var logItem = FormatLogItem.MakeItem(format, item1, item2, item3, item4, item5, item6, item7, item8, item9);
-            AddLogItemToQueue(LogLevel.Debug, source, line, member, logItem);
+            LogFormat<T1, T2, T3, T4, T5, T6, T7, T8, T9>(LogLevel.Debug, format, item1, item2, item3, item4, item5, item6, item7, item8, item9, source: source, line: line, member: member);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void LogFormatDebug<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10>(string format, T1 item1, T2 item2, T3 item3, T4 item4, T5 item5, T6 item6, T7 item7, T8 item8, T9 item9, T10 item10, [CallerFilePath] string source = "", [CallerLineNumber] int line = -1, [CallerMemberName] string member = "")
         {
-            if(LogLevel.Debug < MinimumLogLevel)
-            {
-                return;
-            }
-
-            var logItem = FormatLogItem.MakeItem(format, item1, item2, item3, item4, item5, item6, item7, item8, item9, item10);
-            AddLogItemToQueue(LogLevel.Debug, source, line, member, logItem);
+            LogFormat<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10>(LogLevel.Debug, format, item1, item2, item3, item4, item5, item6, item7, item8, item9, item10, source: source, line: line, member: member);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void LogInfo(string message, [CallerFilePath] string source = "", [CallerLineNumber] int line = -1, [CallerMemberName] string member = "")
         {
-            if(LogLevel.Info < MinimumLogLevel)
-            {
-                return;
-            }
-
-            var logItem = MessageLogItem.MakeItem(message);
-            AddLogItemToQueue(LogLevel.Info, source, line, member, logItem);
+            LogMessage(LogLevel.Info, message, source: source, line: line, member: member);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void LogFormatInfo<T1>(string format, T1 item1, [CallerFilePath] string source = "", [CallerLineNumber] int line = -1, [CallerMemberName] string member = "")
         {
-            if(LogLevel.Info < MinimumLogLevel)
-            {
-                return;
-            }
-
-            var logItem = FormatLogItem.MakeItem(format, item1);
-            AddLogItemToQueue(LogLevel.Info, source, line, member, logItem);
+            LogFormat<T1>(LogLevel.Info, format, item1, source: source, line: line, member: member);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void LogFormatInfo<T1, T2>(string format, T1 item1, T2 item2, [CallerFilePath] string source = "", [CallerLineNumber] int line = -1, [CallerMemberName] string member = "")
         {
-            if(LogLevel.Info < MinimumLogLevel)
-            {
-                return;
-            }
-
-            var logItem = FormatLogItem.MakeItem(format, item1, item2);
-            AddLogItemToQueue(LogLevel.Info, source, line, member, logItem);
+            LogFormat<T1, T2>(LogLevel.Info, format, item1, item2, source: source, line: line, member: member);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void LogFormatInfo<T1, T2, T3>(string format, T1 item1, T2 item2, T3 item3, [CallerFilePath] string source = "", [CallerLineNumber] int line = -1, [CallerMemberName] string member = "")
         {
-            if(LogLevel.Info < MinimumLogLevel)
-            {
-                return;
-            }
-
-            var logItem = FormatLogItem.MakeItem(format, item1, item2, item3);
-            AddLogItemToQueue(LogLevel.Info, source, line, member, logItem);
+            LogFormat<T1, T2, T3>(LogLevel.Info, format, item1, item2, item3, source: source, line: line, member: member);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void LogFormatInfo<T1, T2, T3, T4>(string format, T1 item1, T2 item2, T3 item3, T4 item4, [CallerFilePath] string source = "", [CallerLineNumber] int line = -1, [CallerMemberName] string member = "")
         {
-            if(LogLevel.Info < MinimumLogLevel)
-            {
-                return;
-            }
-
-            var logItem = FormatLogItem.MakeItem(format, item1, item2, item3, item4);
-            AddLogItemToQueue(LogLevel.Info, source, line, member, logItem);
+            LogFormat<T1, T2, T3, T4>(LogLevel.Info, format, item1, item2, item3, item4, source: source, line: line, member: member);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void LogFormatInfo<T1, T2, T3, T4, T5>(string format, T1 item1, T2 item2, T3 item3, T4 item4, T5 item5, [CallerFilePath] string source = "", [CallerLineNumber] int line = -1, [CallerMemberName] string member = "")
         {
-            if(LogLevel.Info < MinimumLogLevel)
-            {
-                return;
-            }
-
-            var logItem = FormatLogItem.MakeItem(format, item1, item2, item3, item4, item5);
-            AddLogItemToQueue(LogLevel.Info, source, line, member, logItem);
+            LogFormat<T1, T2, T3, T4, T5>(LogLevel.Info, format, item1, item2, item3, item4, item5, source: source, line: line, member: member);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void LogFormatInfo<T1, T2, T3, T4, T5, T6>(string format, T1 item1, T2 item2, T3 item3, T4 item4, T5 item5, T6 item6, [CallerFilePath] string source = "", [CallerLineNumber] int line = -1, [CallerMemberName] string member = "")
         {
-            if(LogLevel.Info < MinimumLogLevel)
-            {
-                return;
-            }
-
-            var logItem = FormatLogItem.MakeItem(format, item1, item2, item3, item4, item5, item6);
-            AddLogItemToQueue(LogLevel.Info, source, line, member, logItem);
+            LogFormat<T1, T2, T3, T4, T5, T6>(LogLevel.Info, format, item1, item2, item3, item4, item5, item6, source: source, line: line, member: member);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void LogFormatInfo<T1, T2, T3, T4, T5, T6, T7>(string format, T1 item1, T2 item2, T3 item3, T4 item4, T5 item5, T6 item6, T7 item7, [CallerFilePath] string source = "", [CallerLineNumber] int line = -1, [CallerMemberName] string member = "")
         {
-            if(LogLevel.Info < MinimumLogLevel)
-            {
-                return;
-            }
-
-            var logItem = FormatLogItem.MakeItem(format, item1, item2, item3, item4, item5, item6, item7);
-            AddLogItemToQueue(LogLevel.Info, source, line, member, logItem);
+            LogFormat<T1, T2, T3, T4, T5, T6, T7>(LogLevel.Info, format, item1, item2, item3, item4, item5, item6, item7, source: source, line: line, member: member);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void LogFormatInfo<T1, T2, T3, T4, T5, T6, T7, T8>(string format, T1 item1, T2 item2, T3 item3, T4 item4, T5 item5, T6 item6, T7 item7, T8 item8, [CallerFilePath] string source = "", [CallerLineNumber] int line = -1, [CallerMemberName] string member = "")
         {
-            if(LogLevel.Info < MinimumLogLevel)
-            {
-                return;
-            }
-
-            var logItem = FormatLogItem.MakeItem(format, item1, item2, item3, item4, item5, item6, item7, item8);
-            AddLogItemToQueue(LogLevel.Info, source, line, member, logItem);
+            LogFormat<T1, T2, T3, T4, T5, T6, T7, T8>(LogLevel.Info, format, item1, item2, item3, item4, item5, item6, item7, item8, source: source, line: line, member: member);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void LogFormatInfo<T1, T2, T3, T4, T5, T6, T7, T8, T9>(string format, T1 item1, T2 item2, T3 item3, T4 item4, T5 item5, T6 item6, T7 item7, T8 item8, T9 item9, [CallerFilePath] string source = "", [CallerLineNumber] int line = -1, [CallerMemberName] string member = "")
         {
-            if(LogLevel.Info < MinimumLogLevel)
-            {
-                return;
-            }
-
-            var logItem = FormatLogItem.MakeItem(format, item1, item2, item3, item4, item5, item6, item7, item8, item9);
-            AddLogItemToQueue(LogLevel.Info, source, line, member, logItem);
+            LogFormat<T1, T2, T3, T4, T5, T6, T7, T8, T9>(LogLevel.Info, format, item1, item2, item3, item4, item5, item6, item7, item8, item9, source: source, line: line, member: member);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void LogFormatInfo<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10>(string format, T1 item1, T2 item2, T3 item3, T4 item4, T5 item5, T6 item6, T7 item7, T8 item8, T9 item9, T10 item10, [CallerFilePath] string source = "", [CallerLineNumber] int line = -1, [CallerMemberName] string member = "")
         {
-            if(LogLevel.Info < MinimumLogLevel)
-            {
-                return;
-            }
-
-            var logItem = FormatLogItem.MakeItem(format, item1, item2, item3, item4, item5, item6, item7, item8, item9, item10);
-            AddLogItemToQueue(LogLevel.Info, source, line, member, logItem);
+            LogFormat<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10>(LogLevel.Info, format, item1, item2, item3, item4, item5, item6, item7, item8, item9, item10, source: source, line: line, member: member);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void LogWarning(string message, [CallerFilePath] string source = "", [CallerLineNumber] int line = -1, [CallerMemberName] string member = "")
         {
-            if(LogLevel.Warning < MinimumLogLevel)
-            {
-                return;
-            }
-
-            var logItem = MessageLogItem.MakeItem(message);
-            AddLogItemToQueue(LogLevel.Warning, source, line, member, logItem);
+            LogMessage(LogLevel.Warning, message, source: source, line: line, member: member);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void LogFormatWarning<T1>(string format, T1 item1, [CallerFilePath] string source = "", [CallerLineNumber] int line = -1, [CallerMemberName] string member = "")
         {
-            if(LogLevel.Warning < MinimumLogLevel)
-            {
-                return;
-            }
-
-            var logItem = FormatLogItem.MakeItem(format, item1);
-            AddLogItemToQueue(LogLevel.Warning, source, line, member, logItem);
+            LogFormat<T1>(LogLevel.Warning, format, item1, source: source, line: line, member: member);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void LogFormatWarning<T1, T2>(string format, T1 item1, T2 item2, [CallerFilePath] string source = "", [CallerLineNumber] int line = -1, [CallerMemberName] string member = "")
         {
-            if(LogLevel.Warning < MinimumLogLevel)
-            {
-                return;
-            }
-
-            var logItem = FormatLogItem.MakeItem(format, item1, item2);
-            AddLogItemToQueue(LogLevel.Warning, source, line, member, logItem);
+            LogFormat<T1, T2>(LogLevel.Warning, format, item1, item2, source: source, line: line, member: member);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void LogFormatWarning<T1, T2, T3>(string format, T1 item1, T2 item2, T3 item3, [CallerFilePath] string source = "", [CallerLineNumber] int line = -1, [CallerMemberName] string member = "")
         {
-            if(LogLevel.Warning < MinimumLogLevel)
-            {
-                return;
-            }
-
-            var logItem = FormatLogItem.MakeItem(format, item1, item2, item3);
-            AddLogItemToQueue(LogLevel.Warning, source, line, member, logItem);
+            LogFormat<T1, T2, T3>(LogLevel.Warning, format, item1, item2, item3, source: source, line: line, member: member);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void LogFormatWarning<T1, T2, T3, T4>(string format, T1 item1, T2 item2, T3 item3, T4 item4, [CallerFilePath] string source = "", [CallerLineNumber] int line = -1, [CallerMemberName] string member = "")
         {
-            if(LogLevel.Warning < MinimumLogLevel)
-            {
-                return;
-            }
-
-            var logItem = FormatLogItem.MakeItem(format, item1, item2, item3, item4);
-            AddLogItemToQueue(LogLevel.Warning, source, line, member, logItem);
+            LogFormat<T1, T2, T3, T4>(LogLevel.Warning, format, item1, item2, item3, item4, source: source, line: line, member: member);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void LogFormatWarning<T1, T2, T3, T4, T5>(string format, T1 item1, T2 item2, T3 item3, T4 item4, T5 item5, [CallerFilePath] string source = "", [CallerLineNumber] int line = -1, [CallerMemberName] string member = "")
         {
-            if(LogLevel.Warning < MinimumLogLevel)
-            {
-                return;
-            }
-
-            var logItem = FormatLogItem.MakeItem(format, item1, item2, item3, item4, item5);
-            AddLogItemToQueue(LogLevel.Warning, source, line, member, logItem);
+            LogFormat<T1, T2, T3, T4, T5>(LogLevel.Warning, format, item1, item2, item3, item4, item5, source: source, line: line, member: member);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void LogFormatWarning<T1, T2, T3, T4, T5, T6>(string format, T1 item1, T2 item2, T3 item3, T4 item4, T5 item5, T6 item6, [CallerFilePath] string source = "", [CallerLineNumber] int line = -1, [CallerMemberName] string member = "")
         {
-            if(LogLevel.Warning < MinimumLogLevel)
-            {
-                return;
-            }
-
-            var logItem = FormatLogItem.MakeItem(format, item1, item2, item3, item4, item5, item6);
-            AddLogItemToQueue(LogLevel.Warning, source, line, member, logItem);
+            LogFormat<T1, T2, T3, T4, T5, T6>(LogLevel.Warning, format, item1, item2, item3, item4, item5, item6, source: source, line: line, member: member);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void LogFormatWarning<T1, T2, T3, T4, T5, T6, T7>(string format, T1 item1, T2 item2, T3 item3, T4 item4, T5 item5, T6 item6, T7 item7, [CallerFilePath] string source = "", [CallerLineNumber] int line = -1, [CallerMemberName] string member = "")
         {
-            if(LogLevel.Warning < MinimumLogLevel)
-            {
-                return;
-            }
-
-            var logItem = FormatLogItem.MakeItem(format, item1, item2, item3, item4, item5, item6, item7);
-            AddLogItemToQueue(LogLevel.Warning, source, line, member, logItem);
+            LogFormat<T1, T2, T3, T4, T5, T6, T7>(LogLevel.Warning, format, item1, item2, item3, item4, item5, item6, item7, source: source, line: line, member: member);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void LogFormatWarning<T1, T2, T3, T4, T5, T6, T7, T8>(string format, T1 item1, T2 item2, T3 item3, T4 item4, T5 item5, T6 item6, T7 item7, T8 item8, [CallerFilePath] string source = "", [CallerLineNumber] int line = -1, [CallerMemberName] string member = "")
         {
-            if(LogLevel.Warning < MinimumLogLevel)
-            {
-                return;
-            }
-
-            var logItem = FormatLogItem.MakeItem(format, item1, item2, item3, item4, item5, item6, item7, item8);
-            AddLogItemToQueue(LogLevel.Warning, source, line, member, logItem);
+            LogFormat<T1, T2, T3, T4, T5, T6, T7, T8>(LogLevel.Warning, format, item1, item2, item3, item4, item5, item6, item7, item8, source: source, line: line, member: member);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void LogFormatWarning<T1, T2, T3, T4, T5, T6, T7, T8, T9>(string format, T1 item1, T2 item2, T3 item3, T4 item4, T5 item5, T6 item6, T7 item7, T8 item8, T9 item9, [CallerFilePath] string source = "", [CallerLineNumber] int line = -1, [CallerMemberName] string member = "")
         {
-            if(LogLevel.Warning < MinimumLogLevel)
-            {
-                return;
-            }
-
-            var logItem = FormatLogItem.MakeItem(format, item1, item2, item3, item4, item5, item6, item7, item8, item9);
-            AddLogItemToQueue(LogLevel.Warning, source, line, member, logItem);
+            LogFormat<T1, T2, T3, T4, T5, T6, T7, T8, T9>(LogLevel.Warning, format, item1, item2, item3, item4, item5, item6, item7, item8, item9, source: source, line: line, member: member);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void LogFormatWarning<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10>(string format, T1 item1, T2 item2, T3 item3, T4 item4, T5 item5, T6 item6, T7 item7, T8 item8, T9 item9, T10 item10, [CallerFilePath] string source = "", [CallerLineNumber] int line = -1, [CallerMemberName] string member = "")
         {
-            if(LogLevel.Warning < MinimumLogLevel)
-            {
-                return;
-            }
-
-            var logItem = FormatLogItem.MakeItem(format, item1, item2, item3, item4, item5, item6, item7, item8, item9, item10);
-            AddLogItemToQueue(LogLevel.Warning, source, line, member, logItem);
+            LogFormat<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10>(LogLevel.Warning, format, item1, item2, item3, item4, item5, item6, item7, item8, item9, item10, source: source, line: line, member: member);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void LogError(string message, [CallerFilePath] string source = "", [CallerLineNumber] int line = -1, [CallerMemberName] string member = "")
         {
-            if(LogLevel.Error < MinimumLogLevel)
-            {
-                return;
-            }
-
-            var logItem = MessageLogItem.MakeItem(message);
-            AddLogItemToQueue(LogLevel.Error, source, line, member, logItem);
+            LogMessage(LogLevel.Error, message, source: source, line: line, member: member);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void LogFormatError<T1>(string format, T1 item1, [CallerFilePath] string source = "", [CallerLineNumber] int line = -1, [CallerMemberName] string member = "")
         {
-            if(LogLevel.Error < MinimumLogLevel)
-            {
-                return;
-            }
-
-            var logItem = FormatLogItem.MakeItem(format, item1);
-            AddLogItemToQueue(LogLevel.Error, source, line, member, logItem);
+            LogFormat<T1>(LogLevel.Error, format, item1, source: source, line: line, member: member);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void LogFormatError<T1, T2>(string format, T1 item1, T2 item2, [CallerFilePath] string source = "", [CallerLineNumber] int line = -1, [CallerMemberName] string member = "")
         {
-            if(LogLevel.Error < MinimumLogLevel)
-            {
-                return;
-            }
-
-            var logItem = FormatLogItem.MakeItem(format, item1, item2);
-            AddLogItemToQueue(LogLevel.Error, source, line, member, logItem);
+            LogFormat<T1, T2>(LogLevel.Error, format, item1, item2, source: source, line: line, member: member);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void LogFormatError<T1, T2, T3>(string format, T1 item1, T2 item2, T3 item3, [CallerFilePath] string source = "", [CallerLineNumber] int line = -1, [CallerMemberName] string member = "")
         {
-            if(LogLevel.Error < MinimumLogLevel)
-            {
-                return;
-            }
-
-            var logItem = FormatLogItem.MakeItem(format, item1, item2, item3);
-            AddLogItemToQueue(LogLevel.Error, source, line, member, logItem);
+            LogFormat<T1, T2, T3>(LogLevel.Error, format, item1, item2, item3, source: source, line: line, member: member);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void LogFormatError<T1, T2, T3, T4>(string format, T1 item1, T2 item2, T3 item3, T4 item4, [CallerFilePath] string source = "", [CallerLineNumber] int line = -1, [CallerMemberName] string member = "")
         {
-            if(LogLevel.Error < MinimumLogLevel)
-            {
-                return;
-            }
-
-            var logItem = FormatLogItem.MakeItem(format, item1, item2, item3, item4);
-            AddLogItemToQueue(LogLevel.Error, source, line, member, logItem);
+            LogFormat<T1, T2, T3, T4>(LogLevel.Error, format, item1, item2, item3, item4, source: source, line: line, member: member);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void LogFormatError<T1, T2, T3, T4, T5>(string format, T1 item1, T2 item2, T3 item3, T4 item4, T5 item5, [CallerFilePath] string source = "", [CallerLineNumber] int line = -1, [CallerMemberName] string member = "")
         {
-            if(LogLevel.Error < MinimumLogLevel)
-            {
-                return;
-            }
-
-            var logItem = FormatLogItem.MakeItem(format, item1, item2, item3, item4, item5);
-            AddLogItemToQueue(LogLevel.Error, source, line, member, logItem);
+            LogFormat<T1, T2, T3, T4, T5>(LogLevel.Error, format, item1, item2, item3, item4, item5, source: source, line: line, member: member);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void LogFormatError<T1, T2, T3, T4, T5, T6>(string format, T1 item1, T2 item2, T3 item3, T4 item4, T5 item5, T6 item6, [CallerFilePath] string source = "", [CallerLineNumber] int line = -1, [CallerMemberName] string member = "")
         {
-            if(LogLevel.Error < MinimumLogLevel)
-            {
-                return;
-            }
-
-            var logItem = FormatLogItem.MakeItem(format, item1, item2, item3, item4, item5, item6);
-            AddLogItemToQueue(LogLevel.Error, source, line, member, logItem);
+            LogFormat<T1, T2, T3, T4, T5, T6>(LogLevel.Error, format, item1, item2, item3, item4, item5, item6, source: source, line: line, member: member);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void LogFormatError<T1, T2, T3, T4, T5, T6, T7>(string format, T1 item1, T2 item2, T3 item3, T4 item4, T5 item5, T6 item6, T7 item7, [CallerFilePath] string source = "", [CallerLineNumber] int line = -1, [CallerMemberName] string member = "")
         {
-            if(LogLevel.Error < MinimumLogLevel)
-            {
-                return;
-            }
-
-            var logItem = FormatLogItem.MakeItem(format, item1, item2, item3, item4, item5, item6, item7);
-            AddLogItemToQueue(LogLevel.Error, source, line, member, logItem);
+            LogFormat<T1, T2, T3, T4, T5, T6, T7>(LogLevel.Error, format, item1, item2, item3, item4, item5, item6, item7, source: source, line: line, member: member);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void LogFormatError<T1, T2, T3, T4, T5, T6, T7, T8>(string format, T1 item1, T2 item2, T3 item3, T4 item4, T5 item5, T6 item6, T7 item7, T8 item8, [CallerFilePath] string source = "", [CallerLineNumber] int line = -1, [CallerMemberName] string member = "")
         {
-            if(LogLevel.Error < MinimumLogLevel)
-            {
-                return;
-            }
-
-            var logItem = FormatLogItem.MakeItem(format, item1, item2, item3, item4, item5, item6, item7, item8);
-            AddLogItemToQueue(LogLevel.Error, source, line, member, logItem);
+            LogFormat<T1, T2, T3, T4, T5, T6, T7, T8>(LogLevel.Error, format, item1, item2, item3, item4, item5, item6, item7, item8, source: source, line: line, member: member);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void LogFormatError<T1, T2, T3, T4, T5, T6, T7, T8, T9>(string format, T1 item1, T2 item2, T3 item3, T4 item4, T5 item5, T6 item6, T7 item7, T8 item8, T9 item9, [CallerFilePath] string source = "", [CallerLineNumber] int line = -1, [CallerMemberName] string member = "")
         {
-            if(LogLevel.Error < MinimumLogLevel)
-            {
-                return;
-            }
-
-            var logItem = FormatLogItem.MakeItem(format, item1, item2, item3, item4, item5, item6, item7, item8, item9);
-            AddLogItemToQueue(LogLevel.Error, source, line, member, logItem);
+            LogFormat<T1, T2, T3, T4, T5, T6, T7, T8, T9>(LogLevel.Error, format, item1, item2, item3, item4, item5, item6, item7, item8, item9, source: source, line: line, member: member);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void LogFormatError<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10>(string format, T1 item1, T2 item2, T3 item3, T4 item4, T5 item5, T6 item6, T7 item7, T8 item8, T9 item9, T10 item10, [CallerFilePath] string source = "", [CallerLineNumber] int line = -1, [CallerMemberName] string member = "")
         {
-            if(LogLevel.Error < MinimumLogLevel)
-            {
-                return;
-            }
-
-            var logItem = FormatLogItem.MakeItem(format, item1, item2, item3, item4, item5, item6, item7, item8, item9, item10);
-            AddLogItemToQueue(LogLevel.Error, source, line, member, logItem);
+            LogFormat<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10>(LogLevel.Error, format, item1, item2, item3, item4, item5, item6, item7, item8, item9, item10, source: source, line: line, member: member);
         }
 
     }

@@ -335,9 +335,9 @@ namespace YARG.Core.Chart
 
         public double GetEndTime()
         {
-            static double TrackMax<TNote>(IEnumerable<InstrumentTrack<TNote>> tracks) where TNote : Note<TNote>
+            double TrackMax<TNote>(IEnumerable<InstrumentTrack<TNote>> tracks) where TNote : Note<TNote>
                 => tracks.Max((track) => track.GetEndTime());
-            static double VoxMax(IEnumerable<VocalsTrack> tracks)
+            double VoxMax(IEnumerable<VocalsTrack> tracks)
                 => tracks.Max((track) => track.GetEndTime());
 
             double totalEndTime = 0;
@@ -362,6 +362,27 @@ namespace YARG.Core.Chart
             // totalEndTime = Math.Max(Sections.GetEndTime(), totalEndTime);
             // totalEndTime = Math.Max(SyncTrack.GetEndTime(), totalEndTime);
             // totalEndTime = Math.Max(VenueTrack.GetEndTime(), totalEndTime);
+
+            return totalEndTime;
+        }
+
+        public double GetLastNoteEndTime()
+        {
+            double TrackMax<TNote>(IEnumerable<InstrumentTrack<TNote>> tracks) where TNote : Note<TNote>
+                => tracks.Max((track) => track.GetLastNoteEndTime());
+            double VoxMax(IEnumerable<VocalsTrack> tracks)
+                => tracks.Max((track) => track.GetLastNoteEndTime());
+
+            double totalEndTime = 0;
+
+            totalEndTime = Math.Max(TrackMax(FiveFretTracks), totalEndTime);
+            totalEndTime = Math.Max(TrackMax(SixFretTracks), totalEndTime);
+            totalEndTime = Math.Max(TrackMax(DrumsTracks), totalEndTime);
+            totalEndTime = Math.Max(TrackMax(ProGuitarTracks), totalEndTime);
+
+            totalEndTime = Math.Max(ProKeys.GetEndTime(), totalEndTime);
+
+            totalEndTime = Math.Max(VoxMax(VocalsTracks), totalEndTime);
 
             return totalEndTime;
         }

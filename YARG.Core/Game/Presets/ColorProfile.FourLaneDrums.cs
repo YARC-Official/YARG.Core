@@ -1,4 +1,4 @@
-using System.Drawing;
+﻿using System.Drawing;
 using System.IO;
 using YARG.Core.Extensions;
 using YARG.Core.Utility;
@@ -17,6 +17,12 @@ namespace YARG.Core.Game
             public Color BlueFret   = DefaultBlue;
             public Color GreenFret  = DefaultGreen;
 
+            // Exclusive to split view
+            public Color RedCymbalFret = DefaultRed;
+            public Color YellowCymbalFret = DefaultYellow;
+            public Color BlueCymbalFret = DefaultBlue;
+            public Color GreenCymbalFret = DefaultGreen;
+
             /// <summary>
             /// Gets the fret color for a specific note index.
             /// 0 = kick note, 1 = red, 4 = green.
@@ -30,6 +36,13 @@ namespace YARG.Core.Game
                     2 => YellowFret,
                     3 => BlueFret,
                     4 => GreenFret,
+
+                    // Exclusive to split view
+                    5 => RedCymbalFret,
+                    6 => YellowCymbalFret,
+                    7 => BlueCymbalFret,
+                    8 => GreenCymbalFret,
+
                     _ => default
                 };
             }
@@ -39,6 +52,12 @@ namespace YARG.Core.Game
             public Color YellowFretInner = DefaultYellow;
             public Color BlueFretInner   = DefaultBlue;
             public Color GreenFretInner  = DefaultGreen;
+
+            // Exclusive to split view
+            public Color RedCymbalFretInner = DefaultRed;
+            public Color YellowCymbalFretInner = DefaultYellow;
+            public Color BlueCymbalFretInner = DefaultBlue;
+            public Color GreenCymbalFretInner = DefaultGreen;
 
             /// <summary>
             /// Gets the inner fret color for a specific note index.
@@ -53,6 +72,13 @@ namespace YARG.Core.Game
                     2 => YellowFretInner,
                     3 => BlueFretInner,
                     4 => GreenFretInner,
+
+                    // Exclusive to split view
+                    5 => RedCymbalFretInner,
+                    6 => YellowCymbalFretInner,
+                    7 => BlueCymbalFretInner,
+                    8 => GreenCymbalFretInner,
+
                     _ => default
                 };
             }
@@ -62,6 +88,12 @@ namespace YARG.Core.Game
             public Color YellowParticles = DefaultYellow;
             public Color BlueParticles   = DefaultBlue;
             public Color GreenParticles  = DefaultGreen;
+
+            // Exclusive to split view
+            public Color RedCymbalParticles = DefaultRed;
+            public Color YellowCymbalParticles = DefaultYellow;
+            public Color BlueCymbalParticles = DefaultBlue;
+            public Color GreenCymbalParticles = DefaultGreen;
 
             /// <summary>
             /// Gets the particle color for a specific note index.
@@ -76,6 +108,13 @@ namespace YARG.Core.Game
                     2 => YellowParticles,
                     3 => BlueParticles,
                     4 => GreenParticles,
+
+                    // Exclusive to split view
+                    5 => RedCymbalParticles,
+                    6 => YellowCymbalParticles,
+                    7 => BlueCymbalParticles,
+                    8 => GreenCymbalParticles,
+
                     _ => default
                 };
             }
@@ -91,10 +130,10 @@ namespace YARG.Core.Game
             public Color BlueDrum   = DefaultBlue;
             public Color GreenDrum  = DefaultGreen;
 
-            public Color RedCymbal    = DefaultRed;
-            public Color YellowCymbal = DefaultYellow;
-            public Color BlueCymbal   = DefaultBlue;
-            public Color GreenCymbal  = DefaultGreen;
+            public Color RedCymbal    = DefaultRedCymbal;
+            public Color YellowCymbal = DefaultYellowCymbal;
+            public Color BlueCymbal   = DefaultBlueCymbal;
+            public Color GreenCymbal  = DefaultGreenCymbal;
 
             /// <summary>
             /// Gets the note color for a specific note index.
@@ -213,6 +252,21 @@ namespace YARG.Core.Game
                 writer.Write(GreenCymbalStarpower);
 
                 writer.Write(ActivationNote);
+
+                writer.Write(RedCymbalFret);
+                writer.Write(YellowCymbalFret);
+                writer.Write(BlueCymbalFret);
+                writer.Write(GreenCymbalFret);
+
+                writer.Write(RedCymbalFretInner);
+                writer.Write(YellowCymbalFretInner);
+                writer.Write(BlueCymbalFretInner);
+                writer.Write(GreenCymbalFretInner);
+
+                writer.Write(RedCymbalParticles);
+                writer.Write(YellowCymbalParticles);
+                writer.Write(BlueCymbalParticles);
+                writer.Write(GreenCymbalParticles);
             }
 
             public void Deserialize(BinaryReader reader, int version = 0)
@@ -258,6 +312,22 @@ namespace YARG.Core.Game
                 GreenCymbalStarpower = reader.ReadColor();
 
                 ActivationNote = reader.ReadColor();
+
+                RedCymbalFret = reader.ReadColor();
+                YellowCymbalFret = reader.ReadColor();
+                BlueCymbalFret = reader.ReadColor();
+                GreenCymbalFret = reader.ReadColor();
+
+                RedCymbalFretInner = reader.ReadColor();
+                YellowCymbalFretInner = reader.ReadColor();
+                BlueCymbalFretInner = reader.ReadColor();
+                GreenCymbalFretInner = reader.ReadColor();
+
+                RedCymbalParticles = reader.ReadColor();
+                YellowCymbalParticles = reader.ReadColor();
+                BlueCymbalParticles = reader.ReadColor();
+                GreenCymbalParticles = reader.ReadColor();
+
             }
 
             #endregion

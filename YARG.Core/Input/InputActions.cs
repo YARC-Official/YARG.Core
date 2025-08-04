@@ -62,6 +62,12 @@
         /// <summary>The Star Power action, reported as a button.</summary>
         StarPower = 9,
 
+        Fret11 = 10,
+        Fret12 = 11,
+        Fret13 = 12,
+        Fret14 = 13,
+        Fret15 = 14,
+
         /// <summary>(5-fret) Green fret button.</summary>
         /// <remarks>Alias of <see cref="Fret1"/>.</remarks>
         GreenFret = Fret1,
@@ -96,6 +102,13 @@
         /// <summary>(6-fret) White 3 fret button.</summary>
         /// <remarks>Alias of <see cref="Fret6"/>.</remarks>
         White3Fret = Fret6,
+
+        // Aliases for solo frets
+        SoloGreenFret = Fret11,
+        SoloRedFret = Fret12,
+        SoloYellowFret = Fret13,
+        SoloBlueFret = Fret14,
+        SoloOrangeFret = Fret15,
     }
 
     /// <summary>
