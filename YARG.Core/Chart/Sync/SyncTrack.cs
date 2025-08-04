@@ -191,7 +191,7 @@ namespace YARG.Core.Chart
                 }
 
                 // If startTick is prior to the current last beatline, we need to move it to the last beatline
-                startTick = Math.Min(startTick, lastBeatlineTick);
+                startTick = Math.Max(startTick, lastBeatlineTick);
 
                 // Generate beatlines for this time signature
                 GenerateBeatsForTimeSignature(currentTimeSig, startTick, endTick);
@@ -199,7 +199,7 @@ namespace YARG.Core.Chart
             }
 
 
-            uint finalStartTick = Math.Min(currentTimeSig.Tick, lastBeatlineTick);
+            uint finalStartTick = Math.Max(currentTimeSig.Tick, lastBeatlineTick);
             // Final time signature
             GenerateBeatsForTimeSignature(currentTimeSig, finalStartTick, lastTick);
 
