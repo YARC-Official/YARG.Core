@@ -156,7 +156,7 @@ namespace YARG.Core.Chart
 
             if (pad is not null)
             {
-                notes.Add(new(pad.Value, (EliteDrumPad) eliteDrumNote.Pad, eliteDrumNote.Dynamics, eliteDrumNote.DrumFlags, eliteDrumNote.Flags, eliteDrumNote.Time, eliteDrumNote.Tick));
+                notes.Add(new(pad.Value, eliteDrumNote, eliteDrumNote.Dynamics, eliteDrumNote.DrumFlags, eliteDrumNote.Flags, eliteDrumNote.Time, eliteDrumNote.Tick));
 
                 if (eliteDrumNote.IsFlam)
                 {
@@ -175,7 +175,7 @@ namespace YARG.Core.Chart
 
                     if (otherPad is not null)
                     {
-                        notes.Add(new(otherPad.Value, (EliteDrumPad) eliteDrumNote.Pad, eliteDrumNote.Dynamics, eliteDrumNote.DrumFlags, eliteDrumNote.Flags, eliteDrumNote.Time, eliteDrumNote.Tick));
+                        notes.Add(new(otherPad.Value, eliteDrumNote, eliteDrumNote.Dynamics, eliteDrumNote.DrumFlags, eliteDrumNote.Flags, eliteDrumNote.Time, eliteDrumNote.Tick));
                     }
                 }
             }
@@ -224,7 +224,19 @@ namespace YARG.Core.Chart
             var secondHandGemColor = DrumNote._fourLanePadToColor[(FourLaneDrumPad) secondHandGem.Pad];
 
             if (firstHandGemColor != secondHandGemColor) {
-                // Two hand gems, but no collision. Safe to return as-is
+                // Two hand gems, but no collision
+
+                // Special case: Unforced LCrash + Unforced RCrash resolves to YG instead of BG
+                if (firstHandGem.DownchartingSource!.ChannelFlag is EliteDrumsChannelFlag.None && secondHandGem.DownchartingSource!.ChannelFlag is EliteDrumsChannelFlag.None)
+                {
+                    if (firstHandGem.DownchartingSource.Pad is (int)EliteDrumPad.LeftCrash && secondHandGem.DownchartingSource.Pad is (int)EliteDrumPad.RightCrash)
+                    {
+                        firstHandGem = new(FourLaneDrumPad.YellowCymbal, firstHandGem.Type, firstHandGem.DrumFlags, firstHandGem.Flags, firstHandGem.Time, firstHandGem.Tick);
+                    } else if (firstHandGem.DownchartingSource.Pad is (int) EliteDrumPad.RightCrash && secondHandGem.DownchartingSource.Pad is (int) EliteDrumPad.LeftCrash)
+                    {
+                        secondHandGem = new(FourLaneDrumPad.YellowCymbal, secondHandGem.Type, secondHandGem.DrumFlags, secondHandGem.Flags, secondHandGem.Time, secondHandGem.Tick);
+                    }
+                }
 
                 note = firstHandGem;
                 note.AddChildNote(secondHandGem);
@@ -250,7 +262,7 @@ namespace YARG.Core.Chart
             {
                 // This is a tom/tom or cym/cym collision, so we'll need to preserve the handedness of the dynamics
                 // from the original Elite Drums chord
-                (var leftHandGem, var rightHandGem) = firstHandGem.DownchartingSourcePad < secondHandGem.DownchartingSourcePad ? (firstHandGem, secondHandGem) : (secondHandGem, firstHandGem);
+                (var leftHandGem, var rightHandGem) = firstHandGem.DownchartingSource!.Pad < secondHandGem.DownchartingSource!.Pad ? (firstHandGem, secondHandGem) : (secondHandGem, firstHandGem);
 
                 if (firstHandGemIsCymbal)
                 {

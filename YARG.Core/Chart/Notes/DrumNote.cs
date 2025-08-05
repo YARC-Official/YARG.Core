@@ -11,8 +11,8 @@ namespace YARG.Core.Chart
 
         public int Pad { get; }
 
-        // Notes that were downcharted from Elite Drums need to remember what ED pad they originally were, for collision resolution
-        public EliteDrumPad? DownchartingSourcePad { get; }
+        // Notes that were downcharted from Elite Drums need to remember what note they originated from for certain downcharting conditions
+        public EliteDrumNote? DownchartingSource { get; }
 
         public DrumNoteType Type { get; set; }
 
@@ -26,9 +26,9 @@ namespace YARG.Core.Chart
 
         public bool IsStarPowerActivator => (DrumFlags & DrumNoteFlags.StarPowerActivator) != 0;
 
-        public DrumNote(FourLaneDrumPad pad, EliteDrumPad? downchartingSourcePad, DrumNoteType noteType, DrumNoteFlags drumFlags,
+        public DrumNote(FourLaneDrumPad pad, EliteDrumNote? downchartingSource, DrumNoteType noteType, DrumNoteFlags drumFlags,
             NoteFlags flags, double time, uint tick)
-            : this((int) pad, downchartingSourcePad, noteType, drumFlags, flags, time, tick)
+            : this((int)pad, downchartingSource, noteType, drumFlags, flags, time, tick)
         {
         }
 
@@ -44,14 +44,14 @@ namespace YARG.Core.Chart
         {
         }
 
-        public DrumNote(int pad, EliteDrumPad? downchartingSourcePad, DrumNoteType noteType, DrumNoteFlags drumFlags, NoteFlags flags, double time, uint tick)
+        public DrumNote(int pad, EliteDrumNote? downchartingSource, DrumNoteType noteType, DrumNoteFlags drumFlags, NoteFlags flags, double time, uint tick)
             : base(flags, time, 0, tick, 0)
         {
             Pad = pad;
             Type = noteType;
 
             DrumFlags = _drumFlags = drumFlags;
-
+            DownchartingSource = downchartingSource;
             _padMask = 1 << pad;
         }
 
