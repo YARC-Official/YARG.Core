@@ -28,10 +28,11 @@ namespace YARG.Core.Chart
                 { Difficulty.Expert, LoadDifficulty(instrument, Difficulty.Expert, createNote) },
             };
 
-            var track = new InstrumentTrack<GuitarNote>(instrument, difficulties);
+            var animationTrack = GetGuitarAnimationTrack(instrument);
+            var track = new InstrumentTrack<GuitarNote>(instrument, difficulties, animationTrack);
 
             // Add animation events
-            var animationEvents = GetGuitarAnimationEvents(track);
+            var animationEvents = GetGuitarAnimationEvents(instrument);
             track.AddAnimationEvent(animationEvents);
 
             return track;
@@ -175,63 +176,121 @@ namespace YARG.Core.Chart
             return flags;
         }
 
-        private AnimationTrack GetGuitarAnimationTrack(InstrumentTrack<GuitarNote> track)
+        private readonly Dictionary<Instrument, List<CharacterState>> _characterStateCache = new();
+        private readonly Dictionary<Instrument, List<HandMap>> _handMapCache = new();
+        private readonly Dictionary<Instrument, List<StrumMap>> _strumMapCache = new();
+        private readonly Dictionary<Instrument, List<AnimationEvent>> _animationEventCache = new();
+
+        private static readonly Dictionary<string, CharacterState.CharacterStateType> CharacterStateLookup = new()
         {
+            { AnimationLookup.ANIMATION_STATE_IDLE,          CharacterState.CharacterStateType.Idle },
+            { AnimationLookup.ANIMATION_STATE_IDLE_INTENSE,  CharacterState.CharacterStateType.IdleIntense },
+            { AnimationLookup.ANIMATION_STATE_IDLE_REALTIME, CharacterState.CharacterStateType.IdleRealtime },
+            { AnimationLookup.ANIMATION_STATE_PLAY,          CharacterState.CharacterStateType.Play },
+            { AnimationLookup.ANIMATION_STATE_PLAY_SOLO,     CharacterState.CharacterStateType.PlaySolo },
+            { AnimationLookup.ANIMATION_STATE_PLAY_INTENSE,  CharacterState.CharacterStateType.Intense },
+            { AnimationLookup.ANIMATION_STATE_PLAY_MELLOW,   CharacterState.CharacterStateType.Mellow },
+        };
+
+        private void ProcessGuitarAnimationData(Instrument instrument)
+        {
+            if (_characterStateCache.ContainsKey(instrument))
+            {
+                return;
+            }
+
             var characterStates = new List<CharacterState>();
             var handMaps = new List<HandMap>();
             var strumMaps = new List<StrumMap>();
-            var animationEvents = GetGuitarAnimationEvents(track);
+            var animationEvents = new List<AnimationEvent>();
 
+            // TODO: What if expert doesn't exist?
+            var chart = GetMoonChart(instrument, Difficulty.Expert);
+
+            // Process text events
+            foreach (var textEvent in chart.events)
+            {
+                double time = _moonSong.TickToTime(textEvent.tick);
+                string eventName = textEvent.text;
+
+                // Event format is `[text]`
+                // if (text.Length < 2 || text[0] != '[' || text[^1] != ']')
+                // {
+                //     continue;
+                // }
+
+                // string eventName = text[1..^1];
+
+                // Character States
+                if (CharacterStateLookup.TryGetValue(eventName, out var characterType))
+                {
+                    characterStates.Add(new CharacterState(characterType, time, textEvent.tick));
+                    continue;
+                }
+
+                // Hand Maps
+                if (AnimationLookup.LeftHandMapLookup.TryGetValue(eventName, out var handMapType))
+                {
+                    handMaps.Add(new HandMap(handMapType, time, textEvent.tick));
+                    continue;
+                }
+
+                // Strum Maps (only for bass)
+                if (instrument == Instrument.FiveFretBass && AnimationLookup.RightHandMapLookup.TryGetValue(eventName, out var strumMapType))
+                {
+                    strumMaps.Add(new StrumMap(strumMapType, time, textEvent.tick));
+                }
+            }
+
+            // Process animation notes
+            foreach (var animNote in chart.animationNotes)
+            {
+                var animType = GetGuitarAnimationType(animNote.text);
+                if (animType.HasValue)
+                {
+                    animationEvents.Add(new AnimationEvent(animType.Value,
+                        _moonSong.TickToTime(animNote.tick), GetLengthInTime(animNote), animNote.tick, animNote.length));
+                }
+            }
+
+            _characterStateCache[instrument] = characterStates;
+            _handMapCache[instrument] = handMaps;
+            _strumMapCache[instrument] = strumMaps;
+            _animationEventCache[instrument] = animationEvents;
+        }
+
+        private AnimationTrack GetGuitarAnimationTrack(Instrument instrument)
+        {
+            var characterStates = GetCharacterStates(instrument);
+            var handMaps = GetGuitarHandMaps(instrument);
+            var strumMaps = GetGuitarStrumMaps(instrument);
+            var animationEvents = GetGuitarAnimationEvents(instrument);
 
             return new AnimationTrack(characterStates, handMaps, strumMaps, animationEvents);
         }
 
-        private List<StrumMap> GetGuitarStrumMaps(InstrumentTrack<GuitarNote> track)
+        private List<CharacterState> GetCharacterStates(Instrument instrument)
         {
-            var strumMaps = new List<StrumMap>();
-
-            // Only bass has StrumMaps
-            if (track.Instrument != Instrument.FiveFretBass)
-            {
-                return strumMaps;
-            }
-
-            var chart = GetMoonChart(track.Instrument, Difficulty.Expert);
-
-            foreach (var text in chart.events)
-            {
-
-            }
-
-            return strumMaps;
+            ProcessGuitarAnimationData(instrument);
+            return _characterStateCache[instrument];
         }
 
-        private List<AnimationEvent> GetGuitarAnimationEvents(InstrumentTrack<GuitarNote> track)
+        private List<HandMap> GetGuitarHandMaps(Instrument instrument)
         {
-            var events = new List<AnimationEvent>();
-            var instrument = track.Instrument;
+            ProcessGuitarAnimationData(instrument);
+            return _handMapCache[instrument];
+        }
 
-            // Find a difficulty
-            // var difficulty = track.FirstDifficulty().Difficulty;
+        private List<StrumMap> GetGuitarStrumMaps(Instrument instrument)
+        {
+            ProcessGuitarAnimationData(instrument);
+            return _strumMapCache[instrument];
+        }
 
-            // TODO: What if expert doesn't exist?
-            var difficulty = Difficulty.Expert;
-
-            // Get the relevant MoonChart
-            var chart = GetMoonChart(instrument, difficulty);
-
-            foreach (var animNote in chart.animationNotes)
-            {
-                // Look up the note number and create an appropriate animation event
-                var animType = GetGuitarAnimationType(animNote.text);
-
-                if (!animType.HasValue) continue;
-
-                events.Add(new AnimationEvent(animType.Value,
-                    _moonSong.TickToTime(animNote.tick), GetLengthInTime(animNote), animNote.tick, animNote.length));
-            }
-
-            return events;
+        private List<AnimationEvent> GetGuitarAnimationEvents(Instrument instrument)
+        {
+            ProcessGuitarAnimationData(instrument);
+            return _animationEventCache[instrument];
         }
 
         private AnimationEvent.AnimationType? GetGuitarAnimationType(string eventText)
@@ -257,33 +316,9 @@ namespace YARG.Core.Chart
                 AnimationLookup.LH_POSITION_17 => AnimationEvent.AnimationType.LeftHandPosition17,
                 AnimationLookup.LH_POSITION_18 => AnimationEvent.AnimationType.LeftHandPosition18,
                 AnimationLookup.LH_POSITION_19 => AnimationEvent.AnimationType.LeftHandPosition19,
-                AnimationLookup.LH_POSITION_20 => AnimationEvent.AnimationType.LeftHandPosition20
+                AnimationLookup.LH_POSITION_20 => AnimationEvent.AnimationType.LeftHandPosition20,
+                _ => null
             };
-
-            // return noteNumber switch
-            // {
-            //     MidIOHelper.LEFT_HAND_POSITION_1 => AnimationEvent.AnimationType.LeftHandPosition1,
-            //     MidIOHelper.LEFT_HAND_POSITION_2 => AnimationEvent.AnimationType.LeftHandPosition2,
-            //     MidIOHelper.LEFT_HAND_POSITION_3 => AnimationEvent.AnimationType.LeftHandPosition3,
-            //     MidIOHelper.LEFT_HAND_POSITION_4 => AnimationEvent.AnimationType.LeftHandPosition4,
-            //     MidIOHelper.LEFT_HAND_POSITION_5 => AnimationEvent.AnimationType.LeftHandPosition5,
-            //     MidIOHelper.LEFT_HAND_POSITION_6 => AnimationEvent.AnimationType.LeftHandPosition6,
-            //     MidIOHelper.LEFT_HAND_POSITION_7 => AnimationEvent.AnimationType.LeftHandPosition7,
-            //     MidIOHelper.LEFT_HAND_POSITION_8 => AnimationEvent.AnimationType.LeftHandPosition8,
-            //     MidIOHelper.LEFT_HAND_POSITION_9 => AnimationEvent.AnimationType.LeftHandPosition9,
-            //     MidIOHelper.LEFT_HAND_POSITION_10 => AnimationEvent.AnimationType.LeftHandPosition10,
-            //     MidIOHelper.LEFT_HAND_POSITION_11 => AnimationEvent.AnimationType.LeftHandPosition11,
-            //     MidIOHelper.LEFT_HAND_POSITION_12 => AnimationEvent.AnimationType.LeftHandPosition12,
-            //     MidIOHelper.LEFT_HAND_POSITION_13 => AnimationEvent.AnimationType.LeftHandPosition13,
-            //     MidIOHelper.LEFT_HAND_POSITION_14 => AnimationEvent.AnimationType.LeftHandPosition14,
-            //     MidIOHelper.LEFT_HAND_POSITION_15 => AnimationEvent.AnimationType.LeftHandPosition15,
-            //     MidIOHelper.LEFT_HAND_POSITION_16 => AnimationEvent.AnimationType.LeftHandPosition16,
-            //     MidIOHelper.LEFT_HAND_POSITION_17 => AnimationEvent.AnimationType.LeftHandPosition17,
-            //     MidIOHelper.LEFT_HAND_POSITION_18 => AnimationEvent.AnimationType.LeftHandPosition18,
-            //     MidIOHelper.LEFT_HAND_POSITION_19 => AnimationEvent.AnimationType.LeftHandPosition19,
-            //     MidIOHelper.LEFT_HAND_POSITION_20 => AnimationEvent.AnimationType.LeftHandPosition20,
-            //     _ => null
-            // };
         }
     }
 }

@@ -32,11 +32,14 @@ namespace YARG.Core.Chart
                 { Difficulty.ExpertPlus, LoadDifficulty(instrument, Difficulty.ExpertPlus, createNote, HandleTextEvent) },
             };
 
-            var track = new InstrumentTrack<DrumNote>(instrument, difficulties);
+            // TODO: Genericize this into GetAnimationTrack and stop with the tomfoolery
+            var aniTrack = GetGuitarAnimationTrack(instrument);
+            aniTrack.AnimationEvents = GetDrumAnimationEvents(instrument);
+            var track = new InstrumentTrack<DrumNote>(instrument, difficulties, aniTrack);
 
             // Add animation events
-            var animationEvents = GetDrumAnimationEvents(track);
-            track.AddAnimationEvent(animationEvents);
+            // var animationEvents = GetDrumAnimationEvents(track);
+            // track.AddAnimationEvent(animationEvents);
 
             return track;
         }
@@ -299,10 +302,9 @@ namespace YARG.Core.Chart
             return DrumNoteFlags.None;
         }
 
-        private List<AnimationEvent> GetDrumAnimationEvents(InstrumentTrack<DrumNote> track)
+        private List<AnimationEvent> GetDrumAnimationEvents(Instrument instrument)
         {
             var events = new List<AnimationEvent>();
-            var instrument = track.Instrument;
 
             // Find a difficulty
             // var difficulty = track.FirstDifficulty().Difficulty;
