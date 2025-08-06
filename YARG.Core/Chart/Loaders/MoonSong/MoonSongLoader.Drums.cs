@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using Melanchall.DryWetMidi.MusicTheory;
 using MoonscraperChartEditor.Song;
 using YARG.Core.Parsing;
 using static YARG.Core.Chart.EliteDrumNote;
@@ -82,7 +81,7 @@ namespace YARG.Core.Chart
         {
             var eliteDrumsDifficulty = eliteDrumsTrack.GetDifficulty(difficulty);
 
-            List<Phrase> phrases = new();
+            var phrases = eliteDrumsDifficulty.Phrases;
             List<TextEvent> text = new();
 
             List <(DrumNote? kick, DrumNote? firstHandGem, DrumNote? secondHandGem)> unresolvedNotes = new();

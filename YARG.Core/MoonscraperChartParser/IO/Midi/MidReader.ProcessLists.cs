@@ -218,9 +218,16 @@ namespace MoonscraperChartEditor.Song.IO
 
         private static Dictionary<int, EventProcessFn> GetPhraseProcessDict(int spNote, MoonChart.GameMode gameMode)
         {
-            // Set default if no override given
+            // Set default if no global override given
             if (spNote < 0)
                 spNote = MidIOHelper.STARPOWER_NOTE;
+
+            // Game mode-level overrides
+            spNote = gameMode switch
+            {
+                MoonChart.GameMode.EliteDrums => MidIOHelper.ELITE_DRUMS_STARPOWER_NOTE,
+                _ => spNote
+            };
 
             var phraseSettings = gameMode switch
             {
