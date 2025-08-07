@@ -133,9 +133,9 @@ namespace YARG.Core.Chart
             SixFretBass = loader.LoadGuitarTrack(Instrument.SixFretBass);
 
             EliteDrums = loader.LoadEliteDrumsTrack(Instrument.EliteDrums); // Load elite first, because the others will fall back to it if they don't natively exist
-            FourLaneDrums = loader.LoadDrumsTrack(Instrument.FourLaneDrums, EliteDrums.IsEmpty ? null : EliteDrums);
-            ProDrums = loader.LoadDrumsTrack(Instrument.ProDrums, EliteDrums.IsEmpty ? null : EliteDrums);
-            FiveLaneDrums = loader.LoadDrumsTrack(Instrument.FiveLaneDrums, null);
+            FourLaneDrums = loader.LoadDrumsTrack(Instrument.FourLaneDrums, EliteDrums);
+            ProDrums = loader.LoadDrumsTrack(Instrument.ProDrums, EliteDrums);
+            FiveLaneDrums = loader.LoadDrumsTrack(Instrument.FiveLaneDrums, EliteDrums);
 
             ProGuitar_17Fret = loader.LoadProGuitarTrack(Instrument.ProGuitar_17Fret);
             ProGuitar_22Fret = loader.LoadProGuitarTrack(Instrument.ProGuitar_22Fret);
