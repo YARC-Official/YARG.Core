@@ -122,10 +122,31 @@ namespace YARG.Core.UnitTests.Parsing
                 section.AddEvent(bpm.Tick, "B", writtenBpm);
             }
 
-            foreach (var ts in syncTrack.TimeSignatures)
+            for (int i = 0; i < syncTrack.TimeSignatures.Count; i++)
             {
+                var ts = syncTrack.TimeSignatures[i];
+                if (ts.IsInterrupted)
+                {
+                    if (i == 0)
+                    {
+                        Assert.Fail($"Invalid interrupted time signature <{ts}>");
+                        return;
+                    }
+
+                    var prevTs = syncTrack.TimeSignatures[i - 1];
+                    Assert.Multiple(() =>
+                    {
+                        Assert.That(ts.Numerator, Is.EqualTo(prevTs.Numerator), "Interrupted time signatures must match the previous time signature");
+                        Assert.That(ts.Denominator, Is.EqualTo(prevTs.Denominator), "Interrupted time signatures must match the previous time signature");
+                    });
+                    continue;
+                }
+
                 section.AddEvent(ts.Tick, "TS", ts.Numerator, (uint) Math.Log2(ts.Denominator));
             }
+
+            // .chart does not store beatline information
+            syncTrack.Beatlines.Clear();
 
             FinalizeSection(builder, SECTION_SYNC_TRACK, section);
         }

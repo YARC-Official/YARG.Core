@@ -164,7 +164,10 @@ namespace MoonscraperChartEditor.Song
                     // know to handle it specially
                     uint newTick = tick - extraTicks;
                     uint newMeasureTick = previousTimesig.QuarterTickToMeasureTick(newTick, syncTrack.Resolution);
-                    double newTime = TickToTime(newTick, syncTrack.Tempos[^1]);
+                    // Note: the new tick value may be behind the current tempo, if one occurs
+                    // between this interstitial time signature and the real one being added,
+                    // so we do not pass in the latest tempo for this calculation
+                    double newTime = TickToTime(newTick);
 
                     previousTimesig = new TimeSignatureChange(
                         previousTimesig.Numerator,
