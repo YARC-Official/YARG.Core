@@ -10,7 +10,6 @@ namespace YARG.Core.Chart
     internal partial class MoonSongLoader : ISongLoader
     {
         private bool _discoFlip = false;
-        private Dictionary<Difficulty, MoonChart>? _downCharts = null;
 
         public InstrumentTrack<DrumNote> LoadDrumsTrack(Instrument instrument, InstrumentTrack<EliteDrumNote>? eliteDrumsFallback)
         {
@@ -50,6 +49,8 @@ namespace YARG.Core.Chart
 
                 if (_downCharts is not null)
                 {
+                    _settings.DrumsType = DrumsType.FourLane;
+
                     difficulties = new Dictionary<Difficulty, InstrumentDifficulty<DrumNote>>()
                     {
                         { Difficulty.Easy, LoadEliteDrumsDownchartDifficulty(_downCharts[Difficulty.Easy], instrument, Difficulty.Easy, createNote, HandleTextEvent)},
@@ -62,9 +63,7 @@ namespace YARG.Core.Chart
             }
 
             return new(instrument, difficulties);
-        }
-
-        
+        }        
 
         private DrumNote CreateFourLaneDrumNote(MoonNote moonNote, Dictionary<MoonPhrase.Type, MoonPhrase> currentPhrases)
         {

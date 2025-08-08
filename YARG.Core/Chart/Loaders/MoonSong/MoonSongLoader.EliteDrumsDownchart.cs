@@ -7,6 +7,8 @@ namespace YARG.Core.Chart
 {
     internal partial class MoonSongLoader : ISongLoader
     {
+        private Dictionary<Difficulty, MoonChart>? _downCharts = null;
+
         private Dictionary<Difficulty, MoonChart>? DownchartEliteDrumsTrack(InstrumentTrack<EliteDrumNote> eliteDrumsTrack)
         {
             var downcharts = new Dictionary<Difficulty, MoonChart>()
@@ -35,11 +37,8 @@ namespace YARG.Core.Chart
 
             var eliteDrumsDifficulty = eliteDrumsTrack.GetDifficulty(difficulty);
 
-            var phrases = eliteDrumsDifficulty.Phrases;
-            List<TextEvent> text = new();
-
+            // Downchart notes
             List<DownchartChord> unresolvedChords = new();
-
             foreach (var eliteDrumNote in eliteDrumsDifficulty.Notes)
             {
                 var chord = DownchartEliteDrumsChord(eliteDrumNote);
@@ -51,9 +50,49 @@ namespace YARG.Core.Chart
 
             var notes = ResolveDownchartCollisions(unresolvedChords);
 
-            foreach (var note in notes)
+            for (var i = 0; i < notes.Count; i++)
             {
+                var note = notes[i];
+                if (i > 0)
+                {
+                    note.previous = notes[i - 1];
+                    notes[i - 1].next = note;
+                }
+
                 moonChart.Add(note);
+            }
+
+            // Downchart phrases
+            List<MoonPhrase> phrases = new();
+            foreach (var phrase in eliteDrumsDifficulty.Phrases)
+            {
+                switch (phrase.Type)
+                {
+                    case PhraseType.StarPower:
+                        phrases.Add(new(phrase.Tick, phrase.TickLength, MoonPhrase.Type.Starpower));
+                        break;
+                    case PhraseType.DrumFill:
+                        phrases.Add(new(phrase.Tick, phrase.TickLength, MoonPhrase.Type.ProDrums_Activation));
+                        break;
+                    case PhraseType.VersusPlayer1:
+                        phrases.Add(new(phrase.Tick, phrase.TickLength, MoonPhrase.Type.Versus_Player1));
+                        break;
+                    case PhraseType.VersusPlayer2:
+                        phrases.Add(new(phrase.Tick, phrase.TickLength, MoonPhrase.Type.Versus_Player2));
+                        break;
+                    case PhraseType.BigRockEnding:
+                        // TODO
+                        break;
+                    case PhraseType.Solo:
+                        phrases.Add(new(phrase.Tick, phrase.TickLength, MoonPhrase.Type.Solo));
+                        break;
+
+                }
+            }
+
+            foreach (var phrase in phrases)
+            {
+                moonChart.Add(phrase);
             }
 
             return moonChart;
