@@ -569,7 +569,7 @@ namespace MoonscraperChartEditor.Song.IO
             // Copy text event to all difficulties
             foreach (var difficulty in EnumExtensions<MoonSong.Difficulty>.Values)
             {
-                processParams.song.GetChart(processParams.instrument, difficulty).Add(new MoonText(eventText, tick));
+                processParams.song.GetChart(processParams.instrument, difficulty).Insert(new MoonText(eventText, tick));
             }
         }
 

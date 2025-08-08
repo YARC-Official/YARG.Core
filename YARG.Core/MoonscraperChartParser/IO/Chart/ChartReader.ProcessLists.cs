@@ -226,38 +226,40 @@ namespace MoonscraperChartEditor.Song.IO
                     {
                         nextStartTick = ev.tick;
                     }
-
-                    // Remove from list by overwriting
-                    continue;
                 }
                 else if (ev.text == TextEvents.SOLO_END)
                 {
-                    if (startTick != uint.MaxValue)
+                    if (startTick == uint.MaxValue)
                     {
-                        // .chart handles solo phrases with *inclusive ends*, so we have to add one tick.
-                        // The only exception will be if another solo starts on the same exact tick.
-                        //
-                        // Comparing to the current tick instead of against uint.MaxValue ensures
-                        // that the we don't allow overlaps
-                        if (nextStartTick != ev.tick)
-                        {
-                            chart.Add(new MoonPhrase(startTick, ev.tick + 1 - startTick, MoonPhrase.Type.Solo));
-                            startTick = uint.MaxValue;
-                        }
-                        else
-                        {
-                            chart.Add(new MoonPhrase(startTick, ev.tick - startTick, MoonPhrase.Type.Solo));
-                            startTick = nextStartTick;
-                            nextStartTick = uint.MaxValue;
-                        }
+                        continue;
                     }
 
-                    // Remove from list by overwriting
-                    continue;
+                    // .chart handles solo phrases with *inclusive ends*, so we have to add one tick.
+                    // The only exception will be if another solo starts on the same exact tick.
+                    //
+                    // Comparing to the current tick instead of against uint.MaxValue ensures
+                    // that we don't allow overlaps
+                    if (nextStartTick != ev.tick)
+                    {
+                        chart.Insert(new MoonPhrase(startTick, ev.tick + 1 - startTick, MoonPhrase.Type.Solo));
+                        startTick = uint.MaxValue;
+                    }
+                    else
+                    {
+                        chart.Insert(new MoonPhrase(startTick, ev.tick - startTick, MoonPhrase.Type.Solo));
+                        startTick = nextStartTick;
+                        nextStartTick = uint.MaxValue;
+                    }
                 }
-
-                // Move element to its new position
-                chart.events[insertIndex++] = ev;
+                else
+                {
+                    if (insertIndex != i)
+                    {
+                        // Move element to its new position
+                        chart.events[insertIndex] = ev;
+                    }
+                    ++insertIndex;
+                }
             }
 
             // Trim off remaining excess elements from any removals

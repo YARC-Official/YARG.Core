@@ -28,12 +28,75 @@ namespace YARG.Core.UnitTests.Parsing
     internal class ParseBehaviorTests
     {
         public const uint RESOLUTION = 192;
-        public const float TEMPO = 120;
-        public const int NUMERATOR = 4;
-        public const int DENOMINATOR = 4;
+        public const uint MEASURE_RESOLUTION = RESOLUTION * TimeSignatureChange.MEASURE_RESOLUTION_SCALE;
 
         public static readonly List<MoonText> GlobalEvents = new()
         {
+        };
+
+        public static readonly SyncTrack SyncTrack = new(RESOLUTION)
+        {
+            Tempos =
+            {
+                // The tempo values here are chosen particularly, to avoid round-tripping issues with
+                // .mid storing beats per minute as microseconds per quarter note
+                new TempoChange(60, 0.0, RESOLUTION * 0),
+                new TempoChange(80, 4.0, RESOLUTION * 4),
+                new TempoChange(120, 8.5, RESOLUTION * 10),
+                new TempoChange(160, 12.5, RESOLUTION * 18),
+            },
+            TimeSignatures =
+            {
+                new TimeSignatureChange(4, 4, 0.0, RESOLUTION * 0, MEASURE_RESOLUTION * 0, 0, 0, 0),
+                new TimeSignatureChange(6, 4, 4.0, RESOLUTION * 4, MEASURE_RESOLUTION * 1, 1, 4, 4),
+                new TimeSignatureChange(4, 4, 8.5, RESOLUTION * 10, MEASURE_RESOLUTION * 2, 2, 10, 10),
+                new TimeSignatureChange(7, 8, 10.5, RESOLUTION * 14, MEASURE_RESOLUTION * 3, 3, 14, 14),
+                new TimeSignatureChange(7, 8, 12.25, (uint) (RESOLUTION * 17.5), MEASURE_RESOLUTION * 4, 4, 21, 17.5, interrupted: true),
+                new TimeSignatureChange(4, 2, 12.5, RESOLUTION * 18, MEASURE_RESOLUTION * 5, 5, 22, 18),
+            },
+            Beatlines =
+            {
+                // 4/4
+                new(BeatlineType.Measure, 0.0, RESOLUTION * 0),
+                new(BeatlineType.Strong,  1.0, RESOLUTION * 1),
+                new(BeatlineType.Strong,  2.0, RESOLUTION * 2),
+                new(BeatlineType.Strong,  3.0, RESOLUTION * 3),
+
+                // 6/4
+                new(BeatlineType.Measure, 4.00, RESOLUTION * 4),
+                new(BeatlineType.Strong,  4.75, RESOLUTION * 5),
+                new(BeatlineType.Strong,  5.50, RESOLUTION * 6),
+                new(BeatlineType.Strong,  6.25, RESOLUTION * 7),
+                new(BeatlineType.Strong,  7.00, RESOLUTION * 8),
+                new(BeatlineType.Strong,  7.75, RESOLUTION * 9),
+
+                // 4/4
+                new(BeatlineType.Measure,  8.5, RESOLUTION * 10),
+                new(BeatlineType.Strong,   9.0, RESOLUTION * 11),
+                new(BeatlineType.Strong,   9.5, RESOLUTION * 12),
+                new(BeatlineType.Strong,  10.0, RESOLUTION * 13),
+
+                // 7/8
+                new(BeatlineType.Measure, 10.50, (uint) (RESOLUTION * 14.0)),
+                new(BeatlineType.Weak,    10.75, (uint) (RESOLUTION * 14.5)),
+                new(BeatlineType.Strong,  11.00, (uint) (RESOLUTION * 15.0)),
+                new(BeatlineType.Weak,    11.25, (uint) (RESOLUTION * 15.5)),
+                new(BeatlineType.Strong,  11.50, (uint) (RESOLUTION * 16.0)),
+                new(BeatlineType.Weak,    11.75, (uint) (RESOLUTION * 16.5)),
+                new(BeatlineType.Weak,    12.00, (uint) (RESOLUTION * 17.0)),
+                new(BeatlineType.Measure, 12.25, (uint) (RESOLUTION * 17.5)),
+
+                // 4/2
+                new(BeatlineType.Measure, 12.500, RESOLUTION * 18),
+                new(BeatlineType.Strong,  13.250, RESOLUTION * 20),
+                new(BeatlineType.Strong,  14.000, RESOLUTION * 22),
+                new(BeatlineType.Strong,  14.750, RESOLUTION * 24),
+                new(BeatlineType.Measure, 15.500, RESOLUTION * 26),
+                new(BeatlineType.Strong,  16.250, RESOLUTION * 28),
+                new(BeatlineType.Strong,  17.000, RESOLUTION * 30),
+                new(BeatlineType.Strong,  17.750, RESOLUTION * 32),
+                new(BeatlineType.Measure, 18.500, RESOLUTION * 34),
+            },
         };
 
         private static MoonNote NewNote(int index, int rawNote, float length = 0, Flags flags = Flags.None)
@@ -481,8 +544,14 @@ namespace YARG.Core.UnitTests.Parsing
 
         public static void PopulateSyncTrack(MoonSong song)
         {
-            song.AddTempo(TEMPO, 0);
-            song.AddTimeSignature(NUMERATOR, DENOMINATOR, 0);
+            song.syncTrack.Tempos.Clear();
+            song.syncTrack.Tempos.AddRange(SyncTrack.Tempos);
+
+            song.syncTrack.TimeSignatures.Clear();
+            song.syncTrack.TimeSignatures.AddRange(SyncTrack.TimeSignatures);
+
+            song.syncTrack.Beatlines.Clear();
+            song.syncTrack.Beatlines.AddRange(SyncTrack.Beatlines);
         }
 
         public static void PopulateGlobalEvents(MoonSong song)

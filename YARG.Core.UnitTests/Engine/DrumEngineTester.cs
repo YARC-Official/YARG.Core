@@ -25,7 +25,7 @@ public class DrumEngineTester
     {
         string workingDirectory = Environment.CurrentDirectory;
 
-        string projectDirectory = Directory.GetParent(workingDirectory)!.Parent!.Parent!.FullName;
+        string projectDirectory = Directory.GetParent(workingDirectory)!.Parent!.Parent!.Parent!.FullName;
 
         _chartsDirectory = Path.Combine(projectDirectory, "Engine", "Test Charts");
     }

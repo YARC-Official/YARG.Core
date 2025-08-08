@@ -1,5 +1,4 @@
 using System;
-using System.Runtime.CompilerServices;
 
 namespace YARG.Core.Chart
 {
@@ -17,6 +16,10 @@ namespace YARG.Core.Chart
         /// <seealso cref="GetMeasureTickResolution"/>
         public uint MeasureTick { get; }
 
+        public uint MeasureCount { get; }
+        public uint DenominatorBeatCount { get; }
+        public double QuarterNoteCount { get; }
+
         /// <summary>
         /// Whether this time signature is interuppted by a following misaligned time signature.
         /// </summary>
@@ -29,9 +32,15 @@ namespace YARG.Core.Chart
         public TimeSignatureChange(
             uint numerator,
             uint denominator,
+
             double time,
             uint tick,
             uint measureTick,
+
+            uint measureCount,
+            uint denominatorBeatCount,
+            double quarterNoteCount,
+
             bool interrupted = false
         )
             : base(time, tick)
@@ -39,18 +48,35 @@ namespace YARG.Core.Chart
             Numerator = numerator;
             Denominator = denominator;
 
+            MeasureCount = measureCount;
+            DenominatorBeatCount = denominatorBeatCount;
+            QuarterNoteCount = quarterNoteCount;
+
             MeasureTick = measureTick;
             IsInterrupted = interrupted;
         }
 
         public TimeSignatureChange Clone()
         {
-            return new(Numerator, Denominator, Time, Tick, MeasureTick, IsInterrupted);
+            return new(
+                Numerator,
+                Denominator,
+
+                Time,
+                Tick,
+                MeasureTick,
+
+                MeasureCount,
+                DenominatorBeatCount,
+                QuarterNoteCount,
+
+                IsInterrupted
+            );
         }
 
-        public static uint GetMeasureTickResolution(uint beatResolution)
+        public static uint GetMeasureTickResolution(uint quarterResolution)
         {
-            return beatResolution * MEASURE_RESOLUTION_SCALE;
+            return quarterResolution * MEASURE_RESOLUTION_SCALE;
         }
 
         private void CheckQuarterTick(uint quarterTick, string name = "quarterTick")
@@ -80,26 +106,89 @@ namespace YARG.Core.Chart
         /// <summary>
         /// Calculates the number of ticks per beat for this time signature.
         /// </summary>
-        public uint GetTicksPerBeat(uint beatResolution)
+        /// <remarks>
+        /// Note that this is relative to the actual denominator of the time signature,
+        /// and does not necessarily line up with beatlines!
+        /// </remarks>
+        public uint GetTicksPerDenominatorBeat(uint quarterResolution)
         {
-            CheckInterrupted();
-            return (uint) (beatResolution * (QUARTER_NOTE_DENOMINATOR / (double) Denominator));
+            return (uint) ((quarterResolution * QUARTER_NOTE_DENOMINATOR) / (double) Denominator);
         }
 
         /// <summary>
         /// Calculates the number of ticks per measure for this time signature.
         /// </summary>
-        public uint GetTicksPerMeasure(uint beatResolution)
+        public uint GetTicksPerMeasure(uint quarterResolution)
         {
-            CheckInterrupted();
-            return GetTicksPerBeat(beatResolution) * Numerator;
+            return GetTicksPerDenominatorBeat(quarterResolution) * Numerator;
         }
 
-        // For template generation purposes
-        private uint GetTicksPerQuarterNote(uint beatResolution)
+        /// <summary>
+        /// Calculates the fractional number of quarter notes that the given tick lies at,
+        /// relative to this time signature.
+        /// </summary>
+        public double GetQuarterNoteProgress(uint tick, uint resolution)
+        {
+            CheckQuarterTick(tick, "tick");
+            return (tick - Tick) / (double) resolution;
+        }
+
+        /// <summary>
+        /// Calculates the fractional number of denominator beats that the given tick lies at,
+        /// relative to this time signature.
+        /// </summary>
+        public double GetDenominatorBeatProgress(uint tick, uint resolution)
         {
             CheckInterrupted();
-            return beatResolution;
+            CheckQuarterTick(tick, "tick");
+            return (tick - Tick) / (double) GetTicksPerDenominatorBeat(resolution);
+        }
+
+        /// <summary>
+        /// Calculates the fractional number of measures that the given tick lies at,
+        /// relative to this time signature.
+        /// </summary>
+        public double GetMeasureProgress(uint tick, uint resolution)
+        {
+            CheckInterrupted();
+            CheckQuarterTick(tick, "tick");
+            return (tick - Tick) / (double) GetTicksPerMeasure(resolution);
+        }
+
+        /// <summary>
+        /// Calculates the fractional number of denominator beats that the given tick lies at,
+        /// between this time signature and the next.
+        /// </summary>
+        public double GetDenominatorBeatProgress(uint tick, TimeSignatureChange nextTimeSig, uint resolution)
+        {
+            CheckQuarterTick(tick, "tick");
+            CheckQuarterTick(nextTimeSig.Tick, "nextTimeSig.Tick");
+
+            uint beatResolution = GetTicksPerDenominatorBeat(resolution);
+            uint distanceToNext = nextTimeSig.Tick - tick;
+
+            // If the last beat is shorter than it should be, interpolate to smooth the difference out
+            if (distanceToNext < beatResolution)
+            {
+                uint lastBeatTick = nextTimeSig.Tick - beatResolution;
+
+                double progressToLastBeat = (lastBeatTick - Tick) / (double) beatResolution;
+                double lastBeatProgress = YargMath.InverseLerpD(lastBeatTick, nextTimeSig.Tick, tick);
+                return progressToLastBeat + lastBeatProgress;
+            }
+
+            return (tick - Tick) / (double) beatResolution;
+        }
+
+        /// <summary>
+        /// Calculates the fractional number of measures that the given tick lies at,
+        /// between this time signature and the next.
+        /// </summary>
+        public double GetMeasureProgress(uint tick, TimeSignatureChange nextTimeSig)
+        {
+            CheckQuarterTick(tick, "tick");
+            CheckQuarterTick(nextTimeSig.Tick, "nextTimeSig.Tick");
+            return YargMath.InverseLerpD(Tick, nextTimeSig.Tick, tick);
         }
 
         /// <summary>
@@ -190,7 +279,11 @@ namespace YARG.Core.Chart
         {
             return base.Equals(other) &&
                 Numerator == other.Numerator &&
-                Denominator == other.Denominator;
+                Denominator == other.Denominator &&
+                MeasureTick == other.MeasureTick &&
+                MeasureCount == other.MeasureCount &&
+                DenominatorBeatCount == other.DenominatorBeatCount &&
+                QuarterNoteCount == other.QuarterNoteCount;
         }
 
         public override bool Equals(object? obj)
@@ -201,7 +294,7 @@ namespace YARG.Core.Chart
 
         public override string ToString()
         {
-            return $"Time signature {Numerator}/{Denominator} at tick {Tick}, time {Time}";
+            return $"Time signature {Numerator}/{Denominator} at tick {Tick}, time {Time}, measure tick {MeasureTick} (measure count: {MeasureCount}, beat count: {DenominatorBeatCount}, quarter count: {QuarterNoteCount})";
         }
     }
 }

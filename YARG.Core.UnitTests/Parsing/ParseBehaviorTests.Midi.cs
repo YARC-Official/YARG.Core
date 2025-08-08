@@ -290,7 +290,7 @@ namespace YARG.Core.UnitTests.Parsing
 
 #pragma warning restore IDE0230
 
-        // Because SevenBitNumber andFourBitNumber have no implicit operators for taking in bytes
+        // Because SevenBitNumber and FourBitNumber have no implicit operators for taking in bytes
         private static SevenBitNumber S(byte number) => (SevenBitNumber) number;
         private static FourBitNumber F(byte number) => (FourBitNumber) number;
 
@@ -298,18 +298,60 @@ namespace YARG.Core.UnitTests.Parsing
         {
             var timedEvents = new MidiEventList();
 
-            foreach (var bpm in sourceSong.syncTrack.Tempos)
+            var syncTrack = sourceSong.syncTrack;
+
+            foreach (var bpm in syncTrack.Tempos)
             {
-                long microseconds = TempoChange.BpmToMicroSeconds(bpm.BeatsPerMinute);
-                timedEvents.Add((bpm.Tick, new SetTempoEvent(microseconds)));
+                timedEvents.Add((bpm.Tick, new SetTempoEvent(bpm.MicroSecondsPerBeat)));
             }
 
-            foreach (var ts in sourceSong.syncTrack.TimeSignatures)
+            for (int i = 0; i < syncTrack.TimeSignatures.Count; i++)
             {
+                var ts = syncTrack.TimeSignatures[i];
+                if (ts.IsInterrupted)
+                {
+                    if (i == 0)
+                    {
+                        Assert.Fail($"Invalid interrupted time signature <{ts}>");
+                        return null!;
+                    }
+
+                    var prevTs = syncTrack.TimeSignatures[i - 1];
+                    Assert.Multiple(() =>
+                    {
+                        Assert.That(ts.Numerator, Is.EqualTo(prevTs.Numerator), "Interrupted time signatures must match the previous time signature");
+                        Assert.That(ts.Denominator, Is.EqualTo(prevTs.Denominator), "Interrupted time signatures must match the previous time signature");
+                    });
+                    continue;
+                }
+
                 timedEvents.Add((ts.Tick, new TimeSignatureEvent((byte) ts.Numerator, (byte) ts.Denominator)));
             }
 
             return FinalizeTrackChunk("TEMPO_TRACK", timedEvents);
+        }
+
+        private static TrackChunk GenerateBeatChunk(MoonSong sourceSong)
+        {
+            var timedEvents = new MidiEventList();
+
+            var syncTrack = sourceSong.syncTrack;
+
+            foreach (var beatline in syncTrack.Beatlines)
+            {
+                var note = beatline.Type switch
+                {
+                    BeatlineType.Measure => S(12),
+                    BeatlineType.Strong => S(13),
+                    BeatlineType.Weak => S(14),
+                    _ => throw new Exception($"Unhandled beatline type {beatline.Type}"),
+                };
+
+                timedEvents.Add((beatline.Tick, new NoteOnEvent() { NoteNumber = note, Velocity = S(VELOCITY) }));
+                timedEvents.Add((beatline.Tick + 1, new NoteOffEvent() { NoteNumber = note, Velocity = S(0) }));
+            }
+
+            return FinalizeTrackChunk("BEAT", timedEvents);
         }
 
         private static TrackChunk GenerateEventsChunk(MoonSong sourceSong)
@@ -593,6 +635,7 @@ namespace YARG.Core.UnitTests.Parsing
         {
             var midi = new MidiFile(
                 GenerateSyncChunk(sourceSong),
+                GenerateBeatChunk(sourceSong),
                 GenerateEventsChunk(sourceSong)
             )
             {
