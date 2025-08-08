@@ -26,10 +26,8 @@ namespace YARG.Core.Chart
 
             // We need to do the same for camera cut events
             MoonVenue? cameraCutCurrentEvent = null;
-            var currentCutSubject = CameraCutEvent.CameraCutSubject.Random;
             var currentCutConstraints = CameraCutEvent.CameraCutConstraint.None;
             List<CameraCutEvent.CameraCutSubject> currentCutSubjects = new();
-            double lastCameraEventTime;
 
             foreach (var moonVenue in _moonSong.venue)
             {

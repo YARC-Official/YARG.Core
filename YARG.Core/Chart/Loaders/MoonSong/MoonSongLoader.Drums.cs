@@ -31,11 +31,8 @@ namespace YARG.Core.Chart
                 { Difficulty.Expert, LoadDifficulty(instrument, Difficulty.Expert, createNote, HandleTextEvent) },
                 { Difficulty.ExpertPlus, LoadDifficulty(instrument, Difficulty.ExpertPlus, createNote, HandleTextEvent) },
             };
-
-            // TODO: Genericize this into GetAnimationTrack and stop with the tomfoolery
-            var aniTrack = GetGuitarAnimationTrack(instrument);
-            aniTrack.AnimationEvents = GetDrumAnimationEvents(instrument);
-            var track = new InstrumentTrack<DrumNote>(instrument, difficulties, aniTrack);
+            
+            var track = new InstrumentTrack<DrumNote>(instrument, difficulties, GetAnimationTrack(instrument));
 
             // Add animation events
             // var animationEvents = GetDrumAnimationEvents(track);
