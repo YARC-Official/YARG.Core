@@ -15,7 +15,11 @@ namespace YARG.Core.Chart
         public bool IsNeutral => Dynamics == DrumNoteType.Neutral;
         public bool IsAccent => Dynamics == DrumNoteType.Accent;
         public bool IsGhost => Dynamics == DrumNoteType.Ghost;
+        public bool IsInvisibleTerminator => HatPedalType == EliteDrumsHatPedalType.InvisibleTerminator;
+        public bool IsStomp => HatPedalType == EliteDrumsHatPedalType.Stomp;
+        public bool IsSplash => HatPedalType == EliteDrumsHatPedalType.Splash;
         public EliteDrumsHatState HatState { get; set; }
+        public EliteDrumsHatPedalType HatPedalType { get; set; }
         public bool IsOpen => HatState == EliteDrumsHatState.Open;
         public bool IsClosed => HatState == EliteDrumsHatState.Closed;
         public bool IsIndifferent => HatState == EliteDrumsHatState.Indifferent;
@@ -26,17 +30,20 @@ namespace YARG.Core.Chart
 
         public bool IsStarPowerActivator => (DrumFlags & DrumNoteFlags.StarPowerActivator) != 0;
 
-        public EliteDrumNote (EliteDrumPad pad, DrumNoteType dynamics, EliteDrumsHatState hatState, bool isFlam, DrumNoteFlags drumFlags, NoteFlags flags, EliteDrumsChannelFlag channelFlag, double time, uint tick)
-            : this((int)pad, dynamics, hatState, isFlam, drumFlags, flags, channelFlag, time, tick)
+        public EliteDrumNote (EliteDrumPad pad, DrumNoteType dynamics, EliteDrumsHatState hatState, EliteDrumsHatPedalType hatPedalType, bool isFlam, DrumNoteFlags drumFlags,
+            NoteFlags flags, EliteDrumsChannelFlag channelFlag, double time, uint tick)
+            : this((int)pad, dynamics, hatState, hatPedalType, isFlam, drumFlags, flags, channelFlag, time, tick)
         {
         }
 
-        public EliteDrumNote(int pad, DrumNoteType dynamics, EliteDrumsHatState hatState, bool isFlam, DrumNoteFlags drumFlags, NoteFlags flags, EliteDrumsChannelFlag channelFlag, double time, uint tick)
+        public EliteDrumNote(int pad, DrumNoteType dynamics, EliteDrumsHatState hatState, EliteDrumsHatPedalType hatPedalType, bool isFlam, DrumNoteFlags drumFlags,
+            NoteFlags flags, EliteDrumsChannelFlag channelFlag, double time, uint tick)
             : base(flags, time, 0, tick, 0)
         {
             Pad = pad;
             Dynamics = dynamics;
             HatState = hatState;
+            HatPedalType = hatPedalType;
             IsFlam = isFlam;
             DrumFlags = _drumFlags = drumFlags;
             ChannelFlag = channelFlag;
@@ -107,6 +114,13 @@ namespace YARG.Core.Chart
             Open,
             Closed,
             Indifferent
+        }
+
+        public enum EliteDrumsHatPedalType
+        {
+            Stomp,
+            Splash,
+            InvisibleTerminator
         }
 
         public enum EliteDrumsChannelFlag

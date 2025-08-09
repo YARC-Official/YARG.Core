@@ -186,10 +186,13 @@ namespace YARG.Core.Chart
         }
 
 
-        // In most cases, returns 1 note. Unforced hat pedals return 0 notes, while flams return 2.
+        // In most cases, returns 1 note. Unforced or invisible hat pedals return 0 notes, while flams return 2.
         private static List<DownchartNote> DownchartIndividualEliteDrumsNote(EliteDrumNote eliteDrumNote, bool noteIsInDiscoFlip)
         {
             List<DownchartNote> notes = new();
+
+            // Never downchart invisible terminator hat pedals, even if channel flagged
+            if (eliteDrumNote.Pad is (int)EliteDrumPad.HatPedal && eliteDrumNote.IsInvisibleTerminator) return notes;
 
             (MoonNote.DrumPad? pad, MoonNote.Flags flags) = ((EliteDrumPad) eliteDrumNote.Pad) switch
             {
@@ -210,6 +213,7 @@ namespace YARG.Core.Chart
             {
                 if (noteIsInDiscoFlip)
                 {
+                    // Disco-flipped snares are charted as Ycyms
                     if (pad is MoonNote.DrumPad.Red)
                     {
                         pad = MoonNote.DrumPad.Yellow;
@@ -217,8 +221,18 @@ namespace YARG.Core.Chart
                     }
                     else if (pad is MoonNote.DrumPad.Yellow)
                     {
-                        pad = MoonNote.DrumPad.Red;
-                        flags &= ~MoonNote.Flags.ProDrums_Cymbal;
+                        // Disco flipped Ycyms are charted as snares
+                        if ((flags & MoonNote.Flags.ProDrums_Cymbal) != 0)
+                        {
+                            pad = MoonNote.DrumPad.Red;
+                            flags &= ~MoonNote.Flags.ProDrums_Cymbal;
+                        }
+
+                        // Disco flipped Ytoms are treated like collisions, shunted to Btoms
+                        else
+                        {
+                            pad = MoonNote.DrumPad.Blue;
+                        }
                     }
                 }
 

@@ -33,13 +33,14 @@ namespace YARG.Core.Chart
             var pad = GetEliteDrumPad(moonNote);
             var noteDynamics = GetEliteDrumNoteDynamics(moonNote);
             var hatState = GetEliteDrumHatState(moonNote);
+            var hatPedalType = GetEliteDrumHatPedalType(moonNote);
             var isFlam = GetEliteDrumNoteIsFlam(moonNote);
             var drumFlags = GetDrumNoteFlags(moonNote, currentPhrases);
             var generalFlags = GetGeneralFlags(moonNote, currentPhrases);
             var channelFlag = GetEliteDrumsChannelFlag(moonNote);
 
             double time = _moonSong.TickToTime(moonNote.tick);
-            return new(pad, noteDynamics, hatState, isFlam, drumFlags, generalFlags, channelFlag, time, moonNote.tick);
+            return new(pad, noteDynamics, hatState, hatPedalType, isFlam, drumFlags, generalFlags, channelFlag, time, moonNote.tick);
         }
 
         private void HandleEliteDrumsTextEvent(MoonText text)
@@ -105,6 +106,21 @@ namespace YARG.Core.Chart
                 hatState = EliteDrumsHatState.Indifferent;
 
             return hatState;
+        }
+
+        private EliteDrumsHatPedalType GetEliteDrumHatPedalType(MoonNote moonNote)
+        {
+            var hatPedalType = EliteDrumsHatPedalType.Stomp;
+
+            if (moonNote.eliteDrumPad is MoonNote.EliteDrumPad.HatPedal)
+            {
+                if ((moonNote.flags & MoonNote.Flags.EliteDrums_InvisibleTerminator) != 0)
+                    hatPedalType = EliteDrumsHatPedalType.InvisibleTerminator;
+                else if ((moonNote.flags & MoonNote.Flags.EliteDrums_Splash) != 0)
+                    hatPedalType = EliteDrumsHatPedalType.Splash;
+            }
+
+            return hatPedalType;
         }
 
         private bool GetEliteDrumNoteIsFlam(MoonNote moonNote)
