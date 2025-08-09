@@ -49,7 +49,6 @@ namespace YARG.Core.Chart
             }
 
             var notes = ResolveDownchartCollisions(unresolvedChords);
-            //notes = ResolveDiscoFlip(notes);
 
             for (var i = 0; i < notes.Count; i++)
             {
