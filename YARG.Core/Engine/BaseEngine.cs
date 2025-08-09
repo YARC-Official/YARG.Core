@@ -445,7 +445,9 @@ namespace YARG.Core.Engine
 
             BaseStats.IsStarPowerActive = false;
 
-            double spTimeDelta = CurrentTime - StarPowerActivationTime;
+            double roundedTime = SyncTrack.TickToTime(SyncTrack.TimeToTick(CurrentTime));
+            double roundedActivationTime = SyncTrack.TickToTime(SyncTrack.TimeToTick(StarPowerActivationTime));
+            double spTimeDelta = roundedTime - roundedActivationTime;
             BaseStats.TimeInStarPower = spTimeDelta + BaseTimeInStarPower;
 
             BaseTimeInStarPower = BaseStats.TimeInStarPower;
