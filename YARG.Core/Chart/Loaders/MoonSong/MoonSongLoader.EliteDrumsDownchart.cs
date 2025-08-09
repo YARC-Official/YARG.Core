@@ -41,7 +41,7 @@ namespace YARG.Core.Chart
             List<DownchartChord> unresolvedChords = new();
             foreach (var eliteDrumNote in eliteDrumsDifficulty.Notes)
             {
-                var chord = DownchartEliteDrumsChord(eliteDrumNote);
+                var chord = DownchartEliteDrumsChord(eliteDrumNote, eliteDrumsDifficulty.Phrases);
                 if (chord is not null)
                 {
                     unresolvedChords.Add(chord.Value);
@@ -49,6 +49,7 @@ namespace YARG.Core.Chart
             }
 
             var notes = ResolveDownchartCollisions(unresolvedChords);
+            //notes = ResolveDiscoFlip(notes);
 
             for (var i = 0; i < notes.Count; i++)
             {
@@ -62,8 +63,14 @@ namespace YARG.Core.Chart
                 moonChart.Add(note);
             }
 
-            // Downchart phrases
+            
+            var (discoOnText, discoOffText) = GetDiscoFlipEventText(difficulty);
             List<MoonPhrase> phrases = new();
+            List<MoonText> textEvents = new()
+            {
+                new(discoOffText, 0)
+            };
+
             foreach (var phrase in eliteDrumsDifficulty.Phrases)
             {
                 switch (phrase.Type)
@@ -86,7 +93,17 @@ namespace YARG.Core.Chart
                     case PhraseType.Solo:
                         phrases.Add(new(phrase.Tick, phrase.TickLength, MoonPhrase.Type.Solo));
                         break;
-
+                    case PhraseType.EliteDrums_DiscoFlip:
+                        if (phrase.Tick == 0)
+                        {
+                            textEvents[0].text = discoOnText;
+                        }
+                        else
+                        {
+                            textEvents.Add(new(discoOnText, phrase.Tick));
+                        }
+                        textEvents.Add(new(discoOffText, phrase.TickEnd));
+                        break;
                 }
             }
 
@@ -95,18 +112,54 @@ namespace YARG.Core.Chart
                 moonChart.Add(phrase);
             }
 
+            foreach (var textEvent in textEvents)
+            {
+                moonChart.Insert(textEvent);
+            }
+
             return moonChart;
         }
 
-        private static DownchartChord? DownchartEliteDrumsChord(EliteDrumNote eliteDrumChord)
+        private (string onText, string offText) GetDiscoFlipEventText(Difficulty difficulty)
+        {
+            var diffNum = difficulty switch
+            {
+                Difficulty.Beginner or Difficulty.Easy => 0,
+                Difficulty.Medium => 1,
+                Difficulty.Hard => 2,
+                Difficulty.Expert or Difficulty.ExpertPlus => 3,
+                _ => throw new Exception("Unreachable")
+            };
+
+            return ($"mix {diffNum} drums0d", $"mix {diffNum} drums0");
+        }
+
+        private static DownchartChord? DownchartEliteDrumsChord(EliteDrumNote eliteDrumChord, List<Phrase> phrases)
         {
             MoonNote? kick = null;
             DownchartNote? firstHandGem = null;
             DownchartNote? secondHandGem = null;
 
+            var chordIsInDiscoFlip = false;
+            foreach (var phrase in phrases)
+            {
+                if (phrase.Tick > eliteDrumChord.Tick)
+                {
+                    break;
+                }
+                if (phrase.Type is PhraseType.EliteDrums_DiscoFlip)
+                {
+                    if (phrase.Tick <= eliteDrumChord.Tick && phrase.TickEnd > eliteDrumChord.Tick)
+                    {
+                        chordIsInDiscoFlip = true;
+                        break;
+                    }
+                }
+            }
+
             foreach (var eliteDrumNote in eliteDrumChord.AllNotes)
             {
-                var downchartedNotes = DownchartIndividualEliteDrumsNote(eliteDrumNote);
+                var downchartedNotes = DownchartIndividualEliteDrumsNote(eliteDrumNote, chordIsInDiscoFlip);
                 foreach (var downchartedNote in downchartedNotes)
                 {
                     if (downchartedNote.MoonNote.drumPad == MoonNote.DrumPad.Kick)
@@ -135,7 +188,7 @@ namespace YARG.Core.Chart
 
 
         // In most cases, returns 1 note. Unforced hat pedals return 0 notes, while flams return 2.
-        private static List<DownchartNote> DownchartIndividualEliteDrumsNote(EliteDrumNote eliteDrumNote)
+        private static List<DownchartNote> DownchartIndividualEliteDrumsNote(EliteDrumNote eliteDrumNote, bool noteIsInDiscoFlip)
         {
             List<DownchartNote> notes = new();
 
@@ -156,7 +209,22 @@ namespace YARG.Core.Chart
 
             if (pad is not null)
             {
-                flags |= eliteDrumNote.Dynamics switch {
+                if (noteIsInDiscoFlip)
+                {
+                    if (pad is MoonNote.DrumPad.Red)
+                    {
+                        pad = MoonNote.DrumPad.Yellow;
+                        flags &= MoonNote.Flags.ProDrums_Cymbal;
+                    }
+                    else if (pad is MoonNote.DrumPad.Yellow)
+                    {
+                        pad = MoonNote.DrumPad.Red;
+                        flags &= ~MoonNote.Flags.ProDrums_Cymbal;
+                    }
+                }
+
+                flags |= eliteDrumNote.Dynamics switch
+                {
                     DrumNoteType.Accent => MoonNote.Flags.ProDrums_Accent,
                     DrumNoteType.Ghost => MoonNote.Flags.ProDrums_Ghost,
                     _ => MoonNote.Flags.None

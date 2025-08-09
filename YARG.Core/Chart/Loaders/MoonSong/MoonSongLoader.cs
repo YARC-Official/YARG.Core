@@ -118,16 +118,6 @@ namespace YARG.Core.Chart
             return new(instrument, difficulty, notes, phrases, textEvents);
         }
 
-        private InstrumentDifficulty<DrumNote> LoadEliteDrumsDownchartDifficulty(MoonChart downchart, Instrument instrument,
-            Difficulty difficulty, CreateNoteDelegate<DrumNote> createNote, ProcessTextDelegate? processText = null)
-        {
-            var notes = GetNotes(downchart, difficulty, createNote, processText);
-            var phrases = GetPhrases(downchart);
-            var textEvents = GetTextEvents(downchart);
-            return new(instrument, difficulty, notes, phrases, textEvents);
-        }
-
-
         private List<TNote> GetNotes<TNote>(MoonChart moonChart, Difficulty difficulty,
             CreateNoteDelegate<TNote> createNote, ProcessTextDelegate? processText = null)
             where TNote : Note<TNote>
@@ -201,6 +191,8 @@ namespace YARG.Core.Chart
                     MoonPhrase.Type.ProKeys_RangeShift3 => PhraseType.ProKeys_RangeShift3,
                     MoonPhrase.Type.ProKeys_RangeShift4 => PhraseType.ProKeys_RangeShift4,
                     MoonPhrase.Type.ProKeys_RangeShift5 => PhraseType.ProKeys_RangeShift5,
+
+                    MoonPhrase.Type.EliteDrums_DiscoFlip => PhraseType.EliteDrums_DiscoFlip,
 
                     _ => null
                 };
