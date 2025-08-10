@@ -1,6 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using static YARG.Core.Chart.EliteDrumNote;
 
 namespace YARG.Core.Chart
 {
@@ -10,9 +8,6 @@ namespace YARG.Core.Chart
         public DrumNoteFlags DrumFlags;
 
         public int Pad { get; }
-
-        // Notes that were downcharted from Elite Drums need to remember what note they originated from for certain downcharting conditions
-        public EliteDrumNote? DownchartingSource { get; }
 
         public DrumNoteType Type { get; set; }
 
@@ -26,32 +21,25 @@ namespace YARG.Core.Chart
 
         public bool IsStarPowerActivator => (DrumFlags & DrumNoteFlags.StarPowerActivator) != 0;
 
-        public DrumNote(FourLaneDrumPad pad, EliteDrumNote? downchartingSource, DrumNoteType noteType, DrumNoteFlags drumFlags,
-            NoteFlags flags, double time, uint tick)
-            : this((int)pad, downchartingSource, noteType, drumFlags, flags, time, tick)
-        {
-        }
-
         public DrumNote(FourLaneDrumPad pad, DrumNoteType noteType, DrumNoteFlags drumFlags,
             NoteFlags flags, double time, uint tick)
-            : this((int)pad, null, noteType, drumFlags, flags, time, tick)
+            : this((int)pad, noteType, drumFlags, flags, time, tick)
         {
         }
 
         public DrumNote(FiveLaneDrumPad pad, DrumNoteType noteType, DrumNoteFlags drumFlags,
             NoteFlags flags, double time, uint tick)
-            : this((int)pad, null, noteType, drumFlags, flags, time, tick)
+            : this((int)pad, noteType, drumFlags, flags, time, tick)
         {
         }
 
-        public DrumNote(int pad, EliteDrumNote? downchartingSource, DrumNoteType noteType, DrumNoteFlags drumFlags, NoteFlags flags, double time, uint tick)
+        public DrumNote(int pad, DrumNoteType noteType, DrumNoteFlags drumFlags, NoteFlags flags, double time, uint tick)
             : base(flags, time, 0, tick, 0)
         {
             Pad = pad;
             Type = noteType;
 
             DrumFlags = _drumFlags = drumFlags;
-            DownchartingSource = downchartingSource;
             _padMask = 1 << pad;
         }
 
@@ -99,18 +87,7 @@ namespace YARG.Core.Chart
         {
             return new(this);
         }
-
-        public static Dictionary<FourLaneDrumPad, FourLaneDrumHandGemColor> _fourLanePadToColor = new()
-        {
-            { FourLaneDrumPad.RedDrum, FourLaneDrumHandGemColor.Red },
-            { FourLaneDrumPad.YellowDrum, FourLaneDrumHandGemColor.Yellow },
-            { FourLaneDrumPad.BlueDrum, FourLaneDrumHandGemColor.Blue },
-            { FourLaneDrumPad.GreenDrum, FourLaneDrumHandGemColor.Green },
-            { FourLaneDrumPad.YellowCymbal, FourLaneDrumHandGemColor.Yellow },
-            { FourLaneDrumPad.BlueCymbal, FourLaneDrumHandGemColor.Blue },
-            { FourLaneDrumPad.GreenCymbal, FourLaneDrumHandGemColor.Green }
-        };
-}
+    }
 
     public enum FourLaneDrumPad
     {
@@ -135,14 +112,6 @@ namespace YARG.Core.Chart
         Blue,
         Orange,
         Green,
-    }
-
-    public enum FourLaneDrumHandGemColor
-    {
-        Red,
-        Yellow,
-        Blue,
-        Green
     }
 
     public enum DrumNoteType

@@ -71,7 +71,6 @@ namespace YARG.Core.Chart
 
                 moonChart.Add(note);
             }
-
             
             var (discoOnText, discoOffText) = GetDiscoFlipEventText(difficulty);
             List<MoonPhrase> phrases = new();
@@ -195,7 +194,6 @@ namespace YARG.Core.Chart
             return new(kick, firstHandGem, secondHandGem);
         }
 
-
         // In most cases, returns 1 note. Unforced or invisible hat pedals return 0 notes, while flams return 2.
         private static List<DownchartNote> DownchartIndividualEliteDrumsNote(EliteDrumNote eliteDrumNote, bool noteIsInDiscoFlip)
         {
@@ -286,7 +284,6 @@ namespace YARG.Core.Chart
 
             return notes;
         }
-
         private List<MoonNote> ResolveDownchartCollisions(List<DownchartChord> unresolvedChords)
         {
             List<MoonNote> notes = new();
@@ -407,7 +404,6 @@ namespace YARG.Core.Chart
             notes.Add(secondHandGem.MoonNote);
             return notes;
         }
-
         private static MoonNote.DrumPad? GetDrumPadForChannelFlag(EliteDrumNote drum, MoonNote.DrumPad? unforced)
         {
             return drum.ChannelFlag switch

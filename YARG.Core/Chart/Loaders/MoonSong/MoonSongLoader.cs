@@ -439,7 +439,6 @@ namespace YARG.Core.Chart
 
             Instrument.ProKeys => MoonSong.MoonInstrument.ProKeys,
 
-
             // Vocals and harmony need to be handled specially
             // Instrument.Vocals  => MoonSong.MoonInstrument.Vocals,
             // Instrument.Harmony => MoonSong.MoonInstrument.Harmony1,

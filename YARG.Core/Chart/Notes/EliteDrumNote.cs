@@ -6,12 +6,9 @@ namespace YARG.Core.Chart
     {
         private DrumNoteFlags _drumFlags;
         public DrumNoteFlags DrumFlags;
-
         public int Pad { get; }
-
         private int _padMask;
         public DrumNoteType Dynamics { get; set; }
-
         public bool IsNeutral => Dynamics == DrumNoteType.Neutral;
         public bool IsAccent => Dynamics == DrumNoteType.Accent;
         public bool IsGhost => Dynamics == DrumNoteType.Ghost;
@@ -25,9 +22,7 @@ namespace YARG.Core.Chart
         public bool IsIndifferent => HatState == EliteDrumsHatState.Indifferent;
         public bool IsFlam { get; set; }
         public EliteDrumsChannelFlag ChannelFlag { get; set; }
-
         public float? HitVelocity;
-
         public bool IsStarPowerActivator => (DrumFlags & DrumNoteFlags.StarPowerActivator) != 0;
 
         public EliteDrumNote (EliteDrumPad pad, DrumNoteType dynamics, EliteDrumsHatState hatState, EliteDrumsHatPedalType hatPedalType, bool isFlam, DrumNoteFlags drumFlags,

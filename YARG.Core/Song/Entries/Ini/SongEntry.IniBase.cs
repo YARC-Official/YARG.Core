@@ -2,12 +2,10 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Linq;
 using YARG.Core.Chart;
 using YARG.Core.Extensions;
 using YARG.Core.IO;
 using YARG.Core.IO.Ini;
-using YARG.Core.Song.Cache;
 
 namespace YARG.Core.Song
 {

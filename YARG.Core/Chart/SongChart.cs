@@ -2,9 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using Melanchall.DryWetMidi.Core;
-using YARG.Core.Logging;
 using YARG.Core.Parsing;
-using YARG.Core.Song;
 
 namespace YARG.Core.Chart
 {
@@ -113,8 +111,6 @@ namespace YARG.Core.Chart
 
         internal SongChart(ISongLoader loader)
         {
-            Console.WriteLine("QWERTY");
-
             GlobalEvents = loader.LoadGlobalEvents();
             SyncTrack = loader.LoadSyncTrack();
             VenueTrack = loader.LoadVenueTrack();
