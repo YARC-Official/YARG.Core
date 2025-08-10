@@ -89,9 +89,9 @@ namespace YARG.Core.Engine.Drums
             writer.Write(DynamicsBonus);
         }
 
-        public override ReplayStats ConstructReplayStats(string name)
+        public override ReplayStats ConstructReplayStats(string name, float averageMultiplier, int numPauses)
         {
-            return new DrumsReplayStats(name, this);
+            return new DrumsReplayStats(name, this, averageMultiplier, numPauses);
         }
     }
 }

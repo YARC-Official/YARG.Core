@@ -49,9 +49,9 @@ namespace YARG.Core.Engine.ProKeys
             writer.Write(FatFingersIgnored);
         }
 
-        public override ReplayStats ConstructReplayStats(string name)
+        public override ReplayStats ConstructReplayStats(string name, float averageMultiplier, int numPauses)
         {
-            return new ProKeysReplayStats(name, this);
+            return new ProKeysReplayStats(name, this, averageMultiplier, numPauses);
         }
     }
 }

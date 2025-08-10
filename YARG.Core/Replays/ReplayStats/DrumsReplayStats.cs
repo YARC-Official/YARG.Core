@@ -16,8 +16,8 @@ namespace YARG.Core.Replays
         public readonly int Overhits;
         public readonly int SoloBonuses;
 
-        public DrumsReplayStats(string name, DrumsStats stats)
-            : base(name, stats)
+        public DrumsReplayStats(string name, DrumsStats stats, float averageMultiplier, int numPauses)
+            : base(name, stats, averageMultiplier, numPauses)
         {
             TotalNotes = stats.TotalNotes;
             NumNotesHit = stats.NotesHit;
