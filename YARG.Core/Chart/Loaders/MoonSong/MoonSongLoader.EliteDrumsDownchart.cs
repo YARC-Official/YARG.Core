@@ -9,6 +9,8 @@ namespace YARG.Core.Chart
     {
         private Dictionary<Difficulty, MoonChart>? _downCharts = null;
 
+        private List<MoonText> _downchartTextEvents = new();
+
         private Dictionary<Difficulty, MoonChart>? DownchartEliteDrumsTrack(InstrumentTrack<EliteDrumNote> eliteDrumsTrack)
         {
             var downcharts = new Dictionary<Difficulty, MoonChart>()
@@ -20,15 +22,23 @@ namespace YARG.Core.Chart
                 {  Difficulty.ExpertPlus, DownchartEliteDrumsDifficulty(eliteDrumsTrack, Difficulty.ExpertPlus) },
             };
 
+            var atLeastOneDownchartHasAtLeastOneNote = false;
             foreach (var downchart in downcharts)
             {
-                if (downchart.Value.notes.Count > 0)
+                if (downchart.Value.notes.Count == 0)
                 {
-                    return downcharts;
+                    continue;
+                }
+
+                atLeastOneDownchartHasAtLeastOneNote = true;
+
+                foreach (var textEvent in _downchartTextEvents)
+                {
+                    downchart.Value.Insert(textEvent);
                 }
             }
 
-            return null;
+            return atLeastOneDownchartHasAtLeastOneNote ? downcharts : null;
         }
 
         private MoonChart DownchartEliteDrumsDifficulty(InstrumentTrack<EliteDrumNote> eliteDrumsTrack, Difficulty difficulty)
@@ -113,7 +123,7 @@ namespace YARG.Core.Chart
 
             foreach (var textEvent in textEvents)
             {
-                moonChart.Insert(textEvent);
+                _downchartTextEvents.Add(textEvent);
             }
 
             return moonChart;

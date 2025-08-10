@@ -4,10 +4,10 @@ namespace YARG.Core.Song
 {
     internal static class Midi_EliteDrums_Preparser
     {
-        private const int ELITE_NOTES_PER_DIFFICULTY = 24;
         private const int DOUBLE_KICK_NOTE = 73;
         private const int NUM_LANES = 11;
         private const int ELITE_MAX = 82;
+        const int DOUBLE_KICK_MASK = 1 << (3 * NUM_LANES + 1);
 
         public static unsafe DifficultyMask Parse(YARGMidiTrack track)
         {
@@ -23,7 +23,21 @@ namespace YARG.Core.Song
                     track.ExtractMidiNote(ref note);
                     if (note.Value == DOUBLE_KICK_NOTE)
                     {
-                        validations |= DifficultyMask.Expert | DifficultyMask.ExpertPlus;
+                        if ((validations & DifficultyMask.ExpertPlus) > 0)
+                        {
+                            continue;
+                        }
+
+                        // Note Ons with no velocity equates to a note Off by spec
+                        if (stats.Type == MidiEventType.Note_On && note.Velocity > 0)
+                        {
+                            statusBitMask |= DOUBLE_KICK_MASK;
+                        }
+                        // NoteOff here
+                        else if ((statusBitMask & DOUBLE_KICK_MASK) > 0)
+                        {
+                            validations |= DifficultyMask.Expert | DifficultyMask.ExpertPlus;
+                        }
                     }
 
                     // Minimum is 0, so no minimum check required
@@ -50,7 +64,7 @@ namespace YARG.Core.Song
                     else if ((statusBitMask & statusMask) > 0)
                     {
                         validations |= diffMask;
-                        if (validations == MidiPreparser_Constants.ALL_DIFFICULTIES)
+                        if (validations == MidiPreparser_Constants.ALL_DIFFICULTIES_PLUS)
                         {
                             break;
                         }
