@@ -5,6 +5,7 @@ namespace YARG.Core.Song
     internal static class Midi_EliteDrums_Preparser
     {
         private const int ELITE_NOTES_PER_DIFFICULTY = 24;
+        private const int DOUBLE_KICK_NOTE = 73;
         private const int NUM_LANES = 11;
         private const int ELITE_MAX = 82;
 
@@ -20,6 +21,11 @@ namespace YARG.Core.Song
                 if (stats.Type is MidiEventType.Note_On or MidiEventType.Note_Off)
                 {
                     track.ExtractMidiNote(ref note);
+                    if (note.Value == DOUBLE_KICK_NOTE)
+                    {
+                        validations |= DifficultyMask.Expert | DifficultyMask.ExpertPlus;
+                    }
+
                     // Minimum is 0, so no minimum check required
                     if (note.Value > ELITE_MAX)
                     {

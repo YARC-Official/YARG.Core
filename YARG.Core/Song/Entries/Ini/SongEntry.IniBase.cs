@@ -1,4 +1,4 @@
-using MoonscraperChartEditor.Song.IO;
+﻿using MoonscraperChartEditor.Song.IO;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -594,6 +594,26 @@ namespace YARG.Core.Song
                 if (parts.FourLaneDrums.Intensity == -1)
                 {
                     parts.FourLaneDrums.Intensity = parts.ProDrums.Intensity;
+                }
+            }
+
+            if (modifiers.Extract("diff_elite_drums", out intensity) && intensity != -1)
+            {
+                parts.EliteDrums.Intensity = (sbyte) intensity;
+
+                if (parts.ProDrums.Intensity == -1)
+                {
+                    parts.ProDrums.Intensity = (sbyte) intensity;
+                }
+
+                if (parts.FourLaneDrums.Intensity == -1)
+                {
+                    parts.FourLaneDrums.Intensity = (sbyte) intensity;
+                }
+
+                if (parts.FiveLaneDrums.Intensity == -1)
+                {
+                    parts.FiveLaneDrums.Intensity = (sbyte) intensity;
                 }
             }
 
