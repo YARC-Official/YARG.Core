@@ -185,13 +185,13 @@ namespace YARG.Core.Replays.Analyzer
 
             // Seems like a sensible default?
             _fps = _fps > 0 ? _fps : 60;
-            int currentInput = 0;
+            int[] currentInput = new int[engines.Count];
             foreach (var time in GenerateFrameTimes(-2, maxTime))
             {
                 for (var i = 0;i < engines.Count; i++) {
-                    for (; currentInput < frames[i].Inputs.Length; currentInput++)
+                    for (; currentInput[i] < frames[i].Inputs.Length; currentInput[i]++)
                     {
-                        var input = frames[i].Inputs[currentInput];
+                        var input = frames[i].Inputs[currentInput[i]];
                         if (input.Time > time)
                         {
                             break;

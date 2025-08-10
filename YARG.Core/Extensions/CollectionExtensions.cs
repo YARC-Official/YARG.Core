@@ -386,6 +386,77 @@ namespace YARG.Core.Extensions
         }
 
         /// <summary>
+        /// Inserts the given value into a sorted position within the list.
+        /// </summary>
+        /// <remarks>
+        /// The inserted value will be placed after all existing values that compare equal.
+        /// </remarks>
+        public static void OrderedInsert<TList, TItem>(
+            this TList list,
+            TItem item,
+            SearchComparison<TItem, TItem> comparer
+        )
+            where TList : IList<TItem>, IReadOnlyList<TItem>
+        {
+            int insertIndex = list.UpperBound(item, comparer);
+            if (insertIndex < 0)
+            {
+                insertIndex = 0;
+            }
+
+            list.Insert(insertIndex, item);
+        }
+
+        /// <summary>
+        /// Inserts the given value into a sorted position within the list,
+        /// checking linearly starting from the back.
+        /// </summary>
+        /// <remarks>
+        /// The inserted value will be placed after all existing values that compare equal.
+        /// </remarks>
+        public static void OrderedInsertFromBack<TList, TItem>(
+            this TList list,
+            TItem item,
+            SearchComparison<TItem, TItem> comparer
+        )
+            where TList : IList<TItem>
+        {
+            for (int i = list.Count - 1; i >= 0; i--)
+            {
+                if (comparer(list[i], item) <= 0)
+                {
+                    list.Insert(i + 1, item);
+                    break;
+                }
+            }
+        }
+
+        /// <summary>
+        /// Inserts the given value into a sorted position within the list,
+        /// checking linearly starting from the front.
+        /// </summary>
+        /// <remarks>
+        /// The inserted value will be placed after all existing values that compare equal.
+        /// </remarks>
+        public static void OrderedInsertFromFront<TList, TItem>(
+            this TList list,
+            TItem item,
+            SearchComparison<TItem, TItem> comparer
+        )
+            where TList : IList<TItem>
+        {
+            int count = list.Count;
+            for (int i = 0; i < count; i++)
+            {
+                if (comparer(list[i], item) > 0)
+                {
+                    list.Insert(i, item);
+                    break;
+                }
+            }
+        }
+
+        /// <summary>
         /// Attempts to peek at the beginning of the queue.
         /// </summary>
         /// <returns>

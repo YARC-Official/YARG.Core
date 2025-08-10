@@ -16,6 +16,7 @@ public class CollectionExtensionTests
 {
     private static SearchComparison<TimeData, double> _timeComparer = (ev, target) => ev.time.CompareTo(target);
     private static SearchComparison<TimeData, int> _valueComparer = (ev, target) => ev.value.CompareTo(target);
+    private static SearchComparison<TimeData, TimeData> _itemComparer = (l, r) => l.time.CompareTo(r.time);
 
     private List<TimeData> _items = [
         (0.0, 1),  // 0
@@ -244,5 +245,46 @@ public class CollectionExtensionTests
         AssertValueRange(4, 5, 3..5, 3..6);
         AssertValueRange(5, 7, 5..6, 5..8);
         AssertValueRange(7, 8, 6..8, 6..8);
+    }
+
+    [Test]
+    public void OrderedInsert() => TestInsertion((list, value) => list.OrderedInsert(value, _itemComparer));
+
+    [Test]
+    public void OrderedInsertFromBack() => TestInsertion((list, value) => list.OrderedInsertFromBack(value, _itemComparer));
+
+    [Test]
+    public void OrderedInsertFromFront() => TestInsertion((list, value) => list.OrderedInsertFromFront(value, _itemComparer));
+
+    private void TestInsertion(Action<List<TimeData>, TimeData> insert)
+    {
+        void AssertInsertPosition(TimeData data, int index)
+        {
+            var items = _items[..]; // Don't modify the original list
+            items.OrderedInsert(data, _itemComparer);
+            Assert.That(items[index], Is.EqualTo(data));
+        }
+
+        // New time positions
+        AssertInsertPosition((-1.0, 0), 0);
+        AssertInsertPosition((3.0, 1), 1);
+        AssertInsertPosition((7.0, 2), 2);
+        AssertInsertPosition((9.0, 2), 3);
+        AssertInsertPosition((11.0, 2), 4);
+        AssertInsertPosition((14.0, 2), 5);
+        AssertInsertPosition((17.0, 2), 6);
+        AssertInsertPosition((19.5, 2), 7);
+        AssertInsertPosition((21.0, 2), 8);
+
+        // Duplicate time positions
+        // These should be inserted after all existing occurrences
+        AssertInsertPosition((0.0, 1), 1);
+        AssertInsertPosition((5.0, 2), 2);
+        AssertInsertPosition((8.0, 2), 3);
+        AssertInsertPosition((10.0, 4), 4);
+        AssertInsertPosition((12.0, 4), 5);
+        AssertInsertPosition((16.0, 5), 6);
+        AssertInsertPosition((19.0, 7), 7);
+        AssertInsertPosition((20.0, 7), 8);
     }
 }

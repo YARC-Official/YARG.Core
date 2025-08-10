@@ -372,11 +372,50 @@ namespace YARG.Core.Chart
             return events.FindRange(startTick, endTick, EventComparer<TEvent>.CompareTick, endInclusive, out range);
         }
 
+        /// <summary>
+        /// Inserts the given event into a sorted position within the list.
+        /// </summary>
+        /// <remarks>
+        /// The inserted event will be placed after all existing events that compare equal.
+        /// </remarks>
+        public static void OrderedInsert<TEvent>(this List<TEvent> events, TEvent item)
+            where TEvent : ChartEvent
+        {
+            events.OrderedInsert(item, EventComparer<TEvent>.CompareEvent);
+        }
+
+        /// <summary>
+        /// Inserts the given event into a sorted position within the list,
+        /// checking linearly starting from the back.
+        /// </summary>
+        /// <remarks>
+        /// The inserted event will be placed after all existing events that compare equal.
+        /// </remarks>
+        public static void OrderedInsertFromBack<TEvent>(this List<TEvent> events, TEvent item)
+            where TEvent : ChartEvent
+        {
+            events.OrderedInsertFromBack(item, EventComparer<TEvent>.CompareEvent);
+        }
+
+        /// <summary>
+        /// Inserts the given event into a sorted position within the list,
+        /// checking linearly starting from the front.
+        /// </summary>
+        /// <remarks>
+        /// The inserted event will be placed after all existing events that compare equal.
+        /// </remarks>
+        public static void OrderedInsertFromFront<TEvent>(this List<TEvent> events, TEvent item)
+            where TEvent : ChartEvent
+        {
+            events.OrderedInsertFromFront(item, EventComparer<TEvent>.CompareEvent);
+        }
+
         private static class EventComparer<TEvent>
             where TEvent : ChartEvent
         {
             public static readonly SearchComparison<TEvent, double> CompareTime = (ev, time) => ev.Time.CompareTo(time);
             public static readonly SearchComparison<TEvent, uint> CompareTick = (ev, tick) => ev.Tick.CompareTo(tick);
+            public static readonly SearchComparison<TEvent, TEvent> CompareEvent = (l, r) => l.Tick.CompareTo(r.Tick);
         }
     }
 }
