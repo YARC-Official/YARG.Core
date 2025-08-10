@@ -40,16 +40,7 @@ namespace YARG.Core.Chart
             TimeSignatures = timeSignatures;
             Beatlines = beatlines;
 
-            // Pick out strong beatlines for beat position calculations
-            StrongBeatlines.Capacity = Beatlines.Count;
-            foreach (var beatline in Beatlines)
-            {
-                if (beatline.Type != BeatlineType.Weak)
-                {
-                    StrongBeatlines.Add(beatline);
-                }
-            }
-            StrongBeatlines.TrimExcess();
+            RefreshStrongBeats();
 
             Tempos.Sort((x, y) => x.Tick.CompareTo(y.Tick));
             TimeSignatures.Sort((x, y) => x.Tick.CompareTo(y.Tick));
@@ -63,6 +54,19 @@ namespace YARG.Core.Chart
                 TimeSignatures.Duplicate(),
                 Beatlines.Duplicate()
             );
+        }
+
+        public void FinishLoading(uint lastTick)
+        {
+            if (Beatlines is null or { Count: < 1 })
+            {
+                GenerateBeatlines(lastTick);
+            }
+
+            if (StrongBeatlines.Count < 1)
+            {
+                RefreshStrongBeats();
+            }
         }
 
         /// <summary>
@@ -226,18 +230,7 @@ namespace YARG.Core.Chart
             GenerateBeatsForTimeSignature(currentTimeSig, finalStartTick, lastTick);
 
             Beatlines.TrimExcess();
-
-            // Refresh strong beatlines list
-            StrongBeatlines.Clear();
-            StrongBeatlines.Capacity = Beatlines.Count;
-            foreach (var beatline in Beatlines)
-            {
-                if (beatline.Type != BeatlineType.Weak)
-                {
-                    StrongBeatlines.Add(beatline);
-                }
-            }
-            StrongBeatlines.TrimExcess();
+            RefreshStrongBeats();
 
             void GenerateBeatsForTimeSignature(TimeSignatureChange timeSignature, uint startTick, uint endTick)
             {
@@ -269,6 +262,20 @@ namespace YARG.Core.Chart
                     currentTick += beatlineTickRate;
                 }
             }
+        }
+
+        private void RefreshStrongBeats()
+        {
+            StrongBeatlines.Clear();
+            StrongBeatlines.Capacity = Beatlines.Count;
+            foreach (var beatline in Beatlines)
+            {
+                if (beatline.Type != BeatlineType.Weak)
+                {
+                    StrongBeatlines.Add(beatline);
+                }
+            }
+            StrongBeatlines.TrimExcess();
         }
 
         public double TickToTime(uint tick)

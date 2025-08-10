@@ -148,10 +148,7 @@ namespace YARG.Core.Chart
             // Dj = loader.LoadDjTrack(Instrument.Dj);
 
             // Ensure beatlines are present
-            if (SyncTrack.Beatlines is null or { Count: < 1 })
-            {
-                SyncTrack.GenerateBeatlines(GetLastTick());
-            }
+            SyncTrack.FinishLoading(GetLastTick());
 
             // Use beatlines to place auto-generated drum activation phrases for charts without manually authored phrases
             CreateDrumActivationPhrases();
