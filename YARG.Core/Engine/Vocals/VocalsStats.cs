@@ -58,9 +58,9 @@ namespace YARG.Core.Engine.Vocals
             writer.Write(TicksMissed);
         }
 
-        public override ReplayStats ConstructReplayStats(string name, float averageMultiplier, int numPauses)
+        public override ReplayStats ConstructReplayStats(string name)
         {
-            return new VocalsReplayStats(name, this, averageMultiplier, numPauses);
+            return new VocalsReplayStats(name, this);
         }
     }
 }

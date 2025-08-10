@@ -58,9 +58,9 @@ namespace YARG.Core.Engine.Guitar
             writer.Write(GhostInputs);
         }
 
-        public override ReplayStats ConstructReplayStats(string name, float averageMultiplier, int numPauses)
+        public override ReplayStats ConstructReplayStats(string name)
         {
-            return new GuitarReplayStats(name, this, averageMultiplier, numPauses);
+            return new GuitarReplayStats(name, this);
         }
     }
 }

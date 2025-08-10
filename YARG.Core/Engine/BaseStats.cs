@@ -167,6 +167,16 @@ namespace YARG.Core.Engine
         /// </summary>
         public float Stars;
 
+        /// <summary>
+        /// The average multiplier of the player throughout the song.
+        /// </summary>
+        public float AverageMultiplier;
+
+        /// <summary>
+        /// The amount of times the player has paused the current song.
+        /// </summary>
+        public int NumPauses;
+
         protected BaseStats()
         {
         }
@@ -199,6 +209,9 @@ namespace YARG.Core.Engine
             StarPowerScore = stats.StarPowerScore;
 
             Stars = stats.Stars;
+
+            AverageMultiplier = stats.AverageMultiplier;
+            NumPauses = stats.NumPauses;
         }
 
         protected BaseStats(ref FixedArrayStream stream, int version)
@@ -262,6 +275,8 @@ namespace YARG.Core.Engine
             StarPowerScore = 0;
 
             Stars = 0;
+            AverageMultiplier = 0;
+            NumPauses = 0;
         }
 
         public virtual void Serialize(BinaryWriter writer)
@@ -296,6 +311,6 @@ namespace YARG.Core.Engine
             // writer.Write(Stars);
         }
 
-        public abstract ReplayStats ConstructReplayStats(string name, float averageMultiplier, int numPauses);
+        public abstract ReplayStats ConstructReplayStats(string name);
     }
 }

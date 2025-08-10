@@ -20,7 +20,7 @@ namespace YARG.Core.Replays
         public readonly float AverageMultiplier;
         public readonly int NumPauses;
 
-        protected ReplayStats(string name, BaseStats stats, float averageMultiplier, int numPauses)
+        protected ReplayStats(string name, BaseStats stats)
         {
             PlayerName = name;
             Score = stats.TotalScore;
@@ -28,8 +28,8 @@ namespace YARG.Core.Replays
             TotalOverdrivePhrases = stats.TotalStarPowerPhrases;
             NumOverdrivePhrasesHit = TotalOverdrivePhrases - stats.StarPowerPhrasesMissed;
             NumOverdriveActivations = stats.StarPowerActivationCount;
-            AverageMultiplier = averageMultiplier;
-            NumPauses = numPauses;
+            AverageMultiplier = stats.AverageMultiplier;
+            NumPauses = stats.NumPauses;
         }
 
         protected ReplayStats(ref FixedArrayStream stream, int version)
