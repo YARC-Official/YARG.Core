@@ -40,6 +40,7 @@ namespace YARG.Core.Chart
             Type = noteType;
 
             DrumFlags = _drumFlags = drumFlags;
+
             _padMask = 1 << pad;
         }
 
