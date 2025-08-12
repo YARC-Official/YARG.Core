@@ -322,7 +322,7 @@ namespace YARG.Core.Engine.Drums
                 // invert it to calculate leniency
                 weight = 1.0 * multiplier / BaseParameters.MaxMultiplier;
 
-                score += weight * (POINTS_PER_NOTE * (1 + note.ChildNotes.Count));
+                score += weight * (GetPointsPerNote() * (1 + note.ChildNotes.Count));
                 combo += 1 + note.ChildNotes.Count;
             }
 
