@@ -326,7 +326,7 @@ namespace YARG.Core.Engine.Drums
                 combo += 1 + note.ChildNotes.Count;
             }
 
-            YargLogger.LogDebug($"[Vocals] Base score: {score}, Max Combo: {combo}");
+            YargLogger.LogDebug($"[Drums] Base score: {score}, Max Combo: {combo}");
             return (int) Math.Round(score);
         }
 
