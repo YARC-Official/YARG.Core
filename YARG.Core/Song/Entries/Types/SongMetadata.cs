@@ -135,6 +135,38 @@ namespace YARG.Core.Song
         public string CharterProGuitar;
         public string CharterVocals;
 
+        private static void ReadIniStringIfNotEmpty(IniModifierCollection modifiers, string modifierName, out string output) {
+            if (modifiers.Extract(modifierName, out string readValue) && value.Length > 0)
+            {
+                output = readValue;
+            }
+        }
+
+        private static void ReadIniString(IniModifierCollection modifiers, string modifierName, out string output) {
+            if (modifiers.Extract(modifierName, out string readValue))
+            {
+                output = readValue;
+            }
+        }
+
+        private static void ReadIniIntOr(IniModifierCollection modifiers, string modifierName, out int output, int fallbackValue) {
+            if (modifiers.Extract(modifierName, out int readValue))
+            {
+                output = readValue;
+            }
+            else
+            {
+                output = fallbackValue;
+            }
+        }
+
+        private static void ReadIniLong(IniModifierCollection modifiers, string modifierName, out long output) {
+            if (modifiers.Extract(modifierName, out long readValue))
+            {
+                output = readValue;
+            }
+        }
+
         public static SongMetadata CreateFromIni(IniModifierCollection modifiers)
         {
             var metadata = Default;
@@ -144,25 +176,10 @@ namespace YARG.Core.Song
 
         public static void FillFromIni(ref SongMetadata metadata, IniModifierCollection modifiers)
         {
-            if (modifiers.Extract("name", out string name) && name.Length > 0)
-            {
-                metadata.Name = name;
-            }
-
-            if (modifiers.Extract("artist", out string artist) && artist.Length > 0)
-            {
-                metadata.Artist = artist;
-            }
-
-            if (modifiers.Extract("album", out string album) && album.Length > 0)
-            {
-                metadata.Album = album;
-            }
-
-            if (modifiers.Extract("genre", out string genre) && genre.Length > 0)
-            {
-                metadata.Genre = genre;
-            }
+            ReadIniStringIfNotEmpty(modifiers, "name", out metadata.Name);
+            ReadIniStringIfNotEmpty(modifiers, "artist", out metadata.Artist);
+            ReadIniStringIfNotEmpty(modifiers, "album", out metadata.Album);
+            ReadIniStringIfNotEmpty(modifiers, "genre", out metadata.Genre);
 
             if (modifiers.Extract("year", out string year) && year.Length > 0)
             {
@@ -192,213 +209,58 @@ namespace YARG.Core.Song
                 }
             }
 
-            if (modifiers.Extract("icon", out string source) && source.Length > 0)
-            {
-                metadata.Source = source;
-            }
+            ReadIniStringIfNotEmpty(modifiers, "icon", out metadata.Source);
+            ReadIniStringIfNotEmpty(modifiers, "playlist", out metadata.Playlist);
+            ReadIniString(modifiers, "loading_phrase", out metadata.LoadingPhrase);
 
-            if (modifiers.Extract("playlist", out string playlist) && playlist.Length > 0)
-            {
-                metadata.Playlist = playlist;
-            }
+            ReadIniString(modifiers, "link_bandcamp", out metadata.LinkBandcamp);
+            ReadIniString(modifiers, "link_bluesky", out metadata.LinkBluesky);
+            ReadIniString(modifiers, "link_facebook", out metadata.LinkFacebook);
+            ReadIniString(modifiers, "link_instagram", out metadata.LinkInstagram);
+            ReadIniString(modifiers, "link_spotify", out metadata.LinkSpotify);
+            ReadIniString(modifiers, "link_twitter", out metadata.LinkTwitter);
+            ReadIniString(modifiers, "link_bluesky", out metadata.LinkBluesky);
+            ReadIniString(modifiers, "link_other", out metadata.LinkOther);
+            ReadIniString(modifiers, "link_youtube", out metadata.LinkYoutube);
 
-            if (modifiers.Extract("loading_phrase", out string loadingPhrase))
-            {
-                metadata.LoadingPhrase = loadingPhrase;
-            }
+            ReadIniString(modifiers, "location", out metadata.Location);
 
-            if (modifiers.Extract("link_bluesky", out string linkBluesky))
-            {
-                metadata.LinkBluesky = linkBluesky;
-            }
+            ReadIniString(modifiers, "credit_album_art_designed_by", out metadata.CreditAlbumArtDesignedBy);
+            ReadIniString(modifiers, "credit_arranged_by", out metadata.CreditArrangedBy);
+            ReadIniString(modifiers, "credit_composed_by", out metadata.CreditComposedBy);
+            ReadIniString(modifiers, "credit_courtesy_of", out metadata.CreditCourtesyOf);
+            ReadIniString(modifiers, "credit_engineered_by", out metadata.CreditEngineeredBy);
+            ReadIniString(modifiers, "credit_license", out metadata.CreditLicense);
+            ReadIniString(modifiers, "credit_mastered_by", out metadata.CreditMasteredBy);
+            ReadIniString(modifiers, "credit_mixed_by", out metadata.CreditMixedBy);
+            ReadIniString(modifiers, "credit_other", out metadata.CreditOther);
+            ReadIniString(modifiers, "credit_performed_by", out metadata.CreditPerformedBy);
+            ReadIniString(modifiers, "credit_produced_by", out metadata.CreditProducedBy);
+            ReadIniString(modifiers, "credit_published_by", out metadata.CreditPublishedBy);
+            ReadIniString(modifiers, "credit_written_by", out metadata.CreditWrittenBy);
 
-            if (modifiers.Extract("link_facebook", out string linkFacebook))
-            {
-                metadata.LinkFacebook = linkFacebook;
-            }
+            ReadIniString(modifiers, "charter_bass", out metadata.CharterBass);
+            ReadIniString(modifiers, "charter_drums", out metadata.CharterDrums);
+            ReadIniString(modifiers, "charter_elite_drums", out metadata.CharterEliteDrums);
+            ReadIniString(modifiers, "charter_guitar", out metadata.CharterGuitar);
+            ReadIniString(modifiers, "charter_keys", out metadata.CharterKeys);
+            ReadIniString(modifiers, "charter_lower_diff", out metadata.CharterLowerDiff);
+            ReadIniString(modifiers, "charter_pro_bass", out metadata.CharterProBass);
+            ReadIniString(modifiers, "charter_pro_keys", out metadata.CharterProKeys);
+            ReadIniString(modifiers, "charter_pro_guitar", out metadata.CharterProGuitar);
+            ReadIniString(modifiers, "charter_vocals", out metadata.CharterVocals);
 
-            if (modifiers.Extract("link_instagram", out string linkInstagram))
-            {
-                metadata.LinkInstagram = linkInstagram;
-            }
-
-            if (modifiers.Extract("link_spotify", out string linkSpotify))
-            {
-                metadata.LinkSpotify = linkSpotify;
-            }
-
-            if (modifiers.Extract("link_twitter", out string linkTwitter))
-            {
-                metadata.LinkTwitter = linkTwitter;
-            }
-
-            if (modifiers.Extract("link_other", out string linkOther))
-            {
-                metadata.LinkOther = linkOther;
-            }
-
-            if (modifiers.Extract("link_youtube", out string linkYoutube))
-            {
-                metadata.LinkYoutube = linkYoutube;
-            }
-
-            if (modifiers.Extract("location", out string location))
-            {
-                metadata.Location = location;
-            }
-
-            if (modifiers.Extract("credit_album_art_designed_by", out string creditAlbumArt))
-            {
-                metadata.CreditAlbumArtDesignedBy = creditAlbumArt;
-            }
-
-            if (modifiers.Extract("credit_arranged_by", out string creditArrangedBy))
-            {
-                metadata.CreditArrangedBy = creditArrangedBy;
-            }
-
-            if (modifiers.Extract("credit_composed_by", out string creditComposedBy))
-            {
-                metadata.CreditComposedBy = creditComposedBy;
-            }
-
-            if (modifiers.Extract("credit_courtesy_of", out string creditCourtesyOf))
-            {
-                metadata.CreditCourtesyOf = creditCourtesyOf;
-            }
-
-            if (modifiers.Extract("credit_engineered_by", out string creditEngineeredBy))
-            {
-                metadata.CreditEngineeredBy = creditEngineeredBy;
-            }
-
-            if (modifiers.Extract("credit_license", out string creditLicense))
-            {
-                metadata.CreditLicense = creditLicense;
-            }
-
-            if (modifiers.Extract("credit_mastered_by", out string creditMasteredBy))
-            {
-                metadata.CreditMasteredBy = creditMasteredBy;
-            }
-
-            if (modifiers.Extract("credit_mixed_by", out string creditMixedBy))
-            {
-                metadata.CreditMixedBy = creditMixedBy;
-            }
-
-            if (modifiers.Extract("credit_other", out string creditOther))
-            {
-                metadata.CreditOther = creditOther;
-            }
-
-            if (modifiers.Extract("credit_performed_by", out string creditPerformedBy))
-            {
-                metadata.CreditPerformedBy = creditPerformedBy;
-            }
-
-            if (modifiers.Extract("credit_produced_by", out string creditProducedBy))
-            {
-                metadata.CreditProducedBy = creditProducedBy;
-            }
-
-            if (modifiers.Extract("credit_published_by", out string creditPublishedBy))
-            {
-                metadata.CreditPublishedBy = creditPublishedBy;
-            }
-
-            if (modifiers.Extract("credit_written_by", out string creditWrittenBy))
-            {
-                metadata.CreditWrittenBy = creditWrittenBy;
-            }
-
-            if (modifiers.Extract("charter_bass", out string charterBass))
-            {
-                metadata.CharterBass = charterBass;
-            }
-
-            if (modifiers.Extract("charter_drums", out string charterDrums))
-            {
-                metadata.CharterDrums = charterDrums;
-            }
-
-            if (modifiers.Extract("charter_elite_drums", out string charterEliteDrums))
-            {
-                metadata.CharterEliteDrums = charterEliteDrums;
-            }
-
-            if (modifiers.Extract("charter_guitar", out string charterGuitar))
-            {
-                metadata.CharterGuitar = charterGuitar;
-            }
-
-            if (modifiers.Extract("charter_keys", out string charterKeys))
-            {
-                metadata.CharterKeys = charterKeys;
-            }
-
-            if (modifiers.Extract("charter_lower_diff", out string charterLowerDiff))
-            {
-                metadata.CharterLowerDiff = charterLowerDiff;
-            }
-
-            if (modifiers.Extract("charter_pro_bass", out string charterProBass))
-            {
-                metadata.CharterProBass = charterProBass;
-            }
-
-            if (modifiers.Extract("charter_pro_keys", out string charterProKeys))
-            {
-                metadata.CharterProKeys = charterProKeys;
-            }
-
-            if (modifiers.Extract("charter_pro_guitar", out string charterProGuitar))
-            {
-                metadata.CharterProGuitar = charterProGuitar;
-            }
-
-            if (modifiers.Extract("charter_vocals", out string charterVocals))
-            {
-                metadata.CharterVocals = charterVocals;
-            }
-
-            if (modifiers.Extract("playlist_track", out int playlistTrack))
-            {
-                metadata.PlaylistTrack = playlistTrack;
-            }
-            else
-            {
-                metadata.PlaylistTrack = int.MaxValue;
-            }
-
-            if (modifiers.Extract("album_track", out int albumTrack))
-            {
-                metadata.AlbumTrack = albumTrack;
-            }
-            else
-            {
-                metadata.AlbumTrack = int.MaxValue;
-            }
+            ReadIniIntOr(modifiers, "playlist_track", out metadata.PlaylistTrack, int.MaxValue);
+            ReadIniIntOr(modifiers, "album_track", out metadata.AlbumTrack, int.MaxValue);
 
             if (modifiers.Extract("rating", out uint songRating))
             {
                 metadata.SongRating = (SongRating)songRating;
             }
 
-            if (modifiers.Extract("song_length", out long songLength))
-            {
-                metadata.SongLength = songLength;
-            }
-
-            if (modifiers.Extract("video_start_time", out long videoStartTime))
-            {
-                metadata.Video.Start = videoStartTime;
-            }
-
-            if (modifiers.Extract("video_end_time", out long videoEndTime))
-            {
-                metadata.Video.End = videoEndTime;
-            }
+            ReadIniLong(modifiers, "song_length", out long metadata.SongLength);
+            ReadIniLong(modifiers, "video_start_time", out long metadata.Video.Start);
+            ReadIniLong(modifiers, "video_end_time", out long metadata.Video.End);
 
             if (modifiers.Extract("preview", out (long Start, long End) preview))
             {
@@ -442,11 +304,6 @@ namespace YARG.Core.Song
             if (modifiers.Extract("video_loop", out bool videoLoop))
             {
                 metadata.VideoLoop = videoLoop;
-            }
-
-            if (modifiers.Extract("link_bandcamp", out string linkBandcamp))
-            {
-                metadata.LinkBandcamp = linkBandcamp;
             }
         }
     }
