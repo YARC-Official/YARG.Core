@@ -1,4 +1,5 @@
 ﻿using YARG.Core.IO.Ini;
+using System.Runtime.CompilerServices;
 
 namespace YARG.Core.Song
 {
@@ -135,23 +136,23 @@ namespace YARG.Core.Song
         public string CharterProGuitar;
         public string CharterVocals;
 
-        [MethodImpl(MethodImplOption.AggressiveInlining)]
-        private static void ReadIniStringIfNotEmpty(IniModifierCollection modifiers, string modifierName, out string output) {
-            if (modifiers.Extract(modifierName, out string readValue) && value.Length > 0)
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static void ReadIniStringIfNotEmpty(IniModifierCollection modifiers, string modifierName, ref string output) {
+            if (modifiers.Extract(modifierName, out string readValue) && readValue.Length > 0)
             {
                 output = readValue;
             }
         }
 
-        [MethodImpl(MethodImplOption.AggressiveInlining)]
-        private static void ReadIniString(IniModifierCollection modifiers, string modifierName, out string output) {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static void ReadIniString(IniModifierCollection modifiers, string modifierName, ref string output) {
             if (modifiers.Extract(modifierName, out string readValue))
             {
                 output = readValue;
             }
         }
 
-        [MethodImpl(MethodImplOption.AggressiveInlining)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static void ReadIniIntOr(IniModifierCollection modifiers, string modifierName, out int output, int fallbackValue) {
             if (modifiers.Extract(modifierName, out int readValue))
             {
@@ -163,8 +164,8 @@ namespace YARG.Core.Song
             }
         }
 
-        [MethodImpl(MethodImplOption.AggressiveInlining)]
-        private static void ReadIniLong(IniModifierCollection modifiers, string modifierName, out long output) {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static void ReadIniLong(IniModifierCollection modifiers, string modifierName, ref long output) {
             if (modifiers.Extract(modifierName, out long readValue))
             {
                 output = readValue;
@@ -180,10 +181,10 @@ namespace YARG.Core.Song
 
         public static void FillFromIni(ref SongMetadata metadata, IniModifierCollection modifiers)
         {
-            ReadIniStringIfNotEmpty(modifiers, "name", out metadata.Name);
-            ReadIniStringIfNotEmpty(modifiers, "artist", out metadata.Artist);
-            ReadIniStringIfNotEmpty(modifiers, "album", out metadata.Album);
-            ReadIniStringIfNotEmpty(modifiers, "genre", out metadata.Genre);
+            ReadIniStringIfNotEmpty(modifiers, "name", ref metadata.Name);
+            ReadIniStringIfNotEmpty(modifiers, "artist", ref metadata.Artist);
+            ReadIniStringIfNotEmpty(modifiers, "album", ref metadata.Album);
+            ReadIniStringIfNotEmpty(modifiers, "genre", ref metadata.Genre);
 
             if (modifiers.Extract("year", out string year) && year.Length > 0)
             {
@@ -213,46 +214,46 @@ namespace YARG.Core.Song
                 }
             }
 
-            ReadIniStringIfNotEmpty(modifiers, "icon", out metadata.Source);
-            ReadIniStringIfNotEmpty(modifiers, "playlist", out metadata.Playlist);
-            ReadIniString(modifiers, "loading_phrase", out metadata.LoadingPhrase);
+            ReadIniStringIfNotEmpty(modifiers, "icon", ref metadata.Source);
+            ReadIniStringIfNotEmpty(modifiers, "playlist", ref metadata.Playlist);
+            ReadIniString(modifiers, "loading_phrase", ref metadata.LoadingPhrase);
 
-            ReadIniString(modifiers, "link_bandcamp", out metadata.LinkBandcamp);
-            ReadIniString(modifiers, "link_bluesky", out metadata.LinkBluesky);
-            ReadIniString(modifiers, "link_facebook", out metadata.LinkFacebook);
-            ReadIniString(modifiers, "link_instagram", out metadata.LinkInstagram);
-            ReadIniString(modifiers, "link_spotify", out metadata.LinkSpotify);
-            ReadIniString(modifiers, "link_twitter", out metadata.LinkTwitter);
-            ReadIniString(modifiers, "link_bluesky", out metadata.LinkBluesky);
-            ReadIniString(modifiers, "link_other", out metadata.LinkOther);
-            ReadIniString(modifiers, "link_youtube", out metadata.LinkYoutube);
+            ReadIniString(modifiers, "link_bandcamp", ref metadata.LinkBandcamp);
+            ReadIniString(modifiers, "link_bluesky", ref metadata.LinkBluesky);
+            ReadIniString(modifiers, "link_facebook", ref metadata.LinkFacebook);
+            ReadIniString(modifiers, "link_instagram", ref metadata.LinkInstagram);
+            ReadIniString(modifiers, "link_spotify", ref metadata.LinkSpotify);
+            ReadIniString(modifiers, "link_twitter", ref metadata.LinkTwitter);
+            ReadIniString(modifiers, "link_bluesky", ref metadata.LinkBluesky);
+            ReadIniString(modifiers, "link_other", ref metadata.LinkOther);
+            ReadIniString(modifiers, "link_youtube", ref metadata.LinkYoutube);
 
-            ReadIniString(modifiers, "location", out metadata.Location);
+            ReadIniString(modifiers, "location", ref metadata.Location);
 
-            ReadIniString(modifiers, "credit_album_art_designed_by", out metadata.CreditAlbumArtDesignedBy);
-            ReadIniString(modifiers, "credit_arranged_by", out metadata.CreditArrangedBy);
-            ReadIniString(modifiers, "credit_composed_by", out metadata.CreditComposedBy);
-            ReadIniString(modifiers, "credit_courtesy_of", out metadata.CreditCourtesyOf);
-            ReadIniString(modifiers, "credit_engineered_by", out metadata.CreditEngineeredBy);
-            ReadIniString(modifiers, "credit_license", out metadata.CreditLicense);
-            ReadIniString(modifiers, "credit_mastered_by", out metadata.CreditMasteredBy);
-            ReadIniString(modifiers, "credit_mixed_by", out metadata.CreditMixedBy);
-            ReadIniString(modifiers, "credit_other", out metadata.CreditOther);
-            ReadIniString(modifiers, "credit_performed_by", out metadata.CreditPerformedBy);
-            ReadIniString(modifiers, "credit_produced_by", out metadata.CreditProducedBy);
-            ReadIniString(modifiers, "credit_published_by", out metadata.CreditPublishedBy);
-            ReadIniString(modifiers, "credit_written_by", out metadata.CreditWrittenBy);
+            ReadIniString(modifiers, "credit_album_art_designed_by", ref metadata.CreditAlbumArtDesignedBy);
+            ReadIniString(modifiers, "credit_arranged_by", ref metadata.CreditArrangedBy);
+            ReadIniString(modifiers, "credit_composed_by", ref metadata.CreditComposedBy);
+            ReadIniString(modifiers, "credit_courtesy_of", ref metadata.CreditCourtesyOf);
+            ReadIniString(modifiers, "credit_engineered_by", ref metadata.CreditEngineeredBy);
+            ReadIniString(modifiers, "credit_license", ref metadata.CreditLicense);
+            ReadIniString(modifiers, "credit_mastered_by", ref metadata.CreditMasteredBy);
+            ReadIniString(modifiers, "credit_mixed_by", ref metadata.CreditMixedBy);
+            ReadIniString(modifiers, "credit_other", ref metadata.CreditOther);
+            ReadIniString(modifiers, "credit_performed_by", ref metadata.CreditPerformedBy);
+            ReadIniString(modifiers, "credit_produced_by", ref metadata.CreditProducedBy);
+            ReadIniString(modifiers, "credit_published_by", ref metadata.CreditPublishedBy);
+            ReadIniString(modifiers, "credit_written_by", ref metadata.CreditWrittenBy);
 
-            ReadIniString(modifiers, "charter_bass", out metadata.CharterBass);
-            ReadIniString(modifiers, "charter_drums", out metadata.CharterDrums);
-            ReadIniString(modifiers, "charter_elite_drums", out metadata.CharterEliteDrums);
-            ReadIniString(modifiers, "charter_guitar", out metadata.CharterGuitar);
-            ReadIniString(modifiers, "charter_keys", out metadata.CharterKeys);
-            ReadIniString(modifiers, "charter_lower_diff", out metadata.CharterLowerDiff);
-            ReadIniString(modifiers, "charter_pro_bass", out metadata.CharterProBass);
-            ReadIniString(modifiers, "charter_pro_keys", out metadata.CharterProKeys);
-            ReadIniString(modifiers, "charter_pro_guitar", out metadata.CharterProGuitar);
-            ReadIniString(modifiers, "charter_vocals", out metadata.CharterVocals);
+            ReadIniString(modifiers, "charter_bass", ref metadata.CharterBass);
+            ReadIniString(modifiers, "charter_drums", ref metadata.CharterDrums);
+            ReadIniString(modifiers, "charter_elite_drums", ref metadata.CharterEliteDrums);
+            ReadIniString(modifiers, "charter_guitar", ref metadata.CharterGuitar);
+            ReadIniString(modifiers, "charter_keys", ref metadata.CharterKeys);
+            ReadIniString(modifiers, "charter_lower_diff", ref metadata.CharterLowerDiff);
+            ReadIniString(modifiers, "charter_pro_bass", ref metadata.CharterProBass);
+            ReadIniString(modifiers, "charter_pro_keys", ref metadata.CharterProKeys);
+            ReadIniString(modifiers, "charter_pro_guitar", ref metadata.CharterProGuitar);
+            ReadIniString(modifiers, "charter_vocals", ref metadata.CharterVocals);
 
             ReadIniIntOr(modifiers, "playlist_track", out metadata.PlaylistTrack, int.MaxValue);
             ReadIniIntOr(modifiers, "album_track", out metadata.AlbumTrack, int.MaxValue);
@@ -262,9 +263,9 @@ namespace YARG.Core.Song
                 metadata.SongRating = (SongRating)songRating;
             }
 
-            ReadIniLong(modifiers, "song_length", out long metadata.SongLength);
-            ReadIniLong(modifiers, "video_start_time", out long metadata.Video.Start);
-            ReadIniLong(modifiers, "video_end_time", out long metadata.Video.End);
+            ReadIniLong(modifiers, "song_length", ref metadata.SongLength);
+            ReadIniLong(modifiers, "video_start_time", ref metadata.Video.Start);
+            ReadIniLong(modifiers, "video_end_time", ref metadata.Video.End);
 
             if (modifiers.Extract("preview", out (long Start, long End) preview))
             {
