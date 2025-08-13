@@ -23,8 +23,8 @@ namespace YARG.Core.Engine.ProKeys.Engines
         protected override void MutateStateWithInput(GameInput gameInput)
         {
             // These should always be null before inputs are processed
-            YargLogger.Assert(KeyHitThisUpdate != null);
-            YargLogger.Assert(KeyReleasedThisUpdate != null);
+            YargLogger.Assert(KeyHitThisUpdate == null);
+            YargLogger.Assert(KeyReleasedThisUpdate == null);
 
             var action = gameInput.GetAction<ProKeysAction>();
 
