@@ -135,6 +135,7 @@ namespace YARG.Core.Song
         public string CharterProGuitar;
         public string CharterVocals;
 
+        [MethodImpl(MethodImplOption.AggressiveInlining)]
         private static void ReadIniStringIfNotEmpty(IniModifierCollection modifiers, string modifierName, out string output) {
             if (modifiers.Extract(modifierName, out string readValue) && value.Length > 0)
             {
@@ -142,6 +143,7 @@ namespace YARG.Core.Song
             }
         }
 
+        [MethodImpl(MethodImplOption.AggressiveInlining)]
         private static void ReadIniString(IniModifierCollection modifiers, string modifierName, out string output) {
             if (modifiers.Extract(modifierName, out string readValue))
             {
@@ -149,6 +151,7 @@ namespace YARG.Core.Song
             }
         }
 
+        [MethodImpl(MethodImplOption.AggressiveInlining)]
         private static void ReadIniIntOr(IniModifierCollection modifiers, string modifierName, out int output, int fallbackValue) {
             if (modifiers.Extract(modifierName, out int readValue))
             {
@@ -160,6 +163,7 @@ namespace YARG.Core.Song
             }
         }
 
+        [MethodImpl(MethodImplOption.AggressiveInlining)]
         private static void ReadIniLong(IniModifierCollection modifiers, string modifierName, out long output) {
             if (modifiers.Extract(modifierName, out long readValue))
             {
