@@ -121,7 +121,7 @@ namespace YARG.Core.Game
                 };
             }
 
-            public GuitarEngineParameters Create(float[] starMultiplierThresholds, bool isBass)
+            public GuitarEngineParameters Create(float[] starMultiplierThresholds, bool isBass, bool noStarPowerOverlap)
             {
                 var hitWindow = HitWindow.Create();
                 return new GuitarEngineParameters(
@@ -130,6 +130,7 @@ namespace YARG.Core.Game
                     DEFAULT_WHAMMY_BUFFER,
                     SustainDropLeniency,
                     starMultiplierThresholds,
+                    noStarPowerOverlap,
                     HopoLeniency,
                     StrumLeniency,
                     StrumLeniencySmall,
@@ -162,13 +163,14 @@ namespace YARG.Core.Game
                 };
             }
 
-            public DrumsEngineParameters Create(float[] starMultiplierThresholds, DrumsEngineParameters.DrumMode mode)
+            public DrumsEngineParameters Create(float[] starMultiplierThresholds, bool noStarPowerOverlap, DrumsEngineParameters.DrumMode mode)
             {
                 var hitWindow = HitWindow.Create();
                 return new DrumsEngineParameters(
                     hitWindow,
                     DEFAULT_MAX_MULTIPLIER,
                     starMultiplierThresholds,
+                    noStarPowerOverlap,
                     mode);
             }
         }
@@ -311,7 +313,7 @@ namespace YARG.Core.Game
                 };
             }
 
-            public ProKeysEngineParameters Create(float[] starMultiplierThresholds)
+            public ProKeysEngineParameters Create(float[] starMultiplierThresholds, bool noStarPowerOverlap)
             {
                 var hitWindow = HitWindow.Create();
                 return new ProKeysEngineParameters(
@@ -320,6 +322,7 @@ namespace YARG.Core.Game
                     DEFAULT_WHAMMY_BUFFER,
                     SustainDropLeniency,
                     starMultiplierThresholds,
+                    noStarPowerOverlap,
                     ChordStaggerWindow,
                     FatFingerWindow);
             }

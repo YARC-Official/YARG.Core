@@ -25,8 +25,8 @@ namespace YARG.Core.Engine.Drums
         public readonly float SituationalVelocityWindow;
 
         public DrumsEngineParameters(HitWindowSettings hitWindow, int maxMultiplier, float[] starMultiplierThresholds,
-            DrumMode mode)
-            : base(hitWindow, maxMultiplier, 0, 0, starMultiplierThresholds)
+            bool noStarPowerOverlap, DrumMode mode)
+            : base(hitWindow, maxMultiplier, 0, 0, starMultiplierThresholds, noStarPowerOverlap)
         {
             Mode = mode;
             VelocityThreshold = 0.35f;

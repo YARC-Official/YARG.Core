@@ -11,8 +11,8 @@ namespace YARG.Core.Engine.ProKeys
         public readonly double FatFingerWindow;
 
         public ProKeysEngineParameters(HitWindowSettings hitWindow, int maxMultiplier, double spWhammyBuffer,
-            double sustainDropLeniency, float[] starMultiplierThresholds, double chordStaggerWindow, double fatFingerWindow)
-            : base(hitWindow, maxMultiplier, spWhammyBuffer, sustainDropLeniency, starMultiplierThresholds)
+            double sustainDropLeniency, float[] starMultiplierThresholds, bool noStarPowerOverlap, double chordStaggerWindow, double fatFingerWindow)
+            : base(hitWindow, maxMultiplier, spWhammyBuffer, sustainDropLeniency, starMultiplierThresholds, noStarPowerOverlap)
         {
             ChordStaggerWindow = chordStaggerWindow;
             FatFingerWindow = fatFingerWindow;

@@ -18,6 +18,7 @@ namespace YARG.Core.Game
         NoDynamics    = 1 << 8,
         NoVocalPercussion = 1 << 9,
         RangeCompress = 1 << 10,
+        NoStarPowerOverlap = 1 << 11,
     }
 
     public static class ModifierConflicts
@@ -46,22 +47,26 @@ namespace YARG.Core.Game
                     Modifier.AllTaps       |
                     Modifier.HoposToTaps   |
                     Modifier.TapsToHopos   |
-                    Modifier.RangeCompress,
+                    Modifier.RangeCompress |
+                    Modifier.NoStarPowerOverlap,
 
                 GameMode.FourLaneDrums or
                 GameMode.FiveLaneDrums =>
                     Modifier.NoKicks    |
-                    Modifier.NoDynamics,
+                    Modifier.NoDynamics |
+                    Modifier.NoStarPowerOverlap,
 
                 GameMode.Vocals =>
                     Modifier.UnpitchedOnly |
                     Modifier.NoVocalPercussion,
 
+                GameMode.ProKeys =>
+                    Modifier.NoStarPowerOverlap,
+
                 GameMode.SixFretGuitar or
             //  GameMode.EliteDrums    or
-                GameMode.ProGuitar     or
             //  GameMode.Dj            or
-                GameMode.ProKeys       => Modifier.None,
+                GameMode.ProGuitar     => Modifier.None,
 
                 _  => throw new NotImplementedException($"Unhandled game mode {gameMode}!")
             };
