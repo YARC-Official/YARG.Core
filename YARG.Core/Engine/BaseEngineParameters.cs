@@ -50,6 +50,8 @@ namespace YARG.Core.Engine
                 StarMultiplierThresholds[i] = stream.Read<float>(Endianness.Little);
             }
 
+            NoStarPowerOverlap = stream.ReadBoolean();
+
             SongSpeed = stream.Read<double>(Endianness.Little);
         }
 
@@ -68,6 +70,8 @@ namespace YARG.Core.Engine
                 writer.Write(f);
             }
 
+            writer.Write(NoStarPowerOverlap);
+
             writer.Write(SongSpeed);
         }
 
@@ -80,7 +84,8 @@ namespace YARG.Core.Engine
                 $"Hit window: ({HitWindow.MinWindow}, {HitWindow.MaxWindow})\n" +
                 $"Hit window dynamic: {HitWindow.IsDynamic}\n" +
                 $"Max multiplier: {MaxMultiplier}\n" +
-                $"Star thresholds: {thresholds}";
+                $"Star thresholds: {thresholds}" +
+                $"No star power overlap: {NoStarPowerOverlap}";
         }
     }
 }
