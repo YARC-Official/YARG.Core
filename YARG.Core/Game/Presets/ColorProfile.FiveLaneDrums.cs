@@ -150,6 +150,24 @@ namespace YARG.Core.Game
 
             #endregion
 
+            #region Metal
+
+            public Color Metal          = DefaultMetal;
+            public Color MetalStarPower = DefaultMetalStarPower;
+
+            public Color GetMetalColor(bool isForStarPower)
+            {
+                return isForStarPower ? MetalStarPower : Metal;
+            }
+
+            #endregion
+
+            #region Miss Effect
+
+            public Color Miss = DefaultMiss;
+
+            #endregion
+
             #region Serialization
 
             public FiveLaneDrumsColors Copy()
