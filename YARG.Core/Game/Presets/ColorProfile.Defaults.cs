@@ -22,6 +22,11 @@ namespace YARG.Core.Game
 
         private static readonly Color DefaultStarpower = Color.White; // #FFFFFF
 
+        private static readonly Color DefaultMetal          = Color.FromArgb(0xFF, 0xFF, 0xFF, 0xFF); // #FFFFFF
+        private static readonly Color DefaultMetalStarPower = Color.FromArgb(0xFF, 0xFF, 0xD7, 0x00); // #FFD700
+
+        private static readonly Color DefaultMiss = Color.FromArgb(0xFF, 0x90, 0x90, 0x90); // #909090
+
         #endregion
 
         #region Circular Colors
