@@ -28,8 +28,8 @@ namespace YARG.Core.Replays
             TotalOverdrivePhrases = stats.TotalStarPowerPhrases;
             NumOverdrivePhrasesHit = TotalOverdrivePhrases - stats.StarPowerPhrasesMissed;
             NumOverdriveActivations = stats.StarPowerActivationCount;
-            AverageMultiplier = 0;
-            NumPauses = 0;
+            AverageMultiplier = stats.AverageMultiplier;
+            NumPauses = stats.NumPauses;
         }
 
         protected ReplayStats(ref FixedArrayStream stream, int version)
