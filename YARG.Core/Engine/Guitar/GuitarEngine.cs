@@ -365,7 +365,7 @@ namespace YARG.Core.Engine.Guitar
                 }
             }
 
-            YargLogger.LogDebug($"[Vocals] Base score: {score}, Max Combo: {combo}");
+            YargLogger.LogDebug($"[Guitar] Base score: {score}, Max Combo: {combo}");
             return (int) Math.Round(score);
         }
 
