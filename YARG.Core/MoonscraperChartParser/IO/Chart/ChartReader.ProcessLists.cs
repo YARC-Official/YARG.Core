@@ -204,10 +204,16 @@ namespace MoonscraperChartEditor.Song.IO
         private static void ConvertSoloEvents(ref NoteProcessParams noteProcessParams)
         {
             var chart = noteProcessParams.chart;
+
             // Keeps tracks of soloes that start on the same tick when another solo ends
             uint startTick = uint.MaxValue;
             uint nextStartTick = uint.MaxValue;
-            for (int i = 0; i < chart.events.Count; ++i)
+
+            // Manually move over events so we can avoid excessive element moves
+            // from using RemoveAt or RemoveAll
+            int insertIndex = 0;
+
+            for (int i = 0; i < chart.events.Count; i++)
             {
                 var ev = chart.events[i];
                 if (ev.text == TextEvents.SOLO_START)
@@ -223,27 +229,41 @@ namespace MoonscraperChartEditor.Song.IO
                 }
                 else if (ev.text == TextEvents.SOLO_END)
                 {
-                    if (startTick != uint.MaxValue)
+                    if (startTick == uint.MaxValue)
                     {
-                        // .chart handles solo phrases with *inclusive ends*, so we have to add one tick.
-                        // The only exception will be if another solo starts on the same exact tick.
-                        //
-                        // Comparing to the current tick instead of against uint.MaxValue ensures
-                        // that the we don't allow overlaps
-                        if (nextStartTick != ev.tick)
-                        {
-                            chart.Add(new MoonPhrase(startTick, ev.tick + 1 - startTick, MoonPhrase.Type.Solo));
-                            startTick = uint.MaxValue;
-                        }
-                        else
-                        {
-                            chart.Add(new MoonPhrase(startTick, ev.tick - startTick, MoonPhrase.Type.Solo));
-                            startTick = nextStartTick;
-                            nextStartTick = uint.MaxValue;
-                        }
+                        continue;
+                    }
+
+                    // .chart handles solo phrases with *inclusive ends*, so we have to add one tick.
+                    // The only exception will be if another solo starts on the same exact tick.
+                    //
+                    // Comparing to the current tick instead of against uint.MaxValue ensures
+                    // that we don't allow overlaps
+                    if (nextStartTick != ev.tick)
+                    {
+                        chart.Insert(new MoonPhrase(startTick, ev.tick + 1 - startTick, MoonPhrase.Type.Solo));
+                        startTick = uint.MaxValue;
+                    }
+                    else
+                    {
+                        chart.Insert(new MoonPhrase(startTick, ev.tick - startTick, MoonPhrase.Type.Solo));
+                        startTick = nextStartTick;
+                        nextStartTick = uint.MaxValue;
                     }
                 }
+                else
+                {
+                    if (insertIndex != i)
+                    {
+                        // Move element to its new position
+                        chart.events[insertIndex] = ev;
+                    }
+                    ++insertIndex;
+                }
             }
+
+            // Trim off remaining excess elements from any removals
+            chart.events.RemoveRange(insertIndex, chart.events.Count - insertIndex);
         }
 
         private static void DisambiguateDrumsType(ref NoteProcessParams processParams)

@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Threading;
+using System.Threading.Tasks;
 using YARG.Core.Audio;
 using YARG.Core.Extensions;
 using YARG.Core.IO;
@@ -12,7 +14,6 @@ namespace YARG.Core.Song.Cache
     {
         LoadingCache,
         LoadingSongs,
-        CleaningDuplicates,
         Sorting,
         WritingCache,
         WritingBadSongs
@@ -26,23 +27,21 @@ namespace YARG.Core.Song.Cache
         public int BadSongCount;
     }
 
-    public abstract class CacheHandler
+    public class CacheHandler : IDisposable
     {
         /// <summary>
         /// The date revision of the cache format, relative to UTC.
         /// Format is YY_MM_DD_RR: Y = year, M = month, D = day, R = revision (reset across dates, only increment
         /// if multiple cache version changes happen in a single day).
         /// </summary>
-        public const int CACHE_VERSION = 24_10_29_01;
+        private const int CACHE_VERSION = 25_03_14_01;
 
         public static ScanProgressTracker Progress => _progress;
         private static ScanProgressTracker _progress;
 
-        public static SongCache RunScan(bool tryQuickScan, string cacheLocation, string badSongsLocation, bool multithreading, bool allowDuplicates, bool fullDirectoryPlaylists, List<string> baseDirectories)
+        public static SongCache RunScan(bool tryQuickScan, string cacheLocation, string badSongsLocation, bool fullDirectoryPlaylists, List<string> baseDirectories)
         {
-            CacheHandler handler = multithreading
-                ? new ParallelCacheHandler(baseDirectories, allowDuplicates, fullDirectoryPlaylists)
-                : new SequentialCacheHandler(baseDirectories, allowDuplicates, fullDirectoryPlaylists);
+            using var handler = new CacheHandler(baseDirectories);
 
             // Some ini entry items won't come with the song length defined in the .ini file.
             // In those instances, we'll need to attempt to load the audio files that accompany the chart
@@ -52,10 +51,10 @@ namespace YARG.Core.Song.Cache
             try
             {
                 // Quick scans only fail if they parse zero entries (which could be the result of a few things)
-                if (!tryQuickScan || !QuickScan(handler, cacheLocation))
+                if (!tryQuickScan || !QuickScan(handler, cacheLocation, fullDirectoryPlaylists))
                 {
                     // If a quick scan failed, there's no point to re-reading it in the full scan
-                    FullScan(handler, !tryQuickScan, cacheLocation, badSongsLocation);
+                    FullScan(handler, !tryQuickScan, cacheLocation, badSongsLocation, fullDirectoryPlaylists);
                 }
             }
             catch (Exception ex)
@@ -72,17 +71,17 @@ namespace YARG.Core.Song.Cache
         /// </summary>
         /// <param name="handler">A parallel or sequential handler</param>
         /// <param name="cacheLocation">File path of the cache</param>
-        /// <returns>Whether the scan sucessfully parsed entries</returns>
-        private static bool QuickScan(CacheHandler handler, string cacheLocation)
+        /// <returns>Whether the scan successfully parsed entries</returns>
+        private static bool QuickScan(CacheHandler handler, string cacheLocation, bool fullDirectoryPlaylists)
         {
             try
             {
-                using var cacheFile = LoadCacheToMemory(cacheLocation, handler.fullDirectoryPlaylists);
-                if (cacheFile.IsAllocated)
+                using var cacheFile = LoadCacheToMemory(cacheLocation, fullDirectoryPlaylists);
+                if (cacheFile != null)
                 {
                     _progress.Stage = ScanStage.LoadingCache;
                     YargLogger.LogDebug("Quick Read start");
-                    handler.Deserialize_Quick(cacheFile.ToStream());
+                    handler.Deserialize_Quick(cacheFile);
                 }
             }
             catch (Exception ex)
@@ -90,15 +89,13 @@ namespace YARG.Core.Song.Cache
                 YargLogger.LogException(ex, "Error occurred during quick cache file read!");
             }
 
-            if (_progress.Count == 0)
+            if (handler.cache.Entries.Count == 0)
             {
                 return false;
             }
 
-            handler.CleanupDuplicates();
-
             _progress.Stage = ScanStage.Sorting;
-            handler.SortEntries();
+            SongEntrySorting.SortEntries(handler.cache);
             YargLogger.LogFormatDebug("Total Entries: {0}", _progress.Count);
             return true;
         }
@@ -115,18 +112,18 @@ namespace YARG.Core.Song.Cache
         /// <param name="loadCache">A flag communicating whether to perform the cache read (false only from failed quick scans)</param>
         /// <param name="cacheLocation">File path of the cache</param>
         /// <param name="badSongsLocation">File path of the badsongs.txt</param>
-        private static void FullScan(CacheHandler handler, bool loadCache, string cacheLocation, string badSongsLocation)
+        private static void FullScan(CacheHandler handler, bool loadCache, string cacheLocation, string badSongsLocation, bool fullDirectoryPlaylists)
         {
             if (loadCache)
             {
                 try
                 {
-                    using var cacheFile = LoadCacheToMemory(cacheLocation, handler.fullDirectoryPlaylists);
-                    if (cacheFile.IsAllocated)
+                    using var cacheFile = LoadCacheToMemory(cacheLocation, fullDirectoryPlaylists);
+                    if (cacheFile != null)
                     {
                         _progress.Stage = ScanStage.LoadingCache;
                         YargLogger.LogDebug("Full Read start");
-                        handler.Deserialize(cacheFile.ToStream());
+                        handler.Deserialize(cacheFile, fullDirectoryPlaylists);
                     }
                 }
                 catch (Exception ex)
@@ -136,22 +133,19 @@ namespace YARG.Core.Song.Cache
             }
 
             _progress.Stage = ScanStage.LoadingSongs;
-            handler.FindNewEntries();
+            handler.FindNewEntries(fullDirectoryPlaylists);
             // CON, Upgrade, and Update groups hold onto the DTA data in memory.
             // Once all entries are processed, they are no longer useful to us, so we dispose of them here.
-            handler.DisposeLeftoverData();
-
-            _progress.Stage = ScanStage.CleaningDuplicates;
-            handler.CleanupDuplicates();
+            handler.Dispose();
 
             _progress.Stage = ScanStage.Sorting;
-            handler.SortEntries();
+            SongEntrySorting.SortEntries(handler.cache);
             YargLogger.LogFormatDebug("Total Entries: {0}", _progress.Count);
 
             try
             {
                 _progress.Stage = ScanStage.WritingCache;
-                handler.Serialize(cacheLocation);
+                handler.Serialize(cacheLocation, fullDirectoryPlaylists);
             }
             catch (Exception ex)
             {
@@ -178,73 +172,52 @@ namespace YARG.Core.Song.Cache
 
         #region Data
 
-        protected readonly SongCache cache = new();
+        private readonly SongCache cache = new();
 
-        protected readonly List<IniGroup> iniGroups;
-        protected readonly List<UpdateGroup> updateGroups = new();
-        protected readonly List<UpgradeGroup> upgradeGroups = new();
-        protected readonly List<PackedCONGroup> conGroups = new();
-        protected readonly List<UnpackedCONGroup> extractedConGroups = new();
-        protected readonly Dictionary<string, CONModification> conModifications = new();
-        protected readonly Dictionary<string, RBProUpgrade> cacheUpgrades = new();
-        protected readonly HashSet<string> preScannedDirectories = new();
-        protected readonly HashSet<string> preScannedFiles = new();
+        private readonly List<IniEntryGroup> iniGroups;
+        private readonly List<CONEntryGroup> conEntryGroups = new();
+        private readonly List<CONUpdateGroup> updateGroups = new();
+        private readonly List<PackedCONUpgradeGroup> packedUpgradeGroups = new();
+        private readonly List<UnpackedCONUpgradeGroup> unpackedUpgradeGroups = new();
 
+        private readonly Dictionary<string, CONModification> conModifications = new();
 
-        protected readonly bool allowDuplicates = true;
-        protected readonly bool fullDirectoryPlaylists;
-        protected readonly List<SongEntry> duplicatesRejected = new();
-        protected readonly List<SongEntry> duplicatesToRemove = new();
-        protected readonly SortedDictionary<string, ScanResult> badSongs = new();
+        private readonly HashSet<string> preScannedPaths = new();
+        private readonly SortedDictionary<string, ScanResult> badSongs = new();
         #endregion
 
         #region Common
 
-        protected CacheHandler(List<string> baseDirectories, bool allowDuplicates, bool fullDirectoryPlaylists)
+        private CacheHandler(List<string> baseDirectories)
         {
             _progress = default;
-            this.allowDuplicates = allowDuplicates;
-            this.fullDirectoryPlaylists = fullDirectoryPlaylists;
 
             iniGroups = new(baseDirectories.Count);
             foreach (string dir in baseDirectories)
             {
                 if (!string.IsNullOrEmpty(dir) && !iniGroups.Exists(group => { return group.Directory == dir; }))
                 {
-                    iniGroups.Add(new IniGroup(dir));
+                    iniGroups.Add(new IniEntryGroup(dir));
                 }
             }
         }
 
         /// <summary>
-        /// Sorts entries
-        /// </summary>
-        protected abstract void SortEntries();
-
-        /// <summary>
-        /// Adds a instance to the shared list of packed con groups.
-        /// </summary>
-        protected abstract void AddPackedCONGroup(PackedCONGroup group);
-
-        /// <summary>
-        /// Adds a instance to the shared list of unpacked con groups.
-        /// </summary>
-        protected abstract void AddUnpackedCONGroup(UnpackedCONGroup group);
-
-        /// <summary>
-        /// Adds a instance to the shared list of update groups.
-        /// </summary>
-        protected abstract void AddUpdateGroup(UpdateGroup group);
-
-        /// <summary>
-        /// Adds a instance to the shared list of upgrade groups.
-        /// </summary>
-        protected abstract void AddUpgradeGroup(UpgradeGroup group);
-
-        /// <summary>
         /// Removes all the entries present in all packed and unpacked con groups that have a matching DTA node name
         /// </summary>
-        protected abstract void RemoveCONEntry(string shortname);
+        private void RemoveCONEntries<T>(Dictionary<string, T> modifications)
+        {
+            lock (conEntryGroups)
+            {
+                foreach (var mod in modifications)
+                {
+                    for (int i = 0; i < conEntryGroups.Count; i++)
+                    {
+                        conEntryGroups[i].RemoveEntries(mod.Key);
+                    }
+                }
+            }
+        }
 
         /// <summary>
         /// Grabs or constructs a node containing all the updates or upgrades that can applied to any DTA entries
@@ -252,67 +225,185 @@ namespace YARG.Core.Song.Cache
         /// </summary>
         /// <param name="name">The name of the DTA node for the entry</param>
         /// <returns>The node with the update and upgrade information</returns>
-        protected abstract CONModification GetModification(string name);
+        private CONModification GetCONMod(string name)
+        {
+            CONModification mods;
+            lock (conModifications)
+            {
+                if (!conModifications.TryGetValue(name, out mods))
+                {
+                    conModifications.Add(name, mods = new CONModification());
+                }
+            }
+
+            lock (mods)
+            {
+                if (!mods.Processed)
+                {
+                    foreach (var group in updateGroups)
+                    {
+                        if (!group.Updates.TryGetValue(name, out var node))
+                        {
+                            continue;
+                        }
+
+                        if (mods.UpdateDirectoryAndDtaLastWrite.HasValue &&
+                            group.Root.LastWriteTime <= mods.UpdateDirectoryAndDtaLastWrite.Value.LastWriteTime)
+                        {
+                            continue;
+                        }
+
+                        mods.UpdateDirectoryAndDtaLastWrite = group.Root;
+                        mods.UpdateDTA = DTAEntry.Empty;
+                        for (int i = 0; i < node.Containers.Count; ++i)
+                        {
+                            mods.UpdateDTA.LoadData(name, node.Containers[i]);
+                        }
+
+                        mods.UpdateMidiLastWrite = node.Update;
+                        if (!mods.UpdateMidiLastWrite.HasValue && mods.UpdateDTA.DiscUpdate)
+                        {
+                            YargLogger.LogFormatWarning("Update midi expected in directory {0}", Path.Combine(group.Root.FullName, name));
+                        }
+                    }
+
+                    foreach (var group in packedUpgradeGroups)
+                    {
+                        if (!group.Upgrades.TryGetValue(name, out var node))
+                        {
+                            continue;
+                        }
+
+                        if (mods.Upgrade != null && node.Upgrade.LastWriteTime <= mods.Upgrade.LastWriteTime)
+                        {
+                            continue;
+                        }
+
+                        mods.Upgrade = node.Upgrade;
+                        mods.UpgradeDTA = DTAEntry.Create(name, node.Container);
+                    }
+
+                    foreach (var group in unpackedUpgradeGroups)
+                    {
+                        if (!group.Upgrades.TryGetValue(name, out var node))
+                        {
+                            continue;
+                        }
+
+                        if (mods.Upgrade != null && node.Upgrade.LastWriteTime <= mods.Upgrade.LastWriteTime)
+                        {
+                            continue;
+                        }
+
+                        mods.Upgrade = node.Upgrade;
+                        mods.UpgradeDTA = DTAEntry.Create(name, node.Container);
+                    }
+                    mods.Processed = true;
+                }
+            }
+            return mods;
+        }
 
         /// <summary>
         /// Performs the traversal of the filesystem in search of new entries to add to a user's library
         /// </summary>
-        protected abstract void FindNewEntries();
+        private void FindNewEntries(bool fullDirectoryPlaylists)
+        {
+            var tracker = new PlaylistTracker(fullDirectoryPlaylists, null);
+            Parallel.ForEach(iniGroups, group =>
+            {
+                var dirInfo = new DirectoryInfo(group.Directory);
+                ScanDirectory(dirInfo, group, tracker);
+            });
 
-        /// <summary>
-        /// Splits a collection into the tasks that traverse subdirectories or scan subfiles during the "New Entries" process
-        /// </summary>
-        /// <param name="collection">The collection containing the sub directories and/or files</param>
-        /// <param name="group">The group aligning to one of the base directories provided by the user</param>
-        /// <param name="tracker">A tracker used to apply provide entries with default playlists</param>
-        protected abstract void TraverseDirectory(in FileCollection collection, IniGroup group, PlaylistTracker tracker);
+            Parallel.ForEach(conEntryGroups, group =>
+            {
+                group.InitScan();
+                Parallel.ForEach(group, node =>
+                {
+                    var mods = GetCONMod(node.Key);
+                    if (mods.UpdateDirectoryAndDtaLastWrite != null)
+                    {
+                        string moggPath = Path.Combine(mods.UpdateDirectoryAndDtaLastWrite.Value.FullName, node.Key, node.Key + ".mogg");
+                        if (File.Exists(moggPath))
+                        {
+                            try
+                            {
+                                using var stream = new FileStream(moggPath, FileMode.Open, FileAccess.Read, FileShare.Read, 1);
+                                if (stream.Read<int>(Endianness.Little) != RBCONEntry.UNENCRYPTED_MOGG)
+                                {
+                                    AddToBadSongs(group.Root.FullName + " - " + node.Key, ScanResult.MoggError_Update);
+                                    return;
+                                }
+                            }
+                            catch (Exception e)
+                            {
+                                YargLogger.LogException(e);
+                                AddToBadSongs(group.Root.FullName + " - " + node.Key, ScanResult.MoggError_Update);
+                                return;
+                            }
+                        }
+                    }
 
-        /// <summary>
-        /// Deserializes a cache file into the separate song entries with all validation checks
-        /// </summary>
-        /// <param name="stream">The stream containging the cache file data</param>
-        protected abstract void Deserialize(UnmanagedMemoryStream stream);
+                    var parameters = new RBScanParameters()
+                    {
+                        UpdateDta = mods.UpdateDTA,
+                        UpgradeDta = mods.UpgradeDTA,
+                        Root = group.Root,
+                        NodeName = node.Key,
+                        UpdateDirectory = mods.UpdateDirectoryAndDtaLastWrite,
+                        UpdateMidi = mods.UpdateMidiLastWrite,
+                        Upgrade = mods.Upgrade,
+                        DefaultPlaylist = group.DefaultPlaylist,
+                    };
 
-        /// <summary>
-        /// Deserializes a cache file into the separate song entries with minimal validations
-        /// </summary>
-        /// <param name="stream">The stream containging the cache file data</param>
-        protected abstract void Deserialize_Quick(UnmanagedMemoryStream stream);
-
-        /// <summary>
-        /// Adds a collection constructed during the full deserialization to a cache for use during
-        /// the full scan "New Entries" step. This skips the need to re-process a directory's list of files
-        /// where applicable.
-        /// </summary>
-        protected abstract void AddCollectionToCache(in FileCollection collection);
-
-        /// <summary>
-        /// Returns a CON group if the upgradeCON deserialization step already generated a group with the same filename 
-        /// </summary>
-        /// <param name="filename">The file path of the CON to potentially load (if not already)</param>
-        /// <returns>A pre-loaded CON group on success find; <see langword="null"/> otherwise</returns>
-        protected abstract PackedCONGroup? FindCONGroup(string filename);
-
-        /// <summary>
-        /// Upgrade nodes need to exist before CON entries can be processed. We therefore place all valid upgrades from cache
-        /// into a list for quick access.
-        /// </summary>
-        /// <param name="name">The DTA node name for the upgrade</param>
-        /// <param name="upgrade">The upgrade node to add</param>
-        protected abstract void AddCacheUpgrade(string name, RBProUpgrade upgrade);
+                    for (int i = 0; i < node.Value.Count; i++)
+                    {
+                        if (!group.TryGetEntry(node.Key, i, out var entry))
+                        {
+                            try
+                            {
+                                parameters.BaseDta = DTAEntry.Create(node.Key, node.Value[i]);
+                                var result = group.CreateEntry(in parameters);
+                                if (!result)
+                                {
+                                    AddToBadSongs(group.Root.FullName + " - " + node.Key, result.Error);
+                                    continue;
+                                }
+                                group.AddEntry(node.Key, i, result.Value);
+                                AddEntry(result.Value);
+                            }
+                            catch (Exception e)
+                            {
+                                YargLogger.LogException(e);
+                            }
+                        }
+                        else
+                        {
+                            entry.UpdateInfo(in parameters.UpdateDirectory, in parameters.UpdateMidi, parameters.Upgrade);
+                            AddEntry(entry);
+                        }
+                    }
+                });
+                group.Dispose();
+            });
+        }
 
         /// <summary>
         /// Attempts to mark a directory as "processed"
         /// </summary>
         /// <param name="directory">The directory to mark</param>
         /// <returns><see langword="true"/> if the directory was not previously marked</returns>
-        protected virtual bool FindOrMarkDirectory(string directory)
+        private bool FindOrMarkDirectory(string directory)
         {
-            if (!preScannedDirectories.Add(directory))
+            lock (preScannedPaths)
             {
-                return false;
+                if (!preScannedPaths.Add(directory))
+                {
+                    return false;
+                }
+                _progress.NumScannedDirectories++;
             }
-            _progress.NumScannedDirectories++;
             return true;
         }
 
@@ -321,9 +412,12 @@ namespace YARG.Core.Song.Cache
         /// </summary>
         /// <param name="file">The file to mark</param>
         /// <returns><see langword="true"/> if the file was not previously marked</returns>
-        protected virtual bool FindOrMarkFile(string file)
+        private bool FindOrMarkFile(string file)
         {
-            return preScannedFiles.Add(file);
+            lock (preScannedPaths)
+            {
+                return preScannedPaths.Add(file);
+            }
         }
 
         /// <summary>
@@ -331,10 +425,13 @@ namespace YARG.Core.Song.Cache
         /// </summary>
         /// <param name="filePath">The file that produced the error</param>
         /// <param name="err">The error produced</param>
-        protected virtual void AddToBadSongs(string filePath, ScanResult err)
+        private void AddToBadSongs(string filePath, ScanResult err)
         {
-            badSongs.Add(filePath, err);
-            _progress.BadSongCount++;
+            lock (badSongs)
+            {
+                badSongs.Add(filePath, err);
+                _progress.BadSongCount++;
+            }
         }
 
         /// <summary>
@@ -344,113 +441,67 @@ namespace YARG.Core.Song.Cache
         /// </summary>
         /// <param name="entry">The entry to add</param>
         /// <returns>Whether the song was accepted into the list</returns>
-        protected virtual bool AddEntry(SongEntry entry)
+        private void AddEntry(SongEntry entry)
         {
-            var hash = entry.Hash;
-            if (cache.Entries.TryGetValue(hash, out var list) && !allowDuplicates)
+            static bool ShouldReplaceFront(SongEntry replacment, SongEntry entryToReplace)
             {
-                if (list[0].IsPreferedOver(entry))
+                if (replacment.SubType != entryToReplace.SubType)
                 {
-                    duplicatesRejected.Add(entry);
-                    return false;
+                    return replacment.SubType > entryToReplace.SubType;
                 }
-
-                duplicatesToRemove.Add(list[0]);
-                list[0] = entry;
+                return SongEntrySorting.CompareMetadata(replacment, entryToReplace);
             }
-            else
+
+            List<SongEntry> list;
+            lock (cache.Entries)
             {
-                if (list == null)
+                if (!cache.Entries.TryGetValue(entry.Hash, out list))
                 {
-                    cache.Entries.Add(hash, list = new List<SongEntry>());
+                    // Most entries will accompany unique hashes, so we can usually safely reserve just a single slot
+                    cache.Entries.Add(entry.Hash, list = new List<SongEntry>(1));
                 }
-
-                list.Add(entry);
-                ++_progress.Count;
             }
-            return true;
-        }
 
-        /// <summary>
-        /// Marks a CON song with the DTA name as invalid for addition from the cache
-        /// </summary>
-        /// <param name="name">The DTA name to mark</param>
-        protected virtual void AddInvalidSong(string name)
-        {
-            invalidSongsInCache.Add(name);
-        }
-
-        /// <summary>
-        /// Grabs the iniGroup that parents the provided path, if one exists
-        /// </summary>
-        /// <param name="path">The absolute file path</param>
-        /// <returns>The applicable group if found; <see langword="null"/> otherwise</returns>
-        protected IniGroup? GetBaseIniGroup(string path)
-        {
-            foreach (var group in iniGroups)
+            lock (list)
             {
-                if (path.StartsWith(group.Directory) &&
-                    // Ensures directories with similar names (previously separate bases)
-                    // that are consolidated in-game to a single base directory
-                    // don't have conflicting "relative path" issues
-                    (path.Length == group.Directory.Length || path[group.Directory.Length] == Path.DirectorySeparatorChar))
-                    return group;
+                int index = 0;
+                if (list.Count > 0)
+                {
+                    if (!ShouldReplaceFront(entry, list[0]))
+                    {
+                        entry.MarkAsDuplicate();
+                        index = list.Count;
+                    }
+                    else
+                    {
+                        list[0].MarkAsDuplicate();
+                    }
+                }
+                list.Insert(index, entry);
             }
-            return null;
+            Interlocked.Increment(ref _progress.Count);
         }
 
         /// <summary>
         /// Disposes all DTA FixedArray data present in upgrade and update nodes.
         /// The songDTA arrays will already have been disposed of before reaching this point.
         /// </summary>
-        private void DisposeLeftoverData()
+        public void Dispose()
         {
-            foreach (var group in conGroups)
-            {
-                group.UpgradeDTAData.Dispose();
-            }
-
-            foreach (var group in upgradeGroups)
-            {
-                group.DTAData.Dispose();
-            }
-
             foreach (var group in updateGroups)
             {
-                group.DTAData.Dispose();
+                group.Dispose();
             }
-        }
 
-        /// <summary>
-        /// Goes through all the groups that contain song entries to remove specific instances of duplicates
-        /// </summary>
-        private void CleanupDuplicates()
-        {
-            foreach (var entry in duplicatesToRemove)
+            foreach (var group in unpackedUpgradeGroups)
             {
-                if (!TryRemove(iniGroups, entry) && !TryRemove(conGroups, entry))
-                {
-                    TryRemove(extractedConGroups, entry);
-                }
+                group.Dispose();
             }
-        }
 
-        private static bool TryRemove<TGroup>(List<TGroup> groups, SongEntry entry)
-            where TGroup : ICacheGroup
-        {
-            for (int i = 0; i < groups.Count; ++i)
+            foreach (var group in packedUpgradeGroups)
             {
-                var group = groups[i];
-                if (group.TryRemoveEntry(entry))
-                {
-                    if (group.Count == 0)
-                    {
-                        groups.RemoveAt(i);
-                    }
-                    return true;
-                }
+                group.Dispose();
             }
-            return false;
         }
 
         /// <summary>
@@ -501,12 +552,6 @@ namespace YARG.Core.Song.Cache
                     case ScanResult.MissingCONMidi:
                         writer.WriteLine("Midi file queried for found missing");
                         break;
-                    case ScanResult.IniNotDownloaded:
-                        writer.WriteLine("Ini file not fully downloaded - try again once it completes");
-                        break;
-                    case ScanResult.ChartNotDownloaded:
-                        writer.WriteLine("Chart file not fully downloaded - try again once it completes");
-                        break;
                     case ScanResult.PossibleCorruption:
                         writer.WriteLine("Possible corruption of a queried midi file");
                         break;
@@ -546,7 +591,7 @@ namespace YARG.Core.Song.Cache
 
         #region Scanning
 
-        protected readonly struct PlaylistTracker
+        private readonly struct PlaylistTracker
         {
             private readonly bool _fullDirectoryFlag;
             // We use `null` as the default state to grant two levels of subdirectories before
@@ -572,10 +617,6 @@ namespace YARG.Core.Song.Cache
             }
         }
 
-        protected const string SONGS_DTA = "songs.dta";
-        protected const string SONGUPDATES_DTA = "songs_updates.dta";
-        protected const string SONGUPGRADES_DTA = "upgrades.dta";
-
         /// <summary>
         /// Checks for the presence of files pertaining to an unpacked ini entry or whether the directory
         /// is to be used for CON updates, upgrades, or extracted CON song entries.
@@ -585,88 +626,105 @@ namespace YARG.Core.Song.Cache
         /// <param name="directory">The directory instance to load and scan through</param>
         /// <param name="group">The group aligning to one of the base directories provided by the user</param>
         /// <param name="tracker">A tracker used to apply provide entries with default playlists</param>
-        protected void ScanDirectory(DirectoryInfo directory, IniGroup group, PlaylistTracker tracker)
+        private void ScanDirectory(DirectoryInfo directory, IniEntryGroup group, PlaylistTracker tracker)
         {
             try
             {
-                if (!FindOrMarkDirectory(directory.FullName) || (directory.Attributes & FileAttributes.Hidden) != 0)
+                if (!FindOrMarkDirectory(directory.FullName))
                 {
-                    return;
-                }
-
-                // An update, upgrade, or unpacked con group might've failed during the cache load.
-                // In certain conditions, the collections that we would otherwise use for those would instead be in this cache
-                if (!collectionCache.TryGetValue(directory.FullName, out var collection))
-                {
-                    collection = new FileCollection(directory);
-                }
-
-                // If we discover any combo of valid unpacked ini entry files in this directory,
-                // we will traverse none of the subdirectories present in this scope
-                if (ScanIniEntry(in collection, group, tracker.Playlist))
-                {
-                    // However, the presence subdirectories could mean that the user didn't properly
-                    // organize their collection. So as a service, we warn them in the badsongs.txt.
-                    if (collection.SubDirectories.Count > 0)
-                    {
-                        AddToBadSongs(directory.FullName, ScanResult.LooseChart_Warning);
-                    }
                     return;
                 }
 
                 switch (directory.Name)
                 {
-                    // FOR ALL OF THE CASES: a missing dta file means that we will treat the folder like any other subdirectory
                     case "songs_updates":
+                    {
+                        var dta = new FileInfo(Path.Combine(directory.FullName, RBCONEntry.SONGUPDATES_DTA));
+                        if (dta.Exists && CONUpdateGroup.Create(directory.FullName, dta, out var updateGroup))
                         {
-                            if (collection.Subfiles.TryGetValue(SONGUPDATES_DTA, out var dta))
+                            lock (updateGroups)
                             {
-                                var updateGroup = CreateUpdateGroup(in collection, dta);
-                                if (updateGroup != null)
-                                {
-                                    // Ensures any con entries pulled from cache are removed for re-evaluation
-                                    foreach (var node in updateGroup.Updates)
-                                    {
-                                        RemoveCONEntry(node.Key);
-                                    }
-                                }
-                                return;
+                                updateGroups.Add(updateGroup);
                             }
-                            break;
+                            // Ensures any con entries pulled from cache are removed for re-evaluation
+                            RemoveCONEntries(updateGroup!.Updates);
                         }
-                    case "songs_upgrades":
-                        {
-                            if (collection.Subfiles.TryGetValue(SONGUPGRADES_DTA, out var dta))
-                            {
-                                var upgradeGroup = CreateUpgradeGroup(in collection, dta);
-                                if (upgradeGroup != null)
-                                {
-                                    // Ensures any con entries pulled from cache are removed for re-evaluation
-                                    foreach (var node in upgradeGroup.Upgrades)
-                                    {
-                                        RemoveCONEntry(node.Key);
-                                    }
-                                }
-                                return;
-                            }
-                            break;
-                        }
+                        return;
+                    }
+                    // A missing dta file means that we will treat the folder like any other subdirectory.
+                    // It's likely that directories of this name do not denote CON entires, so that's necessary.
                     case "songs":
+                    {
+                        var dta = new FileInfo(Path.Combine(directory.FullName, CONEntryGroup.SONGS_DTA));
+                        if (dta.Exists)
                         {
-                            if (collection.Subfiles.TryGetValue(SONGS_DTA, out var dta))
+                            if (UnpackedCONEntryGroup.Create(directory.FullName, dta, tracker.Playlist, out var entryGroup))
                             {
-                                var _ = CreateUnpackedCONGroup(directory.FullName, dta, tracker.Playlist);
-                                return;
+                                lock (conEntryGroups)
+                                {
+                                    conEntryGroups.Add(entryGroup);
+                                }
                             }
-                            break;
+                            else
+                            {
+                                AddToBadSongs(directory.FullName, ScanResult.DirectoryError);
+                            }
+                            return;
                         }
+                        break;
+                    }
                 }
 
-                TraverseDirectory(collection, group, tracker.Append(directory.Name));
+                if (!collectionCache.TryGetValue(directory.FullName, out var collection))
+                {
+                    collection = new FileCollection(directory);
+                }
+
                 // Only possible on UNIX-based systems where file names are case-sensitive
                 if (collection.ContainedDupes)
                 {
-                    AddToBadSongs(collection.Directory.FullName, ScanResult.DuplicateFilesFound);
+                    AddToBadSongs(collection.Directory, ScanResult.DuplicateFilesFound);
+                }
+
+                if (directory.Name == "songs_upgrades")
+                {
+                    if (collection.FindFile(RBProUpgrade.UPGRADES_DTA, out var dta)
+                    && UnpackedCONUpgradeGroup.Create(collection, dta, out var upgradeGroup))
+                    {
+                        lock (unpackedUpgradeGroups)
+                        {
+                            unpackedUpgradeGroups.Add(upgradeGroup);
+                        }
+                        // Ensures any con entries pulled from cache are removed for re-evaluation
+                        RemoveCONEntries(upgradeGroup!.Upgrades);
+                    }
+                }
+                // If we discover any combo of valid unpacked ini entry files in this directory,
+                // we will traverse none of the subdirectories present in this scope
+                else if (ScanIniEntry(in collection, group, tracker.Playlist))
+                {
+                    // However, the presence of subdirectories could mean that the user didn't properly
+                    // organize their collection. So as a service, we warn them in the badsongs.txt.
+                    if (collection.ContainsDirectory())
+                    {
+                        AddToBadSongs(directory.FullName, ScanResult.LooseChart_Warning);
+                    }
+                }
+                else
+                {
+                    var nextTracker = tracker.Append(directory.Name);
+                    Parallel.ForEach(collection, entry =>
+                    {
+                        switch (entry.Value)
+                        {
+                            case DirectoryInfo directory:
+                                ScanDirectory(directory, group, nextTracker);
+                                break;
+                            case FileInfo file:
+                                ScanFile(file, group, nextTracker);
+                                break;
+                        }
+                    });
                 }
             }
             catch (PathTooLongException)
@@ -686,22 +744,21 @@ namespace YARG.Core.Song.Cache
         /// <param name="info">The info for provided file</param>
         /// <param name="group">The group aligning to one of the base directories provided by the user</param>
         /// <param name="tracker">A tracker used to apply provide entries with default playlists</param>
-        protected void ScanFile(FileInfo info, IniGroup group, in PlaylistTracker tracker)
+        private void ScanFile(FileInfo info, IniEntryGroup group, in PlaylistTracker tracker)
         {
             string filename = info.FullName;
             try
             {
                 // Ensures only fully downloaded unmarked files are processed
-                if (FindOrMarkFile(filename) && (info.Attributes & AbridgedFileInfo.RECALL_ON_DATA_ACCESS) == 0)
+                if (FindOrMarkFile(filename))
                 {
-                    var abridged = new AbridgedFileInfo(info);
                     string ext = info.Extension;
                     if (ext == ".sng" || ext == ".yargsong")
                     {
-                        using var sngFile = SngFile.TryLoadFromFile(abridged);
-                        if (sngFile != null)
+                        using var sngFile = SngFile.TryLoadFromFile(info.FullName, true);
+                        if (sngFile.IsLoaded)
                         {
-                            ScanSngFile(sngFile, group, tracker.Playlist);
+                            ScanSngFile(in sngFile, info, group, tracker.Playlist);
                         }
                         else
                         {
@@ -710,14 +767,11 @@ namespace YARG.Core.Song.Cache
                     }
                     else
                     {
-                        var conGroup = CreateCONGroup(in abridged, tracker.Playlist);
-                        if (conGroup != null)
+                        var result = CreateCONGroup(info, tracker.Playlist);
+                        if (result.Upgrades != null)
                         {
                             // Ensures any con entries pulled from cache are removed for re-evaluation
-                            foreach (var node in conGroup.Upgrades)
-                            {
-                                RemoveCONEntry(node.Key);
-                            }
+                            RemoveCONEntries(result.Upgrades.Upgrades);
                         }
                     }
                 }
@@ -734,118 +788,6 @@ namespace YARG.Core.Song.Cache
         }
 
         /// <summary>
-        /// A templated helper function used for scanning a new CON entry to the list
-        /// </summary>
-        /// <typeparam name="TGroup">The group type (shocker)</typeparam>
-        /// <typeparam name="TEntry">The entry type for the group (again... shocker)</typeparam>
-        /// <param name="group">The group that contains or will contain the entry</param>
-        /// <param name="name">The DTA node name for the entry</param>
-        /// <param name="index">The index for the specific node (for CON packs that contain songs that share the same DTA name FOR SOME FUCKING REASON)</param>
-        /// <param name="node">The raw byte data for the entry's base DTA information</param>
-        /// <param name="func">The function used to convert the DTA info and modifications to the desired entry type</param>
-        protected unsafe void ScanCONNode<TGroup, TEntry>(TGroup group, string name, int index, in YARGTextContainer<byte> node, delegate*<TGroup, string, DTAEntry, CONModification, (ScanResult, TEntry?)> func)
-            where TGroup : CONGroup<TEntry>
-            where TEntry : RBCONEntry
-        {
-            if (group.TryGetEntry(name, index, out var entry))
-            {
-                if (!AddEntry(entry!))
-                {
-                    group.RemoveEntry(name, index);
-                }
-            }
-            else
-            {
-                try
-                {
-                    var dtaEntry = new DTAEntry(name, in node);
-                    var modification = GetModification(name);
-                    var song = func(group, name, dtaEntry, modification);
-                    if (song.Item2 != null)
-                    {
-                        if (AddEntry(song.Item2))
-                        {
-                            group.AddEntry(name, index, song.Item2);
-                        }
-                    }
-                    else
-                    {
-                        AddToBadSongs(group.Location + $" - Node {name}", song.Item1);
-                    }
-                }
-                catch (Exception ex)
-                {
-                    YargLogger.LogException(ex);
-                    AddToBadSongs(group.Location + $" - Node {name}", ScanResult.DTAError);
-                }
-            }
-        }
-
-        /// <summary>
-        /// Loads the updates and upgrades that apply to con entries that share the same DTA node name
-        /// </summary>
-        /// <param name="modification">The modification node to initialize</param>
-        /// <param name="name">The DTA name of the node</param>
-        protected void InitModification(CONModification modification, string name)
-        {
-            // To put the behavior simply: different folders mapping to the same nodes
-            // for like modification types is no bueno. Only the one with the most recent DTA
-            // write time will get utilized for entries with the current DTA name.
-
-            var datetime = default(DateTime);
-            foreach (var group in updateGroups)
-            {
-                if (group.Updates.TryGetValue(name, out var update))
-                {
-                    if (modification.UpdateDTA == null || datetime < group.DTALastWrite)
-                    {
-                        modification.UpdateDTA = new DTAEntry(update.Containers[0].Encoding);
-                        foreach (var container in update.Containers)
-                        {
-                            modification.UpdateDTA.LoadData(name, container);
-                        }
-                        modification.Midi = update.Midi;
-                        if (modification.Midi == null && modification.UpdateDTA.DiscUpdate)
-                        {
-                            YargLogger.LogFormatWarning("Update midi expected in directory {0}", Path.Combine(group.Directory, name));
-                        }
-
-                        modification.Mogg = update.Mogg;
-                        modification.Milo = update.Milo;
-                        modification.Image = update.Image;
-                        datetime = group.DTALastWrite;
-                    }
-                }
-            }
-
-            foreach (var group in upgradeGroups)
-            {
-                if (group.Upgrades.TryGetValue(name, out var node) && node.Upgrade != null)
-                {
-                    if (modification.UpgradeDTA == null || datetime < group.DTALastWrite)
-                    {
-                        modification.UpgradeNode = node.Upgrade;
-                        modification.UpgradeDTA = new DTAEntry(name, in node.Container);
-                        datetime = group.DTALastWrite;
-                    }
-                }
-            }
-
-            foreach (var group in conGroups)
-            {
-                if (group.Upgrades.TryGetValue(name, out var node) && node.Upgrade != null)
-                {
-                    if (modification.UpgradeDTA == null || datetime < group.Info.LastUpdatedTime)
-                    {
-                        modification.UpgradeNode = node.Upgrade;
-                        modification.UpgradeDTA = new DTAEntry(name, in node.Container);
-                        datetime = group.Info.LastUpdatedTime;
-                    }
-                }
-            }
-        }
-
-        /// <summary>
         /// Searches for a ".ini" and any .mid or .chart file to possibly extract as a song entry.
         /// If found, even if we can't extract an entry from them, we should perform no further directory traversal.
         /// </summary>
@@ -853,12 +795,12 @@ namespace YARG.Core.Song.Cache
         /// <param name="group">The group aligning to one of the base directories provided by the user</param>
         /// <param name="defaultPlaylist">The default directory-based playlist to use for any successful entry</param>
         /// <returns>Whether files pertaining to an unpacked ini entry were discovered</returns>
-        private bool ScanIniEntry(in FileCollection collection, IniGroup group, string defaultPlaylist)
+        private bool ScanIniEntry(in FileCollection collection, IniEntryGroup group, string defaultPlaylist)
         {
-            int i = collection.Subfiles.TryGetValue("song.ini", out var ini) ? 0 : 2;
+            int i = collection.FindFile("song.ini", out var ini) ? 0 : 2;
             while (i < 3)
             {
-                if (!collection.Subfiles.TryGetValue(IniSubEntry.CHART_FILE_TYPES[i].Filename, out var chart))
+                if (!collection.FindFile(IniSubEntry.CHART_FILE_TYPES[i].Filename, out var chart))
                 {
                     ++i;
                     continue;
@@ -876,14 +818,15 @@ namespace YARG.Core.Song.Cache
 
                 try
                 {
-                    var entry = UnpackedIniEntry.ProcessNewEntry(collection.Directory.FullName, chart, IniSubEntry.CHART_FILE_TYPES[i].Format, ini, defaultPlaylist);
-                    if (entry.Item2 == null)
+                    var entry = UnpackedIniEntry.ProcessNewEntry(collection.Directory, chart, IniSubEntry.CHART_FILE_TYPES[i].Format, ini, defaultPlaylist);
+                    if (entry)
                     {
-                        AddToBadSongs(chart.FullName, entry.Item1);
+                        AddEntry(entry.Value);
+                        group.AddEntry(entry.Value);
                     }
-                    else if (AddEntry(entry.Item2))
+                    else
                     {
-                        group.AddEntry(entry.Item2);
+                        AddToBadSongs(chart.FullName, entry.Error);
                     }
                 }
                 catch (PathTooLongException)
@@ -894,7 +837,7 @@ namespace YARG.Core.Song.Cache
                 catch (Exception e)
                 {
                     YargLogger.LogException(e, $"Error while scanning chart file {chart}!");
-                    AddToBadSongs(collection.Directory.FullName, ScanResult.IniEntryCorruption);
+                    AddToBadSongs(collection.Directory, ScanResult.IniEntryCorruption);
                 }
                 return true;
             }
@@ -907,12 +850,12 @@ namespace YARG.Core.Song.Cache
         /// <param name="sngFile">The sngfile to search through</param>
         /// <param name="group">The group aligning to one of the base directories provided by the user</param>
         /// <param name="defaultPlaylist">The default directory-based playlist to use for any successful entry</param>
-        private void ScanSngFile(SngFile sngFile, IniGroup group, string defaultPlaylist)
+        private void ScanSngFile(in SngFile sngFile, FileInfo info, IniEntryGroup group, string defaultPlaylist)
         {
-            int i = sngFile.Metadata.Count > 0 ? 0 : 2;
+            int i = !sngFile.Modifiers.IsEmpty() ? 0 : 2;
             while (i < 3)
             {
-                if (!sngFile.TryGetValue(IniSubEntry.CHART_FILE_TYPES[i].Filename, out var chart))
+                if (!sngFile.TryGetListing(IniSubEntry.CHART_FILE_TYPES[i].Filename, out var chart))
                 {
                     ++i;
                     continue;
@@ -920,26 +863,27 @@ namespace YARG.Core.Song.Cache
 
                 if (!sngFile.ContainsAudio())
                 {
-                    AddToBadSongs(sngFile.Info.FullName, ScanResult.NoAudio);
+                    AddToBadSongs(info.FullName, ScanResult.NoAudio);
                     break;
                 }
 
                 try
                 {
-                    var entry = SngEntry.ProcessNewEntry(sngFile, chart, IniSubEntry.CHART_FILE_TYPES[i].Format, defaultPlaylist);
-                    if (entry.Item2 == null)
+                    var entry = SngEntry.ProcessNewEntry(in sngFile, in chart, info, IniSubEntry.CHART_FILE_TYPES[i].Format, defaultPlaylist);
+                    if (entry.HasValue)
                     {
-                        AddToBadSongs(sngFile.Info.FullName, entry.Item1);
+                        AddEntry(entry.Value);
+                        group.AddEntry(entry.Value);
                     }
-                    else if (AddEntry(entry.Item2))
+                    else
                     {
-                        group.AddEntry(entry.Item2);
+                        AddToBadSongs(info.FullName, entry.Error);
                     }
                 }
                 catch (Exception e)
                 {
-                    YargLogger.LogException(e, $"Error while scanning chart file {chart} within {sngFile.Info.FullName}!");
-                    AddToBadSongs(sngFile.Info.FullName, ScanResult.IniEntryCorruption);
+                    YargLogger.LogException(e, $"Error while scanning chart file {chart} within {info.FullName}!");
+                    AddToBadSongs(info.FullName, ScanResult.IniEntryCorruption);
                 }
                 break;
             }
@@ -949,8 +893,10 @@ namespace YARG.Core.Song.Cache
         #region Serialization
 
         public const int SIZEOF_DATETIME = 8;
-        protected readonly HashSet<string> invalidSongsInCache = new();
-        protected readonly Dictionary<string, FileCollection> collectionCache = new();
+        private HashSet<string> invalidSongsInCache = new();
+        private Dictionary<string, FileCollection> collectionCache = new();
+        private Dictionary<string, QuickCONMods> cacheCONModifications = new();
+        private Dictionary<string, List<CONFileListing>?> cacheCONListings = new();
 
         /// <summary>
         /// The sum of all "count" variables in a file
@@ -969,123 +915,116 @@ namespace YARG.Core.Song.Cache
         /// <param name="cacheLocation">File location for the cache</param>
         /// <param name="fullDirectoryPlaylists">Toggle for the display style of directory-based playlists</param>
         /// <returns>A FixedArray instance pointing to a buffer of the cache file's data, or <see cref="FixedArray&lt;&rt;"/>.Null if invalid</returns>
-        private static FixedArray<byte> LoadCacheToMemory(string cacheLocation, bool fullDirectoryPlaylists)
+        private static FixedArray<byte>? LoadCacheToMemory(string cacheLocation, bool fullDirectoryPlaylists)
         {
             FileInfo info = new(cacheLocation);
             if (!info.Exists || info.Length < MIN_CACHEFILESIZE)
             {
                 YargLogger.LogDebug("Cache invalid or not found");
-                return FixedArray<byte>.Null;
+                return null;
             }
 
             using var stream = new FileStream(cacheLocation, FileMode.Open, FileAccess.Read);
             if (stream.Read<int>(Endianness.Little) != CACHE_VERSION)
             {
                 YargLogger.LogDebug($"Cache outdated");
-                return FixedArray<byte>.Null;
+                return null;
             }
 
             if (stream.ReadBoolean() != fullDirectoryPlaylists)
             {
                 YargLogger.LogDebug($"FullDirectoryFlag flipped");
-                return FixedArray<byte>.Null;
+                return null;
             }
-            return FixedArray<byte>.ReadRemainder(stream);
+            return FixedArray.ReadRemainder(stream);
         }
 
         /// <summary>
         /// Serializes the cache to a file, duhhhhhhh
         /// </summary>
         /// <param name="cacheLocation">Location to save to</param>
-        private void Serialize(string cacheLocation)
+        private void Serialize(string cacheLocation, bool fullDirectoryPlaylists)
         {
             using var filestream = new FileStream(cacheLocation, FileMode.Create, FileAccess.Write);
-            Dictionary<SongEntry, CategoryCacheWriteNode> nodes = new();
 
             filestream.Write(CACHE_VERSION, Endianness.Little);
             filestream.Write(fullDirectoryPlaylists);
 
-            CategoryWriter.WriteToCache(filestream, cache.Titles, SongAttribute.Name, ref nodes);
-            CategoryWriter.WriteToCache(filestream, cache.Artists, SongAttribute.Artist, ref nodes);
-            CategoryWriter.WriteToCache(filestream, cache.Albums, SongAttribute.Album, ref nodes);
-            CategoryWriter.WriteToCache(filestream, cache.Genres, SongAttribute.Genre, ref nodes);
-            CategoryWriter.WriteToCache(filestream, cache.Years, SongAttribute.Year, ref nodes);
-            CategoryWriter.WriteToCache(filestream, cache.Charters, SongAttribute.Charter, ref nodes);
-            CategoryWriter.WriteToCache(filestream, cache.Playlists, SongAttribute.Playlist, ref nodes);
-            CategoryWriter.WriteToCache(filestream, cache.Sources, SongAttribute.Source, ref nodes);
-
-            List<PackedCONGroup> upgradeCons = new();
-            List<PackedCONGroup> entryCons = new();
-            foreach (var group in conGroups)
-            {
-                if (group.Upgrades.Count > 0)
-                    upgradeCons.Add(group);
-
-                if (group.Count > 0)
-                    entryCons.Add(group);
-            }
-
-            ICacheGroup.SerializeGroups(iniGroups, filestream, nodes);
-            IModificationGroup.SerializeGroups(updateGroups, filestream);
-            IModificationGroup.SerializeGroups(upgradeGroups, filestream);
-            IModificationGroup.SerializeGroups(upgradeCons, filestream);
-            ICacheGroup.SerializeGroups(entryCons, filestream, nodes);
-            ICacheGroup.SerializeGroups(extractedConGroups, filestream, nodes);
+            Dictionary<SongEntry, CacheWriteIndices> nodes = new();
+            SongEntrySorting.WriteCategoriesToCache(filestream, cache, nodes);
+            CONUpdateGroup.SerializeGroups(filestream, updateGroups);
+            UnpackedCONUpgradeGroup.SerializeGroups(filestream, unpackedUpgradeGroups);
+            PackedCONUpgradeGroup.SerializeGroups(filestream, packedUpgradeGroups);
+            IEntryGroup.SerializeGroups(filestream, iniGroups, nodes);
+            IEntryGroup.SerializeGroups(filestream, conEntryGroups, nodes);
         }
 
         /// <summary>
-        /// Reads a ini-based entry from the cache, with all validation steps
+        /// Deserializes a cache file into the separate song entries with all validation checks
         /// </summary>
-        /// <param name="group">Group mapping to the *user's* base directory</param>
-        /// <param name="directory">String of the base directory *written in the cache*</param>
-        /// <param name="stream">Stream containing the entry data</param>
-        /// <param name="strings">Container of the main metadata arrays</param>
-        protected void ReadIniEntry(IniGroup group, string directory, UnmanagedMemoryStream stream, CategoryCacheStrings strings)
+        /// <param name="stream">The stream containging the cache file data</param>
+        private unsafe void Deserialize(FixedArray<byte> data, bool fullDirectoryPlaylists)
         {
-            // An ini entry can be either unpacked (.ini) or packed (.sng).
-            // This boolean variable in the cache communicates to us which type it is.
-            bool isSngEntry = stream.ReadBoolean();
-            string fullname = Path.Combine(directory, stream.ReadString());
-
-            IniSubEntry? entry = isSngEntry
-                ? ReadSngEntry(fullname, stream, strings)
-                : ReadUnpackedIniEntry(fullname, stream, strings);
-
-            // If the "duplicates" toggle is set to false, regardless of what's within the cache,
-            // we will only accept non-duplicates
-            if (entry != null && AddEntry(entry))
+            var stream = data.ToValueStream();
+            var strings = new CacheReadStrings(&stream);
+            Parallel.ForEach(new CacheLoopable(&stream), node =>
             {
-                group.AddEntry(entry);
-            }
+                ReadUpdateDirectory(node.Slice);
+            });
+
+            Parallel.ForEach(new CacheLoopable(&stream), node =>
+            {
+                ReadUpgradeDirectory(node.Slice);
+            });
+
+            Parallel.ForEach(new CacheLoopable(&stream), node =>
+            {
+                ReadUpgradeCON(node.Slice, fullDirectoryPlaylists);
+            });
+
+            Parallel.ForEach(new CacheLoopable(&stream), node =>
+            {
+                ReadIniDirectory(node.Slice, strings);
+            });
+
+            Parallel.ForEach(new CacheLoopable(&stream), node =>
+            {
+                ReadCONGroup(node.Slice, strings, fullDirectoryPlaylists);
+            });
         }
 
         /// <summary>
-        /// Reads a ini-based entry from the cache, with very few validation steps
+        /// Deserializes a cache file into the separate song entries with minimal validations
         /// </summary>
-        /// <param name="directory">String of the base directory *written in the cache*</param>
-        /// <param name="stream">Stream containing the entry data</param>
-        /// <param name="strings">Container of the main metadata arrays</param>
-        protected void QuickReadIniEntry(string directory, UnmanagedMemoryStream stream, CategoryCacheStrings strings)
+        /// <param name="stream">The stream containging the cache file data</param>
+        private unsafe void Deserialize_Quick(FixedArray<byte> data)
         {
-            // An ini entry can be either unpacked (.ini) or packed (.sng).
-            // This boolean variable in the cache communicates to us which type it is.
-            bool isSngEntry = stream.ReadBoolean();
-            string fullname = Path.Combine(directory, stream.ReadString());
-
-            IniSubEntry? entry = isSngEntry
-                ? SngEntry.LoadFromCache_Quick(fullname, stream, strings)
-                : UnpackedIniEntry.IniFromCache_Quick(fullname, stream, strings);
-
-            if (entry != null)
+            var stream = data.ToValueStream();
+            var strings = new CacheReadStrings(&stream);
+            Parallel.ForEach(new CacheLoopable(&stream), node =>
             {
-                // If the "duplicates" toggle is set to false, regardless of what's within the cache,
-                // we will only accept non-duplicates
-                AddEntry(entry);
-            }
-            else
+                QuickReadUpdateDirectory(node.Slice);
+            });
+
+            Parallel.ForEach(new CacheLoopable(&stream), node =>
             {
-                YargLogger.LogError("Cache file was modified externally with a bad CHART_TYPE enum value... or bigger error");
-            }
+                QuickReadUpgradeDirectory(node.Slice);
+            });
+
+            Parallel.ForEach(new CacheLoopable(&stream), node =>
+            {
+                QuickReadUpgradeCON(node.Slice);
+            });
+
+            Parallel.ForEach(new CacheLoopable(&stream), node =>
+            {
+                QuickReadIniDirectory(node.Slice, strings);
+            });
+
+            Parallel.ForEach(new CacheLoopable(&stream), node =>
+            {
+                QuickReadCONGroup(node.Slice, strings);
+            });
         }
 
         /// <summary>
@@ -1094,14 +1033,128 @@ namespace YARG.Core.Song.Cache
         /// any RBCON entry nodes that share its DTA name as invalid, forcing re-evaluation.
         /// </summary>
         /// <param name="stream">The stream containing the list of updates</param>
-        protected void ReadUpdateDirectory(UnmanagedMemoryStream stream)
+        private void ReadUpdateDirectory(FixedArrayStream stream)
+        {
+            string directory = stream.ReadString();
+            var dtaLastWrite = DateTime.FromBinary(stream.Read<long>(Endianness.Little));
+            int count = stream.Read<int>(Endianness.Little);
+
+            // Functions as a "check base directory" call
+            if (!GetBaseIniGroup(directory, out var _))
+            {
+                goto Invalidate;
+            }
+
+            var dtaInfo = new FileInfo(Path.Combine(directory, RBCONEntry.SONGUPDATES_DTA));
+            if (!dtaInfo.Exists)
+            {
+                goto Invalidate;
+            }
+
+            FindOrMarkDirectory(directory);
+
+            // Will add the update group to the shared list on success
+            if (CONUpdateGroup.Create(directory, dtaInfo, out var group) && group.Root.LastWriteTime == dtaLastWrite)
+            {
+                lock (updateGroups)
+                {
+                    updateGroups.Add(group);
+                }
+                // We need to compare what we have on the filesystem against what's written one by one
+                var songsToInvalidate = new Dictionary<string, DateTime?>();
+                songsToInvalidate.EnsureCapacity(group.Updates.Count);
+                foreach (var update in group.Updates)
+                {
+                    songsToInvalidate.Add(update.Key, update.Value.Update);
+                }
+
+                for (int i = 0; i < count; i++)
+                {
+                    string name = stream.ReadString();
+                    DateTime? lastWrite = null;
+                    if (stream.ReadBoolean())
+                    {
+                        lastWrite = DateTime.FromBinary(stream.Read<long>(Endianness.Little));
+                    }
+
+                    if (songsToInvalidate.TryGetValue(name, out var currLastWrite))
+                    {
+                        if (lastWrite.HasValue == currLastWrite.HasValue)
+                        {
+                            if (!lastWrite.HasValue || lastWrite.Value == currLastWrite!.Value)
+                            {
+                                songsToInvalidate.Remove(name);
+                            }
+                        }
+                    }
+                    else
+                    {
+                        AddInvalidSong(name);
+                    }
+                }
+
+                // Anything left in the dictionary may require invalidation of cached entries
+                foreach (var leftover in songsToInvalidate)
+                {
+                    AddInvalidSong(leftover.Key);
+                }
+                return;
+            }
+
+        Invalidate:
+            for (int i = 0; i < count; i++)
+            {
+                AddInvalidSong(stream.ReadString());
+                if (stream.ReadBoolean())
+                {
+                    stream.Position += SIZEOF_DATETIME;
+                }
+            }
+        }
+
+        /// <summary>
+        /// Loads all the upgrade nodes present in the cache from an "upgrades folder" section
+        /// </summary>
+        /// <param name="stream">Stream containing the data for a folder's upgrade nodes</param>
+        private void QuickReadUpdateDirectory(FixedArrayStream stream)
+        {
+            var root = new AbridgedFileInfo(ref stream);
+            int count = stream.Read<int>(Endianness.Little);
+            for (int i = 0; i < count; i++)
+            {
+                string name = stream.ReadString();
+                DateTime? midiLastWrite = default;
+                if (stream.ReadBoolean())
+                {
+                    midiLastWrite = DateTime.FromBinary(stream.Read<long>(Endianness.Little));
+                }
+
+                var mods = GetQuickCONMods(name);
+                lock (mods)
+                {
+                    if (!mods.UpdateDirectoryAndDtaLastWrite.HasValue || mods.UpdateDirectoryAndDtaLastWrite.Value.LastWriteTime < root.LastWriteTime)
+                    {
+                        mods.UpdateDirectoryAndDtaLastWrite = root;
+                        mods.UpdateMidi = midiLastWrite;
+                    }
+                }
+            }
+        }
+
+        /// <summary>
+        /// Reads a section of the cache containing a list of upgrades to apply from a specific directory,
+        /// performing validations on each upgrade node. If an upgrade node from the cache is invalidated, it will mark
+        /// any RBCON entry nodes that share its DTA name as invalid, forcing re-evaluation.
+        /// </summary>
+        /// <param name="stream">The stream containing the list of upgrades</param>
+        private void ReadUpgradeDirectory(FixedArrayStream stream)
         {
             string directory = stream.ReadString();
             var dtaLastWritten = DateTime.FromBinary(stream.Read<long>(Endianness.Little));
             int count = stream.Read<int>(Endianness.Little);
 
             // Functions as a "check base directory" call
-            if (GetBaseIniGroup(directory) == null)
+            if (!GetBaseIniGroup(directory, out var _))
             {
                 goto Invalidate;
             }
@@ -1113,43 +1166,140 @@ namespace YARG.Core.Song.Cache
             }
 
             var collection = new FileCollection(dirInfo);
-            if (!collection.Subfiles.TryGetValue(SONGUPDATES_DTA, out var dta))
+            if (!collection.FindFile(RBProUpgrade.UPGRADES_DTA, out var dta))
             {
                 // We don't *mark* the directory to allow the "New Entries" process
                 // to access this collection
-                collectionCache.Add(directory, collection);
+                lock (collectionCache)
+                {
+                    collectionCache.Add(directory, collection);
+                }
                 goto Invalidate;
             }
 
             FindOrMarkDirectory(directory);
 
-            // Will add the update group to the shared list on success
-            var group = CreateUpdateGroup(in collection, dta);
-            if (group != null && group.DTALastWrite == dtaLastWritten)
+            if (UnpackedCONUpgradeGroup.Create(in collection, dta, out var group))
             {
-                // We need to compare what we have on the filesystem against what's written one by one
-                var updates = new Dictionary<string, SongUpdate>(group.Updates);
+                lock (unpackedUpgradeGroups)
+                {
+                    unpackedUpgradeGroups.Add(group);
+                }
+
+                if (dta.LastWriteTime == dtaLastWritten)
+                {
+                    var songsToInvalidate = new Dictionary<string, DateTime>();
+                    songsToInvalidate.EnsureCapacity(group.Upgrades.Count);
+                    foreach (var node in group.Upgrades)
+                    {
+                        songsToInvalidate.Add(node.Key, node.Value.Upgrade.LastWriteTime);
+                    }
+
+                    for (int i = 0; i < count; i++)
+                    {
+                        string name = stream.ReadString();
+                        if (songsToInvalidate.TryGetValue(name, out var upgradeLastWrite))
+                        {
+                            var midiLastWrite = DateTime.FromBinary(stream.Read<long>(Endianness.Little));
+                            if (upgradeLastWrite == midiLastWrite)
+                            {
+                                songsToInvalidate.Remove(name);
+                            }
+                        }
+                        else
+                        {
+                            AddInvalidSong(name);
+                            stream.Position += SIZEOF_DATETIME;
+                        }
+                    }
+
+                    // Anything left in the dictionary may require invalidation of cached entries
+                    foreach (var leftover in songsToInvalidate)
+                    {
+                        AddInvalidSong(leftover.Key);
+                    }
+                    return;
+                }
+            }
+
+        Invalidate:
+            for (int i = 0; i < count; i++)
+            {
+                AddInvalidSong(stream.ReadString());
+                stream.Position += SIZEOF_DATETIME;
+            }
+        }
+
+        /// <summary>
+        /// Loads all the upgrade nodes present in the cache from an "upgrades folder" section
+        /// </summary>
+        /// <param name="stream">Stream containing the data for a folder's upgrade nodes</param>
+        private void QuickReadUpgradeDirectory(FixedArrayStream stream)
+        {
+            var root = new AbridgedFileInfo(ref stream);
+            int count = stream.Read<int>(Endianness.Little);
+            for (int i = 0; i < count; i++)
+            {
+                string name = stream.ReadString();
+                var midiLastWrite = DateTime.FromBinary(stream.Read<long>(Endianness.Little));
+                var mods = GetQuickCONMods(name);
+                lock (mods)
+                {
+                    if (mods.Upgrade == null || mods.Upgrade.LastWriteTime < midiLastWrite)
+                    {
+                        mods.Upgrade = new UnpackedRBProUpgrade(name, midiLastWrite, in root);
+                    }
+                }
+            }
+        }
+
+        /// <summary>
+        /// Reads a section of the cache containing a list of upgrades to apply from a packed CON file,
+        /// performing validations on each upgrade node. If an upgrade node from the cache is invalidated, it will mark
+        /// any RBCON entry nodes that share its DTA name as invalid, forcing re-evaluation.
+        /// </summary>
+        /// <param name="stream">The stream containing the list of upgrades</param>
+        private void ReadUpgradeCON(FixedArrayStream stream, bool fullDirectoryPlaylists)
+        {
+            string filename = stream.ReadString();
+            var conLastWrite = DateTime.FromBinary(stream.Read<long>(Endianness.Little));
+            int count = stream.Read<int>(Endianness.Little);
+
+            if (!GetBaseIniGroup(filename, out var baseGroup))
+            {
+                goto Invalidate;
+            }
+
+            var info = new FileInfo(filename);
+            if (!info.Exists)
+            {
+                goto Invalidate;
+            }
+
+            FindOrMarkFile(filename);
+
+            string defaultPlaylist = ConstructPlaylist(filename, baseGroup.Directory, fullDirectoryPlaylists);
+            var result = CreateCONGroup(info, defaultPlaylist);
+            if (result.Upgrades != null && result.Upgrades.Root.LastWriteTime == conLastWrite)
+            {
+                var songsToInvalidate = new HashSet<string>();
+                songsToInvalidate.EnsureCapacity(result.Upgrades.Upgrades.Count);
+                foreach (var node in result.Upgrades.Upgrades)
+                {
+                    songsToInvalidate.Add(node.Key);
+                }
+
                 for (int i = 0; i < count; i++)
                 {
                     string name = stream.ReadString();
-                    // `Remove` returns true if the node was present
-                    if (updates.Remove(name, out var update))
-                    {
-                        // Validates midi, mogg, image, and milo write dates
-                        if (!update.Validate(stream))
-                        {
-                            AddInvalidSong(name);
-                        }
-                    }
-                    else
+                    if (!songsToInvalidate.Remove(name))
                     {
                         AddInvalidSong(name);
-                        SongUpdate.SkipRead(stream);
                     }
                 }
 
                 // Anything left in the dictionary may require invalidation of cached entries
-                foreach (var leftover in updates.Keys)
+                foreach (var leftover in songsToInvalidate)
                 {
                     AddInvalidSong(leftover);
                 }
@@ -1160,215 +1310,6 @@ namespace YARG.Core.Song.Cache
             for (int i = 0; i < count; i++)
             {
                 AddInvalidSong(stream.ReadString());
-                SongUpdate.SkipRead(stream);
-            }
-        }
-
-        /// <summary>
-        /// Reads a section of the cache containing a list of upgrades to apply from a specific directory,
-        /// performing validations on each upgrade node. If an upgrade node from the cache is invalidated, it will mark
-        /// any RBCON entry nodes that share its DTA name as invalid, forcing re-evaluation.
-        /// </summary>
-        /// <param name="stream">The stream containing the list of upgrades</param>
-        protected void ReadUpgradeDirectory(UnmanagedMemoryStream stream)
-        {
-            string directory = stream.ReadString();
-            var dtaLastWritten = DateTime.FromBinary(stream.Read<long>(Endianness.Little));
-            int count = stream.Read<int>(Endianness.Little);
-
-            // Functions as a "check base directory" call
-            if (GetBaseIniGroup(directory) == null)
-            {
-                goto Invalidate;
-            }
-
-            var dirInfo = new DirectoryInfo(directory);
-            if (!dirInfo.Exists)
-            {
-                goto Invalidate;
-            }
-
-            var collection = new FileCollection(dirInfo);
-            if (!collection.Subfiles.TryGetValue(SONGUPGRADES_DTA, out var dta))
-            {
-                // We don't *mark* the directory to allow the "New Entries" process
-                // to access this collection
-                collectionCache.Add(directory, collection);
-                goto Invalidate;
-            }
-
-            FindOrMarkDirectory(directory);
-
-            // Will add the upgrade group to the shared list on success
-            var group = CreateUpgradeGroup(in collection, dta);
-            if (group != null && dta.LastWriteTime == dtaLastWritten)
-            {
-                ValidateUpgrades(group.Upgrades, count, stream);
-                return;
-            }
-
-        Invalidate:
-            for (int i = 0; i < count; i++)
-            {
-                AddInvalidSong(stream.ReadString());
-                stream.Position += SIZEOF_DATETIME;
-            }
-        }
-
-        /// <summary>
-        /// Reads a section of the cache containing a list of upgrades to apply from a packed CON file,
-        /// performing validations on each upgrade node. If an upgrade node from the cache is invalidated, it will mark
-        /// any RBCON entry nodes that share its DTA name as invalid, forcing re-evaluation.
-        /// </summary>
-        /// <param name="stream">The stream containing the list of upgrades</param>
-        protected void ReadUpgradeCON(UnmanagedMemoryStream stream)
-        {
-            string filename = stream.ReadString();
-            var conLastUpdated = DateTime.FromBinary(stream.Read<long>(Endianness.Little));
-            int count = stream.Read<int>(Endianness.Little);
-
-            var baseGroup = GetBaseIniGroup(filename);
-            if (baseGroup == null)
-            {
-                goto Invalidate;
-            }
-
-            // Will add the packed CON group to the shared list on success
-            var group = CreateCONGroup(filename, baseGroup.Directory);
-            if (group != null && group.Info.LastUpdatedTime == conLastUpdated)
-            {
-                ValidateUpgrades(group.Upgrades, count, stream);
-                return;
-            }
-
-        Invalidate:
-            for (int i = 0; i < count; i++)
-            {
-                AddInvalidSong(stream.ReadString());
-                stream.Position += SIZEOF_DATETIME;
-            }
-        }
-
-        /// <summary>
-        /// Helper function that runs validation on all the upgrade nodes present within either an upgrade directory or
-        /// upgrade CON section of a cache file.
-        /// </summary>
-        /// <typeparam name="TUpgrade">Type of upgrade node (packed or unpacked)</typeparam>
-        /// <param name="groupUpgrades">Dictionary containing the upgrade nodes freshly loaded from the source directory or CON</param>
-        /// <param name="count">The number of upgrade nodes present in the cache file</param>
-        /// <param name="stream">Stream containing the upgrade node entries</param>
-        private void ValidateUpgrades<TUpgrade>(Dictionary<string, (YARGTextContainer<byte> Container, TUpgrade Upgrade)> groupUpgrades, int count, UnmanagedMemoryStream stream)
-            where TUpgrade : RBProUpgrade
-        {
-            // All we need to compare are the last update times
-            var upgrades = new Dictionary<string, DateTime>();
-            upgrades.EnsureCapacity(groupUpgrades.Count);
-            for (int i = 0; i < count; i++)
-            {
-                string name = stream.ReadString();
-                var lastUpdated = DateTime.FromBinary(stream.Read<long>(Endianness.Little));
-                upgrades.Add(name, lastUpdated);
-            }
-
-            foreach (var node in groupUpgrades)
-            {
-                // `Remove` returns true if the node was present
-                if (upgrades.Remove(node.Key, out var dateTime) && node.Value.Upgrade.LastUpdatedTime == dateTime)
-                {
-                    // Upgrade nodes need to exist before adding CON entries, so we must have a separate list for
-                    // all upgrade nodes processed from cache
-                    AddCacheUpgrade(node.Key, node.Value.Upgrade);
-                }
-                else
-                {
-                    AddInvalidSong(node.Key);
-                }
-            }
-
-            // Anything left in the dictionary may require invalidation of cached entries
-            foreach (var leftover in upgrades.Keys)
-            {
-                AddInvalidSong(leftover);
-            }
-        }
-
-        /// <summary>
-        /// Attempts to load a PackedCONGroup instance from the validation data present in the cache.
-        /// Even if a group is generated however, if the last-update time in the cache does not match what we
-        /// receive from the filesystem, this function will not return that instance. Therefore, the caller can not parse
-        /// any of the accompanying CON entries that follow the validation data.
-        /// </summary>
-        /// <param name="stream">Stream containing the CON validation information</param>
-        /// <returns>The packed CON group on success; <see langword="null"/> otherwise</returns>
-        protected PackedCONGroup? ReadCONGroupHeader(UnmanagedMemoryStream stream)
-        {
-            string filename = stream.ReadString();
-            var baseGroup = GetBaseIniGroup(filename);
-            if (baseGroup == null)
-            {
-                return null;
-            }
-
-            var conLastUpdate = DateTime.FromBinary(stream.Read<long>(Endianness.Little));
-            var group = FindCONGroup(filename) ?? CreateCONGroup(filename, baseGroup.Directory);
-            return group != null && group.Info.LastUpdatedTime == conLastUpdate ? group : null;
-        }
-
-        /// <summary>
-        /// Attempts to load a UnpackedCONGroup instance from the validation data present in the cache.
-        /// Even if a group is generated however, if the last-update time of the songs.dta file in the cache does not match what we
-        /// receive from the filesystem, this function will not return that instance. Therefore, the caller can not parse
-        /// any of the accompanying CON entries that follow the validation data.
-        /// </summary>
-        /// <param name="stream">Stream containing the song.dta validation information</param>
-        /// <returns>The unpacked CON group on success; <see langword="null"/> otherwise</returns>
-        protected UnpackedCONGroup? ReadExtractedCONGroupHeader(UnmanagedMemoryStream stream)
-        {
-            string directory = stream.ReadString();
-            var baseGroup = GetBaseIniGroup(directory);
-            if (baseGroup == null)
-            {
-                return null;
-            }
-
-            var dtaInfo = new FileInfo(Path.Combine(directory, "songs.dta"));
-            if (!dtaInfo.Exists)
-            {
-                return null;
-            }
-
-            FindOrMarkDirectory(directory);
-
-            string playlist = ConstructPlaylist(directory, baseGroup.Directory);
-            var group = CreateUnpackedCONGroup(directory, dtaInfo, playlist);
-            if (group == null)
-            {
-                return null;
-            }
-
-            var dtaLastWrite = DateTime.FromBinary(stream.Read<long>(Endianness.Little));
-            return dtaInfo.LastWriteTime == dtaLastWrite ? group : null;
-        }
-
-        /// <summary>
-        /// Loads all the upgrade nodes present in the cache from an "upgrades folder" section
-        /// </summary>
-        /// <param name="stream">Stream containing the data for a folder's upgrade nodes</param>
-        protected void QuickReadUpgradeDirectory(UnmanagedMemoryStream stream)
-        {
-            string directory = stream.ReadString();
-            stream.Position += sizeof(long); // Can skip the last update time
-            int count = stream.Read<int>(Endianness.Little);
-
-            for (int i = 0; i < count; i++)
-            {
-                string name = stream.ReadString();
-                string filename = Path.Combine(directory, $"{name}_plus.mid");
-
-                var info = new AbridgedFileInfo(filename, stream);
-                // Upgrade nodes need to exist before adding CON entries, so we must have a separate list for
-                // all upgrade nodes processed from cache
-                AddCacheUpgrade(name, new UnpackedRBProUpgrade(info));
             }
         }
 
@@ -1376,222 +1317,244 @@ namespace YARG.Core.Song.Cache
         /// Loads all the upgrade nodes present in the cache from an "upgrade CON" section.
         /// </summary>
         /// <param name="stream">Stream containing the data for a CON's upgrade nodes</param>
-        protected void QuickReadUpgradeCON(UnmanagedMemoryStream stream)
+        private void QuickReadUpgradeCON(FixedArrayStream stream)
         {
-            var listings = QuickReadCONGroupHeader(stream);
+            var root = new AbridgedFileInfo(ref stream);
+            var listings = GetCacheCONListings(root.FullName);
             int count = stream.Read<int>(Endianness.Little);
             for (int i = 0; i < count; i++)
             {
                 string name = stream.ReadString();
-                var lastWrite = DateTime.FromBinary(stream.Read<long>(Endianness.Little));
-                var listing = default(CONFileListing);
-                listings?.TryGetListing($"songs_upgrades/{name}_plus.mid", out listing);
-                // Upgrade nodes need to exist before adding CON entries, so we must have a separate list for
-                // all upgrade nodes processed from cache
-                AddCacheUpgrade(name, new PackedRBProUpgrade(listing, lastWrite));
-            }
-        }
-
-        /// <summary>
-        /// Attempts to load a list of CONFileListings from a CON file off the filesystem.
-        /// The listings that get loaded will utilize the last write information from the cache file,
-        /// rather than the last write info off the filesystem.
-        /// </summary>
-        /// <param name="stream">Stream containing the CON validation information</param>
-        /// <returns>A list of CONFileListings on success; <see langword="null"/> otherwise</returns>
-        protected List<CONFileListing>? QuickReadCONGroupHeader(UnmanagedMemoryStream stream)
-        {
-            string filename = stream.ReadString();
-            var info = new AbridgedFileInfo(filename, stream);
-            if (!File.Exists(filename))
-            {
-                return null;
-            }
-
-            using var filestream = new FileStream(filename, FileMode.Open, FileAccess.Read, FileShare.Read, 1);
-            return CONFile.TryParseListings(in info, filestream);
-        }
-
-        /// <summary>
-        /// Attempts to read an unpacked .ini entry from the cache - with all validation checks.
-        /// If successful, we mark the directory as "already processed" so that the "New Entries" step doesn't attempt to access it.
-        /// </summary>
-        /// <param name="directory">The directory potentially containing an entry</param>
-        /// <param name="stream">The stream containing the entry's information</param>
-        /// <param name="strings">Container will the basic metadata arrays</param>
-        /// <returns>An unpacked ini entry on success; <see langword="null"/> otherwise</returns>
-        private UnpackedIniEntry? ReadUnpackedIniEntry(string directory, UnmanagedMemoryStream stream, CategoryCacheStrings strings)
-        {
-            var entry = UnpackedIniEntry.TryLoadFromCache(directory, stream, strings);
-            if (entry == null)
-            {
-                return null;
-            }
-            FindOrMarkDirectory(directory);
-            return entry;
-        }
-
-        /// <summary>
-        /// Attempts to read an unpacked .sng entry from the cache - with all validation checks.
-        /// If successful, we mark the file as "already processed" so that the "New Entries" step doesn't attempt to access it.
-        /// </summary>
-        /// <param name="fullname">The file path to a potential entry</param>
-        /// <param name="stream">The stream containing the entry's information</param>
-        /// <param name="strings">Container will the basic metadata arrays</param>
-        /// <returns>An packed sng entry on success; <see langword="null"/> otherwise</returns>
-        private SngEntry? ReadSngEntry(string fullname, UnmanagedMemoryStream stream, CategoryCacheStrings strings)
-        {
-            var entry = SngEntry.TryLoadFromCache(fullname, stream, strings);
-            if (entry == null)
-            {
-                return null;
-            }
-            FindOrMarkFile(fullname);
-            return entry;
-        }
-
-        /// <summary>
-        /// Creates an UpdateGroup... self-explanatory
-        /// </summary>
-        /// <param name="collection">The collection of subdirectories and subfiles to locate updates from</param>
-        /// <param name="dta">The file info for the main DTA</param>
-        /// <returns>An UpdateGroup instance on success; <see langword="null"/> otherwise</returns>
-        private UpdateGroup? CreateUpdateGroup(in FileCollection collection, FileInfo dta)
-        {
-            UpdateGroup? group = null;
-            try
-            {
-                // We call `using` to ensure the proper disposal of data if an error occurs
-                using var data = FixedArray<byte>.Load(dta.FullName);
-                var updates = new Dictionary<string, SongUpdate>();
-                var container = YARGDTAReader.TryCreate(data);
-                while (YARGDTAReader.StartNode(ref container))
+                CONFileListing? listing = null;
+                listings?.FindListing(PackedRBProUpgrade.UPGRADES_DIRECTORY + name + RBProUpgrade.UPGRADES_MIDI_EXT, out listing);
+                var mods = GetQuickCONMods(name);
+                lock (mods)
                 {
-                    string name = YARGDTAReader.GetNameOfNode(ref container, true);
-                    if (!updates.TryGetValue(name, out var update))
+                    if (mods.Upgrade == null || mods.Upgrade.LastWriteTime < root.LastWriteTime)
                     {
-                        // We only need to check for the files one time per-DTA name
-                        AbridgedFileInfo? midi = null;
-                        AbridgedFileInfo? mogg = null;
-                        AbridgedFileInfo? milo = null;
-                        AbridgedFileInfo? image = null;
+                        mods.Upgrade = new PackedRBProUpgrade(listing, in root);
+                    }
+                }
+            }
+        }
 
-                        string subname = name.ToLowerInvariant();
-                        if (collection.SubDirectories.TryGetValue(subname, out var directory))
+        private void ReadIniDirectory(FixedArrayStream stream, CacheReadStrings strings)
+        {
+            string directory = stream.ReadString();
+            if (!GetBaseIniGroup(directory, out var baseGroup))
+            {
+                return;
+            }
+
+            unsafe
+            {
+                Parallel.ForEach(new CacheLoopable(&stream), node =>
+                {
+                    var entry = UnpackedIniEntry.TryDeserialize(directory, ref node.Slice, strings);
+                    if (entry != null)
+                    {
+                        FindOrMarkDirectory(entry.ActualLocation);
+                        AddEntry(entry);
+                        baseGroup.AddEntry(entry);
+                    }
+                });
+
+                Parallel.ForEach(new CacheLoopable(&stream), node =>
+                {
+                    var entry = SngEntry.TryDeserialize(directory, ref node.Slice, strings);
+                    if (entry != null)
+                    {
+                        FindOrMarkFile(entry.ActualLocation);
+                        AddEntry(entry);
+                        baseGroup.AddEntry(entry);
+                    }
+                });
+            }
+        }
+
+        private void QuickReadIniDirectory(FixedArrayStream stream, CacheReadStrings strings)
+        {
+            string directory = stream.ReadString();
+            unsafe
+            {
+                Parallel.ForEach(new CacheLoopable(&stream), node => AddEntry(UnpackedIniEntry.ForceDeserialize(directory, ref node.Slice, strings)));
+                Parallel.ForEach(new CacheLoopable(&stream), node => AddEntry(SngEntry.ForceDeserialize(directory, ref node.Slice, strings)));
+            }
+        }
+
+        private void ReadCONGroup(FixedArrayStream stream, CacheReadStrings strings, bool fullDirectoryPlaylists)
+        {
+            string location = stream.ReadString();
+            if (!GetBaseIniGroup(location, out var baseGroup))
+            {
+                return;
+            }
+
+            var lastWriteTime = DateTime.FromBinary(stream.Read<long>(Endianness.Little));
+            string defaultPlaylist = ConstructPlaylist(location, baseGroup.Directory, fullDirectoryPlaylists);
+
+            CONEntryGroup? group = null;
+            if (stream.ReadBoolean())
+            {
+                lock (conEntryGroups)
+                {
+                    group = conEntryGroups.Find(node => node.Root.FullName == location);
+                }
+
+                if (group == null)
+                {
+                    var info = new FileInfo(location);
+                    if (info.Exists)
+                    {
+                        FindOrMarkFile(location);
+                        group = CreateCONGroup(info, defaultPlaylist).Entries;
+                    }
+                }
+            }
+            else
+            {
+                var dtaInfo = new FileInfo(Path.Combine(location, CONEntryGroup.SONGS_DTA));
+                if (dtaInfo.Exists)
+                {
+                    FindOrMarkDirectory(location);
+                    if (UnpackedCONEntryGroup.Create(location, dtaInfo, defaultPlaylist, out var unpacked))
+                    {
+                        lock (conEntryGroups)
                         {
-                            string midiName = subname + "_update.mid";
-                            string moggName = subname + "_update.mogg";
-                            string miloName = subname + ".milo_xbox";
-                            string imageName = subname + "_keep.png_xbox";
-                            // Enumerating through the available files through the DirectoryInfo instance
-                            // provides a speed boost over manual `File.Exists` checks
-                            foreach (var file in directory.EnumerateFiles("*", SearchOption.AllDirectories))
-                            {
-                                string filename = file.Name;
-                                if (filename == midiName)
-                                {
-                                    midi = new AbridgedFileInfo(file, false);
-                                }
-                                else if (filename == moggName)
-                                {
-                                    mogg = new AbridgedFileInfo(file, false);
-                                }
-                                else if (filename == miloName)
-                                {
-                                    milo = new AbridgedFileInfo(file, false);
-                                }
-                                else if (filename == imageName)
-                                {
-                                    image = new AbridgedFileInfo(file, false);
-                                }
-                            }
+                            conEntryGroups.Add(unpacked);
                         }
-                        updates.Add(name, update = new SongUpdate(in midi, in mogg, in milo, in image));
+                        group = unpacked;
                     }
-                    // Updates may contain multiple entries for the same DTA name, so we must collect them all under
-                    // the same node. However, we won't actually load the information unless later stages require it.
-                    update.Containers.Add(container);
-                    YARGDTAReader.EndNode(ref container);
-                }
-
-                if (updates.Count > 0)
-                {
-                    // We transfer ownership of the FixedArray data to give the group responsibility over the disposal.
-                    // Otherwise, the `using` call would dispose of the data after the scope of this function.
-                    group = new UpdateGroup(collection.Directory.FullName, dta.LastWriteTime, data.TransferOwnership(), updates);
-                    AddUpdateGroup(group);
                 }
             }
-            catch (Exception ex)
-            {
-                YargLogger.LogException(ex, $"Error while loading {dta.FullName}");
-            }
-            return group;
-        }
 
-        /// <summary>
-        /// Creates an UpgradeGroup... self-explanatory
-        /// </summary>
-        /// <param name="collection">The collection of subdirectories and subfiles to locate upgrades from</param>
-        /// <param name="dta">The file info for the main DTA</param>
-        /// <returns>An UpgradeGroup instance on success; <see langword="null"/> otherwise</returns>
-        private UpgradeGroup? CreateUpgradeGroup(in FileCollection collection, FileInfo dta)
-        {
-            UpgradeGroup? group = null;
-            try
+            if (group == null || group.Root.LastWriteTime != lastWriteTime)
             {
-                // We call `using` to ensure the proper disposal of data if an error occurs
-                using var data = FixedArray<byte>.Load(dta.FullName);
-                var upgrades = new Dictionary<string, (YARGTextContainer<byte> Container, UnpackedRBProUpgrade Upgrade)>();
-                var container = YARGDTAReader.TryCreate(data);
-                while (YARGDTAReader.StartNode(ref container))
+                return;
+            }
+
+            unsafe
+            {
+                Parallel.ForEach(new CacheLoopable(&stream), node =>
                 {
-                    string name = YARGDTAReader.GetNameOfNode(ref container, true);
-                    var upgrade = default(UnpackedRBProUpgrade);
-                    // If there is no upgrade file accompanying the DTA node, there's no point in adding the upgrade
-                    if (collection.Subfiles.TryGetValue($"{name.ToLower()}_plus.mid", out var info))
+                    try
                     {
-                        var abridged = new AbridgedFileInfo(info, false);
-                        upgrade = new UnpackedRBProUpgrade(abridged);
-                        upgrades[name] = (container, upgrade);
-                    }
-                    YARGDTAReader.EndNode(ref container);
-                }
+                        string name = node.Slice.ReadString();
+                        if (invalidSongsInCache.Contains(name))
+                        {
+                            return;
+                        }
 
-                if (upgrades.Count > 0)
-                {
-                    // We transfer ownership of the FixedArray data to give the group responsibility over the disposal.
-                    // Otherwise, the `using` call would dispose of the data after the scope of this function.
-                    group = new UpgradeGroup(collection.Directory.FullName, dta.LastWriteTime, data.TransferOwnership(), upgrades);
-                    AddUpgradeGroup(group);
-                }
+                        int index = node.Slice.ReadByte();
+                        group.DeserializeEntry(ref node.Slice, name, index, strings);
+                    }
+                    catch (Exception e)
+                    {
+                        YargLogger.LogException(e);
+                    }
+                });
             }
-            catch (Exception ex)
+        }
+
+        private void QuickReadCONGroup(FixedArrayStream stream, CacheReadStrings strings)
+        {
+            var root = new AbridgedFileInfo(ref stream);
+            List<CONFileListing>? listings = null;
+            bool packed = stream.ReadBoolean();
+            if (packed)
             {
-                YargLogger.LogException(ex, $"Error while loading {dta.FullName}");
+                listings = GetCacheCONListings(root.FullName);
             }
-            return group;
+
+            unsafe
+            {
+                Parallel.ForEach(new CacheLoopable(&stream), node =>
+                {
+                    string name = node.Slice.ReadString();
+                    int index = node.Slice.ReadByte();
+                    RBCONEntry entry = packed
+                            ? PackedRBCONEntry.ForceDeserialize(listings, in root, name, ref node.Slice, strings)
+                            : UnpackedRBCONEntry.ForceDeserialize(in root, name, ref node.Slice, strings);
+
+                    if (cacheCONModifications.TryGetValue(name, out var mods))
+                    {
+                        entry.UpdateInfo(mods.UpdateDirectoryAndDtaLastWrite, mods.UpdateMidi, mods.Upgrade);
+                    }
+                    AddEntry(entry);
+                });
+            }
         }
 
         /// <summary>
-        /// Attempts to create a PackedCONGroup from the file at the provided path.
+        /// Grabs the iniGroup that parents the provided path, if one exists
         /// </summary>
-        /// <param name="filename">The path for the file</param>
-        /// <param name="baseDirectory">One of the base directories provided by the user</param>
-        /// <returns>A PackedCONGroup instance on success; <see langword="null"/> otherwise</returns>
-        private PackedCONGroup? CreateCONGroup(string filename, string baseDirectory)
+        /// <param name="path">The absolute file path</param>
+        /// <returns>The applicable group if found; <see langword="null"/> otherwise</returns>
+        private bool GetBaseIniGroup(string path, out IniEntryGroup baseGroup)
         {
-            var info = new FileInfo(filename);
-            if (!info.Exists)
+            foreach (var group in iniGroups)
             {
-                return null;
+                if (path.StartsWith(group.Directory) &&
+                    // Ensures directories with similar names (previously separate bases)
+                    // that are consolidated in-game to a single base directory
+                    // don't have conflicting "relative path" issues
+                    (path.Length == group.Directory.Length || path[group.Directory.Length] == Path.DirectorySeparatorChar))
+                {
+                    baseGroup = group;
+                    return true;
+                }
             }
+            baseGroup = null!;
+            return false;
+        }
 
-            FindOrMarkFile(filename);
+        private QuickCONMods GetQuickCONMods(string name)
+        {
+            QuickCONMods mods;
+            lock (cacheCONModifications)
+            {
+                if (!cacheCONModifications.TryGetValue(name, out mods))
+                {
+                    cacheCONModifications.Add(name, mods = new QuickCONMods());
+                }
+            }
+            return mods;
+        }
 
-            string playlist = ConstructPlaylist(filename, baseDirectory);
-            var abridged = new AbridgedFileInfo(info);
-            return CreateCONGroup(in abridged, playlist);
+        /// <summary>
+        /// Marks a CON song with the DTA name as invalid for addition from the cache
+        /// </summary>
+        /// <param name="name">The DTA name to mark</param>
+        private void AddInvalidSong(string name)
+        {
+            lock (invalidSongsInCache)
+            {
+                invalidSongsInCache.Add(name);
+            }
+        }
+
+        private List<CONFileListing>? GetCacheCONListings(string filename)
+        {
+            List<CONFileListing>? listings = null;
+            lock (cacheCONListings)
+            {
+                if (!cacheCONListings.TryGetValue(filename, out listings))
+                {
+                    if (File.Exists(filename))
+                    {
+                        using var filestream = new FileStream(filename, FileMode.Open, FileAccess.Read, FileShare.Read, 1);
+                        listings = CONFile.TryParseListings(filename, filestream);
+                    }
+                    cacheCONListings.Add(filename, listings);
+                }
+            }
+            return listings;
+        }
+
+        private struct PackedGroupResult
+        {
+            public PackedCONEntryGroup? Entries;
+            public PackedCONUpgradeGroup? Upgrades;
         }
 
         /// <summary>
@@ -1600,126 +1563,61 @@ namespace YARG.Core.Song.Cache
         /// <param name="info">The file info for the possible CONFile</param>
         /// <param name="defaultPlaylist">The playlist to use for any entries generated from the CON (if it is one)</param>
         /// <returns>A PackedCONGroup instance on success; <see langword="null"/> otherwise</returns>
-        private PackedCONGroup? CreateCONGroup(in AbridgedFileInfo info, string defaultPlaylist)
+        private PackedGroupResult CreateCONGroup(FileInfo info, string defaultPlaylist)
         {
-            const string SONGSFILEPATH = "songs/songs.dta";
-            const string UPGRADESFILEPATH = "songs_upgrades/upgrades.dta";
-            PackedCONGroup? group = null;
-            // Holds the file that caused an error in some form
-            string errorFile = string.Empty;
+            var result = default(PackedGroupResult);
             try
             {
                 using var stream = new FileStream(info.FullName, FileMode.Open, FileAccess.Read, FileShare.Read, 1);
-                var listings = CONFile.TryParseListings(in info, stream);
-                if (listings == null)
+                var listings = CONFile.TryParseListings(info.FullName, stream);
+                if (listings != null)
                 {
-                    return null;
-                }
-
-                var songNodes = new Dictionary<string, List<YARGTextContainer<byte>>>();
-                // We call `using` to ensure the proper disposal of data if an error occurs
-                using var songDTAData = listings.TryGetListing(SONGSFILEPATH, out var songDTA) ? songDTA.LoadAllBytes(stream) : FixedArray<byte>.Null;
-                if (songDTAData.IsAllocated)
-                {
-                    errorFile = SONGSFILEPATH;
-                    var container = YARGDTAReader.TryCreate(songDTAData);
-                    while (YARGDTAReader.StartNode(ref container))
+                    var abridged = new AbridgedFileInfo(info);
+                    try
                     {
-                        string name = YARGDTAReader.GetNameOfNode(ref container, true);
-                        if (!songNodes.TryGetValue(name, out var list))
+                        if (PackedCONEntryGroup.Create(stream, listings, in abridged, defaultPlaylist, out result.Entries))
                         {
-                            songNodes.Add(name, list = new List<YARGTextContainer<byte>>());
+                            lock (conEntryGroups)
+                            {
+                                conEntryGroups.Add(result.Entries!);
+                            }
                         }
-                        list.Add(container);
-                        YARGDTAReader.EndNode(ref container);
                     }
-                }
-
-                var upgrades = new Dictionary<string, (YARGTextContainer<byte> Container, PackedRBProUpgrade Upgrade)>();
-                // We call `using` to ensure the proper disposal of data if an error occurs
-                using var upgradeDTAData = listings.TryGetListing(UPGRADESFILEPATH, out var upgradeDta) ? upgradeDta.LoadAllBytes(stream) : FixedArray<byte>.Null;
-                if (upgradeDTAData.IsAllocated)
-                {
-                    errorFile = UPGRADESFILEPATH;
-                    var container = YARGDTAReader.TryCreate(upgradeDTAData);
-                    while (YARGDTAReader.StartNode(ref container))
+                    catch (Exception e)
                     {
-                        string name = YARGDTAReader.GetNameOfNode(ref container, true);
-                        if (listings.TryGetListing($"songs_upgrades/{name}_plus.mid", out var listing))
-                        {
-                            var upgrade = new PackedRBProUpgrade(listing, listing.LastWrite);
-                            upgrades[name] = (container, upgrade);
-                        }
-                        YARGDTAReader.EndNode(ref container);
+                        YargLogger.LogException(e, $"Error while loading {info.FullName} - for song entries");
                     }
-                }
 
-                if (songNodes.Count > 0 || upgrades.Count > 0)
-                {
-                    // We transfer ownership of the FixedArray data to give the group responsibility over the disposal.
-                    // Otherwise, the `using` calls would dispose of the data after the scope of this function.
-                    group = new PackedCONGroup(listings, songDTAData.TransferOwnership(), upgradeDTAData.TransferOwnership(), songNodes, upgrades, in info, defaultPlaylist);
-                    AddPackedCONGroup(group);
+                    try
+                    {
+                        if (PackedCONUpgradeGroup.Create(stream, listings, in abridged, out result.Upgrades))
+                        {
+                            lock (packedUpgradeGroups)
+                            {
+                                packedUpgradeGroups.Add(result.Upgrades!);
+                            }
+                        }
+                    }
+                    catch (Exception e)
+                    {
+                        YargLogger.LogException(e, $"Error while loading {info.FullName} - for song upgrades");
+                    }
                 }
             }
             catch (Exception ex)
             {
-                YargLogger.LogException(ex, $"Error while loading {info.FullName} - {errorFile}");
+                YargLogger.LogException(ex, $"Error while loading {info.FullName}");
             }
-            return group;
+            return result;
         }
 
         /// <summary>
-        /// Attempts to create an UnpackedCONGroup from the file at the provided path.
-        /// </summary>
-        /// <param name="directory">The directory containing the list of entry subdirectories and the main DTA</param>
-        /// <param name="dta">The info for the main DTA file</param>
-        /// <param name="defaultPlaylist">The playlist to use for any entries generated from the CON (if it is one)</param>
-        /// <returns>An UnpackedCONGroup instance on success; <see langword="null"/> otherwise</returns>
-        private UnpackedCONGroup? CreateUnpackedCONGroup(string directory, FileInfo dta, string defaultPlaylist)
-        {
-            try
-            {
-                using var songDTAData = FixedArray<byte>.Load(dta.FullName);
-
-                var songNodes = new Dictionary<string, List<YARGTextContainer<byte>>>();
-                if (songDTAData.IsAllocated)
-                {
-                    var container = YARGDTAReader.TryCreate(songDTAData);
-                    while (YARGDTAReader.StartNode(ref container))
-                    {
-                        string name = YARGDTAReader.GetNameOfNode(ref container, true);
-                        if (!songNodes.TryGetValue(name, out var list))
-                        {
-                            songNodes.Add(name, list = new List<YARGTextContainer<byte>>());
-                        }
-                        list.Add(container);
-                        YARGDTAReader.EndNode(ref container);
-                    }
-                }
-
-                if (songNodes.Count > 0)
-                {
-                    var abridged = new AbridgedFileInfo(dta);
-                    var group = new UnpackedCONGroup(songDTAData.TransferOwnership(), songNodes, directory, in abridged, defaultPlaylist);
-                    AddUnpackedCONGroup(group);
-                    return group;
-                }
-            }
-            catch (Exception ex)
-            {
-                YargLogger.LogException(ex, $"Error while loading {dta.FullName}");
-            }
-            return null;
-        }
-
-        /// <summary>
-        /// Constructs a directory-based playlist based on the provided file name 
+        /// Constructs a directory-based playlist based on the provided file name
         /// </summary>
         /// <param name="filename">The path for the current file</param>
         /// <param name="baseDirectory">One of the base directories provided by the user</param>
         /// <returns>The default playlist to potentially use</returns>
-        private string ConstructPlaylist(string filename, string baseDirectory)
+        private string ConstructPlaylist(string filename, string baseDirectory, bool fullDirectoryPlaylists)
         {
             string directory = Path.GetDirectoryName(filename);
             if (directory.Length == baseDirectory.Length)
@@ -1736,33 +1634,11 @@ namespace YARG.Core.Song.Cache
         #endregion
     }
 
-    internal static class UnmanagedStreamSlicer
-    {
-        /// <summary>
-        /// Splice a section of the unmanaged stream into a separate instance.
-        /// Useful for parallelization and for potentially catching "end of stream" errors.
-        /// </summary>
-        /// <param name="stream">The base stream to slice</param>
-        /// <param name="length">The amount of the data to slice out from the base stream</param>
-        /// <returns>The new stream containing the slice</returns>
-        public static unsafe UnmanagedMemoryStream Slice(this UnmanagedMemoryStream stream, int length)
-        {
-            if (stream.Position > stream.Length - length)
-            {
-                throw new EndOfStreamException();
-            }
-
-            var newStream = new UnmanagedMemoryStream(stream.PositionPointer, length);
-            stream.Position += length;
-            return newStream;
-        }
-    }
-
     internal static class AudioFinder
     {
         public static bool ContainsAudio(this SngFile sngFile)
         {
-            foreach (var file in sngFile)
+            foreach (var file in sngFile.Listings)
             {
                 if (IniAudio.IsAudioFile(file.Key))
                 {

@@ -2,6 +2,7 @@
 using System.Globalization;
 using System.IO;
 using System.Security.Cryptography;
+using YARG.Core.IO;
 using YARG.Core.Logging;
 
 namespace YARG.Core.Song
@@ -41,6 +42,13 @@ namespace YARG.Core.Song
             {
                 throw new EndOfStreamException();
             }
+            return wrapper;
+        }
+
+        public static HashWrapper Deserialize(ref FixedArrayStream stream)
+        {
+            var wrapper = new HashWrapper();
+            stream.Read(wrapper._hash, HASH_SIZE_IN_BYTES);
             return wrapper;
         }
 

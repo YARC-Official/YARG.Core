@@ -4,197 +4,76 @@ using YARG.Core.Extensions;
 using YARG.Core.Song.Cache;
 using YARG.Core.IO;
 using YARG.Core.Venue;
+using YARG.Core.Logging;
 
 namespace YARG.Core.Song
 {
-    public sealed class UnpackedRBCONEntry : RBCONEntry
+    internal sealed class UnpackedRBCONEntry : RBCONEntry
     {
-        private readonly string _nodename = string.Empty;
+        private DateTime _midiLastWrite;
 
-        public readonly AbridgedFileInfo? _dta;
-        public readonly AbridgedFileInfo? _midi;
-
-        protected override DateTime MidiLastUpdate => _midi!.Value.LastUpdatedTime;
-        public override string Location { get; }
-        public override string DirectoryActual => Location;
         public override EntryType SubType => EntryType.ExCON;
+        public override string SortBasedLocation => Path.Combine(_root.FullName, _subName);
+        public override string ActualLocation => Path.Combine(_root.FullName, _subName);
+        protected override DateTime MidiLastWriteTime => _midiLastWrite;
 
-        public static (ScanResult, UnpackedRBCONEntry?) ProcessNewEntry(UnpackedCONGroup group, string nodename, DTAEntry node, CONModification modification)
+        internal override void Serialize(MemoryStream stream, CacheWriteIndices node)
         {
-            var (dtaResult, info) = ProcessDTAs(nodename, node, modification);
-            if (dtaResult != ScanResult.Success)
-            {
-                return (dtaResult, null);
-            }
-
-            if (!info.Location!.StartsWith("songs/" + nodename))
-            {
-                nodename = info.Location!.Split('/')[1];
-            }
-
-            string directory = Path.Combine(group.Location, nodename);
-            if (!IsMoggValid(in modification.Mogg, directory, nodename))
-            {
-                return (ScanResult.MoggError, null);
-            }
-
-            var midiInfo = new FileInfo(Path.Combine(directory, nodename + ".mid"));
-            if (!midiInfo.Exists)
-            {
-                return (ScanResult.MissingCONMidi, null);
-            }
-
-            using var mainMidi = FixedArray<byte>.Load(midiInfo.FullName);
-            var (midiResult, hash) = ParseRBCONMidi(in mainMidi, modification, ref info);
-            if (midiResult != ScanResult.Success)
-            {
-                return (midiResult, null);
-            }
-
-            if (info.Metadata.Playlist.Length == 0)
-            {
-                info.Metadata.Playlist = group.DefaultPlaylist;
-            }
-
-            var entry = new UnpackedRBCONEntry(info, modification, in hash, directory, nodename, midiInfo, in group.Info);
-            return (ScanResult.Success, entry);
-        }
-
-        public static UnpackedRBCONEntry? TryLoadFromCache(string directory, in AbridgedFileInfo dta, string nodename, RBProUpgrade? upgrade, UnmanagedMemoryStream stream, CategoryCacheStrings strings)
-        {
-            string subname = stream.ReadString();
-            string songDirectory = Path.Combine(directory, subname);
-
-            string midiPath = Path.Combine(songDirectory, subname + ".mid");
-            var midiInfo = AbridgedFileInfo.TryParseInfo(midiPath, stream);
-            if (midiInfo == null)
-            {
-                return null;
-            }
-
-            AbridgedFileInfo? updateMidi = null;
-            if (stream.ReadBoolean())
-            {
-                updateMidi = AbridgedFileInfo.TryParseInfo(stream, false);
-                if (updateMidi == null)
-                {
-                    return null;
-                }
-            }
-            return new UnpackedRBCONEntry(midiInfo.Value, dta, songDirectory, subname, updateMidi, upgrade, stream, strings);
-        }
-
-        public static UnpackedRBCONEntry LoadFromCache_Quick(string directory, in AbridgedFileInfo? dta, RBProUpgrade? upgrade, UnmanagedMemoryStream stream, CategoryCacheStrings strings)
-        {
-            string subname = stream.ReadString();
-            string songDirectory = Path.Combine(directory, subname);
-
-            string midiPath = Path.Combine(songDirectory, subname + ".mid");
-            var midiInfo = new AbridgedFileInfo(midiPath, stream);
-
-            AbridgedFileInfo? updateMidi = stream.ReadBoolean() ? new AbridgedFileInfo(stream) : null;
-            return new UnpackedRBCONEntry(midiInfo, dta, songDirectory, subname, updateMidi, upgrade, stream, strings);
-        }
-
-        private static bool IsMoggValid(in AbridgedFileInfo? info, string directory, string nodename)
-        {
-            using var stream = LoadMoggStream(in info, directory, nodename);
-            if (stream == null)
-            {
-                return false;
-            }
-
-            int version = stream.Read<int>(Endianness.Little);
-            return version == 0x0A || version == 0xf0;
-        }
-
-        private UnpackedRBCONEntry(AbridgedFileInfo midi, AbridgedFileInfo? dta, string directory, string nodename,
-            AbridgedFileInfo? updateMidi, RBProUpgrade? upgrade, UnmanagedMemoryStream stream, CategoryCacheStrings strings)
-            : base(updateMidi, upgrade, stream, strings)
-        {
-            Location = directory;
-
-            _midi = midi;
-            _dta = dta;
-            _nodename = nodename;
-        }
-
-        private UnpackedRBCONEntry(in ScanNode info, CONModification modification, in HashWrapper hash
-            , string directory, string nodename, FileInfo midiInfo, in AbridgedFileInfo dtaInfo)
-            : base(in info, modification, in hash)
-        {
-            Location = directory;
-            _nodename = nodename;
-            _midi = new AbridgedFileInfo(midiInfo);
-            _dta = dtaInfo;
-        }
-
-        public override void Serialize(MemoryStream stream, CategoryCacheWriteNode node)
-        {
-            stream.Write(_nodename);
-            stream.Write(_midi!.Value.LastUpdatedTime.ToBinary(), Endianness.Little);
-            stream.Write(UpdateMidi != null);
-            UpdateMidi?.Serialize(stream);
+            stream.Write(_subName);
+            stream.Write(_midiLastWrite.ToBinary(), Endianness.Little);
             base.Serialize(stream, node);
         }
 
         public override YARGImage? LoadAlbumData()
         {
-            if (UpdateImage != null && UpdateImage.Value.Exists())
+            var image = LoadUpdateAlbumData();
+            if (image == null)
             {
-                var update = FixedArray<byte>.Load(UpdateImage.Value.FullName);
-                return new YARGImage(update);
-            }
-
-            string imgFilename = Path.Combine(Location, "gen", _nodename + "_keep.png_xbox");
-            return File.Exists(imgFilename) ? new YARGImage(FixedArray<byte>.Load(imgFilename)) : null;
-        }
-
-        public override BackgroundResult? LoadBackground(BackgroundType options)
-        {
-            if ((options & BackgroundType.Yarground) > 0)
-            {
-                string yarground = Path.Combine(Location, YARGROUND_FULLNAME);
-                if (File.Exists(yarground))
+                string path = Path.Combine(_root.FullName, _subName, "gen", _subName + "_keep.png_xbox");
+                if (File.Exists(path))
                 {
-                    var stream = File.OpenRead(yarground);
-                    return new BackgroundResult(BackgroundType.Yarground, stream);
+                    image = YARGImage.LoadDXT(path);
                 }
             }
+            return image;
+        }
 
-            if ((options & BackgroundType.Video) > 0)
+        public override BackgroundResult? LoadBackground()
+        {
+            string yarground = Path.Combine(_root.FullName, _subName, YARGROUND_FULLNAME);
+            if (File.Exists(yarground))
             {
-                foreach (var name in BACKGROUND_FILENAMES)
+                var stream = File.OpenRead(yarground);
+                return new BackgroundResult(BackgroundType.Yarground, stream);
+            }
+
+            foreach (var name in BACKGROUND_FILENAMES)
+            {
+                var fileBase = Path.Combine(_root.FullName, _subName, name);
+                foreach (var ext in VIDEO_EXTENSIONS)
                 {
-                    var fileBase = Path.Combine(Location, name);
-                    foreach (var ext in VIDEO_EXTENSIONS)
+                    string videoFile = fileBase + ext;
+                    if (File.Exists(videoFile))
                     {
-                        string videoFile = fileBase + ext;
-                        if (File.Exists(videoFile))
-                        {
-                            var stream = File.OpenRead(videoFile);
-                            return new BackgroundResult(BackgroundType.Video, stream);
-                        }
+                        var stream = File.OpenRead(videoFile);
+                        return new BackgroundResult(BackgroundType.Video, stream);
                     }
                 }
             }
 
-            if ((options & BackgroundType.Image) > 0)
+            //                                     No "video"
+            foreach (var name in BACKGROUND_FILENAMES[..2])
             {
-                //                                     No "video"
-                foreach (var name in BACKGROUND_FILENAMES[..2])
+                var fileBase = Path.Combine(_root.FullName, _subName, name);
+                foreach (var ext in IMAGE_EXTENSIONS)
                 {
-                    var fileBase = Path.Combine(Location, name);
-                    foreach (var ext in IMAGE_EXTENSIONS)
+                    string imageFile = fileBase + ext;
+                    if (File.Exists(imageFile))
                     {
-                        var file = new FileInfo(fileBase + ext);
-                        if (file.Exists)
+                        var image = YARGImage.Load(imageFile);
+                        if (image != null)
                         {
-                            var image = YARGImage.Load(file);
-                            if (image != null)
-                            {
-                                return new BackgroundResult(image);
-                            }
+                            return new BackgroundResult(image);
                         }
                     }
                 }
@@ -202,47 +81,136 @@ namespace YARG.Core.Song
             return null;
         }
 
-        public override FixedArray<byte> LoadMiloData()
+        public override FixedArray<byte>? LoadMiloData()
         {
-            if (UpdateMilo != null && UpdateMilo.Value.Exists())
+            var data = LoadUpdateMiloData();
+            if (data == null)
             {
-                return FixedArray<byte>.Load(UpdateMilo.Value.FullName);
+                string path = Path.Combine(_root.FullName, _subName, "gen", _subName + ".mogg");
+                if (File.Exists(path))
+                {
+                    data = FixedArray.LoadFile(path);
+                }
             }
-
-            string filename = Path.Combine(Location, "gen", _nodename + ".milo_xbox");
-            return File.Exists(filename) ? FixedArray<byte>.Load(filename) : FixedArray<byte>.Null;
+            return data;
         }
 
-        protected override Stream? GetMidiStream()
+        protected override FixedArray<byte>? GetMainMidiData()
         {
-            if (_dta == null || !_dta.Value.IsStillValid() || !_midi!.Value.IsStillValid())
-            {
-                return null;
-            }
-            return new FileStream(_midi.Value.FullName, FileMode.Open, FileAccess.Read, FileShare.Read);
+            string path = Path.Combine(_root.FullName, _subName, _subName + ".mid");
+            return File.Exists(path) ? FixedArray.LoadFile(path) : null;
         }
 
         protected override Stream? GetMoggStream()
         {
-            return LoadMoggStream(in UpdateMogg, Location, _nodename);
+            var stream = LoadUpdateMoggStream();
+            if (stream == null)
+            {
+                string path = Path.Combine(_root.FullName, _subName, _subName + ".mogg");
+                if (File.Exists(path))
+                {
+                    stream = File.OpenRead(path);
+                }
+            }
+            return stream;
         }
 
-        private static Stream? LoadMoggStream(in AbridgedFileInfo? updateMogg, string directory, string nodename)
+        private UnpackedRBCONEntry(in AbridgedFileInfo root, string nodeName)
+            : base(in root, nodeName) {}
+
+        public static ScanExpected<RBCONEntry> Create(in RBScanParameters parameters)
         {
-            var stream = LoadUpdateMoggStream(in updateMogg);
-            if (stream != null)
+            try
             {
-                return stream;
+                var entry = new UnpackedRBCONEntry(in parameters.Root, parameters.NodeName)
+                {
+                    _updateDirectoryAndDtaLastWrite = parameters.UpdateDirectory,
+                    _updateMidiLastWrite = parameters.UpdateMidi,
+                    _upgrade = parameters.Upgrade
+                };
+                entry._metadata.Playlist = parameters.DefaultPlaylist;
+
+                var location = ProcessDTAs(entry, parameters.BaseDta, parameters.UpdateDta, parameters.UpgradeDta);
+                if (!location)
+                {
+                    return new ScanUnexpected(location.Error);
+                }
+
+                entry._subName = location.Value[6..location.Value.IndexOf('/', 6)];
+
+                string songDirectory = Path.Combine(parameters.Root.FullName, entry._subName);
+                var midiInfo = new FileInfo(Path.Combine(songDirectory, entry._subName + ".mid"));
+                if (!midiInfo.Exists)
+                {
+                    return new ScanUnexpected(ScanResult.MissingCONMidi);
+                }
+
+                string moggPath = Path.Combine(songDirectory, entry._subName + ".mogg");
+                if (File.Exists(moggPath))
+                {
+                    using var moggStream = new FileStream(moggPath, FileMode.Open, FileAccess.Read, FileShare.Read, 1);
+                    if (moggStream.Read<int>(Endianness.Little) != UNENCRYPTED_MOGG)
+                    {
+                        return new ScanUnexpected(ScanResult.MoggError);
+                    }
+                }
+                else
+                {
+                    return new ScanUnexpected(ScanResult.MoggError);
+                }
+
+                using var mainMidi = FixedArray.LoadFile(midiInfo.FullName);
+
+                var result = ScanMidis(entry, mainMidi);
+                if (result != ScanResult.Success)
+                {
+                    return new ScanUnexpected(result);
+                }
+                entry._midiLastWrite = AbridgedFileInfo.NormalizedLastWrite(midiInfo);
+                entry.SetSortStrings();
+                return entry;
+            }
+            catch (Exception e)
+            {
+                YargLogger.LogException(e);
+                return new ScanUnexpected(ScanResult.DTAError);
+            }
+        }
+
+        public static UnpackedRBCONEntry? TryDeserialize(in AbridgedFileInfo root, string nodeName, ref FixedArrayStream stream, CacheReadStrings strings)
+        {
+            string subname = stream.ReadString();
+            string midiPath = Path.Combine(root.FullName, subname, subname + ".mid");
+            var midiInfo = new FileInfo(midiPath);
+            if (!midiInfo.Exists)
+            {
+                return null;
             }
 
-            string path = Path.Combine(directory, nodename + ".yarg_mogg");
-            if (File.Exists(path))
+            var midiLastWrite = DateTime.FromBinary(stream.Read<long>(Endianness.Little));
+            if (midiLastWrite != midiInfo.LastWriteTime)
             {
-                return new YargMoggReadStream(path);
+                return null;
             }
 
-            path = Path.Combine(directory, nodename + ".mogg");
-            return File.Exists(path) ? File.OpenRead(path) : null;
+            var entry = new UnpackedRBCONEntry(in root, nodeName)
+            {
+                _subName = subname,
+                _midiLastWrite = midiLastWrite,
+            };
+            entry.Deserialize(ref stream, strings);
+            return entry;
+        }
+
+        public static UnpackedRBCONEntry ForceDeserialize(in AbridgedFileInfo root, string nodeName, ref FixedArrayStream stream, CacheReadStrings strings)
+        {
+            var entry = new UnpackedRBCONEntry(in root, nodeName)
+            {
+                _subName = stream.ReadString(),
+                _midiLastWrite = DateTime.FromBinary(stream.Read<long>(Endianness.Little)),
+            };
+            entry.Deserialize(ref stream, strings);
+            return entry;
         }
     }
 }

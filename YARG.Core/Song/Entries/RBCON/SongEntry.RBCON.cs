@@ -5,7 +5,6 @@ using System.Linq;
 using YARG.Core.Chart;
 using YARG.Core.Song.Cache;
 using YARG.Core.IO;
-using YARG.Core.Song.Preparsers;
 using Melanchall.DryWetMidi.Core;
 using YARG.Core.Extensions;
 using YARG.Core.Audio;
@@ -13,105 +12,93 @@ using YARG.Core.Logging;
 
 namespace YARG.Core.Song
 {
+    internal struct RBScanParameters
+    {
+        public DTAEntry UpdateDta;
+        public DTAEntry UpgradeDta;
+        public AbridgedFileInfo Root;
+        public string NodeName;
+        public AbridgedFileInfo? UpdateDirectory;
+        public DateTime? UpdateMidi;
+        public RBProUpgrade? Upgrade;
+        public string DefaultPlaylist;
+        public DTAEntry BaseDta;
+    }
+
     public abstract class RBCONEntry : SongEntry
     {
         private const long NOTE_SNAP_THRESHOLD = 10;
+        public const int UNENCRYPTED_MOGG = 0xA;
+        public const string SONGUPDATES_DTA = "songs_updates.dta";
 
-        public readonly RBMetadata RBMetadata;
-        public readonly RBCONDifficulties RBDifficulties;
+        protected readonly AbridgedFileInfo _root;
+        protected readonly string _nodeName;
+        protected string _subName = string.Empty;
+        protected AbridgedFileInfo? _updateDirectoryAndDtaLastWrite;
+        protected DateTime? _updateMidiLastWrite;
+        private protected RBProUpgrade? _upgrade;
 
-        public readonly AbridgedFileInfo? UpdateMidi;
-        public readonly RBProUpgrade? Upgrade;
+        protected RBMetadata _rbMetadata = RBMetadata.Default;
+        protected RBIntensities _rbIntensities = RBIntensities.Default;
+        protected RBAudio<int> _indices = RBAudio<int>.Empty;
+        protected RBAudio<float> _panning = RBAudio<float>.Empty;
 
-        public readonly AbridgedFileInfo? UpdateMogg;
-        public readonly AbridgedFileInfo? UpdateMilo;
-        public readonly AbridgedFileInfo? UpdateImage;
+        public string RBSongId => _rbMetadata.SongID;
+        public int RBBandDiff => _rbIntensities.Band;
 
-        public string RBSongId => RBMetadata.SongID;
-        public int RBBandDiff => RBDifficulties.Band;
+        protected abstract DateTime MidiLastWriteTime { get; }
 
-        public override string Year { get; }
-        public override int YearAsNumber { get; }
-        public override ulong SongLengthMilliseconds { get; }
-        public override bool LoopVideo => false;
+        protected abstract FixedArray<byte>? GetMainMidiData();
+        protected abstract Stream? GetMoggStream();
 
-        protected abstract DateTime MidiLastUpdate { get; }
-
-        protected RBCONEntry(in ScanNode info, CONModification modification, in HashWrapper hash)
-            : base(in info.Metadata, in info.Parts, in hash, in info.Settings)
+        public override DateTime GetLastWriteTime()
         {
-            Year = info.Metadata.Year;
-            YearAsNumber = info.YearAsNumber;
-            SongLengthMilliseconds = info.SongLength;
-            RBMetadata = info.RBMetadata;
-            RBDifficulties = info.Difficulties;
-            UpdateMidi = modification.Midi;
-            UpdateMogg = modification.Mogg;
-            UpdateImage = modification.Image;
-            UpdateMilo = modification.Milo;
-            Upgrade = modification.UpgradeNode;
+            var last_write = MidiLastWriteTime;
+            if (_updateMidiLastWrite.HasValue && _updateMidiLastWrite > last_write)
+            {
+                last_write = _updateMidiLastWrite.Value;
+            }
+
+            if (_upgrade != null && _upgrade.LastWriteTime > last_write)
+            {
+                last_write = _upgrade.LastWriteTime;
+            }
+            return last_write;
         }
 
-        protected RBCONEntry(AbridgedFileInfo? updateMidi, RBProUpgrade? upgrade, UnmanagedMemoryStream stream, CategoryCacheStrings strings)
-            : base(stream, strings)
+        internal override void Serialize(MemoryStream stream, CacheWriteIndices indices)
         {
-            UpdateMidi = updateMidi;
-            Upgrade = upgrade;
+            base.Serialize(stream, indices);
+            stream.Write(_yearAsNumber, Endianness.Little);
 
-            YearAsNumber = stream.Read<int>(Endianness.Little);
-            SongLengthMilliseconds = stream.Read<ulong>(Endianness.Little);
-
-            UpdateMogg = stream.ReadBoolean() ? new AbridgedFileInfo(stream.ReadString(), false) : null;
-            UpdateMilo = stream.ReadBoolean() ? new AbridgedFileInfo(stream.ReadString(), false) : null;
-            UpdateImage = stream.ReadBoolean() ? new AbridgedFileInfo(stream.ReadString(), false) : null;
             unsafe
             {
-                RBDifficulties = *(RBCONDifficulties*) stream.PositionPointer;
-                stream.Position += sizeof(RBCONDifficulties);
-            }
-            RBMetadata = new RBMetadata(stream);
-
-            Year = YearAsNumber != int.MaxValue ? YearAsNumber.ToString("D4") : Metadata.Year;
-        }
-
-        public override void Serialize(MemoryStream stream, CategoryCacheWriteNode node)
-        {
-            base.Serialize(stream, node);
-            stream.Write(YearAsNumber, Endianness.Little);
-            stream.Write(SongLengthMilliseconds, Endianness.Little);
-            WriteUpdateInfo(UpdateMogg, stream);
-            WriteUpdateInfo(UpdateMilo, stream);
-            WriteUpdateInfo(UpdateImage, stream);
-            unsafe
-            {
-                fixed (RBCONDifficulties* ptr = &RBDifficulties)
-                {
-                    var span = new ReadOnlySpan<byte>(ptr, sizeof(RBCONDifficulties));
-                    stream.Write(span);
-                }
-            }
-            RBMetadata.Serialize(stream);
-        }
-
-        public override DateTime GetAddDate()
-        {
-            var lastUpdateTime = MidiLastUpdate;
-            if (UpdateMidi != null)
-            {
-                if (UpdateMidi.Value.LastUpdatedTime > lastUpdateTime)
-                {
-                    lastUpdateTime = UpdateMidi.Value.LastUpdatedTime;
-                }
+                var intensities = _rbIntensities;
+                stream.Write(new ReadOnlySpan<byte>(&intensities, sizeof(RBIntensities)));
             }
 
-            if (Upgrade != null)
-            {
-                if (Upgrade.LastUpdatedTime > lastUpdateTime)
-                {
-                    lastUpdateTime = Upgrade.LastUpdatedTime;
-                }
-            }
-            return lastUpdateTime.Date;
+            stream.WriteByte((byte)_rbMetadata.VocalGender);
+            stream.WriteByte((byte)_rbMetadata.SongTonality);
+            stream.WriteByte((byte)_rbMetadata.MidiEncoding);
+
+            stream.Write(_rbMetadata.AnimTempo,            Endianness.Little);
+            stream.Write(_rbMetadata.VocalSongScrollSpeed, Endianness.Little);
+            stream.Write(_rbMetadata.VocalTonicNote,       Endianness.Little);
+            stream.Write(_rbMetadata.TuningOffsetCents,    Endianness.Little);
+            stream.Write(_rbMetadata.VenueVersion,         Endianness.Little);
+
+            stream.Write(_rbMetadata.SongID);
+            stream.Write(_rbMetadata.VocalPercussionBank);
+            stream.Write(_rbMetadata.DrumBank);
+
+            WriteArray(in _rbMetadata.RealGuitarTuning, stream);
+            WriteArray(in _rbMetadata.RealBassTuning,   stream);
+
+            WriteArray(in _rbMetadata.Soloes,      stream);
+            WriteArray(in _rbMetadata.VideoVenues, stream);
+
+            WriteAudio(in _indices, stream);
+            WriteAudio(in _panning, stream);
         }
 
         public override SongChart? LoadChart()
@@ -119,45 +106,52 @@ namespace YARG.Core.Song
             MidiFile midi;
             var readingSettings = MidiSettingsLatin1.Instance; // RBCONs are always Latin-1
             // Read base MIDI
-            using (var midiStream = GetMidiStream())
+            using (var mainMidi = GetMainMidiData())
             {
-                if (midiStream == null)
+                if (mainMidi == null)
                 {
                     return null;
                 }
-                midi = MidiFile.Read(midiStream, readingSettings);
+                midi = MidiFile.Read(mainMidi.ToReferenceStream(), readingSettings);
             }
 
             // Merge update MIDI
-            if (UpdateMidi != null)
+            if (_updateMidiLastWrite.HasValue)
             {
-                if (!UpdateMidi.Value.IsStillValid(false))
+                if (!AbridgedFileInfo.Validate(Path.Combine(_updateDirectoryAndDtaLastWrite!.Value.FullName, SONGUPDATES_DTA), _updateDirectoryAndDtaLastWrite.Value.LastWriteTime))
                 {
                     return null;
                 }
 
-                using var midiStream = new FileStream(UpdateMidi.Value.FullName, FileMode.Open, FileAccess.Read, FileShare.Read);
-                var update = MidiFile.Read(midiStream, readingSettings);
+                string updateFilename = Path.Combine(_updateDirectoryAndDtaLastWrite!.Value.FullName, _nodeName, _nodeName + "_update.mid");
+                if (!AbridgedFileInfo.Validate(updateFilename, _updateMidiLastWrite.Value))
+                {
+                    return null;
+                }
+
+                using var updateMidi = FixedArray.LoadFile(updateFilename);
+                var update = MidiFile.Read(updateMidi.ToReferenceStream(), readingSettings);
                 midi.Merge(update);
             }
 
             // Merge upgrade MIDI
-            if (Upgrade != null)
+            if (_upgrade != null)
             {
-                using var midiStream = Upgrade.GetUpgradeMidiStream();
-                if (midiStream == null)
+                using var upgradeMidi = _upgrade.LoadUpgradeMidi();
+                if (upgradeMidi == null)
                 {
                     return null;
                 }
-                var update = MidiFile.Read(midiStream, readingSettings);
-                midi.Merge(update);
+
+                var upgrade = MidiFile.Read(upgradeMidi.ToReferenceStream(), readingSettings);
+                midi.Merge(upgrade);
             }
 
             var parseSettings = new ParseSettings()
             {
-                HopoThreshold = Settings.HopoThreshold,
-                SustainCutoffThreshold = Settings.SustainCutoffThreshold,
-                StarPowerNote = Settings.OverdiveMidiNote,
+                HopoThreshold = _settings.HopoThreshold,
+                SustainCutoffThreshold = _settings.SustainCutoffThreshold,
+                StarPowerNote = _settings.OverdiveMidiNote,
                 DrumsType = DrumsType.FourLane,
                 ChordHopoCancellation = true
             };
@@ -183,7 +177,7 @@ namespace YARG.Core.Song
             int start = stream.Read<int>(Endianness.Little);
             stream.Seek(start, SeekOrigin.Begin);
 
-            bool clampStemVolume = Metadata.Source.Str.ToLowerInvariant() == "yarg";
+            bool clampStemVolume = _metadata.Source.ToLowerInvariant() == "yarg";
             var mixer = GlobalAudioHandler.CreateMixer(ToString(), stream, speed, volume, clampStemVolume);
             if (mixer == null)
             {
@@ -193,58 +187,58 @@ namespace YARG.Core.Song
             }
 
 
-            if (RBMetadata.Indices.Drums.Length > 0 && !ignoreStems.Contains(SongStem.Drums))
+            if (_indices.Drums.Length > 0 && !ignoreStems.Contains(SongStem.Drums))
             {
-                switch (RBMetadata.Indices.Drums.Length)
+                switch (_indices.Drums.Length)
                 {
                     //drum (0 1): stereo kit --> (0 1)
                     case 1:
                     case 2:
-                        mixer.AddChannel(SongStem.Drums, RBMetadata.Indices.Drums, RBMetadata.Panning.Drums!);
+                        mixer.AddChannel(SongStem.Drums, _indices.Drums, _panning.Drums!);
                         break;
                     //drum (0 1 2): mono kick, stereo snare/kit --> (0) (1 2)
                     case 3:
-                        mixer.AddChannel(SongStem.Drums1, RBMetadata.Indices.Drums[0..1], RBMetadata.Panning.Drums![0..2]);
-                        mixer.AddChannel(SongStem.Drums2, RBMetadata.Indices.Drums[1..3], RBMetadata.Panning.Drums[2..6]);
+                        mixer.AddChannel(SongStem.Drums1, _indices.Drums[0..1], _panning.Drums[0..2]);
+                        mixer.AddChannel(SongStem.Drums2, _indices.Drums[1..3], _panning.Drums[2..6]);
                         break;
                     //drum (0 1 2 3): mono kick, mono snare, stereo kit --> (0) (1) (2 3)
                     case 4:
-                        mixer.AddChannel(SongStem.Drums1, RBMetadata.Indices.Drums[0..1], RBMetadata.Panning.Drums![0..2]);
-                        mixer.AddChannel(SongStem.Drums2, RBMetadata.Indices.Drums[1..2], RBMetadata.Panning.Drums[2..4]);
-                        mixer.AddChannel(SongStem.Drums3, RBMetadata.Indices.Drums[2..4], RBMetadata.Panning.Drums[4..8]);
+                        mixer.AddChannel(SongStem.Drums1, _indices.Drums[0..1], _panning.Drums[0..2]);
+                        mixer.AddChannel(SongStem.Drums2, _indices.Drums[1..2], _panning.Drums[2..4]);
+                        mixer.AddChannel(SongStem.Drums3, _indices.Drums[2..4], _panning.Drums[4..8]);
                         break;
                     //drum (0 1 2 3 4): mono kick, stereo snare, stereo kit --> (0) (1 2) (3 4)
                     case 5:
-                        mixer.AddChannel(SongStem.Drums1, RBMetadata.Indices.Drums[0..1], RBMetadata.Panning.Drums![0..2]);
-                        mixer.AddChannel(SongStem.Drums2, RBMetadata.Indices.Drums[1..3], RBMetadata.Panning.Drums[2..6]);
-                        mixer.AddChannel(SongStem.Drums3, RBMetadata.Indices.Drums[3..5], RBMetadata.Panning.Drums[6..10]);
+                        mixer.AddChannel(SongStem.Drums1, _indices.Drums[0..1], _panning.Drums[0..2]);
+                        mixer.AddChannel(SongStem.Drums2, _indices.Drums[1..3], _panning.Drums[2..6]);
+                        mixer.AddChannel(SongStem.Drums3, _indices.Drums[3..5], _panning.Drums[6..10]);
                         break;
                     //drum (0 1 2 3 4 5): stereo kick, stereo snare, stereo kit --> (0 1) (2 3) (4 5)
                     case 6:
-                        mixer.AddChannel(SongStem.Drums1, RBMetadata.Indices.Drums[0..2], RBMetadata.Panning.Drums![0..4]);
-                        mixer.AddChannel(SongStem.Drums2, RBMetadata.Indices.Drums[2..4], RBMetadata.Panning.Drums[4..8]);
-                        mixer.AddChannel(SongStem.Drums3, RBMetadata.Indices.Drums[4..6], RBMetadata.Panning.Drums[8..12]);
+                        mixer.AddChannel(SongStem.Drums1, _indices.Drums[0..2], _panning.Drums[0..4]);
+                        mixer.AddChannel(SongStem.Drums2, _indices.Drums[2..4], _panning.Drums[4..8]);
+                        mixer.AddChannel(SongStem.Drums3, _indices.Drums[4..6], _panning.Drums[8..12]);
                         break;
                 }
             }
 
-            if (RBMetadata.Indices.Bass.Length > 0 && !ignoreStems.Contains(SongStem.Bass))
-                mixer.AddChannel(SongStem.Bass, RBMetadata.Indices.Bass, RBMetadata.Panning.Bass!);
+            if (_indices.Bass.Length > 0 && !ignoreStems.Contains(SongStem.Bass))
+                mixer.AddChannel(SongStem.Bass, _indices.Bass, _panning.Bass);
 
-            if (RBMetadata.Indices.Guitar.Length > 0 && !ignoreStems.Contains(SongStem.Guitar))
-                mixer.AddChannel(SongStem.Guitar, RBMetadata.Indices.Guitar, RBMetadata.Panning.Guitar!);
+            if (_indices.Guitar.Length > 0 && !ignoreStems.Contains(SongStem.Guitar))
+                mixer.AddChannel(SongStem.Guitar, _indices.Guitar, _panning.Guitar);
 
-            if (RBMetadata.Indices.Keys.Length > 0 && !ignoreStems.Contains(SongStem.Keys))
-                mixer.AddChannel(SongStem.Keys, RBMetadata.Indices.Keys, RBMetadata.Panning.Keys!);
+            if (_indices.Keys.Length > 0 && !ignoreStems.Contains(SongStem.Keys))
+                mixer.AddChannel(SongStem.Keys, _indices.Keys, _panning.Keys);
 
-            if (RBMetadata.Indices.Vocals.Length > 0 && !ignoreStems.Contains(SongStem.Vocals))
-                mixer.AddChannel(SongStem.Vocals, RBMetadata.Indices.Vocals, RBMetadata.Panning.Vocals!);
+            if (_indices.Vocals.Length > 0 && !ignoreStems.Contains(SongStem.Vocals))
+                mixer.AddChannel(SongStem.Vocals, _indices.Vocals, _panning.Vocals);
 
-            if (RBMetadata.Indices.Track.Length > 0 && !ignoreStems.Contains(SongStem.Song))
-                mixer.AddChannel(SongStem.Song, RBMetadata.Indices.Track, RBMetadata.Panning.Track!);
+            if (_indices.Track.Length > 0 && !ignoreStems.Contains(SongStem.Song))
+                mixer.AddChannel(SongStem.Song, _indices.Track, _panning.Track);
 
-            if (RBMetadata.Indices.Crowd.Length > 0 && !ignoreStems.Contains(SongStem.Crowd))
-                mixer.AddChannel(SongStem.Crowd, RBMetadata.Indices.Crowd, RBMetadata.Panning.Crowd!);
+            if (_indices.Crowd.Length > 0 && !ignoreStems.Contains(SongStem.Crowd))
+                mixer.AddChannel(SongStem.Crowd, _indices.Crowd, _panning.Crowd);
 
             if (mixer.Channels.Count == 0)
             {
@@ -262,127 +256,90 @@ namespace YARG.Core.Song
             return LoadAudio(speed, 0, SongStem.Crowd);
         }
 
-        protected abstract Stream? GetMidiStream();
-        protected abstract Stream? GetMoggStream();
-
-        public struct ScanNode
+        internal void UpdateInfo(in AbridgedFileInfo? updateDirectory, in DateTime? updateMidi, RBProUpgrade? upgrade)
         {
-            public static readonly ScanNode Default = new()
-            {
-                Metadata = SongMetadata.Default,
-                RBMetadata = RBMetadata.Default,
-                Settings = LoaderSettings.Default,
-                Parts = AvailableParts.Default,
-                Difficulties = RBCONDifficulties.Default,
-                YearAsNumber = int.MaxValue,
-            };
-
-            public string? Location;
-            public SongMetadata Metadata;
-            public RBMetadata RBMetadata;
-            public LoaderSettings Settings;
-            public AvailableParts Parts;
-            public RBCONDifficulties Difficulties;
-
-            public int YearAsNumber;
-            public ulong SongLength;
+            _updateDirectoryAndDtaLastWrite = updateDirectory;
+            _updateMidiLastWrite = updateMidi;
+            _upgrade = upgrade;
         }
 
-        protected static (ScanResult Result, ScanNode Info) ProcessDTAs(string nodename, DTAEntry baseDTA, CONModification modification)
+        private protected new void Deserialize(ref FixedArrayStream stream, CacheReadStrings strings)
         {
+            base.Deserialize(ref stream, strings);
+            _yearAsNumber = stream.Read<int>(Endianness.Little);
+            _parsedYear = _metadata.Year;
+
+            unsafe
+            {
+                RBIntensities intensities;
+                stream.Read(&intensities, sizeof(RBIntensities));
+                _rbIntensities = intensities;
+            }
+
+            _rbMetadata.VocalGender  = (VocalGender) stream.ReadByte();
+            _rbMetadata.SongTonality = (SongTonality)stream.ReadByte();
+            _rbMetadata.MidiEncoding = (EncodingType)stream.ReadByte();
+
+            _rbMetadata.AnimTempo            = stream.Read<uint>(Endianness.Little);
+            _rbMetadata.VocalSongScrollSpeed = stream.Read<uint>(Endianness.Little);
+            _rbMetadata.VocalTonicNote       = stream.Read<uint>(Endianness.Little);
+            _rbMetadata.TuningOffsetCents    = stream.Read<int> (Endianness.Little);
+            _rbMetadata.VenueVersion         = stream.Read<uint>(Endianness.Little);
+
+            _rbMetadata.SongID              = stream.ReadString();
+            _rbMetadata.VocalPercussionBank = stream.ReadString();
+            _rbMetadata.DrumBank            = stream.ReadString();
+
+            _rbMetadata.RealGuitarTuning = ReadArray<int>(ref stream);
+            _rbMetadata.RealBassTuning   = ReadArray<int>(ref stream);
+
+            _rbMetadata.Soloes      = ReadStringArray(ref stream);
+            _rbMetadata.VideoVenues = ReadStringArray(ref stream);
+
+            ReadAudio(ref _indices, ref stream);
+            ReadAudio(ref _panning, ref stream);
+        }
+
+        protected RBCONEntry(in AbridgedFileInfo root, string nodeName)
+        {
+            _root = root;
+            _nodeName = nodeName;
+        }
+
+
+        private static readonly int[] BandDiffMap = { 163, 215, 243, 267, 292, 345 };
+        private static readonly int[] GuitarDiffMap = { 139, 176, 221, 267, 333, 409 };
+        private static readonly int[] BassDiffMap = { 135, 181, 228, 293, 364, 436 };
+        private static readonly int[] DrumDiffMap = { 124, 151, 178, 242, 345, 448 };
+        private static readonly int[] KeysDiffMap = { 153, 211, 269, 327, 385, 443 };
+        private static readonly int[] VocalsDiffMap = { 132, 175, 218, 279, 353, 427 };
+        private static readonly int[] RealGuitarDiffMap = { 150, 205, 264, 323, 382, 442 };
+        private static readonly int[] RealBassDiffMap = { 150, 208, 267, 325, 384, 442 };
+        private static readonly int[] RealDrumsDiffMap = { 124, 151, 178, 242, 345, 448 };
+        private static readonly int[] RealKeysDiffMap = { 153, 211, 269, 327, 385, 443 };
+        private static readonly int[] HarmonyDiffMap = { 132, 175, 218, 279, 353, 427 };
+        private protected static ScanExpected<string> ProcessDTAs(RBCONEntry entry, in DTAEntry baseDTA, in DTAEntry updateDTA, in DTAEntry upgradeDTA)
+        {
+            string? location = null;
             float[]? volumes = null;
             float[]? pans = null;
             float[]? cores = null;
 
-            var info = ScanNode.Default;
-            void ParseDTA(DTAEntry entry)
+            ParseDTA(entry, in baseDTA, ref location, ref volumes, ref pans, ref cores);
+            ParseDTA(entry, in upgradeDTA, ref location, ref volumes, ref pans, ref cores);
+            ParseDTA(entry, in updateDTA, ref location, ref volumes, ref pans, ref cores);
+
+            if (entry._metadata.Name.Length == 0)
             {
-                if (entry.Name != null) { info.Metadata.Name = entry.Name; }
-                if (entry.Artist != null) { info.Metadata.Artist = entry.Artist; }
-                if (entry.Album != null) { info.Metadata.Album = entry.Album; }
-                if (entry.Charter != null) { info.Metadata.Charter = entry.Charter; }
-                if (entry.Genre != null) { info.Metadata.Genre = entry.Genre; }
-                if (entry.YearAsNumber != null)
-                {
-                    info.YearAsNumber = entry.YearAsNumber.Value;
-                    info.Metadata.Year = info.YearAsNumber.ToString("D4");
-                }
-                if (entry.Source != null) { info.Metadata.Source = entry.Source; }
-                if (entry.Playlist != null) { info.Metadata.Playlist = entry.Playlist; }
-                if (entry.SongLength != null) { info.SongLength = entry.SongLength.Value; }
-                if (entry.IsMaster != null) { info.Metadata.IsMaster = entry.IsMaster.Value; }
-                if (entry.AlbumTrack != null) { info.Metadata.AlbumTrack = entry.AlbumTrack.Value; }
-                if (entry.PreviewStart != null)
-                {
-                    info.Metadata.PreviewStart = entry.PreviewStart.Value;
-                    info.Metadata.PreviewEnd = entry.PreviewEnd!.Value;
-                }
-                if (entry.HopoThreshold != null) { info.Settings.HopoThreshold = entry.HopoThreshold.Value; }
-                if (entry.SongRating != null) { info.Metadata.SongRating = entry.SongRating.Value; }
-                if (entry.VocalPercussionBank != null) { info.RBMetadata.VocalPercussionBank = entry.VocalPercussionBank; }
-                if (entry.VocalGender != null) { info.RBMetadata.VocalGender = entry.VocalGender.Value; }
-                if (entry.VocalSongScrollSpeed != null) { info.RBMetadata.VocalSongScrollSpeed = entry.VocalSongScrollSpeed.Value; }
-                if (entry.VocalTonicNote != null) { info.RBMetadata.VocalTonicNote = entry.VocalTonicNote.Value; }
-                if (entry.VideoVenues != null) { info.RBMetadata.VideoVenues = entry.VideoVenues; }
-                if (entry.DrumBank != null) { info.RBMetadata.DrumBank = entry.DrumBank; }
-                if (entry.SongID != null) { info.RBMetadata.SongID = entry.SongID; }
-                if (entry.SongTonality != null) { info.RBMetadata.SongTonality = entry.SongTonality.Value; }
-                if (entry.Soloes != null) { info.RBMetadata.Soloes = entry.Soloes; }
-                if (entry.AnimTempo != null) { info.RBMetadata.AnimTempo = entry.AnimTempo.Value; }
-                if (entry.TuningOffsetCents != null) { info.RBMetadata.TuningOffsetCents = entry.TuningOffsetCents.Value; }
-                if (entry.RealGuitarTuning != null) { info.RBMetadata.RealGuitarTuning = entry.RealGuitarTuning; }
-                if (entry.RealBassTuning != null) { info.RBMetadata.RealBassTuning = entry.RealBassTuning; }
-
-                if (entry.Cores != null) { cores = entry.Cores; }
-                if (entry.Volumes != null) { volumes = entry.Volumes; }
-                if (entry.Pans != null) { pans = entry.Pans; }
-
-                if (entry.Location != null) { info.Location = entry.Location; }
-
-                if (entry.Indices != null)
-                {
-                    var crowd = info.RBMetadata.Indices.Crowd;
-                    info.RBMetadata.Indices = entry.Indices.Value;
-                    info.RBMetadata.Indices.Crowd = crowd;
-                }
-
-                if (entry.CrowdChannels != null) { info.RBMetadata.Indices.Crowd = entry.CrowdChannels; }
-
-                if (entry.Difficulties.Band >= 0) { info.Difficulties.Band = entry.Difficulties.Band; }
-                if (entry.Difficulties.FiveFretGuitar >= 0) {  info.Difficulties.FiveFretGuitar = entry.Difficulties.FiveFretGuitar; }
-                if (entry.Difficulties.FiveFretBass >= 0) { info.Difficulties.FiveFretBass = entry.Difficulties.FiveFretBass; }
-                if (entry.Difficulties.FiveFretRhythm >= 0) { info.Difficulties.FiveFretRhythm = entry.Difficulties.FiveFretRhythm; }
-                if (entry.Difficulties.FiveFretCoop >= 0) { info.Difficulties.FiveFretCoop = entry.Difficulties.FiveFretCoop; }
-                if (entry.Difficulties.Keys >= 0) { info.Difficulties.Keys = entry.Difficulties.Keys; }
-                if (entry.Difficulties.FourLaneDrums >= 0) { info.Difficulties.FourLaneDrums = entry.Difficulties.FourLaneDrums; }
-                if (entry.Difficulties.ProDrums >= 0) { info.Difficulties.ProDrums = entry.Difficulties.ProDrums; }
-                if (entry.Difficulties.ProGuitar >= 0) { info.Difficulties.ProGuitar = entry.Difficulties.ProGuitar; }
-                if (entry.Difficulties.ProBass >= 0) { info.Difficulties.ProBass = entry.Difficulties.ProBass; }
-                if (entry.Difficulties.ProKeys >= 0) { info.Difficulties.ProKeys = entry.Difficulties.ProKeys; }
-                if (entry.Difficulties.LeadVocals >= 0) { info.Difficulties.LeadVocals = entry.Difficulties.LeadVocals; }
-                if (entry.Difficulties.HarmonyVocals >= 0) { info.Difficulties.HarmonyVocals = entry.Difficulties.HarmonyVocals; }
+                return new ScanUnexpected(ScanResult.NoName);
             }
 
-            ParseDTA(baseDTA);
-            if (modification.UpdateDTA != null)
+            if (location == null || pans == null || volumes == null || cores == null)
             {
-                ParseDTA(modification.UpdateDTA);
+                return new ScanUnexpected(ScanResult.DTAError);
             }
 
-            if (modification.UpgradeDTA != null)
-            {
-                ParseDTA(modification.UpgradeDTA);
-            }
-
-            if (info.Metadata.Name.Length == 0)
-            {
-                return (ScanResult.NoName, info);
-            }
-
-            if (info.Location == null || pans == null || volumes == null || cores == null)
-            {
-                return (ScanResult.DTAError, info);
-            }
+            entry._parsedYear = entry._metadata.Year;
 
             unsafe
             {
@@ -401,34 +358,34 @@ namespace YARG.Core.Song
                     return values;
                 }
 
-                if (info.RBMetadata.Indices.Drums.Length > 0)
+                if (entry._indices.Drums.Length > 0)
                 {
-                    info.RBMetadata.Panning.Drums = CalculateStemValues(info.RBMetadata.Indices.Drums);
+                    entry._panning.Drums = CalculateStemValues(entry._indices.Drums);
                 }
 
-                if (info.RBMetadata.Indices.Bass.Length > 0)
+                if (entry._indices.Bass.Length > 0)
                 {
-                    info.RBMetadata.Panning.Bass = CalculateStemValues(info.RBMetadata.Indices.Bass);
+                    entry._panning.Bass = CalculateStemValues(entry._indices.Bass);
                 }
 
-                if (info.RBMetadata.Indices.Guitar.Length > 0)
+                if (entry._indices.Guitar.Length > 0)
                 {
-                    info.RBMetadata.Panning.Guitar = CalculateStemValues(info.RBMetadata.Indices.Guitar);
+                    entry._panning.Guitar = CalculateStemValues(entry._indices.Guitar);
                 }
 
-                if (info.RBMetadata.Indices.Keys.Length > 0)
+                if (entry._indices.Keys.Length > 0)
                 {
-                    info.RBMetadata.Panning.Keys = CalculateStemValues(info.RBMetadata.Indices.Keys);
+                    entry._panning.Keys = CalculateStemValues(entry._indices.Keys);
                 }
 
-                if (info.RBMetadata.Indices.Vocals.Length > 0)
+                if (entry._indices.Vocals.Length > 0)
                 {
-                    info.RBMetadata.Panning.Vocals = CalculateStemValues(info.RBMetadata.Indices.Vocals);
+                    entry._panning.Vocals = CalculateStemValues(entry._indices.Vocals);
                 }
 
-                if (info.RBMetadata.Indices.Crowd.Length > 0)
+                if (entry._indices.Crowd.Length > 0)
                 {
-                    info.RBMetadata.Panning.Crowd = CalculateStemValues(info.RBMetadata.Indices.Crowd);
+                    entry._panning.Crowd = CalculateStemValues(entry._indices.Crowd);
                 }
 
                 var leftover = new List<int>(pans.Length);
@@ -442,154 +399,163 @@ namespace YARG.Core.Song
 
                 if (leftover.Count > 0)
                 {
-                    info.RBMetadata.Indices.Track = leftover.ToArray();
-                    info.RBMetadata.Panning.Track = CalculateStemValues(info.RBMetadata.Indices.Track);
+                    entry._indices.Track = leftover.ToArray();
+                    entry._panning.Track = CalculateStemValues(entry._indices.Track);
                 }
             }
 
-            if (info.Difficulties.FourLaneDrums > -1)
+            if (entry._rbIntensities.FourLaneDrums > -1)
             {
-                SetRank(ref info.Parts.FourLaneDrums.Intensity, info.Difficulties.FourLaneDrums, DrumDiffMap);
-                if (info.Parts.ProDrums.Intensity == -1)
+                entry._parts.FourLaneDrums.Intensity = (sbyte)GetIntensity(entry._rbIntensities.FourLaneDrums, DrumDiffMap);
+                if (entry._parts.ProDrums.Intensity == -1)
                 {
-                    info.Parts.ProDrums.Intensity = info.Parts.FourLaneDrums.Intensity;
+                    entry._parts.ProDrums.Intensity = entry._parts.FourLaneDrums.Intensity;
                 }
             }
-            if (info.Difficulties.FiveFretGuitar > -1)
+            if (entry._rbIntensities.FiveFretGuitar > -1)
             {
-                SetRank(ref info.Parts.FiveFretGuitar.Intensity, info.Difficulties.FiveFretGuitar, GuitarDiffMap);
-                if (info.Parts.ProGuitar_17Fret.Intensity == -1)
+                entry._parts.FiveFretGuitar.Intensity = (sbyte)GetIntensity(entry._rbIntensities.FiveFretGuitar, GuitarDiffMap);
+                if (entry._parts.ProGuitar_17Fret.Intensity == -1)
                 {
-                    info.Parts.ProGuitar_22Fret.Intensity = info.Parts.ProGuitar_17Fret.Intensity = info.Parts.FiveFretGuitar.Intensity;
+                    entry._parts.ProGuitar_22Fret.Intensity = entry._parts.ProGuitar_17Fret.Intensity = entry._parts.FiveFretGuitar.Intensity;
                 }
             }
-            if (info.Difficulties.FiveFretBass > -1)
+            if (entry._rbIntensities.FiveFretBass > -1)
             {
-                SetRank(ref info.Parts.FiveFretBass.Intensity, info.Difficulties.FiveFretBass, GuitarDiffMap);
-                if (info.Parts.ProBass_17Fret.Intensity == -1)
+                entry._parts.FiveFretBass.Intensity = (sbyte)GetIntensity(entry._rbIntensities.FiveFretBass, GuitarDiffMap);
+                if (entry._parts.ProBass_17Fret.Intensity == -1)
                 {
-                    info.Parts.ProBass_22Fret.Intensity = info.Parts.ProBass_17Fret.Intensity = info.Parts.FiveFretGuitar.Intensity;
+                    entry._parts.ProBass_22Fret.Intensity = entry._parts.ProBass_17Fret.Intensity = entry._parts.FiveFretGuitar.Intensity;
                 }
             }
-            if (info.Difficulties.LeadVocals > -1)
+            if (entry._rbIntensities.LeadVocals > -1)
             {
-                SetRank(ref info.Parts.LeadVocals.Intensity, info.Difficulties.LeadVocals, GuitarDiffMap);
-                if (info.Parts.HarmonyVocals.Intensity == -1)
+                entry._parts.LeadVocals.Intensity = (sbyte)GetIntensity(entry._rbIntensities.LeadVocals, GuitarDiffMap);
+                if (entry._parts.HarmonyVocals.Intensity == -1)
                 {
-                    info.Parts.HarmonyVocals.Intensity = info.Parts.LeadVocals.Intensity;
+                    entry._parts.HarmonyVocals.Intensity = entry._parts.LeadVocals.Intensity;
                 }
             }
-            if (info.Difficulties.Keys > -1)
+            if (entry._rbIntensities.Keys > -1)
             {
-                SetRank(ref info.Parts.Keys.Intensity, info.Difficulties.Keys, GuitarDiffMap);
-                if (info.Parts.ProKeys.Intensity == -1)
+                entry._parts.Keys.Intensity = (sbyte)GetIntensity(entry._rbIntensities.Keys, GuitarDiffMap);
+                if (entry._parts.ProKeys.Intensity == -1)
                 {
-                    info.Parts.ProKeys.Intensity = info.Parts.Keys.Intensity;
+                    entry._parts.ProKeys.Intensity = entry._parts.Keys.Intensity;
                 }
             }
-            if (info.Difficulties.ProGuitar > -1)
+            if (entry._rbIntensities.ProGuitar > -1)
             {
-                SetRank(ref info.Parts.ProGuitar_17Fret.Intensity, info.Difficulties.ProGuitar, RealGuitarDiffMap);
-                info.Parts.ProGuitar_22Fret.Intensity = info.Parts.ProGuitar_17Fret.Intensity;
-                if (info.Parts.FiveFretGuitar.Intensity == -1)
+                entry._parts.ProGuitar_17Fret.Intensity = (sbyte)GetIntensity(entry._rbIntensities.ProGuitar, RealGuitarDiffMap);
+                entry._parts.ProGuitar_22Fret.Intensity = entry._parts.ProGuitar_17Fret.Intensity;
+                if (entry._parts.FiveFretGuitar.Intensity == -1)
                 {
-                    info.Parts.FiveFretGuitar.Intensity = info.Parts.ProGuitar_17Fret.Intensity;
+                    entry._parts.FiveFretGuitar.Intensity = entry._parts.ProGuitar_17Fret.Intensity;
                 }
             }
-            if (info.Difficulties.ProBass > -1)
+            if (entry._rbIntensities.ProBass > -1)
             {
-                SetRank(ref info.Parts.ProBass_17Fret.Intensity, info.Difficulties.ProBass, RealGuitarDiffMap);
-                info.Parts.ProBass_22Fret.Intensity = info.Parts.ProBass_17Fret.Intensity;
-                if (info.Parts.FiveFretBass.Intensity == -1)
+                entry._parts.ProBass_17Fret.Intensity = (sbyte)GetIntensity(entry._rbIntensities.ProBass, RealGuitarDiffMap);
+                entry._parts.ProBass_22Fret.Intensity = entry._parts.ProBass_17Fret.Intensity;
+                if (entry._parts.FiveFretBass.Intensity == -1)
                 {
-                    info.Parts.FiveFretBass.Intensity = info.Parts.ProBass_17Fret.Intensity;
+                    entry._parts.FiveFretBass.Intensity = entry._parts.ProBass_17Fret.Intensity;
                 }
             }
-            if (info.Difficulties.ProKeys > -1)
+            if (entry._rbIntensities.ProKeys > -1)
             {
-                SetRank(ref info.Parts.ProKeys.Intensity, info.Difficulties.ProKeys, RealKeysDiffMap);
-                if (info.Parts.Keys.Intensity == -1)
+                entry._parts.ProKeys.Intensity = (sbyte)GetIntensity(entry._rbIntensities.ProKeys, RealKeysDiffMap);
+                if (entry._parts.Keys.Intensity == -1)
                 {
-                    info.Parts.Keys.Intensity = info.Parts.ProKeys.Intensity;
+                    entry._parts.Keys.Intensity = entry._parts.ProKeys.Intensity;
                 }
             }
-            if (info.Difficulties.ProDrums > -1)
+            if (entry._rbIntensities.ProDrums > -1)
             {
-                SetRank(ref info.Parts.ProDrums.Intensity, info.Difficulties.ProDrums, DrumDiffMap);
-                if (info.Parts.FourLaneDrums.Intensity == -1)
+                entry._parts.ProDrums.Intensity = (sbyte)GetIntensity(entry._rbIntensities.ProDrums, DrumDiffMap);
+                if (entry._parts.FourLaneDrums.Intensity == -1)
                 {
-                    info.Parts.FourLaneDrums.Intensity = info.Parts.ProDrums.Intensity;
+                    entry._parts.FourLaneDrums.Intensity = entry._parts.ProDrums.Intensity;
                 }
             }
-            if (info.Difficulties.HarmonyVocals > -1)
+            if (entry._rbIntensities.HarmonyVocals > -1)
             {
-                SetRank(ref info.Parts.HarmonyVocals.Intensity, info.Difficulties.HarmonyVocals, DrumDiffMap);
-                if (info.Parts.LeadVocals.Intensity == -1)
+                entry._parts.HarmonyVocals.Intensity = (sbyte)GetIntensity(entry._rbIntensities.HarmonyVocals, DrumDiffMap);
+                if (entry._parts.LeadVocals.Intensity == -1)
                 {
-                    info.Parts.LeadVocals.Intensity = info.Parts.HarmonyVocals.Intensity;
+                    entry._parts.LeadVocals.Intensity = entry._parts.HarmonyVocals.Intensity;
                 }
             }
-            if (info.Difficulties.Band > -1)
+            if (entry._rbIntensities.Band > -1)
             {
-                SetRank(ref info.Parts.BandDifficulty.Intensity, info.Difficulties.Band, BandDiffMap);
-                info.Parts.BandDifficulty.SubTracks = 1;
+                entry._parts.BandDifficulty.Intensity = (sbyte)GetIntensity(entry._rbIntensities.Band, BandDiffMap);
+                entry._parts.BandDifficulty.SubTracks = 1;
             }
-            return (ScanResult.Success, info);
+            return location;
         }
 
-        protected static (ScanResult Result, HashWrapper Hash) ParseRBCONMidi(in FixedArray<byte> mainMidi, CONModification modification, ref ScanNode info)
+        private protected static ScanResult ScanMidis(RBCONEntry entry, FixedArray<byte> mainMidi)
         {
+            var updateMidi = default(FixedArray<byte>);
+            var upgradeMidi = default(FixedArray<byte>);
             try
             {
-                DrumPreparseHandler drumTracker = new()
+                if (entry._upgrade != null)
                 {
-                    Type = DrumsType.ProDrums
-                };
-
-                using var updateMidi = modification.Midi.HasValue ? FixedArray<byte>.Load(modification.Midi.Value.FullName) : FixedArray<byte>.Null;
-                using var upgradeMidi = modification.UpgradeNode != null ? modification.UpgradeNode.LoadUpgradeMidi() : FixedArray<byte>.Null;
-                if (modification.UpgradeNode != null && !upgradeMidi.IsAllocated)
-                {
-                    throw new FileNotFoundException("Upgrade midi not located");
+                    upgradeMidi = entry._upgrade.LoadUpgradeMidi();
+                    if (upgradeMidi == null)
+                    {
+                        throw new FileNotFoundException("Upgrade midi not located");
+                    }
                 }
 
-                long bufLength = mainMidi.Length;
-                if (updateMidi.IsAllocated)
+                if (entry._updateMidiLastWrite.HasValue)
                 {
-                    switch (ParseMidi(in updateMidi, drumTracker, ref info.Parts).Result)
+                    string updateFile = Path.Combine(entry._updateDirectoryAndDtaLastWrite!.Value.FullName, entry._nodeName, entry._nodeName + "_update.mid");
+                    updateMidi = FixedArray.LoadFile(updateFile);
+                }
+
+                var drumsType = DrumsType.ProDrums;
+
+                int bufLength = mainMidi.Length;
+                if (updateMidi != null)
+                {
+                    var updateResult = ParseMidi(updateMidi, ref entry._parts, ref drumsType);
+                    switch (updateResult.Error)
                     {
-                        case ScanResult.InvalidResolution: return (ScanResult.InvalidResolution_Update, default);
-                        case ScanResult.MultipleMidiTrackNames: return (ScanResult.MultipleMidiTrackNames_Update, default);
+                        case ScanResult.InvalidResolution:      return ScanResult.InvalidResolution_Update;
+                        case ScanResult.MultipleMidiTrackNames: return ScanResult.MultipleMidiTrackNames_Update;
                     }
                     bufLength += updateMidi.Length;
                 }
 
-                if (upgradeMidi.IsAllocated)
+                if (upgradeMidi != null)
                 {
-                    switch (ParseMidi(in upgradeMidi, drumTracker, ref info.Parts).Result)
+                    var upgradeResult = ParseMidi(upgradeMidi, ref entry._parts, ref drumsType);
+                    switch (upgradeResult.Error)
                     {
-                        case ScanResult.InvalidResolution: return (ScanResult.InvalidResolution_Upgrade, default);
-                        case ScanResult.MultipleMidiTrackNames: return (ScanResult.MultipleMidiTrackNames_Upgrade, default);
+                        case ScanResult.InvalidResolution:      return ScanResult.InvalidResolution_Upgrade;
+                        case ScanResult.MultipleMidiTrackNames: return ScanResult.MultipleMidiTrackNames_Upgrade;
                     }
                     bufLength += upgradeMidi.Length;
                 }
 
-                var (result, resolution) = ParseMidi(in mainMidi, drumTracker, ref info.Parts);
-                if (result != ScanResult.Success)
+                var resolution = ParseMidi(mainMidi, ref entry._parts, ref drumsType);
+                if (!resolution)
                 {
-                    return (result, default);
+                    return resolution.Error;
                 }
 
-                SetDrums(ref info.Parts, drumTracker);
-                if (!CheckScanValidity(in info.Parts))
+                if (!IsValid(in entry._parts))
                 {
-                    return (ScanResult.NoNotes, default);
+                    return ScanResult.NoNotes;
                 }
 
-                info.Settings.SustainCutoffThreshold = resolution / 3;
-                if (info.Settings.HopoThreshold == -1)
+                entry._parts.ProDrums.Difficulties = entry._parts.FourLaneDrums.Difficulties;
+                entry._settings.SustainCutoffThreshold = resolution.Value / 3;
+                if (entry._settings.HopoThreshold == -1)
                 {
-                    info.Settings.HopoThreshold = info.Settings.SustainCutoffThreshold;
+                    entry._settings.HopoThreshold = entry._settings.SustainCutoffThreshold;
                 }
 
                 using var buffer = FixedArray<byte>.Alloc(bufLength);
@@ -598,66 +564,78 @@ namespace YARG.Core.Song
                     System.Runtime.CompilerServices.Unsafe.CopyBlock(buffer.Ptr, mainMidi.Ptr, (uint) mainMidi.Length);
 
                     long offset = mainMidi.Length;
-                    if (updateMidi.IsAllocated)
+                    if (updateMidi != null)
                     {
                         System.Runtime.CompilerServices.Unsafe.CopyBlock(buffer.Ptr + offset, updateMidi.Ptr, (uint) updateMidi.Length);
                         offset += updateMidi.Length;
+                        updateMidi.Dispose();
                     }
 
-                    if (upgradeMidi.IsAllocated)
+                    if (upgradeMidi != null)
                     {
                         System.Runtime.CompilerServices.Unsafe.CopyBlock(buffer.Ptr + offset, upgradeMidi.Ptr, (uint) upgradeMidi.Length);
+                        upgradeMidi.Dispose();
                     }
                 }
-                return (ScanResult.Success, HashWrapper.Hash(buffer.ReadOnlySpan));
+                entry._hash = HashWrapper.Hash(buffer.ReadOnlySpan);
+                return ScanResult.Success;
             }
             catch (Exception ex)
             {
+                if (updateMidi != null)
+                {
+                    updateMidi.Dispose();
+                }
+
+                if (upgradeMidi != null)
+                {
+                    upgradeMidi.Dispose();
+                }
                 YargLogger.LogException(ex);
-                return (ScanResult.PossibleCorruption, default);
+                return ScanResult.PossibleCorruption;
             }
         }
 
-        protected static Stream? LoadUpdateMoggStream(in AbridgedFileInfo? info)
+        protected Stream? LoadUpdateMoggStream()
         {
-            if (info == null)
+            Stream? stream = null;
+            if (_updateDirectoryAndDtaLastWrite.HasValue)
             {
-                return null;
+                string updateMoggPath = Path.Combine(_updateDirectoryAndDtaLastWrite.Value.FullName, _subName, _subName + "_update.mogg");
+                if (File.Exists(updateMoggPath))
+                {
+                    stream = File.OpenRead(updateMoggPath);
+                }
             }
-
-            var mogg = info.Value;
-            if (!File.Exists(mogg.FullName))
-            {
-                return null;
-            }
-
-            if (mogg.FullName.EndsWith(".yarg_mogg"))
-            {
-                return new YargMoggReadStream(mogg.FullName);
-            }
-            return new FileStream(mogg.FullName, FileMode.Open, FileAccess.Read);
+            return stream;
         }
 
-        private static readonly int[] BandDiffMap = { 163, 215, 243, 267, 292, 345 };
-        private static readonly int[] GuitarDiffMap = { 139, 176, 221, 267, 333, 409 };
-        private static readonly int[] BassDiffMap = { 135, 181, 228, 293, 364, 436 };
-        private static readonly int[] DrumDiffMap = { 124, 151, 178, 242, 345, 448 };
-        private static readonly int[] KeysDiffMap = { 153, 211, 269, 327, 385, 443 };
-        private static readonly int[] VocalsDiffMap = { 132, 175, 218, 279, 353, 427 };
-        private static readonly int[] RealGuitarDiffMap = { 150, 205, 264, 323, 382, 442 };
-        private static readonly int[] RealBassDiffMap = { 150, 208, 267, 325, 384, 442 };
-        private static readonly int[] RealDrumsDiffMap = { 124, 151, 178, 242, 345, 448 };
-        private static readonly int[] RealKeysDiffMap = { 153, 211, 269, 327, 385, 443 };
-        private static readonly int[] HarmonyDiffMap = { 132, 175, 218, 279, 353, 427 };
-
-        private static void SetRank(ref sbyte intensity, int rank, int[] values)
+        protected YARGImage? LoadUpdateAlbumData()
         {
-            sbyte i = 0;
-            while (i < 6 && values[i] <= rank)
+            var image = default(YARGImage);
+            if (_updateDirectoryAndDtaLastWrite.HasValue)
             {
-                ++i;
+                string updateImgPath = Path.Combine(_updateDirectoryAndDtaLastWrite.Value.FullName, _subName, "gen", _subName + "_keep.png_xbox");
+                if (File.Exists(updateImgPath))
+                {
+                    image = YARGImage.LoadDXT(updateImgPath);
+                }
             }
-            intensity = i;
+            return image;
+        }
+
+        protected FixedArray<byte>? LoadUpdateMiloData()
+        {
+            var data = default(FixedArray<byte>);
+            if (_updateDirectoryAndDtaLastWrite.HasValue)
+            {
+                string updateMiloPath = Path.Combine(_updateDirectoryAndDtaLastWrite.Value.FullName, _subName, "gen", _subName + ".milo_xbox");
+                if (File.Exists(updateMiloPath))
+                {
+                    data = FixedArray.LoadFile(updateMiloPath);
+                }
+            }
+            return data;
         }
 
         private static void WriteUpdateInfo(in AbridgedFileInfo? info, MemoryStream stream)
@@ -667,6 +645,169 @@ namespace YARG.Core.Song
             {
                 stream.Write(info.Value.FullName);
             }
+        }
+
+        private static void WriteArray<TType>(in TType[] values, MemoryStream stream)
+            where TType : unmanaged
+        {
+            stream.Write(values.Length, Endianness.Little);
+            unsafe
+            {
+                fixed (TType* ptr = values)
+                {
+                    var span = new ReadOnlySpan<byte>(ptr, values.Length * sizeof(TType));
+                    stream.Write(span);
+                }
+            }
+        }
+
+        private static void WriteArray(in string[] strings, MemoryStream stream)
+        {
+            stream.Write(strings.Length, Endianness.Little);
+            for (int i = 0; i < strings.Length; ++i)
+            {
+                stream.Write(strings[i]);
+            }
+        }
+
+        private static TType[] ReadArray<TType>(ref FixedArrayStream stream)
+            where TType : unmanaged
+        {
+            int length = stream.Read<int>(Endianness.Little);
+            if (length == 0)
+            {
+                return Array.Empty<TType>();
+            }
+
+            var values = new TType[length];
+            unsafe
+            {
+                fixed (TType* ptr = values)
+                {
+                    stream.Read(ptr, values.Length * sizeof(TType));
+                }
+            }
+            return values;
+        }
+
+        private static string[] ReadStringArray(ref FixedArrayStream stream)
+        {
+            int length = stream.Read<int>(Endianness.Little);
+            if (length == 0)
+            {
+                return Array.Empty<string>();
+            }
+
+            var strings = new string[length];
+            for (int i = 0; i < strings.Length; ++i)
+            {
+                strings[i] = stream.ReadString();
+            }
+            return strings;
+        }
+
+        private static void ReadAudio<TType>(ref RBAudio<TType> audio, ref FixedArrayStream stream)
+            where TType : unmanaged
+        {
+            audio.Track  = ReadArray<TType>(ref stream);
+            audio.Drums  = ReadArray<TType>(ref stream);
+            audio.Bass   = ReadArray<TType>(ref stream);
+            audio.Guitar = ReadArray<TType>(ref stream);
+            audio.Keys   = ReadArray<TType>(ref stream);
+            audio.Vocals = ReadArray<TType>(ref stream);
+            audio.Crowd  = ReadArray<TType>(ref stream);
+        }
+
+        private static void WriteAudio<TType>(in RBAudio<TType> audio, MemoryStream stream)
+            where TType : unmanaged
+        {
+            WriteArray(in audio.Track, stream);
+            WriteArray(in audio.Drums, stream);
+            WriteArray(in audio.Bass, stream);
+            WriteArray(in audio.Guitar, stream);
+            WriteArray(in audio.Keys, stream);
+            WriteArray(in audio.Vocals, stream);
+            WriteArray(in audio.Crowd, stream);
+        }
+
+        private static void ParseDTA(RBCONEntry entry, in DTAEntry dta, ref string? location, ref float[]? volumes, ref float[]? pans, ref float[]? cores)
+        {
+            if (dta.Name != null)    { entry._metadata.Name    = YARGDTAReader.DecodeString(dta.Name.Value, dta.MetadataEncoding); }
+            if (dta.Artist != null)  { entry._metadata.Artist  = YARGDTAReader.DecodeString(dta.Artist.Value, dta.MetadataEncoding); }
+            if (dta.Album != null)   { entry._metadata.Album   = YARGDTAReader.DecodeString(dta.Album.Value, dta.MetadataEncoding); }
+            if (dta.Charter != null) { entry._metadata.Charter = dta.Charter; }
+            if (dta.Genre != null)   { entry._metadata.Genre   = dta.Genre; }
+            if (dta.YearAsNumber != null)
+            {
+                entry._yearAsNumber = dta.YearAsNumber.Value;
+                entry._metadata.Year = entry._yearAsNumber.ToString("D4");
+            }
+            if (dta.Source != null)
+            {
+                if (!entry._nodeName.StartsWith("UGC_", StringComparison.OrdinalIgnoreCase) && (dta.Source == "ugc" || dta.Source == "ugc_plus" || (dta.Source == "rb2" && dta.UGC.HasValue && dta.UGC.Value)))
+                {
+                    entry._metadata.Source = "customs";
+                }
+                else
+                {
+                    entry._metadata.Source = dta.Source;
+                }
+            }
+            if (dta.Playlist != null)             { entry._metadata.Playlist      = dta.Playlist; }
+            if (dta.SongLength != null)           { entry._metadata.SongLength    = dta.SongLength.Value; }
+            if (dta.IsMaster != null)             { entry._metadata.IsMaster      = dta.IsMaster.Value; }
+            if (dta.AlbumTrack != null)           { entry._metadata.AlbumTrack    = dta.AlbumTrack.Value; }
+            if (dta.Preview != null)              { entry._metadata.Preview       = dta.Preview.Value; }
+            if (dta.HopoThreshold != null)        { entry._settings.HopoThreshold = dta.HopoThreshold.Value; }
+            if (dta.SongRating != null)           { entry._metadata.SongRating    = dta.SongRating.Value; }
+
+            if (dta.VocalPercussionBank != null)  { entry._rbMetadata.VocalPercussionBank  = dta.VocalPercussionBank; }
+            if (dta.VocalGender != null)          { entry._rbMetadata.VocalGender          = dta.VocalGender.Value; }
+            if (dta.VocalSongScrollSpeed != null) { entry._rbMetadata.VocalSongScrollSpeed = dta.VocalSongScrollSpeed.Value; }
+            if (dta.VocalTonicNote != null)       { entry._rbMetadata.VocalTonicNote       = dta.VocalTonicNote.Value; }
+            if (dta.VideoVenues != null)          { entry._rbMetadata.VideoVenues          = dta.VideoVenues; }
+            if (dta.DrumBank != null)             { entry._rbMetadata.DrumBank             = dta.DrumBank; }
+            if (dta.SongID != null)               { entry._rbMetadata.SongID               = dta.SongID; }
+            if (dta.SongTonality != null)         { entry._rbMetadata.SongTonality         = dta.SongTonality.Value; }
+            if (dta.Soloes != null)               { entry._rbMetadata.Soloes               = dta.Soloes; }
+            if (dta.AnimTempo != null)            { entry._rbMetadata.AnimTempo            = dta.AnimTempo.Value; }
+            if (dta.TuningOffsetCents != null)    { entry._rbMetadata.TuningOffsetCents    = dta.TuningOffsetCents.Value; }
+            if (dta.RealGuitarTuning != null)     { entry._rbMetadata.RealGuitarTuning     = dta.RealGuitarTuning; }
+            if (dta.RealBassTuning != null)       { entry._rbMetadata.RealBassTuning       = dta.RealBassTuning; }
+
+            if (dta.Cores != null)   { cores = dta.Cores; }
+            if (dta.Volumes != null) { volumes = dta.Volumes; }
+            if (dta.Pans != null)    { pans = dta.Pans; }
+
+            if (dta.Location != null) { location = dta.Location; }
+
+            if (dta.Indices != null)  { entry._indices = dta.Indices.Value; }
+
+            if (dta.CrowdChannels != null) { entry._indices.Crowd = dta.CrowdChannels; }
+
+            if (dta.Intensities.Band >= 0)           { entry._rbIntensities.Band           = dta.Intensities.Band; }
+            if (dta.Intensities.FiveFretGuitar >= 0) { entry._rbIntensities.FiveFretGuitar = dta.Intensities.FiveFretGuitar; }
+            if (dta.Intensities.FiveFretBass >= 0)   { entry._rbIntensities.FiveFretBass   = dta.Intensities.FiveFretBass; }
+            if (dta.Intensities.FiveFretRhythm >= 0) { entry._rbIntensities.FiveFretRhythm = dta.Intensities.FiveFretRhythm; }
+            if (dta.Intensities.FiveFretCoop >= 0)   { entry._rbIntensities.FiveFretCoop   = dta.Intensities.FiveFretCoop; }
+            if (dta.Intensities.Keys >= 0)           { entry._rbIntensities.Keys           = dta.Intensities.Keys; }
+            if (dta.Intensities.FourLaneDrums >= 0)  { entry._rbIntensities.FourLaneDrums  = dta.Intensities.FourLaneDrums; }
+            if (dta.Intensities.ProDrums >= 0)       { entry._rbIntensities.ProDrums       = dta.Intensities.ProDrums; }
+            if (dta.Intensities.ProGuitar >= 0)      { entry._rbIntensities.ProGuitar      = dta.Intensities.ProGuitar; }
+            if (dta.Intensities.ProBass >= 0)        { entry._rbIntensities.ProBass        = dta.Intensities.ProBass; }
+            if (dta.Intensities.ProKeys >= 0)        { entry._rbIntensities.ProKeys        = dta.Intensities.ProKeys; }
+            if (dta.Intensities.LeadVocals >= 0)     { entry._rbIntensities.LeadVocals     = dta.Intensities.LeadVocals; }
+            if (dta.Intensities.HarmonyVocals >= 0)  { entry._rbIntensities.HarmonyVocals  = dta.Intensities.HarmonyVocals; }
+        }
+
+        private static int GetIntensity(int rank, int[] values)
+        {
+            int intensity = 0;
+            while (intensity < 6 && values[intensity] <= rank)
+            {
+                ++intensity;
+            }
+            return intensity;
         }
     }
 }

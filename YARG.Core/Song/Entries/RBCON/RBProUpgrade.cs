@@ -1,80 +1,74 @@
 ﻿using System;
 using System.IO;
-using YARG.Core.Extensions;
 using YARG.Core.IO;
 
 namespace YARG.Core.Song
 {
-    public abstract class RBProUpgrade
+    internal abstract class RBProUpgrade
     {
-        public abstract DateTime LastUpdatedTime { get; }
-        public abstract void WriteToCache(MemoryStream stream);
-        public abstract Stream? GetUpgradeMidiStream();
-        public abstract FixedArray<byte> LoadUpgradeMidi();
-    }
+        public const string UPGRADES_DTA = "upgrades.dta";
+        public const string UPGRADES_MIDI_EXT = "_plus.mid";
 
-    [Serializable]
-    public sealed class PackedRBProUpgrade : RBProUpgrade
-    {
-        private readonly CONFileListing? _midiListing;
-        private readonly DateTime _lastUpdatedTime;
+        public abstract DateTime LastWriteTime { get; }
+        public abstract FixedArray<byte>? LoadUpgradeMidi();
 
-        public override DateTime LastUpdatedTime => _lastUpdatedTime;
-
-        public PackedRBProUpgrade(CONFileListing? listing, DateTime lastWrite)
+        protected readonly AbridgedFileInfo _root;
+        protected RBProUpgrade(in AbridgedFileInfo root)
         {
-            _midiListing = listing;
-            _lastUpdatedTime = listing?.LastWrite ?? lastWrite;
-        }
-
-        public override void WriteToCache(MemoryStream stream)
-        {
-            stream.Write(_lastUpdatedTime.ToBinary(), Endianness.Little);
-        }
-
-        public override Stream? GetUpgradeMidiStream()
-        {
-            if (_midiListing == null || !_midiListing.ConFile.IsStillValid())
-            {
-                return null;
-            }
-            return _midiListing.CreateStream();
-        }
-
-        public override FixedArray<byte> LoadUpgradeMidi()
-        {
-            if (_midiListing == null || !_midiListing.ConFile.IsStillValid())
-            {
-                return FixedArray<byte>.Null;
-            }
-            return _midiListing.LoadAllBytes();
+            _root = root;
         }
     }
 
     [Serializable]
-    public sealed class UnpackedRBProUpgrade : RBProUpgrade
+    internal sealed class PackedRBProUpgrade : RBProUpgrade
     {
-        private readonly AbridgedFileInfo _midi;
-        public override DateTime LastUpdatedTime => _midi.LastUpdatedTime;
+        public const string UPGRADES_DIRECTORY = "songs_upgrades/";
 
-        public UnpackedRBProUpgrade(in AbridgedFileInfo info)
+        private readonly CONFileListing? _listing;
+
+        public override DateTime LastWriteTime => _root.LastWriteTime;
+
+        public PackedRBProUpgrade(CONFileListing? listing, in AbridgedFileInfo root)
+            : base(in root)
         {
-            _midi = info;
+            _listing = listing;
         }
 
-        public override void WriteToCache(MemoryStream stream)
+        public override FixedArray<byte>? LoadUpgradeMidi()
         {
-            stream.Write(_midi.LastUpdatedTime.ToBinary(), Endianness.Little);
+            return _listing != null && _root.IsStillValid()
+                ? CONFileStream.LoadFile(_root.FullName, _listing)
+                : null;
+        }
+    }
+
+    [Serializable]
+    internal sealed class UnpackedRBProUpgrade : RBProUpgrade
+    {
+        private readonly string _name;
+        private readonly DateTime _lastWritetime;
+
+        public override DateTime LastWriteTime => _lastWritetime;
+
+        public UnpackedRBProUpgrade(string name, in DateTime lastWriteTime, in AbridgedFileInfo root)
+            : base(root)
+        {
+            _name = name;
+            _lastWritetime = lastWriteTime;
         }
 
-        public override Stream? GetUpgradeMidiStream()
+        public override FixedArray<byte>? LoadUpgradeMidi()
         {
-            return _midi.IsStillValid() ? new FileStream(_midi.FullName, FileMode.Open, FileAccess.Read, FileShare.Read) : null;
-        }
-
-        public override FixedArray<byte> LoadUpgradeMidi()
-        {
-            return _midi.IsStillValid() ? FixedArray<byte>.Load(_midi.FullName) : FixedArray<byte>.Null;
+            var data = default(FixedArray<byte>);
+            if (AbridgedFileInfo.Validate(Path.Combine(_root.FullName, UPGRADES_DTA), in _root.LastWriteTime))
+            {
+                string file = Path.Combine(_root.FullName, _name + UPGRADES_MIDI_EXT);
+                if (AbridgedFileInfo.Validate(file, in _lastWritetime))
+                {
+                    data = FixedArray.LoadFile(file);
+                }
+            }
+            return data;
         }
     }
 }

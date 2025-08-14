@@ -97,6 +97,10 @@ namespace YARG.Core.Chart
                 }
             }
 
+            // Flush tracked events
+            FinalizePerformerEvent(performerEvents, PerformerEventType.Spotlight, spotlightCurrentEvent, spotlightPerformers);
+            FinalizePerformerEvent(performerEvents, PerformerEventType.Singalong, singalongCurrentEvent, singalongPerformers);
+
             lightingEvents.TrimExcess();
             postProcessingEvents.TrimExcess();
             performerEvents.TrimExcess();
@@ -105,8 +109,13 @@ namespace YARG.Core.Chart
             return new(lightingEvents, postProcessingEvents, performerEvents, stageEvents);
         }
 
-        private void HandlePerformerEvent(List<PerformerEvent> events, PerformerEventType type, MoonVenue moonEvent,
-            ref MoonVenue? currentEvent, ref Performer performers)
+        private void HandlePerformerEvent(
+            List<PerformerEvent> events,
+            PerformerEventType type,
+            MoonVenue moonEvent,
+            ref MoonVenue? currentEvent,
+            ref Performer performers
+        )
         {
             // First event
             if (currentEvent == null)
@@ -116,10 +125,7 @@ namespace YARG.Core.Chart
             // Start of a new event
             else if (currentEvent.tick != moonEvent.tick && performers != Performer.None)
             {
-                double time = _moonSong.TickToTime(currentEvent.tick);
-                // Add tracked event
-                events.Add(new(type, performers, time, GetLengthInTime(currentEvent),
-                    currentEvent.tick, currentEvent.length));
+                FinalizePerformerEvent(events, type, currentEvent, performers);
 
                 // Track new event
                 currentEvent = moonEvent;
@@ -127,9 +133,30 @@ namespace YARG.Core.Chart
             }
 
             // Sing-along events are not optional, use the text directly
-            if (!PerformerLookup.TryGetValue(moonEvent.text, out var performer))
-                return;
-            performers |= performer;
+            if (PerformerLookup.TryGetValue(moonEvent.text, out var performer))
+            {
+                performers |= performer;
+            }
+        }
+
+        private void FinalizePerformerEvent(
+            List<PerformerEvent> events,
+            PerformerEventType type,
+            MoonVenue? currentEvent,
+            Performer performers
+        )
+        {
+            if (currentEvent != null)
+            {
+                events.OrderedInsert(new(
+                    type,
+                    performers,
+                    _moonSong.TickToTime(currentEvent.tick),
+                    GetLengthInTime(currentEvent),
+                    currentEvent.tick,
+                    currentEvent.length
+                ));
+            }
         }
 
         private double GetLengthInTime(MoonVenue ev)

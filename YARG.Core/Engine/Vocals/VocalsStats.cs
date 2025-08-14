@@ -1,5 +1,6 @@
 ﻿using System.IO;
 using YARG.Core.Extensions;
+using YARG.Core.IO;
 using YARG.Core.Replays;
 
 namespace YARG.Core.Engine.Vocals
@@ -35,8 +36,8 @@ namespace YARG.Core.Engine.Vocals
             TicksMissed = stats.TicksMissed;
         }
 
-        public VocalsStats(UnmanagedMemoryStream stream, int version)
-            : base(stream, version)
+        public VocalsStats(ref FixedArrayStream stream, int version)
+            : base(ref stream, version)
         {
             TicksHit = stream.Read<uint>(Endianness.Little);
             TicksMissed = stream.Read<uint>(Endianness.Little);

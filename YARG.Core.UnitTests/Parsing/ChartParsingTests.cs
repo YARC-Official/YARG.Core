@@ -17,7 +17,7 @@ namespace YARG.Core.UnitTests.Parsing
             string workingDirectory = Environment.CurrentDirectory;
 
             // This will get the current PROJECT directory
-            string projectDirectory = Directory.GetParent(workingDirectory)!.Parent!.Parent!.FullName;
+            string projectDirectory = Directory.GetParent(workingDirectory)!.Parent!.Parent!.Parent!.FullName;
 
             chartsDirectory = Path.Combine(projectDirectory, "Parsing", "Test Charts");
         }

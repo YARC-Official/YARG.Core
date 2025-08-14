@@ -8,15 +8,20 @@ namespace YARG.Core.Engine.Guitar
     public abstract class GuitarEngine : BaseEngine<GuitarNote, GuitarEngineParameters,
         GuitarStats>
     {
-        protected const byte OPEN_MASK = 64;
+        // Mask of all the solo buttons in bit math
+        protected const ushort SOLO_MASK = 31744;
+
+        public const byte OPEN_MASK = 64;
 
         public delegate void OverstrumEvent();
 
         public OverstrumEvent? OnOverstrum;
 
-        public byte ButtonMask { get; protected set; } = OPEN_MASK;
-
+        public byte EffectiveButtonMask { get; protected set; } = OPEN_MASK;
+        public ushort InputButtonMask { get; protected set; }
         public byte LastButtonMask { get; protected set; }
+
+        public bool StandardButtonHeld  { get; private set; }
 
         protected bool HasFretted;
         protected bool HasStrummed;
@@ -45,9 +50,8 @@ namespace YARG.Core.Engine.Guitar
             GuitarEngineParameters engineParameters, bool isBot)
             : base(chart, syncTrack, engineParameters, false, isBot)
         {
-            StrumLeniencyTimer = new EngineTimer(engineParameters.StrumLeniency);
-            HopoLeniencyTimer = new EngineTimer(engineParameters.HopoLeniency);
-            StarPowerWhammyTimer = new EngineTimer(engineParameters.StarPowerWhammyBuffer);
+            StrumLeniencyTimer = new EngineTimer("Strum Leniency", engineParameters.StrumLeniency);
+            HopoLeniencyTimer = new EngineTimer("HOPO Leniency", engineParameters.HopoLeniency);
 
             GetWaitCountdowns(Notes);
         }
@@ -84,9 +88,9 @@ namespace YARG.Core.Engine.Guitar
 
         public override void Reset(bool keepCurrentButtons = false)
         {
-            byte buttons = ButtonMask;
+            byte buttons = EffectiveButtonMask;
 
-            ButtonMask = OPEN_MASK;
+            EffectiveButtonMask = OPEN_MASK;
 
             HasFretted = false;
             HasStrummed = false;
@@ -94,9 +98,8 @@ namespace YARG.Core.Engine.Guitar
 
             WasNoteGhosted = false;
 
-            StrumLeniencyTimer.Disable();
-            HopoLeniencyTimer.Disable();
-            StarPowerWhammyTimer.Disable();
+            StrumLeniencyTimer.Reset();
+            HopoLeniencyTimer.Reset();
 
             FrontEndExpireTime = 0;
 
@@ -106,7 +109,7 @@ namespace YARG.Core.Engine.Guitar
 
             if (keepCurrentButtons)
             {
-                ButtonMask = buttons;
+                EffectiveButtonMask = buttons;
             }
         }
 
@@ -167,7 +170,7 @@ namespace YARG.Core.Engine.Guitar
         {
             var mask = note.IsDisjoint ? note.DisjointMask : note.NoteMask;
 
-            var buttonsMasked = ButtonMask;
+            var buttonsMasked = EffectiveButtonMask;
             if ((mask & OPEN_MASK) != 0)
             {
                 buttonsMasked |= OPEN_MASK;
@@ -268,12 +271,25 @@ namespace YARG.Core.Engine.Guitar
                 StripStarPower(note);
             }
 
-            if (note.IsSoloEnd)
+            // Solo has the start and end flag
+            if(note is { IsSoloStart: true, IsSoloEnd: true })
+            {
+                // While a solo is active, end the current solo and immediately start the next.
+                if (IsSoloActive)
+                {
+                    EndSolo();
+                    StartSolo();
+                }
+                else
+                {
+                    // If no solo is currently active, start and immediately end the solo.
+                    StartSolo();
+                    EndSolo();
+                }
+            } else if(note.IsSoloEnd)
             {
                 EndSolo();
-            }
-
-            if (note.IsSoloStart)
+            } else if (note.IsSoloStart)
             {
                 StartSolo();
             }
@@ -321,33 +337,61 @@ namespace YARG.Core.Engine.Guitar
 
         protected sealed override int CalculateBaseScore()
         {
-            int score = 0;
+            double score = 0;
+            int combo = 0;
+            int multiplier;
+            double weight;
             foreach (var note in Notes)
             {
-                score += POINTS_PER_NOTE * (1 + note.ChildNotes.Count);
-                score += (int) Math.Ceiling(note.TickLength / TicksPerSustainPoint);
+                // Get the current multiplier given the current combo
+                multiplier = Math.Min((combo / 10) + 1, BaseParameters.MaxMultiplier);
 
+                // invert it to calculate leniency
+                weight = 1.0 * multiplier / BaseParameters.MaxMultiplier;
+
+                score += weight * (POINTS_PER_NOTE * (1 + note.ChildNotes.Count));
+                score += weight * Math.Ceiling(note.TickLength / TicksPerSustainPoint);
+                combo++;
                 // If a note is disjoint, each sustain is counted separately.
                 if (note.IsDisjoint)
                 {
                     foreach (var child in note.ChildNotes)
                     {
-                        score += (int) Math.Ceiling(child.TickLength / TicksPerSustainPoint);
+                        score += Math.Ceiling(child.TickLength / TicksPerSustainPoint);
+
+                        //TODO: Check if disjoint notes should increase combo
+                        combo++;
                     }
                 }
             }
 
-            return score;
+            YargLogger.LogDebug($"[Guitar] Base score: {score}, Max Combo: {combo}");
+            return (int) Math.Round(score);
         }
 
         protected void ToggleFret(int fret, bool active)
         {
-            ButtonMask = (byte) (active ? ButtonMask | (1 << fret) : ButtonMask & ~(1 << fret));
+            if (active)
+            {
+                InputButtonMask |= (ushort) (1 << fret);
+            }
+            else
+            {
+                InputButtonMask &= (ushort) ~(1 << fret);
+            }
+
+            // What we're doing here is transposing bits 10-14 of the input mask down to 0-4 of the effective mask
+            // used elsewhere so that solo buttons are treated as if they were regular buttons
+            byte soloButtonMask = (byte) (InputButtonMask >> (int) GuitarAction.SoloGreenFret);
+
+            // EffectiveButtonMask is the bitwise or of the low 8 bits of InputButtonMask and soloButtonMask
+            EffectiveButtonMask = (byte) (InputButtonMask | soloButtonMask);
+            StandardButtonHeld = (InputButtonMask & ~OPEN_MASK & ~SOLO_MASK) > 0;
         }
 
         public bool IsFretHeld(GuitarAction fret)
         {
-            return (ButtonMask & (1 << (int) fret)) != 0;
+            return (EffectiveButtonMask & (1 << (int) fret)) != 0;
         }
 
         protected static bool IsFretInput(GameInput input)
@@ -359,6 +403,11 @@ namespace YARG.Core.Engine.Guitar
                     GuitarAction.YellowFret or
                     GuitarAction.BlueFret or
                     GuitarAction.OrangeFret or
+                    GuitarAction.SoloGreenFret or
+                    GuitarAction.SoloRedFret or
+                    GuitarAction.SoloYellowFret or
+                    GuitarAction.SoloBlueFret or
+                    GuitarAction.SoloOrangeFret or
                     GuitarAction.White3Fret => true,
                 _ => false,
             };

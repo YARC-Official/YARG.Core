@@ -79,6 +79,9 @@ namespace YARG.Core.Game
             [SettingType(SettingType.Toggle)]
             public bool InfiniteFrontEnd = false;
 
+            [SettingType(SettingType.Toggle)]
+            public bool SoloTaps = false;
+
             [SettingType(SettingType.MillisecondInput)]
             [SettingRange(min: 0f)]
             public double HopoLeniency = 0.08;
@@ -114,6 +117,7 @@ namespace YARG.Core.Game
                     StrumLeniency = StrumLeniency,
                     StrumLeniencySmall = StrumLeniencySmall,
                     HitWindow = HitWindow.Copy(),
+                    SoloTaps = SoloTaps,
                 };
             }
 
@@ -130,7 +134,8 @@ namespace YARG.Core.Game
                     StrumLeniency,
                     StrumLeniencySmall,
                     InfiniteFrontEnd,
-                    AntiGhosting);
+                    AntiGhosting,
+                    SoloTaps);
             }
         }
 

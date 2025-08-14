@@ -41,5 +41,23 @@
                 vocalsTrack.NotePhrases[i] = newPhrase;
             }
         }
+
+        public static void RemovePercussion(this VocalsPart vocalsTrack)
+        {
+            int i = 0;
+            while (i < vocalsTrack.NotePhrases.Count)
+            {
+                var phrase = vocalsTrack.NotePhrases[i];
+                phrase.PhraseParentNote.RemovePercussionChildNotes();
+
+                if (phrase.IsEmpty)
+                {
+                    vocalsTrack.NotePhrases.RemoveAt(i);
+                    continue;
+                }
+
+                i++;
+            }
+        }
     }
 }

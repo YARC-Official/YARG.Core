@@ -1,53 +1,29 @@
-﻿using System;
-using System.Collections.Generic;
-using System.IO;
-using YARG.Core.Song;
+﻿using System.Collections.Generic;
 
 namespace YARG.Core.IO.Ini
 {
     public static class SongIniHandler
     {
-        public static IniSection ReadSongIniFile(string iniPath)
+        public static IniModifierCollection ReadSongIniFile(string iniPath)
         {
-            var modifiers = YARGIniReader.ReadIniFile(iniPath, SONG_INI_DICTIONARY);
-            if (!modifiers.TryGetValue("[song]", out var section))
+            var modifiers = YARGIniReader.ReadIniFile(iniPath, SONG_INI_LOOKUP_MAP);
+            if (!modifiers.TryGetValue("[song]", out var collection))
             {
-                section = new IniSection();
+                collection = new IniModifierCollection();
             }
-            return section;
+            return collection;
         }
 
-        public static readonly Dictionary<string, Dictionary<string, IniModifierCreator>> SONG_INI_DICTIONARY;
-        public static readonly Dictionary<string, IniModifierCreator> SONG_INI_MODIFIERS;
-
-#if DEBUG
-        private static readonly Dictionary<string, ModifierType> _types;
-        private static readonly Dictionary<string, ModifierType> _outputs;
-        public static void ThrowIfNot<T>(string key)
-        {
-            if (!_outputs.TryGetValue(key, out var modifierType))
-            {
-                throw new ArgumentException($"Dev: {key} is not a valid modifier!");
-            }
-
-            var typename = typeof(T).Name;
-            var type = _types[typename];
-            if (type != modifierType
-            && (type == ModifierType.SortString) != (modifierType == ModifierType.SortString_Chart)
-            && (type == ModifierType.String) != (modifierType == ModifierType.String_Chart))
-            {
-                throw new ArgumentException($"Dev: Modifier {key} is not of type {typename}");
-            }
-        }
-#endif
+        private static readonly Dictionary<string, Dictionary<string, IniModifierOutline>> SONG_INI_LOOKUP_MAP;
+        public static readonly Dictionary<string, IniModifierOutline> SONG_INI_OUTLINES;
 
         static SongIniHandler()
         {
-            SONG_INI_MODIFIERS = new()
+            SONG_INI_OUTLINES = new()
             {
-                { "album",                                new("album", ModifierType.SortString) },
+                { "album",                                new("album", ModifierType.String ) },
                 { "album_track",                          new("album_track", ModifierType.Int32) },
-                { "artist",                               new("artist", ModifierType.SortString) },
+                { "artist",                               new("artist", ModifierType.String) },
 
                 { "background",                           new("background", ModifierType.String) },
                 //{ "banner_link_a",                        new("banner_link_a", ModifierType.String) },
@@ -56,14 +32,34 @@ namespace YARG.Core.IO.Ini
                 //{ "boss_battle",                          new("boss_battle", ModifierType.Bool) },
 
                 //{ "cassettecolor",                        new("cassettecolor", ModifierType.UInt32) },
-                { "charter",                              new("charter", ModifierType.SortString) },
+                { "charter",                              new("charter", ModifierType.String) },
+                { "charter_bass",                         new("charter_bass", ModifierType.String) },
+                { "charter_drums",                        new("charter_drums", ModifierType.String) },
+                { "charter_elite_drums",                  new("charter_elite_drums", ModifierType.String) },
+                { "charter_guitar",                       new("charter_guitar", ModifierType.String) },
+                { "charter_keys",                         new("charter_keys", ModifierType.String) },
+                { "charter_lower_diff",                   new("charter_lower_diff", ModifierType.String) },
+                { "charter_pro_bass",                     new("charter_pro_bass", ModifierType.String) },
+                { "charter_pro_keys",                     new("charter_pro_keys", ModifierType.String) },
+                { "charter_pro_guitar",                   new("charter_pro_guitar", ModifierType.String) },
+                { "charter_vocals",                       new("charter_vocals", ModifierType.String) },
                 { "count",                                new("count", ModifierType.UInt32) },
                 { "cover",                                new("cover", ModifierType.String) },
-                { "credit_written_by",                    new("credit_written_by", ModifierType.String) },
-                { "credit_performed_by",                  new("credit_performed_by", ModifierType.String) },
+                { "credit_album_art_by",                  new("credit_album_art_designed_by", ModifierType.String) },
+                { "credit_album_art_designed_by",         new("credit_album_art_designed_by", ModifierType.String) },
+                { "credit_album_cover",                   new("credit_album_art_designed_by", ModifierType.String) },
+                { "credit_arranged_by",                   new("credit_arranged_by", ModifierType.String) },
+                { "credit_composed_by",                   new("credit_composed_by", ModifierType.String) },
                 { "credit_courtesy_of",                   new("credit_courtesy_of", ModifierType.String) },
-                { "credit_album_cover",                   new("credit_album_cover", ModifierType.String) },
+                { "credit_engineered_by",                 new("credit_engineered_by", ModifierType.String) },
                 { "credit_license",                       new("credit_license", ModifierType.String) },
+                { "credit_mastered_by",                   new("credit_mastered_by", ModifierType.String) },
+                { "credit_mixed_by",                      new("credit_mixed_by", ModifierType.String) },
+                { "credit_other",                         new("credit_other", ModifierType.String) },
+                { "credit_performed_by",                  new("credit_performed_by", ModifierType.String) },
+                { "credit_produced_by",                   new("credit_produced_by", ModifierType.String) },
+                { "credit_published_by",                  new("credit_published_by", ModifierType.String) },
+                { "credit_written_by",                    new("credit_written_by", ModifierType.String) },
 
                 { "dance_type",                           new("dance_type", ModifierType.UInt32) },
                 { "delay",                                new("delay", ModifierType.Int64) },
@@ -98,30 +94,39 @@ namespace YARG.Core.IO.Ini
                 //{ "eof_midi_import_drum_ghost_velocity",  new("eof_midi_import_drum_ghost_velocity", ModifierType.UInt16) },
 
                 { "five_lane_drums",                      new("five_lane_drums", ModifierType.Bool) },
-                { "frets",                                new("frets", ModifierType.SortString) },
+                { "frets",                                new("frets", ModifierType.String) },
 
-                { "genre",                                new("genre", ModifierType.SortString) },
+                { "genre",                                new("genre", ModifierType.String) },
                 { "guitar_type",                          new("guitar_type", ModifierType.UInt32) },
 
                 { "hopo_frequency",                       new("hopo_frequency", ModifierType.Int64) },
                 { "hopofreq",                             new("hopofreq", ModifierType.Int32) },
 
-                { "icon",                                 new("icon", ModifierType.SortString) },
+                { "icon",                                 new("icon", ModifierType.String) },
 
                 { "keys_type",                            new("keys_type", ModifierType.UInt32) },
                 { "kit_type",                             new("kit_type", ModifierType.UInt32) },
 
                 //{ "link_name_a",                          new("link_name_a", ModifierType.String) },
                 //{ "link_name_b",                          new("link_name_b", ModifierType.String) },
+                { "link_bandcamp",                        new("link_bandcamp", ModifierType.String) },
+                { "link_bluesky",                         new("link_bluesky", ModifierType.String) },
+                { "link_facebook",                        new("link_facebook", ModifierType.String) },
+                { "link_instagram",                       new("link_instagram", ModifierType.String) },
+                { "link_spotify",                         new("link_spotify", ModifierType.String) },
+                { "link_twitter",                         new("link_twitter", ModifierType.String) },
+                { "link_other",                           new("link_other", ModifierType.String) },
+                { "link_youtube",                         new("link_youtube", ModifierType.String) },
                 { "loading_phrase",                       new("loading_phrase", ModifierType.String) },
+                { "location",                             new("location", ModifierType.String) },
                 { "lyrics",                               new("lyrics", ModifierType.Bool) },
 
                 { "modchart",                             new("modchart", ModifierType.Bool) },
                 { "multiplier_note",                      new("multiplier_note", ModifierType.Int32) },
 
-                { "name",                                 new("name", ModifierType.SortString) },
+                { "name",                                 new("name", ModifierType.String) },
 
-                { "playlist",                             new("playlist", ModifierType.SortString) },
+                { "playlist",                             new("playlist", ModifierType.String) },
                 { "playlist_track",                       new("playlist_track", ModifierType.Int32) },
                 { "preview",                              new("preview", ModifierType.Int64Array) },
                 { "preview_end_time",                     new("preview_end_time", ModifierType.Int64) },
@@ -140,10 +145,10 @@ namespace YARG.Core.IO.Ini
 
                 //{ "scores",                               new("scores", ModifierType.String) },
                 //{ "scores_ext",                           new("scores_ext", ModifierType.String) },
-                { "song_length",                          new("song_length", ModifierType.UInt64) },
+                { "song_length",                          new("song_length", ModifierType.Int64) },
                 { "star_power_note",                      new("multiplier_note", ModifierType.Int32) },
-                { "sub_genre",                            new("sub_genre", ModifierType.SortString) },
-                { "sub_playlist",                         new("sub_playlist", ModifierType.SortString) },
+                { "sub_genre",                            new("sub_genre", ModifierType.String) },
+                { "sub_playlist",                         new("sub_playlist", ModifierType.String) },
                 { "sustain_cutoff_threshold",             new("sustain_cutoff_threshold", ModifierType.Int64) },
                 //{ "sysex_high_hat_ctrl",                  new("sysex_high_hat_ctrl", ModifierType.Bool) },
                 //{ "sysex_open_bass",                      new("sysex_open_bass", ModifierType.Bool) },
@@ -170,40 +175,10 @@ namespace YARG.Core.IO.Ini
                 { "year",                                 new("year", ModifierType.String) },
             };
 
-            SONG_INI_DICTIONARY = new()
+            SONG_INI_LOOKUP_MAP = new()
             {
-                { "[song]", SONG_INI_MODIFIERS }
+                { "[song]", SONG_INI_OUTLINES }
             };
-
-#if DEBUG
-            _types = new()
-            {
-                { nameof(SortString), ModifierType.SortString },
-                { typeof(string).Name, ModifierType.String },
-                { typeof(ulong).Name, ModifierType.UInt64 },
-                { typeof(long).Name, ModifierType.Int64 },
-                { typeof(uint).Name, ModifierType.UInt32 },
-                { typeof(int).Name, ModifierType.Int32 },
-                { typeof(ushort).Name, ModifierType.UInt16 },
-                { typeof(short).Name, ModifierType.Int16 },
-                { typeof(bool).Name, ModifierType.Bool },
-                { typeof(float).Name, ModifierType.Float },
-                { typeof(double).Name, ModifierType.Double },
-                { typeof(long[]).Name, ModifierType.Int64Array },
-            };
-
-            _outputs = new Dictionary<string, ModifierType>();
-            _outputs.EnsureCapacity(SONG_INI_MODIFIERS.Count + YARGChartFileReader.CHART_MODIFIERS.Count);
-            foreach (var node in SONG_INI_MODIFIERS.Values)
-            {
-                _outputs.TryAdd(node.OutputName, node.Type);
-            }
-
-            foreach (var node in YARGChartFileReader.CHART_MODIFIERS.Values)
-            {
-                _outputs.TryAdd(node.OutputName, node.Type);
-            }
-#endif
         }
     }
 }

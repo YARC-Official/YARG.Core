@@ -195,15 +195,6 @@ namespace YARG.Core.Logging
 
         [DebuggerStepThrough]
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        // [CallerLineNumber] is swapped compared to everything else to prevent an ambiguous overload
-        public static void Assert(bool condition, [CallerLineNumber] int line = -1, [CallerFilePath] string source = "", [CallerMemberName] string member = "", [CallerArgumentExpression(nameof(condition))] string expression = "")
-        {
-            if (!condition)
-                FailFormat("Assertion failed: {0}", expression, source, line, member);
-        }
-
-        [DebuggerStepThrough]
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void Assert(bool condition, string message, [CallerFilePath] string source = "", [CallerLineNumber] int line = -1, [CallerMemberName] string member = "")
         {
             if (!condition)

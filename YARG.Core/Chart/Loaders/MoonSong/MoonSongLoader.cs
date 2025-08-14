@@ -54,7 +54,7 @@ namespace YARG.Core.Chart
             return new(song, settings);
         }
 
-        public static MoonSongLoader LoadDotChart(ParseSettings settings, string chartText)
+        public static MoonSongLoader LoadDotChart(ParseSettings settings, ReadOnlySpan<char> chartText)
         {
             var song = ChartReader.ReadFromText(ref settings, chartText);
             return new(song, settings);
@@ -320,8 +320,8 @@ namespace YARG.Core.Chart
         {
             if (songObj == null || phrase == null)
             {
-                YargLogger.Assert(songObj != null);
-                YargLogger.Assert(phrase != null);
+                YargLogger.Assert(songObj != null, "Null event received");
+                YargLogger.Assert(phrase != null, "Null phrase received");
                 return false;
             }
 

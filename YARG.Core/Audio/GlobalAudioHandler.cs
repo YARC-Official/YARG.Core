@@ -13,7 +13,7 @@ namespace YARG.Core.Audio
 
     public static class GlobalAudioHandler
     {
-        public const int WHAMMY_FFT_DEFAULT = 512;
+        public const int WHAMMY_FFT_DEFAULT = 2048;
         public const int WHAMMY_OVERSAMPLE_DEFAULT = 8;
         public static readonly int MAX_THREADS = Environment.ProcessorCount switch
         {
@@ -50,7 +50,7 @@ namespace YARG.Core.Audio
             };
         }
 
-        internal static bool LogMixerStatus;
+        public static bool LogMixerStatus { get; internal set; }
 
         public static bool UseWhammyFx;
         public static bool IsChipmunkSpeedup;

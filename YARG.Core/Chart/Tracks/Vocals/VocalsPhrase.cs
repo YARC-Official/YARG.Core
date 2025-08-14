@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using YARG.Core.Extensions;
 
@@ -16,6 +16,8 @@ namespace YARG.Core.Chart
         public bool IsPercussion => PhraseParentNote.IsPercussion;
 
         public bool IsStarPower => PhraseParentNote.IsStarPower;
+
+        public bool IsEmpty => PhraseParentNote.IsEmptyPhrase;
 
         public VocalsPhrase(double time, double timeLength, uint tick, uint tickLength,
             VocalNote phraseParentNote, List<LyricEvent> lyrics)

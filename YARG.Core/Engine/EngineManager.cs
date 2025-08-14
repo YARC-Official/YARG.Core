@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using YARG.Core.Chart;
-using YARG.Core.Logging;
 
 namespace YARG.Core.Engine
 {
@@ -77,8 +76,7 @@ namespace YARG.Core.Engine
 
             public void OnStarPowerPhraseHit<TNote>(TNote note) where TNote : Note<TNote>
             {
-                // TODO: Make sure it doesn't matter whether this is note.Time or Engine.CurrentTime
-                _engineManager.OnStarPowerPhraseHit(this, Engine.CurrentTime);
+                _engineManager.OnStarPowerPhraseHit(this, note.Time);
             }
 
             public void UpdateEngine(double time)
@@ -98,6 +96,7 @@ namespace YARG.Core.Engine
 
             return engineContainer;
         }
+
         private EngineContainer GetEngineContainer(BaseEngine target)
         {
             foreach (var engine in _allEngines)

@@ -1,13 +1,10 @@
 ﻿using System;
 using System.IO;
-using System.Runtime.InteropServices.ComTypes;
-using System.Text.RegularExpressions;
 using YARG.Core.Extensions;
 using YARG.Core.Game;
 using YARG.Core.IO;
 using YARG.Core.Logging;
 using YARG.Core.Song;
-using YARG.Core.Utility;
 
 namespace YARG.Core.Replays
 {
@@ -22,15 +19,20 @@ namespace YARG.Core.Replays
         FileNotFound,
     }
 
+    public struct ReplayReadOptions
+    {
+        public bool KeepFrameTimes;
+    }
+
     public static class ReplayIO
     {
         private static readonly EightCC REPLAY_MAGIC_HEADER_OLD = new('Y', 'A', 'R', 'G', 'P', 'L', 'A', 'Y');
         private static readonly EightCC REPLAY_MAGIC_HEADER = new('Y', 'A', 'R', 'E', 'P', 'L', 'A', 'Y');
 
-        private static readonly (int OLD_MIN, int METADATA_MIN, int DATA_MIN, int CURRENT) REPLAY_VERSIONS = (4, 6, 7, 7);
-        private const int ENGINE_VERSION = 2;
+        private static readonly (int OLD_MIN, int METADATA_MIN, int DATA_MIN, int CURRENT) REPLAY_VERSIONS = (4, 6, 8, 8);
+        private const int ENGINE_VERSION = 3;
 
-        public static (ReplayReadResult Result, ReplayInfo Info, ReplayData Data) TryDeserialize(string path)
+        public static (ReplayReadResult Result, ReplayInfo Info, ReplayData Data) TryDeserialize(string path, ReplayReadOptions replayOptions)
         {
             try
             {
@@ -52,14 +54,13 @@ namespace YARG.Core.Replays
 
                 var headerHash = HashWrapper.Deserialize(fstream);
                 int headerLength = fstream.Read<int>(Endianness.Little);
-                using var headerArray = FixedArray<byte>.Read(fstream, headerLength);
+                using var headerArray = FixedArray.Read(fstream, headerLength);
                 if (!headerHash.Equals(HashWrapper.Hash(headerArray.ReadOnlySpan)))
                 {
                     return (ReplayReadResult.Corrupted, null!, null!);
                 }
 
-                using var headerStream = headerArray.ToStream();
-                var info = new ReplayInfo(path, headerStream);
+                var info = new ReplayInfo(path, headerArray.ToValueStream());
                 if (info.ReplayVersion < REPLAY_VERSIONS.METADATA_MIN || info.ReplayVersion > REPLAY_VERSIONS.CURRENT)
                 {
                     return (ReplayReadResult.InvalidVersion, null!, null!);
@@ -71,14 +72,13 @@ namespace YARG.Core.Replays
                     return (ReplayReadResult.MetadataOnly, info, null!);
                 }
 
-                using var data = FixedArray<byte>.ReadRemainder(fstream);
+                using var data = FixedArray.ReadRemainder(fstream);
                 if (!info.ReplayChecksum.Equals(HashWrapper.Hash(data.ReadOnlySpan)))
                 {
                     return (ReplayReadResult.Corrupted, null!, null!);
                 }
 
-                using var dataStream = data.ToStream();
-                var replayData = new ReplayData(dataStream, info.ReplayVersion);
+                var replayData = new ReplayData(data.ToValueStream(), info.ReplayVersion, replayOptions);
                 return (ReplayReadResult.Valid, info, replayData);
             }
             catch (Exception ex)
@@ -109,14 +109,13 @@ namespace YARG.Core.Replays
 
                 var headerHash = HashWrapper.Deserialize(fstream);
                 int headerLength = fstream.Read<int>(Endianness.Little);
-                using var headerArray = FixedArray<byte>.Read(fstream, headerLength);
+                using var headerArray = FixedArray.Read(fstream, headerLength);
                 if (!headerHash.Equals(HashWrapper.Hash(headerArray.ReadOnlySpan)))
                 {
                     return (ReplayReadResult.Corrupted, null!);
                 }
 
-                using var headerStream = headerArray.ToStream();
-                var info = new ReplayInfo(path, headerStream);
+                var info = new ReplayInfo(path, headerArray.ToValueStream());
                 if (info.ReplayVersion < REPLAY_VERSIONS.METADATA_MIN || info.ReplayVersion > REPLAY_VERSIONS.CURRENT)
                 {
                     return (ReplayReadResult.InvalidVersion, null!);
@@ -147,7 +146,7 @@ namespace YARG.Core.Replays
             }
         }
 
-        public static (ReplayReadResult Result, ReplayData Data) TryLoadData(ReplayInfo info)
+        public static (ReplayReadResult Result, ReplayData Data) TryLoadData(ReplayInfo info, ReplayReadOptions readOptions)
         {
             try
             {
@@ -184,30 +183,29 @@ namespace YARG.Core.Replays
 
                 var headerHash = HashWrapper.Deserialize(fstream);
                 int headerLength = fstream.Read<int>(Endianness.Little);
-                using var headerArray = FixedArray<byte>.Read(fstream, headerLength);
+                using var headerArray = FixedArray.Read(fstream, headerLength);
                 if (!headerHash.Equals(HashWrapper.Hash(headerArray.ReadOnlySpan)))
                 {
                     return (ReplayReadResult.Corrupted, null!);
                 }
 
-                using var headerStream = headerArray.ToStream();
+                var headerStream = headerArray.ToValueStream();
                 int replayVersion = headerStream.Read<int>(Endianness.Little);
                 int engineVersion = headerStream.Read<int>(Endianness.Little);
-                var replayChecksum = HashWrapper.Deserialize(headerStream);
+                var replayChecksum = HashWrapper.Deserialize(ref headerStream);
                 // If true, someone did a no-no and swapped the file
                 if (replayVersion != info.ReplayVersion || info.EngineVersion != engineVersion || !info.ReplayChecksum.Equals(replayChecksum))
                 {
                     return (ReplayReadResult.DataMismatch, null!);
                 }
 
-                using var data = FixedArray<byte>.ReadRemainder(fstream);
+                using var data = FixedArray.ReadRemainder(fstream);
                 if (!info.ReplayChecksum.Equals(HashWrapper.Hash(data.ReadOnlySpan)))
                 {
                     return (ReplayReadResult.Corrupted, null!);
                 }
 
-                using var dataStream = data.ToStream();
-                var replayData = new ReplayData(dataStream, info.ReplayVersion);
+                var replayData = new ReplayData(data.ToValueStream(), info.ReplayVersion, readOptions);
                 return (ReplayReadResult.Valid, replayData);
             }
             catch (Exception ex)
@@ -270,13 +268,13 @@ namespace YARG.Core.Replays
             int engineVersion = fstream.Read<int>(Endianness.Little);
             var replayChecksum = HashWrapper.Deserialize(fstream);
 
-            using var data = FixedArray<byte>.ReadRemainder(fstream);
+            using var data = FixedArray.ReadRemainder(fstream);
             if (!replayChecksum.Equals(HashWrapper.Hash(data.ReadOnlySpan)))
             {
                 return (ReplayReadResult.Corrupted, null!);
             }
 
-            using var memStream = data.ToStream();
+            var memStream = data.ToValueStream();
             var song = memStream.ReadString();
             var artist = memStream.ReadString();
             var charter = memStream.ReadString();
@@ -284,7 +282,7 @@ namespace YARG.Core.Replays
             var stars = (StarAmount) memStream.ReadByte();
             var length = memStream.Read<double>(Endianness.Little);
             var date = DateTime.FromBinary(memStream.Read<long>(Endianness.Little));
-            var songChecksum = HashWrapper.Deserialize(memStream);
+            var songChecksum = HashWrapper.Deserialize(ref memStream);
 
             var replayName = ReplayInfo.ConstructReplayName(song, artist, charter, in date);
             var info = new ReplayInfo(path, replayName, replayVersion, engineVersion, in replayChecksum, song, artist, charter, in songChecksum, in date, DEFAULT_SPEED, length, score, stars, Array.Empty<ReplayStats>());

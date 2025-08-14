@@ -110,8 +110,9 @@ namespace MoonscraperChartEditor.Song.IO
         public const byte PRO_GUITAR_CHANNEL_PINCH_HARMONIC = 6;
 
         // Beat track notes
-        public const byte BEAT_STRONG = 12;
-        public const byte BEAT_WEAK = 13;
+        public const byte BEAT_MEASURE = 12;
+        public const byte BEAT_STRONG = 13;
+        public const byte BEAT_WEAK = 14;
 
         // These events are valid both with and without brackets.
         // The bracketed versions follow the style of other existing .mid text events.

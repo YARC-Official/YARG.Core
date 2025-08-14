@@ -6,6 +6,7 @@ using YARG.Core.Engine.Guitar;
 using YARG.Core.Engine.ProKeys;
 using YARG.Core.Engine.Vocals;
 using YARG.Core.Logging;
+using YARG.Core.Extensions;
 
 namespace YARG.Core.Engine
 {
@@ -13,12 +14,12 @@ namespace YARG.Core.Engine
     {
         public class UnisonEvent : IEquatable<UnisonEvent>
         {
-            public double Time { get; }
-            public double TimeEnd { get; }
-            public int PartCount { get; private set; }
-            public int SuccessCount { get; private set; }
-            public bool Awarded { get; set; }
-            public List<int> ParticipantIds { get; private set; }
+            public double    Time           { get; }
+            public double    TimeEnd        { get; }
+            public int       PartCount      { get; private set; }
+            public int       SuccessCount   { get; private set; }
+            public bool      Awarded        { get; set; }
+            public List<int> ParticipantIds { get; }
 
             public bool Equals(UnisonEvent other) => Time.Equals(other.Time) && TimeEnd.Equals(other.TimeEnd);
 
@@ -52,17 +53,20 @@ namespace YARG.Core.Engine
             {
                 if (ParticipantIds.Contains(engineContainer.EngineId))
                 {
+                    YargLogger.LogFormatDebug("Player {0} successfully completed unison ending at time {1}",
+                        engineContainer.EngineId, TimeEnd);
                     SuccessCount++;
                 }
 
                 if (SuccessCount == ParticipantIds.Count)
                 {
-                    YargLogger.LogDebug("Unison phrase successfully completed");
+                    YargLogger.LogFormatDebug("Unison phrase ending at time {0} successfully completed by all participants",
+                        TimeEnd);
                     return true;
                 }
 
                 // If SuccessCount is ever greater than the number of players, something has gone seriously wrong
-                YargLogger.Assert(SuccessCount <= ParticipantIds.Count);
+                YargLogger.Assert(SuccessCount <= ParticipantIds.Count, "SuccessCount mismanagement detected");
                 return false;
             }
         }
@@ -96,6 +100,15 @@ namespace YARG.Core.Engine
         public  UnisonPhraseSuccessEvent?                       OnUnisonPhraseSuccess;
         private bool                                            _unisonsReady      = false;
         private int                                             _playerCount  = 0;
+
+        // Instrument groups whose combination cannot be the source of a unison
+        public static readonly List<List<Instrument>> InstrumentGroups = new List<List<Instrument>>()
+        {
+            new List<Instrument> { Instrument.FiveFretGuitar, Instrument.ProGuitar_17Fret, Instrument.ProGuitar_22Fret, Instrument.SixFretGuitar },
+            new List<Instrument> { Instrument.FiveFretBass, Instrument.ProBass_17Fret, Instrument.ProBass_22Fret, Instrument.SixFretBass },
+            new List<Instrument> { Instrument.FourLaneDrums, Instrument.FiveLaneDrums, Instrument.ProDrums, Instrument.EliteDrums },
+            new List<Instrument> { Instrument.Keys, Instrument.ProKeys }
+        };
 
         private void AddPlayerToUnisons(EngineContainer engineContainer)
         {
@@ -168,39 +181,59 @@ namespace YARG.Core.Engine
 
             var foundSelf = false;
 
-            if(TryFindTrackForInstrument(instrument, chart.FiveFretTracks, out var fiveFretTrack))
+            // Find a track that corresponds to the player's instrument
+            if (TryFindTrackForInstrument(instrument, chart.FiveFretTracks, out var fiveFretTrack))
             {
-                var selfInstrumentDifficulty = GetAnyInstrumentDifficulty(fiveFretTrack);
-                sourceSpSections = GetSpSectionsFromDifficulty(selfInstrumentDifficulty);
-                foundSelf = true;
+                if (fiveFretTrack.TryGetAnyInstrumentDifficulty(out var difficulty))
+                {
+                    sourceSpSections = difficulty.GetStarpowerSections();
+                    foundSelf = true;
+                }
             }
 
             if (!foundSelf && TryFindTrackForInstrument(instrument, chart.DrumsTracks, out var drumsTrack))
             {
-                var selfInstrumentDifficulty = GetAnyInstrumentDifficulty(drumsTrack);
-                sourceSpSections = GetSpSectionsFromDifficulty(selfInstrumentDifficulty);
-                foundSelf = true;
+                if (drumsTrack.TryGetAnyInstrumentDifficulty(out var difficulty))
+                {
+                    sourceSpSections = difficulty.GetStarpowerSections();
+                    foundSelf = true;
+                }
             }
 
             if (!foundSelf && TryFindTrackForInstrument(instrument, chart.SixFretTracks, out var sixFretTrack))
             {
-                var selfInstrumentDifficulty = GetAnyInstrumentDifficulty(sixFretTrack);
-                sourceSpSections = GetSpSectionsFromDifficulty(selfInstrumentDifficulty);
-                foundSelf = true;
+                if (sixFretTrack.TryGetAnyInstrumentDifficulty(out var difficulty))
+                {
+                    sourceSpSections = difficulty.GetStarpowerSections();
+                    foundSelf = true;
+                }
             }
 
             if (!foundSelf && TryFindTrackForInstrument(instrument, chart.ProGuitarTracks, out var proGuitarTrack))
             {
-                var selfInstrumentDifficulty = GetAnyInstrumentDifficulty(proGuitarTrack);
-                sourceSpSections = GetSpSectionsFromDifficulty(selfInstrumentDifficulty);
-                foundSelf = true;
+                if (proGuitarTrack.TryGetAnyInstrumentDifficulty(out var difficulty))
+                {
+                    sourceSpSections = difficulty.GetStarpowerSections();
+                    foundSelf = true;
+                }
             }
 
             if (!foundSelf && chart.ProKeys.Instrument == instrument)
             {
-                var selfInstrumentDifficulty = GetAnyInstrumentDifficulty(chart.ProKeys);
-                sourceSpSections = GetSpSectionsFromDifficulty(selfInstrumentDifficulty);
-                foundSelf = true;
+                if (chart.ProKeys.TryGetAnyInstrumentDifficulty(out var difficulty))
+                {
+                    sourceSpSections = difficulty.GetStarpowerSections();
+                    foundSelf = true;
+                }
+            }
+
+            if (!foundSelf && chart.Keys.Instrument == instrument)
+            {
+                if (chart.Keys.TryGetAnyInstrumentDifficulty(out var difficulty))
+                {
+                    sourceSpSections = difficulty.GetStarpowerSections();
+                    foundSelf = true;
+                }
             }
 
             if (!foundSelf)
@@ -212,20 +245,11 @@ namespace YARG.Core.Engine
             // Add ourselves to the beginning of the accepted list so any dupes with us will be filtered
             acceptedSpSections.Add(sourceSpSections);
 
-            GetSpSectionsFromCharts(chart.FiveFretTracks, ref acceptedSpSections, instrument);
-            GetSpSectionsFromCharts(chart.SixFretTracks, ref acceptedSpSections, instrument);
-            GetSpSectionsFromCharts(chart.DrumsTracks, ref acceptedSpSections, instrument);
-            GetSpSectionsFromCharts(chart.ProGuitarTracks, ref acceptedSpSections, instrument);
-
-            if (chart.ProKeys.Instrument != instrument)
-            {
-                var proKeysDifficulty = GetAnyInstrumentDifficulty(chart.ProKeys);
-                var candidateSpSections = GetSpSectionsFromDifficulty(proKeysDifficulty);
-                if (!SpListIsDuplicate(candidateSpSections, acceptedSpSections))
-                {
-                    acceptedSpSections.Add(candidateSpSections);
-                }
-            }
+            chart.FiveFretTracks.GetStarpowerSections(ref acceptedSpSections, instrument);
+            chart.SixFretTracks.GetStarpowerSections(ref acceptedSpSections, instrument);
+            chart.DrumsTracks.GetStarpowerSections(ref acceptedSpSections, instrument);
+            chart.ProKeys.GetStarpowerSections(ref acceptedSpSections, instrument);
+            chart.Keys.GetStarpowerSections(ref acceptedSpSections, instrument);
 
             // Now we delete self from the accepted list to ensure we don't match against self
             acceptedSpSections.Remove(sourceSpSections);
@@ -253,8 +277,7 @@ namespace YARG.Core.Engine
 
             return phrases;
 
-            // Thus begins a parade of helper functions
-
+            // Get the track for a given instrument, if it exists
             static bool TryFindTrackForInstrument<TNote>(Instrument instrument,
                 IEnumerable<InstrumentTrack<TNote>> trackEnumerable, out InstrumentTrack<TNote> instrumentTrack) where TNote : Note<TNote>
             {
@@ -270,81 +293,6 @@ namespace YARG.Core.Engine
                 instrumentTrack = null;
                 return false;
             }
-
-            // Gets the StarPower sections from a list of charts, excluding a specific instrument
-            static void GetSpSectionsFromCharts<TNote>(IEnumerable<InstrumentTrack<TNote>> tracks,
-                ref List<List<StarPowerSection>> acceptedSpSections,
-                Instrument instrument) where TNote : Note<TNote>
-            {
-                foreach (var track in tracks)
-                {
-                    if (track.Instrument == instrument)
-                    {
-                        continue;
-                    }
-                    var instrumentDifficulty = GetAnyInstrumentDifficulty(track);
-                    var candidateSpSections = GetSpSectionsFromDifficulty(instrumentDifficulty);
-                    if (!SpListIsDuplicate(candidateSpSections, acceptedSpSections))
-                    {
-                        acceptedSpSections.Add(candidateSpSections);
-                    }
-                }
-            }
-
-            static List<StarPowerSection> GetSpSectionsFromDifficulty<TNote>(InstrumentDifficulty<TNote> difficulty) where TNote : Note<TNote>
-            {
-                var spSections = new List<StarPowerSection>();
-                foreach (var phrase in difficulty.Phrases)
-                {
-                    if (phrase.Type == PhraseType.StarPower)
-                    {
-                        spSections.Add(new StarPowerSection(phrase.Time, phrase.TimeEnd, phrase));
-                    }
-                }
-                return spSections;
-            }
-
-            static bool SpListIsDuplicate(List<StarPowerSection> proposed, List<List<StarPowerSection>> accepted)
-            {
-                foreach (var sections in accepted)
-                {
-                    if (proposed.Count != sections.Count)
-                    {
-                        continue;
-                    }
-
-                    // Count is the same, so it could be a dupe
-                    var dupeCount = 0;
-                    for (var i = 0; i < sections.Count; i++)
-                    {
-                        if (!proposed[i].Equals(sections[i]))
-                        {
-                            break;
-                        }
-                        dupeCount++;
-                    }
-
-                    if (dupeCount == sections.Count)
-                    {
-                        return true;
-                    }
-                }
-                return false;
-            }
-
-            static InstrumentDifficulty<TNote> GetAnyInstrumentDifficulty<TNote>(InstrumentTrack<TNote> instrumentTrack) where TNote : Note<TNote>
-            {
-                // We don't care what difficulty, so we return the first one we find
-                foreach (var difficulty in Enum.GetValues(typeof(Difficulty)))
-                {
-                    if (instrumentTrack.TryGetDifficulty((Difficulty) difficulty, out var instrumentDifficulty))
-                    {
-                        return instrumentDifficulty;
-                    }
-                }
-
-                return null;
-            }
         }
 
         public void OnStarPowerPhraseHit(EngineContainer container, double time)
@@ -354,7 +302,7 @@ namespace YARG.Core.Engine
             {
                 // The engine's conception of SP phrases for each instrument end at different times,
                 // so an exact match is impossible even though the phrases have identical times
-                if (unison.Time < time && time < unison.TimeEnd)
+                if (unison.Time <= time && time <= unison.TimeEnd)
                 {
                     if (unison.Success(container))
                     {
@@ -387,7 +335,7 @@ namespace YARG.Core.Engine
         {
             foreach (var container in _allEngines)
             {
-                // var input = new GameInput(container.Engine.CurrentTime, (int) BandAction.StepMultiplier, true);
+
             }
         }
 
@@ -395,18 +343,8 @@ namespace YARG.Core.Engine
         {
             foreach (var container in _allEngines)
             {
-                // var input = new GameInput(container.Engine.CurrentTime, (int) BandAction.StepMultiplier, false);
-            }
-        }
 
-        public List<UnisonEvent>? GetUnisonEvents()
-        {
-            if (_unisonsReady)
-            {
-                return _unisonEvents;
             }
-
-            return null;
         }
     }
 }
