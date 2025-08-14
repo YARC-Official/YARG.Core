@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using System.Windows.Forms;
 using YARG.Core.Chart;
 using YARG.Core.Engine;
 using YARG.Core.Engine.Guitar;
@@ -14,12 +15,22 @@ namespace YARG.Core.YARG.Core.Engine.ProKeys
 {
     public abstract class FiveLaneKeysEngine : KeysEngine<GuitarNote>
     {
-        public bool IsKeyHeld(GuitarAction key)
-        {
-            return (KeyMask & (1 << (int) key)) != 0;
+        public enum FiveLaneKeysAction {
+            GreenKey = 0,
+            RedKey = 1,
+            YellowKey = 2,
+            BlueKey = 3,
+            OrangeKey = 4,
+            
+            OpenNote = 6
         }
 
-        protected override double[] KeyPressTimes { get; } = new double[((int) ProKeysAction.OrangeKey - (int) ProKeysAction.OpenNote) + 1];
+        public bool IsKeyHeld(FiveLaneKeysAction key)
+        {
+            return (KeyMask & (1 << (int)key)) != 0;
+        }
+
+        protected override double[] KeyPressTimes { get; } = new double[7];
 
         protected FiveLaneKeysEngine(InstrumentDifficulty<GuitarNote> chart, SyncTrack syncTrack,
             KeysEngineParameters engineParameters, bool isBot)
@@ -115,7 +126,7 @@ namespace YARG.Core.YARG.Core.Engine.ProKeys
 
             note.SetMissState(true, false);
 
-            KeyPressTimes[note.Fret] = DEFAULT_PRESS_TIME;
+            KeyPressTimes[(int)note.FiveLaneKeysAction] = DEFAULT_PRESS_TIME;
 
             if (note.IsStarPower)
             {
@@ -198,6 +209,20 @@ namespace YARG.Core.YARG.Core.Engine.ProKeys
             return (int) Math.Round(score);
         }
 
-        protected override bool IsKeyInTime(GuitarNote note, double frontEnd) => IsKeyInTime(note, note.Fret, frontEnd);
+        protected override bool IsKeyInTime(GuitarNote note, double frontEnd) => IsKeyInTime(note, (int)note.FiveLaneKeysAction, frontEnd);
+
+        protected FiveLaneKeysAction ProKeysActionToFiveLaneKeysAction(ProKeysAction action)
+        {
+            return action switch
+            {
+                ProKeysAction.GreenKey => FiveLaneKeysAction.GreenKey,
+                ProKeysAction.RedKey => FiveLaneKeysAction.RedKey,
+                ProKeysAction.YellowKey => FiveLaneKeysAction.YellowKey,
+                ProKeysAction.BlueKey => FiveLaneKeysAction.BlueKey,
+                ProKeysAction.OrangeKey => FiveLaneKeysAction.OrangeKey,
+                ProKeysAction.OpenNote => FiveLaneKeysAction.OpenNote,
+                _ => throw new Exception("Unhandled")
+            };
+        }
     }
 }

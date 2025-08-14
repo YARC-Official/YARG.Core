@@ -1,4 +1,5 @@
-using System;
+﻿using System;
+using static YARG.Core.YARG.Core.Engine.ProKeys.FiveLaneKeysEngine;
 
 namespace YARG.Core.Chart
 {
@@ -21,6 +22,17 @@ namespace YARG.Core.Chart
 
         public bool IsExtendedSustain => (GuitarFlags & GuitarNoteFlags.ExtendedSustain) != 0;
         public bool IsDisjoint        => (GuitarFlags & GuitarNoteFlags.Disjoint) != 0;
+
+        public FiveLaneKeysAction FiveLaneKeysAction => (FiveFretGuitarFret)Fret switch
+        {
+            FiveFretGuitarFret.Green => FiveLaneKeysAction.GreenKey,
+            FiveFretGuitarFret.Red => FiveLaneKeysAction.RedKey,
+            FiveFretGuitarFret.Yellow => FiveLaneKeysAction.YellowKey,
+            FiveFretGuitarFret.Blue => FiveLaneKeysAction.BlueKey,
+            FiveFretGuitarFret.Orange => FiveLaneKeysAction.OrangeKey,
+            FiveFretGuitarFret.Open => FiveLaneKeysAction.OpenNote,
+            _ => throw new Exception("Unhandled.")
+        };
 
         public GuitarNote(FiveFretGuitarFret fret, GuitarNoteType noteType, GuitarNoteFlags guitarFlags,
             NoteFlags flags, double time, double timeLength, uint tick, uint tickLength)

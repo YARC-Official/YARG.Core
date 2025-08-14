@@ -13,7 +13,7 @@ namespace YARG.Core.YARG.Core.Engine.Keys.FiveLaneKeys
 {
     public class YargFiveLaneKeysEngine : FiveLaneKeysEngine
     {
-        private KeyPressedTimes[] _keyPressedTimes = new KeyPressedTimes[((int) ProKeysAction.OrangeKey - (int) ProKeysAction.OpenNote) + 1];
+        private KeyPressedTimes[] _keyPressedTimes = new KeyPressedTimes[7];
 
         public YargFiveLaneKeysEngine(InstrumentDifficulty<GuitarNote> chart, SyncTrack syncTrack,
             KeysEngineParameters engineParameters, bool isBot) : base(chart, syncTrack, engineParameters, isBot)
@@ -28,32 +28,12 @@ namespace YARG.Core.YARG.Core.Engine.Keys.FiveLaneKeys
 
             var action = gameInput.GetAction<ProKeysAction>();
 
-            if (action is ProKeysAction.Key1
-                or ProKeysAction.Key2
-                or ProKeysAction.Key3
-                or ProKeysAction.Key4
-                or ProKeysAction.Key5
-                or ProKeysAction.Key6
-                or ProKeysAction.Key7
-                or ProKeysAction.Key8
-                or ProKeysAction.Key9
-                or ProKeysAction.Key10
-                or ProKeysAction.Key11
-                or ProKeysAction.Key12
-                or ProKeysAction.Key13
-                or ProKeysAction.Key14
-                or ProKeysAction.Key15
-                or ProKeysAction.Key16
-                or ProKeysAction.Key17
-                or ProKeysAction.Key18
-                or ProKeysAction.Key19
-                or ProKeysAction.Key20
-                or ProKeysAction.Key21
-                or ProKeysAction.Key22
-                or ProKeysAction.Key23
-                or ProKeysAction.Key24
-                or ProKeysAction.Key25
-                )
+            if (action
+                is ProKeysAction.Key1  or ProKeysAction.Key2  or ProKeysAction.Key3  or ProKeysAction.Key4  or ProKeysAction.Key5
+                or ProKeysAction.Key6  or ProKeysAction.Key7  or ProKeysAction.Key8  or ProKeysAction.Key9  or ProKeysAction.Key10
+                or ProKeysAction.Key11 or ProKeysAction.Key12 or ProKeysAction.Key13 or ProKeysAction.Key14 or ProKeysAction.Key15
+                or ProKeysAction.Key16 or ProKeysAction.Key17 or ProKeysAction.Key18 or ProKeysAction.Key19 or ProKeysAction.Key20
+                or ProKeysAction.Key21 or ProKeysAction.Key22 or ProKeysAction.Key23 or ProKeysAction.Key24 or ProKeysAction.Key25)
             {
                 return;
             }
@@ -67,22 +47,24 @@ namespace YARG.Core.YARG.Core.Engine.Keys.FiveLaneKeys
             }
             else
             {
+                var fiveLaneKeyIndex = (int)ProKeysActionToFiveLaneKeysAction(action);
+
                 if (gameInput.Button)
                 {
-                    KeyHitThisUpdate = (int) action;
-                    _keyPressedTimes[(int) action].NoteIndex = NoteIndex;
-                    _keyPressedTimes[(int) action].Time = gameInput.Time;
+                    KeyHitThisUpdate = fiveLaneKeyIndex;
+                    _keyPressedTimes[fiveLaneKeyIndex].NoteIndex = NoteIndex;
+                    _keyPressedTimes[fiveLaneKeyIndex].Time = gameInput.Time;
                 }
                 else
                 {
-                    KeyReleasedThisUpdate = (int) action;
+                    KeyReleasedThisUpdate = fiveLaneKeyIndex;
                 }
 
                 PreviousKeyMask = KeyMask;
-                ToggleKey((int) action, gameInput.Button);
-                KeyPressTimes[(int) action] = gameInput.Time;
+                ToggleKey(fiveLaneKeyIndex, gameInput.Button);
+                KeyPressTimes[fiveLaneKeyIndex] = gameInput.Time;
 
-                OnKeyStateChange?.Invoke((int) action, gameInput.Button);
+                OnKeyStateChange?.Invoke(fiveLaneKeyIndex, gameInput.Button);
             }
         }
 
