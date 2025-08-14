@@ -139,7 +139,7 @@ namespace YARG.Core.Engine
                 drumEngine.OnStarPowerPhraseHit += engineContainer.OnStarPowerPhraseHit;
             }
 
-            if (engineContainer.Engine is BaseEngine<ProKeysNote, ProKeysEngineParameters, ProKeysStats>
+            if (engineContainer.Engine is BaseEngine<ProKeysNote, KeysEngineParameters, ProKeysStats>
                 proKeysEngine)
             {
                 proKeysEngine.OnStarPowerPhraseHit += engineContainer.OnStarPowerPhraseHit;

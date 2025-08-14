@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Text;
 using YARG.Core.Chart;
@@ -238,7 +238,7 @@ namespace YARG.Core.Replays.Analyzer
                     }
 
                     // Create engine
-                    return new YargFiveFretEngine(
+                    return new YargFiveFretGuitarEngine(
                         notes,
                         _chart.SyncTrack,
                         (GuitarEngineParameters) parameters,
@@ -283,7 +283,7 @@ namespace YARG.Core.Replays.Analyzer
                     return new YargProKeysEngine(
                         notes,
                         _chart.SyncTrack,
-                        (ProKeysEngineParameters) parameters,
+                        (KeysEngineParameters) parameters,
                         profile.IsBot);
                 }
                 case GameMode.Vocals:

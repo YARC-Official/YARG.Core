@@ -56,7 +56,7 @@ namespace YARG.Core.Replays
                     Stats = new VocalsStats(ref stream, version);
                     break;
                 case GameMode.ProKeys:
-                    EngineParameters = new ProKeysEngineParameters(ref stream, version);
+                    EngineParameters = new KeysEngineParameters(ref stream, version);
                     Stats = new ProKeysStats(ref stream, version);
                     break;
                 default:

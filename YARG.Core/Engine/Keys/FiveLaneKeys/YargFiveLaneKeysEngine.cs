@@ -1,22 +1,22 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
 using YARG.Core.Chart;
+using YARG.Core.Engine.ProKeys;
 using YARG.Core.Input;
 using YARG.Core.Logging;
+using YARG.Core.YARG.Core.Engine.ProKeys;
 
-namespace YARG.Core.Engine.ProKeys.Engines
+namespace YARG.Core.YARG.Core.Engine.Keys.FiveLaneKeys
 {
-    public class YargProKeysEngine : ProKeysEngine
+    public class YargFiveLaneKeysEngine : FiveLaneKeysEngine
     {
-        private struct KeyPressedTimes
-        {
-            public int    NoteIndex;
-            public double Time;
-        }
+        private KeyPressedTimes[] _keyPressedTimes = new KeyPressedTimes[((int) ProKeysAction.OrangeKey - (int) ProKeysAction.OpenNote) + 1];
 
-        private KeyPressedTimes[] _keyPressedTimes = new KeyPressedTimes[(int)ProKeysAction.Key25 + 1];
-
-        public YargProKeysEngine(InstrumentDifficulty<ProKeysNote> chart, SyncTrack syncTrack,
-            ProKeysEngineParameters engineParameters, bool isBot) : base(chart, syncTrack, engineParameters, isBot)
+        public YargFiveLaneKeysEngine(InstrumentDifficulty<GuitarNote> chart, SyncTrack syncTrack,
+            KeysEngineParameters engineParameters, bool isBot) : base(chart, syncTrack, engineParameters, isBot)
         {
         }
 
@@ -28,6 +28,35 @@ namespace YARG.Core.Engine.ProKeys.Engines
 
             var action = gameInput.GetAction<ProKeysAction>();
 
+            if (action is ProKeysAction.Key1
+                or ProKeysAction.Key2
+                or ProKeysAction.Key3
+                or ProKeysAction.Key4
+                or ProKeysAction.Key5
+                or ProKeysAction.Key6
+                or ProKeysAction.Key7
+                or ProKeysAction.Key8
+                or ProKeysAction.Key9
+                or ProKeysAction.Key10
+                or ProKeysAction.Key11
+                or ProKeysAction.Key12
+                or ProKeysAction.Key13
+                or ProKeysAction.Key14
+                or ProKeysAction.Key15
+                or ProKeysAction.Key16
+                or ProKeysAction.Key17
+                or ProKeysAction.Key18
+                or ProKeysAction.Key19
+                or ProKeysAction.Key20
+                or ProKeysAction.Key21
+                or ProKeysAction.Key22
+                or ProKeysAction.Key23
+                or ProKeysAction.Key24
+                or ProKeysAction.Key25
+                )
+            {
+                return;
+            }
             if (action is ProKeysAction.StarPower)
             {
                 IsStarPowerInputActive = gameInput.Button;
@@ -80,7 +109,7 @@ namespace YARG.Core.Engine.ProKeys.Engines
                         EngineStats.FatFingersIgnored++;
                     }
                 }
-                else if(FatFingerTimer.IsExpired(CurrentTime))
+                else if (FatFingerTimer.IsExpired(CurrentTime))
                 {
                     YargLogger.LogFormatTrace("Fat Finger timer expired at {0}", CurrentTime);
 
@@ -168,11 +197,11 @@ namespace YARG.Core.Engine.ProKeys.Engines
                                 if ((KeyMask & note.DisjointMask) == note.DisjointMask && IsKeyInTime(note, frontEnd))
                                 {
                                     HitNote(note);
-                                    YargLogger.LogFormatTrace("Hit staggered note {0} in chord", note.Key);
+                                    YargLogger.LogFormatTrace("Hit staggered note {0} in chord", note.Fret);
                                 }
                                 else
                                 {
-                                    YargLogger.LogFormatTrace("Missing note {0} due to chord staggering", note.Key);
+                                    YargLogger.LogFormatTrace("Missing note {0} due to chord staggering", note.Fret);
                                     MissNote(note);
                                 }
                             }
@@ -184,7 +213,7 @@ namespace YARG.Core.Engine.ProKeys.Engines
                             foreach (var note in parentNote.AllNotes)
                             {
                                 // Go to next note if the key hit does not match the note's key
-                                if (KeyHitThisUpdate != note.Key)
+                                if (KeyHitThisUpdate != note.Fret)
                                 {
                                     continue;
                                 }
@@ -222,11 +251,11 @@ namespace YARG.Core.Engine.ProKeys.Engines
             // If no note was hit but the user hit a key, then over hit
             if (KeyHitThisUpdate != null)
             {
-                static ProKeysNote? CheckForAdjacency(ProKeysNote fullNote, int key)
+                static GuitarNote? CheckForAdjacency(GuitarNote fullNote, int key)
                 {
                     foreach (var note in fullNote.AllNotes)
                     {
-                        if (ProKeysUtilities.IsAdjacentKey(note.Key, key))
+                        if (Math.Abs(note.Fret - key) == 1)
                         {
                             return note;
                         }
@@ -235,7 +264,7 @@ namespace YARG.Core.Engine.ProKeys.Engines
                     return null;
                 }
 
-                ProKeysNote? adjacentNote;
+                GuitarNote? adjacentNote;
                 bool isAdjacent;
                 bool inWindow;
 
@@ -278,7 +307,7 @@ namespace YARG.Core.Engine.ProKeys.Engines
 
                     FatFingerNote = adjacentNote;
 
-                    YargLogger.LogFormatTrace("Hit adjacent key {0} to note {1}. Starting fat finger timer at {2}. End time: {3}. Key is {4}", FatFingerKey, adjacentNote!.Key, CurrentTime,
+                    YargLogger.LogFormatTrace("Hit adjacent key {0} to note {1}. Starting fat finger timer at {2}. End time: {3}. Key is {4}", FatFingerKey, adjacentNote!.Fret, CurrentTime,
                         FatFingerTimer.EndTime, FatFingerKey);
                 }
 
@@ -286,12 +315,12 @@ namespace YARG.Core.Engine.ProKeys.Engines
             }
         }
 
-        protected override bool CanNoteBeHit(ProKeysNote note)
+        protected override bool CanNoteBeHit(GuitarNote note)
         {
             double hitWindow = EngineParameters.HitWindow.CalculateHitWindow(GetAverageNoteDistance(note));
             double frontEnd = EngineParameters.HitWindow.GetFrontEnd(hitWindow);
 
-            if((KeyMask & note.NoteMask) == note.NoteMask)
+            if ((KeyMask & note.NoteMask) == note.NoteMask)
             {
                 foreach (var childNote in note.AllNotes)
                 {
@@ -304,43 +333,14 @@ namespace YARG.Core.Engine.ProKeys.Engines
                 return true;
             }
 
-            // Glissando hit logic
-            // Forces the first glissando to be hit correctly, then the rest can be hit "loosely"
-            if (note.PreviousNote is not null && note.IsGlissando && note.PreviousNote.IsGlissando)
-            {
-                var keyDiff = KeyMask ^ PreviousKeyMask;
-                var keysPressed = keyDiff & KeyMask;
-                //var keysReleased = keyDiff & PreviousKeyMask;
-
-                foreach (var child in note.AllNotes)
-                {
-                    var pressCopy = keysPressed;
-
-                    int i = 0;
-                    while (pressCopy > 0)
-                    {
-                        if((pressCopy & 1) != 0 && IsKeyInTime(child, i, frontEnd))
-                        {
-                            // It's not ideal that this is here but there's no way to know what key hit the note
-                            // within HitNote() so we have to set the press time here
-                            KeyPressTimes[i] = DEFAULT_PRESS_TIME;
-                            return true;
-                        }
-
-                        i++;
-                        pressCopy >>= 1;
-                    }
-                }
-            }
-
             return false;
         }
 
         protected override void UpdateBot(double time)
         {
-            float        botNoteHoldTime = 0.166f;
-            ProKeysNote? note = null;
-            int          keysInSustain = 0;
+            float botNoteHoldTime = 0.166f;
+            GuitarNote? note = null;
+            int keysInSustain = 0;
 
             if (!IsBot)
             {
@@ -357,7 +357,7 @@ namespace YARG.Core.Engine.ProKeys.Engines
             // Find the active sustains
             foreach (var sustain in ActiveSustains)
             {
-                keysInSustain |= 1 << sustain.Note.Key;
+                keysInSustain |= 1 << sustain.Note.Fret;
             }
 
             // Release no longer needed keys
@@ -375,7 +375,7 @@ namespace YARG.Core.Engine.ProKeys.Engines
 
                 if (note is not null)
                 {
-                    currentKey = time >= note.Time && note.Key == key;
+                    currentKey = time >= note.Time && note.Fret == key;
                 }
                 else
                 {
@@ -399,7 +399,7 @@ namespace YARG.Core.Engine.ProKeys.Engines
                             // Despite the name chordNote, this also applies to single notes
                             foreach (var chordNote in note.AllNotes)
                             {
-                                if (chordNote.Key == key && chordNote.Time - time < time - _keyPressedTimes[key].Time)
+                                if (chordNote.Fret == key && chordNote.Time - time < time - _keyPressedTimes[key].Time)
                                 {
                                     keyProtected = false;
                                     break;
@@ -422,9 +422,9 @@ namespace YARG.Core.Engine.ProKeys.Engines
                     // We loop to ensure that all notes in a chord are released at the same time
                     foreach (var chordNote in pressedNote.AllNotes)
                     {
-                        if ((keysInSustain & 1 << chordNote.Key) == 0)
+                        if ((keysInSustain & 1 << chordNote.Fret) == 0)
                         {
-                            MutateStateWithInput(new GameInput(time, chordNote.Key, false));
+                            MutateStateWithInput(new GameInput(time, chordNote.Fret, false));
                         }
                     }
                 }
@@ -448,7 +448,7 @@ namespace YARG.Core.Engine.ProKeys.Engines
             // Press keys for current note
             foreach (var chordNote in note.AllNotes)
             {
-                MutateStateWithInput(new GameInput(note.Time, chordNote.Key, true));
+                MutateStateWithInput(new GameInput(note.Time, chordNote.Fret, true));
                 CheckForNoteHit();
             }
         }
