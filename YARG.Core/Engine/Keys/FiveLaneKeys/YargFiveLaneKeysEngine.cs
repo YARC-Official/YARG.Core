@@ -179,11 +179,11 @@ namespace YARG.Core.YARG.Core.Engine.Keys.FiveLaneKeys
                                 if ((KeyMask & note.DisjointMask) == note.DisjointMask && IsKeyInTime(note, frontEnd))
                                 {
                                     HitNote(note);
-                                    YargLogger.LogFormatTrace("Hit staggered note {0} in chord", note.Fret);
+                                    YargLogger.LogFormatTrace("Hit staggered note {0} in chord", (int)note.FiveLaneKeysAction);
                                 }
                                 else
                                 {
-                                    YargLogger.LogFormatTrace("Missing note {0} due to chord staggering", note.Fret);
+                                    YargLogger.LogFormatTrace("Missing note {0} due to chord staggering", (int)note.FiveLaneKeysAction);
                                     MissNote(note);
                                 }
                             }
@@ -195,7 +195,7 @@ namespace YARG.Core.YARG.Core.Engine.Keys.FiveLaneKeys
                             foreach (var note in parentNote.AllNotes)
                             {
                                 // Go to next note if the key hit does not match the note's key
-                                if (KeyHitThisUpdate != note.Fret)
+                                if (KeyHitThisUpdate != (int)note.FiveLaneKeysAction)
                                 {
                                     continue;
                                 }
@@ -233,11 +233,11 @@ namespace YARG.Core.YARG.Core.Engine.Keys.FiveLaneKeys
             // If no note was hit but the user hit a key, then over hit
             if (KeyHitThisUpdate != null)
             {
-                static GuitarNote? CheckForAdjacency(GuitarNote fullNote, int key)
+                static GuitarNote? CheckForAdjacency(GuitarNote fullNote, FiveLaneKeysAction key)
                 {
                     foreach (var note in fullNote.AllNotes)
                     {
-                        if (Math.Abs(note.Fret - key) == 1)
+                        if (Math.Abs(note.FiveLaneKeysAction - key) == 1)
                         {
                             return note;
                         }
@@ -257,7 +257,7 @@ namespace YARG.Core.YARG.Core.Engine.Keys.FiveLaneKeys
                 if (parentNote.PreviousNote is not null
                     && CurrentTime - parentNote.PreviousNote.Time < FatFingerTimer.SpeedAdjustedThreshold)
                 {
-                    adjacentNote = CheckForAdjacency(parentNote.PreviousNote, KeyHitThisUpdate.Value);
+                    adjacentNote = CheckForAdjacency(parentNote.PreviousNote, (FiveLaneKeysAction)KeyHitThisUpdate.Value);
                     isAdjacent = adjacentNote != null;
                     inWindow = IsNoteInWindow(parentNote.PreviousNote, out _);
 
@@ -265,7 +265,7 @@ namespace YARG.Core.YARG.Core.Engine.Keys.FiveLaneKeys
                 // Try to fat finger current note (upcoming note)
                 else
                 {
-                    adjacentNote = CheckForAdjacency(parentNote, KeyHitThisUpdate.Value);
+                    adjacentNote = CheckForAdjacency(parentNote, (FiveLaneKeysAction)KeyHitThisUpdate.Value);
                     isAdjacent = adjacentNote != null;
                     inWindow = IsNoteInWindow(parentNote, out _);
                 }
@@ -289,7 +289,7 @@ namespace YARG.Core.YARG.Core.Engine.Keys.FiveLaneKeys
 
                     FatFingerNote = adjacentNote;
 
-                    YargLogger.LogFormatTrace("Hit adjacent key {0} to note {1}. Starting fat finger timer at {2}. End time: {3}. Key is {4}", FatFingerKey, adjacentNote!.Fret, CurrentTime,
+                    YargLogger.LogFormatTrace("Hit adjacent key {0} to note {1}. Starting fat finger timer at {2}. End time: {3}. Key is {4}", FatFingerKey, adjacentNote!.FiveLaneKeysAction, CurrentTime,
                         FatFingerTimer.EndTime, FatFingerKey);
                 }
 
@@ -339,7 +339,7 @@ namespace YARG.Core.YARG.Core.Engine.Keys.FiveLaneKeys
             // Find the active sustains
             foreach (var sustain in ActiveSustains)
             {
-                keysInSustain |= 1 << sustain.Note.Fret;
+                keysInSustain |= 1 << (int)sustain.Note.FiveLaneKeysAction;
             }
 
             // Release no longer needed keys
@@ -357,7 +357,7 @@ namespace YARG.Core.YARG.Core.Engine.Keys.FiveLaneKeys
 
                 if (note is not null)
                 {
-                    currentKey = time >= note.Time && note.Fret == key;
+                    currentKey = time >= note.Time && (int)note.FiveLaneKeysAction == key;
                 }
                 else
                 {
@@ -381,7 +381,7 @@ namespace YARG.Core.YARG.Core.Engine.Keys.FiveLaneKeys
                             // Despite the name chordNote, this also applies to single notes
                             foreach (var chordNote in note.AllNotes)
                             {
-                                if (chordNote.Fret == key && chordNote.Time - time < time - _keyPressedTimes[key].Time)
+                                if ((int)chordNote.FiveLaneKeysAction == key && chordNote.Time - time < time - _keyPressedTimes[key].Time)
                                 {
                                     keyProtected = false;
                                     break;
@@ -404,9 +404,9 @@ namespace YARG.Core.YARG.Core.Engine.Keys.FiveLaneKeys
                     // We loop to ensure that all notes in a chord are released at the same time
                     foreach (var chordNote in pressedNote.AllNotes)
                     {
-                        if ((keysInSustain & 1 << chordNote.Fret) == 0)
+                        if ((keysInSustain & 1 << (int)chordNote.FiveLaneKeysAction) == 0)
                         {
-                            MutateStateWithInput(new GameInput(time, chordNote.Fret, false));
+                            MutateStateWithInput(new GameInput(time, (int)chordNote.FiveLaneKeysAction, false));
                         }
                     }
                 }
@@ -430,7 +430,7 @@ namespace YARG.Core.YARG.Core.Engine.Keys.FiveLaneKeys
             // Press keys for current note
             foreach (var chordNote in note.AllNotes)
             {
-                MutateStateWithInput(new GameInput(note.Time, chordNote.Fret, true));
+                MutateStateWithInput(new GameInput(note.Time, (int)chordNote.FiveLaneKeysAction, true));
                 CheckForNoteHit();
             }
         }
