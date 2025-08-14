@@ -193,10 +193,17 @@ namespace YARG.Core.Engine.ProKeys
             // Detect if the last note(s) were skipped
             // bool skipped = SkipPreviousNotes(note);
 
-            if (note.IsStarPower && note.IsStarPowerEnd && note.ParentOrSelf.WasFullyHit())
+            if (note.IsStarPower)
             {
-                AwardStarPower(note);
-                EngineStats.StarPowerPhrasesHit++;
+                if (EngineStats.IsStarPowerActive && EngineParameters.NoStarPowerOverlap)
+                {
+                    StripStarPower(note);
+                }
+                else if (note.IsStarPowerEnd && note.ParentOrSelf.WasFullyHit())
+                {
+                    AwardStarPower(note);
+                    EngineStats.StarPowerPhrasesHit++;
+                }
             }
 
             if (note.IsSoloStart)
