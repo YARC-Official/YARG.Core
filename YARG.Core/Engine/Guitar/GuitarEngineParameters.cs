@@ -14,9 +14,9 @@ namespace YARG.Core.Engine.Guitar
         public readonly bool SoloTaps;
 
         public GuitarEngineParameters(HitWindowSettings hitWindow, int maxMultiplier, double spWhammyBuffer,
-            double sustainDropLeniency, float[] starMultiplierThresholds, double hopoLeniency, double strumLeniency,
+            double sustainDropLeniency, float[] starMultiplierThresholds, bool noStarPowerOverlap, double hopoLeniency, double strumLeniency,
             double strumLeniencySmall, bool infiniteFrontEnd, bool antiGhosting, bool soloTaps)
-            : base(hitWindow, maxMultiplier, spWhammyBuffer, sustainDropLeniency, starMultiplierThresholds)
+            : base(hitWindow, maxMultiplier, spWhammyBuffer, sustainDropLeniency, starMultiplierThresholds, noStarPowerOverlap)
         {
             HopoLeniency = hopoLeniency;
 

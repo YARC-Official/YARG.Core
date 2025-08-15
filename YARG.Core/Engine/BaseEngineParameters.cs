@@ -18,16 +18,19 @@ namespace YARG.Core.Engine
 
         public readonly float[] StarMultiplierThresholds;
 
+        public readonly bool NoStarPowerOverlap;
+
         public double SongSpeed;
 
         protected BaseEngineParameters(HitWindowSettings hitWindow, int maxMultiplier, double spWhammyBuffer,
-            double sustainDropLeniency, float[] starMultiplierThresholds)
+            double sustainDropLeniency, float[] starMultiplierThresholds, bool noStarPowerOverlap)
         {
             HitWindow = hitWindow;
             StarPowerWhammyBuffer = spWhammyBuffer;
             SustainDropLeniency = sustainDropLeniency;
             MaxMultiplier = maxMultiplier;
             StarMultiplierThresholds = starMultiplierThresholds;
+            NoStarPowerOverlap = noStarPowerOverlap;
         }
 
         protected BaseEngineParameters(ref FixedArrayStream stream, int version)
@@ -47,6 +50,8 @@ namespace YARG.Core.Engine
                 StarMultiplierThresholds[i] = stream.Read<float>(Endianness.Little);
             }
 
+            NoStarPowerOverlap = stream.ReadBoolean();
+
             SongSpeed = stream.Read<double>(Endianness.Little);
         }
 
@@ -65,6 +70,8 @@ namespace YARG.Core.Engine
                 writer.Write(f);
             }
 
+            writer.Write(NoStarPowerOverlap);
+
             writer.Write(SongSpeed);
         }
 
@@ -77,7 +84,8 @@ namespace YARG.Core.Engine
                 $"Hit window: ({HitWindow.MinWindow}, {HitWindow.MaxWindow})\n" +
                 $"Hit window dynamic: {HitWindow.IsDynamic}\n" +
                 $"Max multiplier: {MaxMultiplier}\n" +
-                $"Star thresholds: {thresholds}";
+                $"Star thresholds: {thresholds}" +
+                $"No star power overlap: {NoStarPowerOverlap}";
         }
     }
 }
