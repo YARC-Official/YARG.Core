@@ -47,7 +47,7 @@ namespace YARG.Core.YARG.Core.Engine.ProKeys
             if (note.WasHit || note.WasMissed)
             {
                 YargLogger.LogFormatTrace("Tried to hit/miss note twice (Key: {0}, Index: {1}, Hit: {2}, Missed: {3})",
-                    note.Fret, NoteIndex, note.WasHit, note.WasMissed);
+                    note.FiveLaneKeysAction, NoteIndex, note.WasHit, note.WasMissed);
                 return;
             }
 
@@ -63,7 +63,7 @@ namespace YARG.Core.YARG.Core.Engine.ProKeys
 
             note.SetHitState(true, false);
 
-            KeyPressTimes[note.Fret] = DEFAULT_PRESS_TIME;
+            KeyPressTimes[(int)note.FiveLaneKeysAction] = DEFAULT_PRESS_TIME;
 
             // Detect if the last note(s) were skipped
             // bool skipped = SkipPreviousNotes(note);
@@ -120,7 +120,7 @@ namespace YARG.Core.YARG.Core.Engine.ProKeys
             if (note.WasHit || note.WasMissed)
             {
                 YargLogger.LogFormatTrace("Tried to hit/miss note twice (Key: {0}, Index: {1}, Hit: {2}, Missed: {3})",
-                    note.Fret, NoteIndex, note.WasHit, note.WasMissed);
+                    note.FiveLaneKeysAction, NoteIndex, note.WasHit, note.WasMissed);
                 return;
             }
 
