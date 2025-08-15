@@ -36,6 +36,7 @@ namespace YARG.Core.YARG.Core.Engine.ProKeys
             KeysEngineParameters engineParameters, bool isBot)
             : base(chart, syncTrack, engineParameters, isBot)
         {
+            GetWaitCountdowns(Notes);
         }
 
         protected override bool CanSustainHold(GuitarNote note)
