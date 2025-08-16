@@ -406,7 +406,8 @@ namespace YARG.Core.YARG.Core.Engine.Keys.FiveLaneKeys
                     {
                         if ((keysInSustain & 1 << (int)chordNote.FiveLaneKeysAction) == 0)
                         {
-                            MutateStateWithInput(new GameInput(time, (int)chordNote.FiveLaneKeysAction, false));
+                            var action = FiveLaneKeysActionToProKeysAction(chordNote.FiveLaneKeysAction);
+                            MutateStateWithInput(new GameInput(time, (int)action, false));
                         }
                     }
                 }
@@ -430,9 +431,26 @@ namespace YARG.Core.YARG.Core.Engine.Keys.FiveLaneKeys
             // Press keys for current note
             foreach (var chordNote in note.AllNotes)
             {
-                MutateStateWithInput(new GameInput(note.Time, (int)chordNote.FiveLaneKeysAction, true));
+                // Need to translate back to an actual Pro Keys Action for the GameInput
+                var action = FiveLaneKeysActionToProKeysAction(chordNote.FiveLaneKeysAction);
+
+                MutateStateWithInput(new GameInput(note.Time, (int)action, true));
                 CheckForNoteHit();
             }
+        }
+
+        private static ProKeysAction FiveLaneKeysActionToProKeysAction(FiveLaneKeysAction fiveLaneKeysAction)
+        {
+            return fiveLaneKeysAction switch
+            {
+                FiveLaneKeysAction.OpenNote => ProKeysAction.OpenNote,
+                FiveLaneKeysAction.GreenKey => ProKeysAction.GreenKey,
+                FiveLaneKeysAction.RedKey => ProKeysAction.RedKey,
+                FiveLaneKeysAction.YellowKey => ProKeysAction.YellowKey,
+                FiveLaneKeysAction.BlueKey => ProKeysAction.BlueKey,
+                FiveLaneKeysAction.OrangeKey => ProKeysAction.OrangeKey,
+                _ => throw new Exception("Unhandled.")
+            };
         }
     }
 }
