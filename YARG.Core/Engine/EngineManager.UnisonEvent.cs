@@ -139,13 +139,13 @@ namespace YARG.Core.Engine
                 drumEngine.OnStarPowerPhraseHit += engineContainer.OnStarPowerPhraseHit;
             }
 
-            if (engineContainer.Engine is BaseEngine<ProKeysNote, KeysEngineParameters, ProKeysStats>
+            if (engineContainer.Engine is BaseEngine<ProKeysNote, KeysEngineParameters, KeysStats>
                 proKeysEngine)
             {
                 proKeysEngine.OnStarPowerPhraseHit += engineContainer.OnStarPowerPhraseHit;
             }
 
-            if (engineContainer.Engine is BaseEngine<GuitarNote, KeysEngineParameters, ProKeysStats>
+            if (engineContainer.Engine is BaseEngine<GuitarNote, KeysEngineParameters, KeysStats>
                 fiveLaneKeysEngine)
             {
                 fiveLaneKeysEngine.OnStarPowerPhraseHit += engineContainer.OnStarPowerPhraseHit;

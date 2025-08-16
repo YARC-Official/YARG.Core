@@ -16,7 +16,7 @@ namespace YARG.Core.Replays
         public readonly int Overhits;
         public readonly int SoloBonuses;
 
-        public ProKeysReplayStats(string name, ProKeysStats stats)
+        public ProKeysReplayStats(string name, KeysStats stats)
             : base(name, stats)
         {
             TotalNotes = stats.TotalNotes;
@@ -41,7 +41,7 @@ namespace YARG.Core.Replays
 
         public override void Serialize(BinaryWriter writer)
         {
-            writer.Write((byte) GameMode.ProKeys);
+            writer.Write((byte) GameMode.Keys);
             base.Serialize(writer);
             writer.Write(TotalNotes);
             writer.Write(NumNotesHit);

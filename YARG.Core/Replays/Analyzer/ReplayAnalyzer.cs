@@ -14,6 +14,7 @@ using YARG.Core.Engine.Vocals.Engines;
 using YARG.Core.Game;
 using YARG.Core.Logging;
 using Cysharp.Text;
+using YARG.Core.YARG.Core.Engine.Keys.FiveLaneKeys;
 
 namespace YARG.Core.Replays.Analyzer
 {
@@ -125,7 +126,7 @@ namespace YARG.Core.Replays.Analyzer
                     AppendStatDifference("TotalTicks", originalVocals.TotalTicks, resultVocals.TotalTicks);
                     break;
                 }
-                case (ProKeysStats originalKeys, ProKeysStats resultKeys):
+                case (KeysStats originalKeys, KeysStats resultKeys):
                 {
                     sb.AppendLine("Pro Keys stats:");
                     AppendStatDifference("Overhits", originalKeys.Overhits, resultKeys.Overhits);
@@ -266,12 +267,35 @@ namespace YARG.Core.Replays.Analyzer
                         (DrumsEngineParameters) parameters,
                         profile.IsBot);
                 }
-                case GameMode.ProKeys:
+                case GameMode.Keys:
                 {
+                    if (profile.CurrentInstrument is Instrument.ProKeys) // Pro Keys
+                    {
+                        // Reset the notes
+                        var proNotes = _chart.ProKeys.GetDifficulty(profile.CurrentDifficulty).Clone();
+                        profile.ApplyModifiers(proNotes);
+                        foreach (var note in proNotes.Notes)
+                        {
+                            foreach (var subNote in note.AllNotes)
+                            {
+                                subNote.ResetNoteState();
+                            }
+                        }
+
+                        // Create engine
+                        return new YargProKeysEngine(
+                            proNotes,
+                            _chart.SyncTrack,
+                            (KeysEngineParameters) parameters,
+                            profile.IsBot);
+                    }
+
+                    // Five-Lane Keys
                     // Reset the notes
-                    var notes = _chart.ProKeys.GetDifficulty(profile.CurrentDifficulty).Clone();
-                    profile.ApplyModifiers(notes);
-                    foreach (var note in notes.Notes)
+                    var fiveLaneNotes = _chart.GetFiveFretTrack(profile.CurrentInstrument)
+                        .GetDifficulty(profile.CurrentDifficulty).Clone();
+                    profile.ApplyModifiers(fiveLaneNotes);
+                    foreach (var note in fiveLaneNotes.Notes)
                     {
                         foreach (var subNote in note.AllNotes)
                         {
@@ -280,8 +304,8 @@ namespace YARG.Core.Replays.Analyzer
                     }
 
                     // Create engine
-                    return new YargProKeysEngine(
-                        notes,
+                    return new YargFiveLaneKeysEngine(
+                        fiveLaneNotes,
                         _chart.SyncTrack,
                         (KeysEngineParameters) parameters,
                         profile.IsBot);
@@ -450,7 +474,7 @@ namespace YARG.Core.Replays.Analyzer
                 //     instrumentPass = IsInstrumentPassResult(pg1, pg2, ref builder);
                 //     break;
 
-                case (ProKeysStats pk1, ProKeysStats pk2):
+                case (KeysStats pk1, KeysStats pk2):
                     instrumentPass = IsInstrumentPassResult(pk1, pk2, ref builder);
                     break;
 
@@ -559,7 +583,7 @@ namespace YARG.Core.Replays.Analyzer
         //     return original.Stat == result.Stat;
         // }
 
-        private static bool IsInstrumentPassResult(ProKeysStats original, ProKeysStats result, ref Utf16ValueStringBuilder builder)
+        private static bool IsInstrumentPassResult(KeysStats original, KeysStats result, ref Utf16ValueStringBuilder builder)
         {
             void FormatStat<T>(string stat, T originalValue, T resultValue, ref Utf16ValueStringBuilder builder)
                 where T : IEquatable<T>

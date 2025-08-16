@@ -10,7 +10,7 @@ using YARG.Core.Logging;
 
 namespace YARG.Core.YARG.Core.Engine.ProKeys
 {
-    public abstract class KeysEngine<TNoteType> : BaseEngine<TNoteType, KeysEngineParameters, ProKeysStats>
+    public abstract class KeysEngine<TNoteType> : BaseEngine<TNoteType, KeysEngineParameters, KeysStats>
         where TNoteType : Note<TNoteType>
     {
         protected struct KeyPressedTimes
