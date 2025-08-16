@@ -144,6 +144,12 @@ namespace YARG.Core.Engine
             {
                 proKeysEngine.OnStarPowerPhraseHit += engineContainer.OnStarPowerPhraseHit;
             }
+
+            if (engineContainer.Engine is BaseEngine<GuitarNote, KeysEngineParameters, ProKeysStats>
+                fiveLaneKeysEngine)
+            {
+                fiveLaneKeysEngine.OnStarPowerPhraseHit += engineContainer.OnStarPowerPhraseHit;
+            }
             // Vocals don't participate in unisons, so they get left out.
         }
 
