@@ -103,7 +103,7 @@ namespace YARG.Core.Chart
             CreateNoteDelegate<TNote> createNote, ProcessTextDelegate? processText = null)
             where TNote : Note<TNote>
         {
-            _currentMode = instrument.ToGameMode();
+            _currentMode = instrument.ToNativeGameMode();
             _currentInstrument = instrument;
             _currentDifficulty = difficulty;
 
@@ -404,7 +404,7 @@ namespace YARG.Core.Chart
             GameMode.FiveLaneDrums => MoonChart.GameMode.Drums,
 
             GameMode.ProGuitar => MoonChart.GameMode.ProGuitar,
-            GameMode.ProKeys => MoonChart.GameMode.ProKeys,
+            GameMode.Keys => MoonChart.GameMode.ProKeys,
 
             GameMode.Vocals => MoonChart.GameMode.Vocals,
 

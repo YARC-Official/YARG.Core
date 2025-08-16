@@ -11,7 +11,7 @@ namespace YARG.Core.Game
 {
     public class YargProfile
     {
-        private const int PROFILE_VERSION = 4;
+        private const int PROFILE_VERSION = 5;
 
         public Guid Id;
         public string Name;
@@ -147,8 +147,6 @@ namespace YARG.Core.Game
             HighwayLength = stream.Read<float>(Endianness.Little);
             LeftyFlip = stream.ReadBoolean();
 
-            GameMode = CurrentInstrument.ToGameMode();
-
             if (version >= 3)
             {
                 RangeEnabled = stream.ReadBoolean();
@@ -160,6 +158,11 @@ namespace YARG.Core.Game
                 SplitProTomsAndCymbals = stream.ReadBoolean();
                 SwapSnareAndHiHat = stream.ReadBoolean();
                 SwapCrashAndRide = stream.ReadBoolean();
+            }
+
+            if (version >= 5)
+            {
+                GameMode = (GameMode) stream.ReadByte();
             }
         }
 
@@ -188,7 +191,7 @@ namespace YARG.Core.Game
 
         public void ApplyModifiers<TNote>(InstrumentDifficulty<TNote> track) where TNote : Note<TNote>
         {
-            switch (CurrentInstrument.ToGameMode())
+            switch (GameMode)
             {
                 case GameMode.FiveFretGuitar:
                     if (track is not InstrumentDifficulty<GuitarNote> guitarTrack)
@@ -196,7 +199,6 @@ namespace YARG.Core.Game
                         throw new InvalidOperationException("Cannot apply guitar modifiers to non-guitar track " +
                             $"with notes of {typeof(TNote)}!");
                     }
-
                     if (IsModifierActive(Modifier.AllStrums))
                     {
                         guitarTrack.ConvertToGuitarType(GuitarNoteType.Strum);
@@ -242,9 +244,31 @@ namespace YARG.Core.Game
                     }
 
                     break;
+                case GameMode.Keys:
+                    if (track is InstrumentDifficulty<ProKeysNote> proKeysTrack)
+                    {
+                        // Apply Pro Keys modifiers (none exist currently)
+                        break;
+                    }
+
+                    if (track is InstrumentDifficulty<GuitarNote> fiveLaneKeysTrack)
+                    {
+                        // Apply Five-Lane Keys modifiers
+                        if (IsModifierActive(Modifier.RangeCompress))
+                        {
+                            fiveLaneKeysTrack.CompressGuitarRange();
+                        }
+                        break;
+                    }
+
+                    else
+                    {
+                        throw new InvalidOperationException("Cannot apply keys modifiers to non-keys and non-guitar " +
+                            $"track with notes of {typeof(TNote)}!");
+                    }
                 case GameMode.Vocals:
-                    throw new InvalidOperationException("For vocals, use ApplyVocalModifiers instead!");
-            }
+                            throw new InvalidOperationException("For vocals, use ApplyVocalModifiers instead!");
+                        }
         }
 
         public void ApplyVocalModifiers(VocalsPart vocalsPart)
@@ -298,6 +322,8 @@ namespace YARG.Core.Game
             writer.Write(SplitProTomsAndCymbals);
             writer.Write(SwapSnareAndHiHat);
             writer.Write(SwapCrashAndRide);
+
+            writer.Write((byte) GameMode);
         }
     }
 }
