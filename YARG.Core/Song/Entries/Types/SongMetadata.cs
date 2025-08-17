@@ -1,4 +1,5 @@
-﻿using YARG.Core.IO.Ini;
+﻿using System;
+using YARG.Core.IO.Ini;
 
 namespace YARG.Core.Song
 {
@@ -73,6 +74,7 @@ namespace YARG.Core.Song
             SongOffset = 0,
             Preview = (-1, -1),
             Video = (0, -1),
+            VocalScrollSpeedScalingFactor = null,
         };
 
         public string Name;
@@ -134,6 +136,8 @@ namespace YARG.Core.Song
         public string CharterProKeys;
         public string CharterProGuitar;
         public string CharterVocals;
+
+        public float? VocalScrollSpeedScalingFactor;
 
         public static SongMetadata CreateFromIni(IniModifierCollection modifiers)
         {
@@ -447,6 +451,12 @@ namespace YARG.Core.Song
             if (modifiers.Extract("link_bandcamp", out string linkBandcamp))
             {
                 metadata.LinkBandcamp = linkBandcamp;
+            }
+
+            if (modifiers.Extract("vocal_scroll_speed", out short vocalScrollSpeed))
+            {
+                // INI vocal scroll speed is interpreted as a percentage
+                metadata.VocalScrollSpeedScalingFactor = vocalScrollSpeed / 100f;
             }
         }
     }
