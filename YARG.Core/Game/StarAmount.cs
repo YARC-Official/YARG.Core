@@ -1,6 +1,6 @@
 namespace YARG.Core.Game
 {
-    public enum StarAmount : byte
+    public enum StarAmount : sbyte
     {
         None = 0,
 
@@ -12,10 +12,13 @@ namespace YARG.Core.Game
 
         StarGold,
         StarSilver,
-        StarBrutal
+        StarBrutal,
+
+        NoPart = -1
     }
 
-    public static class StarAmountHelper {
+    public static class StarAmountHelper
+    {
         public static StarAmount GetStarsFromInt(int stars)
         {
             return stars switch
@@ -30,8 +33,39 @@ namespace YARG.Core.Game
         {
             return starAmount switch
             {
-                <= StarAmount.Star5 => (int) starAmount,
+                <= StarAmount.Star5 => (int)starAmount,
                 _                   => 5,
+            };
+        }
+
+        public static int GetSortWeight(this StarAmount stars)
+        {
+            return stars switch
+            {
+                StarAmount.StarGold => 6,
+                StarAmount.Star5    => 5,
+                StarAmount.Star4    => 4,
+                StarAmount.Star3    => 3,
+                StarAmount.Star2    => 2,
+                StarAmount.Star1    => 1,
+                StarAmount.None     => 0,
+                StarAmount.NoPart   => -1
+            };
+        }
+
+        public static string GetDisplayName(this StarAmount stars)
+        {
+            return stars switch
+            {
+                StarAmount.StarGold => "Gold Stars",
+                StarAmount.Star5    => "5 Stars",
+                StarAmount.Star4    => "4 Stars",
+                StarAmount.Star3    => "3 Stars",
+                StarAmount.Star2    => "2 Stars",
+                StarAmount.Star1    => "1 Star",
+                StarAmount.None     => "UNPLAYED SONGS",
+                StarAmount.NoPart   => "NO PART",
+                _                   => "Other"
             };
         }
     }
