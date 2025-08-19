@@ -70,8 +70,26 @@ namespace YARG.Core.Game
             public Color WhiteNote = Color.White;
             public Color BlackNote = Color.Black;
 
-            public Color WhiteNoteStarPower = CircularStarpower;
-            public Color BlackNoteStarPower = CircularStarpower;
+            public Color WhiteNoteStarPower = Color.FromArgb(0xFF, 0xFF, 0xF2, 0xAA); // #FFF2AA
+            public Color BlackNoteStarPower = Color.FromArgb(0xFF, 0xAA, 0x8F, 0x00); // #AA8F00
+
+            #endregion
+
+            #region Metal
+
+            public Color Metal          = DefaultMetal;
+            public Color MetalStarPower = DefaultMetalStarPower;
+
+            public Color GetMetalColor(bool isForStarPower)
+            {
+                return isForStarPower ? MetalStarPower : Metal;
+            }
+
+            #endregion
+
+            #region Miss Effect
+
+            public Color Miss = DefaultMiss;
 
             #endregion
 
