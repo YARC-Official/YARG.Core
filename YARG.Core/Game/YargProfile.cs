@@ -163,6 +163,9 @@ namespace YARG.Core.Game
             if (version >= 5)
             {
                 GameMode = (GameMode) stream.ReadByte();
+            } else
+            {
+                GameMode = CurrentInstrument.ToNativeGameMode();
             }
         }
 
