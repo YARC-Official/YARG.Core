@@ -1,0 +1,266 @@
+{
+  "version": 3,
+  "targets": {
+    ".NETStandard,Version=v2.1": {
+      "Melanchall.DryWetMidi.Nativeless/7.0.0": {
+        "type": "package",
+        "compile": {
+          "lib/netstandard2.0/Melanchall.DryWetMidi.dll": {
+            "related": ".xml"
+          }
+        },
+        "runtime": {
+          "lib/netstandard2.0/Melanchall.DryWetMidi.dll": {
+            "related": ".xml"
+          }
+        }
+      },
+      "Newtonsoft.Json/13.0.3": {
+        "type": "package",
+        "compile": {
+          "lib/netstandard2.0/Newtonsoft.Json.dll": {
+            "related": ".xml"
+          }
+        },
+        "runtime": {
+          "lib/netstandard2.0/Newtonsoft.Json.dll": {
+            "related": ".xml"
+          }
+        }
+      },
+      "PolySharp/1.13.2": {
+        "type": "package",
+        "build": {
+          "buildTransitive/PolySharp.targets": {}
+        }
+      },
+      "System.Runtime.CompilerServices.Unsafe/6.0.0": {
+        "type": "package",
+        "compile": {
+          "lib/netstandard2.0/System.Runtime.CompilerServices.Unsafe.dll": {
+            "related": ".xml"
+          }
+        },
+        "runtime": {
+          "lib/netstandard2.0/System.Runtime.CompilerServices.Unsafe.dll": {
+            "related": ".xml"
+          }
+        }
+      },
+      "ZString/2.5.1": {
+        "type": "package",
+        "dependencies": {
+          "System.Runtime.CompilerServices.Unsafe": "6.0.0"
+        },
+        "compile": {
+          "lib/netstandard2.1/ZString.dll": {
+            "related": ".xml"
+          }
+        },
+        "runtime": {
+          "lib/netstandard2.1/ZString.dll": {
+            "related": ".xml"
+          }
+        }
+      }
+    }
+  },
+  "libraries": {
+    "Melanchall.DryWetMidi.Nativeless/7.0.0": {
+      "sha512": "85PE2K7X/4gHKfQOlAN32qNesYEoyBDSFHc+8O7s2q6fqgwSOipDveZI8D3cvtkVEKg/JfIadObEJHwTMvMuog==",
+      "type": "package",
+      "path": "melanchall.drywetmidi.nativeless/7.0.0",
+      "files": [
+        ".nupkg.metadata",
+        ".signature.p7s",
+        "icon-nativeless.png",
+        "lib/net45/Melanchall.DryWetMidi.dll",
+        "lib/net45/Melanchall.DryWetMidi.xml",
+        "lib/netstandard2.0/Melanchall.DryWetMidi.dll",
+        "lib/netstandard2.0/Melanchall.DryWetMidi.xml",
+        "melanchall.drywetmidi.nativeless.7.0.0.nupkg.sha512",
+        "melanchall.drywetmidi.nativeless.nuspec"
+      ]
+    },
+    "Newtonsoft.Json/13.0.3": {
+      "sha512": "HrC5BXdl00IP9zeV+0Z848QWPAoCr9P3bDEZguI+gkLcBKAOxix/tLEAAHC+UvDNPv4a2d18lOReHMOagPa+zQ==",
+      "type": "package",
+      "path": "newtonsoft.json/13.0.3",
+      "files": [
+        ".nupkg.metadata",
+        ".signature.p7s",
+        "LICENSE.md",
+        "README.md",
+        "lib/net20/Newtonsoft.Json.dll",
+        "lib/net20/Newtonsoft.Json.xml",
+        "lib/net35/Newtonsoft.Json.dll",
+        "lib/net35/Newtonsoft.Json.xml",
+        "lib/net40/Newtonsoft.Json.dll",
+        "lib/net40/Newtonsoft.Json.xml",
+        "lib/net45/Newtonsoft.Json.dll",
+        "lib/net45/Newtonsoft.Json.xml",
+        "lib/net6.0/Newtonsoft.Json.dll",
+        "lib/net6.0/Newtonsoft.Json.xml",
+        "lib/netstandard1.0/Newtonsoft.Json.dll",
+        "lib/netstandard1.0/Newtonsoft.Json.xml",
+        "lib/netstandard1.3/Newtonsoft.Json.dll",
+        "lib/netstandard1.3/Newtonsoft.Json.xml",
+        "lib/netstandard2.0/Newtonsoft.Json.dll",
+        "lib/netstandard2.0/Newtonsoft.Json.xml",
+        "newtonsoft.json.13.0.3.nupkg.sha512",
+        "newtonsoft.json.nuspec",
+        "packageIcon.png"
+      ]
+    },
+    "PolySharp/1.13.2": {
+      "sha512": "XwNhfkr7IeUiH8AE4pzob8YioxfL6nxgAx+fHEeWCObY/NZuBMfWLh39FznXbneKvagiqeeI7quIvZ6P1eVaEA==",
+      "type": "package",
+      "path": "polysharp/1.13.2",
+      "files": [
+        ".nupkg.metadata",
+        ".signature.p7s",
+        "README.md",
+        "analyzers/dotnet/cs/PolySharp.SourceGenerators.dll",
+        "build/PolySharp.targets",
+        "buildTransitive/PolySharp.targets",
+        "icon.png",
+        "polysharp.1.13.2.nupkg.sha512",
+        "polysharp.nuspec"
+      ]
+    },
+    "System.Runtime.CompilerServices.Unsafe/6.0.0": {
+      "sha512": "/iUeP3tq1S0XdNNoMz5C9twLSrM/TH+qElHkXWaPvuNOt+99G75NrV0OS2EqHx5wMN7popYjpc8oTjC1y16DLg==",
+      "type": "package",
+      "path": "system.runtime.compilerservices.unsafe/6.0.0",
+      "files": [
+        ".nupkg.metadata",
+        ".signature.p7s",
+        "Icon.png",
+        "LICENSE.TXT",
+        "THIRD-PARTY-NOTICES.TXT",
+        "buildTransitive/netcoreapp2.0/System.Runtime.CompilerServices.Unsafe.targets",
+        "buildTransitive/netcoreapp3.1/_._",
+        "lib/net461/System.Runtime.CompilerServices.Unsafe.dll",
+        "lib/net461/System.Runtime.CompilerServices.Unsafe.xml",
+        "lib/net6.0/System.Runtime.CompilerServices.Unsafe.dll",
+        "lib/net6.0/System.Runtime.CompilerServices.Unsafe.xml",
+        "lib/netcoreapp3.1/System.Runtime.CompilerServices.Unsafe.dll",
+        "lib/netcoreapp3.1/System.Runtime.CompilerServices.Unsafe.xml",
+        "lib/netstandard2.0/System.Runtime.CompilerServices.Unsafe.dll",
+        "lib/netstandard2.0/System.Runtime.CompilerServices.Unsafe.xml",
+        "system.runtime.compilerservices.unsafe.6.0.0.nupkg.sha512",
+        "system.runtime.compilerservices.unsafe.nuspec",
+        "useSharedDesignerContext.txt"
+      ]
+    },
+    "ZString/2.5.1": {
+      "sha512": "hHZnrIZAgda8j9n2gR4M7GbETcjr6EBo4CUnMtK8o2MgkgzARg+Y7XI142nNOpRRuup1LJb12/gd/tMhzwdw8g==",
+      "type": "package",
+      "path": "zstring/2.5.1",
+      "files": [
+        ".nupkg.metadata",
+        ".signature.p7s",
+        "Icon.png",
+        "lib/net6.0/ZString.dll",
+        "lib/net6.0/ZString.xml",
+        "lib/net7.0/ZString.dll",
+        "lib/net7.0/ZString.xml",
+        "lib/netstandard2.0/ZString.dll",
+        "lib/netstandard2.0/ZString.xml",
+        "lib/netstandard2.1/ZString.dll",
+        "lib/netstandard2.1/ZString.xml",
+        "zstring.2.5.1.nupkg.sha512",
+        "zstring.nuspec"
+      ]
+    }
+  },
+  "projectFileDependencyGroups": {
+    ".NETStandard,Version=v2.1": [
+      "Melanchall.DryWetMidi.Nativeless >= 7.0.0",
+      "Newtonsoft.Json >= 13.0.3",
+      "PolySharp >= 1.13.2",
+      "System.Runtime.CompilerServices.Unsafe >= 6.0.0",
+      "ZString >= 2.5.1"
+    ]
+  },
+  "packageFolders": {
+    "/Users/justinhung/.nuget/packages/": {}
+  },
+  "project": {
+    "version": "1.0.0",
+    "restore": {
+      "projectUniqueName": "/Users/justinhung/Documents/GitHub/YARG/YARG.Core/YARG.Core/YARG.Core.csproj",
+      "projectName": "YARG.Core",
+      "projectPath": "/Users/justinhung/Documents/GitHub/YARG/YARG.Core/YARG.Core/YARG.Core.csproj",
+      "packagesPath": "/Users/justinhung/.nuget/packages/",
+      "outputPath": "/Users/justinhung/Documents/GitHub/YARG/YARG.Core/YARG.Core/obj/",
+      "projectStyle": "PackageReference",
+      "configFilePaths": [
+        "/Users/justinhung/.nuget/NuGet/NuGet.Config"
+      ],
+      "originalTargetFrameworks": [
+        "netstandard2.1"
+      ],
+      "sources": {
+        "https://api.nuget.org/v3/index.json": {}
+      },
+      "frameworks": {
+        "netstandard2.1": {
+          "targetAlias": "netstandard2.1",
+          "projectReferences": {}
+        }
+      },
+      "warningProperties": {
+        "warnAsError": [
+          "NU1605"
+        ]
+      }
+    },
+    "frameworks": {
+      "netstandard2.1": {
+        "targetAlias": "netstandard2.1",
+        "dependencies": {
+          "Melanchall.DryWetMidi.Nativeless": {
+            "target": "Package",
+            "version": "[7.0.0, )"
+          },
+          "Newtonsoft.Json": {
+            "target": "Package",
+            "version": "[13.0.3, )"
+          },
+          "PolySharp": {
+            "include": "Runtime, Build, Native, ContentFiles, Analyzers, BuildTransitive",
+            "suppressParent": "All",
+            "target": "Package",
+            "version": "[1.13.2, )"
+          },
+          "System.Runtime.CompilerServices.Unsafe": {
+            "target": "Package",
+            "version": "[6.0.0, )"
+          },
+          "ZString": {
+            "target": "Package",
+            "version": "[2.5.1, )"
+          }
+        },
+        "imports": [
+          "net461",
+          "net462",
+          "net47",
+          "net471",
+          "net472",
+          "net48",
+          "net481"
+        ],
+        "assetTargetFallback": true,
+        "warn": true,
+        "frameworkReferences": {
+          "NETStandard.Library": {
+            "privateAssets": "all"
+          }
+        },
+        "runtimeIdentifierGraphPath": "/opt/homebrew/Cellar/dotnet/8.0.4/libexec/sdk/8.0.104/RuntimeIdentifierGraph.json"
+      }
+    }
+  }
+}

@@ -1,4 +1,5 @@
-﻿using System.Drawing;
+﻿using System;
+using System.Drawing;
 using System.IO;
 using YARG.Core.Extensions;
 using YARG.Core.Utility;
@@ -146,7 +147,33 @@ namespace YARG.Core.Game
                 };
             }
 
-            public Color ActivationNote = DefaultPurple;
+            public Color KickActivationNote = DefaultPurpleActivationNote;
+
+            public Color RedActivationNote    = DefaultRedActivationNote;
+            public Color YellowActivationNote = DefaultYellowActivationNote;
+            public Color BlueActivationNote   = DefaultBlueActivationNote;
+            public Color OrangeActivationNote = DefaultOrangeActivationNote;
+            public Color GreenActivationNote  = DefaultGreenActivationNote;
+
+            /// <summary>
+            /// Gets the activation note color for a specific note index.
+            /// 0 = kick note, 1 = red drum, 5 = green drum.
+            /// </summary>
+            public Color GetActivationNoteColor(int index)
+            {
+                return index switch
+                {
+                    0 => KickActivationNote,
+
+                    1 => RedActivationNote,
+                    2 => YellowActivationNote,
+                    3 => BlueActivationNote,
+                    4 => OrangeActivationNote,
+                    5 => GreenActivationNote,
+
+                    _ => default
+                };
+            }
 
             #endregion
 
@@ -213,7 +240,16 @@ namespace YARG.Core.Game
                 writer.Write(OrangeStarpower);
                 writer.Write(GreenStarpower);
 
-                writer.Write(ActivationNote);
+                writer.Write(KickActivationNote);
+
+                writer.Write(RedActivationNote);
+                writer.Write(YellowActivationNote);
+                writer.Write(BlueActivationNote);
+                writer.Write(OrangeActivationNote);
+                writer.Write(GreenActivationNote);
+
+                writer.Write(Metal);
+                writer.Write(MetalStarPower);
             }
 
             public void Deserialize(BinaryReader reader, int version = 0)
@@ -253,7 +289,16 @@ namespace YARG.Core.Game
                 OrangeStarpower = reader.ReadColor();
                 GreenStarpower = reader.ReadColor();
 
-                ActivationNote = reader.ReadColor();
+                KickActivationNote = reader.ReadColor();
+
+                RedActivationNote = reader.ReadColor();
+                YellowActivationNote = reader.ReadColor();
+                BlueActivationNote = reader.ReadColor();
+                OrangeActivationNote = reader.ReadColor();
+                GreenActivationNote = reader.ReadColor();
+
+                Metal = reader.ReadColor();
+                MetalStarPower = reader.ReadColor();
             }
 
             #endregion

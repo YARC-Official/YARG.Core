@@ -1,0 +1,85 @@
+{
+  "format": 1,
+  "restore": {
+    "/Users/justinhung/Documents/GitHub/YARG/YARG.Core/YARG.Core/YARG.Core.csproj": {}
+  },
+  "projects": {
+    "/Users/justinhung/Documents/GitHub/YARG/YARG.Core/YARG.Core/YARG.Core.csproj": {
+      "version": "1.0.0",
+      "restore": {
+        "projectUniqueName": "/Users/justinhung/Documents/GitHub/YARG/YARG.Core/YARG.Core/YARG.Core.csproj",
+        "projectName": "YARG.Core",
+        "projectPath": "/Users/justinhung/Documents/GitHub/YARG/YARG.Core/YARG.Core/YARG.Core.csproj",
+        "packagesPath": "/Users/justinhung/.nuget/packages/",
+        "outputPath": "/Users/justinhung/Documents/GitHub/YARG/YARG.Core/YARG.Core/obj/",
+        "projectStyle": "PackageReference",
+        "configFilePaths": [
+          "/Users/justinhung/.nuget/NuGet/NuGet.Config"
+        ],
+        "originalTargetFrameworks": [
+          "netstandard2.1"
+        ],
+        "sources": {
+          "https://api.nuget.org/v3/index.json": {}
+        },
+        "frameworks": {
+          "netstandard2.1": {
+            "targetAlias": "netstandard2.1",
+            "projectReferences": {}
+          }
+        },
+        "warningProperties": {
+          "warnAsError": [
+            "NU1605"
+          ]
+        }
+      },
+      "frameworks": {
+        "netstandard2.1": {
+          "targetAlias": "netstandard2.1",
+          "dependencies": {
+            "Melanchall.DryWetMidi.Nativeless": {
+              "target": "Package",
+              "version": "[7.0.0, )"
+            },
+            "Newtonsoft.Json": {
+              "target": "Package",
+              "version": "[13.0.3, )"
+            },
+            "PolySharp": {
+              "include": "Runtime, Build, Native, ContentFiles, Analyzers, BuildTransitive",
+              "suppressParent": "All",
+              "target": "Package",
+              "version": "[1.13.2, )"
+            },
+            "System.Runtime.CompilerServices.Unsafe": {
+              "target": "Package",
+              "version": "[6.0.0, )"
+            },
+            "ZString": {
+              "target": "Package",
+              "version": "[2.5.1, )"
+            }
+          },
+          "imports": [
+            "net461",
+            "net462",
+            "net47",
+            "net471",
+            "net472",
+            "net48",
+            "net481"
+          ],
+          "assetTargetFallback": true,
+          "warn": true,
+          "frameworkReferences": {
+            "NETStandard.Library": {
+              "privateAssets": "all"
+            }
+          },
+          "runtimeIdentifierGraphPath": "/opt/homebrew/Cellar/dotnet/8.0.4/libexec/sdk/8.0.104/RuntimeIdentifierGraph.json"
+        }
+      }
+    }
+  }
+}
