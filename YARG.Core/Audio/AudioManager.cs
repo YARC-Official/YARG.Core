@@ -14,6 +14,7 @@ namespace YARG.Core.Audio
 
         protected internal readonly SampleChannel[]     SfxSamples     = new SampleChannel[AudioHelpers.SfxPaths.Count];
         protected internal readonly DrumSampleChannel[] DrumSfxSamples = new DrumSampleChannel[AudioHelpers.DrumSfxPaths.Count];
+        protected internal readonly VoxSampleChannel[]  VoxSamples     = new VoxSampleChannel[AudioHelpers.VoxSamplePaths.Count];
         protected internal int PlaybackLatency;
         protected internal int MinimumBufferLength;
         protected internal int MaximumBufferLength;

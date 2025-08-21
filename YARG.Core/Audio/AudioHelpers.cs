@@ -295,5 +295,33 @@ namespace YARG.Core.Audio
                 _              => DrumSfxSample.Vel0Pad0Smp0,
             };
         }
+
+        public static readonly IList<string> VoxSamplePaths = new[]
+        {
+            "FullCombo",
+            "Times2",
+            "Times3",
+            "Times4",
+            "Times5",
+            "Times6",
+            "TimesMany",
+            "FullBandFullCombo"
+        };
+
+        public static VoxSample GetVoxSampleFromName(string name)
+        {
+            return name switch
+            {
+                "FullCombo" => VoxSample.FullCombo,
+                "Times2" => VoxSample.Times2,
+                "Times3" => VoxSample.Times3,
+                "Times4" => VoxSample.Times4,
+                "Times5" => VoxSample.Times5,
+                "Times6" => VoxSample.Times6,
+                "TimesMany" => VoxSample.TimesMany,
+                "FullBandFullCombo" => VoxSample.FullBandFullCombo,
+                _ => VoxSample.FullCombo,
+            };
+        }
     }
 }

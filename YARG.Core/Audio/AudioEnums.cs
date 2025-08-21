@@ -19,7 +19,8 @@
         Drums3,
         Drums4,
         Crowd,
-        Preview
+        Preview,
+        VoxSample,
     }
 
     public enum SfxSample
@@ -112,6 +113,18 @@
         Vel2Pad7Smp0,
         Vel2Pad7Smp1,
         Vel2Pad7Smp2
+    }
+
+    public enum VoxSample
+    {
+        FullCombo,
+        Times2,
+        Times3,
+        Times4,
+        Times5,
+        Times6,
+        TimesMany,
+        FullBandFullCombo
     }
 
     public enum DSPType
