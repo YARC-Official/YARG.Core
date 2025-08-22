@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using MoonscraperChartEditor.Song;
@@ -380,9 +380,10 @@ namespace YARG.Core.Chart
             uint tickLength = moonPhrase.length;
 
             var phraseFlags = GetVocalsPhraseFlags(moonPhrase, phrasetracker);
+            var isPercussionPhrase = IsPhrasePercussion(notes);
 
             // Convert to MoonPhrase into a vocal note phrase
-            var phraseNote = new VocalNote(phraseFlags, time, timeLength, tick, tickLength);
+            var phraseNote = new VocalNote(phraseFlags, isPercussionPhrase, time, timeLength, tick, tickLength);
             foreach (var note in notes)
             {
                 phraseNote.AddChildNote(note);
@@ -404,6 +405,18 @@ namespace YARG.Core.Chart
             }
 
             return phraseFlags;
+        }
+
+        private bool IsPhrasePercussion(List<VocalNote> notes)
+        {
+            // Empty phrases can still be treated as vocal phrases; it doesn't really matter
+            // Mixing percussion and non-percussion in a single phrase is garbage data, so we only need to check the first note
+            if (notes.Count == 0 || !notes[0].IsPercussion)
+            {
+                return false;
+            }
+
+            return true;
         }
     }
 }
