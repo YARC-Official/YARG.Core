@@ -305,7 +305,8 @@ namespace YARG.Core.Audio
             "Times5",
             "Times6",
             "TimesMany",
-            "FullBandFullCombo"
+            "FullBandFullCombo",
+            "HighScore"
         };
 
         public static VoxSample GetVoxSampleFromName(string name)
@@ -320,6 +321,7 @@ namespace YARG.Core.Audio
                 "Times6" => VoxSample.Times6,
                 "TimesMany" => VoxSample.TimesMany,
                 "FullBandFullCombo" => VoxSample.FullBandFullCombo,
+                "HighScore" => VoxSample.HighScore,
                 _ => VoxSample.FullCombo,
             };
         }
