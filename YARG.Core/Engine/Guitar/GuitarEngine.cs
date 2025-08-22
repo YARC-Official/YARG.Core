@@ -204,10 +204,17 @@ namespace YARG.Core.Engine.Guitar
             // Detect if the last note(s) were skipped
             bool skipped = SkipPreviousNotes(note);
 
-            if (note.IsStarPower && note.IsStarPowerEnd)
+            if (note.IsStarPower)
             {
-                AwardStarPower(note);
-                EngineStats.StarPowerPhrasesHit++;
+                if (EngineStats.IsStarPowerActive && EngineParameters.NoStarPowerOverlap)
+                {
+                    StripStarPower(note);
+                }
+                else if (note.IsStarPowerEnd)
+                {
+                    AwardStarPower(note);
+                    EngineStats.StarPowerPhrasesHit++;
+                }
             }
 
             if (note.IsSoloStart)
