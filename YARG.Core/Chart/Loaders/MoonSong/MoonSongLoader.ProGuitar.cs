@@ -8,7 +8,7 @@ namespace YARG.Core.Chart
     {
         public InstrumentTrack<ProGuitarNote> LoadProGuitarTrack(Instrument instrument)
         {
-            if (instrument.ToGameMode() != GameMode.ProGuitar)
+            if (instrument.ToNativeGameMode() != GameMode.ProGuitar)
                 throw new ArgumentException($"Instrument {instrument} is not a Pro guitar instrument!", nameof(instrument));
 
             var difficulties = new Dictionary<Difficulty, InstrumentDifficulty<ProGuitarNote>>()
