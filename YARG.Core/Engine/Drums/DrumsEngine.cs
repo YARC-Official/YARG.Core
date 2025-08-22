@@ -136,8 +136,7 @@ namespace YARG.Core.Engine.Drums
                 EndSolo();
             }
 
-            if (!activationAutoHit && note.IsStarPowerActivator && CanStarPowerActivate &&
-                note.ParentOrSelf.WasFullyHit())
+            if (!activationAutoHit && note.IsStarPowerActivator && CanStarPowerActivate && IsActivationComplete(note))
             {
                 ActivateStarPower();
             }
@@ -158,6 +157,20 @@ namespace YARG.Core.Engine.Drums
             }
 
             base.HitNote(note);
+        }
+
+        // Check if all activation notes in the note chord have been hit
+        private static bool IsActivationComplete(DrumNote drumNote)
+        {
+            foreach (var note in drumNote.ParentOrSelf.AllNotes)
+            {
+                if (note.IsStarPowerActivator && !note.WasHit)
+                {
+                    return false;
+                }
+            }
+
+            return true;
         }
 
         protected bool ApplyVelocity(DrumNote hitNote)
