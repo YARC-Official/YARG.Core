@@ -169,6 +169,10 @@ namespace YARG.Core.Game
             {
                 StarPowerActivationType = (StarPowerActivationType) stream.ReadByte();
             }
+            else
+            {
+                StarPowerActivationType = StarPowerActivationType.RightmostNote;
+            }
         }
 
         public void AddSingleModifier(Modifier modifier)
