@@ -1,0 +1,8 @@
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+
+  <PropertyGroup>
+    <!-- Redirect build artifacts to a folder that Unity will ignore -->
+    <ArtifactsPath>$(MSBuildProjectDirectory)/.artifacts</ArtifactsPath>
+  </PropertyGroup>
+
+</Project>

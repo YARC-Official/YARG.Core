@@ -1,0 +1,4 @@
+# Don't ignore default artifact folders, as they cause duplicate assembly conflicts in Unity.
+# These are moved to the .artifacts folder, which is ignored and does not conflict.
+!/[Bb]in/
+!/[Oo]bj/

@@ -16,16 +16,19 @@ namespace YARG.Core.Replays
         private readonly Dictionary<Guid, CameraPreset> _cameraPresets;
         public readonly ReplayFrame[] Frames;
 
+        public readonly double[] FrameTimes;
+
         public int PlayerCount => Frames.Length;
 
-        public ReplayData(Dictionary<Guid, ColorProfile> colors, Dictionary<Guid, CameraPreset> cameras, ReplayFrame[] frames)
+        public ReplayData(Dictionary<Guid, ColorProfile> colors, Dictionary<Guid, CameraPreset> cameras, ReplayFrame[] frames, double[] frameTimes)
         {
             _colorProfiles = colors;
             _cameraPresets = cameras;
             Frames = frames;
+            FrameTimes = frameTimes;
         }
 
-        public ReplayData(FixedArrayStream stream, int version)
+        public ReplayData(FixedArrayStream stream, int version, ReplayReadOptions readOptions)
         {
             int _ = stream.Read<int>(Endianness.Little);
             _colorProfiles = DeserializeDict<ColorProfile>(ref stream);
@@ -36,6 +39,23 @@ namespace YARG.Core.Replays
             for (int i = 0; i != count; i++)
             {
                 Frames[i] = new ReplayFrame(ref stream, version);
+            }
+
+            int frameCount = stream.Read<int>(Endianness.Little);
+            var frameTimes = new double[frameCount];
+
+            for (int i = 0; i < frameCount; i++)
+            {
+                frameTimes[i] = stream.Read<double>(Endianness.Little);
+            }
+
+            if (readOptions.KeepFrameTimes)
+            {
+                FrameTimes = frameTimes;
+            }
+            else
+            {
+                FrameTimes = Array.Empty<double>();
             }
         }
 
@@ -54,6 +74,13 @@ namespace YARG.Core.Replays
             {
                 frame.Serialize(writer);
             }
+
+            writer.Write(FrameTimes.Length);
+            foreach (var time in FrameTimes)
+            {
+                writer.Write(time);
+            }
+
             return new ReadOnlySpan<byte>(stream.GetBuffer(), 0, (int) stream.Length);
         }
 

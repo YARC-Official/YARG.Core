@@ -1,6 +1,7 @@
 ﻿// Copyright (c) 2016-2020 Alexander Ong
 // See LICENSE in project root for license information.
 
+using System;
 using System.Collections.Generic;
 
 namespace MoonscraperChartEditor.Song
@@ -319,6 +320,40 @@ namespace MoonscraperChartEditor.Song
 
             list.Insert(pos, item);
             return pos;
+        }
+
+        /// <summary>
+        /// Adds the item to the end of the list,
+        /// replacing any equivalent items on the same tick with the new one.
+        /// </summary>
+        public static void AddToEnd<T>(T item, List<T> list) where T : MoonObject
+        {
+            // Nothing to do if no events yet
+            if (list.Count < 1)
+            {
+                list.Add(item);
+                return;
+            }
+
+            // Disallow out-of-order additions
+            if (item.tick < list[^1].tick)
+                throw new InvalidOperationException($"Can't add out-of-order event! Last tick: {list[^1].tick}, event being added: {item.tick}");
+
+            // Check for equivalent events to replace
+            for (int i = list.Count - 1; i >= 0; i--)
+            {
+                if (list[i].tick < item.tick)
+                    break;
+
+                if (item.InsertionEquals(list[^1]))
+                {
+                    list[^1] = item;
+                    return;
+                }
+            }
+
+            // No equivalent events, add as a new event
+            list.Add(item);
         }
 
         /// <summary>

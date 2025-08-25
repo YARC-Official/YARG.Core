@@ -283,6 +283,66 @@ namespace YARG.Core.Song
             };
         }
 
+        /// <summary>
+        /// Checks that song has the given difficulties for a given instrument
+        /// </summary>
+        /// <param name="instrument">Instrument</param>
+        /// <param name="difficulty">DifficultyMask</param>
+        /// <returns>bool</returns>
+        public bool HasDifficultyForInstrument(Instrument instrument, DifficultyMask difficulty)
+        {
+            PartValues? part = instrument switch
+            {
+                Instrument.FiveFretGuitar     => _parts.FiveFretGuitar,
+                Instrument.FiveFretBass       => _parts.FiveFretBass,
+                Instrument.FiveFretRhythm     => _parts.FiveFretRhythm,
+                Instrument.FiveFretCoopGuitar => _parts.FiveFretCoopGuitar,
+                Instrument.Keys               => _parts.Keys,
+
+                Instrument.SixFretGuitar     => _parts.SixFretGuitar,
+                Instrument.SixFretBass       => _parts.SixFretBass,
+                Instrument.SixFretRhythm     => _parts.SixFretRhythm,
+                Instrument.SixFretCoopGuitar => _parts.SixFretCoopGuitar,
+
+                Instrument.FourLaneDrums => _parts.FourLaneDrums,
+                Instrument.FiveLaneDrums => _parts.FiveLaneDrums,
+                Instrument.ProDrums      => _parts.ProDrums,
+
+                Instrument.EliteDrums => _parts.EliteDrums,
+
+                Instrument.ProGuitar_17Fret => _parts.ProGuitar_17Fret,
+                Instrument.ProGuitar_22Fret => _parts.ProGuitar_22Fret,
+                Instrument.ProBass_17Fret   => _parts.ProBass_17Fret,
+                Instrument.ProBass_22Fret   => _parts.ProBass_22Fret,
+
+                Instrument.ProKeys => _parts.ProKeys,
+
+                Instrument.Vocals  => _parts.LeadVocals,
+                Instrument.Harmony => _parts.HarmonyVocals,
+                Instrument.Band    => _parts.BandDifficulty,
+                _ => null
+            };
+
+            return part.HasValue && (difficulty & part.Value.Difficulties) == difficulty;
+        }
+
+        public bool HasDifficultyForInstrument(Instrument instrument, Difficulty difficulty)
+        {
+            return HasDifficultyForInstrument(instrument, difficulty.ToDifficultyMask());
+        }
+
+        /// <summary>
+        /// Checks that song has the full set of EMHX difficulties for a given instrument
+        /// </summary>
+        /// <param name="instrument">Instrument</param>
+        /// <returns>bool</returns>
+        public bool HasEmhxDifficultiesForInstrument(Instrument instrument)
+        {
+            var mask = Difficulty.Easy.ToDifficultyMask() | Difficulty.Medium.ToDifficultyMask() |
+                Difficulty.Hard.ToDifficultyMask() | Difficulty.Expert.ToDifficultyMask();
+            return HasDifficultyForInstrument(instrument, mask);
+        }
+
         internal void MarkAsDuplicate() { _isDuplicate = true; }
 
         internal virtual void Serialize(MemoryStream stream, CacheWriteIndices node)

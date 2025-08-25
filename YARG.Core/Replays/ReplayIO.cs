@@ -19,15 +19,20 @@ namespace YARG.Core.Replays
         FileNotFound,
     }
 
+    public struct ReplayReadOptions
+    {
+        public bool KeepFrameTimes;
+    }
+
     public static class ReplayIO
     {
         private static readonly EightCC REPLAY_MAGIC_HEADER_OLD = new('Y', 'A', 'R', 'G', 'P', 'L', 'A', 'Y');
         private static readonly EightCC REPLAY_MAGIC_HEADER = new('Y', 'A', 'R', 'E', 'P', 'L', 'A', 'Y');
 
-        private static readonly (int OLD_MIN, int METADATA_MIN, int DATA_MIN, int CURRENT) REPLAY_VERSIONS = (4, 6, 7, 7);
-        private const int ENGINE_VERSION = 2;
+        private static readonly (int OLD_MIN, int METADATA_MIN, int DATA_MIN, int CURRENT) REPLAY_VERSIONS = (4, 6, 8, 8);
+        private const int ENGINE_VERSION = 3;
 
-        public static (ReplayReadResult Result, ReplayInfo Info, ReplayData Data) TryDeserialize(string path)
+        public static (ReplayReadResult Result, ReplayInfo Info, ReplayData Data) TryDeserialize(string path, ReplayReadOptions replayOptions)
         {
             try
             {
@@ -73,7 +78,7 @@ namespace YARG.Core.Replays
                     return (ReplayReadResult.Corrupted, null!, null!);
                 }
 
-                var replayData = new ReplayData(data.ToValueStream(), info.ReplayVersion);
+                var replayData = new ReplayData(data.ToValueStream(), info.ReplayVersion, replayOptions);
                 return (ReplayReadResult.Valid, info, replayData);
             }
             catch (Exception ex)
@@ -141,7 +146,7 @@ namespace YARG.Core.Replays
             }
         }
 
-        public static (ReplayReadResult Result, ReplayData Data) TryLoadData(ReplayInfo info)
+        public static (ReplayReadResult Result, ReplayData Data) TryLoadData(ReplayInfo info, ReplayReadOptions readOptions)
         {
             try
             {
@@ -200,7 +205,7 @@ namespace YARG.Core.Replays
                     return (ReplayReadResult.Corrupted, null!);
                 }
 
-                var replayData = new ReplayData(data.ToValueStream(), info.ReplayVersion);
+                var replayData = new ReplayData(data.ToValueStream(), info.ReplayVersion, readOptions);
                 return (ReplayReadResult.Valid, replayData);
             }
             catch (Exception ex)

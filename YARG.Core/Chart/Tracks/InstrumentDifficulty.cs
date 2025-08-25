@@ -75,10 +75,16 @@ namespace YARG.Core.Chart
             double totalEndTime = 0;
 
             totalEndTime = Math.Max(Notes.GetEndTime(), totalEndTime);
+
             totalEndTime = Math.Max(Phrases.GetEndTime(), totalEndTime);
             totalEndTime = Math.Max(TextEvents.GetEndTime(), totalEndTime);
 
             return totalEndTime;
+        }
+
+        public double GetLastNoteEndTime()
+        {
+            return Notes.GetEndTime();
         }
 
         public uint GetFirstTick()

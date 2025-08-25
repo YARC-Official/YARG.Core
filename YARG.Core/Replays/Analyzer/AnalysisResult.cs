@@ -1,5 +1,4 @@
-﻿using System.Collections.Generic;
-using YARG.Core.Engine;
+﻿using YARG.Core.Engine;
 
 namespace YARG.Core.Replays.Analyzer
 {
@@ -13,5 +12,7 @@ namespace YARG.Core.Replays.Analyzer
         public BaseStats ResultStats;
 
         public int ScoreDifference;
+
+        public string StatLog;
     }
 }

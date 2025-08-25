@@ -16,10 +16,6 @@ namespace YARG.Core.Engine
         // SP draining is done based on measures
         protected const int STAR_POWER_MAX_MEASURES = 8;
 
-        // Max number of beats that it takes to fill SP when gaining
-        // SP gain from whammying is done based on beats
-        protected const int STAR_POWER_MAX_BEATS = (STAR_POWER_MAX_MEASURES * 4) - 2; // - 2 for leniency
-
         // Beat fraction to use for the sustain burst threshold
         protected const int SUSTAIN_BURST_FRACTION = 4;
 
@@ -29,13 +25,13 @@ namespace YARG.Core.Engine
         public delegate void ComboResetEvent();
         public delegate void ComboIncrementEvent(int amount);
 
+        public delegate void UnisonBonusAwardedEvent();
         public StarPowerStatusEvent? OnStarPowerStatus;
         public SoloStartEvent?       OnSoloStart;
         public SoloEndEvent?         OnSoloEnd;
         public ComboResetEvent?      OnComboReset;
         public ComboIncrementEvent?  OnComboIncrement;
-
-        public bool IsInputQueued => InputQueue.Count > 0;
+        public UnisonBonusAwardedEvent? OnUnisonBonusAwarded;
 
         public bool CanStarPowerActivate => BaseStats.StarPowerTickAmount >= TicksPerHalfSpBar;
 
@@ -48,8 +44,6 @@ namespace YARG.Core.Engine
 
         protected readonly SyncTrack SyncTrack;
 
-        protected readonly uint Resolution;
-
         public readonly uint TicksPerQuarterSpBar;
         public readonly uint TicksPerHalfSpBar;
         public readonly uint TicksPerFullSpBar;
@@ -60,11 +54,7 @@ namespace YARG.Core.Engine
 
         protected readonly Queue<GameInput> InputQueue = new();
 
-        protected readonly List<SyncTrackChange> SyncTrackChanges = new();
-
         private readonly List<EngineFrameUpdate> _scheduledUpdates = new();
-
-        private readonly List<double> _starPowerTempoTsTicks = new();
 
         public int NoteIndex { get; protected set; }
 
@@ -75,6 +65,7 @@ namespace YARG.Core.Engine
 
         public uint CurrentTick { get; protected set; }
         public uint LastTick { get; protected set; }
+        public uint FirstWhammyTick { get; protected set; }
 
         public int CurrentSoloIndex { get; protected set; }
         public int CurrentStarIndex { get; protected set; }
@@ -87,9 +78,19 @@ namespace YARG.Core.Engine
 
         protected EngineTimer StarPowerWhammyTimer;
 
-        public uint LastStarPowerWhammyTick { get; protected set; }
+        /// <summary>
+        /// A Star Power Sustain was active in the last update.
+        /// </summary>
+        protected bool WasSpSustainActive;
 
+        /// <summary>
+        /// The current Star Power position, in measure ticks.
+        /// </summary>
         public uint StarPowerTickPosition { get; protected set; }
+
+        /// <summary>
+        /// The previous Star Power position, in measure ticks.
+        /// </summary>
         public uint PreviousStarPowerTickPosition { get; protected set; }
 
         public uint StarPowerTickActivationPosition { get; protected set; }
@@ -97,6 +98,8 @@ namespace YARG.Core.Engine
 
         public double StarPowerActivationTime { get; protected set; }
         public double StarPowerEndTime { get; protected set; }
+
+        public double BaseTimeInStarPower { get; protected set; }
 
         public readonly struct EngineFrameUpdate
         {
@@ -121,75 +124,16 @@ namespace YARG.Core.Engine
 
         protected readonly bool IsBot;
 
-        protected int CurrentSyncIndex;
-
-        protected int NextSyncIndex => CurrentSyncIndex + 1;
-
-        protected SyncTrackChange CurrentSyncTrackState => SyncTrackChanges[CurrentSyncIndex];
-
         protected BaseEngine(SyncTrack syncTrack, bool isChordSeparate, bool isBot)
         {
             SyncTrack = syncTrack;
-            Resolution = syncTrack.Resolution;
 
-            TicksPerQuarterSpBar = (uint) Math.Round((double) STAR_POWER_MAX_BEATS / 4 * syncTrack.Resolution);
+            TicksPerQuarterSpBar = SyncTrack.MeasureResolution * 2;
             TicksPerHalfSpBar = TicksPerQuarterSpBar * 2;
             TicksPerFullSpBar = TicksPerQuarterSpBar * 4;
 
             TreatChordAsSeparate = isChordSeparate;
             IsBot = isBot;
-
-            int tsIndex = 0;
-            int changeIndex = 0;
-            for (int i = 0; i < syncTrack.Tempos.Count; i++)
-            {
-                var tempo = syncTrack.Tempos[i];
-                var timeSignature = syncTrack.TimeSignatures[tsIndex];
-
-                SyncTrackChanges.Add(new SyncTrackChange(changeIndex, tempo, timeSignature, tempo.Time, tempo.Tick));
-                changeIndex++;
-
-                uint nextTempoTick = i + 1 < syncTrack.Tempos.Count ? syncTrack.Tempos[i + 1].Tick : uint.MaxValue;
-                for (int nextTsIndex = tsIndex + 1; nextTsIndex < syncTrack.TimeSignatures.Count; nextTsIndex++)
-                {
-                    var nextTs = syncTrack.TimeSignatures[nextTsIndex];
-                    if (nextTs.Tick >= nextTempoTick)
-                    {
-                        break;
-                    }
-
-                    if (nextTs.Tick == tempo.Tick)
-                    {
-                        SyncTrackChanges[^1].TimeSignature = nextTs;
-                    }
-                    else
-                    {
-                        SyncTrackChanges.Add(new SyncTrackChange(changeIndex, tempo, nextTs, nextTs.Time,
-                            nextTs.Tick));
-                        changeIndex++;
-                    }
-
-                    tsIndex = nextTsIndex;
-                }
-            }
-
-            _starPowerTempoTsTicks.Add(0);
-            for (int i = 1; i < SyncTrackChanges.Count; i++)
-            {
-                var change = SyncTrackChanges[i];
-                var prevChange = SyncTrackChanges[i - 1];
-
-                double deltaTime = change.Time - prevChange.Time;
-
-                var tempo = syncTrack.Tempos.LowerBoundElement(change.Tick - 1);
-                var ts = syncTrack.TimeSignatures.LowerBoundElement(change.Tick - 1);
-
-                // Calculate the number of star power ticks that occur during this tempo
-                var starPowerTicks = GetStarPowerDrainPeriodToTicks(deltaTime, tempo!, ts!);
-                _starPowerTempoTsTicks.Add(_starPowerTempoTsTicks[^1] + starPowerTicks);
-            }
-
-            CurrentSyncIndex = 0;
         }
 
         public EngineTimer GetStarPowerWhammyTimer() => StarPowerWhammyTimer;
@@ -306,8 +250,8 @@ namespace YARG.Core.Engine
                 // There should be no scheduled updates for times beyond the one we want to update to
                 if (updateTime >= time)
                 {
-                    YargLogger.FailFormat("Update time is >= than the given time! Update time: {0}, given time: {1}",
-                        updateTime, time);
+                    YargLogger.FailFormat("Update time is >= than the given time! Update time: {0} ({1}), given time: {2}",
+                        updateTime, _scheduledUpdates[0].Reason, time);
                     break;
                 }
 
@@ -340,14 +284,7 @@ namespace YARG.Core.Engine
             YargLogger.LogFormatTrace("Generating queued updates up to {0}", nextTime);
             var previousTime = CurrentTime;
 
-            if (BaseStats.IsStarPowerActive)
-            {
-                if (IsTimeBetween(StarPowerEndTime, previousTime, nextTime))
-                {
-                    YargLogger.LogFormatDebug("Queuing Star Power End Time at {0}", StarPowerEndTime);
-                    QueueUpdateTime(StarPowerEndTime, "SP End Time");
-                }
-            }
+
         }
 
         protected abstract void UpdateTimeVariables(double time);
@@ -422,6 +359,9 @@ namespace YARG.Core.Engine
             {
                 ReRunHitLogic = false;
                 UpdateTimeVariables(time);
+
+                UpdateStarPower();
+
                 UpdateHitLogic(time);
             } while (ReRunHitLogic);
         }
@@ -465,6 +405,8 @@ namespace YARG.Core.Engine
             {
                 BaseStats.ScoreMultiplier *= 2;
             }
+
+            RebaseSustains(CurrentTick);
         }
 
         public double GetStarPowerBarAmount()
@@ -482,18 +424,17 @@ namespace YARG.Core.Engine
             StarPowerActivationTime = CurrentTime;
             StarPowerTickActivationPosition = StarPowerTickPosition;
 
-            StarPowerTickEndPosition = StarPowerTickActivationPosition + BaseStats.StarPowerTickAmount;
-            StarPowerEndTime = GetStarPowerDrainTickToTime(StarPowerTickEndPosition, CurrentSyncTrackState);
+            UpdateStarPowerEnds();
 
             BaseStats.StarPowerActivationCount++;
 
             YargLogger.LogFormatTrace("Activated at SP tick {0}, ends at SP tick {1}. Start time: {2}, End time: {3}",
                 StarPowerTickActivationPosition, StarPowerTickEndPosition, StarPowerActivationTime, StarPowerEndTime);
 
-            RebaseProgressValues(CurrentTick);
             BaseStats.IsStarPowerActive = true;
 
             UpdateMultiplier();
+
             OnStarPowerStatus?.Invoke(true);
         }
 
@@ -501,12 +442,18 @@ namespace YARG.Core.Engine
         {
             YargLogger.LogFormatTrace("Star Power ended at {0} (tick: {1})", CurrentTime,
                 StarPowerTickPosition);
-            BaseStats.IsStarPowerActive = false;
-            BaseStats.TimeInStarPower += CurrentTime - StarPowerActivationTime;
 
-            RebaseProgressValues(CurrentTick);
+            BaseStats.IsStarPowerActive = false;
+
+            double roundedTime = SyncTrack.TickToTime(SyncTrack.TimeToTick(CurrentTime));
+            double roundedActivationTime = SyncTrack.TickToTime(SyncTrack.TimeToTick(StarPowerActivationTime));
+            double spTimeDelta = roundedTime - roundedActivationTime;
+            BaseStats.TimeInStarPower = spTimeDelta + BaseTimeInStarPower;
+
+            BaseTimeInStarPower = BaseStats.TimeInStarPower;
 
             UpdateMultiplier();
+
             OnStarPowerStatus?.Invoke(false);
         }
 
@@ -522,182 +469,35 @@ namespace YARG.Core.Engine
             }
 
             // Add the amount of ticks gained to the total ticks gained
-            BaseStats.TotalStarPowerTicks += BaseStats.StarPowerTickAmount - prevTicks;
+            BaseStats.TotalStarPowerTicks += ticks;
+            YargLogger.LogFormatTrace("Earned {0} ticks of SP at SP tick position {1}, current: {2}, new total: {3}", BaseStats.StarPowerTickAmount - prevTicks,
+                StarPowerTickPosition, BaseStats.StarPowerTickAmount, BaseStats.TotalStarPowerTicks);
             BaseStats.TotalStarPowerBarsFilled = (double) BaseStats.TotalStarPowerTicks / TicksPerFullSpBar;
 
             if (BaseStats.IsStarPowerActive)
             {
-                StarPowerTickEndPosition = StarPowerTickPosition + BaseStats.StarPowerTickAmount;
-                StarPowerEndTime = GetStarPowerDrainTickToTime(StarPowerTickEndPosition, CurrentSyncTrackState);
+                UpdateStarPowerEnds();
                 YargLogger.LogFormatTrace("New end tick and time: {0}, {1}", StarPowerTickEndPosition, StarPowerEndTime);
             }
-
-            RebaseProgressValues(CurrentTick);
         }
 
-        protected void DrainStarPower(uint starPowerTicks)
+        protected void UpdateStarPowerEnds()
         {
-            int newAmount = (int) BaseStats.StarPowerTickAmount - (int) starPowerTicks;
+            uint lastEndTick = StarPowerTickEndPosition;
+            double lastEndTime = StarPowerEndTime;
 
-            if (newAmount <= 0)
-            {
-                newAmount = 0;
-            }
+            StarPowerTickEndPosition = StarPowerTickPosition + BaseStats.StarPowerTickAmount;
+            StarPowerEndTime = SyncTrack.MeasureTickToTime(StarPowerTickEndPosition);
 
-            BaseStats.StarPowerTickAmount = (uint) newAmount;
+            YargLogger.LogFormatTrace(
+                "Updated Star Power end from {0} ({1}) to {2} ({3})",
+                lastEndTime, lastEndTick, StarPowerEndTime, StarPowerTickEndPosition
+            );
         }
 
-        protected virtual void UpdateStarPower()
-        {
-            PreviousStarPowerTickPosition = StarPowerTickPosition;
-            StarPowerTickPosition = GetStarPowerDrainTimeToTicks(CurrentTime, CurrentSyncTrackState);
+        protected abstract void UpdateStarPower();
 
-            if (BaseStats.IsStarPowerActive)
-            {
-                DrainStarPower(StarPowerTickPosition - PreviousStarPowerTickPosition);
-
-                if (BaseStats.StarPowerTickAmount <= 0)
-                {
-                    ReleaseStarPower();
-                }
-            }
-
-            if (IsStarPowerInputActive && CanStarPowerActivate)
-            {
-                ActivateStarPower();
-            }
-        }
-
-        /// <summary>
-        /// Calculates the drain to gain ratio for Star Power for a given <see cref="TimeSignatureChange"/>
-        /// </summary>
-        /// <param name="timeSignature"></param>
-        /// <returns></returns>
-        /// <remarks>
-        /// The drain factor notes how much longer a game tick lasts during Star Power drain. If there are 192 game ticks
-        /// and the drain factor was 1.6, then the Star Power drain would be 192/1.6 = 120 game ticks. This is the number of
-        /// Star Power ticks that would be drained during the 192 game ticks.
-        /// </remarks>
-        private double GetStarPowerDrainFactor(TimeSignatureChange timeSignature)
-        {
-            var standardDrain = 4.0 / timeSignature.Denominator * timeSignature.Numerator * STAR_POWER_MAX_MEASURES;
-
-            return standardDrain / STAR_POWER_MAX_BEATS;
-        }
-
-        /// <summary>
-        /// Calculates the number of Star Power ticks that occur during a given period of time.
-        /// </summary>
-        /// <param name="period">Time period in seconds</param>
-        /// <param name="tempo">Tempo to drain at</param>
-        /// <param name="timeSignature">Time Signature to drain at</param>
-        /// <returns></returns>
-        private double GetStarPowerDrainPeriodToTicks(double period, TempoChange tempo,
-            TimeSignatureChange timeSignature)
-        {
-            var drainFactor = GetStarPowerDrainFactor(timeSignature);
-
-            // Amount of time in between each chart tick.
-            var timePerTick = (double) tempo.SecondsPerBeat / Resolution;
-
-            // Amount of time in between each star power tick during star power.
-            var timePerStarPowerTick = timePerTick * drainFactor;
-
-            var starPowerTicksInPeriod = period / timePerStarPowerTick;
-
-            return starPowerTicksInPeriod;
-        }
-
-        private double GetStarPowerDrainTicksToPeriod(double ticks, TempoChange tempo, TimeSignatureChange timeSignature)
-        {
-            var drainFactor = GetStarPowerDrainFactor(timeSignature);
-
-            // Amount of time in between each chart tick.
-            var timePerTick = (double) tempo.SecondsPerBeat / Resolution;
-
-            // Amount of time in between each star power tick during star power.
-            var timePerStarPowerTick = timePerTick * drainFactor;
-
-            // Inverse of PeriodToTicks
-            var period = ticks * timePerStarPowerTick;
-
-            return period;
-        }
-
-        private uint GetStarPowerDrainTimeToTicks(double time, SyncTrackChange change)
-        {
-            var tempo = change.Tempo;
-            var ts = change.TimeSignature;
-
-            // If the result is just truncated first, it can sometimes end up with the result rounding down when
-            // it's extremely close to the next tick (i.e 1 bit off). This can cause it to be off by a whole tick.
-
-            // Ticks can only go up to 2^32, which double can handle precisely to 6 decimal places.
-            // This is why the result is rounded to 6 decimal places, then truncated to an integer.
-            return (uint) Math.Round(GetStarPowerDrainPeriodToTicks(time - change.Time, tempo, ts) +
-                _starPowerTempoTsTicks[change.Index], 6);
-        }
-
-        private double GetStarPowerDrainTickToTime(uint starPowerTick, SyncTrackChange currentSync)
-        {
-            // var change = SyncTrackChanges.GetPrevious(starPowerTick)!;
-            // var tempo = change.Tempo;
-            // var ts = change.TimeSignature;
-            //
-            // var offset = GetStarPowerDrainTicksToPeriod(starPowerTick - _starPowerTempoTsTicks[change.Index], tempo, ts);
-            //
-            // return change.Time + offset;
-
-            var syncSpTick = _starPowerTempoTsTicks[currentSync.Index];
-
-            int high = _starPowerTempoTsTicks.Count - 1;
-            int low = 0;
-            if (starPowerTick < syncSpTick)
-            {
-                high = currentSync.Index;
-            }
-            else if (starPowerTick > syncSpTick)
-            {
-                low = currentSync.Index;
-            }
-
-            while (low < high)
-            {
-                int mid = (low + high) / 2;
-                if (_starPowerTempoTsTicks[mid] < starPowerTick)
-                {
-                    low = mid + 1;
-                }
-                else
-                {
-                    high = mid;
-                }
-            }
-
-            // Get the change that the star power tick is in
-            if (low < _starPowerTempoTsTicks.Count - 1)
-            {
-                low--;
-            }
-
-            var change = SyncTrackChanges[low];
-            var tempo = change.Tempo;
-            var ts = change.TimeSignature;
-
-            var offset = GetStarPowerDrainTicksToPeriod(starPowerTick - _starPowerTempoTsTicks[change.Index], tempo, ts);
-
-            return change.Time + offset;
-        }
-
-        protected virtual void RebaseProgressValues(uint baseTick)
-        {
-
-        }
-
-        protected virtual void UpdateProgressValues(uint tick)
-        {
-
-        }
+        protected abstract void RebaseSustains(uint baseTick);
 
         public abstract void AllowStarPower(bool isAllowed);
 
@@ -766,6 +566,12 @@ namespace YARG.Core.Engine
         {
             BaseStats.Combo = 0;
             OnComboReset?.Invoke();
+        }
+
+        public void AwardUnisonBonus()
+        {
+            GainStarPower(TicksPerQuarterSpBar);
+            OnUnisonBonusAwarded?.Invoke();
         }
     }
 }

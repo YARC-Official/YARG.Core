@@ -41,14 +41,14 @@ namespace MoonscraperChartEditor.Song
         {
             syncTrack = new(resolution);
             syncTrack.Tempos.Add(new TempoChange(120, 0, 0));
-            syncTrack.TimeSignatures.Add(new TimeSignatureChange(4, 4, 0, 0));
+            syncTrack.TimeSignatures.Add(new TimeSignatureChange(4, 4, 0, 0, 0, 0, 0, 0));
 
             // Chart initialisation
             charts = new MoonChart[EnumExtensions<MoonInstrument>.Count * EnumExtensions<Difficulty>.Count];
             for (int i = 0; i < charts.Length; ++i)
             {
                 var instrument = (MoonInstrument)(i / EnumExtensions<Difficulty>.Count);
-                charts[i] = new MoonChart(this, instrument);
+                charts[i] = new MoonChart(instrument);
             }
         }
 
@@ -126,32 +126,129 @@ namespace MoonscraperChartEditor.Song
             }
         }
 
+        public void AddTempo(double bpm, uint tick)
+        {
+            double time = 0;
+            if (tick > 0)
+            {
+                var previousTempo = syncTrack.Tempos[^1];
+                time = TickToTime(tick, previousTempo);
+            }
+
+            var tempo = new TempoChange(bpm, time, tick);
+            AddSyncEvent(syncTrack.Tempos, tempo);
+        }
+
+        public void AddTimeSignature(uint numerator, uint denominator, uint tick)
+        {
+            double time = 0;
+            uint measureTick = 0;
+            uint measureCount = 0;
+            uint denominatorBeatCount = 0;
+            double quarterNoteCount = 0;
+
+            if (tick > 0)
+            {
+                var previousTempo = syncTrack.Tempos[^1];
+                time = TickToTime(tick, previousTempo);
+
+                var previousTimesig = syncTrack.TimeSignatures[^1];
+
+                denominatorBeatCount = previousTimesig.DenominatorBeatCount + (uint) Math.Round(previousTimesig.GetDenominatorBeatProgress(tick, syncTrack.Resolution));
+                quarterNoteCount = previousTimesig.QuarterNoteCount + previousTimesig.GetQuarterNoteProgress(tick, syncTrack.Resolution);
+
+                // Misaligned time signatures need to be handled specially
+                uint ticksPerMeasure = previousTimesig.GetTicksPerMeasure(syncTrack.Resolution);
+                uint tickDelta = tick - previousTimesig.Tick;
+                uint extraTicks = tickDelta % ticksPerMeasure;
+                if (extraTicks > 0)
+                {
+                    // Insert a new time signature at the start of the final measure for this
+                    // time signature, marked as interrupted so that measure tick conversions
+                    // know to handle it specially
+                    uint newTick = tick - extraTicks;
+                    uint newMeasureTick = previousTimesig.QuarterTickToMeasureTick(newTick, syncTrack.Resolution);
+                    // Note: the new tick value may be behind the current tempo, if one occurs
+                    // between this interstitial time signature and the real one being added,
+                    // so we do not pass in the latest tempo for this calculation
+                    double newTime = TickToTime(newTick);
+
+                    uint newMeasureCount = previousTimesig.MeasureCount + (uint) Math.Round(previousTimesig.GetMeasureProgress(newTick, syncTrack.Resolution));
+                    uint newDenominatorBeatCount = previousTimesig.DenominatorBeatCount + (uint) Math.Round(previousTimesig.GetDenominatorBeatProgress(newTick, syncTrack.Resolution));
+                    double newQuarterNoteCount = previousTimesig.QuarterNoteCount + previousTimesig.GetQuarterNoteProgress(newTick, syncTrack.Resolution);
+
+                    previousTimesig = new TimeSignatureChange(
+                        previousTimesig.Numerator,
+                        previousTimesig.Denominator,
+
+                        newTime,
+                        newTick,
+                        newMeasureTick,
+
+                        newMeasureCount,
+                        newDenominatorBeatCount,
+                        newQuarterNoteCount,
+
+                        interrupted: true
+                    );
+                    AddSyncEvent(syncTrack.TimeSignatures, previousTimesig);
+
+                    measureTick = newMeasureTick + syncTrack.MeasureResolution;
+                    measureCount = newMeasureCount + 1;
+                }
+                else
+                {
+                    measureTick = previousTimesig.QuarterTickToMeasureTick(tick, syncTrack.Resolution);
+                    measureCount = previousTimesig.MeasureCount + (uint) Math.Round(previousTimesig.GetMeasureProgress(tick, syncTrack.Resolution));
+                }
+            }
+
+            var timeSig = new TimeSignatureChange(
+                numerator,
+                denominator,
+
+                time,
+                tick,
+                measureTick,
+
+                measureCount,
+                denominatorBeatCount,
+                quarterNoteCount
+            );
+            AddSyncEvent(syncTrack.TimeSignatures, timeSig);
+        }
+
         public void Add(Beatline beat)
         {
             AddSyncEvent(syncTrack.Beatlines, beat);
         }
 
-        public void Add(TimeSignatureChange timeSig)
+        public void AddText(MoonText ev)
         {
-            AddSyncEvent(syncTrack.TimeSignatures, timeSig);
-        }
-
-        public void Add(TempoChange bpm)
-        {
-            AddSyncEvent(syncTrack.Tempos, bpm);
-        }
-
-        public void Add(MoonText ev)
-        {
-            MoonObjectHelper.Insert(ev, events);
+            MoonObjectHelper.AddToEnd(ev, events);
         }
 
         public void AddSection(MoonText section)
         {
-            MoonObjectHelper.Insert(section, sections);
+            MoonObjectHelper.AddToEnd(section, sections);
         }
 
         public void Add(MoonVenue venueEvent)
+        {
+            MoonObjectHelper.AddToEnd(venueEvent, venue);
+        }
+
+        public void InsertText(MoonText ev)
+        {
+            MoonObjectHelper.Insert(ev, events);
+        }
+
+        public void InsertSection(MoonText section)
+        {
+            MoonObjectHelper.Insert(section, sections);
+        }
+
+        public void Insert(MoonVenue venueEvent)
         {
             MoonObjectHelper.Insert(venueEvent, venue);
         }
@@ -171,9 +268,9 @@ namespace MoonscraperChartEditor.Song
             return MoonObjectHelper.Remove(venueEvent, venue);
         }
 
-        public float ResolutionScaleRatio(uint targetResoltion)
+        public double ResolutionScaleRatio(uint targetResoltion)
         {
-            return (float)targetResoltion / resolution;
+            return (double)targetResoltion / resolution;
         }
 
         public static MoonChart.GameMode InstrumentToChartGameMode(MoonInstrument instrument)

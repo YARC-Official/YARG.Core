@@ -22,6 +22,10 @@ namespace YARG.Core.Engine.ProKeys.Engines
 
         protected override void MutateStateWithInput(GameInput gameInput)
         {
+            // These should always be null before inputs are processed
+            YargLogger.Assert(KeyHitThisUpdate == null, "KeyHitThisUpdate was not handled!");
+            YargLogger.Assert(KeyReleasedThisUpdate == null, "KeyReleasedThisUpdate was not handled!");
+
             var action = gameInput.GetAction<ProKeysAction>();
 
             if (action is ProKeysAction.StarPower)
@@ -30,19 +34,19 @@ namespace YARG.Core.Engine.ProKeys.Engines
             }
             else if (action is ProKeysAction.TouchEffects)
             {
-                StarPowerWhammyTimer.Start(gameInput.Time);
+                StartWhammyTimer(gameInput.Time);
             }
             else
             {
                 if (gameInput.Button)
                 {
-                    KeyHit = (int) action;
+                    KeyHitThisUpdate = (int) action;
                     _keyPressedTimes[(int) action].NoteIndex = NoteIndex;
                     _keyPressedTimes[(int) action].Time = gameInput.Time;
                 }
                 else
                 {
-                    KeyReleased = (int) action;
+                    KeyReleasedThisUpdate = (int) action;
                 }
 
                 PreviousKeyMask = KeyMask;
@@ -55,25 +59,25 @@ namespace YARG.Core.Engine.ProKeys.Engines
 
         protected override void UpdateHitLogic(double time)
         {
-            UpdateStarPower();
-
             // Update bot (will return if not enabled)
             UpdateBot(time);
 
             if (FatFingerTimer.IsActive)
             {
                 // Fat Fingered key was released before the timer expired
-                if (KeyReleased == FatFingerKey && !FatFingerTimer.IsExpired(CurrentTime))
+                if (KeyReleasedThisUpdate == FatFingerKey && !FatFingerTimer.IsExpired(CurrentTime))
                 {
                     YargLogger.LogFormatTrace("Released fat fingered key at {0}. Note was hit: {1}", CurrentTime, FatFingerNote!.WasHit);
 
                     // The note must be hit to disable the timer
                     if (FatFingerNote!.WasHit)
                     {
-                        YargLogger.LogDebug("Disabling fat finger timer as the note has been hit.");
-                        FatFingerTimer.Disable();
+                        YargLogger.LogTrace("Disabling fat finger timer as the note has been hit. Fat Finger was Ignored.");
+                        FatFingerTimer.Disable(time, early: true);
                         FatFingerKey = null;
                         FatFingerNote = null;
+
+                        EngineStats.FatFingersIgnored++;
                     }
                 }
                 else if(FatFingerTimer.IsExpired(CurrentTime))
@@ -84,30 +88,34 @@ namespace YARG.Core.Engine.ProKeys.Engines
 
                     var isHoldingWrongKey = (KeyMask & fatFingerKeyMask) == fatFingerKeyMask;
 
-                    // Overhit if key is still held OR if key is not held but note was not hit either
-                    if (isHoldingWrongKey || (!isHoldingWrongKey && !FatFingerNote!.WasHit))
+                    // Overhit if key is still held OR note was not hit
+                    if (isHoldingWrongKey || !FatFingerNote!.WasHit)
                     {
                         YargLogger.LogFormatTrace("Overhit due to fat finger with key {0}. KeyMask: {1}. Holding: {2}. WasHit: {3}",
                             FatFingerKey, KeyMask, isHoldingWrongKey, FatFingerNote!.WasHit);
                         Overhit(FatFingerKey!.Value);
                     }
+                    else
+                    {
+                        EngineStats.FatFingersIgnored++;
+                        YargLogger.LogFormatTrace("Fat finger was ignored. KeyMask: {0}. Holding: {1}. WasHit: {2}",
+                            KeyMask, isHoldingWrongKey, FatFingerNote!.WasHit);
+                    }
 
-                    FatFingerTimer.Disable();
+                    FatFingerTimer.Disable(time);
                     FatFingerKey = null;
                     FatFingerNote = null;
                 }
             }
 
-            // Quit early if there are no notes left
-            if (NoteIndex >= Notes.Count)
+            // Only check note logic if note index is within bounds
+            if (NoteIndex < Notes.Count)
             {
-                KeyHit = null;
-                KeyReleased = null;
-                UpdateSustains();
-                return;
+                CheckForNoteHit();
             }
 
-            CheckForNoteHit();
+            KeyHitThisUpdate = null;
+            KeyReleasedThisUpdate = null;
             UpdateSustains();
         }
 
@@ -142,7 +150,7 @@ namespace YARG.Core.Engine.ProKeys.Engines
                         HitNote(childNote);
                     }
 
-                    KeyHit = null;
+                    KeyHitThisUpdate = null;
                 }
                 else
                 {
@@ -169,14 +177,14 @@ namespace YARG.Core.Engine.ProKeys.Engines
                                 }
                             }
 
-                            ChordStaggerTimer.Disable();
+                            ChordStaggerTimer.Disable(CurrentTime);
                         }
                         else
                         {
                             foreach (var note in parentNote.AllNotes)
                             {
                                 // Go to next note if the key hit does not match the note's key
-                                if (KeyHit != note.Key)
+                                if (KeyHitThisUpdate != note.Key)
                                 {
                                     continue;
                                 }
@@ -203,7 +211,7 @@ namespace YARG.Core.Engine.ProKeys.Engines
                                     }
                                 }
 
-                                KeyHit = null;
+                                KeyHitThisUpdate = null;
                                 break;
                             }
                         }
@@ -212,7 +220,7 @@ namespace YARG.Core.Engine.ProKeys.Engines
             }
 
             // If no note was hit but the user hit a key, then over hit
-            if (KeyHit != null)
+            if (KeyHitThisUpdate != null)
             {
                 static ProKeysNote? CheckForAdjacency(ProKeysNote fullNote, int key)
                 {
@@ -238,7 +246,7 @@ namespace YARG.Core.Engine.ProKeys.Engines
                 if (parentNote.PreviousNote is not null
                     && CurrentTime - parentNote.PreviousNote.Time < FatFingerTimer.SpeedAdjustedThreshold)
                 {
-                    adjacentNote = CheckForAdjacency(parentNote.PreviousNote, KeyHit.Value);
+                    adjacentNote = CheckForAdjacency(parentNote.PreviousNote, KeyHitThisUpdate.Value);
                     isAdjacent = adjacentNote != null;
                     inWindow = IsNoteInWindow(parentNote.PreviousNote, out _);
 
@@ -246,7 +254,7 @@ namespace YARG.Core.Engine.ProKeys.Engines
                 // Try to fat finger current note (upcoming note)
                 else
                 {
-                    adjacentNote = CheckForAdjacency(parentNote, KeyHit.Value);
+                    adjacentNote = CheckForAdjacency(parentNote, KeyHitThisUpdate.Value);
                     isAdjacent = adjacentNote != null;
                     inWindow = IsNoteInWindow(parentNote, out _);
                 }
@@ -255,18 +263,18 @@ namespace YARG.Core.Engine.ProKeys.Engines
 
                 if (!inWindow || !isAdjacent || isFatFingerActive)
                 {
-                    Overhit(KeyHit.Value);
+                    Overhit(KeyHitThisUpdate.Value);
 
                     // TODO Maybe don't disable the timer/use a flag saying no more fat fingers allowed for the current note.
 
-                    FatFingerTimer.Disable();
+                    FatFingerTimer.Disable(CurrentTime);
                     FatFingerKey = null;
                     FatFingerNote = null;
                 }
                 else
                 {
                     StartTimer(ref FatFingerTimer, CurrentTime);
-                    FatFingerKey = KeyHit.Value;
+                    FatFingerKey = KeyHitThisUpdate.Value;
 
                     FatFingerNote = adjacentNote;
 
@@ -274,7 +282,7 @@ namespace YARG.Core.Engine.ProKeys.Engines
                         FatFingerTimer.EndTime, FatFingerKey);
                 }
 
-                KeyHit = null;
+                KeyHitThisUpdate = null;
             }
         }
 
@@ -338,6 +346,8 @@ namespace YARG.Core.Engine.ProKeys.Engines
             {
                 return;
             }
+
+            IsStarPowerInputActive = CanStarPowerActivate && !IsStarPowerInputActive;
 
             if (NoteIndex < Notes.Count)
             {
@@ -429,7 +439,7 @@ namespace YARG.Core.Engine.ProKeys.Engines
                 return;
             }
 
-            if (time < note.Time)
+            if (time < note!.Time)
             {
                 // It isn't time to press another key yet
                 return;
