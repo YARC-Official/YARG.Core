@@ -286,16 +286,9 @@ namespace YARG.Core.Chart
 
         private DrumNoteFlags GetDrumNoteFlags(MoonNote moonNote, Dictionary<MoonPhrase.Type, MoonPhrase> currentPhrases)
         {
-            var flags = DrumNoteFlags.None;
-
-            // SP activator
-            if (currentPhrases.TryGetValue(MoonPhrase.Type.ProDrums_Activation, out var activationPhrase) &&
-                IsNoteClosestToEndOfPhrase(_moonSong, moonNote, activationPhrase))
-            {
-                flags |= DrumNoteFlags.StarPowerActivator;
-            }
-
-            return flags;
+            // Can be populated later if additional note flags are added
+            // Activation note marking is done within DrumsPlayer
+            return DrumNoteFlags.None;
         }
     }
 }
