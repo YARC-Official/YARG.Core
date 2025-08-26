@@ -308,6 +308,9 @@ namespace MoonscraperChartEditor.Song
                 case MoonInstrument.Harmony3:
                     return MoonChart.GameMode.Vocals;
 
+                case MoonInstrument.EliteDrums:
+                    return MoonChart.GameMode.EliteDrums;
+
                 default:
                     throw new NotImplementedException($"Unhandled instrument {instrument}!");
             }
@@ -342,6 +345,7 @@ namespace MoonscraperChartEditor.Song
             Harmony1,
             Harmony2,
             Harmony3,
+            EliteDrums,
         }
 
         public enum AudioInstrument

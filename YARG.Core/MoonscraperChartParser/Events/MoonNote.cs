@@ -51,6 +51,20 @@ namespace MoonscraperChartEditor.Song
             Purple
         }
 
+        public enum EliteDrumPad
+        {
+            HatPedal,
+            Kick,
+            Snare,
+            HiHat,
+            LeftCrash,
+            Tom1,
+            Tom2,
+            Tom3,
+            Ride,
+            RightCrash,
+        }
+
         private const int PRO_GUITAR_FRET_OFFSET = 0;
         private const int PRO_GUITAR_FRET_MASK = 0x1F << PRO_GUITAR_FRET_OFFSET;
         private const int PRO_GUITAR_STRING_OFFSET = 5;
@@ -91,6 +105,21 @@ namespace MoonscraperChartEditor.Song
 
             // Vocals
             Vocals_Percussion = 1 << 9,
+
+            // Elite Drums
+            EliteDrums_Flam = 1 << 10,
+            EliteDrums_ForcedIndifferent = 1 << 11, // Open is the default hat state; weird internally, but very convenient for charting
+            EliteDrums_ForcedClosed = 1 << 12,
+            EliteDrums_Splash = 1 << 13,
+            EliteDrums_InvisibleTerminator = 1 << 14,
+            EliteDrums_StrictHatState = 1 << 15,
+            EliteDrums_ChannelFlagRed = 1 << 16,
+            EliteDrums_ChannelFlagYellow = 1 << 17,
+            EliteDrums_ChannelFlagBlue = 1 << 18,
+            EliteDrums_ChannelFlagGreen = 1 << 19,
+            EliteDrums_Sizzle = 1 << 20, // Reserved, not MVP
+            EliteDrums_RimBell = 1 << 21, // Reserved, not MVP
+            EliteDrums_Choke = 1 << 22, // Reserved, not MVP
         }
 
         public uint length;
@@ -124,6 +153,12 @@ namespace MoonscraperChartEditor.Song
         {
             get => (ProGuitarString)((rawNote & PRO_GUITAR_STRING_MASK) >> PRO_GUITAR_STRING_OFFSET);
             set => rawNote = MakeProGuitarRawNote(value, proGuitarFret);
+        }
+
+        public EliteDrumPad eliteDrumPad
+        {
+            get => (EliteDrumPad)rawNote;
+            set => rawNote = (int)value;
         }
 
         public int proKeysKey
