@@ -6,7 +6,7 @@ using StrumMapType = YARG.Core.Chart.Events.StrumMap.StrumMapType;
 
 namespace YARG.Core.Chart
 {
-    public class AnimationLookup
+    public static class AnimationLookup
     {
         public enum Type
         {
@@ -145,6 +145,61 @@ namespace YARG.Core.Chart
             { STRUM_MAP_DEFAULT, StrumMapType.Default },
             { STRUM_MAP_PICK, StrumMapType.Pick },
             { STRUM_MAP_SLAP, StrumMapType.SlapBass },
+        };
+
+        public static readonly Dictionary<string, AnimationEvent.AnimationType> DrumAnimationLookup = new()
+        {
+            { DRUM_KICK, AnimationEvent.AnimationType.Kick },
+            { DRUM_HIHAT_OPEN, AnimationEvent.AnimationType.OpenHiHat },
+            { DRUM_SNARE_LH_HARD, AnimationEvent.AnimationType.SnareLhHard },
+            { DRUM_SNARE_LH_SOFT, AnimationEvent.AnimationType.SnareLhSoft },
+            { DRUM_SNARE_RH_HARD, AnimationEvent.AnimationType.SnareRhHard },
+            { DRUM_SNARE_RH_SOFT, AnimationEvent.AnimationType.SnareRhSoft },
+            { DRUM_HIHAT_LH, AnimationEvent.AnimationType.HihatLeftHand },
+            { DRUM_HIHAT_RH, AnimationEvent.AnimationType.HihatRightHand },
+            { DRUM_PERCUSSION_RH, AnimationEvent.AnimationType.PercussionRightHand },
+            { DRUM_CRASH1_LH_HARD, AnimationEvent.AnimationType.Crash1LhHard },
+            { DRUM_CRASH1_LH_SOFT, AnimationEvent.AnimationType.Crash1LhSoft },
+            { DRUM_CRASH1_RH_HARD, AnimationEvent.AnimationType.Crash1RhHard },
+            { DRUM_CRASH1_RH_SOFT, AnimationEvent.AnimationType.Crash1RhSoft },
+            { DRUM_CRASH2_RH_HARD, AnimationEvent.AnimationType.Crash2RhHard },
+            { DRUM_CRASH2_RH_SOFT, AnimationEvent.AnimationType.Crash2RhSoft },
+            { DRUM_CRASH1_CHOKE, AnimationEvent.AnimationType.Crash1Choke },
+            { DRUM_CRASH2_CHOKE, AnimationEvent.AnimationType.Crash2Choke },
+            { DRUM_RIDE_RH, AnimationEvent.AnimationType.RideRh },
+            { DRUM_RIDE_LH, AnimationEvent.AnimationType.RideLh },
+            { DRUM_CRASH2_LH_HARD, AnimationEvent.AnimationType.Crash2LhHard },
+            { DRUM_CRASH2_LH_SOFT, AnimationEvent.AnimationType.Crash2LhSoft },
+            { DRUM_TOM1_LH, AnimationEvent.AnimationType.Tom1LeftHand },
+            { DRUM_TOM1_RH, AnimationEvent.AnimationType.Tom1RightHand },
+            { DRUM_TOM2_LH, AnimationEvent.AnimationType.Tom2LeftHand },
+            { DRUM_TOM2_RH, AnimationEvent.AnimationType.Tom2RightHand },
+            { DRUM_FLOOR_TOM_LH, AnimationEvent.AnimationType.FloorTomLeftHand },
+            { DRUM_FLOOR_TOM_RH, AnimationEvent.AnimationType.FloorTomRightHand },
+        };
+
+        public static readonly Dictionary<string, AnimationEvent.AnimationType> GuitarAnimationLookup = new()
+        {
+            { LH_POSITION_1, AnimationEvent.AnimationType.LeftHandPosition1 },
+            { LH_POSITION_2, AnimationEvent.AnimationType.LeftHandPosition2 },
+            { LH_POSITION_3, AnimationEvent.AnimationType.LeftHandPosition3 },
+            { LH_POSITION_4, AnimationEvent.AnimationType.LeftHandPosition4 },
+            { LH_POSITION_5, AnimationEvent.AnimationType.LeftHandPosition5 },
+            { LH_POSITION_6, AnimationEvent.AnimationType.LeftHandPosition6 },
+            { LH_POSITION_7, AnimationEvent.AnimationType.LeftHandPosition7 },
+            { LH_POSITION_8, AnimationEvent.AnimationType.LeftHandPosition8 },
+            { LH_POSITION_9, AnimationEvent.AnimationType.LeftHandPosition9 },
+            { LH_POSITION_10, AnimationEvent.AnimationType.LeftHandPosition10 },
+            { LH_POSITION_11, AnimationEvent.AnimationType.LeftHandPosition11 },
+            { LH_POSITION_12, AnimationEvent.AnimationType.LeftHandPosition12 },
+            { LH_POSITION_13, AnimationEvent.AnimationType.LeftHandPosition13 },
+            { LH_POSITION_14, AnimationEvent.AnimationType.LeftHandPosition14 },
+            { LH_POSITION_15, AnimationEvent.AnimationType.LeftHandPosition15 },
+            { LH_POSITION_16, AnimationEvent.AnimationType.LeftHandPosition16 },
+            { LH_POSITION_17, AnimationEvent.AnimationType.LeftHandPosition17 },
+            { LH_POSITION_18, AnimationEvent.AnimationType.LeftHandPosition18 },
+            { LH_POSITION_19, AnimationEvent.AnimationType.LeftHandPosition19 },
+            { LH_POSITION_20, AnimationEvent.AnimationType.LeftHandPosition20 },
         };
     }
 }

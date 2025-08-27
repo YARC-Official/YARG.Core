@@ -66,16 +66,16 @@ namespace YARG.Core.Chart
             // Process animation notes
             foreach (var animNote in chart.animationNotes)
             {
-                var animType = chart.gameMode switch
+                var lookup = chart.gameMode switch
                 {
-                    MoonChart.GameMode.Guitar => GetGuitarAnimationType(animNote.text),
-                    MoonChart.GameMode.Drums  => GetDrumAnimationType(animNote.text),
+                    MoonChart.GameMode.Guitar => AnimationLookup.GuitarAnimationLookup,
+                    MoonChart.GameMode.Drums  => AnimationLookup.DrumAnimationLookup,
                     _                         => null
                 };
 
-                if (animType.HasValue)
+                if (lookup != null && lookup.TryGetValue(animNote.text, out var animType))
                 {
-                    animationEvents.Add(new AnimationEvent(animType.Value,
+                    animationEvents.Add(new AnimationEvent(animType,
                         _moonSong.TickToTime(animNote.tick), GetLengthInTime(animNote), animNote.tick,
                         animNote.length));
                 }

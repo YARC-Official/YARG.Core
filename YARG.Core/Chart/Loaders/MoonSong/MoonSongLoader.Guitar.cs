@@ -170,33 +170,5 @@ namespace YARG.Core.Chart
 
             return flags;
         }
-
-        private AnimationEvent.AnimationType? GetGuitarAnimationType(string eventText)
-        {
-            return eventText switch
-            {
-                AnimationLookup.LH_POSITION_1  => AnimationEvent.AnimationType.LeftHandPosition1,
-                AnimationLookup.LH_POSITION_2  => AnimationEvent.AnimationType.LeftHandPosition2,
-                AnimationLookup.LH_POSITION_3  => AnimationEvent.AnimationType.LeftHandPosition3,
-                AnimationLookup.LH_POSITION_4  => AnimationEvent.AnimationType.LeftHandPosition4,
-                AnimationLookup.LH_POSITION_5  => AnimationEvent.AnimationType.LeftHandPosition5,
-                AnimationLookup.LH_POSITION_6  => AnimationEvent.AnimationType.LeftHandPosition6,
-                AnimationLookup.LH_POSITION_7  => AnimationEvent.AnimationType.LeftHandPosition7,
-                AnimationLookup.LH_POSITION_8  => AnimationEvent.AnimationType.LeftHandPosition8,
-                AnimationLookup.LH_POSITION_9  => AnimationEvent.AnimationType.LeftHandPosition9,
-                AnimationLookup.LH_POSITION_10 => AnimationEvent.AnimationType.LeftHandPosition10,
-                AnimationLookup.LH_POSITION_11 => AnimationEvent.AnimationType.LeftHandPosition11,
-                AnimationLookup.LH_POSITION_12 => AnimationEvent.AnimationType.LeftHandPosition12,
-                AnimationLookup.LH_POSITION_13 => AnimationEvent.AnimationType.LeftHandPosition13,
-                AnimationLookup.LH_POSITION_14 => AnimationEvent.AnimationType.LeftHandPosition14,
-                AnimationLookup.LH_POSITION_15 => AnimationEvent.AnimationType.LeftHandPosition15,
-                AnimationLookup.LH_POSITION_16 => AnimationEvent.AnimationType.LeftHandPosition16,
-                AnimationLookup.LH_POSITION_17 => AnimationEvent.AnimationType.LeftHandPosition17,
-                AnimationLookup.LH_POSITION_18 => AnimationEvent.AnimationType.LeftHandPosition18,
-                AnimationLookup.LH_POSITION_19 => AnimationEvent.AnimationType.LeftHandPosition19,
-                AnimationLookup.LH_POSITION_20 => AnimationEvent.AnimationType.LeftHandPosition20,
-                _ => null
-            };
-        }
     }
 }
