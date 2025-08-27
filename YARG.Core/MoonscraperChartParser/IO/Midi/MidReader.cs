@@ -392,7 +392,7 @@ namespace MoonscraperChartEditor.Song.IO
                     // Get new representation of the event
                     if (VenueLookup.VENUE_TEXT_CONVERSION_LOOKUP.TryGetValue(eventText, out var eventData))
                     {
-                        song.Add(new MoonVenue(eventData.type, eventData.text, (uint)absoluteTime));
+                        MoonObjectHelper.OrderedInsertFromBack(new MoonVenue(eventData.type, eventData.text, (uint)absoluteTime), song.venue);
                     }
                     else
                     {
@@ -412,13 +412,13 @@ namespace MoonscraperChartEditor.Song.IO
                             }
 
                             matched = true;
-                            song.Add(new MoonVenue(type, converted, (uint)absoluteTime));
+                            MoonObjectHelper.OrderedInsertFromBack(new MoonVenue(type, converted, (uint)absoluteTime), song.venue);
                             break;
                         }
 
                         // Unknown events
                         if (!matched)
-                            song.Add(new MoonVenue(VenueLookup.Type.Unknown, eventText, (uint)absoluteTime));
+                            MoonObjectHelper.OrderedInsertFromBack(new MoonVenue(VenueLookup.Type.Unknown, eventText, (uint)absoluteTime), song.venue);
                     }
                 }
             }
