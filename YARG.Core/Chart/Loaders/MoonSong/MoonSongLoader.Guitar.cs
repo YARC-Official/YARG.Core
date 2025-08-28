@@ -1,7 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
 using MoonscraperChartEditor.Song;
+using MoonscraperChartEditor.Song.IO;
+using YARG.Core.Chart.Events;
 
 namespace YARG.Core.Chart
 {
@@ -26,7 +27,10 @@ namespace YARG.Core.Chart
                 { Difficulty.Hard, LoadDifficulty(instrument, Difficulty.Hard, createNote) },
                 { Difficulty.Expert, LoadDifficulty(instrument, Difficulty.Expert, createNote) },
             };
-            return new(instrument, difficulties);
+
+            var track = new InstrumentTrack<GuitarNote>(instrument, difficulties, GetAnimationTrack(instrument));
+
+            return track;
         }
 
         private GuitarNote CreateFiveFretGuitarNote(MoonNote moonNote, Dictionary<MoonPhrase.Type, MoonPhrase> currentPhrases)
