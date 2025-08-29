@@ -250,6 +250,7 @@ namespace YARG.Core.Replays.Analyzer
                     // Reset the notes
                     var notes = _chart.GetDrumsTrack(profile.CurrentInstrument)
                         .GetDifficulty(profile.CurrentDifficulty).Clone();
+                    notes.SetDrumActivationFlags(profile.StarPowerActivationType);
                     profile.ApplyModifiers(notes);
                     foreach (var note in notes.Notes)
                     {

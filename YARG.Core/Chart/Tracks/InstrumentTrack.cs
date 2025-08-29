@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
+using YARG.Core.Chart.Events;
 
 namespace YARG.Core.Chart
 {
@@ -12,6 +13,10 @@ namespace YARG.Core.Chart
         where TNote : Note<TNote>
     {
         public Instrument Instrument { get; }
+
+        // TODO: Smerge these...
+        public List<AnimationEvent> AnimationEvents { get; }      = new();
+        public AnimationTrack       Animations      { get; }      = new();
 
         private Dictionary<Difficulty, InstrumentDifficulty<TNote>> _difficulties { get; } = new();
 
@@ -43,6 +48,18 @@ namespace YARG.Core.Chart
             _difficulties = difficulties;
         }
 
+        public InstrumentTrack(Instrument instrument, Dictionary<Difficulty, InstrumentDifficulty<TNote>> difficulties,
+            List<AnimationEvent> animationEvents) : this(instrument, difficulties)
+        {
+            AnimationEvents = animationEvents;
+        }
+
+        public InstrumentTrack(Instrument instrument, Dictionary<Difficulty, InstrumentDifficulty<TNote>> difficulties,
+            AnimationTrack animations) : this(instrument, difficulties)
+        {
+            Animations = animations;
+        }
+
         public InstrumentTrack(InstrumentTrack<TNote> other)
             : this(other.Instrument)
         {
@@ -50,7 +67,16 @@ namespace YARG.Core.Chart
             {
                 _difficulties.Add(difficulty, diffTrack.Clone());
             }
+
+            foreach (var animationEvent in other.AnimationEvents)
+            {
+                AddAnimationEvent(animationEvent.Clone());
+            }
         }
+
+        public void AddAnimationEvent(AnimationEvent animationEvent) => AnimationEvents.Add(animationEvent);
+
+        public void AddAnimationEvent(IEnumerable<AnimationEvent> animationEvents) => AnimationEvents.AddRange(animationEvents);
 
         public void AddDifficulty(Difficulty difficulty, InstrumentDifficulty<TNote> track)
             => _difficulties.Add(difficulty, track);

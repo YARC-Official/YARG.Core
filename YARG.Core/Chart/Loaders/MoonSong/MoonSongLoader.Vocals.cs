@@ -29,7 +29,8 @@ namespace YARG.Core.Chart
             };
 
             var ranges = GetRangeShifts(parts, MoonSong.MoonInstrument.Vocals);
-            return new(instrument, parts, ranges);
+            var anims = GetAnimationTrack(instrument);
+            return new VocalsTrack(instrument, parts, ranges, anims);
         }
 
         private VocalsTrack LoadHarmonyVocals(Instrument instrument)
@@ -42,7 +43,8 @@ namespace YARG.Core.Chart
             };
 
             var ranges = GetRangeShifts(parts, MoonSong.MoonInstrument.Harmony1);
-            return new(instrument, parts, ranges);
+            var anims = GetAnimationTrack(instrument);
+            return new(instrument, parts, ranges, anims);
         }
 
         private VocalsPart LoadVocalsPart(MoonSong.MoonInstrument moonInstrument)
