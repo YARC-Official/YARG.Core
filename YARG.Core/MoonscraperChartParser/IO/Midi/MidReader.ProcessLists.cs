@@ -3,10 +3,8 @@
 
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Linq;
 using Melanchall.DryWetMidi.Core;
-using YARG.Core;
 using YARG.Core.Chart;
 using YARG.Core.Extensions;
 using YARG.Core.Logging;
@@ -169,7 +167,7 @@ namespace MoonscraperChartEditor.Song.IO
 
         private static readonly List<EventProcessFn> VocalsPostProcessList = new()
         {
-            CopyDownHarmonyPhrases,
+            CopyDownPhrases,
         };
 
         private static readonly List<EventProcessFn> ProKeysPostProcessList = new()
@@ -317,23 +315,55 @@ namespace MoonscraperChartEditor.Song.IO
             processParams.settings.DrumsType = DrumsType.FourLane;
         }
 
-        private static void CopyDownHarmonyPhrases(ref EventProcessParams processParams)
+        private static void CopyDownPhrases(ref EventProcessParams processParams)
         {
             if (processParams.instrument is not (MoonSong.MoonInstrument.Harmony2 or MoonSong.MoonInstrument.Harmony3))
                 return;
 
             // Remove any existing phrases
-            // TODO: HARM2 phrases are used to mark when lyrics shift in static lyrics, this needs to be preserved in some way
             // TODO: Determine if there are any phrases that shouldn't be removed/copied down
             var chart = processParams.song.GetChart(processParams.instrument, MoonSong.Difficulty.Expert);
-            chart.specialPhrases.Clear();
 
-            // Add in phrases from HARM1
+
+            List<MoonPhrase> newPhrases = new();
+            // In HARM2, we need to preserve the static lyric phrases
+            if (processParams.instrument is MoonSong.MoonInstrument.Harmony2)
+            {
+                foreach (var phrase in chart.specialPhrases)
+                {
+                    if (phrase.type is MoonPhrase.Type.Vocals_StaticLyricPhrase)
+                    {
+                        newPhrases.Add(phrase);
+                    }
+                }
+            }
+
+            // In HARM3, we need to clone HARM2's static lyric phrases
+            else if (processParams.instrument is MoonSong.MoonInstrument.Harmony3)
+            {
+                var harm2 = processParams.song.GetChart(MoonSong.MoonInstrument.Harmony2, MoonSong.Difficulty.Expert);
+                foreach (var phrase in harm2.specialPhrases)
+                {
+                    if (phrase.type is MoonPhrase.Type.Vocals_StaticLyricPhrase)
+                    {
+                        // Make a new copy instead of adding the original reference
+                        newPhrases.Add(phrase.Clone());
+                    }
+                }
+            }
+
+            chart.specialPhrases.Clear();
+            chart.specialPhrases.AddRange(newPhrases);
+
+            // Add in scoring phrases from HARM1
             var harm1 = processParams.song.GetChart(MoonSong.MoonInstrument.Harmony1, MoonSong.Difficulty.Expert);
             foreach (var phrase in harm1.specialPhrases)
             {
-                // Make a new copy instead of adding the original reference
-                chart.Add(phrase.Clone());
+                if (phrase.type is MoonPhrase.Type.Vocals_ScoringPhrase)
+                {
+                    // Make a new copy instead of adding the original reference
+                    chart.Insert(phrase.Clone());
+                }
             }
         }
 
@@ -704,11 +734,13 @@ namespace MoonscraperChartEditor.Song.IO
 
                 { MidIOHelper.LYRICS_PHRASE_1, (ref EventProcessParams eventProcessParams) => {
                     ProcessNoteOnEventAsSpecialPhrase(ref eventProcessParams, MoonPhrase.Type.Versus_Player1);
-                    ProcessNoteOnEventAsSpecialPhrase(ref eventProcessParams, MoonPhrase.Type.Vocals_LyricPhrase);
+                    ProcessNoteOnEventAsSpecialPhrase(ref eventProcessParams, MoonPhrase.Type.Vocals_ScoringPhrase);
+                    ProcessNoteOnEventAsSpecialPhrase(ref eventProcessParams, MoonPhrase.Type.Vocals_StaticLyricPhrase);
                 }},
                 { MidIOHelper.LYRICS_PHRASE_2, (ref EventProcessParams eventProcessParams) => {
                     ProcessNoteOnEventAsSpecialPhrase(ref eventProcessParams, MoonPhrase.Type.Versus_Player2);
-                    ProcessNoteOnEventAsSpecialPhrase(ref eventProcessParams, MoonPhrase.Type.Vocals_LyricPhrase);
+                    ProcessNoteOnEventAsSpecialPhrase(ref eventProcessParams, MoonPhrase.Type.Vocals_ScoringPhrase);
+                    ProcessNoteOnEventAsSpecialPhrase(ref eventProcessParams, MoonPhrase.Type.Vocals_StaticLyricPhrase);
                 }},
 
                 { MidIOHelper.PERCUSSION_NOTE, (ref EventProcessParams eventProcessParams) => {

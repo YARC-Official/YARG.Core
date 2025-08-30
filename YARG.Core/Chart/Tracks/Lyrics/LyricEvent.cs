@@ -13,9 +13,7 @@ namespace YARG.Core.Chart
 
         public LyricSymbolFlags Flags => _flags;
 
-        public bool JoinOrHyphenateWithNext => (_flags & (LyricSymbolFlags.JoinWithNext | LyricSymbolFlags.HyphenateWithNext)) != 0;
         public bool JoinWithNext  => (_flags & LyricSymbolFlags.JoinWithNext) != 0;
-        public bool HyphenateWithNext => (_flags & LyricSymbolFlags.HyphenateWithNext) != 0;
         public bool NonPitched    => (_flags & LyricSymbolFlags.NonPitched) != 0;
         public bool PitchSlide    => (_flags & LyricSymbolFlags.PitchSlide) != 0;
         public bool HarmonyHidden => (_flags & LyricSymbolFlags.HarmonyHidden) != 0;

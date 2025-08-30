@@ -23,9 +23,7 @@ namespace YARG.Core.Chart
         PitchSlide = 1 << 4,
         HarmonyHidden = 1 << 5,
         StaticShift = 1 << 6,
-        RangeShift = 1 << 7,
-
-        HyphenateWithNext = 1 << 8,
+        RangeShift = 1 << 7
     }
 
     /// <summary>
@@ -153,8 +151,8 @@ namespace YARG.Core.Chart
 
         public static LyricSymbolFlags GetFlagForSymbol(char symbol) => symbol switch
         {
-            LYRIC_JOIN_SYMBOL => LyricSymbolFlags.JoinWithNext,
-            LYRIC_JOIN_HYPHEN_SYMBOL => LyricSymbolFlags.HyphenateWithNext,
+            LYRIC_JOIN_SYMBOL or
+            LYRIC_JOIN_HYPHEN_SYMBOL => LyricSymbolFlags.JoinWithNext,
 
             PITCH_SLIDE_SYMBOL  => LyricSymbolFlags.PitchSlide,
 
