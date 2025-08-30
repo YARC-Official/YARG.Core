@@ -359,7 +359,7 @@ namespace MoonscraperChartEditor.Song.IO
             var harm1 = processParams.song.GetChart(MoonSong.MoonInstrument.Harmony1, MoonSong.Difficulty.Expert);
             foreach (var phrase in harm1.specialPhrases)
             {
-                if (phrase.type is MoonPhrase.Type.Vocals_ScoringPhrase)
+                if (phrase.type is MoonPhrase.Type.Vocals_ScoringPhrase or MoonPhrase.Type.Starpower)
                 {
                     // Make a new copy instead of adding the original reference
                     chart.Insert(phrase.Clone());
