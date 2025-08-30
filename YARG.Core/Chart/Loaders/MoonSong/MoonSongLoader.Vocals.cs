@@ -96,8 +96,8 @@ namespace YARG.Core.Chart
             }
 
 
-                // Prefill with the valid phrases
-                var phraseTracker = new Dictionary<MoonPhrase.Type, MoonPhrase?>()
+            // Prefill with the valid phrases
+            var phraseTracker = new Dictionary<MoonPhrase.Type, MoonPhrase?>()
             {
                 { MoonPhrase.Type.Starpower , null },
                 { MoonPhrase.Type.Versus_Player1 , null },

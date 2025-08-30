@@ -317,12 +317,12 @@ namespace MoonscraperChartEditor.Song.IO
 
         private static void CopyDownPhrases(ref EventProcessParams processParams)
         {
+            var chart = processParams.song.GetChart(processParams.instrument, MoonSong.Difficulty.Expert);
             if (processParams.instrument is not (MoonSong.MoonInstrument.Harmony2 or MoonSong.MoonInstrument.Harmony3))
                 return;
 
             // Remove any existing phrases
             // TODO: Determine if there are any phrases that shouldn't be removed/copied down
-            var chart = processParams.song.GetChart(processParams.instrument, MoonSong.Difficulty.Expert);
 
 
             List<MoonPhrase> newPhrases = new();
