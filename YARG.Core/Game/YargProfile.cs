@@ -97,6 +97,11 @@ namespace YARG.Core.Game
         [JsonProperty]
         public Modifier CurrentModifiers { get; private set; }
 
+        /// <summary>
+        /// The last time this profile was used.
+        /// </summary>
+        public DateTime LastUsed;
+
         public YargProfile()
         {
             Id = Guid.NewGuid();
@@ -279,6 +284,11 @@ namespace YARG.Core.Game
             {
                 CurrentInstrument = GameMode.PossibleInstruments()[0];
             }
+        }
+
+        public void ClaimProfile()
+        {
+            LastUsed = DateTime.Now;
         }
 
         // For replay serialization
