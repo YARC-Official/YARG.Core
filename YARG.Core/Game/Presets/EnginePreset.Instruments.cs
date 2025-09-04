@@ -82,6 +82,9 @@ namespace YARG.Core.Game
             [SettingType(SettingType.Toggle)]
             public bool SoloTaps = false;
 
+            [SettingType(SettingType.Toggle)]
+            public bool NoStarPowerOverlap = false;
+
             [SettingType(SettingType.MillisecondInput)]
             [SettingRange(min: 0f)]
             public double HopoLeniency = 0.08;
@@ -118,6 +121,7 @@ namespace YARG.Core.Game
                     StrumLeniencySmall = StrumLeniencySmall,
                     HitWindow = HitWindow.Copy(),
                     SoloTaps = SoloTaps,
+                    NoStarPowerOverlap = NoStarPowerOverlap,
                 };
             }
 
@@ -135,7 +139,8 @@ namespace YARG.Core.Game
                     StrumLeniencySmall,
                     InfiniteFrontEnd,
                     AntiGhosting,
-                    SoloTaps);
+                    SoloTaps,
+                    NoStarPowerOverlap);
             }
         }
 
@@ -145,6 +150,9 @@ namespace YARG.Core.Game
         /// </summary>
         public class DrumsPreset
         {
+            [SettingType(SettingType.Toggle)]
+            public bool NoStarPowerOverlap = false;
+
             [SettingType(SettingType.Special)]
             public HitWindowPreset HitWindow = new()
             {
@@ -158,6 +166,7 @@ namespace YARG.Core.Game
             {
                 return new DrumsPreset
                 {
+                    NoStarPowerOverlap = NoStarPowerOverlap,
                     HitWindow = HitWindow.Copy()
                 };
             }
@@ -169,7 +178,8 @@ namespace YARG.Core.Game
                     hitWindow,
                     DEFAULT_MAX_MULTIPLIER,
                     starMultiplierThresholds,
-                    mode);
+                    mode,
+                    NoStarPowerOverlap);
             }
         }
 
@@ -280,6 +290,9 @@ namespace YARG.Core.Game
         /// </summary>
         public class ProKeysPreset
         {
+            [SettingType(SettingType.Toggle)]
+            public bool NoStarPowerOverlap = false;
+
             [SettingType(SettingType.MillisecondInput)]
             [SettingRange(min: 0f)]
             public double ChordStaggerWindow = 0.05;
@@ -305,6 +318,7 @@ namespace YARG.Core.Game
             {
                 return new ProKeysPreset
                 {
+                    NoStarPowerOverlap = NoStarPowerOverlap,
                     ChordStaggerWindow = ChordStaggerWindow,
                     FatFingerWindow = FatFingerWindow,
                     HitWindow = HitWindow.Copy(),
@@ -321,7 +335,8 @@ namespace YARG.Core.Game
                     SustainDropLeniency,
                     starMultiplierThresholds,
                     ChordStaggerWindow,
-                    FatFingerWindow);
+                    FatFingerWindow,
+                    NoStarPowerOverlap);
             }
         }
     }
