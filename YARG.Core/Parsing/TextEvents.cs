@@ -1,5 +1,6 @@
 ﻿using System;
 using YARG.Core.Extensions;
+using YARG.Core.IO;
 
 namespace YARG.Core.Parsing
 {
@@ -43,6 +44,14 @@ namespace YARG.Core.Parsing
         /// Force-unmute the kick stem on Easy.
         /// </summary>
         EasyNoKick = 4,
+    }
+
+    public enum EliteDrumsSnareStemSetting
+    {
+        Red = 0,
+        Yellow = 1,
+        Blue = 2,
+        Green = 3,
     }
 
     /// <summary>
@@ -178,6 +187,51 @@ namespace YARG.Core.Parsing
             else
                 setting = DrumsMixSetting.None;
 
+            return true;
+        }
+
+        // setting is 0 for red, 1 for yellow, 2 for blue, 3 for green
+        public static bool TryParseEliteDrumsSnareStemEvent(ReadOnlySpan<char> text, out EliteDrumsSnareStemSetting setting, out Difficulty difficulty)
+        {
+            difficulty = Difficulty.Expert;
+            setting = 0;
+
+            const string MIX_PREFIX = "snare_stem";
+            if (!text.StartsWith(MIX_PREFIX))
+                return false;
+            text = text[MIX_PREFIX.Length..].SkipSpaceOrUnderscore();
+            if (text.IsEmpty)
+                return false;
+
+            // Parse difficulty number
+            if (!text[0].TryAsciiToNumber(out uint pad))
+                return false;
+            text = text[1..].SkipSpaceOrUnderscore();
+
+            switch (pad)
+            {
+                case 0 or 1 or 2 or 3: setting = (EliteDrumsSnareStemSetting)pad; break;
+                default: return false;
+            }
+
+            // Skip space
+            text = text.SkipSpaceOrUnderscore();
+            if (text.IsEmpty)
+                return false;
+
+            // Parse difficulty number
+            if (text[0].TryAsciiToNumber(out uint diffNumber))
+            {
+                switch (diffNumber)
+                {
+                    case 3: difficulty = Difficulty.Expert; break;
+                    case 2: difficulty = Difficulty.Hard; break;
+                    case 1: difficulty = Difficulty.Medium; break;
+                    case 0: difficulty = Difficulty.Easy; break;
+                    default: break;
+                }
+            }
+                
             return true;
         }
     }

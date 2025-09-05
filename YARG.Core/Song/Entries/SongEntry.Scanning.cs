@@ -42,7 +42,20 @@ namespace YARG.Core.Song
                     case MidiTrackType.Coop_6:   if (!parts.SixFretCoopGuitar.IsActive())  parts.SixFretCoopGuitar.Difficulties  = Midi_SixFret_Preparser.Parse(track); break;
 
                     case MidiTrackType.Drums:      if (!parts.FourLaneDrums.IsActive()) parts.FourLaneDrums.Difficulties = Midi_Drums_Preparser.Parse(track, ref drumsType); break;
-                    case MidiTrackType.EliteDrums: if (!parts.EliteDrums.IsActive())    parts.EliteDrums.Difficulties    = Midi_EliteDrums_Preparser.Parse(track); break;
+                    case MidiTrackType.EliteDrums:
+                        var difficulties = Midi_EliteDrums_Preparser.Parse(track);
+
+                        if (!parts.EliteDrums.IsActive())
+                        {
+                            parts.EliteDrums.Difficulties = difficulties.eliteDrumsDifficulties;
+                        }
+
+                        if (parts.FourLaneDrums.Difficulties is DifficultyMask.None)
+                        {
+                            parts.FourLaneDrums.Difficulties = difficulties.downchartDifficulties;
+                        }
+
+                        break;
 
                     case MidiTrackType.Pro_Guitar_17: if (!parts.ProGuitar_17Fret.IsActive()) parts.ProGuitar_17Fret.Difficulties = Midi_ProGuitar_Preparser.Parse_17Fret(track); break;
                     case MidiTrackType.Pro_Guitar_22: if (!parts.ProGuitar_22Fret.IsActive()) parts.ProGuitar_22Fret.Difficulties = Midi_ProGuitar_Preparser.Parse_22Fret(track); break;
