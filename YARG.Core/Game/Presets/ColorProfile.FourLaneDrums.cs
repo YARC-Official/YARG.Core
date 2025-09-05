@@ -197,7 +197,60 @@ namespace YARG.Core.Game
                 };
             }
 
-            public Color ActivationNote = DefaultPurple;
+            public Color KickActivationNote = DefaultOrangeActivationNote;
+
+            public Color RedPadActivationNote    = DefaultRedActivationNote;
+            public Color YellowPadActivationNote = DefaultYellowActivationNote;
+            public Color BluePadActivationNote   = DefaultBlueActivationNote;
+            public Color GreenPadActivationNote  = DefaultGreenActivationNote;
+
+            public Color RedCymbalActivationNote    = DefaultRedActivationNote;
+            public Color YellowCymbalActivationNote = DefaultYellowActivationNote;
+            public Color BlueCymbalActivationNote   = DefaultBlueActivationNote;
+            public Color GreenCymbalActivationNote  = DefaultGreenActivationNote;
+
+            /// <summary>
+            /// Gets the activation note color for a specific note index.
+            /// 0 = kick note, 1 = red drum, 4 = green drum, 5 = yellow cymbal.
+            /// 8 is a special case: it is the red cymbal that is used in lefty-flip.
+            /// </summary>
+            public Color GetActivationNoteColor(int index)
+            {
+                return index switch
+                {
+                    0 => KickActivationNote,
+
+                    1 => RedPadActivationNote,
+                    2 => YellowPadActivationNote,
+                    3 => BluePadActivationNote,
+                    4 => GreenPadActivationNote,
+
+                    5 => YellowCymbalActivationNote,
+                    6 => BlueCymbalActivationNote,
+                    7 => GreenCymbalActivationNote,
+                    8 => RedCymbalActivationNote,
+
+                    _ => default
+                };
+            }
+
+            #region Metal
+
+            public Color Metal          = DefaultMetal;
+            public Color MetalStarPower = DefaultMetalStarPower;
+
+            public Color GetMetalColor(bool isForStarPower)
+            {
+                return isForStarPower ? MetalStarPower : Metal;
+            }
+
+            #endregion
+
+            #region Miss Effect
+
+            public Color Miss = DefaultMiss;
+
+            #endregion
 
             #endregion
 
@@ -251,7 +304,20 @@ namespace YARG.Core.Game
                 writer.Write(BlueCymbalStarpower);
                 writer.Write(GreenCymbalStarpower);
 
-                writer.Write(ActivationNote);
+                writer.Write(KickActivationNote);
+
+                writer.Write(RedPadActivationNote);
+                writer.Write(YellowPadActivationNote);
+                writer.Write(BluePadActivationNote);
+                writer.Write(GreenPadActivationNote);
+
+                writer.Write(RedCymbalActivationNote);
+                writer.Write(YellowCymbalActivationNote);
+                writer.Write(BlueCymbalActivationNote);
+                writer.Write(GreenCymbalActivationNote);
+
+                writer.Write(Metal);
+                writer.Write(MetalStarPower);
 
                 writer.Write(RedCymbalFret);
                 writer.Write(YellowCymbalFret);
@@ -311,7 +377,20 @@ namespace YARG.Core.Game
                 BlueCymbalStarpower = reader.ReadColor();
                 GreenCymbalStarpower = reader.ReadColor();
 
-                ActivationNote = reader.ReadColor();
+                KickActivationNote = reader.ReadColor();
+
+                RedPadActivationNote = reader.ReadColor();
+                YellowPadActivationNote = reader.ReadColor();
+                BluePadActivationNote = reader.ReadColor();
+                GreenPadActivationNote = reader.ReadColor();
+
+                RedCymbalActivationNote = reader.ReadColor();
+                YellowCymbalActivationNote = reader.ReadColor();
+                BlueCymbalActivationNote = reader.ReadColor();
+                GreenCymbalActivationNote = reader.ReadColor();
+
+                Metal = reader.ReadColor();
+                MetalStarPower = reader.ReadColor();
 
                 RedCymbalFret = reader.ReadColor();
                 YellowCymbalFret = reader.ReadColor();

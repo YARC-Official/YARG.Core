@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using MoonscraperChartEditor.Song;
+using MoonscraperChartEditor.Song.IO;
 using YARG.Core.Parsing;
 
 namespace YARG.Core.Chart
@@ -30,7 +31,14 @@ namespace YARG.Core.Chart
                 { Difficulty.Expert, LoadDifficulty(instrument, Difficulty.Expert, createNote, HandleTextEvent) },
                 { Difficulty.ExpertPlus, LoadDifficulty(instrument, Difficulty.ExpertPlus, createNote, HandleTextEvent) },
             };
-            return new(instrument, difficulties);
+
+            var track = new InstrumentTrack<DrumNote>(instrument, difficulties, GetAnimationTrack(instrument));
+
+            // Add animation events
+            // var animationEvents = GetDrumAnimationEvents(track);
+            // track.AddAnimationEvent(animationEvents);
+
+            return track;
         }
 
         private DrumNote CreateFourLaneDrumNote(MoonNote moonNote, Dictionary<MoonPhrase.Type, MoonPhrase> currentPhrases)
@@ -286,16 +294,9 @@ namespace YARG.Core.Chart
 
         private DrumNoteFlags GetDrumNoteFlags(MoonNote moonNote, Dictionary<MoonPhrase.Type, MoonPhrase> currentPhrases)
         {
-            var flags = DrumNoteFlags.None;
-
-            // SP activator
-            if (currentPhrases.TryGetValue(MoonPhrase.Type.ProDrums_Activation, out var activationPhrase) &&
-                IsNoteClosestToEndOfPhrase(_moonSong, moonNote, activationPhrase))
-            {
-                flags |= DrumNoteFlags.StarPowerActivator;
-            }
-
-            return flags;
+            // Can be populated later if additional note flags are added
+            // Activation note marking is done within DrumsPlayer
+            return DrumNoteFlags.None;
         }
     }
 }
