@@ -17,8 +17,11 @@ namespace YARG.Core.Song
         public string SearchStr => _searchStr;
         public string SortStr => _sortStr;
         public CharacterGroup Group => _group;
+
         public int Length => Original.Length;
+
         public char this[int index] => Original[index];
+        public string this[Range index] => Original[index];
 
         public SortString(string str)
         {

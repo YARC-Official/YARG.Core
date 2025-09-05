@@ -167,6 +167,11 @@ namespace YARG.Core.Engine
         /// </summary>
         public float Stars;
 
+        /// <summary>
+        /// Is this a full combo?
+        /// </summary>
+        public bool IsFullCombo => MaxCombo == TotalNotes;
+
         protected BaseStats()
         {
         }

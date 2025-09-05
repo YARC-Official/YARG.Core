@@ -338,9 +338,9 @@ namespace YARG.Core.Engine.ProKeys.Engines
 
         protected override void UpdateBot(double time)
         {
-            float        botNoteHoldTime = 0.166f;
+            float botNoteHoldTime = 0.166f;
             ProKeysNote? note = null;
-            int          keysInSustain = 0;
+            int keysInSustain = 0;
 
             if (!IsBot)
             {
@@ -425,6 +425,8 @@ namespace YARG.Core.Engine.ProKeys.Engines
                         if ((keysInSustain & 1 << chordNote.Key) == 0)
                         {
                             MutateStateWithInput(new GameInput(time, chordNote.Key, false));
+                            // Nothing else is going to reset this for a bot, so we have to do it
+                            KeyReleasedThisUpdate = null;
                         }
                     }
                 }

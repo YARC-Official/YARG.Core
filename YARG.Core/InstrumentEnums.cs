@@ -109,6 +109,18 @@ namespace YARG.Core
         All = Beginner | Easy | Medium | Hard | Expert | ExpertPlus,
     }
 
+    /// <summary>
+    /// Available drum star power activation types.
+    /// </summary>
+    public enum StarPowerActivationType : byte
+    {
+        // Ordered chronologically -- DO NOT REORDER!!
+        Freestyle     = 0, // Old Rock Band style    // TODO: Implement
+        RightmostLane = 1, // Modern Rock Band style // TODO: Implement
+        RightmostNote = 2, // Clone Hero style
+        AllNotes      = 3, // Old YARG style
+    }
+
     public static class ChartEnumExtensions
     {
         public static GameMode ToGameMode(this Instrument instrument)

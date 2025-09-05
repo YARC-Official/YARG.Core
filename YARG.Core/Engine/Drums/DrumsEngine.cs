@@ -136,8 +136,7 @@ namespace YARG.Core.Engine.Drums
                 EndSolo();
             }
 
-            if (!activationAutoHit && note.IsStarPowerActivator && CanStarPowerActivate &&
-                note.ParentOrSelf.WasFullyHit())
+            if (!activationAutoHit && note.IsStarPowerActivator && CanStarPowerActivate && IsActivationComplete(note))
             {
                 ActivateStarPower();
             }
@@ -158,6 +157,20 @@ namespace YARG.Core.Engine.Drums
             }
 
             base.HitNote(note);
+        }
+
+        // Check if all activation notes in the note chord have been hit
+        private static bool IsActivationComplete(DrumNote drumNote)
+        {
+            foreach (var note in drumNote.ParentOrSelf.AllNotes)
+            {
+                if (note.IsStarPowerActivator && !note.WasHit)
+                {
+                    return false;
+                }
+            }
+
+            return true;
         }
 
         protected bool ApplyVelocity(DrumNote hitNote)
@@ -322,11 +335,11 @@ namespace YARG.Core.Engine.Drums
                 // invert it to calculate leniency
                 weight = 1.0 * multiplier / BaseParameters.MaxMultiplier;
 
-                score += weight * (POINTS_PER_NOTE * (1 + note.ChildNotes.Count));
+                score += weight * (GetPointsPerNote() * (1 + note.ChildNotes.Count));
                 combo += 1 + note.ChildNotes.Count;
             }
 
-            YargLogger.LogDebug($"[Vocals] Base score: {score}, Max Combo: {combo}");
+            YargLogger.LogDebug($"[Drums] Base score: {score}, Max Combo: {combo}");
             return (int) Math.Round(score);
         }
 

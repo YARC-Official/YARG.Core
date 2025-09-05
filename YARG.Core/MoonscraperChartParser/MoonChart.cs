@@ -26,6 +26,11 @@ namespace MoonscraperChartEditor.Song
         /// </summary>
         public List<MoonText> events { get; private set; } = new();
 
+        /// <summary>
+        /// Read only list of animation events.
+        /// </summary>
+        public List<MoonAnimation> animationNotes { get; private set; } = new();
+
         public bool IsEmpty => notes.Count == 0 && specialPhrases.Count == 0 && events.Count == 0;
 
         /// <summary>
@@ -76,6 +81,11 @@ namespace MoonscraperChartEditor.Song
         public int Insert(MoonText ev)
         {
             return MoonObjectHelper.Insert(ev, events);
+        }
+
+        public int Add(MoonAnimation ev)
+        {
+            return MoonObjectHelper.Insert(ev, animationNotes);
         }
 
         public bool Remove(MoonNote note)

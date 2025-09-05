@@ -22,6 +22,19 @@ namespace YARG.Core.Game
 
         private static readonly Color DefaultStarpower = Color.White; // #FFFFFF
 
+        // Overly saturate colors compared to the defaults for activations
+        private static readonly Color DefaultPurpleActivationNote = Color.FromArgb(0xFF, 0xFF, 0x00, 0xFF); // #FFFF00
+        private static readonly Color DefaultRedActivationNote    = Color.FromArgb(0xFF, 0xFF, 0x00, 0x00); // #FF0000
+        private static readonly Color DefaultYellowActivationNote = Color.FromArgb(0xFF, 0xFF, 0xFF, 0x00); // #FFFF00
+        private static readonly Color DefaultBlueActivationNote   = Color.FromArgb(0xFF, 0x00, 0xAA, 0xFF); // #00AAFF
+        private static readonly Color DefaultOrangeActivationNote = Color.FromArgb(0xFF, 0xFF, 0xA5, 0x00); // #FFA500
+        public  static readonly Color DefaultGreenActivationNote  = Color.FromArgb(0xFF, 0x00, 0xFF, 0x00); // #00FF00
+
+        private static readonly Color DefaultMetal          = Color.FromArgb(0xFF, 0xFF, 0xFF, 0xFF); // #FFFFFF
+        private static readonly Color DefaultMetalStarPower = Color.FromArgb(0xFF, 0xFF, 0xD7, 0x00); // #FFD700
+
+        private static readonly Color DefaultMiss = Color.FromArgb(0xFF, 0x90, 0x90, 0x90); // #909090
+
         #endregion
 
         #region Circular Colors

@@ -11,7 +11,7 @@ namespace YARG.Core.Game
 {
     public class YargProfile
     {
-        private const int PROFILE_VERSION = 4;
+        private const int PROFILE_VERSION = 5;
 
         public Guid Id;
         public string Name;
@@ -34,6 +34,8 @@ namespace YARG.Core.Game
         public bool SwapSnareAndHiHat;
 
         public bool SwapCrashAndRide;
+
+        public StarPowerActivationType StarPowerActivationType;
 
         public int? AutoConnectOrder;
 
@@ -95,6 +97,11 @@ namespace YARG.Core.Game
         [JsonProperty]
         public Modifier CurrentModifiers { get; private set; }
 
+        /// <summary>
+        /// The last time this profile was used.
+        /// </summary>
+        public DateTime LastUsed;
+
         public YargProfile()
         {
             Id = Guid.NewGuid();
@@ -108,6 +115,7 @@ namespace YARG.Core.Game
             SplitProTomsAndCymbals = false;
             SwapSnareAndHiHat = false;
             SwapCrashAndRide = false;
+            StarPowerActivationType = StarPowerActivationType.RightmostNote;
 
             // Set preset IDs to default
             ColorProfile = Game.ColorProfile.Default.Id;
@@ -160,6 +168,15 @@ namespace YARG.Core.Game
                 SplitProTomsAndCymbals = stream.ReadBoolean();
                 SwapSnareAndHiHat = stream.ReadBoolean();
                 SwapCrashAndRide = stream.ReadBoolean();
+            }
+
+            if (version >= 5)
+            {
+                StarPowerActivationType = (StarPowerActivationType) stream.ReadByte();
+            }
+            else
+            {
+                StarPowerActivationType = StarPowerActivationType.RightmostNote;
             }
         }
 
@@ -269,6 +286,11 @@ namespace YARG.Core.Game
             }
         }
 
+        public void ClaimProfile()
+        {
+            LastUsed = DateTime.Now;
+        }
+
         // For replay serialization
         public void Serialize(BinaryWriter writer)
         {
@@ -298,6 +320,8 @@ namespace YARG.Core.Game
             writer.Write(SplitProTomsAndCymbals);
             writer.Write(SwapSnareAndHiHat);
             writer.Write(SwapCrashAndRide);
+
+            writer.Write((byte) StarPowerActivationType);
         }
     }
 }
