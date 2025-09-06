@@ -11,7 +11,7 @@ namespace YARG.Core.Extensions
         // Gets the StarPower sections from a list of instrument tracks, excluding a specific instrument and anything in its group
         public static void GetStarpowerSections<TNote>(this IEnumerable<InstrumentTrack<TNote>> tracks,
             ref List<List<EngineManager.StarPowerSection>> acceptedSpSections,
-            Instrument instrument) where TNote : Note<TNote>
+            Instrument instrument, uint tickTolerance) where TNote : Note<TNote>
         {
             var instrumentGroup = new List<Instrument>();
             foreach (var group in EngineManager.InstrumentGroups)
@@ -36,7 +36,7 @@ namespace YARG.Core.Extensions
                 }
 
                 var candidateSpSections = GetStarpowerSections(instrumentDifficulty);
-                if (!SpListIsDuplicate(candidateSpSections, acceptedSpSections))
+                if (!SpListIsDuplicate(candidateSpSections, acceptedSpSections, tickTolerance))
                 {
                     acceptedSpSections.Add(candidateSpSections);
                 }
@@ -46,7 +46,7 @@ namespace YARG.Core.Extensions
         // Gets the starpower sections from a single InstrumentTrack, excluding the given instrument
         public static void GetStarpowerSections<TNote>(this InstrumentTrack<TNote> track,
             ref List<List<EngineManager.StarPowerSection>> acceptedSpSections,
-            Instrument instrument) where TNote : Note<TNote>
+            Instrument instrument, uint tickTolerance) where TNote : Note<TNote>
         {
             var instrumentGroup = new List<Instrument>();
             foreach (var group in EngineManager.InstrumentGroups)
@@ -69,7 +69,7 @@ namespace YARG.Core.Extensions
             }
 
             var candidateSpSections = GetStarpowerSections(instrumentDifficulty);
-            if (!SpListIsDuplicate(candidateSpSections, acceptedSpSections))
+            if (!SpListIsDuplicate(candidateSpSections, acceptedSpSections, tickTolerance))
             {
                 acceptedSpSections.Add(candidateSpSections);
             }
@@ -90,8 +90,16 @@ namespace YARG.Core.Extensions
             return spSections;
         }
 
+        /// <summary>
+        /// Checks if the proposed list of star power sections is a duplicate of any of the accepted lists.<br /><br />
+        /// <b>Note:</b> Pass a tick tolerance of zero if you want only exact matches
+        /// </summary>
+        /// <param name="proposed"></param>
+        /// <param name="accepted"></param>
+        /// <param name="tickTolerance"></param>
+        /// <returns></returns>
         private static bool SpListIsDuplicate(List<EngineManager.StarPowerSection> proposed,
-            List<List<EngineManager.StarPowerSection>> accepted)
+            List<List<EngineManager.StarPowerSection>> accepted, uint tickTolerance)
         {
             foreach (var sections in accepted)
             {
@@ -100,18 +108,18 @@ namespace YARG.Core.Extensions
                     continue;
                 }
 
-                // Count is the same, so it could be a dupe
-                var dupeCount = 0;
+                // Count is the same, so check for a fuzzy match
+                bool isMatch = true;
                 for (var i = 0; i < sections.Count; i++)
                 {
-                    if (!proposed[i].Equals(sections[i]))
+                    if (!proposed[i].TickAlmostEquals(sections[i], tickTolerance))
                     {
+                        isMatch = false;
                         break;
                     }
-                    dupeCount++;
                 }
 
-                if (dupeCount == sections.Count)
+                if (isMatch)
                 {
                     return true;
                 }

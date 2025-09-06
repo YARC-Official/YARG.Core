@@ -14,7 +14,7 @@ namespace MoonscraperChartEditor.Song
         public uint tick;
 
         public readonly ID classID;
-        
+
         public MoonObject(ID id, uint _tick)
         {
             classID = id;
@@ -76,6 +76,7 @@ namespace MoonscraperChartEditor.Song
             Venue,
             Note,
             Phrase,
+            Animation,
         }
     }
 }
