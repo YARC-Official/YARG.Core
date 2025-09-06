@@ -49,7 +49,8 @@ namespace YARG.Core.Game
                     Modifier.RangeCompress,
 
                 GameMode.FourLaneDrums or
-                GameMode.FiveLaneDrums =>
+                GameMode.FiveLaneDrums or
+                GameMode.EliteDrums =>
                     Modifier.NoKicks    |
                     Modifier.NoDynamics,
 
@@ -58,7 +59,6 @@ namespace YARG.Core.Game
                     Modifier.NoVocalPercussion,
 
                 GameMode.SixFretGuitar or
-            //  GameMode.EliteDrums    or
                 GameMode.ProGuitar     or
             //  GameMode.Dj            or
                 GameMode.ProKeys       => Modifier.None,
