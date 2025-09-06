@@ -250,34 +250,13 @@ namespace YARG.Core.IO
                     case "video_venues": VideoVenues = YARGDTAReader.ExtractStringArray(ref container); break;
                     case "extra_authoring":
                     {
-                        StringBuilder authors = new();
                         foreach (string str in YARGDTAReader.ExtractStringArray(ref container))
                         {
                             if (str == "disc_update")
                             {
                                 DiscUpdate = true;
                             }
-                            else
-                            {
-                                if (authors.Length == 0 && Charter == SongMetadata.DEFAULT_CHARTER)
-                                {
-                                    authors.Append(str);
-                                }
-                                else
-                                {
-                                    if (authors.Length == 0)
-                                        authors.Append(Charter);
-                                    authors.Append(", " + str);
-                                }
-                            }
                         }
-
-                        if (authors.Length == 0)
-                        {
-                            authors.Append(Charter);
-                        }
-
-                        Charter = authors.ToString();
                     }
                     break;
                 }
