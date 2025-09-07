@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 
 namespace YARG.Core.Chart
 {
@@ -8,8 +8,8 @@ namespace YARG.Core.Chart
         public ProKeysNoteFlags ProKeysFlags;
 
         public int Key          { get; }
-        public int DisjointMask { get; }
-        public int NoteMask     { get; private set; }
+        public ulong DisjointMask { get; }
+        public ulong NoteMask     { get; private set; }
 
         public bool IsGlissando => (ProKeysFlags & ProKeysNoteFlags.Glissando) != 0;
 
@@ -62,9 +62,9 @@ namespace YARG.Core.Chart
             return new(this);
         }
 
-        private static int GetKeyMask(int key)
+        private static ulong GetKeyMask(int key)
         {
-            return 1 << key;
+            return 1UL << key;
         }
     }
 

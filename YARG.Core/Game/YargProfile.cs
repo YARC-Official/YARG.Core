@@ -264,7 +264,7 @@ namespace YARG.Core.Game
                     }
 
                     break;
-                case GameMode.Keys:
+                case GameMode.ProKeys:
                     if (track is InstrumentDifficulty<ProKeysNote> proKeysTrack)
                     {
                         // Apply Pro Keys modifiers (none exist currently)

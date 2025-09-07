@@ -85,7 +85,7 @@ namespace YARG.Core.Replays
                     GameMode.SixFretGuitar => new GuitarReplayStats(ref stream, ReplayVersion),
                     GameMode.FourLaneDrums or
                     GameMode.FiveLaneDrums => new DrumsReplayStats(ref stream, ReplayVersion),
-                    GameMode.Keys => new ProKeysReplayStats(ref stream, ReplayVersion),
+                    GameMode.ProKeys => new ProKeysReplayStats(ref stream, ReplayVersion),
                     GameMode.Vocals => new VocalsReplayStats(ref stream, ReplayVersion),
                     _ => throw new Exception($"Stats for {mode} not supported"),
                 };

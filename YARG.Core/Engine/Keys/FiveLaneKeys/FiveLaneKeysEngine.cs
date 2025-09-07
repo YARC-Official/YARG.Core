@@ -27,7 +27,7 @@ namespace YARG.Core.YARG.Core.Engine.ProKeys
 
         public bool IsKeyHeld(FiveLaneKeysAction key)
         {
-            return (KeyMask & (1 << (int)key)) != 0;
+            return (KeyMask & (1UL << (int)key)) != 0;
         }
 
         protected override double[] KeyPressTimes { get; } = new double[7];
@@ -41,7 +41,7 @@ namespace YARG.Core.YARG.Core.Engine.ProKeys
 
         protected override bool CanSustainHold(GuitarNote note)
         {
-            return (KeyMask & note.DisjointMask) != 0;
+            return (KeyMask & (ulong)note.DisjointMask) != 0;
         }
         protected override void HitNote(GuitarNote note)
         {

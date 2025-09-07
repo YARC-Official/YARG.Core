@@ -13,7 +13,7 @@ namespace YARG.Core.Chart
 
         private InstrumentTrack<ProKeysNote> LoadProKeysTrack(Instrument instrument, CreateNoteDelegate<ProKeysNote> createNote)
         {
-            if (instrument.ToNativeGameMode() != GameMode.Keys)
+            if (instrument.ToNativeGameMode() != GameMode.ProKeys)
                 throw new ArgumentException($"Instrument {instrument} is not a pro-keys instrument!", nameof(instrument));
 
             var difficulties = new Dictionary<Difficulty, InstrumentDifficulty<ProKeysNote>>

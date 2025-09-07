@@ -78,7 +78,7 @@ namespace YARG.Core.Game
                     Modifier.UnpitchedOnly |
                     Modifier.NoVocalPercussion,
 
-                GameMode.Keys =>
+                GameMode.ProKeys =>
                     Modifier.RangeCompress,
 
                 GameMode.SixFretGuitar or

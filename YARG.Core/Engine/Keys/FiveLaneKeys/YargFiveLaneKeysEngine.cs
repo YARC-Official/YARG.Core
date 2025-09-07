@@ -95,7 +95,7 @@ namespace YARG.Core.YARG.Core.Engine.Keys.FiveLaneKeys
                 {
                     YargLogger.LogFormatTrace("Fat Finger timer expired at {0}", CurrentTime);
 
-                    var fatFingerKeyMask = 1 << FatFingerKey;
+                    var fatFingerKeyMask = 1UL << FatFingerKey;
 
                     var isHoldingWrongKey = (KeyMask & fatFingerKeyMask) == fatFingerKeyMask;
 
@@ -176,7 +176,7 @@ namespace YARG.Core.YARG.Core.Engine.Keys.FiveLaneKeys
                             foreach (var note in parentNote.AllNotes)
                             {
                                 // This key in the chord was held by the time chord staggering ended, so it can be hit
-                                if ((KeyMask & note.DisjointMask) == note.DisjointMask && IsKeyInTime(note, frontEnd))
+                                if ((KeyMask & (ulong)note.DisjointMask) == (ulong)note.DisjointMask && IsKeyInTime(note, frontEnd))
                                 {
                                     HitNote(note);
                                     YargLogger.LogFormatTrace("Hit staggered note {0} in chord", (int)note.FiveLaneKeysAction);
@@ -302,7 +302,7 @@ namespace YARG.Core.YARG.Core.Engine.Keys.FiveLaneKeys
             double hitWindow = EngineParameters.HitWindow.CalculateHitWindow(GetAverageNoteDistance(note));
             double frontEnd = EngineParameters.HitWindow.GetFrontEnd(hitWindow);
 
-            if ((KeyMask & note.NoteMask) == note.NoteMask)
+            if ((KeyMask & (ulong)note.NoteMask) == (ulong)note.NoteMask)
             {
                 foreach (var childNote in note.AllNotes)
                 {
@@ -322,7 +322,7 @@ namespace YARG.Core.YARG.Core.Engine.Keys.FiveLaneKeys
         {
             float botNoteHoldTime = 0.166f;
             GuitarNote? note = null;
-            int keysInSustain = 0;
+            ulong keysInSustain = 0;
 
             if (!IsBot)
             {
@@ -339,7 +339,7 @@ namespace YARG.Core.YARG.Core.Engine.Keys.FiveLaneKeys
             // Find the active sustains
             foreach (var sustain in ActiveSustains)
             {
-                keysInSustain |= 1 << (int)sustain.Note.FiveLaneKeysAction;
+                keysInSustain |= 1UL << (int)sustain.Note.FiveLaneKeysAction;
             }
 
             // Release no longer needed keys
@@ -366,7 +366,7 @@ namespace YARG.Core.YARG.Core.Engine.Keys.FiveLaneKeys
 
                 if (!currentKey)
                 {
-                    if ((keysInSustain & 1 << key) != 0)
+                    if ((keysInSustain & 1UL << key) != 0)
                     {
                         keyProtected = true;
                     }
@@ -391,7 +391,7 @@ namespace YARG.Core.YARG.Core.Engine.Keys.FiveLaneKeys
                     }
 
                     // if the key isn't protected due to a sustain and another note is being played, release the key
-                    if (note is not null && (keysInSustain & 1 << key) == 0 && time >= note.Time)
+                    if (note is not null && (keysInSustain & 1UL << key) == 0 && time >= note.Time)
                     {
                         keyProtected = false;
                     }
@@ -404,7 +404,7 @@ namespace YARG.Core.YARG.Core.Engine.Keys.FiveLaneKeys
                     // We loop to ensure that all notes in a chord are released at the same time
                     foreach (var chordNote in pressedNote.AllNotes)
                     {
-                        if ((keysInSustain & 1 << (int)chordNote.FiveLaneKeysAction) == 0)
+                        if ((keysInSustain & 1UL << (int)chordNote.FiveLaneKeysAction) == 0)
                         {
                             var action = FiveLaneKeysActionToProKeysAction(chordNote.FiveLaneKeysAction);
                             MutateStateWithInput(new GameInput(time, (int)action, false));

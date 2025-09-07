@@ -41,7 +41,7 @@ namespace YARG.Core.Replays
 
         public override void Serialize(BinaryWriter writer)
         {
-            writer.Write((byte) GameMode.Keys);
+            writer.Write((byte) GameMode.ProKeys);
             base.Serialize(writer);
             writer.Write(TotalNotes);
             writer.Write(NumNotesHit);

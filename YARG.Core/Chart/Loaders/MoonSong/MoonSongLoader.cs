@@ -424,7 +424,7 @@ namespace YARG.Core.Chart
             GameMode.FiveLaneDrums => MoonChart.GameMode.Drums,
 
             GameMode.ProGuitar => MoonChart.GameMode.ProGuitar,
-            GameMode.Keys => MoonChart.GameMode.ProKeys,
+            GameMode.ProKeys => MoonChart.GameMode.ProKeys,
 
             GameMode.Vocals => MoonChart.GameMode.Vocals,
 

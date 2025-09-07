@@ -268,7 +268,7 @@ namespace YARG.Core.Replays.Analyzer
                         (DrumsEngineParameters) parameters,
                         profile.IsBot);
                 }
-                case GameMode.Keys:
+                case GameMode.ProKeys:
                 {
                     if (profile.CurrentInstrument is Instrument.ProKeys) // Pro Keys
                     {
