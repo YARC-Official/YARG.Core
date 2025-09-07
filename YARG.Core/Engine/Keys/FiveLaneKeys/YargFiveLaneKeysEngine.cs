@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading.Tasks;
 using YARG.Core.Chart;
@@ -28,12 +29,7 @@ namespace YARG.Core.YARG.Core.Engine.Keys.FiveLaneKeys
 
             var action = gameInput.GetAction<ProKeysAction>();
 
-            if (action
-                is ProKeysAction.Key1  or ProKeysAction.Key2  or ProKeysAction.Key3  or ProKeysAction.Key4  or ProKeysAction.Key5
-                or ProKeysAction.Key6  or ProKeysAction.Key7  or ProKeysAction.Key8  or ProKeysAction.Key9  or ProKeysAction.Key10
-                or ProKeysAction.Key11 or ProKeysAction.Key12 or ProKeysAction.Key13 or ProKeysAction.Key14 or ProKeysAction.Key15
-                or ProKeysAction.Key16 or ProKeysAction.Key17 or ProKeysAction.Key18 or ProKeysAction.Key19 or ProKeysAction.Key20
-                or ProKeysAction.Key21 or ProKeysAction.Key22 or ProKeysAction.Key23 or ProKeysAction.Key24 or ProKeysAction.Key25)
+            if (!IsFiveLaneKeysAction(action))
             {
                 return;
             }
@@ -454,5 +450,21 @@ namespace YARG.Core.YARG.Core.Engine.Keys.FiveLaneKeys
                 _ => throw new Exception("Unhandled.")
             };
         }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static bool IsFiveLaneKeysAction(ProKeysAction action)
+        {
+            return (ALLOWED_FIVE_LANE_KEYS_ACTIONS & (1UL << (int) action)) != 0;
+        }
+
+        private const ulong ALLOWED_FIVE_LANE_KEYS_ACTIONS =
+            1UL << (int) ProKeysAction.GreenKey |
+            1UL << (int) ProKeysAction.RedKey |
+            1UL << (int) ProKeysAction.YellowKey |
+            1UL << (int) ProKeysAction.BlueKey |
+            1UL << (int) ProKeysAction.OrangeKey |
+            1UL << (int) ProKeysAction.OpenNote |
+            1UL << (int) ProKeysAction.StarPower |
+            1UL << (int) ProKeysAction.TouchEffects;
     }
 }
