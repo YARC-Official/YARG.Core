@@ -408,6 +408,8 @@ namespace YARG.Core.YARG.Core.Engine.Keys.FiveLaneKeys
                         {
                             var action = FiveLaneKeysActionToProKeysAction(chordNote.FiveLaneKeysAction);
                             MutateStateWithInput(new GameInput(time, (int)action, false));
+                            // Nothing else is going to reset this for a bot, so we have to do it
+                            KeyReleasedThisUpdate = null;
                         }
                     }
                 }
