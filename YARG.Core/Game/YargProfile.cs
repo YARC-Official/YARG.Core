@@ -347,6 +347,10 @@ namespace YARG.Core.Game
             writer.Write(SplitProTomsAndCymbals);
             writer.Write(SwapSnareAndHiHat);
             writer.Write(SwapCrashAndRide);
+
+            writer.Write((byte) StarPowerActivationType);
+
+            writer.Write((byte) GameMode);
         }
     }
 }
