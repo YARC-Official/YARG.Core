@@ -10,6 +10,9 @@ namespace YARG.Core.Engine
         private int                      _nextEngineIndex;
         List <EngineContainer>           _allEngines     = new();
         Dictionary<int, EngineContainer> _allEnginesById = new();
+
+        public List<EngineContainer> Engines => _allEngines;
+
         private SongChart?               _chart;
 
         public class Band
@@ -24,11 +27,11 @@ namespace YARG.Core.Engine
             }
         }
 
-        public class EngineContainer
+        public partial class EngineContainer
         {
             public  int          EngineId      { get; }
             public  BaseEngine   Engine        { get; }
-            private Instrument   Instrument    { get; }
+            public  Instrument   Instrument    { get; }
             private SongChart    SongChart     { get; }
             public  List<Phrase> UnisonPhrases { get; }
 
@@ -44,6 +47,8 @@ namespace YARG.Core.Engine
                 SongChart = songChart;
                 UnisonPhrases = GetUnisonPhrases(Instrument, SongChart);
                 _engineManager = manager;
+
+                SubscribeToEngineEvents();
             }
 
             public void SendCommand(EngineCommandType command)
