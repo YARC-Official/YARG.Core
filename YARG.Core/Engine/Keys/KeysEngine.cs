@@ -30,7 +30,27 @@ namespace YARG.Core.YARG.Core.Engine.ProKeys
 
         public OverhitEvent? OnOverhit;
 
-        // Used for hit logic. May not be the same value as KeyHeldMask
+        // Used for hit logic. May not be the same value as KeyHeldMask.
+        //
+        // NOTE MASK BIT ASSIGNMENTS
+        // INDEX | PRO            | 5L
+        // ------|----------------|-----------
+        // 0     | Key 1 (Low C)  | Green key
+        // 1     | Key 2 (Low C#) | Red key
+        // 2     | Key 3 (Low D)  | Yellow key
+        // 3     | Key 4 (Low D#) | Blue key
+        // 4     | Key 5 (Low E)  | Orange key
+        // 5     | Key 6 (Low F)  | (unused; left empty for consistency with 6F Guitar)
+        // 6     | Key 7 (Low F#) | Open note
+        // 7-24  | Keys 8-25      | (all unused)
+        // 25-31 | (all unused)   | (all unused)
+        //
+        // Note that the 5L bits do not align with the ProKeysAction enum values for the respective keys.
+        // This is partially for consistency with 5F Guitar, and also because ProKeysAction.OrangeKey is 32,
+        // which is higher than the highest index of an int-based notemask. For 5L Keys-related logic, you
+        // must convert those enum values for use in a 5L notemask by using
+        // FiveLaneKeysEngine::ProKeysActionToFiveLaneKeysAction.
+
         public int KeyMask { get; protected set; }
 
         public int PreviousKeyMask { get; protected set; }

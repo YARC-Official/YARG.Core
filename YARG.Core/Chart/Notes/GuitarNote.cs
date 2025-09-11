@@ -9,8 +9,20 @@ namespace YARG.Core.Chart
         public GuitarNoteFlags GuitarFlags;
 
         public int Fret         { get; set; }
-        public int DisjointMask { get; set; }
+
+        // NOTE MASK BIT ASSIGNMENTS
+        // INDEX | 5L (Guitar & Keys) | 6F
+        // ------|--------------------|-----------
+        // 0     | Green              | Black 1
+        // 1     | Red                | Black 2
+        // 2     | Yellow             | Black 3
+        // 3     | Blue               | White 1
+        // 4     | Orange             | White 2
+        // 5     | (unused)           | White 3
+        // 6     | Open               | Open
+        // 7-31  | (all unused)       | (all unused)
         public int NoteMask     { get; set; }
+        public int DisjointMask { get; set; }
 
         public GuitarNoteType Type { get; set; }
 
