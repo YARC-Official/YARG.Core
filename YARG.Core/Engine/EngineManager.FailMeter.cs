@@ -73,14 +73,10 @@ namespace YARG.Core.Engine
             public HappinessOverThreshold? OnHappinessOverThreshold;
             public HappinessUnderThreshold? OnHappinessUnderThreshold;
 
-            // TODO: This should only trigger once per note group
-            //  I think ignoring any calls where note.WasFullyHit returns false should be good enough here
             private void OnNoteHit<TNote>(int index, TNote note) where TNote : Note<TNote>
             {
                 // Ignore any notes that have not been fully hit yet on the assumption that a call
                 // where the note group was fully hit will eventually come if they are all hit
-
-                // TODO: Figure a better way to handle vocals not being fully hit or missed
                 if (!note.WasFullyHit() && note is not VocalNote)
                 {
                     return;
@@ -107,12 +103,6 @@ namespace YARG.Core.Engine
 
             private void OnNoteMissed<TNote>(int index, TNote note) where TNote : Note<TNote>
             {
-                // TODO: Verify that this is all we need. It seems like it logically should be
-                //  since any time we are called while there are still notes in the note group
-                //  that have not been processed we immediately return. It logically follows that
-                //  we should only pass this gate once per note group on the final call.
-
-                // TODO: Figure a better way to handle vocals not being fully hit or missed
                 if (!note.WasFullyMissed() && note is not VocalNote)
                 {
                     return;
