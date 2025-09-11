@@ -291,7 +291,7 @@ namespace YARG.Core.Engine.Guitar.Engines
 
         protected override bool CanNoteBeHit(GuitarNote note)
         {
-            ulong buttonsMasked = EffectiveButtonMask;
+            ushort buttonsMasked = EffectiveButtonMask;
             if (ActiveSustains.Count > 0)
             {
                 foreach (var sustain in ActiveSustains)
@@ -316,7 +316,7 @@ namespace YARG.Core.Engine.Guitar.Engines
 
                 // If the resulting masked buttons are 0, we need to apply the Open Mask so open notes can be hit
                 // Need to make a copy of the button mask to prevent modifying the original
-                ulong buttonMaskCopy = EffectiveButtonMask;
+                ushort buttonMaskCopy = EffectiveButtonMask;
                 if (buttonsMasked == 0)
                 {
                     buttonsMasked |= OPEN_MASK;
@@ -333,13 +333,13 @@ namespace YARG.Core.Engine.Guitar.Engines
             // If masked/extended sustain logic didn't work, try original ButtonMask
             return IsNoteHittable(note, EffectiveButtonMask);
 
-            static bool IsNoteHittable(GuitarNote note, ulong buttonsMasked)
+            static bool IsNoteHittable(GuitarNote note, ushort buttonsMasked)
             {
                 // Only used for sustain logic
                 bool useDisjointSustainMask = note is { IsDisjoint: true, WasHit: true };
 
                 // Use the DisjointMask for comparison if disjointed and was hit (for sustain logic)
-                ulong noteMask = useDisjointSustainMask ? note.DisjointMask : note.NoteMask;
+                int noteMask = useDisjointSustainMask ? note.DisjointMask : note.NoteMask;
 
                 // If disjointed and is sustain logic (was hit), can hit if disjoint mask matches
                 if (useDisjointSustainMask && (note.DisjointMask & buttonsMasked) != 0)
@@ -379,7 +379,7 @@ namespace YARG.Core.Engine.Guitar.Engines
                 // Anchoring
 
                 // XORing the two masks will give the anchor (held frets) around the note.
-                ulong anchorButtons = buttonsMasked ^ noteMask;
+                int anchorButtons = buttonsMasked ^ noteMask;
 
                 // Chord logic
                 if (note.IsChord)
@@ -393,10 +393,10 @@ namespace YARG.Core.Engine.Guitar.Engines
                     // Anchoring hopo/tap chords
 
                     // Gets the lowest fret of the chord.
-                    var chordMask = 0UL;
+                    var chordMask = 0;
                     for (var fret = GuitarAction.GreenFret; fret <= GuitarAction.OrangeFret; fret++)
                     {
-                        chordMask = 1UL << (int) fret;
+                        chordMask = 1 << (int) fret;
 
                         // If the current fret mask is part of the chord, break
                         if ((chordMask & note.NoteMask) == chordMask)
@@ -513,7 +513,7 @@ namespace YARG.Core.Engine.Guitar.Engines
             return false;
         }
 
-        private static int GetMostSignificantBit(ulong mask)
+        private static int GetMostSignificantBit(int mask)
         {
             // Gets the most significant bit of the mask
             var msbIndex = 0;

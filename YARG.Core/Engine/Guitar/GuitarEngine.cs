@@ -9,17 +9,17 @@ namespace YARG.Core.Engine.Guitar
         GuitarStats>
     {
         // Mask of all the solo buttons in bit math
-        protected const ulong SOLO_MASK = 31744;
+        protected const ushort SOLO_MASK = 31744;
 
-        public const ulong OPEN_MASK = 64;
+        public const byte OPEN_MASK = 64;
 
         public delegate void OverstrumEvent();
 
         public OverstrumEvent? OnOverstrum;
 
-        public ulong EffectiveButtonMask { get; protected set; } = OPEN_MASK;
-        public ulong InputButtonMask { get; protected set; }
-        public ulong LastButtonMask { get; protected set; }
+        public byte EffectiveButtonMask { get; protected set; } = OPEN_MASK;
+        public ushort InputButtonMask { get; protected set; }
+        public byte LastButtonMask { get; protected set; }
 
         public bool StandardButtonHeld  { get; private set; }
 
@@ -88,7 +88,7 @@ namespace YARG.Core.Engine.Guitar
 
         public override void Reset(bool keepCurrentButtons = false)
         {
-            ulong buttons = EffectiveButtonMask;
+            byte buttons = EffectiveButtonMask;
 
             EffectiveButtonMask = OPEN_MASK;
 
@@ -391,7 +391,7 @@ namespace YARG.Core.Engine.Guitar
 
         public bool IsFretHeld(GuitarAction fret)
         {
-            return (EffectiveButtonMask & (1UL << (int) fret)) != 0;
+            return (EffectiveButtonMask & (1 << (int) fret)) != 0;
         }
 
         protected static bool IsFretInput(GameInput input)

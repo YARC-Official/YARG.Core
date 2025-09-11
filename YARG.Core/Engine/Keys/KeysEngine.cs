@@ -31,9 +31,9 @@ namespace YARG.Core.YARG.Core.Engine.ProKeys
         public OverhitEvent? OnOverhit;
 
         // Used for hit logic. May not be the same value as KeyHeldMask
-        public ulong KeyMask { get; protected set; }
+        public int KeyMask { get; protected set; }
 
-        public ulong PreviousKeyMask { get; protected set; }
+        public int PreviousKeyMask { get; protected set; }
 
         protected abstract double[] KeyPressTimes { get; }
 
@@ -169,7 +169,7 @@ namespace YARG.Core.YARG.Core.Engine.ProKeys
 
         protected void ToggleKey(int key, bool active)
         {
-            KeyMask = active ? KeyMask | (1UL << key) : KeyMask & ~(1UL << key);
+            KeyMask = active ? KeyMask | (1 << key) : KeyMask & ~(1 << key);
         }
 
         protected bool IsKeyInTime(TNoteType note, int key, double frontEnd)

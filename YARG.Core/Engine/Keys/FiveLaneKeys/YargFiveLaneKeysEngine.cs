@@ -91,7 +91,7 @@ namespace YARG.Core.YARG.Core.Engine.Keys.FiveLaneKeys
                 {
                     YargLogger.LogFormatTrace("Fat Finger timer expired at {0}", CurrentTime);
 
-                    var fatFingerKeyMask = 1UL << FatFingerKey;
+                    var fatFingerKeyMask = 1 << FatFingerKey;
 
                     var isHoldingWrongKey = (KeyMask & fatFingerKeyMask) == fatFingerKeyMask;
 
@@ -172,7 +172,7 @@ namespace YARG.Core.YARG.Core.Engine.Keys.FiveLaneKeys
                             foreach (var note in parentNote.AllNotes)
                             {
                                 // This key in the chord was held by the time chord staggering ended, so it can be hit
-                                if ((KeyMask & (ulong)note.DisjointMask) == (ulong)note.DisjointMask && IsKeyInTime(note, frontEnd))
+                                if ((KeyMask & note.DisjointMask) == note.DisjointMask && IsKeyInTime(note, frontEnd))
                                 {
                                     HitNote(note);
                                     YargLogger.LogFormatTrace("Hit staggered note {0} in chord", (int)note.FiveLaneKeysAction);
@@ -298,7 +298,7 @@ namespace YARG.Core.YARG.Core.Engine.Keys.FiveLaneKeys
             double hitWindow = EngineParameters.HitWindow.CalculateHitWindow(GetAverageNoteDistance(note));
             double frontEnd = EngineParameters.HitWindow.GetFrontEnd(hitWindow);
 
-            if ((KeyMask & (ulong)note.NoteMask) == (ulong)note.NoteMask)
+            if ((KeyMask & note.NoteMask) == note.NoteMask)
             {
                 foreach (var childNote in note.AllNotes)
                 {
@@ -318,7 +318,7 @@ namespace YARG.Core.YARG.Core.Engine.Keys.FiveLaneKeys
         {
             float botNoteHoldTime = 0.166f;
             GuitarNote? note = null;
-            ulong keysInSustain = 0;
+            int keysInSustain = 0;
 
             if (!IsBot)
             {
@@ -335,7 +335,7 @@ namespace YARG.Core.YARG.Core.Engine.Keys.FiveLaneKeys
             // Find the active sustains
             foreach (var sustain in ActiveSustains)
             {
-                keysInSustain |= 1UL << (int)sustain.Note.FiveLaneKeysAction;
+                keysInSustain |= 1 << (int)sustain.Note.FiveLaneKeysAction;
             }
 
             // Release no longer needed keys
@@ -362,7 +362,7 @@ namespace YARG.Core.YARG.Core.Engine.Keys.FiveLaneKeys
 
                 if (!currentKey)
                 {
-                    if ((keysInSustain & 1UL << key) != 0)
+                    if ((keysInSustain & 1 << key) != 0)
                     {
                         keyProtected = true;
                     }
@@ -387,7 +387,7 @@ namespace YARG.Core.YARG.Core.Engine.Keys.FiveLaneKeys
                     }
 
                     // if the key isn't protected due to a sustain and another note is being played, release the key
-                    if (note is not null && (keysInSustain & 1UL << key) == 0 && time >= note.Time)
+                    if (note is not null && (keysInSustain & 1 << key) == 0 && time >= note.Time)
                     {
                         keyProtected = false;
                     }
@@ -400,7 +400,7 @@ namespace YARG.Core.YARG.Core.Engine.Keys.FiveLaneKeys
                     // We loop to ensure that all notes in a chord are released at the same time
                     foreach (var chordNote in pressedNote.AllNotes)
                     {
-                        if ((keysInSustain & 1UL << (int)chordNote.FiveLaneKeysAction) == 0)
+                        if ((keysInSustain & 1 << (int)chordNote.FiveLaneKeysAction) == 0)
                         {
                             var action = FiveLaneKeysActionToProKeysAction(chordNote.FiveLaneKeysAction);
                             MutateStateWithInput(new GameInput(time, (int)action, false));
@@ -454,17 +454,17 @@ namespace YARG.Core.YARG.Core.Engine.Keys.FiveLaneKeys
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static bool IsFiveLaneKeysAction(ProKeysAction action)
         {
-            return (ALLOWED_FIVE_LANE_KEYS_ACTIONS & (1UL << (int) action)) != 0;
+            return (ALLOWED_FIVE_LANE_KEYS_ACTIONS & (1 << (int) action)) != 0;
         }
 
-        private const ulong ALLOWED_FIVE_LANE_KEYS_ACTIONS =
-            1UL << (int) ProKeysAction.GreenKey |
-            1UL << (int) ProKeysAction.RedKey |
-            1UL << (int) ProKeysAction.YellowKey |
-            1UL << (int) ProKeysAction.BlueKey |
-            1UL << (int) ProKeysAction.OrangeKey |
-            1UL << (int) ProKeysAction.OpenNote |
-            1UL << (int) ProKeysAction.StarPower |
-            1UL << (int) ProKeysAction.TouchEffects;
+        private const int ALLOWED_FIVE_LANE_KEYS_ACTIONS =
+            1 << (int) ProKeysAction.GreenKey |
+            1 << (int) ProKeysAction.RedKey |
+            1 << (int) ProKeysAction.YellowKey |
+            1 << (int) ProKeysAction.BlueKey |
+            1 << (int) ProKeysAction.OrangeKey |
+            1 << (int) ProKeysAction.OpenNote |
+            1 << (int) ProKeysAction.StarPower |
+            1 << (int) ProKeysAction.TouchEffects;
     }
 }

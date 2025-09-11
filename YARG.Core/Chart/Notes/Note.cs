@@ -243,12 +243,12 @@ namespace YARG.Core.Chart
             }
         }
 
-        protected static ulong GetNoteMask(int note)
+        protected static int GetNoteMask(int note)
         {
             // Resulting shift is 1 too high, shifting down by 1 corrects this.
             // Reason for not doing (note - 1) is this breaks open notes. (1 << (0 - 1) == 0x80000000)
             // Shifting down by 1 accounts for open notes and sets the mask to 0.
-            ulong mask = 1UL << note;
+            int mask = 1 << note;
             mask >>= 1;
             return mask;
         }

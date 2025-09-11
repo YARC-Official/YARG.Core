@@ -83,7 +83,7 @@ namespace YARG.Core.Engine.ProKeys.Engines
                 {
                     YargLogger.LogFormatTrace("Fat Finger timer expired at {0}", CurrentTime);
 
-                    var fatFingerKeyMask = 1UL << FatFingerKey;
+                    var fatFingerKeyMask = 1 << FatFingerKey;
 
                     var isHoldingWrongKey = (KeyMask & fatFingerKeyMask) == fatFingerKeyMask;
 
