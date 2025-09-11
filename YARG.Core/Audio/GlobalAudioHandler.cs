@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Threading.Tasks;
@@ -50,6 +50,7 @@ namespace YARG.Core.Audio
                 { SongStem.Sfx,      new StemSettings() },
                 { SongStem.DrumSfx,  new StemSettings() },
                 { SongStem.VoxSample, new StemSettings() },
+                { SongStem.Preview, new StemSettings() },
             };
         }
 
