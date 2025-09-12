@@ -7,9 +7,13 @@ namespace YARG.Core.Engine
     // Tracks and instantiates engines, handles IPC between engines, and events that affect multiple engines
     public partial class EngineManager
     {
-        private int _nextEngineIndex;
-        List <EngineContainer> _allEngines = new();
+        private int                      _nextEngineIndex;
+        List <EngineContainer>           _allEngines     = new();
         Dictionary<int, EngineContainer> _allEnginesById = new();
+
+        public List<EngineContainer> Engines => _allEngines;
+
+        private SongChart?               _chart;
 
         public class Band
         {
@@ -23,24 +27,13 @@ namespace YARG.Core.Engine
             }
         }
 
-        public class EngineContainer
+        public partial class EngineContainer
         {
             public  int          EngineId      { get; }
             public  BaseEngine   Engine        { get; }
-            private Instrument   Instrument    { get; }
+            public  Instrument   Instrument    { get; }
             private SongChart    SongChart     { get; }
             public  List<Phrase> UnisonPhrases { get; }
-
-            public enum EngineCommandType
-            {
-                AwardUnisonBonus,
-            }
-
-            private struct EngineCommand
-            {
-                public EngineCommandType CommandType;
-                public double            Time;
-            }
 
             private List<EngineCommand> _sentCommands = new();
             private int                 _commandCount => _sentCommands.Count;
@@ -54,6 +47,8 @@ namespace YARG.Core.Engine
                 SongChart = songChart;
                 UnisonPhrases = GetUnisonPhrases(Instrument, SongChart);
                 _engineManager = manager;
+
+                SubscribeToEngineEvents();
             }
 
             public void SendCommand(EngineCommandType command)
@@ -84,6 +79,18 @@ namespace YARG.Core.Engine
         public EngineContainer Register<TEngineType>(TEngineType engine, Instrument instrument, SongChart chart)
             where TEngineType : BaseEngine
         {
+            if (_chart == null)
+            {
+                _chart = chart;
+            }
+            else
+            {
+                if (_chart != chart)
+                {
+                    throw new ArgumentException("Cannot register engine with different chart");
+                }
+            }
+
             var engineContainer = new EngineContainer(engine, instrument, chart, _nextEngineIndex++, this);
 
             _allEngines.Add(engineContainer);
@@ -111,6 +118,17 @@ namespace YARG.Core.Engine
             {
                 engine.UpdateEngine(time);
             }
+        }
+
+        public enum EngineCommandType
+        {
+            AwardUnisonBonus,
+        }
+
+        private struct EngineCommand
+        {
+            public EngineCommandType CommandType;
+            public double            Time;
         }
     }
 }

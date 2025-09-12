@@ -56,9 +56,14 @@ namespace MoonscraperChartEditor.Song.IO
             public ParseSettings settings;
             public TimedMidiEvent timedEvent;
 
-            public Dictionary<int, EventProcessFn> noteProcessMap;
-            public Dictionary<int, EventProcessFn> phraseProcessMap;
-            public Dictionary<string, ProcessModificationProcessFn> textProcessMap;
+            public Dictionary<int, EventProcessFn>                        noteProcessMap;
+            public Dictionary<int, EventProcessFn>                        phraseProcessMap;
+            public Dictionary<int, EventProcessFn>                        animationProcessMap;
+            public Dictionary<string, ProcessModificationProcessFn>       textProcessMap;
+            // This isn't strictly necessary given that the signatures for both delegates are the same,
+            // but it seems less confusing to have text events that need to be processed into other kinds
+            // of events handled separately from ones that modify parsing behavior
+            public Dictionary<string, EventProcessFn>                     textEventProcessMap;
             public Dictionary<PhaseShiftSysEx.PhraseCode, EventProcessFn> sysexProcessMap;
 
             public List<EventProcessFn> forcingProcessList;
@@ -203,6 +208,7 @@ namespace MoonscraperChartEditor.Song.IO
 
                         YargLogger.LogFormatTrace("Loading MIDI track {0}", trackName);
                         ReadNotes(ref settings, track, song, instrument);
+                        ReadAnimations(track, song, instrument);
                         break;
                 }
             }
@@ -386,7 +392,7 @@ namespace MoonscraperChartEditor.Song.IO
                     // Get new representation of the event
                     if (VenueLookup.VENUE_TEXT_CONVERSION_LOOKUP.TryGetValue(eventText, out var eventData))
                     {
-                        song.Add(new MoonVenue(eventData.type, eventData.text, (uint)absoluteTime));
+                        MoonObjectHelper.OrderedInsertFromBack(new MoonVenue(eventData.type, eventData.text, (uint)absoluteTime), song.venue);
                     }
                     else
                     {
@@ -406,13 +412,45 @@ namespace MoonscraperChartEditor.Song.IO
                             }
 
                             matched = true;
-                            song.Add(new MoonVenue(type, converted, (uint)absoluteTime));
+                            MoonObjectHelper.OrderedInsertFromBack(new MoonVenue(type, converted, (uint)absoluteTime), song.venue);
                             break;
                         }
 
                         // Unknown events
                         if (!matched)
-                            song.Add(new MoonVenue(VenueLookup.Type.Unknown, eventText, (uint)absoluteTime));
+                            MoonObjectHelper.OrderedInsertFromBack(new MoonVenue(VenueLookup.Type.Unknown, eventText, (uint)absoluteTime), song.venue);
+                    }
+                }
+            }
+        }
+
+        private static void ReadAnimations(TrackChunk track, MoonSong song, MoonSong.MoonInstrument instrument)
+        {
+            // We are only dealing with the text event form here (for now)
+            if (track.Events.Count < 1)
+                return;
+
+            YargLogger.LogTrace("Reading animations track");
+
+            for(var i = 0; i < track.Events.Count; i++)
+            {
+                var trackEvent = track.Events[i];
+                if (MidIOHelper.IsTextEvent(trackEvent, out var text))
+                {
+                    bool matched = false;
+                    foreach (var (regex, (lookup, type, defaultValue)) in MidIOHelper.ANIMATION_EVENT_REGEX_TO_LOOKUP)
+                    {
+                        if (regex.Match(text.Text) is not { Success: true } match)
+                            continue;
+
+                        if (!lookup.TryGetValue(match.Groups[1].Value, out string converted))
+                        {
+                            if (string.IsNullOrEmpty(defaultValue))
+                                continue;
+                            converted = defaultValue;
+                        }
+
+                        matched = true;
                     }
                 }
             }
@@ -443,7 +481,9 @@ namespace MoonscraperChartEditor.Song.IO
                 settings = settings,
                 noteProcessMap = GetNoteProcessDict(gameMode),
                 phraseProcessMap = GetPhraseProcessDict(settings.StarPowerNote, gameMode),
-                textProcessMap = GetTextEventProcessDict(gameMode),
+                animationProcessMap = GetAnimationProcessDict(gameMode),
+                textProcessMap = GetParsingModificationTextProcessDict(gameMode),
+                textEventProcessMap = GetAnimationTextEventProcessDict(gameMode),
                 sysexProcessMap = GetSysExEventProcessDict(gameMode),
                 forcingProcessList = new(),
                 sysexProcessList = new(),
@@ -542,7 +582,8 @@ namespace MoonscraperChartEditor.Song.IO
                 processParams.timedEvent.endTick = absoluteTick;
 
                 if (processParams.noteProcessMap.TryGetValue(noteStart.NoteNumber, out var processFn) ||
-                    processParams.phraseProcessMap.TryGetValue(noteStart.NoteNumber, out processFn))
+                    processParams.phraseProcessMap.TryGetValue(noteStart.NoteNumber, out processFn) ||
+                    processParams.animationProcessMap.TryGetValue(noteStart.NoteNumber, out processFn))
                 {
                     processFn(ref processParams);
                 }
@@ -692,6 +733,32 @@ namespace MoonscraperChartEditor.Song.IO
             MoonObjectHelper.OrderedInsertFromBack(newMoonNote, chart.notes);
         }
 
+        private static void ProcessNoteOnEventAsAnimation(ref EventProcessParams eventProcessParams, MoonSong.Difficulty diff, int noteNumber)
+        {
+            var chart = eventProcessParams.song.GetChart(eventProcessParams.instrument, diff);
+
+            var timedEvent = eventProcessParams.timedEvent;
+            uint tick = (uint)timedEvent.startTick;
+            uint length = (uint)timedEvent.length;
+
+            Dictionary<int, (AnimationLookup.Type, string)> lookup = MidIOHelper.FIVEFRET_ANIMATION_NOTE_LOOKUP;
+            if (eventProcessParams.instrument == MoonSong.MoonInstrument.Drums)
+            {
+                lookup = MidIOHelper.DRUM_ANIMATION_NOTE_LOOKUP;
+            }
+
+            if (!lookup.TryGetValue((byte) noteNumber, out var eventData))
+            {
+                return;
+            }
+
+            var newMoonAnim = new MoonAnimation(eventData.Item1, eventData.Item2, tick, length);
+            if (chart.animationNotes.Capacity == 0)
+                chart.animationNotes.Capacity = 5000;
+
+            MoonObjectHelper.OrderedInsertFromBack(newMoonAnim, chart.animationNotes);
+        }
+
         private static void ProcessNoteOnEventAsSpecialPhrase(ref EventProcessParams eventProcessParams,
             MoonPhrase.Type type, MoonSong.Difficulty? difficulty = null)
         {
@@ -716,6 +783,7 @@ namespace MoonscraperChartEditor.Song.IO
                     song.GetChart(instrument, difficulty.Value).specialPhrases);
             }
         }
+
 
         private static void ProcessNoteOnEventAsGuitarForcedType(ref EventProcessParams eventProcessParams, MoonNote.MoonNoteType noteType)
         {

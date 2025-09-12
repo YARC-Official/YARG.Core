@@ -1,6 +1,8 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Threading.Tasks;
+using YARG.Core.Logging;
 
 namespace YARG.Core.Audio
 {
@@ -31,22 +33,24 @@ namespace YARG.Core.Audio
 
             StemSettings = new()
             {
-                { SongStem.Song,    new StemSettings() },
-                { SongStem.Guitar,  new StemSettings() },
-                { SongStem.Bass,    new StemSettings() },
-                { SongStem.Rhythm,  new StemSettings() },
-                { SongStem.Keys,    new StemSettings() },
-                { SongStem.Vocals,  vocals },
-                { SongStem.Vocals1, vocals },
-                { SongStem.Vocals2, vocals },
-                { SongStem.Drums,   drums },
-                { SongStem.Drums1,  drums },
-                { SongStem.Drums2,  drums },
-                { SongStem.Drums3,  drums },
-                { SongStem.Drums4,  drums },
-                { SongStem.Crowd,   new StemSettings() },
-                { SongStem.Sfx,     new StemSettings() },
-                { SongStem.DrumSfx, new StemSettings() },
+                { SongStem.Song,     new StemSettings() },
+                { SongStem.Guitar,   new StemSettings() },
+                { SongStem.Bass,     new StemSettings() },
+                { SongStem.Rhythm,   new StemSettings() },
+                { SongStem.Keys,     new StemSettings() },
+                { SongStem.Vocals,   vocals },
+                { SongStem.Vocals1,  vocals },
+                { SongStem.Vocals2,  vocals },
+                { SongStem.Drums,    drums },
+                { SongStem.Drums1,   drums },
+                { SongStem.Drums2,   drums },
+                { SongStem.Drums3,   drums },
+                { SongStem.Drums4,   drums },
+                { SongStem.Crowd,    new StemSettings() },
+                { SongStem.Sfx,      new StemSettings() },
+                { SongStem.DrumSfx,  new StemSettings() },
+                { SongStem.VoxSample, new StemSettings() },
+                { SongStem.Preview, new StemSettings() },
             };
         }
 
@@ -256,6 +260,19 @@ namespace YARG.Core.Audio
                     throw new NotInitializedException();
                 }
                 _instance.DrumSfxSamples[(int) sample]?.Play(volume);
+            }
+        }
+
+        public static void PlayVoxSample(VoxSample sample)
+        {
+            lock (_instanceLock)
+            {
+                if (_instance == null)
+                {
+                    throw new NotInitializedException();
+                }
+
+                _instance.VoxSamples[(int) sample]?.Play();
             }
         }
 

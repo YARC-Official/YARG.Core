@@ -4,8 +4,10 @@ using YARG.Core.Chart;
 using YARG.Core.Engine.Drums;
 using YARG.Core.Engine.Guitar;
 using YARG.Core.Engine.ProKeys;
+using YARG.Core.Engine.Vocals;
 using YARG.Core.Logging;
 using YARG.Core.Extensions;
+using YARG.Core.IO;
 
 namespace YARG.Core.Engine
 {
@@ -76,12 +78,25 @@ namespace YARG.Core.Engine
         {
             public double Time;
             public double TimeEnd;
+            public uint Tick;
+            public uint TickEnd;
             public Phrase PhraseRef;
+
+            public StarPowerSection(double time, double timeEnd, uint tick, uint tickEnd, Phrase phrase)
+            {
+                Time = time;
+                TimeEnd = timeEnd;
+                Tick = tick;
+                TickEnd = tickEnd;
+                PhraseRef = phrase;
+            }
 
             public StarPowerSection(double time, double timeEnd, Phrase phrase)
             {
                 Time = time;
                 TimeEnd = timeEnd;
+                Tick = phrase.Tick;
+                TickEnd = phrase.TickEnd;
                 PhraseRef = phrase;
             }
 
@@ -90,6 +105,30 @@ namespace YARG.Core.Engine
             public override bool Equals(object obj) => obj is StarPowerSection other && Equals(other);
 
             public override int GetHashCode() => HashCode.Combine(Time, TimeEnd);
+
+            /// <summary>
+            /// Checks if two StarPowerSection objects are within <b>ticks</b> tolerance of each other.
+            ///
+            /// Note: The intent here is that tolerance should normally be 1/16th of a measure, minus 1 tick,
+            /// but it has to be passed in since we can't know the chart resolution here
+            /// </summary>
+            /// <param name="other"></param>
+            /// <param name="tolerance">ticks of tolerance</param>
+            /// <returns></returns>
+            public bool TickAlmostEquals(StarPowerSection other, uint tolerance)
+            {
+                return Math.Abs(Tick - other.Tick) <= tolerance && Math.Abs(TickEnd - other.TickEnd) <= tolerance;
+            }
+
+            public bool StartTickAlmostEquals(StarPowerSection other, uint tolerance)
+            {
+                return Math.Abs(Tick - other.Tick) <= tolerance;
+            }
+
+            public bool EndTickAlmostEquals(StarPowerSection other, uint tolerance)
+            {
+                return Math.Abs(TickEnd - other.TickEnd) <= tolerance;
+            }
         }
 
         public delegate void UnisonPhrasesReadyEvent(List<UnisonEvent> unisonEvents);
@@ -103,7 +142,7 @@ namespace YARG.Core.Engine
         // Instrument groups whose combination cannot be the source of a unison
         public static readonly List<List<Instrument>> InstrumentGroups = new List<List<Instrument>>()
         {
-            new List<Instrument> { Instrument.FiveFretGuitar, Instrument.ProGuitar_17Fret, Instrument.ProGuitar_22Fret, Instrument.SixFretGuitar },
+            new List<Instrument> { Instrument.FiveFretGuitar, Instrument.ProGuitar_17Fret, Instrument.ProGuitar_22Fret, Instrument.SixFretGuitar, Instrument.FiveFretCoopGuitar, Instrument.FiveFretRhythm },
             new List<Instrument> { Instrument.FiveFretBass, Instrument.ProBass_17Fret, Instrument.ProBass_22Fret, Instrument.SixFretBass },
             new List<Instrument> { Instrument.FourLaneDrums, Instrument.FiveLaneDrums, Instrument.ProDrums, Instrument.EliteDrums },
             new List<Instrument> { Instrument.Keys, Instrument.ProKeys }
@@ -111,6 +150,12 @@ namespace YARG.Core.Engine
 
         private void AddPlayerToUnisons(EngineContainer engineContainer)
         {
+            // Vocals don't participate in unisons, so don't add them to the list
+            if (engineContainer.Engine is BaseEngine<VocalNote, VocalsEngineParameters, VocalsStats>)
+            {
+                return;
+            }
+
             foreach (var phrase in engineContainer.UnisonPhrases)
             {
                 var unisonEvent = new UnisonEvent(phrase.Time, phrase.TimeEnd);
@@ -158,20 +203,18 @@ namespace YARG.Core.Engine
         /// </returns>
         public static List<Phrase> GetUnisonPhrases(Instrument instrument, SongChart chart)
         {
-            var phrases = new List<Phrase>();
-            // the list we will compare against to find unisons
-            var sourceSpSections = new List<StarPowerSection>();
-            var othersSpSections = new List<StarPowerSection>();
-            var outSpSections = new List<StarPowerSection>();
-            // This list should have the instruments with duplicate SP phrases removed
-            var acceptedSpSections = new List<List<StarPowerSection>>();
+            // Unisons must have at least 2 participants.
+
+            // A sixteenth note minus a tick
+            var tickTolerance = (chart.Resolution / 4) - 1;
 
             // Since vocals can't have unisons, we may as well pull the ripcord early
             if (instrument is Instrument.Vocals or Instrument.Harmony)
             {
-                return phrases;
+                return new List<Phrase>();
             }
 
+            var sourceSpSections = new List<StarPowerSection>();
             var foundSelf = false;
 
             // Find a track that corresponds to the player's instrument
@@ -232,40 +275,78 @@ namespace YARG.Core.Engine
             if (!foundSelf)
             {
                 YargLogger.LogFormatError("Could not find any instrument difficulty for {0}", instrument);
-                return phrases;
+                return new List<Phrase>();
             }
 
             // Add ourselves to the beginning of the accepted list so any dupes with us will be filtered
-            acceptedSpSections.Add(sourceSpSections);
+            var acceptedSpSections = new List<List<StarPowerSection>> { sourceSpSections };
 
-            chart.FiveFretTracks.GetStarpowerSections(ref acceptedSpSections, instrument);
-            chart.SixFretTracks.GetStarpowerSections(ref acceptedSpSections, instrument);
-            chart.DrumsTracks.GetStarpowerSections(ref acceptedSpSections, instrument);
-            chart.ProKeys.GetStarpowerSections(ref acceptedSpSections, instrument);
-            chart.Keys.GetStarpowerSections(ref acceptedSpSections, instrument);
+            chart.FiveFretTracks.GetStarpowerSections(ref acceptedSpSections, instrument, tickTolerance);
+            chart.SixFretTracks.GetStarpowerSections(ref acceptedSpSections, instrument, tickTolerance);
+            chart.DrumsTracks.GetStarpowerSections(ref acceptedSpSections, instrument, tickTolerance);
+            chart.ProKeys.GetStarpowerSections(ref acceptedSpSections, instrument, tickTolerance);
+            chart.Keys.GetStarpowerSections(ref acceptedSpSections, instrument, tickTolerance);
 
             // Now we delete self from the accepted list to ensure we don't match against self
             acceptedSpSections.Remove(sourceSpSections);
 
-            // Unpack all the accepted sp sections into othersSpSections
-            foreach (var section in acceptedSpSections)
+            // Unpack all the accepted sp sections into a single list for easier comparison
+            var othersSpSections = new List<StarPowerSection>();
+            foreach (var sectionList in acceptedSpSections)
             {
-                othersSpSections.AddRange(section);
+                othersSpSections.AddRange(sectionList);
             }
 
-            // Now that we have all the SP sections, compare them
-            foreach (var section in othersSpSections)
+            var phrases = new List<Phrase>();
+            var potentialGroup = new List<StarPowerSection>();
+            var finalParticipants = new List<StarPowerSection>();
+
+            // For each of the player's SP phrases, see if it's part of a valid unison
+            foreach (var sourceSection in sourceSpSections)
             {
-                if (sourceSpSections.Contains(section) && !outSpSections.Contains(section))
+                // Find all phrases that start at roughly the same time
+                potentialGroup.Clear();
+                potentialGroup.Add(sourceSection);
+
+                foreach (var otherSection in othersSpSections)
                 {
-                    outSpSections.Add(section);
+                    if (sourceSection.StartTickAlmostEquals(otherSection, tickTolerance))
+                    {
+                        potentialGroup.Add(otherSection);
+                    }
                 }
-            }
 
-            // Build the phrase list we actually want to return
-            foreach (var section in outSpSections)
-            {
-                phrases.Add(section.PhraseRef);
+                // A unison needs at least two participants
+                if (potentialGroup.Count < 2)
+                {
+                    continue;
+                }
+
+                // Find the benchmark phrase (the one that starts earliest)
+                var benchmark = potentialGroup[0];
+                for (int i = 1; i < potentialGroup.Count; i++)
+                {
+                    if (potentialGroup[i].Tick < benchmark.Tick)
+                    {
+                        benchmark = potentialGroup[i];
+                    }
+                }
+
+                // Find all phrases in the group that end at roughly the same time as the benchmark
+                finalParticipants.Clear();
+                foreach (var participant in potentialGroup)
+                {
+                    if (participant.EndTickAlmostEquals(benchmark, tickTolerance))
+                    {
+                        finalParticipants.Add(participant);
+                    }
+                }
+
+                // If we still have at least two, it's a valid unison.
+                if (finalParticipants.Count >= 2)
+                {
+                    phrases.Add(sourceSection.PhraseRef);
+                }
             }
 
             return phrases;
@@ -319,7 +400,7 @@ namespace YARG.Core.Engine
             {
                 YargLogger.LogFormatDebug("EngineManager awarding bonus SP to participant ID {0}", id);
                 var engineContainer = _allEnginesById[id];
-                engineContainer.SendCommand(EngineContainer.EngineCommandType.AwardUnisonBonus);
+                engineContainer.SendCommand(EngineCommandType.AwardUnisonBonus);
             }
             unison.Awarded = true;
         }
