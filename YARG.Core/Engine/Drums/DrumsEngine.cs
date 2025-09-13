@@ -64,6 +64,12 @@ namespace YARG.Core.Engine.Drums
                 return;
             }
 
+            // Cancel overhit if we've been told to ignore overhits.
+            if (EngineParameters.IgnoreOverhits)
+            {
+                return;
+            }
+
             // Cancel overhit if past last note
             if (NoteIndex >= Chart.Notes.Count - 1)
             {
