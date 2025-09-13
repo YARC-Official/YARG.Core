@@ -10,14 +10,13 @@ namespace YARG.Core.Engine
 {
     public partial class EngineManager
     {
-        private const float INITIAL_CROWD_HAPPINESS        = 0.85f;
         private const float HAPPINESS_FAIL_THRESHOLD       = 0.0f;
         private const float HAPPINESS_PER_NOTE_HIT         = 0.01f;
         private const float HAPPINESS_PER_NOTE_MISS        = 0.04f;
         private const float HAPPINESS_PER_OVERSTRUM        = HAPPINESS_PER_NOTE_MISS / 2;
-        private const int   HAPPINESS_STARPOWER_MULTIPLIER = 5;
 
         private const float HAPPINESS_CROWD_THRESHOLD      = 0.83f;
+        private const float HAPPINESS_MINIMUM              = -1.5f;  
         public        float Happiness => GetAverageHappiness();
 
         private int _starpowerCount = 0;
@@ -60,8 +59,8 @@ namespace YARG.Core.Engine
 
         public partial class EngineContainer
         {
-            public float Happiness { get; private set; } = INITIAL_CROWD_HAPPINESS;
-            private float _previousHappiness = INITIAL_CROWD_HAPPINESS;
+            public float Happiness { get; private set; } = 0.0f;
+            private float _previousHappiness = 0.0f;
 
             public delegate void SongFailed();
 
@@ -82,15 +81,13 @@ namespace YARG.Core.Engine
                     return;
                 }
 
-
+                var delta = HAPPINESS_PER_NOTE_HIT * RockMeterPreset.HitRecoveryMultiplier;
                 if (_engineManager.IsAnyStarpowerActive)
                 {
-                    Happiness = Math.Clamp(Happiness + HAPPINESS_PER_NOTE_HIT * HAPPINESS_STARPOWER_MULTIPLIER, -1.5f, 1f);
+                    delta *= RockMeterPreset.StarPowerEffectMultiplier;
                 }
-                else
-                {
-                    Happiness = Math.Clamp(Happiness + HAPPINESS_PER_NOTE_HIT, -1.5f, 1f);
-                }
+
+                Happiness = Math.Clamp(Happiness + delta, -1.5f, 1f);
 
                 // Send over threshold event when happiness goes from below threshold to above
                 if (Happiness >= HAPPINESS_CROWD_THRESHOLD && _previousHappiness < HAPPINESS_CROWD_THRESHOLD)
@@ -107,7 +104,10 @@ namespace YARG.Core.Engine
                 {
                     return;
                 }
-                Happiness = Math.Clamp(Happiness - HAPPINESS_PER_NOTE_MISS, -1.5f, 1f);
+
+                var delta = HAPPINESS_PER_NOTE_MISS * RockMeterPreset.MissDamageMultiplier;
+                Happiness = Math.Clamp(Happiness - delta, HAPPINESS_MINIMUM, 1f);
+
                 if (_engineManager.CheckForFail())
                 {
                     OnSongFailed?.Invoke();
@@ -125,7 +125,9 @@ namespace YARG.Core.Engine
 
             private void OnOverstrum()
             {
-                Happiness = Math.Clamp(Happiness - HAPPINESS_PER_OVERSTRUM, -1.5f, 1f);
+                var delta = HAPPINESS_PER_OVERSTRUM * RockMeterPreset.OverhitDamageMultiplier;
+                Happiness = Math.Clamp(Happiness - delta, HAPPINESS_MINIMUM, 1f);
+
                 if (_engineManager.CheckForFail())
                 {
                     OnSongFailed?.Invoke();

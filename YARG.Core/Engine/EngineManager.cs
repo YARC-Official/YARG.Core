@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using YARG.Core.Chart;
+using YARG.Core.Game;
 
 namespace YARG.Core.Engine
 {
@@ -29,24 +30,28 @@ namespace YARG.Core.Engine
 
         public partial class EngineContainer
         {
-            public  int          EngineId      { get; }
-            public  BaseEngine   Engine        { get; }
-            public  Instrument   Instrument    { get; }
-            private SongChart    SongChart     { get; }
-            public  List<Phrase> UnisonPhrases { get; }
+            public  int             EngineId         { get; }
+            public  BaseEngine      Engine           { get; }
+            public  Instrument      Instrument       { get; }
+            private SongChart       SongChart        { get; }
+            public  List<Phrase>    UnisonPhrases    { get; }
+            public  RockMeterPreset RockMeterPreset  { get; }
 
             private List<EngineCommand> _sentCommands = new();
             private int                 _commandCount => _sentCommands.Count;
             private EngineManager       _engineManager;
 
-            public EngineContainer(BaseEngine engine, Instrument instrument, SongChart songChart, int engineId, EngineManager manager)
+            public EngineContainer(BaseEngine engine, Instrument instrument, SongChart songChart, int engineId, EngineManager manager, RockMeterPreset rockMeterPreset)
             {
                 EngineId = engineId;
                 Engine = engine;
                 Instrument = instrument;
                 SongChart = songChart;
                 UnisonPhrases = GetUnisonPhrases(Instrument, SongChart);
+                RockMeterPreset = rockMeterPreset;
                 _engineManager = manager;
+                Happiness = rockMeterPreset.StartingHappiness;
+                _previousHappiness = rockMeterPreset.StartingHappiness;
 
                 SubscribeToEngineEvents();
             }
@@ -76,7 +81,7 @@ namespace YARG.Core.Engine
             }
         }
 
-        public EngineContainer Register<TEngineType>(TEngineType engine, Instrument instrument, SongChart chart)
+        public EngineContainer Register<TEngineType>(TEngineType engine, Instrument instrument, SongChart chart, RockMeterPreset rockMeterPreset)
             where TEngineType : BaseEngine
         {
             if (_chart == null)
@@ -91,7 +96,7 @@ namespace YARG.Core.Engine
                 }
             }
 
-            var engineContainer = new EngineContainer(engine, instrument, chart, _nextEngineIndex++, this);
+            var engineContainer = new EngineContainer(engine, instrument, chart, _nextEngineIndex++, this, rockMeterPreset);
 
             _allEngines.Add(engineContainer);
             _allEnginesById.Add(engineContainer.EngineId, engineContainer);

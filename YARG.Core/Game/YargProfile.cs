@@ -54,6 +54,7 @@ namespace YARG.Core.Game
         public Guid ColorProfile;
         public Guid CameraPreset;
         public Guid HighwayPreset;
+        public Guid RockMeterPreset;
 
         /// <summary>
         /// The selected instrument.
