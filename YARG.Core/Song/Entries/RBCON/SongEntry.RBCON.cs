@@ -30,6 +30,7 @@ namespace YARG.Core.Song
         private const long NOTE_SNAP_THRESHOLD = 10;
         public const int UNENCRYPTED_MOGG = 0xA;
         public const string SONGUPDATES_DTA = "songs_updates.dta";
+        private const float DEFAULT_VOCAL_SCROLL_SPEED = 2300f;
 
         protected readonly AbridgedFileInfo _root;
         protected readonly string _nodeName;
@@ -760,10 +761,19 @@ namespace YARG.Core.Song
             if (dta.Preview != null)              { entry._metadata.Preview       = dta.Preview.Value; }
             if (dta.HopoThreshold != null)        { entry._settings.HopoThreshold = dta.HopoThreshold.Value; }
             if (dta.SongRating != null)           { entry._metadata.SongRating    = dta.SongRating.Value; }
+            if (dta.VocalSongScrollSpeed != null) {
+                entry._rbMetadata.VocalSongScrollSpeed = dta.VocalSongScrollSpeed.Value;
+
+                // Many charts ignore this setting, so treat the default value as no value for our purposes.
+                // We will determine whether the chart should have had its vocal speed increased
+                if (dta.VocalSongScrollSpeed != DEFAULT_VOCAL_SCROLL_SPEED)
+                {
+                    entry._metadata.VocalScrollSpeedScalingFactor = DEFAULT_VOCAL_SCROLL_SPEED / dta.VocalSongScrollSpeed.Value;
+                }
+            }
 
             if (dta.VocalPercussionBank != null)  { entry._rbMetadata.VocalPercussionBank  = dta.VocalPercussionBank; }
             if (dta.VocalGender != null)          { entry._rbMetadata.VocalGender          = dta.VocalGender.Value; }
-            if (dta.VocalSongScrollSpeed != null) { entry._rbMetadata.VocalSongScrollSpeed = dta.VocalSongScrollSpeed.Value; }
             if (dta.VocalTonicNote != null)       { entry._rbMetadata.VocalTonicNote       = dta.VocalTonicNote.Value; }
             if (dta.VideoVenues != null)          { entry._rbMetadata.VideoVenues          = dta.VideoVenues; }
             if (dta.DrumBank != null)             { entry._rbMetadata.DrumBank             = dta.DrumBank; }

@@ -25,7 +25,8 @@ namespace MoonscraperChartEditor.Song
 
             // Vocals
 
-            Vocals_LyricPhrase,
+            Vocals_ScoringPhrase,
+            Vocals_StaticLyricPhrase,
             Vocals_PercussionPhrase,
             Vocals_RangeShift,
             Vocals_LyricShift,
