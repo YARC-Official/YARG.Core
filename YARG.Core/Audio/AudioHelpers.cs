@@ -38,7 +38,6 @@ namespace YARG.Core.Audio
             "overstrum_2",
             "overstrum_3",
             "overstrum_4",
-            "song_fail"
         };
 
         public static readonly IList<double> SfxVolume = new[]
@@ -137,7 +136,6 @@ namespace YARG.Core.Audio
                 "overstrum_2"       => SfxSample.Overstrum2,
                 "overstrum_3"       => SfxSample.Overstrum3,
                 "overstrum_4"       => SfxSample.Overstrum4,
-                "song_fail"         => SfxSample.FailSound,
                 _                   => SfxSample.NoteMiss,
             };
         }
@@ -309,7 +307,8 @@ namespace YARG.Core.Audio
             "Times6",
             "TimesMany",
             "FullBandFullCombo",
-            "HighScore"
+            "HighScore",
+            "FailSound"
         };
 
         public static VoxSample GetVoxSampleFromName(string name)
@@ -325,6 +324,7 @@ namespace YARG.Core.Audio
                 "TimesMany" => VoxSample.TimesMany,
                 "FullBandFullCombo" => VoxSample.FullBandFullCombo,
                 "HighScore" => VoxSample.HighScore,
+                "FailSound" => VoxSample.FailSound,
                 _ => VoxSample.FullCombo,
             };
         }
