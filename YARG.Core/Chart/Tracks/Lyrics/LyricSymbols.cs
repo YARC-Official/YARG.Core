@@ -23,7 +23,7 @@ namespace YARG.Core.Chart
         PitchSlide = 1 << 4,
         HarmonyHidden = 1 << 5,
         StaticShift = 1 << 6,
-        RangeShift = 1 << 7,
+        RangeShift = 1 << 7
     }
 
     /// <summary>
