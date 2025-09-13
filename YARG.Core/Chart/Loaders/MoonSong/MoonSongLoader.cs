@@ -117,7 +117,7 @@ namespace YARG.Core.Chart
             CreateNoteDelegate<TNote> createNote, ProcessTextDelegate? processText = null)
             where TNote : Note<TNote>
         {
-            _currentMode = instrument.ToGameMode();
+            _currentMode = instrument.ToNativeGameMode();
             _currentInstrument = instrument;
             _currentDifficulty = difficulty;
 

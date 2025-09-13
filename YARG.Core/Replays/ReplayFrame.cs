@@ -39,7 +39,7 @@ namespace YARG.Core.Replays
             }
 
             Profile = new YargProfile(ref stream);
-            switch (Profile.CurrentInstrument.ToGameMode())
+            switch (Profile.GameMode)
             {
                 case GameMode.FiveFretGuitar:
                 case GameMode.SixFretGuitar:
@@ -56,8 +56,8 @@ namespace YARG.Core.Replays
                     Stats = new VocalsStats(ref stream, version);
                     break;
                 case GameMode.ProKeys:
-                    EngineParameters = new ProKeysEngineParameters(ref stream, version);
-                    Stats = new ProKeysStats(ref stream, version);
+                    EngineParameters = new KeysEngineParameters(ref stream, version);
+                    Stats = new KeysStats(ref stream, version);
                     break;
                 default:
                     throw new InvalidOperationException("Stat creation not implemented.");

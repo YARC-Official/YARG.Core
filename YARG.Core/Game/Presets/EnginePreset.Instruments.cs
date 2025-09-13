@@ -311,12 +311,12 @@ namespace YARG.Core.Game
                 };
             }
 
-            public ProKeysEngineParameters Create(float[] starMultiplierThresholds)
+            public KeysEngineParameters Create(float[] starMultiplierThresholds, bool isBass)
             {
                 var hitWindow = HitWindow.Create();
-                return new ProKeysEngineParameters(
+                return new KeysEngineParameters(
                     hitWindow,
-                    DEFAULT_MAX_MULTIPLIER,
+                    isBass ? BASS_MAX_MULTIPLIER : DEFAULT_MAX_MULTIPLIER,
                     DEFAULT_WHAMMY_BUFFER,
                     SustainDropLeniency,
                     starMultiplierThresholds,

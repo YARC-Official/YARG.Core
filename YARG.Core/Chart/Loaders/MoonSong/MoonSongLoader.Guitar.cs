@@ -10,7 +10,7 @@ namespace YARG.Core.Chart
     {
         public InstrumentTrack<GuitarNote> LoadGuitarTrack(Instrument instrument)
         {
-            return instrument.ToGameMode() switch
+            return instrument.ToNativeGameMode() switch
             {
                 GameMode.FiveFretGuitar => LoadGuitarTrack(instrument, CreateFiveFretGuitarNote),
                 GameMode.SixFretGuitar  => LoadGuitarTrack(instrument, CreateSixFretGuitarNote),

@@ -206,6 +206,19 @@
         StarPower = 25,
         /// <summary>The touch effects bar, reported as an axis.</summary>
         TouchEffects = 26,
+
+        /// <summary>Five-lane open note's press state, reported as a button.</summary>
+        OpenNote = 27,
+        /// <summary>Five-lane green key's press state, reported as a button.</summary>
+        GreenKey = 28,
+        /// <summary>Five-lane red key's press state, reported as a button.</summary>
+        RedKey = 29,
+        /// <summary>Five-lane yellow key's press state, reported as a button.</summary>
+        YellowKey = 30,
+        /// <summary>Five-lane blue key's press state, reported as a button.</summary>
+        BlueKey = 31,
+        /// <summary>Five-lane orange key's press state, reported as a button.</summary>
+        OrangeKey = 32
     }
 
     /// <summary>
