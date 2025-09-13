@@ -32,6 +32,7 @@ namespace YARG.Core.Engine
             public  int          EngineId      { get; }
             public  BaseEngine   Engine        { get; }
             public  Instrument   Instrument    { get; }
+            public  int          HarmonyIndex  { get; }
             private SongChart    SongChart     { get; }
             public  List<Phrase> UnisonPhrases { get; }
 
@@ -39,11 +40,12 @@ namespace YARG.Core.Engine
             private int                 _commandCount => _sentCommands.Count;
             private EngineManager       _engineManager;
 
-            public EngineContainer(BaseEngine engine, Instrument instrument, SongChart songChart, int engineId, EngineManager manager)
+            public EngineContainer(BaseEngine engine, Instrument instrument, int harmonyIndex, SongChart songChart, int engineId, EngineManager manager)
             {
                 EngineId = engineId;
                 Engine = engine;
                 Instrument = instrument;
+                HarmonyIndex = harmonyIndex;
                 SongChart = songChart;
                 UnisonPhrases = GetUnisonPhrases(Instrument, SongChart);
                 _engineManager = manager;
@@ -79,6 +81,12 @@ namespace YARG.Core.Engine
         public EngineContainer Register<TEngineType>(TEngineType engine, Instrument instrument, SongChart chart)
             where TEngineType : BaseEngine
         {
+            return Register(engine, instrument, 0, chart);
+        }
+
+        public EngineContainer Register<TEngineType>(TEngineType engine, Instrument instrument, int harmonyIndex, SongChart chart)
+            where TEngineType : BaseEngine
+        {
             if (_chart == null)
             {
                 _chart = chart;
@@ -91,7 +99,7 @@ namespace YARG.Core.Engine
                 }
             }
 
-            var engineContainer = new EngineContainer(engine, instrument, chart, _nextEngineIndex++, this);
+            var engineContainer = new EngineContainer(engine, instrument, harmonyIndex, chart, _nextEngineIndex++, this);
 
             _allEngines.Add(engineContainer);
             _allEnginesById.Add(engineContainer.EngineId, engineContainer);
