@@ -159,8 +159,6 @@ namespace YARG.Core.Chart
 
             PostProcessSections();
             FixDrumPhraseEnds();
-
-            //GetVocalScrollSpeed();
         }
 
         public void Append(SongChart song)
