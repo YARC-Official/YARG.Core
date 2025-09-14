@@ -10,7 +10,7 @@
                 var phraseParent = phrase.PhraseParentNote;
 
                 // Create a new phrase based off of the original one
-                var newPhraseParent = new VocalNote(phraseParent.Flags, phraseParent.Time,
+                var newPhraseParent = new VocalNote(phraseParent.Flags, phraseParent.IsPercussionPhrase, phraseParent.Time,
                     phraseParent.TimeLength, phraseParent.Tick, phraseParent.TickLength);
 
                 foreach (var note in phraseParent.ChildNotes)

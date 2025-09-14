@@ -37,7 +37,6 @@
         Overstrum2,
         Overstrum3,
         Overstrum4,
-        FailSound,
     }
 
     public enum DrumSfxSample
@@ -126,7 +125,8 @@
         Times6,
         TimesMany,
         FullBandFullCombo,
-        HighScore
+        HighScore,
+        FailSound
     }
 
     public enum DSPType
