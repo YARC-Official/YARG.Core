@@ -6,7 +6,7 @@ namespace YARG.Core.Game
     {
         [SettingType(SettingType.Slider)]
         [SettingRange(0f, 1f)]
-        public float StartingHappiness = 0.8f;
+        public float StartingHappiness = 0.833f;
 
         [SettingType(SettingType.Slider)]
         [SettingRange(0f, 10f)]
@@ -14,7 +14,7 @@ namespace YARG.Core.Game
 
         [SettingType(SettingType.Slider)]
         [SettingRange(0f, 10f)]
-        public float OverhitDamageMultiplier = 1.0f;
+        public float OverhitDamageMultiplier = 0.333f;
 
         [SettingType(SettingType.Slider)]
         [SettingRange(0f, 10f)]
