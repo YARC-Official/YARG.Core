@@ -86,7 +86,7 @@ namespace YARG.Core.Engine
         public EngineContainer Register<TEngineType>(TEngineType engine, Instrument instrument, SongChart chart, RockMeterPreset rockMeterPreset)
             where TEngineType : BaseEngine
         {
-            return Register(engine, instrument, 0, chart);
+            return Register(engine, instrument, 0, chart, rockMeterPreset);
         }
 
         public EngineContainer Register<TEngineType>(TEngineType engine, Instrument instrument, int harmonyIndex, SongChart chart, RockMeterPreset rockMeterPreset)
