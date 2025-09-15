@@ -11,19 +11,44 @@ namespace YARG.Core.Engine
     public partial class EngineManager
     {
         private const float HAPPINESS_FAIL_THRESHOLD        = 0.0f;
-        private const float HAPPINESS_PER_NOTE_HIT          = 0.01f;
-        private const float HAPPINESS_PER_NOTE_MISS         = 0.04f;
 
-        // The amount of happiness gained if a vocal phrase is completed with an AWESOME rating.
-        private const float HAPPINESS_PER_VOCAL_PHRASE_HIT  = 0.1f;
+        /// <summary>
+        /// The amount of happiness lost if a single note/gem for non-vocal players is hit.
+        /// </summary>
+        private const float HAPPINESS_PER_NOTE_HIT          = HAPPINESS_PER_NOTE_MISS / 4;
 
-        // The amount of happiness lost if a vocal phrase is missed completely
-        private const float HAPPINESS_PER_VOCAL_PHRASE_MISS = 0.2f;
+        /// <summary>
+        /// The amount of happiness lost if a single note/gem for non-vocal players is completely missed.
+        /// Note that this value also controls the amount of happiness lost for overstrums/overhits, but this is further scaled by the
+        /// <see cref="YARG.Core.Game.RockMeterPreset.OverHitDamageMultiplier">OverHitDamageMultiplier</see> value of the current RockMeterPreset.
+        /// </summary>
+        private const float HAPPINESS_PER_NOTE_MISS         = 1.0f / 42;
 
-        // The hit percent at which no happiness is gained or lost for a vocal phrase
+        /// <summary>
+        /// The amount of happiness gained if a vocal phrase is completed with an AWESOME rating.
+        /// The exact amount gained scales depending on how far above the <see cref="VOCAL_HIT_PERC_MIDPOINT">VOCAL_HIT_PERC_MIDPOINT</see> value the player is.
+        /// </summary>
+        private const float HAPPINESS_PER_VOCAL_PHRASE_HIT  = 6.0f / 42;
+
+        /// <summary>
+        /// The amount of happiness lost if a vocal phrase is missed completely.
+        /// The exact amount lost scales depending on how far below the <see cref="VOCAL_HIT_PERC_MIDPOINT">VOCAL_HIT_PERC_MIDPOINT</see> value the player is.
+        /// </summary>
+        private const float HAPPINESS_PER_VOCAL_PHRASE_MISS = 12.0f / 42;
+
+        /// <summary>
+        /// The hit percent at which no happiness is gained or lost for a vocal phrase.
+        /// </summary>
         private const float VOCAL_HIT_PERC_MIDPOINT         = 0.75f;
 
-        private const float HAPPINESS_CROWD_THRESHOLD       = 0.83f;
+        /// <summary>
+        /// The amount of happiness required for a song's crowd stem to be enabled, if available.
+        /// </summary>
+        private const float HAPPINESS_CROWD_THRESHOLD       = 0.95f;
+
+        /// <summary>
+        /// The absolute minimum happiness value for a single player.
+        /// </summary>
         private const float HAPPINESS_MINIMUM               = -1.5f;  
         public        float Happiness => GetAverageHappiness();
 
