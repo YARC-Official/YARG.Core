@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 
 namespace YARG.Core.Chart
 {
@@ -14,6 +14,8 @@ namespace YARG.Core.Chart
         public LyricSymbolFlags Flags => _flags;
 
         public bool JoinWithNext  => (_flags & LyricSymbolFlags.JoinWithNext) != 0;
+        public bool HyphenateWithNext => (_flags & LyricSymbolFlags.HyphenateWithNext) != 0;
+        public bool JoinOrHyphenateWithNext => JoinWithNext || HyphenateWithNext;
         public bool NonPitched    => (_flags & LyricSymbolFlags.NonPitched) != 0;
         public bool PitchSlide    => (_flags & LyricSymbolFlags.PitchSlide) != 0;
         public bool HarmonyHidden => (_flags & LyricSymbolFlags.HarmonyHidden) != 0;
