@@ -3,11 +3,10 @@ using System.Collections.Generic;
 using YARG.Core.Chart;
 using YARG.Core.Engine.Drums;
 using YARG.Core.Engine.Guitar;
-using YARG.Core.Engine.ProKeys;
+using YARG.Core.Engine.Keys;
 using YARG.Core.Engine.Vocals;
 using YARG.Core.Logging;
 using YARG.Core.Extensions;
-using YARG.Core.IO;
 
 namespace YARG.Core.Engine
 {
@@ -184,10 +183,16 @@ namespace YARG.Core.Engine
                 drumEngine.OnStarPowerPhraseHit += engineContainer.OnStarPowerPhraseHit;
             }
 
-            if (engineContainer.Engine is BaseEngine<ProKeysNote, ProKeysEngineParameters, ProKeysStats>
+            if (engineContainer.Engine is BaseEngine<ProKeysNote, KeysEngineParameters, KeysStats>
                 proKeysEngine)
             {
                 proKeysEngine.OnStarPowerPhraseHit += engineContainer.OnStarPowerPhraseHit;
+            }
+
+            if (engineContainer.Engine is BaseEngine<GuitarNote, KeysEngineParameters, KeysStats>
+                fiveLaneKeysEngine)
+            {
+                fiveLaneKeysEngine.OnStarPowerPhraseHit += engineContainer.OnStarPowerPhraseHit;
             }
             // Vocals don't participate in unisons, so they get left out.
         }

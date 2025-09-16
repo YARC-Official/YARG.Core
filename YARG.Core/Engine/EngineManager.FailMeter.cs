@@ -2,7 +2,7 @@
 using System;
 using YARG.Core.Engine.Drums;
 using YARG.Core.Engine.Guitar;
-using YARG.Core.Engine.ProKeys;
+using YARG.Core.Engine.Keys;
 using YARG.Core.Engine.Vocals;
 using YARG.Core.Logging;
 
@@ -158,10 +158,19 @@ namespace YARG.Core.Engine
                     engine.OnOverhit += OnOverstrum;
                 }
 
-                if (Engine is BaseEngine<ProKeysNote, ProKeysEngineParameters, ProKeysStats>
+                if (Engine is BaseEngine<ProKeysNote, KeysEngineParameters, KeysStats>
                     proKeysEngine)
                 {
                     var engine = (ProKeysEngine) proKeysEngine;
+                    engine.OnNoteHit += OnNoteHit;
+                    engine.OnNoteMissed += OnNoteMissed;
+                    engine.OnStarPowerStatus += OnStarpowerStatus;
+                    engine.OnOverhit += OnKeysOverhit;
+                }
+
+                if (Engine is BaseEngine<GuitarNote, KeysEngineParameters, KeysStats> keysEngine)
+                {
+                    var engine = (FiveLaneKeysEngine) keysEngine;
                     engine.OnNoteHit += OnNoteHit;
                     engine.OnNoteMissed += OnNoteMissed;
                     engine.OnStarPowerStatus += OnStarpowerStatus;

@@ -3,9 +3,9 @@ using YARG.Core.Extensions;
 using YARG.Core.IO;
 using YARG.Core.Replays;
 
-namespace YARG.Core.Engine.ProKeys
+namespace YARG.Core.Engine.Keys
 {
-    public class ProKeysStats : BaseStats
+    public class KeysStats : BaseStats
     {
         /// <summary>
         /// Number of overhits which have occurred.
@@ -17,17 +17,17 @@ namespace YARG.Core.Engine.ProKeys
         /// </summary>
         public int FatFingersIgnored;
 
-        public ProKeysStats()
+        public KeysStats()
         {
         }
 
-        public ProKeysStats(ProKeysStats stats) : base(stats)
+        public KeysStats(KeysStats stats) : base(stats)
         {
             Overhits = stats.Overhits;
             FatFingersIgnored = stats.FatFingersIgnored;
         }
 
-        public ProKeysStats(ref FixedArrayStream stream, int version)
+        public KeysStats(ref FixedArrayStream stream, int version)
             : base(ref stream, version)
         {
             Overhits = stream.Read<int>(Endianness.Little);
