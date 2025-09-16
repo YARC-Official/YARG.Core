@@ -23,7 +23,9 @@ namespace YARG.Core.Chart
         PitchSlide = 1 << 4,
         HarmonyHidden = 1 << 5,
         StaticShift = 1 << 6,
-        RangeShift = 1 << 7
+        RangeShift = 1 << 7,
+
+        HyphenateWithNext = 1 << 8,
     }
 
     /// <summary>
@@ -151,8 +153,8 @@ namespace YARG.Core.Chart
 
         public static LyricSymbolFlags GetFlagForSymbol(char symbol) => symbol switch
         {
-            LYRIC_JOIN_SYMBOL or
-            LYRIC_JOIN_HYPHEN_SYMBOL => LyricSymbolFlags.JoinWithNext,
+            LYRIC_JOIN_SYMBOL => LyricSymbolFlags.JoinWithNext,
+            LYRIC_JOIN_HYPHEN_SYMBOL => LyricSymbolFlags.HyphenateWithNext,
 
             PITCH_SLIDE_SYMBOL  => LyricSymbolFlags.PitchSlide,
 
@@ -197,7 +199,7 @@ namespace YARG.Core.Chart
         // for pitch bend lyrics on the pitch bend and not the lyric itself
         internal static void DeferredLyricJoinWorkaround(List<LyricEvent> lyrics, ref ReadOnlySpan<char> lyric, bool addHyphen)
         {
-            if (lyrics.Count > 0 && !lyrics[^1].JoinWithNext &&
+            if (lyrics.Count > 0 && !lyrics[^1].JoinOrHyphenateWithNext &&
                 (lyric.Equals("+-", StringComparison.Ordinal) || lyric.Equals("-+", StringComparison.Ordinal)))
             {
                 var other = lyrics[^1];
