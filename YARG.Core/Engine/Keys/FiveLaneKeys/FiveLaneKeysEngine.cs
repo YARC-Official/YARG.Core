@@ -1,17 +1,9 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using System.Windows.Forms;
 using YARG.Core.Chart;
-using YARG.Core.Engine;
-using YARG.Core.Engine.Guitar;
-using YARG.Core.Engine.ProKeys;
 using YARG.Core.Input;
 using YARG.Core.Logging;
 
-namespace YARG.Core.YARG.Core.Engine.ProKeys
+namespace YARG.Core.Engine.Keys
 {
     public abstract class FiveLaneKeysEngine : KeysEngine<GuitarNote>
     {
@@ -21,7 +13,7 @@ namespace YARG.Core.YARG.Core.Engine.ProKeys
             YellowKey = 2,
             BlueKey = 3,
             OrangeKey = 4,
-            
+
             OpenNote = 6
         }
 

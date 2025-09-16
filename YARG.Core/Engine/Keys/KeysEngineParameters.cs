@@ -2,7 +2,7 @@
 using YARG.Core.Extensions;
 using YARG.Core.IO;
 
-namespace YARG.Core.Engine.ProKeys
+namespace YARG.Core.Engine.Keys
 {
     public class KeysEngineParameters : BaseEngineParameters
     {

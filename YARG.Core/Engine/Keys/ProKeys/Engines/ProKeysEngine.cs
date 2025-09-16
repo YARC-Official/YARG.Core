@@ -2,9 +2,8 @@
 using YARG.Core.Chart;
 using YARG.Core.Input;
 using YARG.Core.Logging;
-using YARG.Core.YARG.Core.Engine.ProKeys;
 
-namespace YARG.Core.Engine.ProKeys
+namespace YARG.Core.Engine.Keys
 {
     public abstract class ProKeysEngine : KeysEngine<ProKeysNote>
     {

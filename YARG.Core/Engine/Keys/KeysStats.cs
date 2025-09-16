@@ -3,7 +3,7 @@ using YARG.Core.Extensions;
 using YARG.Core.IO;
 using YARG.Core.Replays;
 
-namespace YARG.Core.Engine.ProKeys
+namespace YARG.Core.Engine.Keys
 {
     public class KeysStats : BaseStats
     {

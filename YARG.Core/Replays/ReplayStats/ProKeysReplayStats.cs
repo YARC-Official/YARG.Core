@@ -1,8 +1,5 @@
-﻿using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Text;
-using YARG.Core.Engine.ProKeys;
+﻿using System.IO;
+using YARG.Core.Engine.Keys;
 using YARG.Core.Extensions;
 using YARG.Core.IO;
 

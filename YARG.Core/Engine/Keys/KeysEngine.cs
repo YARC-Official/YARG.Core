@@ -1,14 +1,8 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using YARG.Core.Chart;
-using YARG.Core.Engine;
-using YARG.Core.Engine.ProKeys;
 using YARG.Core.Logging;
 
-namespace YARG.Core.YARG.Core.Engine.ProKeys
+namespace YARG.Core.Engine.Keys
 {
     public abstract class KeysEngine<TNoteType> : BaseEngine<TNoteType, KeysEngineParameters, KeysStats>
         where TNoteType : Note<TNoteType>

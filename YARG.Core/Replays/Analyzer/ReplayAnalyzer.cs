@@ -7,14 +7,13 @@ using YARG.Core.Engine.Drums;
 using YARG.Core.Engine.Drums.Engines;
 using YARG.Core.Engine.Guitar;
 using YARG.Core.Engine.Guitar.Engines;
-using YARG.Core.Engine.ProKeys.Engines;
-using YARG.Core.Engine.ProKeys;
+using YARG.Core.Engine.Keys.Engines;
+using YARG.Core.Engine.Keys;
 using YARG.Core.Engine.Vocals;
 using YARG.Core.Engine.Vocals.Engines;
 using YARG.Core.Game;
 using YARG.Core.Logging;
 using Cysharp.Text;
-using YARG.Core.YARG.Core.Engine.Keys.FiveLaneKeys;
 
 namespace YARG.Core.Replays.Analyzer
 {

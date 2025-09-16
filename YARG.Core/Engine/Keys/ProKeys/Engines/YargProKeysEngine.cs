@@ -3,7 +3,7 @@ using YARG.Core.Chart;
 using YARG.Core.Input;
 using YARG.Core.Logging;
 
-namespace YARG.Core.Engine.ProKeys.Engines
+namespace YARG.Core.Engine.Keys.Engines
 {
     public class YargProKeysEngine : ProKeysEngine
     {

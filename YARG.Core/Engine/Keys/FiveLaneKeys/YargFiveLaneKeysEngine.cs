@@ -1,16 +1,11 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Runtime.CompilerServices;
-using System.Text;
-using System.Threading.Tasks;
 using YARG.Core.Chart;
-using YARG.Core.Engine.ProKeys;
 using YARG.Core.Input;
 using YARG.Core.Logging;
-using YARG.Core.YARG.Core.Engine.ProKeys;
+using YARG.Core.Engine.Keys;
 
-namespace YARG.Core.YARG.Core.Engine.Keys.FiveLaneKeys
+namespace YARG.Core.Engine.Keys.Engines
 {
     public class YargFiveLaneKeysEngine : FiveLaneKeysEngine
     {
