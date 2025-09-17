@@ -54,6 +54,7 @@ namespace YARG.Core.Game
         public Guid ColorProfile;
         public Guid CameraPreset;
         public Guid HighwayPreset;
+        public Guid RockMeterPreset;
 
         /// <summary>
         /// The selected instrument.
@@ -121,6 +122,7 @@ namespace YARG.Core.Game
             ColorProfile = Game.ColorProfile.Default.Id;
             CameraPreset = Game.CameraPreset.Default.Id;
             HighwayPreset = Game.HighwayPreset.Default.Id;
+            RockMeterPreset = Game.RockMeterPreset.Normal.Id;
 
             CurrentModifiers = Modifier.None;
         }

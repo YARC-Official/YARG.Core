@@ -10,14 +10,46 @@ namespace YARG.Core.Engine
 {
     public partial class EngineManager
     {
-        private const float INITIAL_CROWD_HAPPINESS        = 0.85f;
-        private const float HAPPINESS_FAIL_THRESHOLD       = 0.0f;
-        private const float HAPPINESS_PER_NOTE_HIT         = 0.01f;
-        private const float HAPPINESS_PER_NOTE_MISS        = 0.04f;
-        private const float HAPPINESS_PER_OVERSTRUM        = HAPPINESS_PER_NOTE_MISS / 2;
-        private const int   HAPPINESS_STARPOWER_MULTIPLIER = 5;
+        private const float HAPPINESS_FAIL_THRESHOLD        = 0.0f;
 
-        private const float HAPPINESS_CROWD_THRESHOLD      = 0.83f;
+        /// <summary>
+        /// The amount of happiness lost if a single note/gem for non-vocal players is hit.
+        /// </summary>
+        private const float HAPPINESS_PER_NOTE_HIT          = HAPPINESS_PER_NOTE_MISS / 4;
+
+        /// <summary>
+        /// The amount of happiness lost if a single note/gem for non-vocal players is completely missed.
+        /// Note that this value also controls the amount of happiness lost for overstrums/overhits, but this is further scaled by the
+        /// <see cref="YARG.Core.Game.RockMeterPreset.OverHitDamageMultiplier">OverHitDamageMultiplier</see> value of the current RockMeterPreset.
+        /// </summary>
+        private const float HAPPINESS_PER_NOTE_MISS         = 1.0f / 42;
+
+        /// <summary>
+        /// The amount of happiness gained if a vocal phrase is completed with an AWESOME rating.
+        /// The exact amount gained scales depending on how far above the <see cref="VOCAL_HIT_PERC_MIDPOINT">VOCAL_HIT_PERC_MIDPOINT</see> value the player is.
+        /// </summary>
+        private const float HAPPINESS_PER_VOCAL_PHRASE_HIT  = 6.0f / 42;
+
+        /// <summary>
+        /// The amount of happiness lost if a vocal phrase is missed completely.
+        /// The exact amount lost scales depending on how far below the <see cref="VOCAL_HIT_PERC_MIDPOINT">VOCAL_HIT_PERC_MIDPOINT</see> value the player is.
+        /// </summary>
+        private const float HAPPINESS_PER_VOCAL_PHRASE_MISS = 12.0f / 42;
+
+        /// <summary>
+        /// The hit percent at which no happiness is gained or lost for a vocal phrase.
+        /// </summary>
+        private const float VOCAL_HIT_PERC_MIDPOINT         = 0.75f;
+
+        /// <summary>
+        /// The amount of happiness required for a song's crowd stem to be enabled, if available.
+        /// </summary>
+        private const float HAPPINESS_CROWD_THRESHOLD       = 0.95f;
+
+        /// <summary>
+        /// The absolute minimum happiness value for a single player.
+        /// </summary>
+        private const float HAPPINESS_MINIMUM               = -1.5f;  
         public        float Happiness => GetAverageHappiness();
 
         private int _starpowerCount = 0;
@@ -60,8 +92,8 @@ namespace YARG.Core.Engine
 
         public partial class EngineContainer
         {
-            public float Happiness { get; private set; } = INITIAL_CROWD_HAPPINESS;
-            private float _previousHappiness = INITIAL_CROWD_HAPPINESS;
+            public float Happiness { get; private set; } = 0.0f;
+            private float _previousHappiness = 0.0f;
 
             public delegate void SongFailed();
 
@@ -73,70 +105,92 @@ namespace YARG.Core.Engine
             public HappinessOverThreshold? OnHappinessOverThreshold;
             public HappinessUnderThreshold? OnHappinessUnderThreshold;
 
+            private void OnVocalPhraseHit(double hitPercentAfterParams, bool fullPoints)
+            {
+                hitPercentAfterParams = Math.Clamp(hitPercentAfterParams, 0.0, 1.0);
+                var delta = 0.0f;
+
+                // If the hit percent is below the midpoint, the player loses happiness based on how far they are from the midpoint
+                if (hitPercentAfterParams < VOCAL_HIT_PERC_MIDPOINT)
+                {
+                    delta = -1 * HAPPINESS_PER_VOCAL_PHRASE_MISS * RockMeterPreset.VocalsMissDamageMultiplier;
+                    delta *= 1 - YargMath.InverseLerpF(0.0f, VOCAL_HIT_PERC_MIDPOINT, hitPercentAfterParams);
+                }
+                // If the hit percent is above the midpoint, the player gains happiness based on how far they are from the midpoint
+                else
+                {
+                    delta = HAPPINESS_PER_VOCAL_PHRASE_HIT * RockMeterPreset.VocalsHitRecoveryMultiplier;
+                    delta *= YargMath.InverseLerpF(VOCAL_HIT_PERC_MIDPOINT, 1.0f, hitPercentAfterParams);
+                    if (_engineManager.IsAnyStarpowerActive)
+                    {
+                        delta *= RockMeterPreset.StarPowerEffectMultiplier;
+                    }
+                }
+
+                AddHappiness(delta);
+            }
+
             private void OnNoteHit<TNote>(int index, TNote note) where TNote : Note<TNote>
             {
                 // Ignore any notes that have not been fully hit yet on the assumption that a call
                 // where the note group was fully hit will eventually come if they are all hit
-                if (!note.WasFullyHit() && note is not VocalNote)
+                if (!note.WasFullyHit())
                 {
                     return;
                 }
 
-
+                var delta = HAPPINESS_PER_NOTE_HIT * RockMeterPreset.HitRecoveryMultiplier;
                 if (_engineManager.IsAnyStarpowerActive)
                 {
-                    Happiness = Math.Clamp(Happiness + HAPPINESS_PER_NOTE_HIT * HAPPINESS_STARPOWER_MULTIPLIER, -1.5f, 1f);
-                }
-                else
-                {
-                    Happiness = Math.Clamp(Happiness + HAPPINESS_PER_NOTE_HIT, -1.5f, 1f);
+                    delta *= RockMeterPreset.StarPowerEffectMultiplier;
                 }
 
-                // Send over threshold event when happiness goes from below threshold to above
-                if (Happiness >= HAPPINESS_CROWD_THRESHOLD && _previousHappiness < HAPPINESS_CROWD_THRESHOLD)
-                {
-                    OnHappinessOverThreshold?.Invoke();
-                }
-
-                _previousHappiness = Happiness;
+                AddHappiness(delta);
             }
 
             private void OnNoteMissed<TNote>(int index, TNote note) where TNote : Note<TNote>
             {
-                if (!note.WasFullyMissed() && note is not VocalNote)
+                if (!note.WasFullyMissed())
                 {
                     return;
                 }
-                Happiness = Math.Clamp(Happiness - HAPPINESS_PER_NOTE_MISS, -1.5f, 1f);
-                if (_engineManager.CheckForFail())
-                {
-                    OnSongFailed?.Invoke();
-                    YargLogger.LogFormatDebug("Song Fail invoked after miss by player {0} with average happiness {1}", EngineId, _engineManager.Happiness);
-                }
 
-                // Send under threshold event when happiness drops from above to below
-                if (Happiness < HAPPINESS_CROWD_THRESHOLD && _previousHappiness >= HAPPINESS_CROWD_THRESHOLD)
-                {
-                    OnHappinessUnderThreshold?.Invoke();
-                }
-
-                _previousHappiness = Happiness;
+                var delta = -1 * HAPPINESS_PER_NOTE_MISS * RockMeterPreset.MissDamageMultiplier;
+                AddHappiness(delta);
             }
 
             private void OnOverstrum()
             {
-                Happiness = Math.Clamp(Happiness - HAPPINESS_PER_OVERSTRUM, -1.5f, 1f);
-                if (_engineManager.CheckForFail())
-                {
-                    OnSongFailed?.Invoke();
-                    YargLogger.LogFormatDebug("Song Fail invoked after overstrum by player {0} with average happiness {1}", EngineId, _engineManager.Happiness);
-                }
+                var delta = -1 * HAPPINESS_PER_NOTE_MISS * RockMeterPreset.OverhitDamageMultiplier;
+                AddHappiness(delta);
             }
 
             private void OnKeysOverhit(int key) => OnOverstrum();
 
             private void OnStarpowerStatus(bool isActive) => _engineManager._starpowerCount += isActive ? 1 : -1;
 
+            private void AddHappiness(float delta)
+            {
+                Happiness = Math.Clamp(Happiness + delta, HAPPINESS_MINIMUM, 1f);
+                // Send over threshold event when happiness goes from below threshold to above
+                if (Happiness >= HAPPINESS_CROWD_THRESHOLD && _previousHappiness < HAPPINESS_CROWD_THRESHOLD)
+                {
+                    OnHappinessOverThreshold?.Invoke();
+                }
+                // Send under threshold event when happiness goes from above threshold to below
+                else if (Happiness < HAPPINESS_CROWD_THRESHOLD && _previousHappiness >= HAPPINESS_CROWD_THRESHOLD)
+                {
+                    OnHappinessUnderThreshold?.Invoke();
+                }
+
+                if (_engineManager.CheckForFail())
+                {
+                    OnSongFailed?.Invoke();
+                    YargLogger.LogFormatDebug("Song Fail invoked after miss by player {0} with average happiness {1}", EngineId, _engineManager.Happiness);
+                }
+
+                _previousHappiness = Happiness;
+            }
             private void SubscribeToEngineEvents()
             {
                 // Subscribe to OnNoteHit and OnNoteMissed events
@@ -177,10 +231,9 @@ namespace YARG.Core.Engine
                     engine.OnOverhit += OnKeysOverhit;
                 }
 
-                if (Engine is BaseEngine<VocalNote, VocalsEngineParameters, VocalsStats> vocalsEngine)
+                if (Engine is VocalsEngine vocalsEngine)
                 {
-                    vocalsEngine.OnNoteHit += OnNoteHit;
-                    vocalsEngine.OnNoteMissed += OnNoteMissed;
+                    vocalsEngine.OnPhraseHit += OnVocalPhraseHit;
                     vocalsEngine.OnStarPowerStatus += OnStarpowerStatus;
                 }
             }
