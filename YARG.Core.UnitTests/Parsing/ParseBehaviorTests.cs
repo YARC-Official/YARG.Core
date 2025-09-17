@@ -25,6 +25,8 @@ namespace YARG.Core.UnitTests.Parsing
         IEnumerator IEnumerable.GetEnumerator() => throw new NotImplementedException();
     }
 
+    // TODO: Vocals_LyricPhrase has been changed to Vocals_ScoringPhrase, but we may also need to implement
+    //  Vocals_StaticLyricPhrase
     internal class ParseBehaviorTests
     {
         public const uint RESOLUTION = 192;
@@ -380,7 +382,7 @@ namespace YARG.Core.UnitTests.Parsing
         public static readonly ParseBehavior VocalsNotes = new(GameMode.Vocals)
         {
             NewSpecial(0, MoonPhrase.Type.Versus_Player1, length: 12),
-            NewSpecial(0, MoonPhrase.Type.Vocals_LyricPhrase, length: 12),
+            NewSpecial(0, MoonPhrase.Type.Vocals_ScoringPhrase, length: 12),
             NewNote(0, VOCALS_RANGE_START + 0, length: 0.5f),
             NewNote(1, VOCALS_RANGE_START + 1, length: 0.5f),
             NewNote(2, VOCALS_RANGE_START + 2, length: 0.5f),
@@ -395,7 +397,7 @@ namespace YARG.Core.UnitTests.Parsing
             NewNote(11, VOCALS_RANGE_START + 11, length: 0.5f),
 
             NewSpecial(12, MoonPhrase.Type.Versus_Player2, length: 12),
-            NewSpecial(12, MoonPhrase.Type.Vocals_LyricPhrase, length: 12),
+            NewSpecial(12, MoonPhrase.Type.Vocals_ScoringPhrase, length: 12),
             NewSpecial(12, MoonPhrase.Type.Starpower, length: 12),
             NewNote(12, VOCALS_RANGE_START + 12, length: 0.5f),
             NewNote(13, VOCALS_RANGE_START + 13, length: 0.5f),
@@ -412,7 +414,7 @@ namespace YARG.Core.UnitTests.Parsing
 
             NewSpecial(24, MoonPhrase.Type.Versus_Player1, length: 12),
             NewSpecial(24, MoonPhrase.Type.Versus_Player2, length: 12),
-            NewSpecial(24, MoonPhrase.Type.Vocals_LyricPhrase, length: 12),
+            NewSpecial(24, MoonPhrase.Type.Vocals_ScoringPhrase, length: 12),
             NewNote(24, VOCALS_RANGE_START + 24, length: 0.5f),
             NewNote(25, VOCALS_RANGE_START + 25, length: 0.5f),
             NewNote(26, VOCALS_RANGE_START + 26, length: 0.5f),
@@ -427,7 +429,7 @@ namespace YARG.Core.UnitTests.Parsing
             NewNote(35, VOCALS_RANGE_START + 35, length: 0.5f),
 
             NewSpecial(36, MoonPhrase.Type.Versus_Player2, length: 13),
-            NewSpecial(36, MoonPhrase.Type.Vocals_LyricPhrase, length: 13),
+            NewSpecial(36, MoonPhrase.Type.Vocals_ScoringPhrase, length: 13),
             NewNote(36, VOCALS_RANGE_START + 36, length: 0.5f),
             NewNote(37, VOCALS_RANGE_START + 37, length: 0.5f),
             NewNote(38, VOCALS_RANGE_START + 38, length: 0.5f),
@@ -443,7 +445,7 @@ namespace YARG.Core.UnitTests.Parsing
             NewNote(48, VOCALS_RANGE_START + 48, length: 0.5f),
 
             NewSpecial(49, MoonPhrase.Type.Versus_Player1, length: 1),
-            NewSpecial(49, MoonPhrase.Type.Vocals_LyricPhrase, length: 1),
+            NewSpecial(49, MoonPhrase.Type.Vocals_ScoringPhrase, length: 1),
             NewNote(49, 0, flags: Flags.Vocals_Percussion),
         };
 

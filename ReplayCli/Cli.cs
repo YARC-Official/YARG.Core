@@ -3,7 +3,7 @@ using YARG.Core.Chart;
 using YARG.Core.Engine;
 using YARG.Core.Engine.Drums;
 using YARG.Core.Engine.Guitar;
-using YARG.Core.Engine.ProKeys;
+using YARG.Core.Engine.Keys;
 using YARG.Core.Engine.Vocals;
 using YARG.Core.Logging;
 using YARG.Core.Replays;
@@ -430,7 +430,7 @@ public partial class Cli
                 PrintStatDifference("TotalTicks",    originalVocals.TotalTicks,    resultVocals.TotalTicks);
                 break;
             }
-            case (ProKeysStats originalKeys, ProKeysStats resultKeys):
+            case (KeysStats originalKeys, KeysStats resultKeys):
             {
                 Console.WriteLine("Pro Keys stats:");
                 PrintStatDifference("Overhits",      originalKeys.Overhits,      resultKeys.Overhits);
