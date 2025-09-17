@@ -31,6 +31,8 @@ namespace YARG.Core.Replays.Analyzer
 
         private readonly Random _random = new();
 
+        private readonly double _replayLength;
+
         public ReplayAnalyzer(SongChart chart, ReplayInfo replayInfo, ReplayData replayData, double fps, int frameNum)
         {
             _chart = chart;
@@ -48,6 +50,8 @@ namespace YARG.Core.Replays.Analyzer
             {
                 _frameNum = -1;
             }
+
+            _replayLength = replayInfo.ReplayLength;
         }
 
         public static AnalysisResult[] AnalyzeReplay(SongChart chart, ReplayInfo info, ReplayData data, double fps = 0, int frameNum = -1)
@@ -171,7 +175,7 @@ namespace YARG.Core.Replays.Analyzer
                 engine.SetSpeed(frame.EngineParameters.SongSpeed);
                 engine.Reset();
 
-                maxTime = _chart.GetEndTime();
+                maxTime = _replayLength;
                 if (frame.Inputs.Length > 0)
                 {
                     double last = frame.Inputs[^1].Time;
@@ -180,7 +184,6 @@ namespace YARG.Core.Replays.Analyzer
                         maxTime = last;
                     }
                 }
-                maxTime += 2;
             }
 
             // Seems like a sensible default?
