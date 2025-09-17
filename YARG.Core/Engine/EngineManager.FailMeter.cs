@@ -177,11 +177,10 @@ namespace YARG.Core.Engine
                 {
                     OnHappinessOverThreshold?.Invoke();
                 }
-
-                // Send over threshold event when happiness goes from below threshold to above
-                if (Happiness >= HAPPINESS_CROWD_THRESHOLD && _previousHappiness < HAPPINESS_CROWD_THRESHOLD)
+                // Send under threshold event when happiness goes from above threshold to below
+                else if (Happiness < HAPPINESS_CROWD_THRESHOLD && _previousHappiness >= HAPPINESS_CROWD_THRESHOLD)
                 {
-                    OnHappinessOverThreshold?.Invoke();
+                    OnHappinessUnderThreshold?.Invoke();
                 }
 
                 if (_engineManager.CheckForFail())
