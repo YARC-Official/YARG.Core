@@ -1,6 +1,6 @@
-using System;
+﻿using System;
 
-namespace YARG.Core.Engine.ProKeys
+namespace YARG.Core.Engine.Keys
 {
     public static class ProKeysUtilities
     {

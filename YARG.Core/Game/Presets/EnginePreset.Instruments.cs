@@ -2,7 +2,7 @@
 using YARG.Core.Engine;
 using YARG.Core.Engine.Drums;
 using YARG.Core.Engine.Guitar;
-using YARG.Core.Engine.ProKeys;
+using YARG.Core.Engine.Keys;
 using YARG.Core.Engine.Vocals;
 using YARG.Core.Game.Settings;
 
@@ -311,12 +311,12 @@ namespace YARG.Core.Game
                 };
             }
 
-            public ProKeysEngineParameters Create(float[] starMultiplierThresholds)
+            public KeysEngineParameters Create(float[] starMultiplierThresholds, bool isBass)
             {
                 var hitWindow = HitWindow.Create();
-                return new ProKeysEngineParameters(
+                return new KeysEngineParameters(
                     hitWindow,
-                    DEFAULT_MAX_MULTIPLIER,
+                    isBass ? BASS_MAX_MULTIPLIER : DEFAULT_MAX_MULTIPLIER,
                     DEFAULT_WHAMMY_BUFFER,
                     SustainDropLeniency,
                     starMultiplierThresholds,
