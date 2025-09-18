@@ -5,7 +5,7 @@ namespace YARG.Core.Game
     public partial class RockMeterPreset : BasePreset
     {
         [SettingType(SettingType.Slider)]
-        [SettingRange(0f, 1f)]
+        [SettingRange(0.01f, 1f)]
         public float StartingHappiness = 0.833f;
 
         [SettingType(SettingType.Slider)]
