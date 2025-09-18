@@ -72,6 +72,7 @@ namespace YARG.Core.IO.Ini
                 { "diff_drums",                           new("diff_drums", ModifierType.Int32) },
                 { "diff_drums_real",                      new("diff_drums_real", ModifierType.Int32) },
                 { "diff_drums_real_ps",                   new("diff_drums_real_ps", ModifierType.Int32) },
+                { "diff_elite_drums",                     new("diff_elite_drums", ModifierType.Int32) },
                 { "diff_guitar",                          new("diff_guitar", ModifierType.Int32) },
                 { "diff_guitar_coop",                     new("diff_guitar_coop", ModifierType.Int32) },
                 { "diff_guitar_coop_ghl",                 new("diff_guitar_coop_ghl", ModifierType.Int32) },

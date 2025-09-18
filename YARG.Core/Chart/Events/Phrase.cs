@@ -28,6 +28,18 @@ namespace YARG.Core.Chart
         ProKeys_RangeShift3,
         ProKeys_RangeShift4,
         ProKeys_RangeShift5,
+
+        EliteDrums_RightCrashLane,
+        EliteDrums_RideLane,
+        EliteDrums_Tom3Lane,
+        EliteDrums_Tom2Lane,
+        EliteDrums_Tom1Lane,
+        EliteDrums_LeftCrashLane,
+        EliteDrums_HiHatLane,
+        EliteDrums_SnareLane,
+        EliteDrums_KickLane,
+        EliteDrums_HatPedalLane,
+        EliteDrums_DiscoFlip,
     }
 
     /// <summary>
