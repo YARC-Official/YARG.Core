@@ -2,15 +2,15 @@
 using YARG.Core.Extensions;
 using YARG.Core.IO;
 
-namespace YARG.Core.Engine.ProKeys
+namespace YARG.Core.Engine.Keys
 {
-    public class ProKeysEngineParameters : BaseEngineParameters
+    public class KeysEngineParameters : BaseEngineParameters
     {
         public readonly double ChordStaggerWindow;
 
         public readonly double FatFingerWindow;
 
-        public ProKeysEngineParameters(HitWindowSettings hitWindow, int maxMultiplier, double spWhammyBuffer,
+        public KeysEngineParameters(HitWindowSettings hitWindow, int maxMultiplier, double spWhammyBuffer,
             double sustainDropLeniency, float[] starMultiplierThresholds, double chordStaggerWindow, double fatFingerWindow)
             : base(hitWindow, maxMultiplier, spWhammyBuffer, sustainDropLeniency, starMultiplierThresholds)
         {
@@ -18,7 +18,7 @@ namespace YARG.Core.Engine.ProKeys
             FatFingerWindow = fatFingerWindow;
         }
 
-        public ProKeysEngineParameters(ref FixedArrayStream stream, int version)
+        public KeysEngineParameters(ref FixedArrayStream stream, int version)
             : base(ref stream, version)
         {
             ChordStaggerWindow = stream.Read<double>(Endianness.Little);
