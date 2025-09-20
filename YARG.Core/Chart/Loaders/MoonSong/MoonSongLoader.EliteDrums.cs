@@ -10,7 +10,7 @@ namespace YARG.Core.Chart
     {
         public InstrumentTrack<EliteDrumNote> LoadEliteDrumsTrack(Instrument instrument)
         {
-            return instrument.ToGameMode() is GameMode.EliteDrums ?
+            return instrument.ToNativeGameMode() is GameMode.EliteDrums ?
                 LoadEliteDrumsTrack(instrument, CreateEliteDrumNote) :
                 throw new ArgumentException($"Instrument {instrument} is not Elite Drums!", nameof(instrument));
         }
