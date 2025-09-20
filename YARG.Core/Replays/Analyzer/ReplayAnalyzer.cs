@@ -270,7 +270,8 @@ namespace YARG.Core.Replays.Analyzer
                         notes,
                         _chart.SyncTrack,
                         (DrumsEngineParameters) parameters,
-                        profile.IsBot);
+                        profile.IsBot,
+                        profile.GameMode is GameMode.EliteDrums);
                 }
                 case GameMode.ProKeys:
                 {
