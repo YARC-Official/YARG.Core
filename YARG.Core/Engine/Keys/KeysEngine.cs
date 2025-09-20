@@ -15,7 +15,6 @@ namespace YARG.Core.Engine.Keys
 
         protected const double DEFAULT_PRESS_TIME = -9999;
         protected EngineTimer ChordStaggerTimer;
-        protected EngineTimer FatFingerTimer;
 
         public delegate void KeyStateChangeEvent(int key, bool isPressed);
         public delegate void OverhitEvent(int key);
@@ -61,20 +60,14 @@ namespace YARG.Core.Engine.Keys
         /// </summary>
         protected int? KeyReleasedThisUpdate;
 
-        protected TNoteType? FatFingerNote;
-
-        protected int? FatFingerKey;
-
         protected KeysEngine(InstrumentDifficulty<TNoteType> chart, SyncTrack syncTrack,
             KeysEngineParameters engineParameters, bool isBot)
             : base(chart, syncTrack, engineParameters, true, isBot)
         {
             ChordStaggerTimer = new("Chord Stagger", engineParameters.ChordStaggerWindow);
-            FatFingerTimer = new("Fat Finger", engineParameters.FatFingerWindow);
         }
 
         public EngineTimer GetChordStaggerTimer() => ChordStaggerTimer;
-        public EngineTimer GetFatFingerTimer() => FatFingerTimer;
 
         public ReadOnlySpan<double> GetKeyPressTimes() => KeyPressTimes;
 
@@ -89,15 +82,6 @@ namespace YARG.Core.Engine.Keys
                 {
                     YargLogger.LogFormatTrace("Queuing chord stagger end time at {0}", ChordStaggerTimer.EndTime);
                     QueueUpdateTime(ChordStaggerTimer.EndTime, "Chord Stagger End");
-                }
-            }
-
-            if (FatFingerTimer.IsActive)
-            {
-                if (IsTimeBetween(FatFingerTimer.EndTime, previousTime, nextTime))
-                {
-                    YargLogger.LogFormatTrace("Queuing fat finger end time at {0}", FatFingerTimer.EndTime);
-                    QueueUpdateTime(FatFingerTimer.EndTime, "Fat Finger End");
                 }
             }
         }
@@ -116,12 +100,7 @@ namespace YARG.Core.Engine.Keys
             KeyHitThisUpdate = null;
             KeyReleasedThisUpdate = null;
 
-            FatFingerKey = null;
-
             ChordStaggerTimer.Reset();
-            FatFingerTimer.Reset();
-
-            FatFingerNote = null;
 
             base.Reset(keepCurrentButtons);
         }

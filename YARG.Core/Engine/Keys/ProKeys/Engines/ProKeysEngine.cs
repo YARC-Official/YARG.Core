@@ -9,19 +9,52 @@ namespace YARG.Core.Engine.Keys
     {
         protected const int POINTS_PER_PRO_KEYS_NOTE = 120;
 
+        protected EngineTimer FatFingerTimer;
+        protected ProKeysNote? FatFingerNote;
+        protected int? FatFingerKey;
+
         protected override double[] KeyPressTimes { get; } = new double[(int) ProKeysAction.Key25 + 1];
+
+        public EngineTimer GetFatFingerTimer() => FatFingerTimer;
 
         protected ProKeysEngine(InstrumentDifficulty<ProKeysNote> chart, SyncTrack syncTrack,
             KeysEngineParameters engineParameters, bool isBot)
             : base(chart, syncTrack, engineParameters, isBot)
         {
             KeyPressTimes = new double[(int)ProKeysAction.Key25 + 1];
-            for(int i = 0; i < KeyPressTimes.Length; i++)
+            FatFingerTimer = new("Fat Finger", engineParameters.FatFingerWindow);
+
+            for (int i = 0; i < KeyPressTimes.Length; i++)
             {
                 KeyPressTimes[i] = -9999;
             }
 
             GetWaitCountdowns(Notes);
+        }
+
+        protected override void GenerateQueuedUpdates(double nextTime)
+        {
+            base.GenerateQueuedUpdates(nextTime);
+
+            if (FatFingerTimer.IsActive)
+            {
+                var previousTime = CurrentTime;
+
+                if (IsTimeBetween(FatFingerTimer.EndTime, previousTime, nextTime))
+                {
+                    YargLogger.LogFormatTrace("Queuing fat finger end time at {0}", FatFingerTimer.EndTime);
+                    QueueUpdateTime(FatFingerTimer.EndTime, "Fat Finger End");
+                }
+            }
+        }
+
+        public override void Reset(bool keepCurrentButtons = false)
+        {
+            base.Reset(keepCurrentButtons);
+
+            FatFingerKey = null;
+            FatFingerTimer.Reset();
+            FatFingerNote = null;
         }
 
         protected override bool CanSustainHold(ProKeysNote note)
