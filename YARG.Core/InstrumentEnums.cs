@@ -237,12 +237,12 @@ namespace YARG.Core
                     new[]
                     {
                         Instrument.FiveLaneDrums,
-                        Instrument.EliteDrums,
+                        //Instrument.EliteDrums,
                     } :
                     new[] {
                         Instrument.FourLaneDrums,
                         Instrument.ProDrums,
-                        Instrument.EliteDrums,
+                        //Instrument.EliteDrums,
                     },
                 _  => PossibleInstruments(gameMode)
             };
