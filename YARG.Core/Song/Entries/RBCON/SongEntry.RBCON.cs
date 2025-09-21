@@ -179,7 +179,7 @@ namespace YARG.Core.Song
             stream.Seek(start, SeekOrigin.Begin);
 
             bool clampStemVolume = _metadata.Source.ToLowerInvariant() == "yarg";
-            var mixer = GlobalAudioHandler.CreateMixer(ToString(), stream, speed, volume, clampStemVolume);
+            var mixer = GlobalAudioHandler.CreateMixer(ToString(), speed, volume, clampStemVolume);
             if (mixer == null)
             {
                 YargLogger.LogError("Mogg failed to load!");
@@ -195,51 +195,51 @@ namespace YARG.Core.Song
                     //drum (0 1): stereo kit --> (0 1)
                     case 1:
                     case 2:
-                        mixer.AddChannel(SongStem.Drums, _indices.Drums, _panning.Drums!);
+                        mixer.AddChannel(SongStem.Drums, stream, _indices.Drums, _panning.Drums!);
                         break;
                     //drum (0 1 2): mono kick, stereo snare/kit --> (0) (1 2)
                     case 3:
-                        mixer.AddChannel(SongStem.Drums1, _indices.Drums[0..1], _panning.Drums[0..2]);
-                        mixer.AddChannel(SongStem.Drums2, _indices.Drums[1..3], _panning.Drums[2..6]);
+                        mixer.AddChannel(SongStem.Drums1, stream, _indices.Drums[0..1], _panning.Drums[0..2]);
+                        mixer.AddChannel(SongStem.Drums2, stream, _indices.Drums[1..3], _panning.Drums[2..6]);
                         break;
                     //drum (0 1 2 3): mono kick, mono snare, stereo kit --> (0) (1) (2 3)
                     case 4:
-                        mixer.AddChannel(SongStem.Drums1, _indices.Drums[0..1], _panning.Drums[0..2]);
-                        mixer.AddChannel(SongStem.Drums2, _indices.Drums[1..2], _panning.Drums[2..4]);
-                        mixer.AddChannel(SongStem.Drums3, _indices.Drums[2..4], _panning.Drums[4..8]);
+                        mixer.AddChannel(SongStem.Drums1, stream, _indices.Drums[0..1], _panning.Drums[0..2]);
+                        mixer.AddChannel(SongStem.Drums2, stream, _indices.Drums[1..2], _panning.Drums[2..4]);
+                        mixer.AddChannel(SongStem.Drums3, stream, _indices.Drums[2..4], _panning.Drums[4..8]);
                         break;
                     //drum (0 1 2 3 4): mono kick, stereo snare, stereo kit --> (0) (1 2) (3 4)
                     case 5:
-                        mixer.AddChannel(SongStem.Drums1, _indices.Drums[0..1], _panning.Drums[0..2]);
-                        mixer.AddChannel(SongStem.Drums2, _indices.Drums[1..3], _panning.Drums[2..6]);
-                        mixer.AddChannel(SongStem.Drums3, _indices.Drums[3..5], _panning.Drums[6..10]);
+                        mixer.AddChannel(SongStem.Drums1, stream, _indices.Drums[0..1], _panning.Drums[0..2]);
+                        mixer.AddChannel(SongStem.Drums2, stream, _indices.Drums[1..3], _panning.Drums[2..6]);
+                        mixer.AddChannel(SongStem.Drums3, stream, _indices.Drums[3..5], _panning.Drums[6..10]);
                         break;
                     //drum (0 1 2 3 4 5): stereo kick, stereo snare, stereo kit --> (0 1) (2 3) (4 5)
                     case 6:
-                        mixer.AddChannel(SongStem.Drums1, _indices.Drums[0..2], _panning.Drums[0..4]);
-                        mixer.AddChannel(SongStem.Drums2, _indices.Drums[2..4], _panning.Drums[4..8]);
-                        mixer.AddChannel(SongStem.Drums3, _indices.Drums[4..6], _panning.Drums[8..12]);
+                        mixer.AddChannel(SongStem.Drums1, stream, _indices.Drums[0..2], _panning.Drums[0..4]);
+                        mixer.AddChannel(SongStem.Drums2, stream, _indices.Drums[2..4], _panning.Drums[4..8]);
+                        mixer.AddChannel(SongStem.Drums3, stream, _indices.Drums[4..6], _panning.Drums[8..12]);
                         break;
                 }
             }
 
             if (_indices.Bass.Length > 0 && !ignoreStems.Contains(SongStem.Bass))
-                mixer.AddChannel(SongStem.Bass, _indices.Bass, _panning.Bass);
+                mixer.AddChannel(SongStem.Bass, stream, _indices.Bass, _panning.Bass);
 
             if (_indices.Guitar.Length > 0 && !ignoreStems.Contains(SongStem.Guitar))
-                mixer.AddChannel(SongStem.Guitar, _indices.Guitar, _panning.Guitar);
+                mixer.AddChannel(SongStem.Guitar, stream, _indices.Guitar, _panning.Guitar);
 
             if (_indices.Keys.Length > 0 && !ignoreStems.Contains(SongStem.Keys))
-                mixer.AddChannel(SongStem.Keys, _indices.Keys, _panning.Keys);
+                mixer.AddChannel(SongStem.Keys, stream, _indices.Keys, _panning.Keys);
 
             if (_indices.Vocals.Length > 0 && !ignoreStems.Contains(SongStem.Vocals))
-                mixer.AddChannel(SongStem.Vocals, _indices.Vocals, _panning.Vocals);
+                mixer.AddChannel(SongStem.Vocals, stream, _indices.Vocals, _panning.Vocals);
 
             if (_indices.Track.Length > 0 && !ignoreStems.Contains(SongStem.Song))
-                mixer.AddChannel(SongStem.Song, _indices.Track, _panning.Track);
+                mixer.AddChannel(SongStem.Song, stream, _indices.Track, _panning.Track);
 
             if (_indices.Crowd.Length > 0 && !ignoreStems.Contains(SongStem.Crowd))
-                mixer.AddChannel(SongStem.Crowd, _indices.Crowd, _panning.Crowd);
+                mixer.AddChannel(SongStem.Crowd, stream, _indices.Crowd, _panning.Crowd);
 
             if (mixer.Channels.Count == 0)
             {

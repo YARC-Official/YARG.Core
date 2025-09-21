@@ -202,7 +202,7 @@ namespace YARG.Core.Audio
             }
         }
 
-        public bool AddChannel(SongStem stem)
+        public bool AddChannel(SongStem stem, Stream stream, int[]? indices = null, float[]? panning = null)
         {
             lock (this)
             {
@@ -210,31 +210,7 @@ namespace YARG.Core.Audio
                 {
                     return false;
                 }
-                return AddChannel_Internal(stem);
-            }
-        }
-
-        public bool AddChannel(SongStem stem, Stream stream)
-        {
-            lock (this)
-            {
-                if (_disposed)
-                {
-                    return false;
-                }
-                return AddChannel_Internal(stem, stream);
-            }
-        }
-
-        public bool AddChannel(SongStem stem, int[] indices, float[] panning)
-        {
-            lock (this)
-            {
-                if (_disposed)
-                {
-                    return false;
-                }
-                return AddChannel_Internal(stem, indices, panning);
+                return AddChannel_Internal(stem, stream, indices, panning);
             }
         }
 
@@ -284,9 +260,7 @@ namespace YARG.Core.Audio
         protected abstract int  GetFFTData_Internal(float[] buffer, int fftSize, bool complex);
         protected abstract int GetLevel_Internal(float[] level);
         protected abstract void SetSpeed_Internal(float speed, bool shiftPitch);
-        protected abstract bool AddChannel_Internal(SongStem stem);
-        protected abstract bool AddChannel_Internal(SongStem stem, Stream stream);
-        protected abstract bool AddChannel_Internal(SongStem stem, int[] indices, float[] panning);
+        protected abstract bool AddChannel_Internal(SongStem stem, Stream stream, int[]? indices, float[]? panning);
         protected abstract bool RemoveChannel_Internal(SongStem stemToRemove);
         protected abstract void ToggleBuffer_Internal(bool enable);
         protected abstract void SetBufferLength_Internal(int length);
