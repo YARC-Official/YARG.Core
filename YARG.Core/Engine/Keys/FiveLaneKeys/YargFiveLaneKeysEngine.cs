@@ -64,52 +64,6 @@ namespace YARG.Core.Engine.Keys.Engines
             // Update bot (will return if not enabled)
             UpdateBot(time);
 
-            if (FatFingerTimer.IsActive)
-            {
-                // Fat Fingered key was released before the timer expired
-                if (KeyReleasedThisUpdate == FatFingerKey && !FatFingerTimer.IsExpired(CurrentTime))
-                {
-                    YargLogger.LogFormatTrace("Released fat fingered key at {0}. Note was hit: {1}", CurrentTime, FatFingerNote!.WasHit);
-
-                    // The note must be hit to disable the timer
-                    if (FatFingerNote!.WasHit)
-                    {
-                        YargLogger.LogTrace("Disabling fat finger timer as the note has been hit. Fat Finger was Ignored.");
-                        FatFingerTimer.Disable(time, early: true);
-                        FatFingerKey = null;
-                        FatFingerNote = null;
-
-                        EngineStats.FatFingersIgnored++;
-                    }
-                }
-                else if (FatFingerTimer.IsExpired(CurrentTime))
-                {
-                    YargLogger.LogFormatTrace("Fat Finger timer expired at {0}", CurrentTime);
-
-                    var fatFingerKeyMask = 1 << FatFingerKey;
-
-                    var isHoldingWrongKey = (KeyMask & fatFingerKeyMask) == fatFingerKeyMask;
-
-                    // Overhit if key is still held OR note was not hit
-                    if (isHoldingWrongKey || !FatFingerNote!.WasHit)
-                    {
-                        YargLogger.LogFormatTrace("Overhit due to fat finger with key {0}. KeyMask: {1}. Holding: {2}. WasHit: {3}",
-                            FatFingerKey, KeyMask, isHoldingWrongKey, FatFingerNote!.WasHit);
-                        Overhit(FatFingerKey!.Value);
-                    }
-                    else
-                    {
-                        EngineStats.FatFingersIgnored++;
-                        YargLogger.LogFormatTrace("Fat finger was ignored. KeyMask: {0}. Holding: {1}. WasHit: {2}",
-                            KeyMask, isHoldingWrongKey, FatFingerNote!.WasHit);
-                    }
-
-                    FatFingerTimer.Disable(time);
-                    FatFingerKey = null;
-                    FatFingerNote = null;
-                }
-            }
-
             // Only check note logic if note index is within bounds
             if (NoteIndex < Notes.Count)
             {
@@ -224,66 +178,7 @@ namespace YARG.Core.Engine.Keys.Engines
             // If no note was hit but the user hit a key, then over hit
             if (KeyHitThisUpdate != null)
             {
-                static GuitarNote? CheckForAdjacency(GuitarNote fullNote, FiveLaneKeysAction key)
-                {
-                    foreach (var note in fullNote.AllNotes)
-                    {
-                        if (Math.Abs(note.FiveLaneKeysAction - key) == 1)
-                        {
-                            return note;
-                        }
-                    }
-
-                    return null;
-                }
-
-                GuitarNote? adjacentNote;
-                bool isAdjacent;
-                bool inWindow;
-
-                // Try to fat finger previous note first
-
-                // Previous note can only be fat fingered if the current distance from the note
-                // is within the fat finger threshold (default 100ms)
-                if (parentNote.PreviousNote is not null
-                    && CurrentTime - parentNote.PreviousNote.Time < FatFingerTimer.SpeedAdjustedThreshold)
-                {
-                    adjacentNote = CheckForAdjacency(parentNote.PreviousNote, (FiveLaneKeysAction)KeyHitThisUpdate.Value);
-                    isAdjacent = adjacentNote != null;
-                    inWindow = IsNoteInWindow(parentNote.PreviousNote, out _);
-
-                }
-                // Try to fat finger current note (upcoming note)
-                else
-                {
-                    adjacentNote = CheckForAdjacency(parentNote, (FiveLaneKeysAction)KeyHitThisUpdate.Value);
-                    isAdjacent = adjacentNote != null;
-                    inWindow = IsNoteInWindow(parentNote, out _);
-                }
-
-                var isFatFingerActive = FatFingerTimer.IsActive;
-
-                if (!inWindow || !isAdjacent || isFatFingerActive)
-                {
-                    Overhit(KeyHitThisUpdate.Value);
-
-                    // TODO Maybe don't disable the timer/use a flag saying no more fat fingers allowed for the current note.
-
-                    FatFingerTimer.Disable(CurrentTime);
-                    FatFingerKey = null;
-                    FatFingerNote = null;
-                }
-                else
-                {
-                    StartTimer(ref FatFingerTimer, CurrentTime);
-                    FatFingerKey = KeyHitThisUpdate.Value;
-
-                    FatFingerNote = adjacentNote;
-
-                    YargLogger.LogFormatTrace("Hit adjacent key {0} to note {1}. Starting fat finger timer at {2}. End time: {3}. Key is {4}", FatFingerKey, adjacentNote!.FiveLaneKeysAction, CurrentTime,
-                        FatFingerTimer.EndTime, FatFingerKey);
-                }
-
+                Overhit(KeyHitThisUpdate.Value);
                 KeyHitThisUpdate = null;
             }
         }
