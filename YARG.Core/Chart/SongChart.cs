@@ -363,6 +363,24 @@ namespace YARG.Core.Chart
             return totalEndTime;
         }
 
+        public double GetFirstNoteStartTime()
+        {
+            double TrackMin<TNote>(IEnumerable<InstrumentTrack<TNote>> tracks) where TNote : Note<TNote> =>
+                tracks.Min((track) => track.GetFirstNoteStartTime());
+            double VoxMin(IEnumerable<VocalsTrack> tracks) => tracks.Min((track) => track.GetFirstNoteStartTime());
+
+            double totalStartTime = double.MaxValue;
+
+            totalStartTime = Math.Min(TrackMin(FiveFretTracks), totalStartTime);
+            totalStartTime = Math.Min(TrackMin(SixFretTracks), totalStartTime);
+            totalStartTime = Math.Min(TrackMin(DrumsTracks), totalStartTime);
+            totalStartTime = Math.Min(TrackMin(ProGuitarTracks), totalStartTime);
+            totalStartTime = Math.Min(ProKeys.GetFirstNoteStartTime(), totalStartTime);
+            totalStartTime = Math.Min(VoxMin(VocalsTracks), totalStartTime);
+
+            return totalStartTime;
+        }
+
         public double GetLastNoteEndTime()
         {
             double TrackMax<TNote>(IEnumerable<InstrumentTrack<TNote>> tracks) where TNote : Note<TNote>

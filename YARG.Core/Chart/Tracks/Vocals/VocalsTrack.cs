@@ -79,6 +79,17 @@ namespace YARG.Core.Chart
             return totalEndTime;
         }
 
+        public double GetFirstNoteStartTime()
+        {
+            double startTime = double.MaxValue;
+            foreach (var part in Parts)
+            {
+                startTime = Math.Min(part.GetFirstNoteStartTime(), startTime);
+            }
+
+            return startTime;
+        }
+
         public double GetLastNoteEndTime()
         {
             double endTime = 0;

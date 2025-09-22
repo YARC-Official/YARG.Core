@@ -64,6 +64,16 @@ namespace YARG.Core.Chart
             return totalEndTime;
         }
 
+        public double GetFirstNoteStartTime()
+        {
+            if (NotePhrases.Count > 0)
+            {
+                return NotePhrases[0].Time;
+            }
+
+            return double.MaxValue;
+        }
+
         public double GetLastNoteEndTime()
         {
             if (NotePhrases.Count > 0)
