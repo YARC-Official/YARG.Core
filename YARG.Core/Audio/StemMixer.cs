@@ -6,6 +6,27 @@ namespace YARG.Core.Audio
 {
     public abstract class StemMixer : IDisposable
     {
+        public struct StemInfo
+        {
+            public SongStem Stem;
+            public int[]    Indices;
+            public float[]  Panning;
+
+            public StemInfo(SongStem stem, int[] indices = null, float[] panning = null)
+            {
+                Stem = stem;
+                Indices = indices;
+                Panning = panning;
+            }
+
+            public void Deconstruct(out SongStem stem, out int[] indices, out float[] panning)
+            {
+                stem = Stem;
+                indices = Indices;
+                panning = Panning;
+            }
+        }
+
         private bool _disposed;
         private bool _isPaused = true;
 
@@ -202,7 +223,12 @@ namespace YARG.Core.Audio
             }
         }
 
-        public bool AddChannel(SongStem stem, Stream stream, int[]? indices = null, float[]? panning = null)
+        public bool AddChannel(Stream stream, SongStem songStem)
+        {
+            return AddChannels(stream, new StemInfo(songStem));
+        }
+
+        public bool AddChannels(Stream stream, params StemInfo[] stemInfos)
         {
             lock (this)
             {
@@ -210,7 +236,7 @@ namespace YARG.Core.Audio
                 {
                     return false;
                 }
-                return AddChannel_Internal(stem, stream, indices, panning);
+                return AddChannels_Internal(stream, stemInfos);
             }
         }
 
@@ -260,7 +286,7 @@ namespace YARG.Core.Audio
         protected abstract int  GetFFTData_Internal(float[] buffer, int fftSize, bool complex);
         protected abstract int GetLevel_Internal(float[] level);
         protected abstract void SetSpeed_Internal(float speed, bool shiftPitch);
-        protected abstract bool AddChannel_Internal(SongStem stem, Stream stream, int[]? indices, float[]? panning);
+        protected abstract bool AddChannels_Internal(Stream stream, params StemInfo[] stemInfos);
         protected abstract bool RemoveChannel_Internal(SongStem stemToRemove);
         protected abstract void ToggleBuffer_Internal(bool enable);
         protected abstract void SetBufferLength_Internal(int length);

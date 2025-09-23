@@ -30,7 +30,7 @@ namespace YARG.Core.Audio
                 return null;
             }
 
-            if (!mixer.AddChannel(stem, stream))
+            if (!mixer.AddChannel(stream, stem))
             {
                 mixer.Dispose();
                 return null;
