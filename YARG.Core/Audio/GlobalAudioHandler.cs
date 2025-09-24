@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Threading.Tasks;
@@ -50,6 +50,7 @@ namespace YARG.Core.Audio
                 { SongStem.Sfx,      new StemSettings() },
                 { SongStem.DrumSfx,  new StemSettings() },
                 { SongStem.VoxSample, new StemSettings() },
+                { SongStem.Preview, new StemSettings() },
             };
         }
 
@@ -308,18 +309,6 @@ namespace YARG.Core.Audio
                     throw new NotInitializedException();
                 }
                 return _instance.CreateMixer(name, speed, mixerVolume, clampStemVolume);
-            }
-        }
-
-        public static StemMixer? CreateMixer(string name, Stream stream, float speed, double mixerVolume, bool clampStemVolume)
-        {
-            lock (_instanceLock)
-            {
-                if (_instance == null)
-                {
-                    throw new NotInitializedException();
-                }
-                return _instance.CreateMixer(name, stream, speed, mixerVolume, clampStemVolume);
             }
         }
 

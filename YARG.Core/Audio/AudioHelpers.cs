@@ -54,6 +54,7 @@ namespace YARG.Core.Audio
             0.4,
             0.4,
             0.4,
+            1.0,
         };
 
         public static readonly List<SongStem> PitchBendAllowedStems = new()
@@ -306,7 +307,8 @@ namespace YARG.Core.Audio
             "Times6",
             "TimesMany",
             "FullBandFullCombo",
-            "HighScore"
+            "HighScore",
+            "FailSound"
         };
 
         public static VoxSample GetVoxSampleFromName(string name)
@@ -322,6 +324,7 @@ namespace YARG.Core.Audio
                 "TimesMany" => VoxSample.TimesMany,
                 "FullBandFullCombo" => VoxSample.FullBandFullCombo,
                 "HighScore" => VoxSample.HighScore,
+                "FailSound" => VoxSample.FailSound,
                 _ => VoxSample.FullCombo,
             };
         }

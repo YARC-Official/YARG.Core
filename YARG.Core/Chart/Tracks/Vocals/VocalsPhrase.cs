@@ -12,8 +12,8 @@ namespace YARG.Core.Chart
         public VocalNote PhraseParentNote { get; }
         public List<LyricEvent> Lyrics { get; }
 
-        public bool IsLyric => !PhraseParentNote.IsPercussion;
-        public bool IsPercussion => PhraseParentNote.IsPercussion;
+        public bool IsLyric => !PhraseParentNote.IsPercussion && PhraseParentNote.IsPercussionPhrase;
+        public bool IsPercussion => PhraseParentNote.IsPercussionPhrase;
 
         public bool IsStarPower => PhraseParentNote.IsStarPower;
 

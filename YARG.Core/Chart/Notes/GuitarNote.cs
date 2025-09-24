@@ -1,4 +1,5 @@
-using System;
+﻿using System;
+using static YARG.Core.Engine.Keys.FiveLaneKeysEngine;
 
 namespace YARG.Core.Chart
 {
@@ -8,8 +9,20 @@ namespace YARG.Core.Chart
         public GuitarNoteFlags GuitarFlags;
 
         public int Fret         { get; set; }
-        public int DisjointMask { get; set; }
+
+        // NOTE MASK BIT ASSIGNMENTS
+        // INDEX | 5L (Guitar & Keys) | 6F
+        // ------|--------------------|-----------
+        // 0     | Green              | Black 1
+        // 1     | Red                | Black 2
+        // 2     | Yellow             | Black 3
+        // 3     | Blue               | White 1
+        // 4     | Orange             | White 2
+        // 5     | (unused)           | White 3
+        // 6     | Open               | Open
+        // 7-31  | (all unused)       | (all unused)
         public int NoteMask     { get; set; }
+        public int DisjointMask { get; set; }
 
         public GuitarNoteType Type { get; set; }
 
@@ -21,6 +34,17 @@ namespace YARG.Core.Chart
 
         public bool IsExtendedSustain => (GuitarFlags & GuitarNoteFlags.ExtendedSustain) != 0;
         public bool IsDisjoint        => (GuitarFlags & GuitarNoteFlags.Disjoint) != 0;
+
+        public FiveLaneKeysAction FiveLaneKeysAction => (FiveFretGuitarFret)Fret switch
+        {
+            FiveFretGuitarFret.Green => FiveLaneKeysAction.GreenKey,
+            FiveFretGuitarFret.Red => FiveLaneKeysAction.RedKey,
+            FiveFretGuitarFret.Yellow => FiveLaneKeysAction.YellowKey,
+            FiveFretGuitarFret.Blue => FiveLaneKeysAction.BlueKey,
+            FiveFretGuitarFret.Orange => FiveLaneKeysAction.OrangeKey,
+            FiveFretGuitarFret.Open => FiveLaneKeysAction.OpenNote,
+            _ => throw new Exception("Unhandled.")
+        };
 
         public GuitarNote(FiveFretGuitarFret fret, GuitarNoteType noteType, GuitarNoteFlags guitarFlags,
             NoteFlags flags, double time, double timeLength, uint tick, uint tickLength)
