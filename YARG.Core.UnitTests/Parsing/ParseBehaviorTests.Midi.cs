@@ -684,7 +684,7 @@ namespace YARG.Core.UnitTests.Parsing
             var vocalsChart = sourceSong.GetChart(MoonInstrument.Vocals, Difficulty.Expert);
             foreach (var phrase in vocalsChart.specialPhrases)
             {
-                if (phrase.type == MoonPhrase.Type.Vocals_LyricPhrase)
+                if (phrase.type == MoonPhrase.Type.Vocals_ScoringPhrase)
                 {
                     sourceSong.InsertText(new MoonText(TextEvents.LYRIC_PHRASE_START, phrase.tick));
                     sourceSong.InsertText(new MoonText(TextEvents.LYRIC_PHRASE_END, phrase.tick + phrase.length));

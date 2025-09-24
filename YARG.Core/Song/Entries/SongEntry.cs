@@ -181,6 +181,8 @@ namespace YARG.Core.Song
 
         public double VideoEndTimeSeconds => VideoEndTimeMilliseconds >= 0 ? VideoEndTimeMilliseconds / SongMetadata.MILLISECOND_FACTOR : -1;
 
+        public float? VocalScrollSpeedScalingFactor => _metadata.VocalScrollSpeedScalingFactor;
+
         public int VocalsCount
         {
             get

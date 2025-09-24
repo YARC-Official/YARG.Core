@@ -125,7 +125,8 @@
         Times6,
         TimesMany,
         FullBandFullCombo,
-        HighScore
+        HighScore,
+        FailSound
     }
 
     public enum DSPType

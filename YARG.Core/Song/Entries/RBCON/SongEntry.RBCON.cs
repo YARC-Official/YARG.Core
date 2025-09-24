@@ -9,6 +9,7 @@ using Melanchall.DryWetMidi.Core;
 using YARG.Core.Extensions;
 using YARG.Core.Audio;
 using YARG.Core.Logging;
+using StemInfo = YARG.Core.Audio.StemMixer.StemInfo;
 
 namespace YARG.Core.Song
 {
@@ -30,6 +31,7 @@ namespace YARG.Core.Song
         private const long NOTE_SNAP_THRESHOLD = 10;
         public const int UNENCRYPTED_MOGG = 0xA;
         public const string SONGUPDATES_DTA = "songs_updates.dta";
+        private const float DEFAULT_VOCAL_SCROLL_SPEED = 2300f;
 
         protected readonly AbridgedFileInfo _root;
         protected readonly string _nodeName;
@@ -178,7 +180,7 @@ namespace YARG.Core.Song
             stream.Seek(start, SeekOrigin.Begin);
 
             bool clampStemVolume = _metadata.Source.ToLowerInvariant() == "yarg";
-            var mixer = GlobalAudioHandler.CreateMixer(ToString(), stream, speed, volume, clampStemVolume);
+            var mixer = GlobalAudioHandler.CreateMixer(ToString(), speed, volume, clampStemVolume);
             if (mixer == null)
             {
                 YargLogger.LogError("Mogg failed to load!");
@@ -187,6 +189,8 @@ namespace YARG.Core.Song
             }
 
 
+            var stemInfos = new List<StemInfo>();
+
             if (_indices.Drums.Length > 0 && !ignoreStems.Contains(SongStem.Drums))
             {
                 switch (_indices.Drums.Length)
@@ -194,51 +198,53 @@ namespace YARG.Core.Song
                     //drum (0 1): stereo kit --> (0 1)
                     case 1:
                     case 2:
-                        mixer.AddChannel(SongStem.Drums, _indices.Drums, _panning.Drums!);
+                        stemInfos.Add(new StemInfo(SongStem.Drums, _indices.Drums, _panning.Drums));
                         break;
                     //drum (0 1 2): mono kick, stereo snare/kit --> (0) (1 2)
                     case 3:
-                        mixer.AddChannel(SongStem.Drums1, _indices.Drums[0..1], _panning.Drums[0..2]);
-                        mixer.AddChannel(SongStem.Drums2, _indices.Drums[1..3], _panning.Drums[2..6]);
+                        stemInfos.Add(new StemInfo(SongStem.Drums1, _indices.Drums[0..1], _panning.Drums[0..2]));
+                        stemInfos.Add(new StemInfo(SongStem.Drums2, _indices.Drums[1..3], _panning.Drums[2..6]));
                         break;
                     //drum (0 1 2 3): mono kick, mono snare, stereo kit --> (0) (1) (2 3)
                     case 4:
-                        mixer.AddChannel(SongStem.Drums1, _indices.Drums[0..1], _panning.Drums[0..2]);
-                        mixer.AddChannel(SongStem.Drums2, _indices.Drums[1..2], _panning.Drums[2..4]);
-                        mixer.AddChannel(SongStem.Drums3, _indices.Drums[2..4], _panning.Drums[4..8]);
+                        stemInfos.Add(new StemInfo(SongStem.Drums1, _indices.Drums[0..1], _panning.Drums[0..2]));
+                        stemInfos.Add(new StemInfo(SongStem.Drums2, _indices.Drums[1..2], _panning.Drums[2..4]));
+                        stemInfos.Add(new StemInfo(SongStem.Drums3, _indices.Drums[2..4], _panning.Drums[4..8]));
                         break;
                     //drum (0 1 2 3 4): mono kick, stereo snare, stereo kit --> (0) (1 2) (3 4)
                     case 5:
-                        mixer.AddChannel(SongStem.Drums1, _indices.Drums[0..1], _panning.Drums[0..2]);
-                        mixer.AddChannel(SongStem.Drums2, _indices.Drums[1..3], _panning.Drums[2..6]);
-                        mixer.AddChannel(SongStem.Drums3, _indices.Drums[3..5], _panning.Drums[6..10]);
+                        stemInfos.Add(new StemInfo(SongStem.Drums1, _indices.Drums[0..1], _panning.Drums[0..2]));
+                        stemInfos.Add(new StemInfo(SongStem.Drums2, _indices.Drums[1..3], _panning.Drums[2..6]));
+                        stemInfos.Add(new StemInfo(SongStem.Drums3, _indices.Drums[3..5], _panning.Drums[6..10]));
                         break;
                     //drum (0 1 2 3 4 5): stereo kick, stereo snare, stereo kit --> (0 1) (2 3) (4 5)
                     case 6:
-                        mixer.AddChannel(SongStem.Drums1, _indices.Drums[0..2], _panning.Drums[0..4]);
-                        mixer.AddChannel(SongStem.Drums2, _indices.Drums[2..4], _panning.Drums[4..8]);
-                        mixer.AddChannel(SongStem.Drums3, _indices.Drums[4..6], _panning.Drums[8..12]);
+                        stemInfos.Add(new StemInfo(SongStem.Drums1, _indices.Drums[0..2], _panning.Drums[0..4]));
+                        stemInfos.Add(new StemInfo(SongStem.Drums2, _indices.Drums[2..4], _panning.Drums[4..8]));
+                        stemInfos.Add(new StemInfo(SongStem.Drums3, _indices.Drums[4..6], _panning.Drums[8..12]));
                         break;
                 }
             }
 
             if (_indices.Bass.Length > 0 && !ignoreStems.Contains(SongStem.Bass))
-                mixer.AddChannel(SongStem.Bass, _indices.Bass, _panning.Bass);
+                stemInfos.Add(new StemInfo(SongStem.Bass, _indices.Bass, _panning.Bass));
 
             if (_indices.Guitar.Length > 0 && !ignoreStems.Contains(SongStem.Guitar))
-                mixer.AddChannel(SongStem.Guitar, _indices.Guitar, _panning.Guitar);
+                stemInfos.Add(new StemInfo(SongStem.Guitar, _indices.Guitar, _panning.Guitar));
 
             if (_indices.Keys.Length > 0 && !ignoreStems.Contains(SongStem.Keys))
-                mixer.AddChannel(SongStem.Keys, _indices.Keys, _panning.Keys);
+                stemInfos.Add(new StemInfo(SongStem.Keys, _indices.Keys, _panning.Keys));
 
             if (_indices.Vocals.Length > 0 && !ignoreStems.Contains(SongStem.Vocals))
-                mixer.AddChannel(SongStem.Vocals, _indices.Vocals, _panning.Vocals);
+                stemInfos.Add(new StemInfo(SongStem.Vocals, _indices.Vocals, _panning.Vocals));
 
             if (_indices.Track.Length > 0 && !ignoreStems.Contains(SongStem.Song))
-                mixer.AddChannel(SongStem.Song, _indices.Track, _panning.Track);
+                stemInfos.Add(new StemInfo(SongStem.Song, _indices.Track, _panning.Track));
 
             if (_indices.Crowd.Length > 0 && !ignoreStems.Contains(SongStem.Crowd))
-                mixer.AddChannel(SongStem.Crowd, _indices.Crowd, _panning.Crowd);
+                stemInfos.Add(new StemInfo(SongStem.Crowd, _indices.Crowd, _panning.Crowd));
+
+            mixer.AddChannels(stream, stemInfos.ToArray());
 
             if (mixer.Channels.Count == 0)
             {
@@ -760,10 +766,19 @@ namespace YARG.Core.Song
             if (dta.Preview != null)              { entry._metadata.Preview       = dta.Preview.Value; }
             if (dta.HopoThreshold != null)        { entry._settings.HopoThreshold = dta.HopoThreshold.Value; }
             if (dta.SongRating != null)           { entry._metadata.SongRating    = dta.SongRating.Value; }
+            if (dta.VocalSongScrollSpeed != null) {
+                entry._rbMetadata.VocalSongScrollSpeed = dta.VocalSongScrollSpeed.Value;
+
+                // Many charts ignore this setting, so treat the default value as no value for our purposes.
+                // We will determine whether the chart should have had its vocal speed increased
+                if (dta.VocalSongScrollSpeed != DEFAULT_VOCAL_SCROLL_SPEED)
+                {
+                    entry._metadata.VocalScrollSpeedScalingFactor = DEFAULT_VOCAL_SCROLL_SPEED / dta.VocalSongScrollSpeed.Value;
+                }
+            }
 
             if (dta.VocalPercussionBank != null)  { entry._rbMetadata.VocalPercussionBank  = dta.VocalPercussionBank; }
             if (dta.VocalGender != null)          { entry._rbMetadata.VocalGender          = dta.VocalGender.Value; }
-            if (dta.VocalSongScrollSpeed != null) { entry._rbMetadata.VocalSongScrollSpeed = dta.VocalSongScrollSpeed.Value; }
             if (dta.VocalTonicNote != null)       { entry._rbMetadata.VocalTonicNote       = dta.VocalTonicNote.Value; }
             if (dta.VideoVenues != null)          { entry._rbMetadata.VideoVenues          = dta.VideoVenues; }
             if (dta.DrumBank != null)             { entry._rbMetadata.DrumBank             = dta.DrumBank; }

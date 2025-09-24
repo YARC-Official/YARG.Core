@@ -13,6 +13,8 @@ namespace YARG.Core.Chart
     {
         public uint Resolution => SyncTrack.Resolution;
 
+        public float VocalScrollSpeed { get; set; }
+
         public List<TextEvent> GlobalEvents { get; set; } = new();
         public List<Section> Sections { get; set; } = new();
 
@@ -357,6 +359,24 @@ namespace YARG.Core.Chart
             // totalEndTime = Math.Max(VenueTrack.GetEndTime(), totalEndTime);
 
             return totalEndTime;
+        }
+
+        public double GetFirstNoteStartTime()
+        {
+            double TrackMin<TNote>(IEnumerable<InstrumentTrack<TNote>> tracks) where TNote : Note<TNote> =>
+                tracks.Min((track) => track.GetFirstNoteStartTime());
+            double VoxMin(IEnumerable<VocalsTrack> tracks) => tracks.Min((track) => track.GetFirstNoteStartTime());
+
+            double totalStartTime = double.MaxValue;
+
+            totalStartTime = Math.Min(TrackMin(FiveFretTracks), totalStartTime);
+            totalStartTime = Math.Min(TrackMin(SixFretTracks), totalStartTime);
+            totalStartTime = Math.Min(TrackMin(DrumsTracks), totalStartTime);
+            totalStartTime = Math.Min(TrackMin(ProGuitarTracks), totalStartTime);
+            totalStartTime = Math.Min(ProKeys.GetFirstNoteStartTime(), totalStartTime);
+            totalStartTime = Math.Min(VoxMin(VocalsTracks), totalStartTime);
+
+            return totalStartTime;
         }
 
         public double GetLastNoteEndTime()
