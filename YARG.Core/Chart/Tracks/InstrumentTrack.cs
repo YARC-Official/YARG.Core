@@ -94,9 +94,14 @@ namespace YARG.Core.Chart
         internal InstrumentDifficulty<TNote> FirstDifficulty()
             => _difficulties.First().Value;
 
+        /// <summary>
+        /// Gets the start time of the first event in any difficulty in this track
+        /// </summary>
+        /// <returns>double</returns>
+        /// <remarks>This returns double.MaxValue if there are no events</remarks>
         public double GetStartTime()
         {
-            double totalStartTime = 0;
+            double totalStartTime = double.MaxValue;
             foreach (var difficulty in _difficulties.Values)
             {
                 totalStartTime = Math.Min(difficulty.GetStartTime(), totalStartTime);
@@ -122,7 +127,7 @@ namespace YARG.Core.Chart
 
             foreach (var difficulty in _difficulties.Values)
             {
-                startTime = Math.Min(difficulty.GetFirstNoteStartTime(), startTime);
+                startTime = Math.Min(difficulty.GetFirstNoteStartTime() ?? double.MaxValue, startTime);
             }
 
             return startTime;

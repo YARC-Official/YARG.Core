@@ -38,9 +38,14 @@ namespace YARG.Core.Chart
         {
         }
 
+        /// <summary>
+        /// Gets the start time of the first event in this vocal part
+        /// </summary>
+        /// <returns>double</returns>
+        /// <remarks>This returns double.MaxValue if there are no events</remarks>
         public double GetStartTime()
         {
-            double totalStartTime = 0;
+            double totalStartTime = double.MaxValue;
 
             if (NotePhrases.Count > 0)
                 totalStartTime = Math.Min(NotePhrases[0].Time, totalStartTime);

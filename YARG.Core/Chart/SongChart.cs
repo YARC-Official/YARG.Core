@@ -297,6 +297,11 @@ namespace YARG.Core.Chart
             };
         }
 
+        /// <summary>
+        /// Gets the start time of the first event in this chart
+        /// </summary>
+        /// <returns>double</returns>
+        /// <remarks>This returns double.MaxValue if there are no events</remarks>
         public double GetStartTime()
         {
             static double TrackMin<TNote>(IEnumerable<InstrumentTrack<TNote>> tracks) where TNote : Note<TNote>
@@ -304,7 +309,7 @@ namespace YARG.Core.Chart
             static double VoxMin(IEnumerable<VocalsTrack> tracks)
                 => tracks.Min((track) => track.GetStartTime());
 
-            double totalStartTime = 0;
+            double totalStartTime = double.MaxValue;
 
             // Tracks
 
@@ -363,6 +368,11 @@ namespace YARG.Core.Chart
             return totalEndTime;
         }
 
+        /// <summary>
+        /// Gets the start time of the first note in this chart
+        /// </summary>
+        /// <returns>double</returns>
+        /// <remarks>This returns double.MaxValue if there are no notes</remarks>
         public double GetFirstNoteStartTime()
         {
             double TrackMin<TNote>(IEnumerable<InstrumentTrack<TNote>> tracks) where TNote : Note<TNote> =>

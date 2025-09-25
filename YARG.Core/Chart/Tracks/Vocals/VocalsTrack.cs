@@ -57,9 +57,14 @@ namespace YARG.Core.Chart
 
         // TODO: Helper methods for getting note info across all parts
 
+        /// <summary>
+        /// Gets the start time of the first event in any vocals part
+        /// </summary>
+        /// <returns>double</returns>
+        /// <remarks>This returns double.MaxValue if there are no events</remarks>
         public double GetStartTime()
         {
-            double totalStartTime = 0;
+            double totalStartTime = double.MaxValue;
             foreach (var part in Parts)
             {
                 totalStartTime = Math.Min(part.GetStartTime(), totalStartTime);
