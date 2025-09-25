@@ -206,6 +206,8 @@ namespace YARG.Core.Chart
                     MoonPhrase.Type.ProKeys_RangeShift4 => PhraseType.ProKeys_RangeShift4,
                     MoonPhrase.Type.ProKeys_RangeShift5 => PhraseType.ProKeys_RangeShift5,
 
+                    MoonPhrase.Type.EliteDrums_DiscoFlip => PhraseType.EliteDrums_DiscoFlip,
+
                     _ => null
                 };
 
@@ -422,6 +424,7 @@ namespace YARG.Core.Chart
 
             GameMode.FourLaneDrums => MoonChart.GameMode.Drums,
             GameMode.FiveLaneDrums => MoonChart.GameMode.Drums,
+            GameMode.EliteDrums => MoonChart.GameMode.EliteDrums,
 
             GameMode.ProGuitar => MoonChart.GameMode.ProGuitar,
             GameMode.ProKeys => MoonChart.GameMode.ProKeys,
@@ -447,6 +450,7 @@ namespace YARG.Core.Chart
             Instrument.FourLaneDrums or
             Instrument.FiveLaneDrums or
             Instrument.ProDrums => MoonSong.MoonInstrument.Drums,
+            Instrument.EliteDrums => MoonSong.MoonInstrument.EliteDrums,
 
             Instrument.ProGuitar_17Fret => MoonSong.MoonInstrument.ProGuitar_17Fret,
             Instrument.ProGuitar_22Fret => MoonSong.MoonInstrument.ProGuitar_22Fret,
