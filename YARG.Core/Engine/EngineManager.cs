@@ -53,7 +53,6 @@ namespace YARG.Core.Engine
                 RockMeterPreset = rockMeterPreset;
                 _engineManager = manager;
                 Happiness = rockMeterPreset.StartingHappiness;
-                _previousHappiness = rockMeterPreset.StartingHappiness;
 
                 SubscribeToEngineEvents();
             }
@@ -105,6 +104,8 @@ namespace YARG.Core.Engine
             }
 
             var engineContainer = new EngineContainer(engine, instrument, harmonyIndex, chart, _nextEngineIndex++, this, rockMeterPreset);
+
+            // _previousHappiness = rockMeterPreset.StartingHappiness;
 
             _allEngines.Add(engineContainer);
             _allEnginesById.Add(engineContainer.EngineId, engineContainer);

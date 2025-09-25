@@ -53,7 +53,7 @@ namespace YARG.Core.Song
                     if (subFiles.TryGetValue(stemName, out var file))
                     {
                         var stream = new FileStream(file, FileMode.Open, FileAccess.Read, FileShare.Read, 1);
-                        if (mixer.AddChannel(stemEnum, stream))
+                        if (mixer.AddChannel(stream, stemEnum))
                         {
                             // No duplicates
                             break;
