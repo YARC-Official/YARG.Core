@@ -766,6 +766,7 @@ namespace YARG.Core.Song
             if (dta.Preview != null)              { entry._metadata.Preview       = dta.Preview.Value; }
             if (dta.HopoThreshold != null)        { entry._settings.HopoThreshold = dta.HopoThreshold.Value; }
             if (dta.SongRating != null)           { entry._metadata.SongRating    = dta.SongRating.Value; }
+            if (dta.LoadingPhrase != null)        { entry._metadata.LoadingPhrase = dta.LoadingPhrase; }
             if (dta.VocalSongScrollSpeed != null) {
                 entry._rbMetadata.VocalSongScrollSpeed = dta.VocalSongScrollSpeed.Value;
 
