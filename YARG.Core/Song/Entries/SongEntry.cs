@@ -156,6 +156,7 @@ namespace YARG.Core.Song
         public string CharterProKeys    => _metadata.CharterProKeys;
         public string CharterProGuitar  => _metadata.CharterProGuitar;
         public string CharterVocals     => _metadata.CharterVocals;
+        public string CharterVenue      => _metadata.CharterVenue;
 
         public long SongLengthMilliseconds => _metadata.SongLength;
 
