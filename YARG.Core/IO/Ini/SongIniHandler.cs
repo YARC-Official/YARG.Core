@@ -42,6 +42,7 @@ namespace YARG.Core.IO.Ini
                 { "charter_pro_bass",                     new("charter_pro_bass", ModifierType.String) },
                 { "charter_pro_keys",                     new("charter_pro_keys", ModifierType.String) },
                 { "charter_pro_guitar",                   new("charter_pro_guitar", ModifierType.String) },
+                { "charter_venue",                        new ("charter_venue", ModifierType.String) },
                 { "charter_vocals",                       new("charter_vocals", ModifierType.String) },
                 { "count",                                new("count", ModifierType.UInt32) },
                 { "cover",                                new("cover", ModifierType.String) },

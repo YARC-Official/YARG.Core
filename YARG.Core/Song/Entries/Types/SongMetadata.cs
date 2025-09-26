@@ -136,6 +136,7 @@ namespace YARG.Core.Song
         public string CharterProKeys;
         public string CharterProGuitar;
         public string CharterVocals;
+        public string CharterVenue;
 
         public float? VocalScrollSpeedScalingFactor;
 
@@ -364,6 +365,11 @@ namespace YARG.Core.Song
             if (modifiers.Extract("charter_vocals", out string charterVocals))
             {
                 metadata.CharterVocals = charterVocals;
+            }
+
+            if (modifiers.Extract("charter_venue", out string charterVenue))
+            {
+                metadata.CharterVenue = charterVenue;
             }
 
             if (modifiers.Extract("playlist_track", out int playlistTrack))
