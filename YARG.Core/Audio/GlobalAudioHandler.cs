@@ -276,7 +276,7 @@ namespace YARG.Core.Audio
             }
         }
 
-        public static StemMixer? LoadCustomFile(string name, Stream stream, float speed, double volume, SongStem stem = SongStem.Song)
+        public static StemMixer? LoadCustomFile(string name, Stream stream, float speed, double volume, bool normalize, SongStem stem = SongStem.Song)
         {
             lock (_instanceLock)
             {
@@ -284,11 +284,11 @@ namespace YARG.Core.Audio
                 {
                     throw new NotInitializedException();
                 }
-                return _instance.LoadCustomFile(name, stream, speed, volume, stem);
+                return _instance.LoadCustomFile(name, stream, speed, volume, normalize, stem);
             }
         }
 
-        public static StemMixer? LoadCustomFile(string file, float speed, double volume, SongStem stem = SongStem.Song)
+        public static StemMixer? LoadCustomFile(string file, float speed, double volume, bool normalize, SongStem stem = SongStem.Song)
         {
             lock (_instanceLock)
             {
@@ -296,11 +296,11 @@ namespace YARG.Core.Audio
                 {
                     throw new NotInitializedException();
                 }
-                return _instance.LoadCustomFile(file, speed, volume, stem);
+                return _instance.LoadCustomFile(file, speed, volume, normalize, stem);
             }
         }
 
-        public static StemMixer? CreateMixer(string name, float speed, double mixerVolume, bool clampStemVolume)
+        public static StemMixer? CreateMixer(string name, float speed, double mixerVolume, bool clampStemVolume, bool normalize)
         {
             lock (_instanceLock)
             {
@@ -308,7 +308,7 @@ namespace YARG.Core.Audio
                 {
                     throw new NotInitializedException();
                 }
-                return _instance.CreateMixer(name, speed, mixerVolume, clampStemVolume);
+                return _instance.CreateMixer(name, speed, mixerVolume, clampStemVolume, normalize);
             }
         }
 
