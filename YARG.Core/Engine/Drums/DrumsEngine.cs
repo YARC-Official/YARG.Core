@@ -25,8 +25,10 @@ namespace YARG.Core.Engine.Drums
 
         protected DrumsAction? Action;
 
+        protected bool IsMidiDrumsInput;
+
         protected DrumsEngine(InstrumentDifficulty<DrumNote> chart, SyncTrack syncTrack,
-            DrumsEngineParameters engineParameters, bool isBot)
+            DrumsEngineParameters engineParameters, bool isBot, bool isMidiDrumsInput)
             : base(chart, syncTrack, engineParameters, true, isBot)
         {
             foreach(var note in Notes)
@@ -45,6 +47,7 @@ namespace YARG.Core.Engine.Drums
             }
 
             GetWaitCountdowns(Notes);
+            IsMidiDrumsInput = isMidiDrumsInput;
         }
 
         public override void Reset(bool keepCurrentButtons = false)
