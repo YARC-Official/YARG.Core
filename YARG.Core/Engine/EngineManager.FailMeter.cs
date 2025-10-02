@@ -191,7 +191,12 @@ namespace YARG.Core.Engine
 
             private void OnKeysOverhit(int key) => OnOverstrum();
 
-            private void OnStarpowerStatus(bool isActive) => _engineManager._starpowerCount += isActive ? 1 : -1;
+            private void OnStarPowerStatus(bool active)
+            {
+                var count = _engineManager._starpowerCount;
+                count += active ? 1 : -1;
+                _engineManager.UpdateStarPowerCount(count);
+            }
 
             private void AddHappiness(float delta)
             {
@@ -208,7 +213,7 @@ namespace YARG.Core.Engine
                     var engine = (GuitarEngine) guitarEngine;
                     engine.OnNoteHit += OnNoteHit;
                     engine.OnNoteMissed += OnNoteMissed;
-                    engine.OnStarPowerStatus += OnStarpowerStatus;
+                    engine.OnStarPowerStatus += OnStarPowerStatus;
                     engine.OnOverstrum += OnOverstrum;
                 }
 
@@ -217,7 +222,7 @@ namespace YARG.Core.Engine
                     var engine = (DrumsEngine) drumEngine;
                     engine.OnNoteHit += OnNoteHit;
                     engine.OnNoteMissed += OnNoteMissed;
-                    engine.OnStarPowerStatus += OnStarpowerStatus;
+                    engine.OnStarPowerStatus += OnStarPowerStatus;
                     engine.OnOverhit += OnOverstrum;
                 }
 
@@ -227,7 +232,7 @@ namespace YARG.Core.Engine
                     var engine = (ProKeysEngine) proKeysEngine;
                     engine.OnNoteHit += OnNoteHit;
                     engine.OnNoteMissed += OnNoteMissed;
-                    engine.OnStarPowerStatus += OnStarpowerStatus;
+                    engine.OnStarPowerStatus += OnStarPowerStatus;
                     engine.OnOverhit += OnKeysOverhit;
                 }
 
@@ -236,16 +241,22 @@ namespace YARG.Core.Engine
                     var engine = (FiveLaneKeysEngine) keysEngine;
                     engine.OnNoteHit += OnNoteHit;
                     engine.OnNoteMissed += OnNoteMissed;
-                    engine.OnStarPowerStatus += OnStarpowerStatus;
+                    engine.OnStarPowerStatus += OnStarPowerStatus;
                     engine.OnOverhit += OnKeysOverhit;
                 }
 
                 if (Engine is VocalsEngine vocalsEngine)
                 {
                     vocalsEngine.OnPhraseHit += OnVocalPhraseHit;
-                    vocalsEngine.OnStarPowerStatus += OnStarpowerStatus;
+                    vocalsEngine.OnStarPowerStatus += OnStarPowerStatus;
                 }
             }
+        }
+
+        private void UpdateStarPowerCount(int count)
+        {
+            _starpowerCount = Math.Clamp(count, 0, int.MaxValue);
+            UpdateBandMultiplier();
         }
     }
 }

@@ -29,7 +29,7 @@ namespace YARG.Core.Engine
         /// <remarks>
         /// Calculated from <see cref="CommittedScore"/>, <see cref="PendingScore"/>, and <see cref="SoloBonuses"/>.
         /// </remarks>
-        public int TotalScore => CommittedScore + PendingScore + SoloBonuses;
+        public int TotalScore => CommittedScore + PendingScore + SoloBonuses + BandBonusScore;
 
         /// <summary>
         /// Total score earned from hitting notes.
@@ -45,6 +45,11 @@ namespace YARG.Core.Engine
         /// Total score earned from score multipliers.
         /// </summary>
         public int MultiplierScore;
+
+        /// <summary>
+        /// Total score earned from band bonuses, typically from Star Power/Overdrive activations from other players.
+        /// </summary>
+        public int BandBonusScore;
 
         /// <summary>
         /// The score used to calculate star progress.
@@ -79,6 +84,17 @@ namespace YARG.Core.Engine
         /// The player's current score multiplier (e.g 2x, 3x)
         /// </summary>
         public int ScoreMultiplier;
+
+        /// <summary>
+        /// The score multiplier currently applied to the entire band.
+        /// </summary>
+        public int BandMultiplier;
+
+        /// <summary>
+        /// The bonus multiplier awared to this player as a result of other players having Star Power/Overdrive active.
+        /// See also <see cref="BandBonusScore"/>.
+        /// </summary>
+        public int BandBonusMultiplier => IsStarPowerActive ? BandMultiplier - 2 : BandMultiplier - 1;
 
         /// <summary>
         /// Number of notes which have been hit.
@@ -183,9 +199,12 @@ namespace YARG.Core.Engine
             NoteScore = stats.NoteScore;
             SustainScore = stats.SustainScore;
             MultiplierScore = stats.MultiplierScore;
+            BandBonusScore = stats.BandBonusScore;
             Combo = stats.Combo;
             MaxCombo = stats.MaxCombo;
             ScoreMultiplier = stats.ScoreMultiplier;
+            BandMultiplier = stats.BandMultiplier;
+
             NotesHit = stats.NotesHit;
             TotalNotes = stats.TotalNotes;
 
@@ -213,10 +232,12 @@ namespace YARG.Core.Engine
             NoteScore = stream.Read<int>(Endianness.Little);
             SustainScore = stream.Read<int>(Endianness.Little);
             MultiplierScore = stream.Read<int>(Endianness.Little);
+            BandBonusScore = stream.Read<int>(Endianness.Little);
 
             Combo = stream.Read<int>(Endianness.Little);
             MaxCombo = stream.Read<int>(Endianness.Little);
             ScoreMultiplier = stream.Read<int>(Endianness.Little);
+            BandMultiplier = stream.Read<int>(Endianness.Little);
 
             NotesHit = stream.Read<int>(Endianness.Little);
             TotalNotes = stream.Read<int>(Endianness.Little);
@@ -245,9 +266,11 @@ namespace YARG.Core.Engine
             NoteScore = 0;
             SustainScore = 0;
             MultiplierScore = 0;
+            BandBonusScore = 0;
             Combo = 0;
             MaxCombo = 0;
             ScoreMultiplier = 1;
+            BandMultiplier = 1;
             NotesHit = 0;
             // Don't reset TotalNotes
             // TotalNotes = 0;
