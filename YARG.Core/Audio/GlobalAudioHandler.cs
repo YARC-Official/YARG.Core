@@ -251,6 +251,18 @@ namespace YARG.Core.Audio
             }
         }
 
+        public static void StopSoundEffect(SfxSample sample)
+        {
+            lock (_instanceLock)
+            {
+                if (_instance == null)
+                {
+                    throw new NotInitializedException();
+                }
+                _instance.SfxSamples[(int) sample]?.Stop();
+            }
+        }
+
         public static void PlayDrumSoundEffect(DrumSfxSample sample, double volume)
         {
             lock (_instanceLock)

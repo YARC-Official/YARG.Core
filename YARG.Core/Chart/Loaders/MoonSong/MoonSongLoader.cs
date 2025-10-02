@@ -6,6 +6,7 @@ using MoonscraperChartEditor.Song;
 using MoonscraperChartEditor.Song.IO;
 using YARG.Core.Chart.Events;
 using YARG.Core.Logging;
+using YARG.Core.Parsing;
 
 namespace YARG.Core.Chart
 {

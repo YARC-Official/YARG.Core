@@ -30,6 +30,7 @@ namespace YARG.Core.Audio
             "starpower_award",
             "starpower_gain",
             "starpower_deploy",
+            "overdrive_deploy_crowd",
             "starpower_release",
             "clap",
             "star",
@@ -38,6 +39,11 @@ namespace YARG.Core.Audio
             "overstrum_2",
             "overstrum_3",
             "overstrum_4",
+            "crowd_start_1",
+            "crowd_start_2",
+            "crowd_start_3",
+            "chatter",
+            "crowd_end_1"
         };
 
         public static readonly IList<double> SfxVolume = new[]
@@ -45,6 +51,7 @@ namespace YARG.Core.Audio
             0.55,
             0.5,
             0.5,
+            0.4,
             0.4,
             0.5,
             0.16,
@@ -54,6 +61,10 @@ namespace YARG.Core.Audio
             0.4,
             0.4,
             0.4,
+            1.0,
+            0.6,
+            0.7,
+            1.0,
             1.0,
         };
 
@@ -124,19 +135,25 @@ namespace YARG.Core.Audio
         {
             return sfx.ToLowerInvariant() switch
             {
-                "note_miss"         => SfxSample.NoteMiss,
-                "starpower_award"   => SfxSample.StarPowerAward,
-                "starpower_gain"    => SfxSample.StarPowerGain,
-                "starpower_deploy"  => SfxSample.StarPowerDeploy,
-                "starpower_release" => SfxSample.StarPowerRelease,
-                "clap"              => SfxSample.Clap,
-                "star"              => SfxSample.StarGain,
-                "star_gold"         => SfxSample.StarGold,
-                "overstrum_1"       => SfxSample.Overstrum1,
-                "overstrum_2"       => SfxSample.Overstrum2,
-                "overstrum_3"       => SfxSample.Overstrum3,
-                "overstrum_4"       => SfxSample.Overstrum4,
-                _                   => SfxSample.NoteMiss,
+                "note_miss"              => SfxSample.NoteMiss,
+                "starpower_award"        => SfxSample.StarPowerAward,
+                "starpower_gain"         => SfxSample.StarPowerGain,
+                "starpower_deploy"       => SfxSample.StarPowerDeploy,
+                "overdrive_deploy_crowd" => SfxSample.StarPowerDeployCrowd,
+                "starpower_release"      => SfxSample.StarPowerRelease,
+                "clap"                   => SfxSample.Clap,
+                "star"                   => SfxSample.StarGain,
+                "star_gold"              => SfxSample.StarGold,
+                "overstrum_1"            => SfxSample.Overstrum1,
+                "overstrum_2"            => SfxSample.Overstrum2,
+                "overstrum_3"            => SfxSample.Overstrum3,
+                "overstrum_4"            => SfxSample.Overstrum4,
+                "crowd_start_1"          => SfxSample.CrowdStart,
+                "crowd_start_2"          => SfxSample.CrowdStart2,
+                "crowd_start_3"          => SfxSample.CrowdStart3,
+                "crowd_end_1"            => SfxSample.CrowdEnd,
+                "chatter"                => SfxSample.Chatter,
+                _                        => SfxSample.NoteMiss,
             };
         }
 

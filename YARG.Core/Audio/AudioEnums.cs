@@ -29,6 +29,7 @@
         StarPowerAward,
         StarPowerGain,
         StarPowerDeploy,
+        StarPowerDeployCrowd,
         StarPowerRelease,
         Clap,
         StarGain,
@@ -37,6 +38,11 @@
         Overstrum2,
         Overstrum3,
         Overstrum4,
+        CrowdStart,
+        CrowdStart2,
+        CrowdStart3,
+        CrowdEnd,
+        Chatter
     }
 
     public enum DrumSfxSample

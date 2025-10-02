@@ -17,6 +17,7 @@ namespace YARG.Core.Chart
 
         public List<TextEvent> GlobalEvents { get; set; } = new();
         public List<Section> Sections { get; set; } = new();
+        public List<CrowdEvent> CrowdEvents { get; set; } = new();
 
         public SyncTrack SyncTrack { get; set; }
         public VenueTrack VenueTrack { get; set; } = new();
@@ -154,6 +155,8 @@ namespace YARG.Core.Chart
             CreateDrumActivationPhrases();
             // Add range shift phrases, done here since they are parsed from text events
             CreateRangeShiftPhrases();
+            // Add crowd events, done here since they are parsed from text events
+            CreateCrowdEvents();
 
             PostProcessSections();
             FixDrumPhraseEnds();

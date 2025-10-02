@@ -33,6 +33,23 @@ namespace YARG.Core.Audio
             }
         }
 
+        // TODO: Implement properly (fade out when duration approaches if sample is still playing)
+        public void PlayForTime(double duration)
+        {
+            Play();
+        }
+
+        public void Stop()
+        {
+            lock (this)
+            {
+                if (!_disposed)
+                {
+                    Stop_Internal();
+                }
+            }
+        }
+
         private void SetVolume(double volume)
         {
             lock (this)
@@ -45,6 +62,7 @@ namespace YARG.Core.Audio
         }
 
         protected abstract void Play_Internal();
+        protected abstract void Stop_Internal();
         protected abstract void SetVolume_Internal(double volume);
 
         protected virtual void DisposeManagedResources() { }
