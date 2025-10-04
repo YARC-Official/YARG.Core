@@ -74,6 +74,11 @@ namespace YARG.Core.Engine
 
         public void InitializeHappiness()
         {
+            foreach (var container in _allEngines)
+            {
+                container.ResetHappiness();
+            }
+
             UpdateHappiness();
         }
 
@@ -128,6 +133,11 @@ namespace YARG.Core.Engine
         public partial class EngineContainer
         {
             public float Happiness { get; private set; } = 0.0f;
+
+            public void ResetHappiness()
+            {
+                Happiness = RockMeterPreset.StartingHappiness;
+            }
 
             private void OnVocalPhraseHit(double hitPercentAfterParams, bool fullPoints)
             {
