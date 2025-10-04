@@ -491,7 +491,8 @@ namespace YARG.Core.Engine
                 // Amount of points just from Star Power is half of the current multiplier (8x total -> 4x SP points)
                 var spScore = scoreMultiplier / 2;
 
-                EngineStats.StarPowerScore += spScore;
+                EngineStats.StarPowerScore += spScore;            
+                EngineStats.BandBonusScore += EngineStats.BandBonusMultiplier * spScore;
 
                 // Subtract score from the note that was just hit to get the multiplier points
                 EngineStats.MultiplierScore += spScore - score;
@@ -499,7 +500,9 @@ namespace YARG.Core.Engine
             else
             {
                 EngineStats.MultiplierScore += scoreMultiplier - score;
+                EngineStats.BandBonusScore += EngineStats.BandBonusMultiplier * scoreMultiplier;
             }
+
             UpdateStars();
         }
 

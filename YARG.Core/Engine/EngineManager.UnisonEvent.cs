@@ -409,21 +409,5 @@ namespace YARG.Core.Engine
             }
             unison.Awarded = true;
         }
-
-        private void IncreaseBandMultiplier()
-        {
-            foreach (var container in _allEngines)
-            {
-
-            }
-        }
-
-        private void DecreaseBandMultiplier()
-        {
-            foreach (var container in _allEngines)
-            {
-
-            }
-        }
     }
 }
