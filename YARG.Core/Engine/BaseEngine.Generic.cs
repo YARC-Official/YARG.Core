@@ -269,13 +269,13 @@ namespace YARG.Core.Engine
                 if (IsWaitCountdownActive)
                 {
                     var currentCountdown = WaitCountdowns[CurrentWaitCountdownIndex];
-                    double deactivateTime = currentCountdown.DeactivateTime;
+                    double endTime = currentCountdown.TimeEnd;
 
-                    if (IsTimeBetween(deactivateTime, previousTime, nextTime))
+                    if (IsTimeBetween(endTime, previousTime, nextTime))
                     {
                         YargLogger.LogFormatTrace("Queuing countdown {0} deactivation at {1}",
-                            CurrentWaitCountdownIndex, deactivateTime);
-                        QueueUpdateTime(deactivateTime, "Deactivate Countdown");
+                            CurrentWaitCountdownIndex, endTime);
+                        QueueUpdateTime(endTime, "Deactivate Countdown");
                     }
                 }
                 else
@@ -342,7 +342,7 @@ namespace YARG.Core.Engine
 
                 if (time >= currentCountdown.Time)
                 {
-                    if (time < currentCountdown.DeactivateTime)
+                    if (time < currentCountdown.TimeEnd)
                     {
                         // This countdown should be displayed onscreen
                         if (!IsWaitCountdownActive)
@@ -359,7 +359,7 @@ namespace YARG.Core.Engine
                         if (IsWaitCountdownActive)
                         {
                             IsWaitCountdownActive = false;
-                            YargLogger.LogFormatTrace("Countdown {0} deactivated at time {1}. Expected time: {2}", CurrentWaitCountdownIndex, time, currentCountdown.DeactivateTime);
+                            YargLogger.LogFormatTrace("Countdown {0} deactivated at time {1}. Expected time: {2}", CurrentWaitCountdownIndex, time, currentCountdown.TimeEnd);
                         }
 
                         CurrentWaitCountdownIndex++;
