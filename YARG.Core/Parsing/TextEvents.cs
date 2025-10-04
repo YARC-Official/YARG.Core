@@ -79,7 +79,9 @@ namespace YARG.Core.Parsing
     public static partial class TextEvents
     {
         public const string BIG_ROCK_ENDING_START = "coda";
-        public const string END_MARKER = "end";
+        public const string END_MARKER            = "end";
+        public const string MUSIC_START           = "music_start";
+        public const string MUSIC_END             = "music_end";
 
         /// <summary>
         /// Normalizes text events into a consistent format. This includes stripping any

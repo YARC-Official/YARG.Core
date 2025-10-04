@@ -22,13 +22,13 @@ namespace YARG.Core.Audio
             GlobalAudioHandler.StemSettings[SongStem.Sfx].OnVolumeChange += SetVolume;
         }
 
-        public void Play()
+        public void Play(double duration = 0)
         {
             lock (this)
             {
                 if (!_disposed)
                 {
-                    Play_Internal();
+                    Play_Internal(duration);
                 }
             }
         }
@@ -39,13 +39,35 @@ namespace YARG.Core.Audio
             Play();
         }
 
-        public void Stop()
+        public void Stop(double duration = 0)
         {
             lock (this)
             {
                 if (!_disposed)
                 {
-                    Stop_Internal();
+                    Stop_Internal(duration);
+                }
+            }
+        }
+
+        public void Pause()
+        {
+            lock (this)
+            {
+                if (!_disposed)
+                {
+                    Pause_Internal();
+                }
+            }
+        }
+
+        public void Resume()
+        {
+            lock (this)
+            {
+                if (!_disposed)
+                {
+                    Resume_Internal();
                 }
             }
         }
@@ -61,9 +83,35 @@ namespace YARG.Core.Audio
             }
         }
 
-        protected abstract void Play_Internal();
-        protected abstract void Stop_Internal();
+        protected void SetEndCallback()
+        {
+            lock (this)
+            {
+                if (!_disposed)
+                {
+                    SetEndCallback_Internal();
+                }
+            }
+        }
+
+        protected void EndCallback(int _, int __, int ___, IntPtr ____)
+        {
+            lock (this)
+            {
+                if (!_disposed)
+                {
+                    EndCallback_Internal(_, __, ___, ____);
+                }
+            }
+        }
+
+        protected abstract void Play_Internal(double duration);
+        protected abstract void Stop_Internal(double duration);
+        protected abstract void Pause_Internal();
+        protected abstract void Resume_Internal();
         protected abstract void SetVolume_Internal(double volume);
+        protected abstract void SetEndCallback_Internal();
+        protected abstract void EndCallback_Internal(int _, int __, int ___, IntPtr ____);
 
         protected virtual void DisposeManagedResources() { }
         protected virtual void DisposeUnmanagedResources() { }

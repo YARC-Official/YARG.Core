@@ -38,10 +38,13 @@
         Overstrum2,
         Overstrum3,
         Overstrum4,
+        CrowdOpen1,
+        CrowdOpen2,
         CrowdStart,
         CrowdStart2,
         CrowdStart3,
-        CrowdEnd,
+        CrowdEnd1,
+        CrowdEnd2,
         Chatter
     }
 

@@ -239,7 +239,7 @@ namespace YARG.Core.Audio
             }
         }
 
-        public static void PlaySoundEffect(SfxSample sample)
+        public static void PlaySoundEffect(SfxSample sample, double duration = 0)
         {
             lock (_instanceLock)
             {
@@ -247,11 +247,11 @@ namespace YARG.Core.Audio
                 {
                     throw new NotInitializedException();
                 }
-                _instance.SfxSamples[(int) sample]?.Play();
+                _instance.SfxSamples[(int) sample]?.Play(duration);
             }
         }
 
-        public static void StopSoundEffect(SfxSample sample)
+        public static void StopSoundEffect(SfxSample sample, double duration = 0)
         {
             lock (_instanceLock)
             {
@@ -259,7 +259,53 @@ namespace YARG.Core.Audio
                 {
                     throw new NotInitializedException();
                 }
-                _instance.SfxSamples[(int) sample]?.Stop();
+                _instance.SfxSamples[(int) sample]?.Stop(duration);
+            }
+        }
+
+        public static void PauseSoundEffect(SfxSample sample)
+        {
+            lock (_instanceLock)
+            {
+                if (_instance == null)
+                {
+                    throw new NotInitializedException();
+                }
+                _instance.SfxSamples[(int) sample]?.Pause();
+            }
+        }
+
+        public static void ResumeSoundEffect(SfxSample sample)
+        {
+            lock (_instanceLock)
+            {
+                if (_instance == null)
+                {
+                    throw new NotInitializedException();
+                }
+                _instance.SfxSamples[(int) sample]?.Resume();
+            }
+        }
+
+        public static void PauseAllSfx()
+        {
+            foreach (var sample in AudioHelpers.SfxSamples)
+            {
+                if (sample.IsPlaying)
+                {
+                    PauseSoundEffect(sample.Kind);
+                }
+            }
+        }
+
+        public static void ResumeAllSfx()
+        {
+            foreach (var sample in AudioHelpers.SfxSamples)
+            {
+                if (sample.IsPlaying)
+                {
+                    ResumeSoundEffect(sample.Kind);
+                }
             }
         }
 
