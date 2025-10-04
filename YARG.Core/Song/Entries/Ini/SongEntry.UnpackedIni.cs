@@ -33,7 +33,7 @@ namespace YARG.Core.Song
         public override StemMixer? LoadAudio(float speed, double volume, params SongStem[] ignoreStems)
         {
             bool clampStemVolume = _metadata.Source.ToLowerInvariant() == "yarg";
-            var mixer = GlobalAudioHandler.CreateMixer(ToString(), speed, volume, clampStemVolume);
+            var mixer = GlobalAudioHandler.CreateMixer(ToString(), speed, volume, clampStemVolume, true);
             if (mixer == null)
             {
                 YargLogger.LogError("Failed to create mixer!");
@@ -85,7 +85,7 @@ namespace YARG.Core.Song
                 var audioFile = Path.Combine(_location, filename);
                 if (File.Exists(audioFile))
                 {
-                    return GlobalAudioHandler.LoadCustomFile(audioFile, speed, 0, SongStem.Preview);
+                    return GlobalAudioHandler.LoadCustomFile(audioFile, speed, 0, true, SongStem.Preview);
                 }
             }
             return LoadAudio(speed, 0, SongStem.Crowd);
