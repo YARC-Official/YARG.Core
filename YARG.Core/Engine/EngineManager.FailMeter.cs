@@ -129,7 +129,7 @@ namespace YARG.Core.Engine
         {
             public float Happiness { get; private set; } = 0.0f;
 
-            private void OnVocalPhraseHit(double hitPercentAfterParams, bool fullPoints)
+            private void OnVocalPhraseHit(double hitPercentAfterParams, bool fullPoints, bool isLastPhrase)
             {
                 hitPercentAfterParams = Math.Clamp(hitPercentAfterParams, 0.0, 1.0);
                 var delta = 0.0f;
