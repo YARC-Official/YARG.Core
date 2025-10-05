@@ -80,6 +80,13 @@ namespace YARG.Core.Engine
             {
                 Engine.Update(time);
             }
+
+            private void OnStarPowerStatus(bool active)
+            {
+                var count = _engineManager._starpowerCount;
+                count += active ? 1 : -1;
+                _engineManager.UpdateStarPowerCount(count);
+            }
         }
 
         public EngineContainer Register<TEngineType>(TEngineType engine, Instrument instrument, SongChart chart, RockMeterPreset rockMeterPreset)
@@ -126,25 +133,18 @@ namespace YARG.Core.Engine
             throw new ArgumentException("Target engine not found");
         }
 
+        private void UpdateStarPowerCount(int count)
+        {
+            _starpowerCount = Math.Clamp(count, 0, int.MaxValue);
+            UpdateBandMultiplier();
+        }
+
         public void UpdateEngines(double time)
         {
             foreach (var engine in _allEngines)
             {
                 engine.UpdateEngine(time);
             }
-        }
-
-        private void OnStarPowerStatus(bool active)
-        {
-            var count = _engineManager._starpowerCount;
-            count += active ? 1 : -1;
-            _engineManager.UpdateStarPowerCount(count);
-        }
-
-        private void UpdateStarPowerCount(int count)
-        {
-            _starpowerCount = Math.Clamp(count, 0, int.MaxValue);
-            UpdateBandMultiplier();
         }
 
         public enum EngineCommandType
