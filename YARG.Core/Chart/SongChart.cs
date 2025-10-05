@@ -17,6 +17,7 @@ namespace YARG.Core.Chart
 
         public List<TextEvent> GlobalEvents { get; set; } = new();
         public List<Section> Sections { get; set; } = new();
+        public List<CrowdEvent> CrowdEvents { get; set; } = new();
 
         public SyncTrack SyncTrack { get; set; }
         public VenueTrack VenueTrack { get; set; } = new();
@@ -154,6 +155,8 @@ namespace YARG.Core.Chart
             CreateDrumActivationPhrases();
             // Add range shift phrases, done here since they are parsed from text events
             CreateRangeShiftPhrases();
+            // Add crowd events, done here since they are parsed from text events
+            CreateCrowdEvents();
 
             PostProcessSections();
             FixDrumPhraseEnds();
@@ -491,6 +494,62 @@ namespace YARG.Core.Chart
             }
 
             return null;
+        }
+
+        /// <summary>
+        /// Gets the music_start and music_end events, if they exist.
+        /// </summary>
+        /// <returns>Named tuple, null if one or both are not found</returns>
+        /// <remarks>Null is returned if both are not found as that is considered a charting error</remarks>
+        public (TextEvent? musicStart, TextEvent? musicEnd) GetMusicEvents()
+        {
+            TextEvent? musicStart = null;
+            TextEvent? musicEnd = null;
+            // Search the first 20 events for music_start (surely there won't be more before it?)
+            for (var i = 0; i < 20; i++)
+            {
+                if (GlobalEvents.Count <= i)
+                {
+                    break;
+                }
+
+                var text = GlobalEvents[i];
+                if (text.Text == TextEvents.MUSIC_START)
+                {
+                    musicStart = text;
+                    break;
+                }
+            }
+
+            // If we didn't find start, don't bother looking for end
+            if (musicStart == null)
+            {
+                return (null, null);
+            }
+
+            // Reverse search the last 20 events for music_end
+            for (var i = 1; i <= 20; i++)
+            {
+                int index = GlobalEvents.Count - i;
+                if (index < 0)
+                {
+                    break;
+                }
+
+                var text = GlobalEvents[index];
+                if (text.Text == TextEvents.MUSIC_END)
+                {
+                    musicEnd = text;
+                    break;
+                }
+            }
+
+            if (musicEnd == null)
+            {
+                return (null, null);
+            }
+
+            return (musicStart, musicEnd);
         }
     }
 }

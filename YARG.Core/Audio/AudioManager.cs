@@ -12,9 +12,9 @@ namespace YARG.Core.Audio
         private bool _disposed;
         private List<StemMixer> _activeMixers = new();
 
-        protected internal readonly SampleChannel[]     SfxSamples     = new SampleChannel[AudioHelpers.SfxPaths.Count];
-        protected internal readonly DrumSampleChannel[] DrumSfxSamples = new DrumSampleChannel[AudioHelpers.DrumSfxPaths.Count];
-        protected internal readonly VoxSampleChannel[]  VoxSamples     = new VoxSampleChannel[AudioHelpers.VoxSamplePaths.Count];
+        protected internal readonly SampleChannel[]     SfxSamples     = new SampleChannel[AudioHelpers.SfxSamples.Count];
+        protected internal readonly DrumSampleChannel[] DrumSfxSamples = new DrumSampleChannel[AudioHelpers.DrumSamples.Count];
+        protected internal readonly VoxSampleChannel[]  VoxSamples     = new VoxSampleChannel[AudioHelpers.VoxSamples.Count];
         protected internal int PlaybackLatency;
         protected internal int MinimumBufferLength;
         protected internal int MaximumBufferLength;

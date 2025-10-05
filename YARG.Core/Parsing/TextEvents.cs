@@ -1,6 +1,7 @@
 ﻿using System;
 using YARG.Core.Extensions;
 using YARG.Core.IO;
+using MemoryExtensions = System.MemoryExtensions;
 
 namespace YARG.Core.Parsing
 {
@@ -55,12 +56,32 @@ namespace YARG.Core.Parsing
     }
 
     /// <summary>
+    /// Possible crowd states
+    /// </summary>
+    public enum CrowdState
+    {
+        None = 0,
+        Realtime,
+        Intense,
+        Normal,
+        Mellow,
+    }
+
+    public enum ClapState {
+        None = 0,
+        Clap,
+        NoClap
+    }
+
+    /// <summary>
     /// Constants and utilities for handling text events.
     /// </summary>
     public static partial class TextEvents
     {
         public const string BIG_ROCK_ENDING_START = "coda";
-        public const string END_MARKER = "end";
+        public const string END_MARKER            = "end";
+        public const string MUSIC_START           = "music_start";
+        public const string MUSIC_END             = "music_end";
 
         /// <summary>
         /// Normalizes text events into a consistent format. This includes stripping any
@@ -231,8 +252,63 @@ namespace YARG.Core.Parsing
                     default: break;
                 }
             }
-                
+
             return true;
+        }
+
+        public static bool TryParseCrowdEvent(ReadOnlySpan<char> text, out CrowdState state)
+        {
+            state = CrowdState.Normal;
+            if (!text.StartsWith(CROWD_PREFIX))
+            {
+                return false;
+            }
+
+            // If we had C# 11, we could use a switch expression without having to take the allocation
+            // from ToString, but alas we do not.
+            var crowdText = text.ToString();
+
+            CrowdState? crowdState = crowdText switch
+            {
+                CROWD_REALTIME => CrowdState.Realtime,
+                CROWD_INTENSE  => CrowdState.Intense,
+                CROWD_NORMAL   => CrowdState.Normal,
+                CROWD_MELLOW   => CrowdState.Mellow,
+                _                => null
+            };
+
+            if (crowdState is null)
+            {
+                // Not a valid crowd state
+                return false;
+            }
+
+            state = crowdState.Value;
+            return true;
+        }
+
+        public static bool TryParseClapEvent(ReadOnlySpan<char> text, out ClapState state)
+        {
+            state = ClapState.Clap;
+
+            if (!text.StartsWith(CROWD_PREFIX))
+            {
+                return false;
+            }
+
+            if (text.Equals(CROWD_CLAP, StringComparison.Ordinal))
+            {
+                return true;
+            }
+
+            if (text.Equals(CROWD_NOCLAP, StringComparison.Ordinal))
+            {
+                state = ClapState.NoClap;
+                return true;
+            }
+
+            // Right prefix, not valid text
+            return false;
         }
     }
 }
