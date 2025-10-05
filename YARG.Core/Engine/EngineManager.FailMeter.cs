@@ -201,13 +201,6 @@ namespace YARG.Core.Engine
 
             private void OnKeysOverhit(int key) => OnOverstrum();
 
-            private void OnStarPowerStatus(bool active)
-            {
-                var count = _engineManager._starpowerCount;
-                count += active ? 1 : -1;
-                _engineManager.UpdateStarPowerCount(count);
-            }
-
             private void AddHappiness(float delta)
             {
                 Happiness = Math.Clamp(Happiness + delta, HAPPINESS_MINIMUM, 1f);
@@ -261,12 +254,6 @@ namespace YARG.Core.Engine
                     vocalsEngine.OnStarPowerStatus += OnStarPowerStatus;
                 }
             }
-        }
-
-        private void UpdateStarPowerCount(int count)
-        {
-            _starpowerCount = Math.Clamp(count, 0, int.MaxValue);
-            UpdateBandMultiplier();
         }
     }
 }

@@ -134,6 +134,19 @@ namespace YARG.Core.Engine
             }
         }
 
+        private void OnStarPowerStatus(bool active)
+        {
+            var count = _engineManager._starpowerCount;
+            count += active ? 1 : -1;
+            _engineManager.UpdateStarPowerCount(count);
+        }
+
+        private void UpdateStarPowerCount(int count)
+        {
+            _starpowerCount = Math.Clamp(count, 0, int.MaxValue);
+            UpdateBandMultiplier();
+        }
+
         public enum EngineCommandType
         {
             AwardUnisonBonus,
