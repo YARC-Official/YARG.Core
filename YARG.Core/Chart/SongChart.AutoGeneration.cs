@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using YARG.Core.Logging;
+using YARG.Core.Parsing;
 
 namespace YARG.Core.Chart
 {
@@ -460,6 +461,45 @@ namespace YARG.Core.Chart
             }
 
             return containsCrash && (containsKick || containsSnare);
+        }
+
+        // Parse crowd events from the global text events
+        private void CreateCrowdEvents()
+        {
+            // Run backwards through GlobalEvents to find crowd events, removing any that are found and creating
+            // crowd events of the appropriate type
+            for (var i = GlobalEvents.Count - 1; i >= 0; i--)
+            {
+                var textEvent = GlobalEvents[i];
+
+                if (TextEvents.TryParseCrowdEvent(textEvent.Text, out var crowdState))
+                {
+                    CrowdEvents.Insert(0, new CrowdEvent(CrowdEvent.CrowdEventType.State, crowdState, ClapState.None,
+                        textEvent.Time, textEvent.TimeLength, textEvent.Tick, textEvent.TickLength));
+                    GlobalEvents.RemoveAt(i);
+                    continue;
+                }
+
+                if (TextEvents.TryParseClapEvent(textEvent.Text, out var clapState))
+                {
+                    CrowdEvents.Insert(0, new CrowdEvent(CrowdEvent.CrowdEventType.Clap, CrowdState.None, clapState, textEvent.Time,
+                        textEvent.TimeLength, textEvent.Tick, textEvent.TickLength));
+                    GlobalEvents.RemoveAt(i);
+                }
+            }
+
+            // If no events, put crowd in normal state between first and last note of chart
+            if (CrowdEvents.Count == 0)
+            {
+                var firstNoteTime = GetFirstNoteStartTime();
+                var lastNoteTime = GetLastNoteEndTime();
+                var firstNoteTick = SyncTrack.TimeToTick(firstNoteTime);
+                var lastNoteTick = SyncTrack.TimeToTick(lastNoteTime);
+                CrowdEvents.Add(new CrowdEvent(CrowdEvent.CrowdEventType.State, CrowdState.Normal, ClapState.None,
+                    firstNoteTime, 0, firstNoteTick, 0));
+                CrowdEvents.Add(new CrowdEvent(CrowdEvent.CrowdEventType.State, CrowdState.Realtime, ClapState.None,
+                    lastNoteTime, 0, lastNoteTick, 0));
+            }
         }
 
         // Add range shift events to the InstrumentDifficulty

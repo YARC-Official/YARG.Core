@@ -44,24 +44,64 @@ namespace YARG.Core.Engine
         /// <summary>
         /// The amount of happiness required for a song's crowd stem to be enabled, if available.
         /// </summary>
-        private const float HAPPINESS_CROWD_THRESHOLD       = 0.95f;
+        /// This is tuned to be slightly below the default starting happiness so songs with crowd cheering at
+        /// the start will have the crowd stem enabled
+        private const float HAPPINESS_CROWD_THRESHOLD       = 0.83f;
 
         /// <summary>
         /// The absolute minimum happiness value for a single player.
         /// </summary>
-        private const float HAPPINESS_MINIMUM               = -1.5f;  
-        public        float Happiness => GetAverageHappiness();
+        private const float HAPPINESS_MINIMUM               = -3f;
 
-        private int _starpowerCount = 0;
+        public  float Happiness => GetAverageHappiness();
+
+        // We set this to max because the crowd stem is enabled by default and we want the first
+        // update to disable the crowd stem when the rock meter preset has an initial happiness
+        // below the crowd threshold
+        private float _previousHappiness = 100f;
+
+        private int   _starpowerCount = 0;
 
         public        bool IsAnyStarpowerActive => _starpowerCount > 0;
 
-        private bool CheckForFail()
+        public delegate void SongFailed();
+        public delegate void HappinessOverThreshold();
+        public delegate void HappinessUnderThreshold();
+
+        public event SongFailed? OnSongFailed;
+        public event HappinessOverThreshold? OnHappinessOverThreshold;
+        public event HappinessUnderThreshold? OnHappinessUnderThreshold;
+
+        public void InitializeHappiness()
+        {
+            foreach (var container in _allEngines)
+            {
+                container.ResetHappiness();
+            }
+
+            UpdateHappiness();
+        }
+
+        private bool UpdateHappiness()
         {
             if (Happiness < HAPPINESS_FAIL_THRESHOLD)
             {
+                OnSongFailed?.Invoke();
                 return true;
             }
+
+            // Send over threshold event when happiness goes from below threshold to above
+            if (Happiness >= HAPPINESS_CROWD_THRESHOLD && _previousHappiness < HAPPINESS_CROWD_THRESHOLD)
+            {
+                OnHappinessOverThreshold?.Invoke();
+            }
+            // Send under threshold event when happiness goes from above threshold to below
+            else if (Happiness < HAPPINESS_CROWD_THRESHOLD && _previousHappiness >= HAPPINESS_CROWD_THRESHOLD)
+            {
+                OnHappinessUnderThreshold?.Invoke();
+            }
+
+            _previousHappiness = Happiness;
 
             return false;
         }
@@ -93,17 +133,11 @@ namespace YARG.Core.Engine
         public partial class EngineContainer
         {
             public float Happiness { get; private set; } = 0.0f;
-            private float _previousHappiness = 0.0f;
 
-            public delegate void SongFailed();
-
-            public delegate void HappinessOverThreshold();
-
-            public delegate void HappinessUnderThreshold();
-
-            public SongFailed? OnSongFailed;
-            public HappinessOverThreshold? OnHappinessOverThreshold;
-            public HappinessUnderThreshold? OnHappinessUnderThreshold;
+            public void ResetHappiness()
+            {
+                Happiness = RockMeterPreset.StartingHappiness;
+            }
 
             private void OnVocalPhraseHit(double hitPercentAfterParams, bool fullPoints, bool isLastPhrase)
             {
@@ -172,25 +206,10 @@ namespace YARG.Core.Engine
             private void AddHappiness(float delta)
             {
                 Happiness = Math.Clamp(Happiness + delta, HAPPINESS_MINIMUM, 1f);
-                // Send over threshold event when happiness goes from below threshold to above
-                if (Happiness >= HAPPINESS_CROWD_THRESHOLD && _previousHappiness < HAPPINESS_CROWD_THRESHOLD)
-                {
-                    OnHappinessOverThreshold?.Invoke();
-                }
-                // Send under threshold event when happiness goes from above threshold to below
-                else if (Happiness < HAPPINESS_CROWD_THRESHOLD && _previousHappiness >= HAPPINESS_CROWD_THRESHOLD)
-                {
-                    OnHappinessUnderThreshold?.Invoke();
-                }
 
-                if (_engineManager.CheckForFail())
-                {
-                    OnSongFailed?.Invoke();
-                    YargLogger.LogFormatDebug("Song Fail invoked after miss by player {0} with average happiness {1}", EngineId, _engineManager.Happiness);
-                }
-
-                _previousHappiness = Happiness;
+                _engineManager.UpdateHappiness();
             }
+
             private void SubscribeToEngineEvents()
             {
                 // Subscribe to OnNoteHit and OnNoteMissed events

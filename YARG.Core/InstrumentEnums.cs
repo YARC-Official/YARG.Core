@@ -20,7 +20,7 @@ namespace YARG.Core
         // 5-9: Drums
         FourLaneDrums = 5,
         FiveLaneDrums = 6,
-        // EliteDrums = 7,
+        EliteDrums = 7,
 
         // 10-14: Pro instruments
         ProGuitar = 10,
@@ -143,7 +143,7 @@ namespace YARG.Core
 
                 Instrument.FiveLaneDrums => GameMode.FiveLaneDrums,
 
-                // Instrument.EliteDrums => GameMode.EliteDrums,
+                Instrument.EliteDrums => GameMode.EliteDrums,
 
                 Instrument.ProGuitar_17Fret or
                 Instrument.ProGuitar_22Fret or
