@@ -139,7 +139,7 @@ namespace YARG.Core.Engine
                 Happiness = RockMeterPreset.StartingHappiness;
             }
 
-            private void OnVocalPhraseHit(double hitPercentAfterParams, bool fullPoints)
+            private void OnVocalPhraseHit(double hitPercentAfterParams, bool fullPoints, bool isLastPhrase)
             {
                 hitPercentAfterParams = Math.Clamp(hitPercentAfterParams, 0.0, 1.0);
                 var delta = 0.0f;
