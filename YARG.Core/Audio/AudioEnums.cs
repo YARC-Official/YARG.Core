@@ -29,6 +29,7 @@
         StarPowerAward,
         StarPowerGain,
         StarPowerDeploy,
+        StarPowerDeployCrowd,
         StarPowerRelease,
         Clap,
         StarGain,
@@ -37,6 +38,14 @@
         Overstrum2,
         Overstrum3,
         Overstrum4,
+        CrowdOpen1,
+        CrowdOpen2,
+        CrowdStart,
+        CrowdStart2,
+        CrowdStart3,
+        CrowdEnd1,
+        CrowdEnd2,
+        Chatter
     }
 
     public enum DrumSfxSample
@@ -125,7 +134,8 @@
         Times6,
         TimesMany,
         FullBandFullCombo,
-        HighScore
+        HighScore,
+        FailSound
     }
 
     public enum DSPType

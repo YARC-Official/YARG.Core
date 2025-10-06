@@ -11,6 +11,7 @@ using YARG.Core.Chart;
 namespace MoonscraperChartEditor.Song.IO
 {
     using static VenueLookup;
+    using static AnimationLookup;
 
     internal static class MidIOHelper
     {
@@ -31,6 +32,7 @@ namespace MoonscraperChartEditor.Song.IO
         public const string DRUMS_TRACK = "PART DRUMS";
         public const string DRUMS_TRACK_2 = "PART DRUM";
         public const string DRUMS_REAL_TRACK = "PART REAL_DRUMS_PS";
+        public const string ELITE_DRUMS_TRACK = "PART ELITE_DRUMS";
         public const string GHL_GUITAR_TRACK = "PART GUITAR GHL";
         public const string GHL_BASS_TRACK = "PART BASS GHL";
         public const string GHL_RHYTHM_TRACK = "PART RHYTHM GHL";
@@ -54,6 +56,15 @@ namespace MoonscraperChartEditor.Song.IO
         // 'lighting (flare_fast)' -> 'flare_fast'
         // 'lighting ()' -> ''
         public static readonly Regex LightingRegex = new(@"lighting\s+\((.*)\)", RegexOptions.Compiled | RegexOptions.Singleline);
+        public static readonly Regex DirectedCutRegex = new(@"do_directed_cut\s+(.*)", RegexOptions.Compiled | RegexOptions.Singleline);
+        public static readonly Regex CameraCutRegex = new(@"coop_(\w+_\w+)", RegexOptions.Compiled | RegexOptions.Singleline);
+
+        // Hand map regex
+        public static readonly Regex LeftHandMapRegex = new("map HandMap_(.*)", RegexOptions.Compiled | RegexOptions.Singleline);
+        public static readonly Regex RightHandMapRegex = new("map StrumMap_(.*)", RegexOptions.Compiled | RegexOptions.Singleline);
+
+        // For good measure, we'll make a regex that we may end up not using
+        public static readonly Regex CharacterStateRegex = new("^(idle(_realtime?|_intense?)|play(_solo?)|intense|mellow)$", RegexOptions.Compiled | RegexOptions.Singleline);
 
         // Note numbers
         public const byte DOUBLE_KICK_NOTE = 95;
@@ -109,15 +120,89 @@ namespace MoonscraperChartEditor.Song.IO
         public const byte PRO_GUITAR_CHANNEL_HARMONIC = 5;
         public const byte PRO_GUITAR_CHANNEL_PINCH_HARMONIC = 6;
 
+        // Elite Drums notes
+        public const byte ELITE_DRUMS_DRUM_FILL_NOTE = 120;
+        public const byte ELITE_DRUMS_RIGHT_CRASH_ROLL_LANE_NOTE = 118;
+        public const byte ELITE_DRUMS_RIDE_ROLL_LANE_NOTE = 117;
+        public const byte ELITE_DRUMS_TOM_3_ROLL_LANE_NOTE = 116;
+        public const byte ELITE_DRUMS_TOM_2_ROLL_LANE_NOTE = 115;
+        public const byte ELITE_DRUMS_TOM_1_ROLL_LANE_NOTE = 114;
+        public const byte ELITE_DRUMS_LEFT_CRASH_ROLL_LANE_NOTE = 113;
+        public const byte ELITE_DRUMS_HI_HAT_ROLL_LANE_NOTE = 112;
+        public const byte ELITE_DRUMS_SNARE_ROLL_LANE_NOTE = 111;
+        public const byte ELITE_DRUMS_KICK_ROLL_LANE_NOTE = 110;
+        public const byte ELITE_DRUMS_HAT_PEDAL_ROLL_LANE_NOTE = 108;
+        public const byte ELITE_DRUMS_STARPOWER_NOTE = 104;
+
+        // Elite Drums channels
+        public const byte ELITE_DRUMS_CHANNEL_FLAG_RED = 10;
+        public const byte ELITE_DRUMS_CHANNEL_FLAG_YELLOW = 11;
+        public const byte ELITE_DRUMS_CHANNEL_FLAG_BLUE = 12;
+        public const byte ELITE_DRUMS_CHANNEL_FLAG_GREEN = 13;
+
         // Beat track notes
         public const byte BEAT_MEASURE = 12;
         public const byte BEAT_STRONG = 13;
         public const byte BEAT_WEAK = 14;
 
+        // Animation notes
+
+        // 5-fret
+        public const byte LEFT_HAND_POSITION_1 = 40;  // Nearest to headstock
+        public const byte LEFT_HAND_POSITION_2 = 41;
+        public const byte LEFT_HAND_POSITION_3 = 42;
+        public const byte LEFT_HAND_POSITION_4 = 43;
+        public const byte LEFT_HAND_POSITION_5 = 44;
+        public const byte LEFT_HAND_POSITION_6 = 45;
+        public const byte LEFT_HAND_POSITION_7 = 46;
+        public const byte LEFT_HAND_POSITION_8 = 47;
+        public const byte LEFT_HAND_POSITION_9 = 48;
+        public const byte LEFT_HAND_POSITION_10 = 49;
+        public const byte LEFT_HAND_POSITION_11 = 50;
+        public const byte LEFT_HAND_POSITION_12 = 51;
+        public const byte LEFT_HAND_POSITION_13 = 52;
+        public const byte LEFT_HAND_POSITION_14 = 53;
+        public const byte LEFT_HAND_POSITION_15 = 54;
+        public const byte LEFT_HAND_POSITION_16 = 55;
+        public const byte LEFT_HAND_POSITION_17 = 56;
+        public const byte LEFT_HAND_POSITION_18 = 57;
+        public const byte LEFT_HAND_POSITION_19 = 58;
+        public const byte LEFT_HAND_POSITION_20 = 59;
+
+        // Drums
+        public const byte KICK            = 24;
+        public const byte HIHAT_OPEN      = 25;
+        public const byte SNARE_LH_HARD   = 26;
+        public const byte SNARE_RH_HARD   = 27;
+        public const byte SNARE_LH_SOFT   = 28;
+        public const byte SNARE_RH_SOFT   = 29;
+        public const byte HIHAT_LH        = 30;
+        public const byte HIHAT_RH        = 31;
+        public const byte PERCUSSION_RH   = 32;
+        public const byte CRASH_1_LH_HARD = 33;
+        public const byte CRASH_1_LH_SOFT = 34;
+        public const byte CRASH_1_RH_HARD = 35;
+        public const byte CRASH_1_RH_SOFT = 36;
+        public const byte CRASH_2_RH_HARD = 37;
+        public const byte CRASH_2_RH_SOFT = 38;
+        public const byte CRASH_1_CHOKE   = 40;
+        public const byte CRASH_2_CHOKE   = 41;
+        public const byte RIDE_RH         = 42;
+        public const byte RIDE_LH         = 43;
+        public const byte CRASH_2_LH_HARD = 44;
+        public const byte CRASH_2_LH_SOFT = 45;
+        public const byte TOM_1_LH        = 46;
+        public const byte TOM_1_RH        = 47;
+        public const byte TOM_2_LH        = 48;
+        public const byte TOM_2_RH        = 49;
+        public const byte FLOOR_TOM_LH    = 50;
+        public const byte FLOOR_TOM_RH    = 51;
+
         // These events are valid both with and without brackets.
         // The bracketed versions follow the style of other existing .mid text events.
         public const string CHART_DYNAMICS_TEXT = "ENABLE_CHART_DYNAMICS";
         public const string ENHANCED_OPENS_TEXT = "ENHANCED_OPENS";
+        public const string STRICT_HAT_PEDAL_STATE = "STRICT_HAT_PEDAL_STATE";
 
         // Note velocities
         public const byte VELOCITY = 100;             // default note velocity for exporting
@@ -150,6 +235,7 @@ namespace MoonscraperChartEditor.Song.IO
 
             { DRUMS_TRACK,         MoonSong.MoonInstrument.Drums },
             { DRUMS_REAL_TRACK,    MoonSong.MoonInstrument.Drums },
+            { ELITE_DRUMS_TRACK,   MoonSong.MoonInstrument.EliteDrums },
 
             { GHL_GUITAR_TRACK,    MoonSong.MoonInstrument.GHLiveGuitar },
             { GHL_BASS_TRACK,      MoonSong.MoonInstrument.GHLiveBass },
@@ -202,6 +288,14 @@ namespace MoonscraperChartEditor.Song.IO
             { MoonSong.Difficulty.Expert, 96 }
         };
 
+        public static readonly Dictionary<MoonSong.Difficulty, int> ELITE_DRUMS_DIFF_START_LOOKUP = new()
+        {
+            { MoonSong.Difficulty.Easy, 2 },
+            { MoonSong.Difficulty.Medium, 26 },
+            { MoonSong.Difficulty.Hard, 50 },
+            { MoonSong.Difficulty.Expert, 74 }
+        };
+
         // http://docs.c3universe.com/rbndocs/index.php?title=Drum_Authoring
         public static readonly Dictionary<MoonNote.DrumPad, int> PAD_TO_CYMBAL_LOOKUP = new()
         {
@@ -222,6 +316,20 @@ namespace MoonscraperChartEditor.Song.IO
             // { PRO_GUITAR_CHANNEL_TAP,            MoonNote.Flags. },
             // { PRO_GUITAR_CHANNEL_HARMONIC,       MoonNote.Flags. },
             // { PRO_GUITAR_CHANNEL_PINCH_HARMONIC, MoonNote.Flags. },
+        };
+
+        public static readonly Dictionary<MoonPhrase.Type, int> ELITE_DRUMS_LANE_LOOKUP = new()
+        {
+            { MoonPhrase.Type.EliteDrums_HatPedalLane, ELITE_DRUMS_HAT_PEDAL_ROLL_LANE_NOTE },
+            { MoonPhrase.Type.EliteDrums_KickLane, ELITE_DRUMS_KICK_ROLL_LANE_NOTE },
+            { MoonPhrase.Type.EliteDrums_SnareLane, ELITE_DRUMS_SNARE_ROLL_LANE_NOTE },
+            { MoonPhrase.Type.EliteDrums_HiHatLane, ELITE_DRUMS_HI_HAT_ROLL_LANE_NOTE },
+            { MoonPhrase.Type.EliteDrums_LeftCrashLane, ELITE_DRUMS_LEFT_CRASH_ROLL_LANE_NOTE },
+            { MoonPhrase.Type.EliteDrums_Tom1Lane, ELITE_DRUMS_TOM_1_ROLL_LANE_NOTE },
+            { MoonPhrase.Type.EliteDrums_Tom2Lane, ELITE_DRUMS_TOM_2_ROLL_LANE_NOTE },
+            { MoonPhrase.Type.EliteDrums_Tom3Lane, ELITE_DRUMS_TOM_3_ROLL_LANE_NOTE },
+            { MoonPhrase.Type.EliteDrums_RideLane, ELITE_DRUMS_RIDE_ROLL_LANE_NOTE },
+            { MoonPhrase.Type.EliteDrums_RightCrashLane, ELITE_DRUMS_RIGHT_CRASH_ROLL_LANE_NOTE },
         };
 
         public static readonly Dictionary<int, (VenueLookup.Type type, string text)> VENUE_NOTE_LOOKUP = new()
@@ -263,11 +371,92 @@ namespace MoonscraperChartEditor.Song.IO
             { 38, (VenueLookup.Type.Spotlight, VENUE_PERFORMER_DRUMS) },
             { 37, (VenueLookup.Type.Spotlight, VENUE_PERFORMER_BASS) },
             #endregion
+
+            #region Camera cuts
+            { 60, (VenueLookup.Type.CameraCut, VENUE_CAMERA_RANDOM) },
+            { 61, (VenueLookup.Type.CameraCut, VENUE_CAMERA_DIRECTED_BASS) },
+            { 62, (VenueLookup.Type.CameraCut, VENUE_CAMERA_DIRECTED_DRUMS) },
+            { 63, (VenueLookup.Type.CameraCut, VENUE_CAMERA_DIRECTED_GUITAR) },
+            { 64, (VenueLookup.Type.CameraCut, VENUE_CAMERA_DIRECTED_VOCALS) },
+            #endregion
+
+            #region Camera cut constraints
+            { 70, (VenueLookup.Type.CameraCutConstraint, VENUE_CAMERA_CONSTRAINT_NO_BEHIND) },
+            { 71, (VenueLookup.Type.CameraCutConstraint, VENUE_CAMERA_CONSTRAINT_ONLY_FAR) },
+            { 72, (VenueLookup.Type.CameraCutConstraint, VENUE_CAMERA_CONSTRAINT_ONLY_CLOSE) },
+            { 73, (VenueLookup.Type.CameraCutConstraint, VENUE_CAMERA_CONSTRAINT_NO_CLOSE) },
+            #endregion
+        };
+
+        public static readonly Dictionary<int, (AnimationLookup.Type type, string text)> DRUM_ANIMATION_NOTE_LOOKUP = new()
+        {
+            // Drums is 24-51
+            { KICK, (AnimationLookup.Type.Drum, DRUM_KICK) },
+            { HIHAT_OPEN, (AnimationLookup.Type.Drum, DRUM_HIHAT_OPEN) },
+            { SNARE_LH_HARD, (AnimationLookup.Type.Drum, DRUM_SNARE_LH_HARD) },
+            { SNARE_RH_HARD, (AnimationLookup.Type.Drum, DRUM_SNARE_RH_HARD) },
+            { SNARE_LH_SOFT, (AnimationLookup.Type.Drum, DRUM_SNARE_LH_SOFT) },
+            { SNARE_RH_SOFT, (AnimationLookup.Type.Drum, DRUM_SNARE_RH_SOFT) },
+            { HIHAT_LH, (AnimationLookup.Type.Drum, DRUM_HIHAT_LH) },
+            { HIHAT_RH, (AnimationLookup.Type.Drum, DRUM_HIHAT_RH) },
+            { PERCUSSION_RH, (AnimationLookup.Type.Drum, DRUM_PERCUSSION_RH) },
+            { CRASH_1_LH_HARD, (AnimationLookup.Type.Drum, DRUM_CRASH1_LH_HARD) },
+            { CRASH_1_LH_SOFT, (AnimationLookup.Type.Drum, DRUM_CRASH1_LH_SOFT) },
+            { CRASH_1_RH_HARD, (AnimationLookup.Type.Drum, DRUM_CRASH1_RH_HARD) },
+            { CRASH_1_RH_SOFT, (AnimationLookup.Type.Drum, DRUM_CRASH1_RH_SOFT) },
+            { CRASH_2_RH_HARD, (AnimationLookup.Type.Drum, DRUM_CRASH2_RH_HARD) },
+            { CRASH_2_RH_SOFT, (AnimationLookup.Type.Drum, DRUM_CRASH2_RH_SOFT) },
+            { CRASH_2_LH_HARD, (AnimationLookup.Type.Drum, DRUM_CRASH2_LH_HARD) },
+            { CRASH_2_LH_SOFT, (AnimationLookup.Type.Drum, DRUM_CRASH2_LH_SOFT) },
+            { CRASH_1_CHOKE, (AnimationLookup.Type.Drum, DRUM_CRASH1_CHOKE) },
+            { CRASH_2_CHOKE, (AnimationLookup.Type.Drum, DRUM_CRASH2_CHOKE) },
+            { RIDE_LH, (AnimationLookup.Type.Drum, DRUM_RIDE_LH) },
+            { RIDE_RH, (AnimationLookup.Type.Drum, DRUM_RIDE_RH) },
+            { TOM_1_LH, (AnimationLookup.Type.Drum, DRUM_TOM1_LH) },
+            { TOM_1_RH, (AnimationLookup.Type.Drum, DRUM_TOM1_RH) },
+            { TOM_2_LH, (AnimationLookup.Type.Drum, DRUM_TOM2_LH) },
+            { TOM_2_RH, (AnimationLookup.Type.Drum, DRUM_TOM2_RH) },
+            { FLOOR_TOM_LH, (AnimationLookup.Type.Drum, DRUM_FLOOR_TOM_LH) },
+            { FLOOR_TOM_RH, (AnimationLookup.Type.Drum, DRUM_FLOOR_TOM_RH) },
+        };
+
+        public static readonly Dictionary<int, (AnimationLookup.Type type, string text)> FIVEFRET_ANIMATION_NOTE_LOOKUP = new()
+        {
+            // LH position is 40-59
+            { LEFT_HAND_POSITION_1, (AnimationLookup.Type.LeftHand, LH_POSITION_1) },
+            { LEFT_HAND_POSITION_2, (AnimationLookup.Type.LeftHand, LH_POSITION_2) },
+            { LEFT_HAND_POSITION_3, (AnimationLookup.Type.LeftHand, LH_POSITION_3) },
+            { LEFT_HAND_POSITION_4, (AnimationLookup.Type.LeftHand, LH_POSITION_4) },
+            { LEFT_HAND_POSITION_5, (AnimationLookup.Type.LeftHand, LH_POSITION_5) },
+            { LEFT_HAND_POSITION_6, (AnimationLookup.Type.LeftHand, LH_POSITION_6) },
+            { LEFT_HAND_POSITION_7, (AnimationLookup.Type.LeftHand, LH_POSITION_7) },
+            { LEFT_HAND_POSITION_8, (AnimationLookup.Type.LeftHand, LH_POSITION_8) },
+            { LEFT_HAND_POSITION_9, (AnimationLookup.Type.LeftHand, LH_POSITION_9) },
+            { LEFT_HAND_POSITION_10, (AnimationLookup.Type.LeftHand, LH_POSITION_10) },
+            { LEFT_HAND_POSITION_11, (AnimationLookup.Type.LeftHand, LH_POSITION_11) },
+            { LEFT_HAND_POSITION_12, (AnimationLookup.Type.LeftHand, LH_POSITION_12) },
+            { LEFT_HAND_POSITION_13, (AnimationLookup.Type.LeftHand, LH_POSITION_13) },
+            { LEFT_HAND_POSITION_14, (AnimationLookup.Type.LeftHand, LH_POSITION_14) },
+            { LEFT_HAND_POSITION_15, (AnimationLookup.Type.LeftHand, LH_POSITION_15) },
+            { LEFT_HAND_POSITION_16, (AnimationLookup.Type.LeftHand, LH_POSITION_16) },
+            { LEFT_HAND_POSITION_17, (AnimationLookup.Type.LeftHand, LH_POSITION_17) },
+            { LEFT_HAND_POSITION_18, (AnimationLookup.Type.LeftHand, LH_POSITION_18) },
+            { LEFT_HAND_POSITION_19, (AnimationLookup.Type.LeftHand, LH_POSITION_19) },
+            { LEFT_HAND_POSITION_20, (AnimationLookup.Type.LeftHand, LH_POSITION_20) },
         };
 
         public static readonly Dictionary<Regex, (Dictionary<string, string> lookup, VenueLookup.Type type, string defaultValue)> VENUE_EVENT_REGEX_TO_LOOKUP = new()
         {
             { LightingRegex,    (VENUE_LIGHTING_CONVERSION_LOOKUP, VenueLookup.Type.Lighting, VENUE_LIGHTING_DEFAULT) },
+            { DirectedCutRegex, (VENUE_DIRECTED_CUT_LOOKUP, VenueLookup.Type.CameraCut, VENUE_CAMERA_DEFAULT) },
+            { CameraCutRegex, (VENUE_CAMERA_CUT_LOOKUP, VenueLookup.Type.CameraCut, VENUE_CAMERA_DEFAULT) }
+        };
+
+        public static readonly Dictionary<Regex, (Dictionary<string, string> lookup, AnimationLookup.Type type, string defaultValue)> ANIMATION_EVENT_REGEX_TO_LOOKUP = new()
+        {
+            { CharacterStateRegex, (CHARACTER_STATE_LOOKUP, AnimationLookup.Type.CharacterState, ANIMATION_STATE_IDLE) },
+            { LeftHandMapRegex, (LEFT_HAND_MAP_LOOKUP, AnimationLookup.Type.HandMap, HAND_MAP_DEFAULT) },
+            { RightHandMapRegex, (RIGHT_HAND_MAP_LOOKUP, AnimationLookup.Type.StrumMap, STRUM_MAP_DEFAULT) }
         };
 
         public static bool IsTextEvent(MidiEvent trackEvent, [NotNullWhen(true)] out BaseTextEvent? text)

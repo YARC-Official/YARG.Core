@@ -4,7 +4,9 @@ using System.IO;
 using Melanchall.DryWetMidi.Core;
 using MoonscraperChartEditor.Song;
 using MoonscraperChartEditor.Song.IO;
+using YARG.Core.Chart.Events;
 using YARG.Core.Logging;
+using YARG.Core.Parsing;
 
 namespace YARG.Core.Chart
 {
@@ -73,6 +75,19 @@ namespace YARG.Core.Chart
             return textEvents;
         }
 
+        public List<CharacterState> LoadCharacterStates(MoonChart moonChart)
+        {
+            var characterStates = new List<CharacterState>();
+
+
+
+            return characterStates;
+        }
+
+        public List<HandMap> LoadHandMaps() => new List<HandMap>();
+
+        public List<StrumMap> LoadStrumMaps() => new List<StrumMap>();
+
         public List<Section> LoadSections()
         {
             var sections = new List<Section>();
@@ -103,7 +118,7 @@ namespace YARG.Core.Chart
             CreateNoteDelegate<TNote> createNote, ProcessTextDelegate? processText = null)
             where TNote : Note<TNote>
         {
-            _currentMode = instrument.ToGameMode();
+            _currentMode = instrument.ToNativeGameMode();
             _currentInstrument = instrument;
             _currentDifficulty = difficulty;
 
@@ -191,6 +206,8 @@ namespace YARG.Core.Chart
                     MoonPhrase.Type.ProKeys_RangeShift3 => PhraseType.ProKeys_RangeShift3,
                     MoonPhrase.Type.ProKeys_RangeShift4 => PhraseType.ProKeys_RangeShift4,
                     MoonPhrase.Type.ProKeys_RangeShift5 => PhraseType.ProKeys_RangeShift5,
+
+                    MoonPhrase.Type.EliteDrums_DiscoFlip => PhraseType.EliteDrums_DiscoFlip,
 
                     _ => null
                 };
@@ -316,6 +333,12 @@ namespace YARG.Core.Chart
             return GetLengthInTime(time, phrase.tick, phrase.length);
         }
 
+        private double GetLengthInTime(MoonAnimation animation)
+        {
+            double time = _moonSong.TickToTime(animation.tick);
+            return GetLengthInTime(time, animation.tick, animation.length);
+        }
+
         private static bool IsEventInPhrase(MoonObject songObj, MoonPhrase phrase)
         {
             if (songObj == null || phrase == null)
@@ -402,6 +425,7 @@ namespace YARG.Core.Chart
 
             GameMode.FourLaneDrums => MoonChart.GameMode.Drums,
             GameMode.FiveLaneDrums => MoonChart.GameMode.Drums,
+            GameMode.EliteDrums => MoonChart.GameMode.EliteDrums,
 
             GameMode.ProGuitar => MoonChart.GameMode.ProGuitar,
             GameMode.ProKeys => MoonChart.GameMode.ProKeys,
@@ -427,6 +451,7 @@ namespace YARG.Core.Chart
             Instrument.FourLaneDrums or
             Instrument.FiveLaneDrums or
             Instrument.ProDrums => MoonSong.MoonInstrument.Drums,
+            Instrument.EliteDrums => MoonSong.MoonInstrument.EliteDrums,
 
             Instrument.ProGuitar_17Fret => MoonSong.MoonInstrument.ProGuitar_17Fret,
             Instrument.ProGuitar_22Fret => MoonSong.MoonInstrument.ProGuitar_22Fret,

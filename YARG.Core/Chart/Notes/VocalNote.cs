@@ -67,9 +67,19 @@ namespace YARG.Core.Chart
         public bool IsPercussion => Type == VocalNoteType.Percussion;
 
         /// <summary>
+        /// Whether or not this note is a phrase of any kind.
+        /// </summary>
+        public bool IsPhrase => Type is VocalNoteType.VocalPhrase or VocalNoteType.PercussionPhrase;
+
+        /// <summary>
         /// Whether or not this note is a vocal phrase (either percussion or lyrical).
         /// </summary>
-        public bool IsPhrase => Type == VocalNoteType.Phrase;
+        public bool IsVocalPhrase => Type == VocalNoteType.VocalPhrase;
+
+        /// <summary>
+        /// Whether or not this note is a percussion phrase.
+        /// </summary>
+        public bool IsPercussionPhrase => Type == VocalNoteType.PercussionPhrase;
 
         /// <summary>
         /// Whether or not this note is a vocal phrase that contains only lyric notes.
@@ -79,12 +89,7 @@ namespace YARG.Core.Chart
         /// <summary>
         /// Whether or not this note is a vocal phrase that contains no notes.
         /// </summary>
-        public bool IsEmptyPhrase => Type == VocalNoteType.Phrase && ChildNotes.Count == 0;
-
-        /// <summary>
-        /// Whether or not this note is a vocal phrase that contains only percussion notes.
-        /// </summary>
-        public bool IsPercussionPhrase => Type == VocalNoteType.Phrase && ChildNotes.All(e => e.Type == VocalNoteType.Percussion);
+        public bool IsEmptyPhrase => IsPhrase && ChildNotes.Count == 0;
 
         /// <summary>
         /// Creates a new <see cref="VocalNote"/> with the given properties.
@@ -106,11 +111,11 @@ namespace YARG.Core.Chart
         /// Creates a new <see cref="VocalNote"/> phrase with the given properties.
         /// This constructor should be used for vocal phrases only.
         /// </summary>
-        public VocalNote(NoteFlags noteFlags,
+        public VocalNote(NoteFlags noteFlags, bool isPercussionPhrase,
             double time, double timeLength, uint tick, uint tickLength)
             : base(noteFlags, time, timeLength, tick, tickLength)
         {
-            Type = VocalNoteType.Phrase;
+            Type = isPercussionPhrase ? VocalNoteType.PercussionPhrase : VocalNoteType.VocalPhrase;
 
             TotalTimeLength = timeLength;
             TotalTickLength = tickLength;
@@ -132,7 +137,7 @@ namespace YARG.Core.Chart
         /// </summary>
         public float PitchAtSongTime(double time)
         {
-            if (Type == VocalNoteType.Phrase)
+            if (IsPhrase)
             {
                 return -1f;
             }
@@ -249,8 +254,9 @@ namespace YARG.Core.Chart
     /// </summary>
     public enum VocalNoteType
     {
-        Phrase,
+        VocalPhrase,
         Lyric,
-        Percussion
+        Percussion,
+        PercussionPhrase
     }
 }

@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
+using YARG.Core.Chart.Events;
 
 namespace YARG.Core.Chart
 {
@@ -12,6 +13,10 @@ namespace YARG.Core.Chart
         where TNote : Note<TNote>
     {
         public Instrument Instrument { get; }
+
+        // TODO: Smerge these...
+        public List<AnimationEvent> AnimationEvents { get; }      = new();
+        public AnimationTrack       Animations      { get; }      = new();
 
         private Dictionary<Difficulty, InstrumentDifficulty<TNote>> _difficulties { get; } = new();
 
@@ -43,6 +48,18 @@ namespace YARG.Core.Chart
             _difficulties = difficulties;
         }
 
+        public InstrumentTrack(Instrument instrument, Dictionary<Difficulty, InstrumentDifficulty<TNote>> difficulties,
+            List<AnimationEvent> animationEvents) : this(instrument, difficulties)
+        {
+            AnimationEvents = animationEvents;
+        }
+
+        public InstrumentTrack(Instrument instrument, Dictionary<Difficulty, InstrumentDifficulty<TNote>> difficulties,
+            AnimationTrack animations) : this(instrument, difficulties)
+        {
+            Animations = animations;
+        }
+
         public InstrumentTrack(InstrumentTrack<TNote> other)
             : this(other.Instrument)
         {
@@ -50,7 +67,16 @@ namespace YARG.Core.Chart
             {
                 _difficulties.Add(difficulty, diffTrack.Clone());
             }
+
+            foreach (var animationEvent in other.AnimationEvents)
+            {
+                AddAnimationEvent(animationEvent.Clone());
+            }
         }
+
+        public void AddAnimationEvent(AnimationEvent animationEvent) => AnimationEvents.Add(animationEvent);
+
+        public void AddAnimationEvent(IEnumerable<AnimationEvent> animationEvents) => AnimationEvents.AddRange(animationEvents);
 
         public void AddDifficulty(Difficulty difficulty, InstrumentDifficulty<TNote> track)
             => _difficulties.Add(difficulty, track);
@@ -68,9 +94,14 @@ namespace YARG.Core.Chart
         internal InstrumentDifficulty<TNote> FirstDifficulty()
             => _difficulties.First().Value;
 
+        /// <summary>
+        /// Gets the start time of the first event in any difficulty in this track
+        /// </summary>
+        /// <returns>double</returns>
+        /// <remarks>This returns double.MaxValue if there are no events</remarks>
         public double GetStartTime()
         {
-            double totalStartTime = 0;
+            double totalStartTime = double.MaxValue;
             foreach (var difficulty in _difficulties.Values)
             {
                 totalStartTime = Math.Min(difficulty.GetStartTime(), totalStartTime);
@@ -88,6 +119,18 @@ namespace YARG.Core.Chart
             }
 
             return totalEndTime;
+        }
+
+        public double GetFirstNoteStartTime()
+        {
+            double startTime = double.MaxValue;
+
+            foreach (var difficulty in _difficulties.Values)
+            {
+                startTime = Math.Min(difficulty.GetFirstNoteStartTime() ?? double.MaxValue, startTime);
+            }
+
+            return startTime;
         }
 
         public double GetLastNoteEndTime()

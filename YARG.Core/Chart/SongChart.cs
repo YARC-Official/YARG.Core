@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.Linq;
 using Melanchall.DryWetMidi.Core;
-using YARG.Core.Logging;
 using YARG.Core.Parsing;
 
 namespace YARG.Core.Chart
@@ -14,8 +13,11 @@ namespace YARG.Core.Chart
     {
         public uint Resolution => SyncTrack.Resolution;
 
+        public float VocalScrollSpeed { get; set; }
+
         public List<TextEvent> GlobalEvents { get; set; } = new();
         public List<Section> Sections { get; set; } = new();
+        public List<CrowdEvent> CrowdEvents { get; set; } = new();
 
         public SyncTrack SyncTrack { get; set; }
         public VenueTrack VenueTrack { get; set; } = new();
@@ -60,7 +62,7 @@ namespace YARG.Core.Chart
         public InstrumentTrack<DrumNote> ProDrums { get; set; } = new(Instrument.ProDrums);
         public InstrumentTrack<DrumNote> FiveLaneDrums { get; set; } = new(Instrument.FiveLaneDrums);
 
-        // public InstrumentTrack<DrumNote> EliteDrums { get; set; } = new(Instrument.EliteDrums);
+        public InstrumentTrack<EliteDrumNote> EliteDrums { get; set; } = new(Instrument.EliteDrums);
 
         public IEnumerable<InstrumentTrack<DrumNote>> DrumsTracks
         {
@@ -129,11 +131,10 @@ namespace YARG.Core.Chart
             SixFretRhythm = loader.LoadGuitarTrack(Instrument.SixFretRhythm);
             SixFretBass = loader.LoadGuitarTrack(Instrument.SixFretBass);
 
-            FourLaneDrums = loader.LoadDrumsTrack(Instrument.FourLaneDrums);
-            ProDrums = loader.LoadDrumsTrack(Instrument.ProDrums);
-            FiveLaneDrums = loader.LoadDrumsTrack(Instrument.FiveLaneDrums);
-
-            // EliteDrums = loader.LoadDrumsTrack(Instrument.EliteDrums);
+            EliteDrums = loader.LoadEliteDrumsTrack(Instrument.EliteDrums); // Load elite first, because the others will fall back to it if they don't natively exist
+            FourLaneDrums = loader.LoadDrumsTrack(Instrument.FourLaneDrums, EliteDrums);
+            ProDrums = loader.LoadDrumsTrack(Instrument.ProDrums, EliteDrums);
+            FiveLaneDrums = loader.LoadDrumsTrack(Instrument.FiveLaneDrums, EliteDrums);
 
             ProGuitar_17Fret = loader.LoadProGuitarTrack(Instrument.ProGuitar_17Fret);
             ProGuitar_22Fret = loader.LoadProGuitarTrack(Instrument.ProGuitar_22Fret);
@@ -154,6 +155,8 @@ namespace YARG.Core.Chart
             CreateDrumActivationPhrases();
             // Add range shift phrases, done here since they are parsed from text events
             CreateRangeShiftPhrases();
+            // Add crowd events, done here since they are parsed from text events
+            CreateCrowdEvents();
 
             PostProcessSections();
             FixDrumPhraseEnds();
@@ -295,6 +298,11 @@ namespace YARG.Core.Chart
             };
         }
 
+        /// <summary>
+        /// Gets the start time of the first event in this chart
+        /// </summary>
+        /// <returns>double</returns>
+        /// <remarks>This returns double.MaxValue if there are no events</remarks>
         public double GetStartTime()
         {
             static double TrackMin<TNote>(IEnumerable<InstrumentTrack<TNote>> tracks) where TNote : Note<TNote>
@@ -302,7 +310,7 @@ namespace YARG.Core.Chart
             static double VoxMin(IEnumerable<VocalsTrack> tracks)
                 => tracks.Min((track) => track.GetStartTime());
 
-            double totalStartTime = 0;
+            double totalStartTime = double.MaxValue;
 
             // Tracks
 
@@ -359,6 +367,29 @@ namespace YARG.Core.Chart
             // totalEndTime = Math.Max(VenueTrack.GetEndTime(), totalEndTime);
 
             return totalEndTime;
+        }
+
+        /// <summary>
+        /// Gets the start time of the first note in this chart
+        /// </summary>
+        /// <returns>double</returns>
+        /// <remarks>This returns double.MaxValue if there are no notes</remarks>
+        public double GetFirstNoteStartTime()
+        {
+            double TrackMin<TNote>(IEnumerable<InstrumentTrack<TNote>> tracks) where TNote : Note<TNote> =>
+                tracks.Min((track) => track.GetFirstNoteStartTime());
+            double VoxMin(IEnumerable<VocalsTrack> tracks) => tracks.Min((track) => track.GetFirstNoteStartTime());
+
+            double totalStartTime = double.MaxValue;
+
+            totalStartTime = Math.Min(TrackMin(FiveFretTracks), totalStartTime);
+            totalStartTime = Math.Min(TrackMin(SixFretTracks), totalStartTime);
+            totalStartTime = Math.Min(TrackMin(DrumsTracks), totalStartTime);
+            totalStartTime = Math.Min(TrackMin(ProGuitarTracks), totalStartTime);
+            totalStartTime = Math.Min(ProKeys.GetFirstNoteStartTime(), totalStartTime);
+            totalStartTime = Math.Min(VoxMin(VocalsTracks), totalStartTime);
+
+            return totalStartTime;
         }
 
         public double GetLastNoteEndTime()
@@ -463,6 +494,62 @@ namespace YARG.Core.Chart
             }
 
             return null;
+        }
+
+        /// <summary>
+        /// Gets the music_start and music_end events, if they exist.
+        /// </summary>
+        /// <returns>Named tuple, null if one or both are not found</returns>
+        /// <remarks>Null is returned if both are not found as that is considered a charting error</remarks>
+        public (TextEvent? musicStart, TextEvent? musicEnd) GetMusicEvents()
+        {
+            TextEvent? musicStart = null;
+            TextEvent? musicEnd = null;
+            // Search the first 20 events for music_start (surely there won't be more before it?)
+            for (var i = 0; i < 20; i++)
+            {
+                if (GlobalEvents.Count <= i)
+                {
+                    break;
+                }
+
+                var text = GlobalEvents[i];
+                if (text.Text == TextEvents.MUSIC_START)
+                {
+                    musicStart = text;
+                    break;
+                }
+            }
+
+            // If we didn't find start, don't bother looking for end
+            if (musicStart == null)
+            {
+                return (null, null);
+            }
+
+            // Reverse search the last 20 events for music_end
+            for (var i = 1; i <= 20; i++)
+            {
+                int index = GlobalEvents.Count - i;
+                if (index < 0)
+                {
+                    break;
+                }
+
+                var text = GlobalEvents[index];
+                if (text.Text == TextEvents.MUSIC_END)
+                {
+                    musicEnd = text;
+                    break;
+                }
+            }
+
+            if (musicEnd == null)
+            {
+                return (null, null);
+            }
+
+            return (musicStart, musicEnd);
         }
     }
 }
