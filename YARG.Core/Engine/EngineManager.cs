@@ -16,18 +16,6 @@ namespace YARG.Core.Engine
 
         private SongChart?               _chart;
 
-        public class Band
-        {
-            public List<EngineContainer> Engines { get; private set; }
-            public int Score { get; private set; }
-
-            private Band()
-            {
-                Engines = new List<EngineContainer>();
-                Score = 0;
-            }
-        }
-
         public partial class EngineContainer
         {
             public  int             EngineId         { get; }
