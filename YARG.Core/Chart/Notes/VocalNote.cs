@@ -84,7 +84,7 @@ namespace YARG.Core.Chart
         /// <summary>
         /// Whether or not this note is a vocal phrase that contains only lyric notes.
         /// </summary>
-        public bool IsLyricPhrase => Type == VocalNoteType.Phrase && ChildNotes.All(e => e.Type == VocalNoteType.Lyric);
+        public bool IsLyricPhrase => Type == VocalNoteType.VocalPhrase && ChildNotes.All(e => e.Type == VocalNoteType.Lyric);
 
         /// <summary>
         /// Whether or not this note is a vocal phrase that contains no notes.
