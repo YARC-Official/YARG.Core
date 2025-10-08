@@ -235,11 +235,10 @@ namespace YARG.Core.Chart
         /// <returns>The number of ticks for the provided note that falls within this note's bounds.</returns>
         public uint GetTicksForNote(VocalNote note)
         {
-
             var start = Math.Max(note.Tick, Tick);
-            var end = Math.Min(note.TickEnd, TickEnd);
+            // Note the use of TotalTickEnd here to account for child notes (from slides), but *not* for the containing Phrase.
+            var end = Math.Min(note.TotalTickEnd, TickEnd);
 
-            // Note that Tick and TickEnd are unsigned, so avoid overflow and check manually.
             if (start >= end)
             {
                 return 0;
