@@ -4,6 +4,7 @@ using System.Linq;
 using YARG.Core.IO;
 using YARG.Core.Logging;
 using YARG.Core.Parsing;
+using YARG.Core.Song;
 
 namespace YARG.Core.Chart
 {
@@ -503,135 +504,17 @@ namespace YARG.Core.Chart
             }
         }
 
-        // TODO: Unimplemented for now since these are the length between an off and on event and thus require
-        //  special handling
-        public static void AddPerformerEventsFromMilo(List<PerformerEvent> performerEvents,
-            List<MiloAnimation.MiloAnimationEvent> miloAnimations, SongChart songChart)
+        public static void LoadVenueFromMilo(SongChart songChart, SongEntry songEntry)
         {
-            foreach (var animation in miloAnimations)
-            {
-                // singalong: part3 = bass, part2 = guitar, part4 = drums
-                if (animation.Type is MiloAnimation.MiloAnimationType.Part2Sing or
-                    MiloAnimation.MiloAnimationType.Part3Sing or MiloAnimation.MiloAnimationType.Part4Sing)
-                {
+            var miloVenue = new MiloVenue(songChart, songEntry);
+            miloVenue.Load();
 
-                }
-
-                if (animation.Type is MiloAnimation.MiloAnimationType.SpotGuitar
-                    or MiloAnimation.MiloAnimationType.SpotBass or MiloAnimation.MiloAnimationType.SpotDrums
-                    or MiloAnimation.MiloAnimationType.SpotVocal or MiloAnimation.MiloAnimationType.SpotKeyboard)
-                {
-
-                }
-            }
+            songChart.VenueTrack.Lighting.AddRange(miloVenue.LightingEvents);
+            songChart.VenueTrack.Stage.AddRange(miloVenue.StageEvents);
+            songChart.VenueTrack.CameraCuts.AddRange(miloVenue.CameraCuts);
+            songChart.VenueTrack.PostProcessing.AddRange(miloVenue.PostProcessingEvents);
+            songChart.VenueTrack.Performer.AddRange(miloVenue.PerformerEvents);
         }
-
-        // TODO: Figure out how to determine if a stage event is optional
-        public static void AddStageEventsFromMilo(List<StageEffectEvent> stageEvents,
-            List<MiloAnimation.MiloAnimationEvent> miloAnimations, SongChart songChart)
-        {
-            // This one deals with both fog and worldevent
-            foreach (var animation in miloAnimations)
-            {
-                if (animation.Type == MiloAnimation.MiloAnimationType.Fog)
-                {
-                    StageEffect? type = animation.Name switch
-                    {
-                        "on" => StageEffect.FogOn,
-                        "off" => StageEffect.FogOff,
-                        _ => null
-                    };
-
-                    if (type == null)
-                    {
-                        YargLogger.LogWarning($"Unknown fog type: {animation.Name}");
-                        continue;
-                    }
-
-                    stageEvents.Add(new StageEffectEvent(type.Value, VenueEventFlags.None, animation.Time,
-                        songChart.SyncTrack.TimeToTick(animation.Time)));
-                    continue;
-                }
-
-                if (animation.Type == MiloAnimation.MiloAnimationType.WorldEvent)
-                {
-                    stageEvents.Add(new StageEffectEvent(StageEffect.BonusFx, VenueEventFlags.None, animation.Time,
-                        songChart.SyncTrack.TimeToTick(animation.Time)));
-                }
-            }
-
-            // Since we are reading from multiple sections in the anim file, we need to sort the events by time
-            stageEvents.Sort((a, b) => a.Time.CompareTo(b.Time));
-        }
-
-        public static void AddLightingEventsFromMilo(List<LightingEvent> lightingEvents,
-            List<MiloAnimation.MiloAnimationEvent> miloAnimations, SongChart songChart)
-        {
-            foreach (var animation in miloAnimations)
-            {
-                if (animation.Type is MiloAnimation.MiloAnimationType.Lights or MiloAnimation.MiloAnimationType.Keyframe)
-                {
-                    // Internal names for some lighting cues are different from what is in the file
-                    var name = animation.Name;
-                    if (VenueLookup.VENUE_LIGHTING_CONVERSION_LOOKUP.TryGetValue(name, out var lightingLookup))
-                    {
-                        name = lightingLookup;
-                    }
-
-                    if (VenueLookup.LightingLookup.TryGetValue(name, out var lighting))
-                    {
-                        lightingEvents.Add(new LightingEvent(lighting, animation.Time, songChart.SyncTrack.TimeToTick(animation.Time)));
-                    }
-                }
-            }
-
-            // Sort by time
-            lightingEvents.Sort((a, b) => a.Time.CompareTo(b.Time));
-        }
-
-        // TODO: This needs to use the logic in MoonSongLoader.Venue for handling camera cut constraints
-        //  and setting proper length values
-        public static void AddCameraCutEventsFromMilo(List<CameraCutEvent> cameraCutEvents,
-            List<MiloAnimation.MiloAnimationEvent> miloAnimations, SongChart songChart)
-        {
-            foreach (var animation in miloAnimations)
-            {
-                // All the Shot tracks seem to have the same events, so we're picking this one
-                // (it's what RB-Tools does, so why be different?)
-                if (animation.Type == MiloAnimation.MiloAnimationType.ShotBassGuitar)
-                {
-                    if (VenueLookup.CameraCutSubjectLookup.TryGetValue(animation.Name, out var cameraCutSubject))
-                    {
-                        var priority = animation.Name.StartsWith("directed") ? CameraCutEvent.CameraCutPriority.Directed : CameraCutEvent.CameraCutPriority.Normal;
-                        cameraCutEvents.Add(new CameraCutEvent(priority, CameraCutEvent.CameraCutConstraint.None,
-                            cameraCutSubject, animation.Time, 0, songChart.SyncTrack.TimeToTick(animation.Time), 0));
-                    }
-                }
-            }
-        }
-
-        public static void AddPostProcessingEventsFromMilo(List<PostProcessingEvent> ppEvents,
-            List<MiloAnimation.MiloAnimationEvent> miloAnimations, SongChart songChart)
-        {
-            // Just for testing, we're only doing postprocessing..if that works, we'll also do lighting and whatever
-            // else would normally be in the venue track
-            foreach (var animation in miloAnimations)
-            {
-                if (animation.Type == MiloAnimation.MiloAnimationType.PostProcessing)
-                {
-                    // Try to get the corresponding PP type from VenueLookup.PostProcessingLookup
-                    if (VenueLookup.VENUE_TEXT_CONVERSION_LOOKUP.TryGetValue(animation.Name, out var ppLookup))
-                    {
-                        if (!VenueLookup.PostProcessLookup.TryGetValue(ppLookup.text, out var ppType))
-                        {
-                            continue;
-                        }
-                        ppEvents.Add(new PostProcessingEvent(ppType, animation.Time, songChart.SyncTrack.TimeToTick(animation.Time)));
-                    }
-                }
-            }
-        }
-
 
         // Add range shift events to the InstrumentDifficulty
         private void CreateRangeShiftPhrases()
