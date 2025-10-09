@@ -19,11 +19,30 @@ namespace YARG.Core.Audio
                 Panning = panning;
             }
 
-            public void Deconstruct(out SongStem stem, out int[] indices, out float[] panning)
+            public float[,]? VolumeMatrix
             {
-                stem = Stem;
-                indices = Indices;
-                panning = Panning;
+                get
+                {
+                    if (Indices == null || Panning == null)
+                        return null;
+
+                    float[,] volumeMatrix = new float[2, Indices.Length];
+
+                    const int LEFT_PAN = 0;
+                    const int RIGHT_PAN = 1;
+
+                    for (int i = 0; i < Indices.Length; ++i)
+                    {
+                        volumeMatrix[LEFT_PAN, i] = Panning[2 * i];
+                    }
+
+                    for (int i = 0; i < Indices.Length; ++i)
+                    {
+                        volumeMatrix[RIGHT_PAN, i] = Panning[2 * i + 1];
+                    }
+
+                    return volumeMatrix;
+                }
             }
         }
 
