@@ -16,6 +16,8 @@ namespace YARG.Core.Chart
         public List<StageEffectEvent> Stage { get; } = new();
         public List<CameraCutEvent> CameraCuts { get; } = new();
 
+        public bool IsEmpty => Lighting.Count == 0 && PostProcessing.Count == 0 && Performer.Count == 0 && Stage.Count == 0 && CameraCuts.Count == 0;
+
         public VenueTrack() { }
 
         public VenueTrack(List<LightingEvent> lighting, List<PostProcessingEvent> postProcessing,

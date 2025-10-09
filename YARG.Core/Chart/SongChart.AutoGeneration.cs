@@ -1,8 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using YARG.Core.IO;
 using YARG.Core.Logging;
 using YARG.Core.Parsing;
+using YARG.Core.Song;
 
 namespace YARG.Core.Chart
 {
@@ -500,6 +502,18 @@ namespace YARG.Core.Chart
                 CrowdEvents.Add(new CrowdEvent(CrowdEvent.CrowdEventType.State, CrowdState.Realtime, ClapState.None,
                     lastNoteTime, 0, lastNoteTick, 0));
             }
+        }
+
+        public static void LoadVenueFromMilo(SongChart songChart, SongEntry songEntry)
+        {
+            var miloVenue = new MiloVenue(songChart, songEntry);
+            miloVenue.Load();
+
+            songChart.VenueTrack.Lighting.AddRange(miloVenue.LightingEvents);
+            songChart.VenueTrack.Stage.AddRange(miloVenue.StageEvents);
+            songChart.VenueTrack.CameraCuts.AddRange(miloVenue.CameraCuts);
+            songChart.VenueTrack.PostProcessing.AddRange(miloVenue.PostProcessingEvents);
+            songChart.VenueTrack.Performer.AddRange(miloVenue.PerformerEvents);
         }
 
         // Add range shift events to the InstrumentDifficulty
