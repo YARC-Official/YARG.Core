@@ -16,6 +16,7 @@ namespace YARG.Core.Song
         Album,
         Artist_Album,
         Genre,
+        Subgenre,
         Year,
         Charter,
         Playlist,

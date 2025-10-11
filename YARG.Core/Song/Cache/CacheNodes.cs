@@ -14,6 +14,7 @@ namespace YARG.Core.Song
         public int Charter;
         public int Playlist;
         public int Source;
+        public int Subgenre;
     }
 
     internal class CacheReadStrings
@@ -30,6 +31,7 @@ namespace YARG.Core.Song
         public string[] Charters  => _categories[5];
         public string[] Playlists => _categories[6];
         public string[] Sources   => _categories[7];
+        public string[] Subgenres => _categories[8];
 
         public unsafe CacheReadStrings(FixedArrayStream* stream)
         {

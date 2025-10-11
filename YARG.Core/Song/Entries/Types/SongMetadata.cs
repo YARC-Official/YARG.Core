@@ -19,6 +19,7 @@ namespace YARG.Core.Song
         public const string DEFAULT_ARTIST = "Unknown Artist";
         public const string DEFAULT_ALBUM = "Unknown Album";
         public const string DEFAULT_GENRE = "Unknown Genre";
+        public const string DEFAULT_SUBGENRE = "";
         public const string DEFAULT_CHARTER = "Unknown Charter";
         public const string DEFAULT_SOURCE = "Unknown Source";
         public const string DEFAULT_YEAR = "####";
@@ -29,6 +30,7 @@ namespace YARG.Core.Song
             Artist = DEFAULT_ARTIST,
             Album = DEFAULT_ALBUM,
             Genre = DEFAULT_GENRE,
+            Subgenre = DEFAULT_SUBGENRE,
             Charter = DEFAULT_CHARTER,
             Source = DEFAULT_SOURCE,
             Year = DEFAULT_YEAR,
@@ -85,6 +87,7 @@ namespace YARG.Core.Song
         public string Artist;
         public string Album;
         public string Genre;
+        public string Subgenre;
         public string Charter;
         public string Source;
         public string Playlist;
@@ -174,6 +177,11 @@ namespace YARG.Core.Song
             if (modifiers.Extract("genre", out string genre) && genre.Length > 0)
             {
                 metadata.Genre = genre;
+            }
+
+            if (modifiers.Extract("sub_genre", out string subgenre) && subgenre.Length > 0)
+            {
+                metadata.Subgenre = subgenre;
             }
 
             if (modifiers.Extract("year", out string year) && year.Length > 0)
