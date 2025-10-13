@@ -154,6 +154,9 @@ namespace YARG.Core.Game
                 FrontToBackRatio = 1.0
             };
 
+            [SettingType(SettingType.Toggle)]
+            public bool IgnoreOverhits = false;
+
             public DrumsPreset Copy()
             {
                 return new DrumsPreset
@@ -169,7 +172,8 @@ namespace YARG.Core.Game
                     hitWindow,
                     DEFAULT_MAX_MULTIPLIER,
                     starMultiplierThresholds,
-                    mode);
+                    mode,
+                    IgnoreOverhits);
             }
         }
 
