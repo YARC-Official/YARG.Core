@@ -188,8 +188,9 @@ namespace YARG.Core.Song
 
         private static readonly unsafe delegate*<SongCache, void>[] SORTERS =
         {
-            &SortByTitle,    &SortByArtist, &SortByAlbum,       &SortByGenre,  &SortByYear,      &SortByCharter,
-            &SortByPlaylist, &SortBySource, &SortByArtistAlbum, &SortByLength, &SortByDateAdded, &SortByInstruments
+            &SortByTitle,    &SortByArtist,   &SortByAlbum,  &SortByGenre,       &SortBySubgenre,   &SortByYear,
+            &SortByCharter,  &SortByPlaylist, &SortBySource, &SortByArtistAlbum, &SortByLength,     &SortByDateAdded,
+            &SortByInstruments
         };
 
         internal static unsafe void SortEntries(SongCache cache)
@@ -268,6 +269,24 @@ namespace YARG.Core.Song
                     if (!cache.Genres.TryGetValue(genre, out var category))
                     {
                         cache.Genres.Add(genre, category = new List<SongEntry>());
+                    }
+
+                    int index = category.BinarySearch(entry, MetadataComparer.Instance);
+                    category.Insert(~index, entry);
+                }
+            }
+        }
+
+        private static void SortBySubgenre(SongCache cache)
+        {
+            foreach (var list in cache.Entries)
+            {
+                foreach (var entry in list.Value)
+                {
+                    var subgenre = entry.Subgenre;
+                    if (!cache.Subgenres.TryGetValue(subgenre, out var category))
+                    {
+                        cache.Subgenres.Add(subgenre, category = new List<SongEntry>());
                     }
 
                     int index = category.BinarySearch(entry, MetadataComparer.Instance);
