@@ -28,6 +28,17 @@ namespace YARG.Core.Parsing
         SOLO_END = "soloend";
         #endregion
 
+        #region Crowd State
+        public const string
+            CROWD_PREFIX = "crowd_",
+            CROWD_CLAP  = "crowd_clap",
+            CROWD_NOCLAP = "crowd_noclap",
+            CROWD_REALTIME = "crowd_realtime",
+            CROWD_INTENSE = "crowd_intense",
+            CROWD_MELLOW = "crowd_mellow",
+            CROWD_NORMAL = "crowd_normal";
+        #endregion
+
         #region Text event to phrase conversion
         private struct TextConversionState
         {

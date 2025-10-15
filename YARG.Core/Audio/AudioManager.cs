@@ -12,9 +12,9 @@ namespace YARG.Core.Audio
         private bool _disposed;
         private List<StemMixer> _activeMixers = new();
 
-        protected internal readonly SampleChannel[]     SfxSamples     = new SampleChannel[AudioHelpers.SfxPaths.Count];
-        protected internal readonly DrumSampleChannel[] DrumSfxSamples = new DrumSampleChannel[AudioHelpers.DrumSfxPaths.Count];
-        protected internal readonly VoxSampleChannel[]  VoxSamples     = new VoxSampleChannel[AudioHelpers.VoxSamplePaths.Count];
+        protected internal readonly SampleChannel[]     SfxSamples     = new SampleChannel[AudioHelpers.SfxSamples.Count];
+        protected internal readonly DrumSampleChannel[] DrumSfxSamples = new DrumSampleChannel[AudioHelpers.DrumSamples.Count];
+        protected internal readonly VoxSampleChannel[]  VoxSamples     = new VoxSampleChannel[AudioHelpers.VoxSamples.Count];
         protected internal int PlaybackLatency;
         protected internal int MinimumBufferLength;
         protected internal int MaximumBufferLength;
@@ -24,13 +24,13 @@ namespace YARG.Core.Audio
         internal StemMixer? LoadCustomFile(string name, Stream stream, float speed, double volume, SongStem stem = SongStem.Song)
         {
             YargLogger.LogDebug("Loading custom audio file");
-            var mixer = CreateMixer(name, stream, speed, volume, false);
+            var mixer = CreateMixer(name, speed, volume, false);
             if (mixer == null)
             {
                 return null;
             }
 
-            if (!mixer.AddChannel(stem))
+            if (!mixer.AddChannel(stream, stem))
             {
                 mixer.Dispose();
                 return null;
@@ -53,8 +53,6 @@ namespace YARG.Core.Audio
         }
 
         protected internal abstract StemMixer? CreateMixer(string name, float speed, double volume, bool clampStemVolume);
-
-        protected internal abstract StemMixer? CreateMixer(string name, Stream stream, float speed, double volume, bool clampStemVolume);
 
         protected internal abstract MicDevice? GetInputDevice(string name);
 

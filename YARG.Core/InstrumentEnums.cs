@@ -20,11 +20,11 @@ namespace YARG.Core
         // 5-9: Drums
         FourLaneDrums = 5,
         FiveLaneDrums = 6,
-        // EliteDrums = 7,
+        EliteDrums = 7,
 
         // 10-14: Pro instruments
         ProGuitar = 10,
-        ProKeys = 11,
+        ProKeys = 11, // Includes Pro and Five-Lane
 
         // 15-19: Vocals
         Vocals = 15,
@@ -123,7 +123,7 @@ namespace YARG.Core
 
     public static class ChartEnumExtensions
     {
-        public static GameMode ToGameMode(this Instrument instrument)
+        public static GameMode ToNativeGameMode(this Instrument instrument)
         {
             return instrument switch
             {
@@ -143,7 +143,7 @@ namespace YARG.Core
 
                 Instrument.FiveLaneDrums => GameMode.FiveLaneDrums,
 
-                // Instrument.EliteDrums => GameMode.EliteDrums,
+                Instrument.EliteDrums => GameMode.EliteDrums,
 
                 Instrument.ProGuitar_17Fret or
                 Instrument.ProGuitar_22Fret or
@@ -203,7 +203,12 @@ namespace YARG.Core
                 },
                 GameMode.ProKeys        => new[]
                 {
-                    Instrument.ProKeys
+                    Instrument.ProKeys,
+                    Instrument.Keys,
+                    Instrument.FiveFretGuitar,
+                    Instrument.FiveFretBass,
+                    Instrument.FiveFretRhythm,
+                    Instrument.FiveFretCoopGuitar
                 },
                 GameMode.Vocals         => new[]
                 {

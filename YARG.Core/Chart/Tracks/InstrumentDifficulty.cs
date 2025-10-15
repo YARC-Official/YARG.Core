@@ -59,9 +59,14 @@ namespace YARG.Core.Chart
         {
         }
 
+        /// <summary>
+        /// Gets the start time of the first event in this difficulty
+        /// </summary>
+        /// <returns>double</returns>
+        /// <remarks>This returns double.MaxValue if there are no events</remarks>
         public double GetStartTime()
         {
-            double totalStartTime = 0;
+            double totalStartTime = double.MaxValue;
 
             totalStartTime = Math.Min(Notes.GetStartTime(), totalStartTime);
             totalStartTime = Math.Min(Phrases.GetStartTime(), totalStartTime);
@@ -80,6 +85,11 @@ namespace YARG.Core.Chart
             totalEndTime = Math.Max(TextEvents.GetEndTime(), totalEndTime);
 
             return totalEndTime;
+        }
+
+        public double? GetFirstNoteStartTime()
+        {
+            return Notes.GetStartTime();
         }
 
         public double GetLastNoteEndTime()

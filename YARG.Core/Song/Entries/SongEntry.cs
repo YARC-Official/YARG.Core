@@ -156,6 +156,7 @@ namespace YARG.Core.Song
         public string CharterProKeys    => _metadata.CharterProKeys;
         public string CharterProGuitar  => _metadata.CharterProGuitar;
         public string CharterVocals     => _metadata.CharterVocals;
+        public string CharterVenue      => _metadata.CharterVenue;
 
         public long SongLengthMilliseconds => _metadata.SongLength;
 
@@ -180,6 +181,8 @@ namespace YARG.Core.Song
         public double VideoStartTimeSeconds => VideoStartTimeMilliseconds / SongMetadata.MILLISECOND_FACTOR;
 
         public double VideoEndTimeSeconds => VideoEndTimeMilliseconds >= 0 ? VideoEndTimeMilliseconds / SongMetadata.MILLISECOND_FACTOR : -1;
+
+        public float? VocalScrollSpeedScalingFactor => _metadata.VocalScrollSpeedScalingFactor;
 
         public int VocalsCount
         {
@@ -320,10 +323,10 @@ namespace YARG.Core.Song
                 Instrument.Vocals  => _parts.LeadVocals,
                 Instrument.Harmony => _parts.HarmonyVocals,
                 Instrument.Band    => _parts.BandDifficulty,
-                _ => null
+                _ => throw new ArgumentException("Unhandled instrument", nameof(instrument))
             };
 
-            return part.HasValue && (difficulty & part.Value.Difficulties) == difficulty;
+            return (difficulty & part.Value.Difficulties) == difficulty;
         }
 
         public bool HasDifficultyForInstrument(Instrument instrument, Difficulty difficulty)
@@ -385,7 +388,10 @@ namespace YARG.Core.Song
             stream.Write(_metadata.LinkBluesky);
             stream.Write(_metadata.LinkFacebook);
             stream.Write(_metadata.LinkInstagram);
+            stream.Write(_metadata.LinkNewgrounds);
+            stream.Write(_metadata.LinkSoundcloud);
             stream.Write(_metadata.LinkSpotify);
+            stream.Write(_metadata.LinkTiktok);
             stream.Write(_metadata.LinkTwitter);
             stream.Write(_metadata.LinkOther);
             stream.Write(_metadata.LinkYoutube);
@@ -415,6 +421,7 @@ namespace YARG.Core.Song
             stream.Write(_metadata.CharterProBass);
             stream.Write(_metadata.CharterProKeys);
             stream.Write(_metadata.CharterProGuitar);
+            stream.Write(_metadata.CharterVenue);
             stream.Write(_metadata.CharterVocals);
 
             stream.Write(_settings.HopoThreshold, Endianness.Little);
@@ -465,7 +472,10 @@ namespace YARG.Core.Song
             _metadata.LinkBluesky = stream.ReadString();
             _metadata.LinkFacebook = stream.ReadString();
             _metadata.LinkInstagram = stream.ReadString();
+            _metadata.LinkNewgrounds = stream.ReadString();
+            _metadata.LinkSoundcloud = stream.ReadString();
             _metadata.LinkSpotify = stream.ReadString();
+            _metadata.LinkTiktok = stream.ReadString();
             _metadata.LinkTwitter = stream.ReadString();
             _metadata.LinkOther = stream.ReadString();
             _metadata.LinkYoutube = stream.ReadString();
@@ -495,6 +505,7 @@ namespace YARG.Core.Song
             _metadata.CharterProBass = stream.ReadString();
             _metadata.CharterProKeys = stream.ReadString();
             _metadata.CharterProGuitar = stream.ReadString();
+            _metadata.CharterVenue = stream.ReadString();
             _metadata.CharterVocals = stream.ReadString();
 
             _settings.HopoThreshold = stream.Read<long>(Endianness.Little);

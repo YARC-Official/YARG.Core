@@ -25,7 +25,7 @@ public partial class Cli
             double fps = i * 4 + 1;
 
             var analyzerResults = ReplayAnalyzer.AnalyzeReplay(chart, _replayInfo, _replayData, fps, _frameIndex);
-            long bandScore = analyzerResults.Sum(x => (long) x.ResultStats.TotalScore);
+            long bandScore = analyzerResults.Sum(x => (long) x.ResultStats.TotalScore + x.ResultStats.BandBonusScore);
 
             if (scores.TryGetValue(bandScore, out int value))
             {

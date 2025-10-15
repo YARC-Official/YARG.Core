@@ -5,9 +5,9 @@ using YARG.Core.Logging;
 
 namespace YARG.Core.Engine.Guitar.Engines
 {
-    public class YargFiveFretEngine : GuitarEngine
+    public class YargFiveFretGuitarEngine : GuitarEngine
     {
-        public YargFiveFretEngine(InstrumentDifficulty<GuitarNote> chart, SyncTrack syncTrack,
+        public YargFiveFretGuitarEngine(InstrumentDifficulty<GuitarNote> chart, SyncTrack syncTrack,
             GuitarEngineParameters engineParameters, bool isBot)
             : base(chart, syncTrack, engineParameters, isBot)
         {

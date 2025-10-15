@@ -1,5 +1,7 @@
 ﻿using System;
 using YARG.Core.Extensions;
+using YARG.Core.IO;
+using MemoryExtensions = System.MemoryExtensions;
 
 namespace YARG.Core.Parsing
 {
@@ -45,13 +47,41 @@ namespace YARG.Core.Parsing
         EasyNoKick = 4,
     }
 
+    public enum EliteDrumsSnareStemSetting
+    {
+        Red = 0,
+        Yellow = 1,
+        Blue = 2,
+        Green = 3,
+    }
+
+    /// <summary>
+    /// Possible crowd states
+    /// </summary>
+    public enum CrowdState
+    {
+        None = 0,
+        Realtime,
+        Intense,
+        Normal,
+        Mellow,
+    }
+
+    public enum ClapState {
+        None = 0,
+        Clap,
+        NoClap
+    }
+
     /// <summary>
     /// Constants and utilities for handling text events.
     /// </summary>
     public static partial class TextEvents
     {
         public const string BIG_ROCK_ENDING_START = "coda";
-        public const string END_MARKER = "end";
+        public const string END_MARKER            = "end";
+        public const string MUSIC_START           = "music_start";
+        public const string MUSIC_END             = "music_end";
 
         /// <summary>
         /// Normalizes text events into a consistent format. This includes stripping any
@@ -179,6 +209,106 @@ namespace YARG.Core.Parsing
                 setting = DrumsMixSetting.None;
 
             return true;
+        }
+
+        // setting is 0 for red, 1 for yellow, 2 for blue, 3 for green
+        public static bool TryParseEliteDrumsSnareStemEvent(ReadOnlySpan<char> text, out EliteDrumsSnareStemSetting setting, out Difficulty difficulty)
+        {
+            difficulty = Difficulty.Expert;
+            setting = 0;
+
+            const string MIX_PREFIX = "snare_stem";
+            if (!text.StartsWith(MIX_PREFIX))
+                return false;
+            text = text[MIX_PREFIX.Length..].SkipSpaceOrUnderscore();
+            if (text.IsEmpty)
+                return false;
+
+            // Parse difficulty number
+            if (!text[0].TryAsciiToNumber(out uint pad))
+                return false;
+            text = text[1..].SkipSpaceOrUnderscore();
+
+            switch (pad)
+            {
+                case 0 or 1 or 2 or 3: setting = (EliteDrumsSnareStemSetting)pad; break;
+                default: return false;
+            }
+
+            // Skip space
+            text = text.SkipSpaceOrUnderscore();
+            if (text.IsEmpty)
+                return false;
+
+            // Parse difficulty number
+            if (text[0].TryAsciiToNumber(out uint diffNumber))
+            {
+                switch (diffNumber)
+                {
+                    case 3: difficulty = Difficulty.Expert; break;
+                    case 2: difficulty = Difficulty.Hard; break;
+                    case 1: difficulty = Difficulty.Medium; break;
+                    case 0: difficulty = Difficulty.Easy; break;
+                    default: break;
+                }
+            }
+
+            return true;
+        }
+
+        public static bool TryParseCrowdEvent(ReadOnlySpan<char> text, out CrowdState state)
+        {
+            state = CrowdState.Normal;
+            if (!text.StartsWith(CROWD_PREFIX))
+            {
+                return false;
+            }
+
+            // If we had C# 11, we could use a switch expression without having to take the allocation
+            // from ToString, but alas we do not.
+            var crowdText = text.ToString();
+
+            CrowdState? crowdState = crowdText switch
+            {
+                CROWD_REALTIME => CrowdState.Realtime,
+                CROWD_INTENSE  => CrowdState.Intense,
+                CROWD_NORMAL   => CrowdState.Normal,
+                CROWD_MELLOW   => CrowdState.Mellow,
+                _                => null
+            };
+
+            if (crowdState is null)
+            {
+                // Not a valid crowd state
+                return false;
+            }
+
+            state = crowdState.Value;
+            return true;
+        }
+
+        public static bool TryParseClapEvent(ReadOnlySpan<char> text, out ClapState state)
+        {
+            state = ClapState.Clap;
+
+            if (!text.StartsWith(CROWD_PREFIX))
+            {
+                return false;
+            }
+
+            if (text.Equals(CROWD_CLAP, StringComparison.Ordinal))
+            {
+                return true;
+            }
+
+            if (text.Equals(CROWD_NOCLAP, StringComparison.Ordinal))
+            {
+                state = ClapState.NoClap;
+                return true;
+            }
+
+            // Right prefix, not valid text
+            return false;
         }
     }
 }

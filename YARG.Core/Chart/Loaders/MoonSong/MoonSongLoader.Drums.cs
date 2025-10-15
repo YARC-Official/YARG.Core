@@ -10,18 +10,18 @@ namespace YARG.Core.Chart
     {
         private bool _discoFlip = false;
 
-        public InstrumentTrack<DrumNote> LoadDrumsTrack(Instrument instrument)
+        public InstrumentTrack<DrumNote> LoadDrumsTrack(Instrument instrument, InstrumentTrack<EliteDrumNote>? eliteDrumsFallback)
         {
             _discoFlip = false;
-            return instrument.ToGameMode() switch
+            return instrument.ToNativeGameMode() switch
             {
-                GameMode.FourLaneDrums => LoadDrumsTrack(instrument, CreateFourLaneDrumNote),
-                GameMode.FiveLaneDrums => LoadDrumsTrack(instrument, CreateFiveLaneDrumNote),
+                GameMode.FourLaneDrums => LoadDrumsTrack(instrument, CreateFourLaneDrumNote, eliteDrumsFallback),
+                GameMode.FiveLaneDrums => LoadDrumsTrack(instrument, CreateFiveLaneDrumNote, eliteDrumsFallback),
                 _ => throw new ArgumentException($"Instrument {instrument} is not a drums instrument!", nameof(instrument))
             };
         }
 
-        private InstrumentTrack<DrumNote> LoadDrumsTrack(Instrument instrument, CreateNoteDelegate<DrumNote> createNote)
+        private InstrumentTrack<DrumNote> LoadDrumsTrack(Instrument instrument, CreateNoteDelegate<DrumNote> createNote, InstrumentTrack<EliteDrumNote>? eliteDrumsFallback)
         {
             var difficulties = new Dictionary<Difficulty, InstrumentDifficulty<DrumNote>>()
             {
@@ -32,13 +32,37 @@ namespace YARG.Core.Chart
                 { Difficulty.ExpertPlus, LoadDifficulty(instrument, Difficulty.ExpertPlus, createNote, HandleTextEvent) },
             };
 
-            var track = new InstrumentTrack<DrumNote>(instrument, difficulties, GetAnimationTrack(instrument));
+            foreach (var difficulty in difficulties)
+            {
+                if (difficulty.Value.Notes.Count > 0)
+                {
+                    // If at least one difficulty has at least one note, return the native chart
+                    return new(instrument, difficulties);
+                }
+            }
 
-            // Add animation events
-            // var animationEvents = GetDrumAnimationEvents(track);
-            // track.AddAnimationEvent(animationEvents);
+            // No native chart. Do we have an Elite Drums chart to fall back on?
+            if (eliteDrumsFallback is not null)
+            {
+                // Generate downcharts if we haven't already
+                _downCharts ??= DownchartEliteDrumsTrack(eliteDrumsFallback);
 
-            return track;
+                if (_downCharts is not null)
+                {
+                    _settings.DrumsType = DrumsType.FourLane;
+
+                    difficulties = new Dictionary<Difficulty, InstrumentDifficulty<DrumNote>>()
+                    {
+                        { Difficulty.Easy, LoadFromEliteDrumsDownchartDifficulty(instrument, Difficulty.Easy, createNote, HandleTextEvent)},
+                        { Difficulty.Medium, LoadFromEliteDrumsDownchartDifficulty(instrument, Difficulty.Medium, createNote, HandleTextEvent)},
+                        { Difficulty.Hard, LoadFromEliteDrumsDownchartDifficulty(instrument, Difficulty.Hard, createNote, HandleTextEvent)},
+                        { Difficulty.Expert, LoadFromEliteDrumsDownchartDifficulty(instrument, Difficulty.Expert, createNote, HandleTextEvent)},
+                        { Difficulty.ExpertPlus, LoadFromEliteDrumsDownchartDifficulty(instrument, Difficulty.ExpertPlus, createNote, HandleTextEvent)},
+                    };
+                }
+            }
+
+            return new(instrument, difficulties);
         }
 
         private DrumNote CreateFourLaneDrumNote(MoonNote moonNote, Dictionary<MoonPhrase.Type, MoonPhrase> currentPhrases)
@@ -297,6 +321,17 @@ namespace YARG.Core.Chart
             // Can be populated later if additional note flags are added
             // Activation note marking is done within DrumsPlayer
             return DrumNoteFlags.None;
+        }
+
+        private InstrumentDifficulty<DrumNote> LoadFromEliteDrumsDownchartDifficulty(Instrument instrument,
+            Difficulty difficulty, CreateNoteDelegate<DrumNote> createNote, ProcessTextDelegate? processText = null)
+        {
+            var downchart = _downCharts![difficulty];
+
+            var notes = GetNotes(downchart, difficulty, createNote, processText);
+            var phrases = GetPhrases(downchart);
+            var textEvents = GetTextEvents(downchart);
+            return new(instrument, difficulty, notes, phrases, textEvents);
         }
     }
 }

@@ -16,6 +16,8 @@ namespace YARG.Core.Chart
         public List<StageEffectEvent> Stage { get; } = new();
         public List<CameraCutEvent> CameraCuts { get; } = new();
 
+        public bool IsEmpty => Lighting.Count == 0 && PostProcessing.Count == 0 && Performer.Count == 0 && Stage.Count == 0 && CameraCuts.Count == 0;
+
         public VenueTrack() { }
 
         public VenueTrack(List<LightingEvent> lighting, List<PostProcessingEvent> postProcessing,
@@ -28,9 +30,14 @@ namespace YARG.Core.Chart
             CameraCuts = cameraCuts;
         }
 
+        /// <summary>
+        /// Gets the start time of the first event in any venue track
+        /// </summary>
+        /// <returns>double</returns>
+        /// <remarks>This returns double.MaxValue if there are no events</remarks>
         public double GetStartTime()
         {
-            double totalStartTime = 0;
+            double totalStartTime = double.MaxValue;
 
             totalStartTime = Math.Min(Lighting.GetStartTime(), totalStartTime);
             totalStartTime = Math.Min(PostProcessing.GetStartTime(), totalStartTime);
