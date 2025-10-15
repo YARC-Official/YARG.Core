@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 
 namespace YARG.Core.Audio
 {
@@ -47,14 +47,16 @@ namespace YARG.Core.Audio
             }
         }
 
-        public void SetPosition(double position)
+        public bool SetPosition(double position)
         {
             lock (this)
             {
                 if (!_disposed)
                 {
-                    SetPosition_Internal(position);
+                    return SetPosition_Internal(position);
                 }
+
+                return false;
             }
         }
 
@@ -81,7 +83,7 @@ namespace YARG.Core.Audio
             }
         }
 
-        private void SetVolume(double volume)
+        public void SetVolume(double volume)
         {
             lock (this)
             {
@@ -109,7 +111,7 @@ namespace YARG.Core.Audio
 
         protected abstract void SetWhammyPitch_Internal(float percent);
         protected abstract float GetWhammyPitch_Internal();
-        protected abstract void SetPosition_Internal(double position);
+        protected abstract bool SetPosition_Internal(double position);
         protected abstract double GetPosition_Internal();
         protected abstract void SetSpeed_Internal(float speed, bool shiftPitch);
 
