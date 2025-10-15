@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using MoonscraperChartEditor.Song;
@@ -29,7 +29,8 @@ namespace YARG.Core.Chart
             };
 
             var ranges = GetRangeShifts(parts, MoonSong.MoonInstrument.Vocals);
-            return new(instrument, parts, ranges);
+            var anims = GetAnimationTrack(instrument);
+            return new VocalsTrack(instrument, parts, ranges, anims);
         }
 
         private VocalsTrack LoadHarmonyVocals(Instrument instrument)
@@ -42,7 +43,8 @@ namespace YARG.Core.Chart
             };
 
             var ranges = GetRangeShifts(parts, MoonSong.MoonInstrument.Harmony1);
-            return new(instrument, parts, ranges);
+            var anims = GetAnimationTrack(instrument);
+            return new(instrument, parts, ranges, anims);
         }
 
         private VocalsPart LoadVocalsPart(MoonSong.MoonInstrument moonInstrument)
@@ -58,15 +60,43 @@ namespace YARG.Core.Chart
             var moonChart = _moonSong.GetChart(moonInstrument, MoonSong.Difficulty.Expert);
 
             var isHarmony = moonInstrument != MoonSong.MoonInstrument.Vocals;
-            var notePhrases = GetVocalsPhrases(moonChart, harmonyPart);
+            var isBacking = harmonyPart is 1 or 2;
+            var notePhrases = GetVocalsPhrases(moonChart, harmonyPart, false);
+
+            // For solo vocals and HARM1, the static lyric phrases are always the same as the scoring phrases. HARM2 and HARM3 derive
+            // their static lyric phrases from a different phrase type, so we have to run through again, looking for that type instead
+            var staticLyricPhrases = isBacking ? GetVocalsPhrases(moonChart, harmonyPart, true) : notePhrases.Duplicate();
+            
             var otherPhrases = GetPhrases(moonChart);
             var textEvents = GetTextEvents(moonChart);
-            return new(isHarmony, notePhrases, otherPhrases, textEvents);
+            return new(isHarmony, notePhrases, staticLyricPhrases, otherPhrases, textEvents);
         }
 
-        private List<VocalsPhrase> GetVocalsPhrases(MoonChart moonChart, int harmonyPart)
+
+        private List<VocalsPhrase> GetVocalsPhrases(MoonChart moonChart, int harmonyPart, bool staticLyricPhrases)
         {
             var phrases = new List<VocalsPhrase>();
+
+            // Depending on the values of staticLyricPhrases and harmonyPart, we're either looking at regular phrases or
+            // harmony lyric phrases. These two track which one we care about, and which one we don't
+            MoonPhrase.Type lyricPhraseType;
+            MoonPhrase.Type otherLyricPhraseType;
+
+            if (harmonyPart is 0)
+            {
+                // For solo vocals and HARM1, we never care about harmony lyric phrases. LoadVocalsPart never calls with harmonyPart=0
+                // and staticLyricPhrases=true anyway; it just reuses the result of the first call with staticLyricPhrases=false
+                (lyricPhraseType, otherLyricPhraseType) = (MoonPhrase.Type.Vocals_ScoringPhrase, MoonPhrase.Type.Vocals_StaticLyricPhrase);
+            } else
+            {
+                // For HARM2 and 3, it depends on the value of staticLyricPhrases. For each HARM2 and 3, LoadVocalsPart calls this method once
+                // with staticLyricPhrases=false, to get the scoring phrases, and again with staticLyricPhrases=true, to get the static lyric
+                // phrases.
+                (lyricPhraseType, otherLyricPhraseType) = staticLyricPhrases ?
+                    (MoonPhrase.Type.Vocals_StaticLyricPhrase, MoonPhrase.Type.Vocals_ScoringPhrase) :
+                    (MoonPhrase.Type.Vocals_ScoringPhrase, MoonPhrase.Type.Vocals_StaticLyricPhrase);
+            }
+
 
             // Prefill with the valid phrases
             var phraseTracker = new Dictionary<MoonPhrase.Type, MoonPhrase?>()
@@ -75,6 +105,7 @@ namespace YARG.Core.Chart
                 { MoonPhrase.Type.Versus_Player1 , null },
                 { MoonPhrase.Type.Versus_Player2 , null },
                 { MoonPhrase.Type.Vocals_PercussionPhrase , null },
+                { otherLyricPhraseType, null },
             };
 
             int moonNoteIndex = 0;
@@ -83,7 +114,7 @@ namespace YARG.Core.Chart
             for (int moonPhraseIndex = 0; moonPhraseIndex < moonChart.specialPhrases.Count;)
             {
                 var moonPhrase = moonChart.specialPhrases[moonPhraseIndex++];
-                if (moonPhrase.type != MoonPhrase.Type.Vocals_LyricPhrase)
+                if (moonPhrase.type != lyricPhraseType)
                 {
                     phraseTracker[moonPhrase.type] = moonPhrase;
                     continue;
@@ -380,9 +411,10 @@ namespace YARG.Core.Chart
             uint tickLength = moonPhrase.length;
 
             var phraseFlags = GetVocalsPhraseFlags(moonPhrase, phrasetracker);
+            var isPercussionPhrase = IsPhrasePercussion(notes);
 
             // Convert to MoonPhrase into a vocal note phrase
-            var phraseNote = new VocalNote(phraseFlags, time, timeLength, tick, tickLength);
+            var phraseNote = new VocalNote(phraseFlags, isPercussionPhrase, time, timeLength, tick, tickLength);
             foreach (var note in notes)
             {
                 phraseNote.AddChildNote(note);
@@ -404,6 +436,18 @@ namespace YARG.Core.Chart
             }
 
             return phraseFlags;
+        }
+
+        private bool IsPhrasePercussion(List<VocalNote> notes)
+        {
+            // Empty phrases can still be treated as vocal phrases; it doesn't really matter
+            // Mixing percussion and non-percussion in a single phrase is garbage data, so we only need to check the first note
+            if (notes.Count == 0 || !notes[0].IsPercussion)
+            {
+                return false;
+            }
+
+            return true;
         }
     }
 }

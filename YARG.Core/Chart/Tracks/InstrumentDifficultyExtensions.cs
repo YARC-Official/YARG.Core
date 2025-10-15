@@ -370,6 +370,59 @@ namespace YARG.Core.Chart
             }
         }
 
+        public static void SetDrumActivationFlags(this InstrumentDifficulty<DrumNote> difficulty, StarPowerActivationType activationType)
+        {
+            var notes = difficulty.Notes;
+
+            // Use checkpointing to only iterate through the notes once
+            int checkpoint = 0;
+
+            foreach (var phrase in difficulty.Phrases)
+            {
+
+                if (phrase.Type != PhraseType.DrumFill)
+                {
+                    continue;
+                }
+
+                for (int i = checkpoint; i < notes.Count; i++)
+                {
+                    checkpoint = i;
+
+                    // If the current note is outside of the target phrase or if we have exhausted all notes
+                    if (notes[i].Time >= phrase.TimeEnd || i == notes.Count - 1)
+                    {
+                        // Get the rightmost pad
+                        var rightmostNote = notes[i].ParentOrSelf;
+                        foreach (var note in notes[i].AllNotes)
+                        {
+                            if (note.Pad > rightmostNote.Pad)
+                            {
+                                rightmostNote = note;
+                            }
+
+                            // Set every note on this tick as an activation note in the case of AllNotes
+                            if (activationType == StarPowerActivationType.AllNotes)
+                            {
+                                note.ActivateFlag(DrumNoteFlags.StarPowerActivator);
+                            }
+                        }
+
+                        // Only set the rightmost activation note in the case of RightmostNote
+                        if (activationType == StarPowerActivationType.RightmostNote)
+                        {
+                            rightmostNote.ActivateFlag(DrumNoteFlags.StarPowerActivator);
+                        }
+
+                        break;
+                    }
+                }
+            }
+
+            // return difficulty;
+        }
+
+
         public static void RemoveDynamics(this InstrumentDifficulty<DrumNote> difficulty)
         {
             foreach (var i in difficulty.Notes)

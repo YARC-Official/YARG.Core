@@ -13,6 +13,7 @@ namespace YARG.Core.Chart
 
         public List<VocalsPart> Parts { get; } = new();
         public List<VocalsRangeShift> RangeShifts { get; } = new();
+        public AnimationTrack Animations { get; } = new();
 
         /// <summary>
         /// Whether or not this track contains any data.
@@ -43,16 +44,27 @@ namespace YARG.Core.Chart
             RangeShifts = rangeShifts;
         }
 
+        public VocalsTrack(Instrument instrument, List<VocalsPart> parts, List<VocalsRangeShift> rangeShifts,
+            AnimationTrack animations) : this(instrument, parts, rangeShifts)
+        {
+            Animations = animations;
+        }
+
         public VocalsTrack(VocalsTrack other)
-            : this(other.Instrument, other.Parts.Duplicate(), other.RangeShifts.Duplicate())
+            : this(other.Instrument, other.Parts.Duplicate(), other.RangeShifts.Duplicate(), other.Animations.Clone())
         {
         }
 
         // TODO: Helper methods for getting note info across all parts
 
+        /// <summary>
+        /// Gets the start time of the first event in any vocals part
+        /// </summary>
+        /// <returns>double</returns>
+        /// <remarks>This returns double.MaxValue if there are no events</remarks>
         public double GetStartTime()
         {
-            double totalStartTime = 0;
+            double totalStartTime = double.MaxValue;
             foreach (var part in Parts)
             {
                 totalStartTime = Math.Min(part.GetStartTime(), totalStartTime);
@@ -70,6 +82,17 @@ namespace YARG.Core.Chart
             }
 
             return totalEndTime;
+        }
+
+        public double GetFirstNoteStartTime()
+        {
+            double startTime = double.MaxValue;
+            foreach (var part in Parts)
+            {
+                startTime = Math.Min(part.GetFirstNoteStartTime(), startTime);
+            }
+
+            return startTime;
         }
 
         public double GetLastNoteEndTime()
