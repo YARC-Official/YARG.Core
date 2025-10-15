@@ -18,8 +18,6 @@ namespace YARG.Core.Song
         public const string DEFAULT_NAME = "Unknown Name";
         public const string DEFAULT_ARTIST = "Unknown Artist";
         public const string DEFAULT_ALBUM = "Unknown Album";
-        public const string DEFAULT_GENRE = null;
-        public const string DEFAULT_SUBGENRE = null;
         public const string DEFAULT_CHARTER = "Unknown Charter";
         public const string DEFAULT_SOURCE = "Unknown Source";
         public const string DEFAULT_YEAR = "####";
@@ -29,8 +27,8 @@ namespace YARG.Core.Song
             Name = DEFAULT_NAME,
             Artist = DEFAULT_ARTIST,
             Album = DEFAULT_ALBUM,
-            Genre = DEFAULT_GENRE,
-            Subgenre = DEFAULT_SUBGENRE,
+            Genre = string.Empty,
+            Subgenre = string.Empty,
             Charter = DEFAULT_CHARTER,
             Source = DEFAULT_SOURCE,
             Year = DEFAULT_YEAR,
