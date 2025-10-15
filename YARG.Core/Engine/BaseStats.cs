@@ -232,12 +232,18 @@ namespace YARG.Core.Engine
             NoteScore = stream.Read<int>(Endianness.Little);
             SustainScore = stream.Read<int>(Endianness.Little);
             MultiplierScore = stream.Read<int>(Endianness.Little);
-            BandBonusScore = stream.Read<int>(Endianness.Little);
+            if (version >= 9)
+            {
+                BandBonusScore = stream.Read<int>(Endianness.Little);
+            }
 
             Combo = stream.Read<int>(Endianness.Little);
             MaxCombo = stream.Read<int>(Endianness.Little);
             ScoreMultiplier = stream.Read<int>(Endianness.Little);
-            BandMultiplier = stream.Read<int>(Endianness.Little);
+            if (version >= 9)
+            {
+                BandMultiplier = stream.Read<int>(Endianness.Little);
+            }
 
             NotesHit = stream.Read<int>(Endianness.Little);
             TotalNotes = stream.Read<int>(Endianness.Little);
@@ -299,10 +305,12 @@ namespace YARG.Core.Engine
             writer.Write(NoteScore);
             writer.Write(SustainScore);
             writer.Write(MultiplierScore);
+            writer.Write(BandBonusScore);
 
             writer.Write(Combo);
             writer.Write(MaxCombo);
             writer.Write(ScoreMultiplier);
+            writer.Write(BandMultiplier);
 
             writer.Write(NotesHit);
             writer.Write(TotalNotes);
