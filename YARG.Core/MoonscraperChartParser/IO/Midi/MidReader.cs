@@ -431,29 +431,46 @@ namespace MoonscraperChartEditor.Song.IO
                 return;
 
             YargLogger.LogTrace("Reading animations track");
+            var animations = new List<MoonAnimation>(5000);
 
-            for(var i = 0; i < track.Events.Count; i++)
+            long absoluteTime = track.Events[0].DeltaTime;
+
+            for (var i = 0; i < track.Events.Count; i++)
             {
                 var trackEvent = track.Events[i];
+                absoluteTime += trackEvent.DeltaTime;
+
                 if (MidIOHelper.IsTextEvent(trackEvent, out var text))
                 {
+                    string eventText = TextEvents.NormalizeTextEvent(text.Text).ToString();
                     bool matched = false;
                     foreach (var (regex, (lookup, type, defaultValue)) in MidIOHelper.ANIMATION_EVENT_REGEX_TO_LOOKUP)
                     {
-                        if (regex.Match(text.Text) is not { Success: true } match)
-                            continue;
+                        if (regex.Match(eventText) is not { Success: true } match) continue;
 
                         if (!lookup.TryGetValue(match.Groups[1].Value, out string converted))
                         {
-                            if (string.IsNullOrEmpty(defaultValue))
-                                continue;
+                            if (string.IsNullOrEmpty(defaultValue)) continue;
                             converted = defaultValue;
                         }
 
+                        MoonObjectHelper.OrderedInsertFromBack(new MoonAnimation(type, converted, (uint) absoluteTime),
+                            animations);
                         matched = true;
                     }
                 }
             }
+
+            // Copy animations to all difficulties
+            foreach (var difficulty in EnumExtensions<MoonSong.Difficulty>.Values)
+            {
+                var moonAnimations = song.GetChart(instrument, difficulty).animations;
+                foreach (var animation in animations)
+                {
+                    MoonObjectHelper.OrderedInsertFromBack(animation, moonAnimations);
+                }
+            }
+
         }
 
         private static void ReadNotes(ref ParseSettings settings, TrackChunk track, MoonSong song,
@@ -753,10 +770,10 @@ namespace MoonscraperChartEditor.Song.IO
             }
 
             var newMoonAnim = new MoonAnimation(eventData.Item1, eventData.Item2, tick, length);
-            if (chart.animationNotes.Capacity == 0)
-                chart.animationNotes.Capacity = 5000;
+            if (chart.animations.Capacity == 0)
+                chart.animations.Capacity = 5000;
 
-            MoonObjectHelper.OrderedInsertFromBack(newMoonAnim, chart.animationNotes);
+            MoonObjectHelper.OrderedInsertFromBack(newMoonAnim, chart.animations);
         }
 
         private static void ProcessNoteOnEventAsSpecialPhrase(ref EventProcessParams eventProcessParams,

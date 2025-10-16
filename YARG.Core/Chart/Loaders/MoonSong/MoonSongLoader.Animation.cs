@@ -46,32 +46,51 @@ namespace YARG.Core.Chart
                 if (CharacterStateLookup.TryGetValue(eventName, out var characterType))
                 {
                     characterStates.Add(new CharacterState(characterType, time, textEvent.tick));
-                    continue;
-                }
-
-                // Hand Maps
-                if (AnimationLookup.LeftHandMapLookup.TryGetValue(eventName, out var handMapType))
-                {
-                    handMaps.Add(new HandMap(handMapType, time, textEvent.tick));
-                    continue;
-                }
-
-                // Strum Maps
-                if (AnimationLookup.RightHandMapLookup.TryGetValue(eventName, out var strumMapType))
-                {
-                    strumMaps.Add(new StrumMap(strumMapType, time, textEvent.tick));
                 }
             }
 
             // Process animation notes
-            foreach (var animNote in chart.animationNotes)
+
+            var lookup = chart.gameMode switch
             {
-                var lookup = chart.gameMode switch
+                MoonChart.GameMode.Guitar => AnimationLookup.GuitarAnimationLookup,
+                MoonChart.GameMode.Drums  => AnimationLookup.DrumAnimationLookup,
+                _                         => null
+            };
+
+            foreach (var animNote in chart.animations)
+            {
+
+                // TODO: Fix the lookup in MidIOHelper so we can use this and get rid of the version above
+                //  (it doesn't recognize "play" as a valid state and possibly has other issues)
+                // if (animNote.type == AnimationLookup.Type.CharacterState)
+                // {
+                //     if (CharacterStateLookup.TryGetValue(animNote.text, out var characterType))
+                //     {
+                //         characterStates.Add(new CharacterState(characterType, _moonSong.TickToTime(animNote.tick),
+                //             animNote.tick));
+                //     }
+                //
+                //     continue;
+                // }
+
+                if (animNote.type == AnimationLookup.Type.HandMap)
                 {
-                    MoonChart.GameMode.Guitar => AnimationLookup.GuitarAnimationLookup,
-                    MoonChart.GameMode.Drums  => AnimationLookup.DrumAnimationLookup,
-                    _                         => null
-                };
+                    if (AnimationLookup.LeftHandMapLookup.TryGetValue(animNote.text, out var handMapType))
+                    {
+                        handMaps.Add(new HandMap(handMapType, _moonSong.TickToTime(animNote.tick), animNote.tick));
+                    }
+                    continue;
+                }
+
+                if (animNote.type == AnimationLookup.Type.StrumMap)
+                {
+                    if (AnimationLookup.RightHandMapLookup.TryGetValue(animNote.text, out var strumMapType))
+                    {
+                        strumMaps.Add(new StrumMap(strumMapType, _moonSong.TickToTime(animNote.tick), animNote.tick));
+                    }
+                    continue;
+                }
 
                 if (lookup != null && lookup.TryGetValue(animNote.text, out var animType))
                 {
