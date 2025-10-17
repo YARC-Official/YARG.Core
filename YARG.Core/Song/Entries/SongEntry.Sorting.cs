@@ -186,293 +186,9 @@ namespace YARG.Core.Song
             }
         }
 
-        private static readonly unsafe delegate*<SongCache, void>[] SORTERS =
-        {
-            &SortByTitle,    &SortByArtist,   &SortByAlbum,  &SortByGenre,       &SortBySubgenre,   &SortByYear,
-            &SortByCharter,  &SortByPlaylist, &SortBySource, &SortByArtistAlbum, &SortByLength,     &SortByDateAdded,
-            &SortByInstruments
-        };
-
-        internal static unsafe void SortEntries(SongCache cache)
-        {
-            Parallel.For(0, SORTERS.Length, i => SORTERS[i](cache));
-        }
-
-        private static void SortByTitle(SongCache cache)
-        {
-            foreach (var list in cache.Entries)
-            {
-                foreach (var entry in list.Value)
-                {
-                    string name = entry.Name.Group switch
-                    {
-                        CharacterGroup.Empty or
-                        CharacterGroup.AsciiSymbol => "*",
-                        CharacterGroup.AsciiNumber => "0-9",
-                        _ => char.ToUpper(entry.Name.SortStr[0]).ToString(),
-                    };
-
-                    if (!cache.Titles.TryGetValue(name, out var category))
-                    {
-                        cache.Titles.Add(name, category = new List<SongEntry>());
-                    }
-
-                    int index = category.BinarySearch(entry, MetadataComparer.Instance);
-                    category.Insert(~index, entry);
-                }
-            }
-        }
-
-        private static void SortByArtist(SongCache cache)
-        {
-            foreach (var list in cache.Entries)
-            {
-                foreach (var entry in list.Value)
-                {
-                    var artist = entry.Artist;
-                    if (!cache.Artists.TryGetValue(artist, out var category))
-                    {
-                        cache.Artists.Add(artist, category = new List<SongEntry>());
-                    }
-
-                    int index = category.BinarySearch(entry, MetadataComparer.Instance);
-                    category.Insert(~index, entry);
-                }
-            }
-        }
-
-        private static void SortByAlbum(SongCache cache)
-        {
-            foreach (var list in cache.Entries)
-            {
-                foreach (var entry in list.Value)
-                {
-                    var album = entry.Album;
-                    if (!cache.Albums.TryGetValue(album, out var category))
-                    {
-                        cache.Albums.Add(album, category = new List<SongEntry>());
-                    }
-
-                    int index = category.BinarySearch(entry, AlbumComparer.Instance);
-                    category.Insert(~index, entry);
-                }
-            }
-        }
-
-        private static void SortByGenre(SongCache cache)
-        {
-            foreach (var list in cache.Entries)
-            {
-                foreach (var entry in list.Value)
-                {
-                    var genre = entry.Genre;
-                    if (!cache.Genres.TryGetValue(genre, out var category))
-                    {
-                        cache.Genres.Add(genre, category = new List<SongEntry>());
-                    }
-
-                    int index = category.BinarySearch(entry, MetadataComparer.Instance);
-                    category.Insert(~index, entry);
-                }
-            }
-        }
-
-        private static void SortBySubgenre(SongCache cache)
-        {
-            foreach (var list in cache.Entries)
-            {
-                foreach (var entry in list.Value)
-                {
-                    var subgenre = entry.Subgenre;
-                    if (!cache.Subgenres.TryGetValue(subgenre, out var category))
-                    {
-                        cache.Subgenres.Add(subgenre, category = new List<SongEntry>());
-                    }
-
-                    int index = category.BinarySearch(entry, MetadataComparer.Instance);
-                    category.Insert(~index, entry);
-                }
-            }
-        }
-
-        private static void SortByYear(SongCache cache)
-        {
-            foreach (var list in cache.Entries)
-            {
-                foreach (var entry in list.Value)
-                {
-                    string year = entry.YearAsNumber != int.MaxValue ? entry.ParsedYear[..^1] + "0s" : entry.ParsedYear;
-                    if (!cache.Years.TryGetValue(year, out var category))
-                    {
-                        cache.Years.Add(year, category = new List<SongEntry>());
-                    }
-
-                    int index = category.BinarySearch(entry, YearComparer.Instance);
-                    category.Insert(~index, entry);
-                }
-            }
-        }
-
-        private static void SortByCharter(SongCache cache)
-        {
-            foreach (var list in cache.Entries)
-            {
-                foreach (var entry in list.Value)
-                {
-                    var charter = entry.Charter;
-                    if (!cache.Charters.TryGetValue(charter, out var category))
-                    {
-                        cache.Charters.Add(charter, category = new List<SongEntry>());
-                    }
-
-                    int index = category.BinarySearch(entry, MetadataComparer.Instance);
-                    category.Insert(~index, entry);
-                }
-            }
-        }
-
-        private static void SortByPlaylist(SongCache cache)
-        {
-            foreach (var list in cache.Entries)
-            {
-                foreach (var entry in list.Value)
-                {
-                    var playlist = entry.Playlist;
-                    if (!cache.Playlists.TryGetValue(playlist, out var category))
-                    {
-                        cache.Playlists.Add(playlist, category = new List<SongEntry>());
-                    }
-
-                    int index = category.BinarySearch(entry, PlaylistComparer.Instance);
-                    category.Insert(~index, entry);
-                }
-            }
-        }
-
-        private static void SortBySource(SongCache cache)
-        {
-            foreach (var list in cache.Entries)
-            {
-                foreach (var entry in list.Value)
-                {
-                    var source = entry.Source;
-                    if (!cache.Sources.TryGetValue(source, out var category))
-                    {
-                        cache.Sources.Add(source, category = new List<SongEntry>());
-                    }
-
-                    int index = category.BinarySearch(entry, MetadataComparer.Instance);
-                    category.Insert(~index, entry);
-                }
-            }
-        }
-
-        private static void SortByLength(SongCache cache)
-        {
-            foreach (var list in cache.Entries)
-            {
-                foreach (var entry in list.Value)
-                {
-                    // constants represents upper milliseconds limit of each range
-                    string range = entry.SongLengthMilliseconds switch
-                    {
-                        < 120000 => "00:00 - 02:00",
-                        < 300000 => "02:00 - 05:00",
-                        < 600000 => "05:00 - 10:00",
-                        < 900000 => "10:00 - 15:00",
-                        < 1200000 => "15:00 - 20:00",
-                        _ => "20:00+",
-                    };
-
-                    if (!cache.SongLengths.TryGetValue(range, out var category))
-                    {
-                        cache.SongLengths.Add(range, category = new List<SongEntry>());
-                    }
-
-                    int index = category.BinarySearch(entry, LengthComparer.Instance);
-                    category.Insert(~index, entry);
-                }
-            }
-        }
-
-        private static void SortByDateAdded(SongCache cache)
-        {
-            foreach (var list in cache.Entries)
-            {
-                foreach (var entry in list.Value)
-                {
-                    var dateAdded = entry.GetLastWriteTime().Date;
-                    if (!cache.DatesAdded.TryGetValue(dateAdded, out var category))
-                    {
-                        cache.DatesAdded.Add(dateAdded, category = new List<SongEntry>());
-                    }
-
-                    int index = category.BinarySearch(entry, MetadataComparer.Instance);
-                    category.Insert(~index, entry);
-                }
-            }
-        }
-
-        private static void SortByArtistAlbum(SongCache cache)
-        {
-            foreach (var list in cache.Entries)
-            {
-                foreach (var entry in list.Value)
-                {
-                    var artist = entry.Artist;
-                    if (!cache.ArtistAlbums.TryGetValue(artist, out var albums))
-                    {
-                        cache.ArtistAlbums.Add(artist, albums = new SortedDictionary<SortString, List<SongEntry>>());
-                    }
-
-                    var album = entry.Album;
-                    if (!albums.TryGetValue(album, out var category))
-                    {
-                        albums.Add(album, category = new List<SongEntry>());
-                    }
-
-                    int index = category.BinarySearch(entry, AlbumComparer.Instance);
-                    category.Insert(~index, entry);
-                }
-            }
-        }
-
-        private static void SortByInstruments(SongCache cache)
-        {
-            Parallel.ForEach(EnumExtensions<Instrument>.Values, instrument =>
-            {
-                SortedDictionary<int, List<SongEntry>>? intensities = null;
-                foreach (var list in cache.Entries)
-                {
-                    foreach (var entry in list.Value)
-                    {
-                        var part = entry[instrument];
-                        if (part.IsActive())
-                        {
-                            if (intensities == null)
-                            {
-                                lock (cache.Instruments)
-                                {
-                                    cache.Instruments.Add(instrument, intensities = new SortedDictionary<int, List<SongEntry>>());
-                                }
-                            }
-
-                            if (!intensities.TryGetValue(part.Intensity, out var category))
-                            {
-                                intensities.Add(part.Intensity, category = new List<SongEntry>());
-                            }
-
-                            int index = category.BinarySearch(entry, new InstrumentComparer(instrument, part.Intensity));
-                            category.Insert(~index, entry);
-                        }
-                    }
-                }
-            });
-        }
-
         private static readonly unsafe delegate*<SongCache, Dictionary<SongEntry, CacheWriteIndices>, List<string>>[] COLLECTORS =
         {
-            &CollectCacheTitles, &CollectCacheArtists,  &CollectCacheAlbums,    &CollectCacheGenres,
+            &CollectCacheTitles, &CollectCacheArtists,  &CollectCacheAlbums,    &CollectCacheGenres, &CollectCacheSubgenres,
             &CollectCacheYears,  &CollectCacheCharters, &CollectCachePlaylists, &CollectCacheSources,
         };
 
@@ -514,7 +230,7 @@ namespace YARG.Core.Song
         private static List<string> CollectCacheTitles(SongCache cache, Dictionary<SongEntry, CacheWriteIndices> nodes)
         {
             var strings = new List<string>();
-            foreach (var element in cache.Titles)
+            foreach (var element in cache.Entries)
             {
                 foreach (var entry in element.Value)
                 {
@@ -538,7 +254,7 @@ namespace YARG.Core.Song
             using var placements = FixedArray<int>.Alloc(64);
 
             var strings = new List<string>();
-            foreach (var element in cache.Artists)
+            foreach (var element in cache.Entries)
             {
                 if (element.Value.Count > placements.Length)
                 {
@@ -576,7 +292,7 @@ namespace YARG.Core.Song
             using var placements = FixedArray<int>.Alloc(64);
 
             var strings = new List<string>();
-            foreach (var element in cache.Albums)
+            foreach (var element in cache.Entries)
             {
                 if (element.Value.Count > placements.Length)
                 {
@@ -614,7 +330,7 @@ namespace YARG.Core.Song
             using var placements = FixedArray<int>.Alloc(64);
 
             var strings = new List<string>();
-            foreach (var element in cache.Genres)
+            foreach (var element in cache.Entries)
             {
                 if (element.Value.Count > placements.Length)
                 {
@@ -647,12 +363,50 @@ namespace YARG.Core.Song
             return strings;
         }
 
+        private static List<string> CollectCacheSubgenres(SongCache cache, Dictionary<SongEntry, CacheWriteIndices> nodes)
+        {
+            using var placements = FixedArray<int>.Alloc(64);
+
+            var strings = new List<string>();
+            foreach (var element in cache.Entries)
+            {
+                if (element.Value.Count > placements.Length)
+                {
+                    placements.Resize(element.Value.Count);
+                }
+
+                for (int i = 0; i < element.Value.Count; i++)
+                {
+                    var entry = element.Value[i];
+                    var indices = nodes[entry];
+
+                    int query = 0;
+                    while (query < i && element.Value[query].Subgenre != entry.Subgenre)
+                    {
+                        query++;
+                    }
+
+                    if (query == i)
+                    {
+                        placements[i] = strings.Count;
+                        strings.Add(entry.Subgenre);
+                    }
+                    else
+                    {
+                        placements[i] = placements[query];
+                    }
+                    indices.Subgenre = placements[i];
+                }
+            }
+            return strings;
+        }
+
         private static List<string> CollectCacheYears(SongCache cache, Dictionary<SongEntry, CacheWriteIndices> nodes)
         {
             using var placements = FixedArray<int>.Alloc(64);
 
             var strings = new List<string>();
-            foreach (var element in cache.Years)
+            foreach (var element in cache.Entries)
             {
                 if (element.Value.Count > placements.Length)
                 {
@@ -690,7 +444,7 @@ namespace YARG.Core.Song
             using var placements = FixedArray<int>.Alloc(64);
 
             var strings = new List<string>();
-            foreach (var element in cache.Charters)
+            foreach (var element in cache.Entries)
             {
                 if (element.Value.Count > placements.Length)
                 {
@@ -728,7 +482,7 @@ namespace YARG.Core.Song
             using var placements = FixedArray<int>.Alloc(64);
 
             var strings = new List<string>();
-            foreach (var element in cache.Playlists)
+            foreach (var element in cache.Entries)
             {
                 if (element.Value.Count > placements.Length)
                 {
@@ -766,7 +520,7 @@ namespace YARG.Core.Song
             using var placements = FixedArray<int>.Alloc(64);
 
             var strings = new List<string>();
-            foreach (var element in cache.Sources)
+            foreach (var element in cache.Entries)
             {
                 if (element.Value.Count > placements.Length)
                 {

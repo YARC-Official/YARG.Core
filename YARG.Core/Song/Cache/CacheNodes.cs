@@ -4,22 +4,22 @@ using YARG.Core.IO;
 
 namespace YARG.Core.Song
 {
-    internal sealed class CacheWriteIndices
+    public sealed class CacheWriteIndices
     {
         public int Title;
         public int Artist;
         public int Album;
         public int Genre;
+        public int Subgenre;
         public int Year;
         public int Charter;
         public int Playlist;
         public int Source;
-        public int Subgenre;
     }
 
-    internal class CacheReadStrings
+    public class CacheReadStrings
     {
-        public const int NUM_CATEGORIES = 8;
+        public const int NUM_CATEGORIES = 9;
 
         private string[][] _categories = new string[NUM_CATEGORIES][];
 
@@ -27,11 +27,11 @@ namespace YARG.Core.Song
         public string[] Artists   => _categories[1];
         public string[] Albums    => _categories[2];
         public string[] Genres    => _categories[3];
-        public string[] Years     => _categories[4];
-        public string[] Charters  => _categories[5];
-        public string[] Playlists => _categories[6];
-        public string[] Sources   => _categories[7];
-        public string[] Subgenres => _categories[8];
+        public string[] Subgenres => _categories[4];
+        public string[] Years     => _categories[5];
+        public string[] Charters  => _categories[6];
+        public string[] Playlists => _categories[7];
+        public string[] Sources   => _categories[8];
 
         public unsafe CacheReadStrings(FixedArrayStream* stream)
         {
