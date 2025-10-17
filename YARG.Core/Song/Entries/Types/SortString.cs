@@ -26,20 +26,10 @@ namespace YARG.Core.Song
         public SortString(string str)
         {
             _original = str;
-            try
-            {
-                _searchStr = StringTransformations.RemoveUnwantedWhitespace(StringTransformations.RemoveDiacritics(RichTextUtils.StripRichTextTags(str)));
-                _sortStr = StringTransformations.RemoveArticle(_searchStr);
-                _group = StringTransformations.GetCharacterGrouping(_sortStr);
-                _hashcode = _sortStr.GetHashCode();
-            } catch (Exception x)
-            {
-                var beef = x;
-                _searchStr = StringTransformations.RemoveUnwantedWhitespace(StringTransformations.RemoveDiacritics(RichTextUtils.StripRichTextTags(str)));
-                _sortStr = StringTransformations.RemoveArticle(_searchStr);
-                _group = StringTransformations.GetCharacterGrouping(_sortStr);
-                _hashcode = _sortStr.GetHashCode();
-            }
+            _searchStr = StringTransformations.RemoveUnwantedWhitespace(StringTransformations.RemoveDiacritics(RichTextUtils.StripRichTextTags(str)));
+            _sortStr = StringTransformations.RemoveArticle(_searchStr);
+            _group = StringTransformations.GetCharacterGrouping(_sortStr);
+            _hashcode = _sortStr.GetHashCode();
         }
 
         public override int GetHashCode()

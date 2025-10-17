@@ -80,15 +80,10 @@ namespace YARG.Core.Song
         private SortString _name = SortString.Empty;
         private SortString _artist = SortString.Empty;
         private SortString _album = SortString.Empty;
-        private SortString _genre = SortString.Empty; // Raw, from the metadata
-        private SortString _subgenre = SortString.Empty; // Raw, from the metadata
         private SortString _charter = SortString.Empty;
         private SortString _source = SortString.Empty;
         private SortString _playlist = SortString.Empty;
         private bool _isDuplicate = false;
-
-        public SortString? _genrelizedGenre { get; set; } = null; // To be populated later by YARG, which has access to localization and Genrelizer data
-        public SortString? _genrelizedSubgenre { get; set; } = null; // To be populated later by YARG, which has access to localization and Genrelizer data
 
         protected SongMetadata _metadata = SongMetadata.Default;
         protected AvailableParts _parts = AvailableParts.Default;
@@ -105,8 +100,8 @@ namespace YARG.Core.Song
         public SortString Name => _name;
         public SortString Artist => _artist;
         public SortString Album => _album;
-        public SortString Genre => _genrelizedGenre ?? _genre;
-        public SortString Subgenre => _genrelizedSubgenre ?? _subgenre;
+        public SortString Genre { get; set; } = SortString.Empty;
+        public SortString Subgenre { get; set; } = SortString.Empty;
         public SortString Charter => _charter;
         public SortString Source => _source;
         public SortString Playlist => _playlist;
@@ -527,8 +522,8 @@ namespace YARG.Core.Song
             _name = new SortString(_metadata.Name);
             _artist = new SortString(_metadata.Artist);
             _album = new SortString(_metadata.Album);
-            _genre = new SortString(_metadata.Genre);
-            _subgenre = new SortString(_metadata.Subgenre);
+            Genre = new SortString(_metadata.Genre);
+            Subgenre = new SortString(_metadata.Subgenre);
             _charter = new SortString(_metadata.Charter);
             _source = new SortString(_metadata.Source);
             _playlist = new SortString(_metadata.Playlist);
