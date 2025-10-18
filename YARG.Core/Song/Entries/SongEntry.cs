@@ -80,6 +80,8 @@ namespace YARG.Core.Song
         private SortString _name = SortString.Empty;
         private SortString _artist = SortString.Empty;
         private SortString _album = SortString.Empty;
+        private SortString _rawGenre = SortString.Empty;
+        private SortString _rawSubgenre = SortString.Empty;
         private SortString _charter = SortString.Empty;
         private SortString _source = SortString.Empty;
         private SortString _playlist = SortString.Empty;
@@ -100,7 +102,9 @@ namespace YARG.Core.Song
         public SortString Name => _name;
         public SortString Artist => _artist;
         public SortString Album => _album;
+        public SortString RawGenre  => _rawGenre;
         public SortString Genre { get; set; } = SortString.Empty;
+        public SortString RawSubgenre => _rawSubgenre;
         public SortString Subgenre { get; set; } = SortString.Empty;
         public SortString Charter => _charter;
         public SortString Source => _source;
@@ -522,7 +526,9 @@ namespace YARG.Core.Song
             _name = new SortString(_metadata.Name);
             _artist = new SortString(_metadata.Artist);
             _album = new SortString(_metadata.Album);
+            _rawGenre = new SortString(_metadata.Genre);
             Genre = new SortString(_metadata.Genre);
+            _rawSubgenre = new SortString(_metadata.Subgenre);
             Subgenre = new SortString(_metadata.Subgenre);
             _charter = new SortString(_metadata.Charter);
             _source = new SortString(_metadata.Source);
