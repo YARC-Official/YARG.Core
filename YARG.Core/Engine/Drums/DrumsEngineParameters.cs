@@ -10,7 +10,8 @@ namespace YARG.Core.Engine.Drums
         {
             NonProFourLane,
             ProFourLane,
-            FiveLane
+            FiveLane,
+            Elite
         }
 
         /// <summary>
