@@ -42,6 +42,7 @@ namespace YARG.Core.IO.Ini
                 { "charter_pro_bass",                     new("charter_pro_bass", ModifierType.String) },
                 { "charter_pro_keys",                     new("charter_pro_keys", ModifierType.String) },
                 { "charter_pro_guitar",                   new("charter_pro_guitar", ModifierType.String) },
+                { "charter_venue",                        new ("charter_venue", ModifierType.String) },
                 { "charter_vocals",                       new("charter_vocals", ModifierType.String) },
                 { "count",                                new("count", ModifierType.UInt32) },
                 { "cover",                                new("cover", ModifierType.String) },
@@ -72,6 +73,7 @@ namespace YARG.Core.IO.Ini
                 { "diff_drums",                           new("diff_drums", ModifierType.Int32) },
                 { "diff_drums_real",                      new("diff_drums_real", ModifierType.Int32) },
                 { "diff_drums_real_ps",                   new("diff_drums_real_ps", ModifierType.Int32) },
+                { "diff_elite_drums",                     new("diff_elite_drums", ModifierType.Int32) },
                 { "diff_guitar",                          new("diff_guitar", ModifierType.Int32) },
                 { "diff_guitar_coop",                     new("diff_guitar_coop", ModifierType.Int32) },
                 { "diff_guitar_coop_ghl",                 new("diff_guitar_coop_ghl", ModifierType.Int32) },
@@ -171,6 +173,7 @@ namespace YARG.Core.IO.Ini
                 { "video_loop",                           new("video_loop", ModifierType.Bool) },
                 { "video_start_time",                     new("video_start_time", ModifierType.Int64) },
                 { "vocal_gender",                         new("vocal_gender", ModifierType.UInt32) },
+                { "vocal_scroll_speed",                   new("vocal_scroll_speed", ModifierType.Int16) },
 
                 { "year",                                 new("year", ModifierType.String) },
             };

@@ -1,4 +1,5 @@
-﻿using YARG.Core.IO.Ini;
+﻿using System;
+using YARG.Core.IO.Ini;
 
 namespace YARG.Core.Song
 {
@@ -41,7 +42,10 @@ namespace YARG.Core.Song
             LinkBluesky = string.Empty,
             LinkFacebook = string.Empty,
             LinkInstagram = string.Empty,
+            LinkNewgrounds = string.Empty,
+            LinkSoundcloud = string.Empty,
             LinkSpotify = string.Empty,
+            LinkTiktok = string.Empty,
             LinkTwitter = string.Empty,
             LinkOther = string.Empty,
             LinkYoutube = string.Empty,
@@ -68,11 +72,13 @@ namespace YARG.Core.Song
             CharterProBass = string.Empty,
             CharterProKeys = string.Empty,
             CharterProGuitar = string.Empty,
+            CharterVenue = string.Empty,
             CharterVocals = string.Empty,
             SongLength = 0,
             SongOffset = 0,
             Preview = (-1, -1),
             Video = (0, -1),
+            VocalScrollSpeedScalingFactor = null,
         };
 
         public string Name;
@@ -103,7 +109,10 @@ namespace YARG.Core.Song
         public string LinkBluesky;
         public string LinkFacebook;
         public string LinkInstagram;
+        public string LinkNewgrounds;
+        public string LinkSoundcloud;
         public string LinkSpotify;
+        public string LinkTiktok;
         public string LinkTwitter;
         public string LinkOther;
         public string LinkYoutube;
@@ -134,6 +143,9 @@ namespace YARG.Core.Song
         public string CharterProKeys;
         public string CharterProGuitar;
         public string CharterVocals;
+        public string CharterVenue;
+
+        public float? VocalScrollSpeedScalingFactor;
 
         public static SongMetadata CreateFromIni(IniModifierCollection modifiers)
         {
@@ -222,9 +234,24 @@ namespace YARG.Core.Song
                 metadata.LinkInstagram = linkInstagram;
             }
 
+            if (modifiers.Extract("link_newgrounds", out string linkNewGrounds))
+            {
+                metadata.LinkNewgrounds = linkNewGrounds;
+            }
+
+            if (modifiers.Extract("link_soundcloud", out string linkSoundCloud))
+            {
+                metadata.LinkSoundcloud = linkSoundCloud;
+            }
+
             if (modifiers.Extract("link_spotify", out string linkSpotify))
             {
                 metadata.LinkSpotify = linkSpotify;
+            }
+
+            if (modifiers.Extract("link_tiktok", out string linkTiktok))
+            {
+                metadata.LinkTiktok = linkTiktok;
             }
 
             if (modifiers.Extract("link_twitter", out string linkTwitter))
@@ -362,6 +389,11 @@ namespace YARG.Core.Song
                 metadata.CharterVocals = charterVocals;
             }
 
+            if (modifiers.Extract("charter_venue", out string charterVenue))
+            {
+                metadata.CharterVenue = charterVenue;
+            }
+
             if (modifiers.Extract("playlist_track", out int playlistTrack))
             {
                 metadata.PlaylistTrack = playlistTrack;
@@ -447,6 +479,12 @@ namespace YARG.Core.Song
             if (modifiers.Extract("link_bandcamp", out string linkBandcamp))
             {
                 metadata.LinkBandcamp = linkBandcamp;
+            }
+
+            if (modifiers.Extract("vocal_scroll_speed", out short vocalScrollSpeed))
+            {
+                // INI vocal scroll speed is interpreted as a percentage
+                metadata.VocalScrollSpeedScalingFactor = vocalScrollSpeed / 100f;
             }
         }
     }

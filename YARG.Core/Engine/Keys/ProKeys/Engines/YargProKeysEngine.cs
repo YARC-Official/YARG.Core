@@ -3,20 +3,14 @@ using YARG.Core.Chart;
 using YARG.Core.Input;
 using YARG.Core.Logging;
 
-namespace YARG.Core.Engine.ProKeys.Engines
+namespace YARG.Core.Engine.Keys.Engines
 {
     public class YargProKeysEngine : ProKeysEngine
     {
-        private struct KeyPressedTimes
-        {
-            public int    NoteIndex;
-            public double Time;
-        }
-
         private KeyPressedTimes[] _keyPressedTimes = new KeyPressedTimes[(int)ProKeysAction.Key25 + 1];
 
         public YargProKeysEngine(InstrumentDifficulty<ProKeysNote> chart, SyncTrack syncTrack,
-            ProKeysEngineParameters engineParameters, bool isBot) : base(chart, syncTrack, engineParameters, isBot)
+            KeysEngineParameters engineParameters, bool isBot) : base(chart, syncTrack, engineParameters, isBot)
         {
         }
 
@@ -28,6 +22,11 @@ namespace YARG.Core.Engine.ProKeys.Engines
 
             var action = gameInput.GetAction<ProKeysAction>();
 
+            if (action is ProKeysAction.OpenNote or ProKeysAction.GreenKey or ProKeysAction.RedKey
+                or ProKeysAction.YellowKey or ProKeysAction.BlueKey or ProKeysAction.OrangeKey)
+            {
+                return;
+            }
             if (action is ProKeysAction.StarPower)
             {
                 IsStarPowerInputActive = gameInput.Button;
@@ -338,9 +337,9 @@ namespace YARG.Core.Engine.ProKeys.Engines
 
         protected override void UpdateBot(double time)
         {
-            float        botNoteHoldTime = 0.166f;
+            float botNoteHoldTime = 0.166f;
             ProKeysNote? note = null;
-            int          keysInSustain = 0;
+            int keysInSustain = 0;
 
             if (!IsBot)
             {
@@ -425,6 +424,8 @@ namespace YARG.Core.Engine.ProKeys.Engines
                         if ((keysInSustain & 1 << chordNote.Key) == 0)
                         {
                             MutateStateWithInput(new GameInput(time, chordNote.Key, false));
+                            // Nothing else is going to reset this for a bot, so we have to do it
+                            KeyReleasedThisUpdate = null;
                         }
                     }
                 }

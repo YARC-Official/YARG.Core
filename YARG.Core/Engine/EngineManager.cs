@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using YARG.Core.Chart;
+using YARG.Core.Game;
 
 namespace YARG.Core.Engine
 {
@@ -10,40 +11,38 @@ namespace YARG.Core.Engine
         private int                      _nextEngineIndex;
         List <EngineContainer>           _allEngines     = new();
         Dictionary<int, EngineContainer> _allEnginesById = new();
+
+        public List<EngineContainer> Engines => _allEngines;
+
         private SongChart?               _chart;
 
-        public class Band
+        public partial class EngineContainer
         {
-            public List<EngineContainer> Engines { get; private set; }
-            public int Score { get; private set; }
-
-            private Band()
-            {
-                Engines = new List<EngineContainer>();
-                Score = 0;
-            }
-        }
-
-        public class EngineContainer
-        {
-            public  int          EngineId      { get; }
-            public  BaseEngine   Engine        { get; }
-            private Instrument   Instrument    { get; }
-            private SongChart    SongChart     { get; }
-            public  List<Phrase> UnisonPhrases { get; }
+            public  int             EngineId         { get; }
+            public  BaseEngine      Engine           { get; }
+            public  Instrument      Instrument       { get; }
+            public  int             HarmonyIndex     { get; }
+            private SongChart       SongChart        { get; }
+            public  List<Phrase>    UnisonPhrases    { get; }
+            public  RockMeterPreset RockMeterPreset  { get; }
 
             private List<EngineCommand> _sentCommands = new();
             private int                 _commandCount => _sentCommands.Count;
             private EngineManager       _engineManager;
 
-            public EngineContainer(BaseEngine engine, Instrument instrument, SongChart songChart, int engineId, EngineManager manager)
+            public EngineContainer(BaseEngine engine, Instrument instrument, int harmonyIndex, SongChart songChart, int engineId, EngineManager manager, RockMeterPreset rockMeterPreset)
             {
                 EngineId = engineId;
                 Engine = engine;
                 Instrument = instrument;
+                HarmonyIndex = harmonyIndex;
                 SongChart = songChart;
                 UnisonPhrases = GetUnisonPhrases(Instrument, SongChart);
+                RockMeterPreset = rockMeterPreset;
                 _engineManager = manager;
+                Happiness = rockMeterPreset.StartingHappiness;
+
+                SubscribeToEngineEvents();
             }
 
             public void SendCommand(EngineCommandType command)
@@ -69,9 +68,22 @@ namespace YARG.Core.Engine
             {
                 Engine.Update(time);
             }
+
+            private void OnStarPowerStatus(bool active)
+            {
+                var count = _engineManager._starpowerCount;
+                count += active ? 1 : -1;
+                _engineManager.UpdateStarPowerCount(count);
+            }
         }
 
-        public EngineContainer Register<TEngineType>(TEngineType engine, Instrument instrument, SongChart chart)
+        public EngineContainer Register<TEngineType>(TEngineType engine, Instrument instrument, SongChart chart, RockMeterPreset rockMeterPreset)
+            where TEngineType : BaseEngine
+        {
+            return Register(engine, instrument, 0, chart, rockMeterPreset);
+        }
+
+        public EngineContainer Register<TEngineType>(TEngineType engine, Instrument instrument, int harmonyIndex, SongChart chart, RockMeterPreset rockMeterPreset)
             where TEngineType : BaseEngine
         {
             if (_chart == null)
@@ -86,7 +98,9 @@ namespace YARG.Core.Engine
                 }
             }
 
-            var engineContainer = new EngineContainer(engine, instrument, chart, _nextEngineIndex++, this);
+            var engineContainer = new EngineContainer(engine, instrument, harmonyIndex, chart, _nextEngineIndex++, this, rockMeterPreset);
+
+            // _previousHappiness = rockMeterPreset.StartingHappiness;
 
             _allEngines.Add(engineContainer);
             _allEnginesById.Add(engineContainer.EngineId, engineContainer);
@@ -105,6 +119,12 @@ namespace YARG.Core.Engine
                 }
             }
             throw new ArgumentException("Target engine not found");
+        }
+
+        private void UpdateStarPowerCount(int count)
+        {
+            _starpowerCount = Math.Clamp(count, 0, int.MaxValue);
+            UpdateBandMultiplier();
         }
 
         public void UpdateEngines(double time)

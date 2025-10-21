@@ -13,6 +13,7 @@ namespace YARG.Core.Chart
         public readonly bool IsHarmony;
 
         public List<VocalsPhrase> NotePhrases { get; } = new();
+        public List<VocalsPhrase> StaticLyricPhrases { get; } = new();
         public List<Phrase> OtherPhrases { get; } = new();
         public List<TextEvent> TextEvents { get; } = new();
 
@@ -21,23 +22,30 @@ namespace YARG.Core.Chart
         /// </summary>
         public bool IsEmpty => NotePhrases.Count == 0 && OtherPhrases.Count == 0 && TextEvents.Count == 0;
 
-        public VocalsPart(bool isHarmony, List<VocalsPhrase> notePhrases, List<Phrase> otherPhrases, List<TextEvent> text)
+        public VocalsPart(bool isHarmony, List<VocalsPhrase> notePhrases, List<VocalsPhrase> staticLyricPhrases,
+            List<Phrase> otherPhrases, List<TextEvent> text)
         {
             IsHarmony = isHarmony;
             NotePhrases = notePhrases;
+            StaticLyricPhrases = staticLyricPhrases;
             OtherPhrases = otherPhrases;
             TextEvents = text;
         }
 
         public VocalsPart(VocalsPart other)
-            : this(other.IsHarmony, other.NotePhrases.Duplicate(),
+            : this(other.IsHarmony, other.NotePhrases.Duplicate(), other.StaticLyricPhrases.Duplicate(),
                 other.OtherPhrases.Duplicate(), other.TextEvents.Duplicate())
         {
         }
 
+        /// <summary>
+        /// Gets the start time of the first event in this vocal part
+        /// </summary>
+        /// <returns>double</returns>
+        /// <remarks>This returns double.MaxValue if there are no events</remarks>
         public double GetStartTime()
         {
-            double totalStartTime = 0;
+            double totalStartTime = double.MaxValue;
 
             if (NotePhrases.Count > 0)
                 totalStartTime = Math.Min(NotePhrases[0].Time, totalStartTime);
@@ -59,6 +67,16 @@ namespace YARG.Core.Chart
             totalEndTime = Math.Max(TextEvents.GetEndTime(), totalEndTime);
 
             return totalEndTime;
+        }
+
+        public double GetFirstNoteStartTime()
+        {
+            if (NotePhrases.Count > 0)
+            {
+                return NotePhrases[0].Time;
+            }
+
+            return double.MaxValue;
         }
 
         public double GetLastNoteEndTime()

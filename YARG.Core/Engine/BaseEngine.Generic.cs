@@ -269,13 +269,13 @@ namespace YARG.Core.Engine
                 if (IsWaitCountdownActive)
                 {
                     var currentCountdown = WaitCountdowns[CurrentWaitCountdownIndex];
-                    double deactivateTime = currentCountdown.DeactivateTime;
+                    double endTime = currentCountdown.TimeEnd;
 
-                    if (IsTimeBetween(deactivateTime, previousTime, nextTime))
+                    if (IsTimeBetween(endTime, previousTime, nextTime))
                     {
                         YargLogger.LogFormatTrace("Queuing countdown {0} deactivation at {1}",
-                            CurrentWaitCountdownIndex, deactivateTime);
-                        QueueUpdateTime(deactivateTime, "Deactivate Countdown");
+                            CurrentWaitCountdownIndex, endTime);
+                        QueueUpdateTime(endTime, "Deactivate Countdown");
                     }
                 }
                 else
@@ -342,7 +342,7 @@ namespace YARG.Core.Engine
 
                 if (time >= currentCountdown.Time)
                 {
-                    if (time < currentCountdown.DeactivateTime)
+                    if (time < currentCountdown.TimeEnd)
                     {
                         // This countdown should be displayed onscreen
                         if (!IsWaitCountdownActive)
@@ -359,7 +359,7 @@ namespace YARG.Core.Engine
                         if (IsWaitCountdownActive)
                         {
                             IsWaitCountdownActive = false;
-                            YargLogger.LogFormatTrace("Countdown {0} deactivated at time {1}. Expected time: {2}", CurrentWaitCountdownIndex, time, currentCountdown.DeactivateTime);
+                            YargLogger.LogFormatTrace("Countdown {0} deactivated at time {1}. Expected time: {2}", CurrentWaitCountdownIndex, time, currentCountdown.TimeEnd);
                         }
 
                         CurrentWaitCountdownIndex++;
@@ -491,7 +491,8 @@ namespace YARG.Core.Engine
                 // Amount of points just from Star Power is half of the current multiplier (8x total -> 4x SP points)
                 var spScore = scoreMultiplier / 2;
 
-                EngineStats.StarPowerScore += spScore;
+                EngineStats.StarPowerScore += spScore;            
+                EngineStats.BandBonusScore += EngineStats.BandBonusMultiplier * spScore;
 
                 // Subtract score from the note that was just hit to get the multiplier points
                 EngineStats.MultiplierScore += spScore - score;
@@ -499,7 +500,9 @@ namespace YARG.Core.Engine
             else
             {
                 EngineStats.MultiplierScore += scoreMultiplier - score;
+                EngineStats.BandBonusScore += EngineStats.BandBonusMultiplier * scoreMultiplier;
             }
+
             UpdateStars();
         }
 
