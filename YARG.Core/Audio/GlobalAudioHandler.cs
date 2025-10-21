@@ -28,9 +28,6 @@ namespace YARG.Core.Audio
 
         static GlobalAudioHandler()
         {
-            var vocals = new StemSettings();
-            var drums = new StemSettings();
-
             StemSettings = new()
             {
                 { SongStem.Song,     new StemSettings() },
@@ -38,14 +35,8 @@ namespace YARG.Core.Audio
                 { SongStem.Bass,     new StemSettings() },
                 { SongStem.Rhythm,   new StemSettings() },
                 { SongStem.Keys,     new StemSettings() },
-                { SongStem.Vocals,   vocals },
-                { SongStem.Vocals1,  vocals },
-                { SongStem.Vocals2,  vocals },
-                { SongStem.Drums,    drums },
-                { SongStem.Drums1,   drums },
-                { SongStem.Drums2,   drums },
-                { SongStem.Drums3,   drums },
-                { SongStem.Drums4,   drums },
+                { SongStem.Vocals,   new StemSettings() },
+                { SongStem.Drums,    new StemSettings() },
                 { SongStem.Crowd,    new StemSettings() },
                 { SongStem.Sfx,      new StemSettings() },
                 { SongStem.DrumSfx,  new StemSettings() },
