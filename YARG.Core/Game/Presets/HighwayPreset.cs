@@ -26,6 +26,10 @@ namespace YARG.Core.Game
         [SettingType(SettingType.Special)]
         public Color BackgroundGroovePatternColor = Color.FromArgb(255, 44, 73, 158);
 
+        [SettingType(SettingType.Slider)]
+        [SettingRange(0.8f, 1.2f)]
+        public float NoteHeight = 1f;
+
         public Color[] BackgroundBaseColors => new[] { BackgroundBaseColor1, BackgroundBaseColor2, BackgroundBaseColor3, BackgroundPatternColor };
         public Color[] BackgroundGrooveBaseColors => new[] { BackgroundGrooveBaseColor1, BackgroundGrooveBaseColor2, BackgroundGrooveBaseColor3, BackgroundGroovePatternColor };
 
@@ -45,7 +49,8 @@ namespace YARG.Core.Game
                 BackgroundGrooveBaseColor1 = BackgroundGrooveBaseColor1,
                 BackgroundGrooveBaseColor2 = BackgroundGrooveBaseColor2,
                 BackgroundGrooveBaseColor3 = BackgroundGrooveBaseColor3,
-                BackgroundGroovePatternColor = BackgroundGroovePatternColor
+                BackgroundGroovePatternColor = BackgroundGroovePatternColor,
+                NoteHeight = NoteHeight
             };
         }
     }
