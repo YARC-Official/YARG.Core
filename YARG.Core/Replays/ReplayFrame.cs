@@ -48,6 +48,7 @@ namespace YARG.Core.Replays
                     break;
                 case GameMode.FourLaneDrums:
                 case GameMode.FiveLaneDrums:
+                case GameMode.EliteDrums:
                     EngineParameters = new DrumsEngineParameters(ref stream, version);
                     Stats = new DrumsStats(ref stream, version);
                     break;
