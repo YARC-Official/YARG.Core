@@ -35,7 +35,7 @@ namespace YARG.Core.Audio
         protected readonly bool _clampStemVolume;
 
         protected double _length;
-        protected Action? _songEnd;
+        public Action? _songEnd;
 
         public readonly string Name;
 
