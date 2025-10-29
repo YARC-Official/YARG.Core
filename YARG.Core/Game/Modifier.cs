@@ -70,7 +70,8 @@ namespace YARG.Core.Game
                     Modifier.RangeCompress,
 
                 GameMode.FourLaneDrums or
-                GameMode.FiveLaneDrums =>
+                GameMode.FiveLaneDrums or
+                GameMode.EliteDrums =>
                     Modifier.NoKicks    |
                     Modifier.NoDynamics,
 
@@ -82,10 +83,9 @@ namespace YARG.Core.Game
                     Modifier.RangeCompress,
 
                 GameMode.SixFretGuitar or
-                // GameMode.EliteDrums or
-                // GameMode.Dj         or
-                GameMode.ProGuitar => Modifier.None,
-
+                GameMode.ProGuitar     or
+            //  GameMode.Dj            or
+                GameMode.ProKeys       => Modifier.None,
 
                 _  => throw new NotImplementedException($"Unhandled game mode {gameMode}!")
             };

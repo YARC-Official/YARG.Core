@@ -60,8 +60,8 @@ namespace MoonscraperChartEditor.Song.IO
         public static readonly Regex CameraCutRegex = new(@"coop_(\w+_\w+)", RegexOptions.Compiled | RegexOptions.Singleline);
 
         // Hand map regex
-        public static readonly Regex LeftHandMapRegex = new("map HandMap_(.*)", RegexOptions.Compiled | RegexOptions.Singleline);
-        public static readonly Regex RightHandMapRegex = new("map StrumMap_(.*)", RegexOptions.Compiled | RegexOptions.Singleline);
+        public static readonly Regex LeftHandMapRegex = new("map (HandMap_.*)", RegexOptions.Compiled | RegexOptions.Singleline);
+        public static readonly Regex RightHandMapRegex = new("map (StrumMap_.*)", RegexOptions.Compiled | RegexOptions.Singleline);
 
         // For good measure, we'll make a regex that we may end up not using
         public static readonly Regex CharacterStateRegex = new("^(idle(_realtime?|_intense?)|play(_solo?)|intense|mellow)$", RegexOptions.Compiled | RegexOptions.Singleline);

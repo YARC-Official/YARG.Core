@@ -37,7 +37,7 @@ namespace YARG.Core.Chart
                 if (difficulty.Value.Notes.Count > 0)
                 {
                     // If at least one difficulty has at least one note, return the native chart
-                    return new(instrument, difficulties);
+                    return new(instrument, difficulties, GetAnimationTrack(instrument));
                 }
             }
 
@@ -62,7 +62,7 @@ namespace YARG.Core.Chart
                 }
             }
 
-            return new(instrument, difficulties);
+            return new(instrument, difficulties, GetAnimationTrack(instrument));
         }
 
         private DrumNote CreateFourLaneDrumNote(MoonNote moonNote, Dictionary<MoonPhrase.Type, MoonPhrase> currentPhrases)
