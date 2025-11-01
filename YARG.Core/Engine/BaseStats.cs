@@ -352,7 +352,7 @@ namespace YARG.Core.Engine
 
         public double GetAverageOffset()
         {
-            return TotalOffset / NotesHit;
+            return NotesHit > 0 ? TotalOffset / NotesHit : 0.0;
         }
 
         public void IncrementNotesHit<NoteType>(NoteType note, double current_time) where NoteType : Note<NoteType>
