@@ -113,6 +113,16 @@ namespace YARG.Core.Engine
         public int NotesMissed => TotalNotes - NotesHit;
 
         /// <summary>
+        /// The total offset. This, together with notes hit is used to calculate the average offset.
+        /// </summary>
+        public double TotalOffset;
+
+        /// <summary>
+        /// The average offset.
+        /// </summary>
+        public double AverageOffset;
+
+        /// <summary>
         /// The percent of notes hit.
         /// </summary>
         public virtual float Percent => TotalNotes == 0 ? 1f : (float) NotesHit / TotalNotes;
@@ -208,6 +218,8 @@ namespace YARG.Core.Engine
             NotesHit = stats.NotesHit;
             TotalNotes = stats.TotalNotes;
 
+            AverageOffset = stats.AverageOffset;
+
             StarPowerTickAmount = stats.StarPowerTickAmount;
             TotalStarPowerTicks = stats.TotalStarPowerTicks;
             TotalStarPowerBarsFilled = stats.TotalStarPowerBarsFilled;
@@ -247,6 +259,10 @@ namespace YARG.Core.Engine
 
             NotesHit = stream.Read<int>(Endianness.Little);
             TotalNotes = stream.Read<int>(Endianness.Little);
+            if (version >= 10)
+            {
+                AverageOffset = stream.Read<int>(Endianness.Little);
+            }
 
             StarPowerTickAmount = stream.Read<uint>(Endianness.Little);
             TotalStarPowerTicks = stream.Read<uint>(Endianness.Little);
@@ -278,6 +294,8 @@ namespace YARG.Core.Engine
             ScoreMultiplier = 1;
             BandMultiplier = 1;
             NotesHit = 0;
+            TotalOffset = 0.0;
+            AverageOffset = 0.0;
             // Don't reset TotalNotes
             // TotalNotes = 0;
 
@@ -314,6 +332,7 @@ namespace YARG.Core.Engine
 
             writer.Write(NotesHit);
             writer.Write(TotalNotes);
+            writer.Write(AverageOffset);
 
             writer.Write(StarPowerTickAmount);
             writer.Write(TotalStarPowerTicks);

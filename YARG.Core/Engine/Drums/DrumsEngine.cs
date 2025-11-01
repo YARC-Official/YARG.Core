@@ -154,6 +154,8 @@ namespace YARG.Core.Engine.Drums
             IncrementCombo();
 
             EngineStats.NotesHit++;
+            EngineStats.TotalOffset += CurrentTime - note.Time;
+            EngineStats.AverageOffset = EngineStats.TotalOffset / EngineStats.NotesHit;
 
             UpdateMultiplier();
 
