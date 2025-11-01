@@ -219,6 +219,7 @@ namespace YARG.Core.Engine
             NotesHit = stats.NotesHit;
             TotalNotes = stats.TotalNotes;
 
+            TotalOffset = stats.TotalOffset;
             AverageOffset = stats.AverageOffset;
 
             StarPowerTickAmount = stats.StarPowerTickAmount;
