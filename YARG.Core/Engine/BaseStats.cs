@@ -1,4 +1,5 @@
 ﻿using System.IO;
+using YARG.Core.Chart;
 using YARG.Core.Extensions;
 using YARG.Core.IO;
 using YARG.Core.Replays;
@@ -113,16 +114,6 @@ namespace YARG.Core.Engine
         public int NotesMissed => TotalNotes - NotesHit;
 
         /// <summary>
-        /// The total offset. This, together with notes hit is used to calculate the average offset.
-        /// </summary>
-        public double TotalOffset;
-
-        /// <summary>
-        /// The average offset.
-        /// </summary>
-        public double AverageOffset;
-
-        /// <summary>
         /// The percent of notes hit.
         /// </summary>
         public virtual float Percent => TotalNotes == 0 ? 1f : (float) NotesHit / TotalNotes;
@@ -198,6 +189,16 @@ namespace YARG.Core.Engine
         /// </summary>
         public bool IsFullCombo => MaxCombo == TotalNotes;
 
+        /// <summary>
+        /// The total offset. This, together with notes hit is used to calculate the average offset.
+        /// </summary>
+        private double TotalOffset;
+
+        /// <summary>
+        /// The average offset.
+        /// </summary>
+        private double AverageOffset;
+
         protected BaseStats()
         {
         }
@@ -259,10 +260,6 @@ namespace YARG.Core.Engine
 
             NotesHit = stream.Read<int>(Endianness.Little);
             TotalNotes = stream.Read<int>(Endianness.Little);
-            if (version >= 10)
-            {
-                AverageOffset = stream.Read<int>(Endianness.Little);
-            }
 
             StarPowerTickAmount = stream.Read<uint>(Endianness.Little);
             TotalStarPowerTicks = stream.Read<uint>(Endianness.Little);
@@ -332,7 +329,6 @@ namespace YARG.Core.Engine
 
             writer.Write(NotesHit);
             writer.Write(TotalNotes);
-            writer.Write(AverageOffset);
 
             writer.Write(StarPowerTickAmount);
             writer.Write(TotalStarPowerTicks);
@@ -352,5 +348,16 @@ namespace YARG.Core.Engine
         }
 
         public abstract ReplayStats ConstructReplayStats(string name);
+
+        public double GetAverageOffset()
+        {
+            return TotalOffset / NotesHit;
+        }
+
+        public void IncrementNotesHit<NoteType>(NoteType note, double current_time) where NoteType : Note<NoteType>
+        {
+            ++NotesHit;
+            TotalOffset += current_time - note.Time;
+        }
     }
 }

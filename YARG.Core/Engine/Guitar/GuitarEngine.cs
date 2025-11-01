@@ -234,9 +234,7 @@ namespace YARG.Core.Engine.Guitar
 
             IncrementCombo();
 
-            EngineStats.NotesHit++;
-            EngineStats.TotalOffset += CurrentTime - note.Time;
-            EngineStats.AverageOffset = EngineStats.TotalOffset / EngineStats.NotesHit;
+            EngineStats.IncrementNotesHit(note, CurrentTime);
 
             UpdateMultiplier();
 

@@ -162,9 +162,7 @@ namespace YARG.Core.Engine.Vocals
                 }
 
                 // No matter what, we still wanna count this as a phrase hit though
-                EngineStats.NotesHit++;
-                EngineStats.TotalOffset += CurrentTime - note.Time;
-                EngineStats.AverageOffset = EngineStats.TotalOffset / EngineStats.NotesHit;
+                EngineStats.IncrementNotesHit(note, CurrentTime);
 
                 OnNoteHit?.Invoke(NoteIndex, note);
 
