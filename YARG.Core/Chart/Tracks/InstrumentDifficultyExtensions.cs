@@ -268,7 +268,7 @@ namespace YARG.Core.Chart
                     if (note.IsStarPowerActivator)
                     {
                         // This is a single kick drum note that is a star power activator,
-                        // we have to move it to the NEXT note.
+                        // we have to move it to the NEXT note and adjust the activation phrase end.
                         if (index < difficulty.Notes.Count)
                         {
                             difficulty.Notes[index].DrumFlags |= DrumNoteFlags.StarPowerActivator;
@@ -277,6 +277,23 @@ namespace YARG.Core.Chart
                             {
                                 childNote.DrumFlags |= DrumNoteFlags.StarPowerActivator;
                             }
+                        }
+
+                        Phrase? activationPhrase = null;
+
+                        foreach (var phrase in difficulty.Phrases)
+                        {
+                            if (phrase.Type == PhraseType.DrumFill && phrase.Time < note.Time && phrase.TimeEnd >= note.Time)
+                            {
+                                activationPhrase = phrase;
+                                break;
+                            }
+                        }
+
+                        if (activationPhrase != null)
+                        {
+                            activationPhrase.TimeLength = difficulty.Notes[index].Time - activationPhrase.Time;
+                            activationPhrase.TickLength = difficulty.Notes[index].Tick - activationPhrase.Tick;
                         }
                     }
 
