@@ -271,11 +271,11 @@ namespace YARG.Core.Chart
                         // we have to move it to the NEXT note and adjust the activation phrase end.
                         if (index < difficulty.Notes.Count)
                         {
-                            difficulty.Notes[index].DrumFlags |= DrumNoteFlags.StarPowerActivator;
+                            difficulty.Notes[index].ActivateFlag(DrumNoteFlags.StarPowerActivator);
                             // Also add it to the child notes
                             foreach (var childNote in difficulty.Notes[index].ChildNotes)
                             {
-                                childNote.DrumFlags |= DrumNoteFlags.StarPowerActivator;
+                                childNote.ActivateFlag(DrumNoteFlags.StarPowerActivator);
                             }
                         }
 
@@ -303,11 +303,11 @@ namespace YARG.Core.Chart
                         // NEXT note (we don't want to extend the solo).
                         if (index < difficulty.Notes.Count)
                         {
-                            difficulty.Notes[index].Flags |= NoteFlags.SoloStart;
+                            difficulty.Notes[index].ActivateFlag(NoteFlags.SoloStart);
                             // Also add it to the child notes
                             foreach (var childNote in difficulty.Notes[index].ChildNotes)
                             {
-                                childNote.Flags |= NoteFlags.SoloStart;
+                                childNote.ActivateFlag(NoteFlags.SoloStart);
                             }
                         }
                     }
@@ -318,11 +318,11 @@ namespace YARG.Core.Chart
                         // PREVIOUS note (we don't want to extend the solo).
                         if (index > 0)
                         {
-                            difficulty.Notes[index - 1].Flags |= NoteFlags.SoloEnd;
+                            difficulty.Notes[index - 1].ActivateFlag(NoteFlags.SoloEnd);
                             // Also add it to the child notes
                             foreach (var childNote in difficulty.Notes[index - 1].ChildNotes)
                             {
-                                childNote.Flags |= NoteFlags.SoloEnd;
+                                childNote.ActivateFlag(NoteFlags.SoloEnd);
                             }
                         }
                     }
@@ -333,11 +333,11 @@ namespace YARG.Core.Chart
                         // NEXT note (we don't want to extend the starpower section).
                         if (index < difficulty.Notes.Count)
                         {
-                            difficulty.Notes[index].Flags |= NoteFlags.StarPowerStart;
+                            difficulty.Notes[index].ActivateFlag(NoteFlags.StarPowerStart);
                             // Also add it to the child notes
                             foreach (var childNote in difficulty.Notes[index].ChildNotes)
                             {
-                                childNote.Flags |= NoteFlags.StarPowerStart;
+                                childNote.ActivateFlag(NoteFlags.StarPowerStart);
                             }
                         }
                     }
@@ -348,11 +348,11 @@ namespace YARG.Core.Chart
                         // PREVIOUS note (we don't want to extend the starpower section).
                         if (index > 0)
                         {
-                            difficulty.Notes[index - 1].Flags |= NoteFlags.StarPowerEnd;
+                            difficulty.Notes[index - 1].ActivateFlag(NoteFlags.StarPowerEnd);
                             // Also add it to the child notes
                             foreach (var childNote in difficulty.Notes[index - 1].ChildNotes)
                             {
-                                childNote.Flags |= NoteFlags.StarPowerEnd;
+                                childNote.ActivateFlag(NoteFlags.StarPowerEnd);
                             }
                         }
                     }
