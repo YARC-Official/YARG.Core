@@ -88,5 +88,31 @@ namespace YARG.Core.Engine.Keys
 
             return false;
         }
+
+        public const int LOW_C = 0;
+        public const int LOW_C_SHARP = 1;
+        public const int LOW_D = 2;
+        public const int LOW_D_SHARP = 3;
+        public const int LOW_E = 4;
+        public const int LOW_F = 5;
+        public const int LOW_F_SHARP = 6;
+        public const int LOW_G = 7;
+        public const int LOW_G_SHARP = 8;
+        public const int LOW_A = 9;
+        public const int LOW_A_SHARP = 10;
+        public const int LOW_B = 11;
+        public const int MIDDLE_C = 12;
+        public const int HIGH_C_SHARP = 13;
+        public const int HIGH_D = 14;
+        public const int HIGH_D_SHARP = 15;
+        public const int HIGH_E = 16;
+        public const int HIGH_F = 17;
+        public const int HIGH_F_SHARP = 18;
+        public const int HIGH_G = 19;
+        public const int HIGH_G_SHARP = 20;
+        public const int HIGH_A = 21;
+        public const int HIGH_A_SHARP = 22;
+        public const int HIGH_B = 23;
+        public const int HIGH_C = 24;
     }
 }
