@@ -1,4 +1,5 @@
 ﻿using System.IO;
+using YARG.Core.Chart;
 using YARG.Core.Extensions;
 using YARG.Core.IO;
 using YARG.Core.Replays;
@@ -188,6 +189,16 @@ namespace YARG.Core.Engine
         /// </summary>
         public bool IsFullCombo => MaxCombo == TotalNotes;
 
+        /// <summary>
+        /// The total offset. This, together with notes hit is used to calculate the average offset.
+        /// </summary>
+        private double TotalOffset;
+
+        /// <summary>
+        /// The average offset.
+        /// </summary>
+        private double AverageOffset;
+
         protected BaseStats()
         {
         }
@@ -207,6 +218,9 @@ namespace YARG.Core.Engine
 
             NotesHit = stats.NotesHit;
             TotalNotes = stats.TotalNotes;
+
+            TotalOffset = stats.TotalOffset;
+            AverageOffset = stats.AverageOffset;
 
             StarPowerTickAmount = stats.StarPowerTickAmount;
             TotalStarPowerTicks = stats.TotalStarPowerTicks;
@@ -278,6 +292,8 @@ namespace YARG.Core.Engine
             ScoreMultiplier = 1;
             BandMultiplier = 1;
             NotesHit = 0;
+            TotalOffset = 0.0;
+            AverageOffset = 0.0;
             // Don't reset TotalNotes
             // TotalNotes = 0;
 
@@ -333,5 +349,16 @@ namespace YARG.Core.Engine
         }
 
         public abstract ReplayStats ConstructReplayStats(string name);
+
+        public double GetAverageOffset()
+        {
+            return NotesHit > 0 ? TotalOffset / NotesHit : 0.0;
+        }
+
+        public void IncrementNotesHit<NoteType>(NoteType note, double current_time) where NoteType : Note<NoteType>
+        {
+            ++NotesHit;
+            TotalOffset += current_time - note.Time;
+        }
     }
 }

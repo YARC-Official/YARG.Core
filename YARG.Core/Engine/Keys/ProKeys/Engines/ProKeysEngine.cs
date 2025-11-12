@@ -127,7 +127,7 @@ namespace YARG.Core.Engine.Keys
                 IncrementCombo();
             }
 
-            EngineStats.NotesHit++;
+            EngineStats.IncrementNotesHit(note, CurrentTime);
 
             UpdateMultiplier();
 

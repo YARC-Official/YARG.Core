@@ -234,7 +234,7 @@ namespace YARG.Core.Engine.Guitar
 
             IncrementCombo();
 
-            EngineStats.NotesHit++;
+            EngineStats.IncrementNotesHit(note, CurrentTime);
 
             UpdateMultiplier();
 
