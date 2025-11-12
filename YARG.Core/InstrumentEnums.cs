@@ -1,5 +1,7 @@
 ﻿using System;
 using System.Runtime.CompilerServices;
+using YARG.Core.Chart;
+using YARG.Core.Song;
 
 namespace YARG.Core
 {
@@ -174,34 +176,37 @@ namespace YARG.Core
                     Instrument.FiveFretCoopGuitar,
                     Instrument.Keys,
                 },
-                GameMode.SixFretGuitar  => new[]
+                GameMode.SixFretGuitar => new[]
                 {
                     Instrument.SixFretGuitar,
                     Instrument.SixFretBass,
                     Instrument.SixFretRhythm,
                     Instrument.SixFretCoopGuitar,
                 },
-                GameMode.FourLaneDrums  => new[]
+                GameMode.FourLaneDrums => new[]
                 {
                     Instrument.FourLaneDrums,
                     Instrument.ProDrums,
                 },
-                GameMode.FiveLaneDrums  => new[]
+                GameMode.FiveLaneDrums => new[]
                 {
                     Instrument.FiveLaneDrums
                 },
-                //GameMode.EliteDrums     => new[]
-                //{
-                //     Instrument.EliteDrums,
-                //},
-                GameMode.ProGuitar      => new[]
+                GameMode.EliteDrums => new[]
+                {
+                    Instrument.FiveLaneDrums,
+                    Instrument.FourLaneDrums,
+                    Instrument.ProDrums,
+                    Instrument.EliteDrums,
+                },
+                GameMode.ProGuitar => new[]
                 {
                     Instrument.ProGuitar_17Fret,
                     Instrument.ProGuitar_22Fret,
                     Instrument.ProBass_17Fret,
                     Instrument.ProBass_22Fret,
                 },
-                GameMode.ProKeys        => new[]
+                GameMode.ProKeys => new[]
                 {
                     Instrument.ProKeys,
                     Instrument.Keys,
@@ -210,7 +215,7 @@ namespace YARG.Core
                     Instrument.FiveFretRhythm,
                     Instrument.FiveFretCoopGuitar
                 },
-                GameMode.Vocals         => new[]
+                GameMode.Vocals => new[]
                 {
                     Instrument.Vocals,
                     Instrument.Harmony
@@ -220,7 +225,26 @@ namespace YARG.Core
                 //     Instrument.DjSingle,
                 //     Instrument.DjDouble,
                 // },
-                _  => throw new NotImplementedException($"Unhandled game mode {gameMode}!")
+                _ => throw new NotImplementedException($"Unhandled game mode {gameMode}!")
+            };
+        }
+
+        public static Instrument[] PossibleInstrumentsForSong(this GameMode gameMode, SongEntry entry)
+        {
+            return gameMode switch
+            {
+                GameMode.EliteDrums     => entry.HasInstrument(Instrument.FiveLaneDrums) ?
+                    new[]
+                    {
+                        Instrument.FiveLaneDrums,
+                        //Instrument.EliteDrums,
+                    } :
+                    new[] {
+                        Instrument.FourLaneDrums,
+                        Instrument.ProDrums,
+                        //Instrument.EliteDrums,
+                    },
+                _  => PossibleInstruments(gameMode)
             };
         }
 

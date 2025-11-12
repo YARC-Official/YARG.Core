@@ -251,6 +251,7 @@ namespace YARG.Core.Replays.Analyzer
                 }
                 case GameMode.FourLaneDrums:
                 case GameMode.FiveLaneDrums:
+                case GameMode.EliteDrums:
                 {
                     // Reset the notes
                     var notes = _chart.GetDrumsTrack(profile.CurrentInstrument)
@@ -270,7 +271,8 @@ namespace YARG.Core.Replays.Analyzer
                         notes,
                         _chart.SyncTrack,
                         (DrumsEngineParameters) parameters,
-                        profile.IsBot);
+                        profile.IsBot,
+                        profile.GameMode is GameMode.EliteDrums);
                 }
                 case GameMode.ProKeys:
                 {

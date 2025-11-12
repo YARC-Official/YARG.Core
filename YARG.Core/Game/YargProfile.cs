@@ -249,6 +249,7 @@ namespace YARG.Core.Game
                     break;
                 case GameMode.FourLaneDrums:
                 case GameMode.FiveLaneDrums:
+                case GameMode.EliteDrums:
                     if (track is not InstrumentDifficulty<DrumNote> drumsTrack)
                     {
                         throw new InvalidOperationException("Cannot apply drum modifiers to non-drums track " +

@@ -121,7 +121,7 @@ namespace MoonscraperChartEditor.Song.IO
 
             if (settings.SustainCutoffThreshold <= ParseSettings.SETTING_DEFAULT)
             {
-                settings.SustainCutoffThreshold = (song.resolution / 3) + 1;
+                settings.SustainCutoffThreshold = song.resolution / 3;
             }
             else if (settings.SustainCutoffThreshold == 0)
             {
