@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 
 namespace YARG.Core.Chart
 {
@@ -7,6 +7,7 @@ namespace YARG.Core.Chart
         private ProKeysNoteFlags _proKeysFlags;
         public ProKeysNoteFlags ProKeysFlags;
 
+        // Keys 1-25 map to bits 0-24, respectively. Bits 25-31 are unused
         public int Key          { get; }
         public int DisjointMask { get; }
         public int NoteMask     { get; private set; }

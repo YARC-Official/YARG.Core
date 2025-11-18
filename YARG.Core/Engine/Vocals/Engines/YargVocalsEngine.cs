@@ -88,6 +88,7 @@ namespace YARG.Core.Engine.Vocals.Engines
             if (CurrentTick > phrase.TickEnd)
             {
                 bool hasNotes = PhraseTicksTotal.Value != 0;
+                bool isLastPhrase = NoteIndex == Notes.Count - 1;
 
                 var percentHit = PhraseTicksHit / PhraseTicksTotal.Value;
                 if (!hasNotes)
@@ -116,7 +117,7 @@ namespace YARG.Core.Engine.Vocals.Engines
 
                 if (hasNotes)
                 {
-                    OnPhraseHit?.Invoke(percentHit / EngineParameters.PhraseHitPercent, hit);
+                    OnPhraseHit?.Invoke(percentHit / EngineParameters.PhraseHitPercent, hit, isLastPhrase);
                 }
             }
         }

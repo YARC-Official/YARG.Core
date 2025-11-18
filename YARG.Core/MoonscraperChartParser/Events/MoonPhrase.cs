@@ -25,7 +25,8 @@ namespace MoonscraperChartEditor.Song
 
             // Vocals
 
-            Vocals_LyricPhrase,
+            Vocals_ScoringPhrase,
+            Vocals_StaticLyricPhrase,
             Vocals_PercussionPhrase,
             Vocals_RangeShift,
             Vocals_LyricShift,
@@ -40,6 +41,18 @@ namespace MoonscraperChartEditor.Song
             ProKeys_RangeShift5,
 
             ProKeys_Glissando,
+
+            EliteDrums_RightCrashLane,
+            EliteDrums_RideLane,
+            EliteDrums_Tom3Lane,
+            EliteDrums_Tom2Lane,
+            EliteDrums_Tom1Lane,
+            EliteDrums_LeftCrashLane,
+            EliteDrums_HiHatLane,
+            EliteDrums_SnareLane,
+            EliteDrums_KickLane,
+            EliteDrums_HatPedalLane,
+            EliteDrums_DiscoFlip,
         }
 
         public uint length;

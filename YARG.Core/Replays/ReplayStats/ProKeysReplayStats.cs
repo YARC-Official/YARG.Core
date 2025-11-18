@@ -1,8 +1,5 @@
-﻿using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Text;
-using YARG.Core.Engine.ProKeys;
+﻿using System.IO;
+using YARG.Core.Engine.Keys;
 using YARG.Core.Extensions;
 using YARG.Core.IO;
 
@@ -16,7 +13,7 @@ namespace YARG.Core.Replays
         public readonly int Overhits;
         public readonly int SoloBonuses;
 
-        public ProKeysReplayStats(string name, ProKeysStats stats)
+        public ProKeysReplayStats(string name, KeysStats stats)
             : base(name, stats)
         {
             TotalNotes = stats.TotalNotes;

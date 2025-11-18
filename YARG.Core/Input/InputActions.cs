@@ -206,6 +206,19 @@
         StarPower = 25,
         /// <summary>The touch effects bar, reported as an axis.</summary>
         TouchEffects = 26,
+
+        /// <summary>Five-lane open note's press state, reported as a button.</summary>
+        OpenNote = 27,
+        /// <summary>Five-lane green key's press state, reported as a button.</summary>
+        GreenKey = 28,
+        /// <summary>Five-lane red key's press state, reported as a button.</summary>
+        RedKey = 29,
+        /// <summary>Five-lane yellow key's press state, reported as a button.</summary>
+        YellowKey = 30,
+        /// <summary>Five-lane blue key's press state, reported as a button.</summary>
+        BlueKey = 31,
+        /// <summary>Five-lane orange key's press state, reported as a button.</summary>
+        OrangeKey = 32
     }
 
     /// <summary>
@@ -257,6 +270,70 @@
         /// <summary>(4-lane only) Green cymbal hit velocity. Red cymbal under lefty flip.</summary>
         /// <remarks>Alias of <see cref="Cymbal3"/>.</remarks>
         GreenCymbal = Cymbal3,
+    }
+
+    /// <summary>
+    /// The actions available when playing drums modes with an Ekit.
+    /// </summary>
+    public enum EliteDrumsAction : byte
+    {
+        /// <summary>Kick hit velocity</summary>
+        /// <remarks>Universal to all drum modes</remarks>
+        Kick = 0,
+
+        /// <summary>Elite Drums stomp input (no velocity)</summary>
+        EliteStomp = 1,
+        /// <summary>Elite Drums splash input (no velocity)</summary>
+        EliteSplash = 2,
+        /// <summary>Elite Drums snare hit velocity</summary>
+        EliteSnare = 3,
+        /// <summary>Elite Drums closed hi-hat hit velocity</summary>
+        EliteClosedHiHat = 4,
+        /// <summary>Elite Drums sizzle hi-hat hit velocity</summary>
+        /// <remarks>Elite Drums does not have sizzle gems, but players still need to be able to bind their sizzle inputs</remarks>
+        EliteSizzleHiHat = 5,
+        /// <summary>Elite Drums open hi-hat hit velocity</summary>
+        EliteOpenHiHat = 6,
+        /// <summary>Elite Drums left crash hit velocity</summary>
+        EliteLeftCrash = 7,
+        /// <summary>Elite Drums tom 1 hit velocity</summary>
+        EliteTom1 = 8,
+        /// <summary>Elite Drums tom 2 hit velocity</summary>
+        EliteTom2 = 9,
+        /// <summary>Elite Drums tom 3 hit velocity</summary>
+        EliteTom3 = 10,
+        /// <summary>Elite Drums ride hit velocity</summary>
+        EliteRide = 11,
+        /// <summary>Elite Drums right crash hit velocity</summary>
+        EliteRightCrash = 12,
+
+
+        /// <summary>4L Drums red drum hit velocity</summary>
+        FourLaneRedDrum = 100,
+        /// <summary>4L Drums yellow drum hit velocity</summary>
+        FourLaneYellowDrum = 101,
+        /// <summary>4L Drums blue drum hit velocity</summary>
+        FourLaneBlueDrum = 102,
+        /// <summary>4L Drums green drum hit velocity</summary>
+        FourLaneGreenDrum = 103,
+        /// <summary>4L Drums yellow cymbal hit velocity</summary>
+        FourLaneYellowCymbal = 104,
+        /// <summary>4L Drums yellow cymbal hit velocity</summary>
+        FourLaneBlueCymbal = 105,
+        /// <summary>4L Drums yellow cymbal hit velocity</summary>
+        FourLaneGreenCymbal = 106,
+
+
+        /// <summary>5L Drums red drum hit velocity</summary>
+        FiveLaneRedDrum = 107,
+        /// <summary>5L Drums blue drum hit velocity</summary>
+        FiveLaneBlueDrum = 108,
+        /// <summary>5L Drums green drum hit velocity</summary>
+        FiveLaneGreenDrum = 109,
+        /// <summary>5L Drums yellow cymbal hit velocity</summary>
+        FiveLaneYellowCymbal = 110,
+        /// <summary>5L Drums orange cymbal hit velocity</summary>
+        FiveLaneOrangeCymbal = 111
     }
 
     /// <summary>

@@ -3,7 +3,7 @@ using System.IO;
 using YARG.Core.Engine;
 using YARG.Core.Engine.Drums;
 using YARG.Core.Engine.Guitar;
-using YARG.Core.Engine.ProKeys;
+using YARG.Core.Engine.Keys;
 using YARG.Core.Engine.Vocals;
 using YARG.Core.Extensions;
 using YARG.Core.Game;
@@ -39,7 +39,7 @@ namespace YARG.Core.Replays
             }
 
             Profile = new YargProfile(ref stream);
-            switch (Profile.CurrentInstrument.ToGameMode())
+            switch (Profile.GameMode)
             {
                 case GameMode.FiveFretGuitar:
                 case GameMode.SixFretGuitar:
@@ -48,6 +48,7 @@ namespace YARG.Core.Replays
                     break;
                 case GameMode.FourLaneDrums:
                 case GameMode.FiveLaneDrums:
+                case GameMode.EliteDrums:
                     EngineParameters = new DrumsEngineParameters(ref stream, version);
                     Stats = new DrumsStats(ref stream, version);
                     break;
@@ -56,8 +57,8 @@ namespace YARG.Core.Replays
                     Stats = new VocalsStats(ref stream, version);
                     break;
                 case GameMode.ProKeys:
-                    EngineParameters = new ProKeysEngineParameters(ref stream, version);
-                    Stats = new ProKeysStats(ref stream, version);
+                    EngineParameters = new KeysEngineParameters(ref stream, version);
+                    Stats = new KeysStats(ref stream, version);
                     break;
                 default:
                     throw new InvalidOperationException("Stat creation not implemented.");

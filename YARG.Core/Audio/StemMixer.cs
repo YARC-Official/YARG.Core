@@ -6,6 +6,27 @@ namespace YARG.Core.Audio
 {
     public abstract class StemMixer : IDisposable
     {
+        public struct StemInfo
+        {
+            public SongStem Stem;
+            public int[]?   Indices;
+            public float[]? Panning;
+
+            public StemInfo(SongStem stem, int[]? indices = null, float[]? panning = null)
+            {
+                Stem = stem;
+                Indices = indices;
+                Panning = panning;
+            }
+
+            public void Deconstruct(out SongStem stem, out int[]? indices, out float[]? panning)
+            {
+                stem = Stem;
+                indices = Indices;
+                panning = Panning;
+            }
+        }
+
         private bool _disposed;
         private bool _isPaused = true;
 
@@ -35,7 +56,7 @@ namespace YARG.Core.Audio
 
         public StemChannel? this[SongStem stem] => _channels.Find(x => x.Stem == stem);
 
-        public int Play(bool restartBuffer)
+        public int Play()
         {
             lock (this)
             {
@@ -44,7 +65,7 @@ namespace YARG.Core.Audio
                     return -1;
                 }
 
-                int ret = Play_Internal(restartBuffer);
+                int ret = Play_Internal();
                 if (ret != 0)
                 {
                     return ret;
@@ -202,19 +223,12 @@ namespace YARG.Core.Audio
             }
         }
 
-        public bool AddChannel(SongStem stem)
+        public bool AddChannel(Stream stream, SongStem songStem)
         {
-            lock (this)
-            {
-                if (_disposed)
-                {
-                    return false;
-                }
-                return AddChannel_Internal(stem);
-            }
+            return AddChannels(stream, new StemInfo(songStem));
         }
 
-        public bool AddChannel(SongStem stem, Stream stream)
+        public bool AddChannels(Stream stream, params StemInfo[] stemInfos)
         {
             lock (this)
             {
@@ -222,19 +236,7 @@ namespace YARG.Core.Audio
                 {
                     return false;
                 }
-                return AddChannel_Internal(stem, stream);
-            }
-        }
-
-        public bool AddChannel(SongStem stem, int[] indices, float[] panning)
-        {
-            lock (this)
-            {
-                if (_disposed)
-                {
-                    return false;
-                }
-                return AddChannel_Internal(stem, indices, panning);
+                return AddChannels_Internal(stream, stemInfos);
             }
         }
 
@@ -272,7 +274,7 @@ namespace YARG.Core.Audio
             }
         }
 
-        protected abstract int Play_Internal(bool restartBuffer);
+        protected abstract int Play_Internal();
         protected abstract void FadeIn_Internal(double maxVolume, double duration);
         protected abstract void FadeOut_Internal(double duration);
         protected abstract int Pause_Internal();
@@ -284,9 +286,7 @@ namespace YARG.Core.Audio
         protected abstract int  GetFFTData_Internal(float[] buffer, int fftSize, bool complex);
         protected abstract int GetLevel_Internal(float[] level);
         protected abstract void SetSpeed_Internal(float speed, bool shiftPitch);
-        protected abstract bool AddChannel_Internal(SongStem stem);
-        protected abstract bool AddChannel_Internal(SongStem stem, Stream stream);
-        protected abstract bool AddChannel_Internal(SongStem stem, int[] indices, float[] panning);
+        protected abstract bool AddChannels_Internal(Stream stream, params StemInfo[] stemInfos);
         protected abstract bool RemoveChannel_Internal(SongStem stemToRemove);
         protected abstract void ToggleBuffer_Internal(bool enable);
         protected abstract void SetBufferLength_Internal(int length);

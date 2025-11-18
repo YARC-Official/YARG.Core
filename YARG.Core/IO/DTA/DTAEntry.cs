@@ -19,6 +19,7 @@ namespace YARG.Core.IO
         public string? Charter;
         public string? Source;
         public string? Playlist;
+        public string? LoadingPhrase;
         public int? YearAsNumber;
 
         public long? SongLength;
@@ -248,6 +249,7 @@ namespace YARG.Core.IO
                     case "real_guitar_tuning": RealGuitarTuning = YARGDTAReader.ExtractIntegerArray<int>(ref container); break;
                     case "real_bass_tuning": RealBassTuning = YARGDTAReader.ExtractIntegerArray<int>(ref container); break;
                     case "video_venues": VideoVenues = YARGDTAReader.ExtractStringArray(ref container); break;
+                    case "loading_phrase": LoadingPhrase = YARGDTAReader.ExtractText(ref container); break;
                     case "extra_authoring":
                     {
                         foreach (string str in YARGDTAReader.ExtractStringArray(ref container))

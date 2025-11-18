@@ -25,8 +25,10 @@ namespace YARG.Core.Engine.Drums
 
         protected DrumsAction? Action;
 
+        protected bool IsMidiDrumsInput;
+
         protected DrumsEngine(InstrumentDifficulty<DrumNote> chart, SyncTrack syncTrack,
-            DrumsEngineParameters engineParameters, bool isBot)
+            DrumsEngineParameters engineParameters, bool isBot, bool isMidiDrumsInput)
             : base(chart, syncTrack, engineParameters, true, isBot)
         {
             foreach(var note in Notes)
@@ -45,6 +47,7 @@ namespace YARG.Core.Engine.Drums
             }
 
             GetWaitCountdowns(Notes);
+            IsMidiDrumsInput = isMidiDrumsInput;
         }
 
         public override void Reset(bool keepCurrentButtons = false)
@@ -114,11 +117,18 @@ namespace YARG.Core.Engine.Drums
             // Detect if the last note(s) were skipped
             bool skipped = SkipPreviousNotes(note.ParentOrSelf);
 
-            // Make sure that the note is fully hit, so the last hit note awards the starpower.
-            if (note.IsStarPower && note.IsStarPowerEnd && note.ParentOrSelf.WasFullyHit())
+            if (note.IsStarPower)
             {
-                AwardStarPower(note);
-                EngineStats.StarPowerPhrasesHit++;
+                if (EngineStats.IsStarPowerActive && EngineParameters.NoStarPowerOverlap)
+                {
+                    StripStarPower(note);
+                }
+                // Make sure that the note is fully hit, so the last hit note awards the starpower.
+                else if (note.IsStarPowerEnd && note.ParentOrSelf.WasFullyHit())
+                {
+                    AwardStarPower(note);
+                    EngineStats.StarPowerPhrasesHit++;
+                }
             }
 
             if (note.IsSoloStart)

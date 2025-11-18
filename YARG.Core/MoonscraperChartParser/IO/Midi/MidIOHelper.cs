@@ -32,6 +32,7 @@ namespace MoonscraperChartEditor.Song.IO
         public const string DRUMS_TRACK = "PART DRUMS";
         public const string DRUMS_TRACK_2 = "PART DRUM";
         public const string DRUMS_REAL_TRACK = "PART REAL_DRUMS_PS";
+        public const string ELITE_DRUMS_TRACK = "PART ELITE_DRUMS";
         public const string GHL_GUITAR_TRACK = "PART GUITAR GHL";
         public const string GHL_BASS_TRACK = "PART BASS GHL";
         public const string GHL_RHYTHM_TRACK = "PART RHYTHM GHL";
@@ -59,8 +60,8 @@ namespace MoonscraperChartEditor.Song.IO
         public static readonly Regex CameraCutRegex = new(@"coop_(\w+_\w+)", RegexOptions.Compiled | RegexOptions.Singleline);
 
         // Hand map regex
-        public static readonly Regex LeftHandMapRegex = new("map HandMap_(.*)", RegexOptions.Compiled | RegexOptions.Singleline);
-        public static readonly Regex RightHandMapRegex = new("map StrumMap_(.*)", RegexOptions.Compiled | RegexOptions.Singleline);
+        public static readonly Regex LeftHandMapRegex = new("map (HandMap_.*)", RegexOptions.Compiled | RegexOptions.Singleline);
+        public static readonly Regex RightHandMapRegex = new("map (StrumMap_.*)", RegexOptions.Compiled | RegexOptions.Singleline);
 
         // For good measure, we'll make a regex that we may end up not using
         public static readonly Regex CharacterStateRegex = new("^(idle(_realtime?|_intense?)|play(_solo?)|intense|mellow)$", RegexOptions.Compiled | RegexOptions.Singleline);
@@ -118,6 +119,26 @@ namespace MoonscraperChartEditor.Song.IO
         public const byte PRO_GUITAR_CHANNEL_TAP = 4;
         public const byte PRO_GUITAR_CHANNEL_HARMONIC = 5;
         public const byte PRO_GUITAR_CHANNEL_PINCH_HARMONIC = 6;
+
+        // Elite Drums notes
+        public const byte ELITE_DRUMS_DRUM_FILL_NOTE = 120;
+        public const byte ELITE_DRUMS_RIGHT_CRASH_ROLL_LANE_NOTE = 118;
+        public const byte ELITE_DRUMS_RIDE_ROLL_LANE_NOTE = 117;
+        public const byte ELITE_DRUMS_TOM_3_ROLL_LANE_NOTE = 116;
+        public const byte ELITE_DRUMS_TOM_2_ROLL_LANE_NOTE = 115;
+        public const byte ELITE_DRUMS_TOM_1_ROLL_LANE_NOTE = 114;
+        public const byte ELITE_DRUMS_LEFT_CRASH_ROLL_LANE_NOTE = 113;
+        public const byte ELITE_DRUMS_HI_HAT_ROLL_LANE_NOTE = 112;
+        public const byte ELITE_DRUMS_SNARE_ROLL_LANE_NOTE = 111;
+        public const byte ELITE_DRUMS_KICK_ROLL_LANE_NOTE = 110;
+        public const byte ELITE_DRUMS_HAT_PEDAL_ROLL_LANE_NOTE = 108;
+        public const byte ELITE_DRUMS_STARPOWER_NOTE = 104;
+
+        // Elite Drums channels
+        public const byte ELITE_DRUMS_CHANNEL_FLAG_RED = 10;
+        public const byte ELITE_DRUMS_CHANNEL_FLAG_YELLOW = 11;
+        public const byte ELITE_DRUMS_CHANNEL_FLAG_BLUE = 12;
+        public const byte ELITE_DRUMS_CHANNEL_FLAG_GREEN = 13;
 
         // Beat track notes
         public const byte BEAT_MEASURE = 12;
@@ -181,6 +202,7 @@ namespace MoonscraperChartEditor.Song.IO
         // The bracketed versions follow the style of other existing .mid text events.
         public const string CHART_DYNAMICS_TEXT = "ENABLE_CHART_DYNAMICS";
         public const string ENHANCED_OPENS_TEXT = "ENHANCED_OPENS";
+        public const string STRICT_HAT_PEDAL_STATE = "STRICT_HAT_PEDAL_STATE";
 
         // Note velocities
         public const byte VELOCITY = 100;             // default note velocity for exporting
@@ -213,6 +235,7 @@ namespace MoonscraperChartEditor.Song.IO
 
             { DRUMS_TRACK,         MoonSong.MoonInstrument.Drums },
             { DRUMS_REAL_TRACK,    MoonSong.MoonInstrument.Drums },
+            { ELITE_DRUMS_TRACK,   MoonSong.MoonInstrument.EliteDrums },
 
             { GHL_GUITAR_TRACK,    MoonSong.MoonInstrument.GHLiveGuitar },
             { GHL_BASS_TRACK,      MoonSong.MoonInstrument.GHLiveBass },
@@ -265,6 +288,14 @@ namespace MoonscraperChartEditor.Song.IO
             { MoonSong.Difficulty.Expert, 96 }
         };
 
+        public static readonly Dictionary<MoonSong.Difficulty, int> ELITE_DRUMS_DIFF_START_LOOKUP = new()
+        {
+            { MoonSong.Difficulty.Easy, 2 },
+            { MoonSong.Difficulty.Medium, 26 },
+            { MoonSong.Difficulty.Hard, 50 },
+            { MoonSong.Difficulty.Expert, 74 }
+        };
+
         // http://docs.c3universe.com/rbndocs/index.php?title=Drum_Authoring
         public static readonly Dictionary<MoonNote.DrumPad, int> PAD_TO_CYMBAL_LOOKUP = new()
         {
@@ -285,6 +316,20 @@ namespace MoonscraperChartEditor.Song.IO
             // { PRO_GUITAR_CHANNEL_TAP,            MoonNote.Flags. },
             // { PRO_GUITAR_CHANNEL_HARMONIC,       MoonNote.Flags. },
             // { PRO_GUITAR_CHANNEL_PINCH_HARMONIC, MoonNote.Flags. },
+        };
+
+        public static readonly Dictionary<MoonPhrase.Type, int> ELITE_DRUMS_LANE_LOOKUP = new()
+        {
+            { MoonPhrase.Type.EliteDrums_HatPedalLane, ELITE_DRUMS_HAT_PEDAL_ROLL_LANE_NOTE },
+            { MoonPhrase.Type.EliteDrums_KickLane, ELITE_DRUMS_KICK_ROLL_LANE_NOTE },
+            { MoonPhrase.Type.EliteDrums_SnareLane, ELITE_DRUMS_SNARE_ROLL_LANE_NOTE },
+            { MoonPhrase.Type.EliteDrums_HiHatLane, ELITE_DRUMS_HI_HAT_ROLL_LANE_NOTE },
+            { MoonPhrase.Type.EliteDrums_LeftCrashLane, ELITE_DRUMS_LEFT_CRASH_ROLL_LANE_NOTE },
+            { MoonPhrase.Type.EliteDrums_Tom1Lane, ELITE_DRUMS_TOM_1_ROLL_LANE_NOTE },
+            { MoonPhrase.Type.EliteDrums_Tom2Lane, ELITE_DRUMS_TOM_2_ROLL_LANE_NOTE },
+            { MoonPhrase.Type.EliteDrums_Tom3Lane, ELITE_DRUMS_TOM_3_ROLL_LANE_NOTE },
+            { MoonPhrase.Type.EliteDrums_RideLane, ELITE_DRUMS_RIDE_ROLL_LANE_NOTE },
+            { MoonPhrase.Type.EliteDrums_RightCrashLane, ELITE_DRUMS_RIGHT_CRASH_ROLL_LANE_NOTE },
         };
 
         public static readonly Dictionary<int, (VenueLookup.Type type, string text)> VENUE_NOTE_LOOKUP = new()
