@@ -16,10 +16,10 @@ namespace YARG.Core.IO
         public TextSpan? Artist;
         public TextSpan? Album;
         public string? Genre;
-        public string? Charter;
+        public TextSpan? Charter;
         public string? Source;
         public string? Playlist;
-        public string? LoadingPhrase;
+        public TextSpan? LoadingPhrase;
         public int? YearAsNumber;
 
         public long? SongLength;
@@ -232,7 +232,7 @@ namespace YARG.Core.IO
                     case "drum_bank": DrumBank = YARGDTAReader.ExtractText(ref container); break;
                     case "song_length": SongLength = YARGDTAReader.ExtractInteger<long>(ref container); break;
                     case "sub_genre": /*Subgenre = YARGDTAReader.ExtractText(ref container);*/ break;
-                    case "author": Charter = YARGDTAReader.ExtractText(ref container); break;
+                    case "author": Charter = YARGDTAReader.ExtractTextBytes(ref container); break;
                     case "guide_pitch_volume": /*GuidePitchVolume = YARGDTAReader.Extract<float>(ref container);*/ break;
                     case "encoding":
                         MetadataEncoding = YARGDTAReader.ExtractText(ref container).ToLower() switch
@@ -249,7 +249,7 @@ namespace YARG.Core.IO
                     case "real_guitar_tuning": RealGuitarTuning = YARGDTAReader.ExtractIntegerArray<int>(ref container); break;
                     case "real_bass_tuning": RealBassTuning = YARGDTAReader.ExtractIntegerArray<int>(ref container); break;
                     case "video_venues": VideoVenues = YARGDTAReader.ExtractStringArray(ref container); break;
-                    case "loading_phrase": LoadingPhrase = YARGDTAReader.ExtractText(ref container); break;
+                    case "loading_phrase": LoadingPhrase = YARGDTAReader.ExtractTextBytes(ref container); break;
                     case "extra_authoring":
                     {
                         foreach (string str in YARGDTAReader.ExtractStringArray(ref container))
@@ -257,6 +257,7 @@ namespace YARG.Core.IO
                             if (str == "disc_update")
                             {
                                 DiscUpdate = true;
+                                break;
                             }
                         }
                     }
