@@ -65,6 +65,7 @@ namespace YARG.Core.Engine.Keys
             : base(chart, syncTrack, engineParameters, true, isBot)
         {
             ChordStaggerTimer = new("Chord Stagger", engineParameters.ChordStaggerWindow);
+            EngineStats.TotalChords = Notes.Count;
         }
 
         public EngineTimer GetChordStaggerTimer() => ChordStaggerTimer;
