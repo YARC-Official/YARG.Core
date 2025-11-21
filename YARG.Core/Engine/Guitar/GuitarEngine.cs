@@ -234,7 +234,11 @@ namespace YARG.Core.Engine.Guitar
 
             IncrementCombo();
 
-            EngineStats.NotesHit++;
+            EngineStats.RecordNoteHitTiming(note, CurrentTime, EngineParameters.HitWindow.MaxWindow,
+                EngineParameters.HitWindow.PerfectThresholdPercent,
+                EngineParameters.HitWindow.GreatThresholdPercent,
+                EngineParameters.HitWindow.GoodThresholdPercent,
+                EngineParameters.HitWindow.PoorThresholdPercent);
 
             UpdateMultiplier();
 

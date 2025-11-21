@@ -153,7 +153,11 @@ namespace YARG.Core.Engine.Drums
 
             IncrementCombo();
 
-            EngineStats.NotesHit++;
+            EngineStats.RecordNoteHitTiming(note, CurrentTime, EngineParameters.HitWindow.MaxWindow,
+                EngineParameters.HitWindow.PerfectThresholdPercent,
+                EngineParameters.HitWindow.GreatThresholdPercent,
+                EngineParameters.HitWindow.GoodThresholdPercent,
+                EngineParameters.HitWindow.PoorThresholdPercent);
 
             UpdateMultiplier();
 

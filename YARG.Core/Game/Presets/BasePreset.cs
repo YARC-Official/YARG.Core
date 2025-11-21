@@ -47,6 +47,14 @@ namespace YARG.Core.Game
 
         public abstract BasePreset CopyWithNewName(string name);
 
+        /// <summary>
+        /// Validates the preset's settings. Returns null if valid, or an error message if invalid.
+        /// </summary>
+        public virtual string? Validate()
+        {
+            return null;
+        }
+
         private static Guid GetGuidForBasePreset(string name)
         {
             // Make sure default presets are consistent based on names.
