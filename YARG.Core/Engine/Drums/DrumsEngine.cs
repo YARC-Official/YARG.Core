@@ -153,7 +153,7 @@ namespace YARG.Core.Engine.Drums
 
             IncrementCombo();
 
-            EngineStats.NotesHit++;
+            EngineStats.IncrementNotesHit(note, CurrentTime);
 
             UpdateMultiplier();
 
