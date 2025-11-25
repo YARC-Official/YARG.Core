@@ -36,6 +36,13 @@ namespace YARG.Core.Game
         [SettingType(SettingType.FileInfo)]
         public FileInfo? SideImage;
 
+        [SettingType(SettingType.Slider)]
+        [SettingRange(0f, 0.05f)]
+        public float BaseWaviness = 0.01f;
+        [SettingType(SettingType.Slider)]
+        [SettingRange(0f, 0.05f)]
+        public float SideWaviness = 0.01f;
+
         public Color[] BackgroundBaseColors => new[] { BackgroundBaseColor1, BackgroundBaseColor2, BackgroundBaseColor3, BackgroundPatternColor };
         public Color[] BackgroundGrooveBaseColors => new[] { BackgroundGrooveBaseColor1, BackgroundGrooveBaseColor2, BackgroundGrooveBaseColor3, BackgroundGroovePatternColor };
 
@@ -58,7 +65,9 @@ namespace YARG.Core.Game
                 BackgroundGroovePatternColor = BackgroundGroovePatternColor,
                 BackgroundImage = BackgroundImage,
                 SideImage = SideImage,
-                NoteHeight = NoteHeight
+                NoteHeight = NoteHeight,
+                BaseWaviness = BaseWaviness,
+                SideWaviness = SideWaviness
             };
         }
 
