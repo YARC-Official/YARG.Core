@@ -373,7 +373,6 @@ namespace MoonscraperChartEditor.Song.IO
                 var chart = processParams.song.GetChart(processParams.instrument, difficulty);
                 foreach (var note in chart.notes)
                 {
-
                     // 5-lane green indicates 5-lane
                     if (note.drumPad is MoonNote.DrumPad.Green)
                     {
@@ -381,7 +380,7 @@ namespace MoonscraperChartEditor.Song.IO
                         return;
                     }
                     // Tom markers indicate 4-lane
-                    if (note.drumPad is not MoonNote.DrumPad.Red &&
+                    if (note.drumPad is not MoonNote.DrumPad.Red && note.drumPad is not MoonNote.DrumPad.Kick &&
                         (note.flags & MoonNote.Flags.ProDrums_Cymbal) == 0)
                     {
                         processParams.settings.DrumsType = DrumsType.FourLane;
