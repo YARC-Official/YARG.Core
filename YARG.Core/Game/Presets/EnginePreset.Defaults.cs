@@ -59,11 +59,20 @@ namespace YARG.Core.Game
             }
         };
 
+        public static EnginePreset SoloTaps = new("Solo Taps", true)
+        {
+            FiveFretGuitar =
+            {
+                SoloTaps = true
+            }
+        };
+
         public static readonly List<EnginePreset> Defaults = new()
         {
             Default,
             Casual,
-            Precision
+            Precision,
+            SoloTaps
         };
     }
 }
