@@ -43,6 +43,7 @@ namespace YARG.Core.Chart
             ChordHopoCancellation = false,
             StarPowerNote = SETTING_DEFAULT,
             NoteSnapThreshold = 0,
+            TuningOffetCents = 0,
         };
 
         public static readonly ParseSettings Default_Chart = new()
@@ -53,6 +54,7 @@ namespace YARG.Core.Chart
             ChordHopoCancellation = false,
             StarPowerNote = SETTING_DEFAULT,
             NoteSnapThreshold = 0,
+            TuningOffetCents = 0,
         };
 
         public static readonly ParseSettings Default_Midi = new()
@@ -63,6 +65,7 @@ namespace YARG.Core.Chart
             ChordHopoCancellation = false,
             StarPowerNote = 116,
             NoteSnapThreshold = 0,
+            TuningOffetCents = 0,
         };
 
         /// <summary>
@@ -116,5 +119,13 @@ namespace YARG.Core.Chart
         /// Defaults to 116.
         /// </remarks>
         public int StarPowerNote;
+
+        /// <summary>
+        /// Number of cents by which to adjust all pitched vocal notes, for non-A440 songs.
+        /// </summary>
+        /// <remarks>
+        /// Defaults to 0. Should never go beyond the [-50,50] range, but can still be honored if it does.
+        /// </remarks>
+        public int TuningOffetCents;
     }
 }
