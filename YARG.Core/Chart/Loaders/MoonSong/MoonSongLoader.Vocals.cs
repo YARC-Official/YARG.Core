@@ -380,7 +380,7 @@ namespace YARG.Core.Chart
 
         private float GetVocalNotePitch(MoonNote moonNote, LyricSymbolFlags lyricFlags)
         {
-            float pitch = moonNote.vocalsPitch + (0.01f * _settings.TuningOffetCents);
+            float pitch = moonNote.vocalsPitch + (0.01f * _settings.TuningOffsetCents);
 
             // Unpitched/percussion notes
             if ((lyricFlags & LyricSymbolFlags.NonPitched) != 0 || (moonNote.flags & MoonNote.Flags.Vocals_Percussion) != 0)

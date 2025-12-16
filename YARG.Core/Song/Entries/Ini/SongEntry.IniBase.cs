@@ -89,7 +89,7 @@ namespace YARG.Core.Song
                 HopoThreshold = _settings.HopoThreshold,
                 SustainCutoffThreshold = _settings.SustainCutoffThreshold,
                 StarPowerNote = _settings.OverdiveMidiNote,
-                TuningOffetCents = _settings.TuningOffsetCents,
+                TuningOffsetCents = _settings.TuningOffsetCents,
                 DrumsType = ParseDrumsType(in _parts),
                 ChordHopoCancellation = _chartFormat != ChartFormat.Chart
             };
