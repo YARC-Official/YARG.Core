@@ -154,6 +154,7 @@ namespace YARG.Core.Song
                 HopoThreshold = _settings.HopoThreshold,
                 SustainCutoffThreshold = _settings.SustainCutoffThreshold,
                 StarPowerNote = _settings.OverdiveMidiNote,
+                TuningOffsetCents = _settings.TuningOffsetCents,
                 DrumsType = DrumsType.FourLane,
                 ChordHopoCancellation = true
             };

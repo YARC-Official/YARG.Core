@@ -160,6 +160,7 @@ namespace YARG.Core.IO.Ini
 
                 { "tags",                                 new("tags", ModifierType.String) },
                 { "track",                                new("album_track", ModifierType.Int32) },
+                { "tuning_offset_cents",                  new("tuning_offset_cents", ModifierType.Int16) },
                 { "tutorial",                             new("tutorial", ModifierType.Bool) },
 
                 { "unlock_completed",                     new("unlock_completed", ModifierType.UInt32) },

@@ -89,6 +89,7 @@ namespace YARG.Core.Song
                 HopoThreshold = _settings.HopoThreshold,
                 SustainCutoffThreshold = _settings.SustainCutoffThreshold,
                 StarPowerNote = _settings.OverdiveMidiNote,
+                TuningOffsetCents = _settings.TuningOffsetCents,
                 DrumsType = ParseDrumsType(in _parts),
                 ChordHopoCancellation = _chartFormat != ChartFormat.Chart
             };
@@ -182,6 +183,11 @@ namespace YARG.Core.Song
             (entry._parsedYear, entry._yearAsNumber) = ParseYear(entry._metadata.Year);
             entry._hash = HashWrapper.Hash(file.ReadOnlySpan);
             entry.SetSortStrings();
+
+            if (modifiers.Extract("tuning_offset_cents", out short tuningOffsetCents))
+            {
+                entry._settings.TuningOffsetCents = tuningOffsetCents;
+            }
 
             if (!modifiers.Extract("hopo_frequency", out entry._settings.HopoThreshold) || entry._settings.HopoThreshold <= 0)
             {
