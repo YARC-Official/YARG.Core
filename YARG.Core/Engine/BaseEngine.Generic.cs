@@ -730,7 +730,7 @@ namespace YARG.Core.Engine
 
             double gain = (quarterTick - lastQuarterTick) * GAIN_FACTOR + tickRemainder;
             double rounded = Math.Round(gain);
-            YargLogger.LogTrace($"Calculating whammy whammy gain, quarterTick: {quarterTick}, lastQuarterTick: {lastQuarterTick}, gain: {gain}, rounded: {rounded}, remainderIn: {tickRemainder}");
+            YargLogger.LogTrace($"Calculating whammy gain, quarterTick: {quarterTick}, lastQuarterTick: {lastQuarterTick}, gain: {gain}, rounded: {rounded}, remainderIn: {tickRemainder}");
             tickRemainder = gain - rounded;
 
             return (uint) rounded;
