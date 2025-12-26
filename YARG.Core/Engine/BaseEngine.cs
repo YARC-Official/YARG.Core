@@ -491,7 +491,7 @@ namespace YARG.Core.Engine
             double lastEndTime = StarPowerEndTime;
 
             StarPowerTickEndPosition = StarPowerTickPosition + BaseStats.StarPowerTickAmount;
-            StarPowerEndTime = SyncTrack.MeasureTickToTime(StarPowerTickEndPosition);
+            StarPowerEndTime = SyncTrack.FindMinTimeForMeasureTick(StarPowerTickEndPosition);
 
             YargLogger.LogFormatTrace(
                 "Updated Star Power end from {0} ({1}) to {2} ({3})",
