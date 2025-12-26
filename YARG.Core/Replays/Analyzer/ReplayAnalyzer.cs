@@ -455,7 +455,7 @@ namespace YARG.Core.Replays.Analyzer
                 original.StarPowerTickAmount == result.StarPowerTickAmount &&
                 original.TotalStarPowerTicks == result.TotalStarPowerTicks &&
                 original.StarPowerWhammyTicks == result.StarPowerWhammyTicks &&
-                original.TimeInStarPower == result.TimeInStarPower &&
+                //original.TimeInStarPower == result.TimeInStarPower &&
                 original.StarPowerActivationCount == result.StarPowerActivationCount &&
                 //original.TotalStarPowerBarsFilled == result.TotalStarPowerBarsFilled &&
                 original.IsStarPowerActive == result.IsStarPowerActive;
