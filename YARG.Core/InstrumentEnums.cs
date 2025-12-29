@@ -194,10 +194,10 @@ namespace YARG.Core
                 },
                 GameMode.EliteDrums => new[]
                 {
-                    Instrument.FiveLaneDrums,
                     Instrument.FourLaneDrums,
                     Instrument.ProDrums,
                     Instrument.EliteDrums,
+                    Instrument.FiveLaneDrums,
                 },
                 GameMode.ProGuitar => new[]
                 {

@@ -85,7 +85,7 @@ namespace YARG.Core.Audio
                     }
                     previewLength = previewEndTime - previewStartTime;
                 }
-                
+
                 if (fadeDuration > previewLength / 4)
                 {
                     fadeDuration = previewLength / 4;
@@ -135,7 +135,7 @@ namespace YARG.Core.Audio
                 {
                     _mixer.SetPosition(_previewStartTime);
                     _mixer.FadeIn(_volume, _fadeDruation);
-                    _mixer.Play(true);
+                    _mixer.Play();
                     watch.Restart();
                     while (watch.Elapsed.TotalSeconds < _previewLength - _fadeDruation && !_token.IsCancellationRequested)
                     {

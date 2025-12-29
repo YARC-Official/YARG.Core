@@ -32,12 +32,14 @@ namespace YARG.Core.Song
         {
             HopoThreshold = -1,
             SustainCutoffThreshold = -1,
-            OverdiveMidiNote = 116
+            OverdiveMidiNote = 116,
+            TuningOffsetCents = 0
         };
 
         public long HopoThreshold;
         public long SustainCutoffThreshold;
         public int OverdiveMidiNote;
+        public int TuningOffsetCents;
     }
 
     /// <summary>

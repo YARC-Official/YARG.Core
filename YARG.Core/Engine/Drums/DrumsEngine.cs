@@ -10,7 +10,7 @@ namespace YARG.Core.Engine.Drums
     {
         public delegate void OverhitEvent();
 
-        public delegate void PadHitEvent(DrumsAction action, bool noteWasHit, float velocity);
+        public delegate void PadHitEvent(DrumsAction action, bool noteWasHit, bool wereBonusPointsAwarded, DrumNoteType type, float velocity);
 
         public OverhitEvent? OnOverhit;
         public PadHitEvent?  OnPadHit;
@@ -153,7 +153,7 @@ namespace YARG.Core.Engine.Drums
 
             IncrementCombo();
 
-            EngineStats.NotesHit++;
+            EngineStats.IncrementNotesHit(note, CurrentTime);
 
             UpdateMultiplier();
 

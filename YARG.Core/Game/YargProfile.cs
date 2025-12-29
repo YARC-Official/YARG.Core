@@ -5,6 +5,7 @@ using YARG.Core.Chart;
 using YARG.Core.Utility;
 using YARG.Core.Extensions;
 using System.Linq;
+using System.Runtime.Serialization;
 using YARG.Core.IO;
 
 namespace YARG.Core.Game
@@ -60,6 +61,13 @@ namespace YARG.Core.Game
         /// The selected instrument.
         /// </summary>
         public Instrument CurrentInstrument;
+
+        /// <summary>
+        /// The user's preferred instrument, which may differ from CurrentInstrument when the preferred instrument
+        /// is not available for a given chart. This should only be modified when the user explicitly changes their
+        /// instrument selection when the previous PreferredInstrument is also available.
+        /// </summary>
+        public Instrument PreferredInstrument;
 
         /// <summary>
         /// The selected difficulty.
@@ -148,6 +156,8 @@ namespace YARG.Core.Game
             {
                 HighwayPreset = stream.ReadGuid();
             }
+            // This uses CurrentInstrument instead of PreferredInstrument because in replays we only care
+            // what instrument is actually being used for the current chart
             CurrentInstrument = (Instrument) stream.ReadByte();
             CurrentDifficulty = (Difficulty) stream.ReadByte();
             CurrentModifiers = (Modifier) stream.Read<ulong>(Endianness.Little);
@@ -309,10 +319,25 @@ namespace YARG.Core.Game
 
         public void EnsureValidInstrument()
         {
-
             if (!HasValidInstrument)
             {
                 CurrentInstrument = GameMode.PossibleInstruments()[0];
+            }
+
+            ValidatePreferredInstrument();
+        }
+
+        [OnDeserialized]
+        public void ValidateJsonDeserialization(StreamingContext context)
+        {
+            ValidatePreferredInstrument();
+        }
+
+        private void ValidatePreferredInstrument()
+        {
+            if (!GameMode.PossibleInstruments().Contains(PreferredInstrument))
+            {
+                PreferredInstrument = HasValidInstrument ? CurrentInstrument : GameMode.PossibleInstruments()[0];
             }
         }
 
@@ -335,6 +360,8 @@ namespace YARG.Core.Game
             writer.Write(CameraPreset);
             writer.Write(HighwayPreset);
 
+            // This uses CurrentInstrument instead of PreferredInstrument because in replays we only care
+            // what instrument is actually being used for the current chart
             writer.Write((byte) CurrentInstrument);
             writer.Write((byte) CurrentDifficulty);
             writer.Write((ulong) CurrentModifiers);
