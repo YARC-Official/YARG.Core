@@ -135,7 +135,13 @@
         TimesMany,
         FullBandFullCombo,
         HighScore,
-        FailSound
+        FailSound,
+        AntiPiracyBlurb,
+        YargTitleBlurb,
+        MenuSettings,
+        MenuProfiles,
+        MenuLibrary,
+        Onboarding
     }
 
     public enum DSPType
