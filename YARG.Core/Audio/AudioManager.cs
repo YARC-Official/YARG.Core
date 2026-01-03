@@ -58,9 +58,32 @@ namespace YARG.Core.Audio
 
         protected internal abstract List<(int id, string name)> GetAllInputDevices();
 
-        protected internal abstract MicDevice? CreateDevice(int deviceId, string name);
+        protected internal abstract MicDevice? CreateInputDevice(int deviceId, string name);
+
+        protected internal abstract OutputDevice? CreateOutputDevice(int deviceId, string name);
+
+        protected internal abstract List<(int id, string name)> GetAllOutputDevices();
+
+        protected internal abstract OutputDevice? GetOutputDevice(string name);
 
         protected internal abstract void SetMasterVolume(double volume);
+
+        protected internal virtual void SetOutputDevice(string name)
+        {
+            lock (_activeMixers)
+            {
+                OutputDevice? device = GetOutputDevice(name);
+                if (device == null)
+                {
+                    return;
+                }
+
+                foreach (var mixer in _activeMixers)
+                {
+                    mixer.SetOutputDevice(device);
+                }
+            }
+        }
 
         internal void ToggleBuffer(bool enable)
         {

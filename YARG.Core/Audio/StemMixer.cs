@@ -274,6 +274,17 @@ namespace YARG.Core.Audio
             }
         }
 
+        internal void SetOutputDevice(OutputDevice device)
+        {
+            lock (this)
+            {
+                if (!_disposed)
+                {
+                    SetOutputDevice_Internal(device);
+                }
+            }
+        }
+
         protected abstract int Play_Internal();
         protected abstract void FadeIn_Internal(double maxVolume, double duration);
         protected abstract void FadeOut_Internal(double duration);
@@ -290,6 +301,8 @@ namespace YARG.Core.Audio
         protected abstract bool RemoveChannel_Internal(SongStem stemToRemove);
         protected abstract void ToggleBuffer_Internal(bool enable);
         protected abstract void SetBufferLength_Internal(int length);
+
+        protected abstract void SetOutputDevice_Internal(OutputDevice device);
 
         protected virtual void DisposeManagedResources() { }
         protected virtual void DisposeUnmanagedResources() { }
