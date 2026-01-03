@@ -60,13 +60,28 @@ namespace YARG.Core.Audio
 
         protected internal abstract MicDevice? CreateInputDevice(int deviceId, string name);
 
+        protected internal abstract OutputChannel? CreateOutputChannel(int channelId);
+
         protected internal abstract OutputDevice? CreateOutputDevice(int deviceId, string name);
 
         protected internal abstract List<(int id, string name)> GetAllOutputDevices();
 
+        protected internal abstract int GetOutputChannelCount();
+
         protected internal abstract OutputDevice? GetOutputDevice(string name);
 
         protected internal abstract void SetMasterVolume(double volume);
+
+        protected internal virtual void SetOutputChannel(OutputChannel channel)
+        {
+            lock (_activeMixers)
+            {
+                foreach (StemMixer mixer in _activeMixers)
+                {
+                    mixer.SetOutputChannel(channel);
+                }
+            }
+        }
 
         protected internal virtual void SetOutputDevice(string name)
         {
