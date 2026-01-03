@@ -127,10 +127,10 @@ namespace YARG.Core.Song
 
         protected internal static ScanResult ScanChart(IniSubEntry entry, FixedArray<byte> file, IniModifierCollection modifiers)
         {
-            var drums_type = DrumsType.Any;
+            var drums_type = DrumsType.FourOrFive;
             if (modifiers.Extract("five_lane_drums", out bool fiveLaneDrums))
             {
-                drums_type = fiveLaneDrums ? DrumsType.FiveLane : DrumsType.FourOrPro;
+                drums_type = fiveLaneDrums ? DrumsType.FiveLane : DrumsType.FourLane;
             }
 
             ScanExpected<long> resolution;
@@ -321,19 +321,10 @@ namespace YARG.Core.Song
         private static ScanExpected<long> ParseDotChart<TChar>(ref YARGTextContainer<TChar> container, IniModifierCollection modifiers, ref AvailableParts parts, ref DrumsType drumsType)
             where TChar : unmanaged, IEquatable<TChar>, IConvertible
         {
-            if (drumsType != DrumsType.FiveLane && modifiers.Extract("pro_drums", out bool proDrums))
+            if (drumsType != DrumsType.FiveLane && modifiers.Extract("pro_drums", out bool proDrums) && proDrums)
             {
-                // We don't want to just immediately set the value to one of the other
-                // on the chance that we still need to test for FiveLane.
-                // We just know what the .ini explicitly tells us it *isn't*
-                if (proDrums)
-                {
-                    drumsType -= DrumsType.FourLane;
-                }
-                else
-                {
-                    drumsType -= DrumsType.ProDrums;
-                }
+                drumsType |= DrumsType.ProDrums;
+                drumsType &= ~DrumsType.FourLane;
             }
 
             long resolution = 192;
@@ -363,23 +354,11 @@ namespace YARG.Core.Song
 
         private static ScanExpected<long> ParseDotMidi(FixedArray<byte> file, IniModifierCollection modifiers, ref AvailableParts parts, ref DrumsType drumsType)
         {
-            if (drumsType != DrumsType.FiveLane)
+            if (drumsType != DrumsType.FiveLane && (!modifiers.Extract("pro_drums", out bool proDrums) || proDrums))
             {
-                // We don't want to just immediately set the value to one of the other
-                // on the chance that we still need to test for FiveLane.
-                // We just know what the .ini explicitly tells us it *isn't*.
-                //
-                // That being said, .chart differs in that FourLane is the default state.
-                // .mid's default is ProDrums, which is why we account for when the .ini does
-                // not contain the flag.
-                if (!modifiers.Extract("pro_drums", out bool proDrums) || proDrums)
-                {
-                    drumsType -= DrumsType.FourLane;
-                }
-                else
-                {
-                    drumsType -= DrumsType.ProDrums;
-                }
+                // .mid's default state when the value isn't provided is ProDrums, differing with .chart
+                drumsType |= DrumsType.ProDrums;
+                drumsType &= ~DrumsType.FourLane;
             }
             return ParseMidi(file, ref parts, ref drumsType);
         }
@@ -489,7 +468,7 @@ namespace YARG.Core.Song
                 {
                     uint lane = YARGChartFileReader.ExtractWithWhitespace<TChar, uint>(ref container);
                     ulong _ = YARGChartFileReader.Extract<TChar, ulong>(ref container);
-                    if (0 <= lane && lane <= 4)
+                    if (lane <= 4)
                     {
                         part.Difficulties |= diff_mask;
                     }
@@ -504,7 +483,7 @@ namespace YARG.Core.Song
                     }
                     else if (YELLOW_CYMBAL <= lane && lane <= GREEN_CYMBAL)
                     {
-                        if ((drumsType & DrumsType.ProDrums) == DrumsType.ProDrums)
+                        if (drumsType != DrumsType.FiveLane)
                         {
                             drumsType = DrumsType.ProDrums;
                         }
@@ -518,7 +497,7 @@ namespace YARG.Core.Song
                     }
 
                     //  Testing against zero would not work in expert
-                    if ((part.Difficulties & requiredMask) == requiredMask && (drumsType == DrumsType.FourLane || drumsType == DrumsType.ProDrums || drumsType == DrumsType.FiveLane))
+                    if ((part.Difficulties & requiredMask) == requiredMask && drumsType is DrumsType.ProDrums or DrumsType.FiveLane)
                     {
                         return false;
                     }
