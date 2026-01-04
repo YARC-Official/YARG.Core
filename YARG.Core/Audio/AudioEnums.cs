@@ -143,6 +143,10 @@
     {
         QuartzHi,
         QuartzLo,
+        SineHi,
+        SineLo,
+        SquareHi,
+        SquareLo,
     }
 
     public enum DSPType

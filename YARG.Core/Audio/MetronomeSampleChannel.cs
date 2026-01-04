@@ -10,7 +10,7 @@ namespace YARG.Core.Audio
         private      bool _disposed;
 
         protected readonly string _path;
-        protected          double _volume = 10f;
+        protected          double _volume = 1f;
 
         public readonly MetronomeSample Sample;
 
