@@ -21,6 +21,7 @@
         Crowd,
         Preview,
         VoxSample,
+        Metronome,
     }
 
     public enum SfxSample
@@ -136,6 +137,16 @@
         FullBandFullCombo,
         HighScore,
         FailSound
+    }
+
+    public enum MetronomeSample
+    {
+        QuartzHi,
+        QuartzLo,
+        SineHi,
+        SineLo,
+        SquareHi,
+        SquareLo,
     }
 
     public enum DSPType

@@ -205,6 +205,16 @@ namespace YARG.Core.Audio
             new Sample<VoxSample>(VoxSample.FailSound, "FailSound"),
         };
 
+        public static readonly IList<Sample<MetronomeSample>> MetronomeSamples = new[]
+        {
+            new Sample<MetronomeSample>(MetronomeSample.QuartzHi, "quartz_hi"),
+            new Sample<MetronomeSample>(MetronomeSample.QuartzLo, "quartz_lo"),
+            new Sample<MetronomeSample>(MetronomeSample.SineHi, "sine_hi"),
+            new Sample<MetronomeSample>(MetronomeSample.SineLo, "sine_lo"),
+            new Sample<MetronomeSample>(MetronomeSample.SquareHi, "square_hi"),
+            new Sample<MetronomeSample>(MetronomeSample.SquareLo, "square_lo"),
+        };
+
         public class Sample<T>
         {
             public T             Kind;
