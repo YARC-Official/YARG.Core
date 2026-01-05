@@ -1,4 +1,6 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.Linq;
 using YARG.Core.Chart;
 using YARG.Core.Input;
 using YARG.Core.Logging;
@@ -119,6 +121,8 @@ namespace YARG.Core.Engine.Vocals.Engines
                 {
                     OnPhraseHit?.Invoke(percentHit / EngineParameters.PhraseHitPercent, hit, isLastPhrase);
                 }
+
+                UpdateCarriedNote(phrase);
             }
         }
 
