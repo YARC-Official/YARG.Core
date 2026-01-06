@@ -91,9 +91,9 @@ namespace YARG.Core.Song
 
         protected static void FinalizeDrums(ref AvailableParts parts, DrumsType drumsType)
         {
-            if ((drumsType & DrumsType.FourLane) != DrumsType.FourLane)
+            if (!drumsType.Has(DrumsType.FourLane))
             {
-                if ((drumsType & DrumsType.ProDrums) == DrumsType.ProDrums)
+                if (drumsType.Has(DrumsType.ProDrums))
                 {
                     parts.ProDrums.Difficulties = parts.FourLaneDrums.Difficulties;
                 }
