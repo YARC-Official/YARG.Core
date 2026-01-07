@@ -335,7 +335,7 @@ namespace YARG.Core.Audio
             }
         }
 
-        public static void PlayMetronomeSoundEffect(MetronomeSample sample)
+        public static void PlayMetronomeSoundEffect(MetronomeSample sample, MetronomePitch pitch)
         {
             lock (_instanceLock)
             {
@@ -344,7 +344,14 @@ namespace YARG.Core.Audio
                     throw new NotInitializedException();
                 }
 
-                _instance.MetronomeSamples[(int) sample]?.Play();
+                if (pitch == MetronomePitch.Hi)
+                {
+                    _instance.MetronomeSamples[(int) sample]?.PlayHi();
+
+                    return;
+                }
+
+                _instance.MetronomeSamples[(int) sample]?.PlayLo();
             }
         }
 

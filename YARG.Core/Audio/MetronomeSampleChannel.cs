@@ -9,25 +9,38 @@ namespace YARG.Core.Audio
         public const int  ROUND_ROBIN_MAX_INDEX = 3;
         private      bool _disposed;
 
-        protected readonly string _path;
+        protected readonly string _hiPath;
+        protected readonly string _loPath;
         protected          double _volume = 1f;
 
         public readonly MetronomeSample Sample;
 
-        protected MetronomeSampleChannel(MetronomeSample sample, string path)
+        protected MetronomeSampleChannel(MetronomeSample sample, string hiPath, string loPath)
         {
             Sample = sample;
-            _path = path;
+            _hiPath = hiPath;
+            _loPath = loPath;
             GlobalAudioHandler.StemSettings[SongStem.Metronome].OnVolumeChange += SetVolume;
         }
 
-        public void Play()
+        public void PlayHi()
         {
             lock (this)
             {
                 if (!_disposed)
                 {
-                    Play_Internal();
+                    PlayHi_Internal();
+                }
+            }
+        }
+
+        public void PlayLo()
+        {
+            lock (this)
+            {
+                if (!_disposed)
+                {
+                    PlayLo_Internal();
                 }
             }
         }
@@ -44,7 +57,8 @@ namespace YARG.Core.Audio
             }
         }
 
-        protected abstract void Play_Internal();
+        protected abstract void PlayHi_Internal();
+        protected abstract void PlayLo_Internal();
         protected abstract void SetVolume_Internal(double volume);
 
         protected virtual void DisposeManagedResources()
