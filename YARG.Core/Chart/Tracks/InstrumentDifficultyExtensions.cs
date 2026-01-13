@@ -42,7 +42,7 @@ namespace YARG.Core.Chart
             GuitarNote? lastGreenSustain = null;
             foreach (var note in difficulty.Notes)
             {
-                if (note.Fret == FiveFretGuitarFret.Open.Convert())
+                if (note.Fret == FiveFretGuitarFret.Open.Convert() && !note.IsChord)
                 {
                     note.Fret = FiveFretGuitarFret.Green.Convert();
                     note.NoteMask = 1;
