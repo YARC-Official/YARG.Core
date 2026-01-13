@@ -232,7 +232,7 @@ namespace YARG.Core.Game
                             $"with notes of {typeof(TNote)}!");
                     }
 
-                    if (IsModifierActive(Modifier.NoOpens))
+                    if (IsModifierActive(Modifier.OpensToGreens))
                     {
                         guitarTrack.ConvertFromOpenToGreen();
                     }
