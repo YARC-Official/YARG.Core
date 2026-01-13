@@ -39,12 +39,27 @@ namespace YARG.Core.Chart
 
         public static void ConvertFromOpenToGreen(this InstrumentDifficulty<GuitarNote> difficulty)
         {
+            GuitarNote? lastGreenSustain = null;
             foreach (var note in difficulty.Notes)
             {
                 if (note.Fret == FiveFretGuitarFret.Open.Convert())
                 {
                     note.Fret = FiveFretGuitarFret.Green.Convert();
                     note.NoteMask = 1;
+                }
+                if (note.Fret == FiveFretGuitarFret.Green.Convert())
+                {
+                    //cut off last green sustain early if there is another green note on it
+                    if (lastGreenSustain != null && lastGreenSustain.Tick + lastGreenSustain.TickLength > note.Tick)
+                    {
+                        lastGreenSustain.TickLength = note.Tick - lastGreenSustain.Tick;
+                        lastGreenSustain.TimeLength = note.Time - lastGreenSustain.Time;
+                    }
+
+                    if (note.IsSustain)
+                    {
+                        lastGreenSustain = note;
+                    }
                 }
             }
         }
