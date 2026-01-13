@@ -231,6 +231,11 @@ namespace YARG.Core.Game
                         throw new InvalidOperationException("Cannot apply guitar modifiers to non-guitar track " +
                             $"with notes of {typeof(TNote)}!");
                     }
+
+                    if (IsModifierActive(Modifier.NoOpens))
+                    {
+                        guitarTrack.ConvertFromOpenToGreen();
+                    }
                     if (IsModifierActive(Modifier.AllStrums))
                     {
                         guitarTrack.ConvertToGuitarType(GuitarNoteType.Strum);

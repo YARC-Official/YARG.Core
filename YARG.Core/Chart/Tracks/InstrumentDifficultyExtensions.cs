@@ -37,6 +37,18 @@ namespace YARG.Core.Chart
             }
         }
 
+        public static void ConvertFromOpenToGreen(this InstrumentDifficulty<GuitarNote> difficulty)
+        {
+            foreach (var note in difficulty.Notes)
+            {
+                if (note.Fret == FiveFretGuitarFret.Open.Convert())
+                {
+                    note.Fret = FiveFretGuitarFret.Green.Convert();
+                    note.NoteMask = 1;
+                }
+            }
+        }
+
         // Transposes all ranges into the first range.
         // For example, if the song starts in the GRY range and later shifts to the RYB or YBO ranges
         // the notes in the later ranges are transposed into the first range. (If there was a case where the
