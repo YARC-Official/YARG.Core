@@ -739,11 +739,12 @@ namespace YARG.Core.Song
 
         private static void ParseDTA(RBCONEntry entry, in DTAEntry dta, ref string? location, ref float[]? volumes, ref float[]? pans, ref float[]? cores)
         {
-            if (dta.Name != null)    { entry._metadata.Name    = YARGDTAReader.DecodeString(dta.Name.Value, dta.MetadataEncoding); }
-            if (dta.Artist != null)  { entry._metadata.Artist  = YARGDTAReader.DecodeString(dta.Artist.Value, dta.MetadataEncoding); }
-            if (dta.Album != null)   { entry._metadata.Album   = YARGDTAReader.DecodeString(dta.Album.Value, dta.MetadataEncoding); }
-            if (dta.Charter != null) { entry._metadata.Charter = dta.Charter; }
-            if (dta.Genre != null)   { entry._metadata.Genre   = dta.Genre; }
+            if (dta.Name != null)                 { entry._metadata.Name          = YARGDTAReader.DecodeString(dta.Name.Value, dta.MetadataEncoding); }
+            if (dta.Artist != null)               { entry._metadata.Artist        = YARGDTAReader.DecodeString(dta.Artist.Value, dta.MetadataEncoding); }
+            if (dta.Album != null)                { entry._metadata.Album         = YARGDTAReader.DecodeString(dta.Album.Value, dta.MetadataEncoding); }
+            if (dta.Charter != null)              { entry._metadata.Charter       = YARGDTAReader.DecodeString(dta.Charter.Value, dta.MetadataEncoding); }
+            if (dta.LoadingPhrase != null)        { entry._metadata.LoadingPhrase = YARGDTAReader.DecodeString(dta.LoadingPhrase.Value, dta.MetadataEncoding); }
+            if (dta.Genre != null)                { entry._metadata.Genre         = dta.Genre; }
             if (dta.YearAsNumber != null)
             {
                 entry._yearAsNumber = dta.YearAsNumber.Value;
@@ -767,7 +768,6 @@ namespace YARG.Core.Song
             if (dta.Preview != null)              { entry._metadata.Preview       = dta.Preview.Value; }
             if (dta.HopoThreshold != null)        { entry._settings.HopoThreshold = dta.HopoThreshold.Value; }
             if (dta.SongRating != null)           { entry._metadata.SongRating    = dta.SongRating.Value; }
-            if (dta.LoadingPhrase != null)        { entry._metadata.LoadingPhrase = dta.LoadingPhrase; }
             if (dta.VocalSongScrollSpeed != null) {
                 entry._rbMetadata.VocalSongScrollSpeed = dta.VocalSongScrollSpeed.Value;
 
