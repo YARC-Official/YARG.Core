@@ -63,6 +63,9 @@ namespace YARG.Core.IO
 
         public void LoadData(string nodename, YARGTextContainer<byte> container)
         {
+            YARGTextContainer<byte> containerPass2;
+            containerPass2 = container;
+
             while (YARGDTAReader.StartNode(ref container))
             {
                 string name = YARGDTAReader.GetNameOfNode(ref container, false);
@@ -264,6 +267,45 @@ namespace YARG.Core.IO
                     break;
                 }
                 YARGDTAReader.EndNode(ref container);
+            }
+
+            if (Charter is null)
+            {
+                // If no charter is specified,
+                // see if an old version of Magma put the author name in a comment
+                ReadOnlySpan<byte> legacyAuthorComment = new byte[]
+                {
+                    (byte)';',
+                    (byte)'S',
+                    (byte)'o',
+                    (byte)'n',
+                    (byte)'g',
+                    (byte)' ',
+                    (byte)'a',
+                    (byte)'u',
+                    (byte)'t',
+                    (byte)'h',
+                    (byte)'o',
+                    (byte)'r',
+                    (byte)'e',
+                    (byte)'d',
+                    (byte)' ',
+                    (byte)'b',
+                    (byte)'y',
+                    (byte)' '
+                };
+
+                TextSpan dtaLine = new TextSpan();
+
+                // Scan the DTA file for a line that starts with the Magma author comment
+                while (!YARGDTAReader.LineReader(ref containerPass2, ref dtaLine))
+                {
+                    if (dtaLine.StartsWith(legacyAuthorComment))
+                    {
+                        // If the comment is found, set the Charter to the author in the comment
+                        Charter = dtaLine.Slice(legacyAuthorComment.Length);
+                    }
+                }
             }
         }
 
