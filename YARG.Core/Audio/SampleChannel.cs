@@ -83,6 +83,17 @@ namespace YARG.Core.Audio
             }
         }
 
+        internal void SetOutputChannel(OutputChannel channel)
+        {
+            lock (this)
+            {
+                if (!_disposed)
+                {
+                    SetOutputChannel_Internal(channel);
+                }
+            }
+        }
+
         protected void SetEndCallback()
         {
             lock (this)
@@ -111,6 +122,7 @@ namespace YARG.Core.Audio
         protected abstract void Resume_Internal();
         protected abstract void SetVolume_Internal(double volume);
         protected abstract void SetEndCallback_Internal();
+        protected abstract void SetOutputChannel_Internal(OutputChannel? channel);
         protected abstract void EndCallback_Internal(int _, int __, int ___, IntPtr ____);
 
         protected virtual void DisposeManagedResources() { }
