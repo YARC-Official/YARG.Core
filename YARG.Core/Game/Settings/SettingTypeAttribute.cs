@@ -13,7 +13,9 @@ namespace YARG.Core.Game.Settings
 
         Toggle,
 
-        FileInfo
+        FileInfo,
+
+        Ignore
     }
 
     public class SettingTypeAttribute : Attribute
