@@ -61,6 +61,8 @@ namespace YARG.Core.Audio
         protected abstract void PlayLo_Internal();
         protected abstract void SetVolume_Internal(double volume);
 
+        protected abstract void SetOutputChannel_Internal(OutputChannel? channel);
+
         protected virtual void DisposeManagedResources()
         {
         }
