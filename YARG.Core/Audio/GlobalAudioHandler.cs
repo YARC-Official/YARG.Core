@@ -50,6 +50,7 @@ namespace YARG.Core.Audio
                 { SongStem.Sfx,      new StemSettings() },
                 { SongStem.DrumSfx,  new StemSettings() },
                 { SongStem.VoxSample, new StemSettings() },
+                { SongStem.Metronome, new StemSettings() },
                 { SongStem.Preview, new StemSettings() },
             };
         }
@@ -331,6 +332,26 @@ namespace YARG.Core.Audio
                 }
 
                 _instance.VoxSamples[(int) sample]?.Play();
+            }
+        }
+
+        public static void PlayMetronomeSoundEffect(MetronomeSample sample, MetronomePitch pitch)
+        {
+            lock (_instanceLock)
+            {
+                if (_instance == null)
+                {
+                    throw new NotInitializedException();
+                }
+
+                if (pitch == MetronomePitch.Hi)
+                {
+                    _instance.MetronomeSamples[(int) sample]?.PlayHi();
+
+                    return;
+                }
+
+                _instance.MetronomeSamples[(int) sample]?.PlayLo();
             }
         }
 
