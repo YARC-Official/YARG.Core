@@ -378,6 +378,93 @@ namespace YARG.Core.Chart
             return TickToTime(quarterTick);
         }
 
+        /// <summary>
+        /// Finds the smallest time such that TimeToMeasureTick(time) equals the target tick.
+        /// Uses binary search for O(log n) complexity.
+        /// </summary>
+        public double FindMinTimeForMeasureTick(uint targetTick)
+        {
+            double approxTime = MeasureTickToTime(targetTick);
+
+            if (TimeToMeasureTick(approxTime) == targetTick)
+            {
+                return FindMinTimeBackward(approxTime, targetTick);
+            }
+
+            return BinarySearchForTick(targetTick, approxTime);
+        }
+
+        private double FindMinTimeBackward(double startTime, uint targetTick)
+        {
+            double low = 0;
+            double high = startTime;
+            double epsilon = 1e-10;
+
+            while (high - low > epsilon)
+            {
+                double mid = (low + high) / 2;
+                if (TimeToMeasureTick(mid) == targetTick)
+                {
+                    high = mid;
+                }
+                else
+                {
+                    low = mid;
+                }
+            }
+
+            return high;
+        }
+
+        private double BinarySearchForTick(uint targetTick, double approxTime)
+        {
+            double low, high;
+            uint currentTick = TimeToMeasureTick(approxTime);
+
+            if (currentTick < targetTick)
+            {
+                low = approxTime;
+                high = approxTime * 2;
+                while (TimeToMeasureTick(high) < targetTick)
+                {
+                    low = high;
+                    high *= 2;
+                }
+            }
+            else
+            {
+                high = approxTime;
+                low = approxTime / 2;
+                while (TimeToMeasureTick(low) > targetTick)
+                {
+                    high = low;
+                    low /= 2;
+                }
+            }
+
+            double epsilon = 1e-10;
+            while (high - low > epsilon)
+            {
+                double mid = (low + high) / 2;
+                uint midTick = TimeToMeasureTick(mid);
+
+                if (midTick == targetTick)
+                {
+                    return FindMinTimeBackward(mid, targetTick);
+                }
+                else if (midTick < targetTick)
+                {
+                    low = mid;
+                }
+                else
+                {
+                    high = mid;
+                }
+            }
+
+            return high;
+        }
+
         public double GetStartTime()
         {
             // The sync track always starts at the very beginning of the chart

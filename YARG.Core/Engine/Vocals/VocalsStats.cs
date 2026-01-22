@@ -1,4 +1,5 @@
-﻿using System.IO;
+﻿using System;
+using System.IO;
 using YARG.Core.Extensions;
 using YARG.Core.IO;
 using YARG.Core.Replays;
@@ -22,6 +23,8 @@ namespace YARG.Core.Engine.Vocals
         /// </summary>
         public uint TotalTicks => TicksHit + TicksMissed;
 
+        public bool HasCarryNote;
+
         public override float Percent => TotalTicks == 0 ? 1f : (float) TicksHit / TotalTicks;
 
         public override int BandComboUnits => 10;
@@ -34,6 +37,7 @@ namespace YARG.Core.Engine.Vocals
         {
             TicksHit = stats.TicksHit;
             TicksMissed = stats.TicksMissed;
+            HasCarryNote = stats.HasCarryNote;
         }
 
         public VocalsStats(ref FixedArrayStream stream, int version)
@@ -41,6 +45,7 @@ namespace YARG.Core.Engine.Vocals
         {
             TicksHit = stream.Read<uint>(Endianness.Little);
             TicksMissed = stream.Read<uint>(Endianness.Little);
+            HasCarryNote = stream.ReadBoolean();
         }
 
         public override void Reset()
@@ -48,6 +53,7 @@ namespace YARG.Core.Engine.Vocals
             base.Reset();
             TicksHit = 0;
             TicksMissed = 0;
+            HasCarryNote = false;
         }
 
         public override void Serialize(BinaryWriter writer)
@@ -56,6 +62,7 @@ namespace YARG.Core.Engine.Vocals
 
             writer.Write(TicksHit);
             writer.Write(TicksMissed);
+            writer.Write(HasCarryNote);
         }
 
         public override ReplayStats ConstructReplayStats(string name)
