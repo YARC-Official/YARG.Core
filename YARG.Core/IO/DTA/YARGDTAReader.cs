@@ -51,6 +51,35 @@ namespace YARG.Core.IO
         }
 
         /// <summary>
+        /// Returns a line from the dta
+        /// </summary>
+        /// <remarks>Intended for parsing comments</remarks>
+        /// <returns>True if EOF, otherwise false</returns>
+        public static bool LineReader(ref YARGTextContainer<byte> container, ref TextSpan dtaLine)
+        {
+            int start = container.Position;
+            int length = 0;
+            char ch;
+
+            while (!container.IsAtEnd())
+            {
+                ch = (char) container.Get();
+                ++container.Position;
+                if (ch == '\n' || ch == '\r')
+                    break;
+                ++length;
+            }
+
+            unsafe
+            {
+                dtaLine.ptr = container.GetBuffer() + start;
+                dtaLine.length = length;
+            }
+
+            return container.IsAtEnd();
+        }
+
+        /// <summary>
         /// Extracts a boolean and skips the following whitespace
         /// </summary>
         /// <remarks>Throws if no value could be parsed</remarks>

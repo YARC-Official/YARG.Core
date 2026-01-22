@@ -54,5 +54,26 @@ namespace YARG.Core.IO
         {
             return Span.StartsWith(str);
         }
+
+        public readonly TextSpan Slice(int index)
+        {
+            var span = new TextSpan();
+            if (index >= length)
+            {
+                index = length;
+            }
+            else if (index < 0)
+            {
+                index = 0;
+            }
+
+            unsafe
+            {
+                span.ptr = ptr + index;
+                span.length = length - index;
+            }
+            return span;
+        }
+
     }
 }

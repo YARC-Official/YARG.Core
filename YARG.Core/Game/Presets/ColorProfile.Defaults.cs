@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using System.Drawing;
+using YARG.Core.Game.Settings;
 
 namespace YARG.Core.Game
 {
@@ -7,32 +8,52 @@ namespace YARG.Core.Game
     {
         #region Default Colors
 
+        [SettingType(SettingType.Ignore)]
         public static readonly Color DefaultPurple = Color.FromArgb(0xFF, 0xC8, 0x00, 0xFF); // #C800FF
+        [SettingType(SettingType.Ignore)]
         public static readonly Color DefaultGreen  = Color.FromArgb(0xFF, 0x79, 0xD3, 0x04); // #79D304
+        [SettingType(SettingType.Ignore)]
         public static readonly Color DefaultRed    = Color.FromArgb(0xFF, 0xFF, 0x1D, 0x23); // #FF1D23
+        [SettingType(SettingType.Ignore)]
         public static readonly Color DefaultYellow = Color.FromArgb(0xFF, 0xFF, 0xE9, 0x00); // #FFE900
+        [SettingType(SettingType.Ignore)]
         public static readonly Color DefaultBlue   = Color.FromArgb(0xFF, 0x00, 0xBF, 0xFF); // #00BFFF
+        [SettingType(SettingType.Ignore)]
         public static readonly Color DefaultOrange = Color.FromArgb(0xFF, 0xFF, 0x84, 0x00); // #FF8400
 
         // By default, use these colors for notes only, not fret coloring or particles
+        [SettingType(SettingType.Ignore)]
         public static readonly Color DefaultRedCymbal    = Color.FromArgb(0xFF, 0xF0, 0x20, 0x40); // #F02040
+        [SettingType(SettingType.Ignore)]
         public static readonly Color DefaultYellowCymbal = Color.FromArgb(0xFF, 0xFF, 0xD0, 0x10); // #FFD010
+        [SettingType(SettingType.Ignore)]
         public static readonly Color DefaultBlueCymbal   = Color.FromArgb(0xFF, 0x20, 0x90, 0xFF); // #2090FF
+        [SettingType(SettingType.Ignore)]
         public static readonly Color DefaultGreenCymbal  = Color.FromArgb(0xFF, 0xA0, 0xD0, 0x10); // #A0D010
 
+        [SettingType(SettingType.Ignore)]
         public static readonly Color DefaultStarpower = Color.White; // #FFFFFF
 
         // Overly saturate colors compared to the defaults for activations
+        [SettingType(SettingType.Ignore)]
         public static readonly Color DefaultPurpleActivationNote = Color.FromArgb(0xFF, 0xFF, 0x00, 0xFF); // #FFFF00
+        [SettingType(SettingType.Ignore)]
         public static readonly Color DefaultRedActivationNote    = Color.FromArgb(0xFF, 0xFF, 0x00, 0x00); // #FF0000
+        [SettingType(SettingType.Ignore)]
         public static readonly Color DefaultYellowActivationNote = Color.FromArgb(0xFF, 0xFF, 0xFF, 0x00); // #FFFF00
+        [SettingType(SettingType.Ignore)]
         public static readonly Color DefaultBlueActivationNote   = Color.FromArgb(0xFF, 0x00, 0xAA, 0xFF); // #00AAFF
+        [SettingType(SettingType.Ignore)]
         public static readonly Color DefaultOrangeActivationNote = Color.FromArgb(0xFF, 0xFF, 0xA5, 0x00); // #FFA500
+        [SettingType(SettingType.Ignore)]
         public static readonly Color DefaultGreenActivationNote  = Color.FromArgb(0xFF, 0x00, 0xFF, 0x00); // #00FF00
 
+        [SettingType(SettingType.Ignore)]
         public static readonly Color DefaultMetal          = Color.FromArgb(0xFF, 0xFF, 0xFF, 0xFF); // #FFFFFF
+        [SettingType(SettingType.Ignore)]
         public static readonly Color DefaultMetalStarPower = Color.FromArgb(0xFF, 0xFF, 0xD7, 0x00); // #FFD700
 
+        [SettingType(SettingType.Ignore)]
         public static readonly Color DefaultMiss = Color.FromArgb(0xFF, 0x90, 0x90, 0x90); // #909090
 
         #endregion
