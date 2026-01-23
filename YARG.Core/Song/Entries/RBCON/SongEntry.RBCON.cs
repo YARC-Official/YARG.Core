@@ -798,7 +798,15 @@ namespace YARG.Core.Song
 
             if (dta.Location != null) { location = dta.Location; }
 
-            if (dta.Indices != null)  { entry._indices = dta.Indices.Value; }
+            if (dta.Indices != null)
+            {
+                int[] existingCrowd = entry._indices.Crowd;
+                entry._indices = dta.Indices.Value;
+                if (dta.CrowdChannels == null && existingCrowd.Length > 0)
+                {
+                    entry._indices.Crowd = existingCrowd;
+                }
+            }
 
             if (dta.CrowdChannels != null) { entry._indices.Crowd = dta.CrowdChannels; }
 
