@@ -122,7 +122,7 @@ namespace YARG.Core.Engine
 
         protected bool ReRunHitLogic;
 
-        protected readonly bool IsBot;
+        public bool IsBot { get; }
 
         protected BaseEngine(SyncTrack syncTrack, bool isChordSeparate, bool isBot)
         {
@@ -409,10 +409,10 @@ namespace YARG.Core.Engine
             RebaseSustains(CurrentTick);
         }
 
-        
-        public void UpdateBandMultiplier(int multiplier)
+        public void UpdateBandMultiplier(int multiplier, int multiplierHuman)
         {
             BaseStats.BandMultiplier = multiplier;
+            BaseStats.BandMultiplierHuman = multiplierHuman;
         }
 
         public double GetStarPowerBarAmount()
