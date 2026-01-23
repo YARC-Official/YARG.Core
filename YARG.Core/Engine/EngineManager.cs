@@ -16,6 +16,7 @@ namespace YARG.Core.Engine
 
         private SongChart?               _chart;
 
+
         public partial class EngineContainer
         {
             public  int             EngineId         { get; }
@@ -71,9 +72,13 @@ namespace YARG.Core.Engine
 
             private void OnStarPowerStatus(bool active)
             {
-                var count = _engineManager._starpowerCount;
-                count += active ? 1 : -1;
-                _engineManager.UpdateStarPowerCount(count);
+                int delta = active ? 1 : -1;
+                if (!Engine.IsBot)
+                {
+                    _engineManager._humanStarpowerCount += delta;
+                }
+                _engineManager._starpowerCount += delta;
+                _engineManager.UpdateBandMultiplier();
             }
         }
 
@@ -119,12 +124,6 @@ namespace YARG.Core.Engine
                 }
             }
             throw new ArgumentException("Target engine not found");
-        }
-
-        private void UpdateStarPowerCount(int count)
-        {
-            _starpowerCount = Math.Clamp(count, 0, int.MaxValue);
-            UpdateBandMultiplier();
         }
 
         public void UpdateEngines(double time)
