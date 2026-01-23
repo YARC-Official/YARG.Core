@@ -394,7 +394,7 @@ namespace YARG.Core.Audio
             }
         }
 
-        public static MicDevice? CreateDevice(int deviceId, string name)
+        public static MicDevice? CreateInputDevice(int deviceId, string name)
         {
             lock (_instanceLock)
             {
@@ -402,7 +402,7 @@ namespace YARG.Core.Audio
                 {
                     throw new NotInitializedException();
                 }
-                return _instance.CreateDevice(deviceId, name);
+                return _instance.CreateInputDevice(deviceId, name);
             }
         }
 
@@ -439,6 +439,92 @@ namespace YARG.Core.Audio
                     throw new NotInitializedException();
                 }
                 _instance.SetBufferLength(length);
+            }
+        }
+
+        public static List<(int id, string name)> GetAllOutputDevices()
+        {
+            lock (_instanceLock)
+            {
+                if (_instance == null)
+                {
+                    throw new NotInitializedException();
+                }
+                return _instance.GetAllOutputDevices();
+            }
+        }
+
+        public static int GetOutputChannelCount()
+        {
+            lock (_instanceLock)
+            {
+                if (_instance == null)
+                {
+                    throw new NotInitializedException();
+                }
+                return _instance.GetOutputChannelCount();
+            }
+        }
+
+        public static OutputDevice? GetOutputDevice(string name)
+        {
+            lock (_instanceLock)
+            {
+                if (_instance == null)
+                {
+                    throw new NotInitializedException();
+                }
+                return _instance.GetOutputDevice(name);
+            }
+        }
+
+        public static void SetOutputChannel(SongStem stem, int channelId)
+        {
+            lock (_instanceLock)
+            {
+                if (_instance == null)
+                {
+                    throw new NotInitializedException();
+                }
+
+                OutputChannel? channel = _instance.CreateOutputChannel(channelId);
+                if (channel == null)
+                {
+                    return;
+                }
+
+                switch (stem) {
+                    case SongStem.DrumSfx:
+                        foreach (DrumSampleChannel sample in _instance.DrumSfxSamples)
+                            sample?.SetOutputChannel(channel);
+                        break;
+
+                    case SongStem.Sfx:
+                        foreach (SampleChannel sample in _instance.SfxSamples)
+                            sample?.SetOutputChannel(channel);
+                        break;
+
+                    case SongStem.VoxSample:
+                        foreach (VoxSampleChannel sample in _instance.VoxSamples)
+                            sample?.SetOutputChannel(channel);
+                        break;
+
+                    default:
+                        _instance.SetOutputChannel(channel);
+                        break;
+                }
+            }
+        }
+
+        public static void SetOutputDevice(string name)
+        {
+            lock (_instanceLock)
+            {
+                if (_instance == null)
+                {
+                    throw new NotInitializedException();
+                }
+                _instance.SetOutputDevice(name);
             }
         }
     }
