@@ -53,6 +53,11 @@ namespace YARG.Core.Engine
         public int BandBonusScore;
 
         /// <summary>
+        /// Total score earned from band bonuses, but only counting human players.
+        /// </summary>
+        public int BandBonusScoreHuman;
+
+        /// <summary>
         /// The score used to calculate star progress.
         /// </summary>
         /// <remarks>
@@ -92,10 +97,20 @@ namespace YARG.Core.Engine
         public int BandMultiplier;
 
         /// <summary>
-        /// The bonus multiplier awared to this player as a result of other players having Star Power/Overdrive active.
+        /// The bonus multiplier awarded to this player as a result of other players having Star Power/Overdrive active.
         /// See also <see cref="BandBonusScore"/>.
         /// </summary>
         public int BandBonusMultiplier => IsStarPowerActive ? BandMultiplier - 2 : BandMultiplier - 1;
+
+        /// <summary>
+        /// The band multiplier calculated from human players only, excluding bots.
+        /// </summary>
+        public int BandMultiplierHuman;
+
+        /// <summary>
+        /// The band bonus multiplier from Star Power activations for human players only, excluding bots.
+        /// </summary>
+        public int BandBonusMultiplierHuman => IsStarPowerActive ? BandMultiplierHuman - 2 : BandMultiplierHuman - 1;
 
         /// <summary>
         /// Number of notes which have been hit.

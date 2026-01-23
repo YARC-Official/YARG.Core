@@ -60,9 +60,10 @@ namespace YARG.Core.Engine
         // below the crowd threshold
         private float _previousHappiness = 100f;
 
-        private int   _starpowerCount = 0;
+        private int _starpowerCount;
+        private int _humanStarpowerCount;
 
-        public        bool IsAnyStarpowerActive => _starpowerCount > 0;
+        public bool IsAnyStarpowerActive => _starpowerCount > 0;
 
         public delegate void SongFailed();
         public delegate void HappinessOverThreshold();

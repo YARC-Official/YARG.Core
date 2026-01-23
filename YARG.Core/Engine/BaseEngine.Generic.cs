@@ -644,6 +644,7 @@ namespace YARG.Core.Engine
 
                 EngineStats.StarPowerScore += spScore;
                 EngineStats.BandBonusScore += EngineStats.BandBonusMultiplier * spScore;
+                EngineStats.BandBonusScoreHuman += EngineStats.BandBonusMultiplierHuman * spScore;
 
                 // Subtract score from the note that was just hit to get the multiplier points
                 EngineStats.MultiplierScore += spScore - score;
@@ -652,6 +653,7 @@ namespace YARG.Core.Engine
             {
                 EngineStats.MultiplierScore += scoreMultiplier - score;
                 EngineStats.BandBonusScore += EngineStats.BandBonusMultiplier * scoreMultiplier;
+                EngineStats.BandBonusScoreHuman += EngineStats.BandBonusMultiplierHuman * scoreMultiplier;
             }
 
             UpdateStars();
