@@ -57,6 +57,17 @@ namespace YARG.Core.Audio
             }
         }
 
+        internal void SetOutputChannel(OutputChannel channel)
+        {
+            lock (this)
+            {
+                if (!_disposed)
+                {
+                    SetOutputChannel_Internal(channel);
+                }
+            }
+        }
+
         protected abstract void PlayHi_Internal();
         protected abstract void PlayLo_Internal();
         protected abstract void SetVolume_Internal(double volume);
