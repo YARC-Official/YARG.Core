@@ -42,7 +42,8 @@ namespace YARG.Core.Engine.Keys.Engines
                     KeyHitThisUpdate = (int) action;
                     _keyPressedTimes[(int) action].NoteIndex = NoteIndex;
                     _keyPressedTimes[(int) action].Time = gameInput.Time;
-                    SubmitTrillNote((int) action);
+                    // SubmitTrillNote((int) action);
+                    SubmitLaneNote((int) action);
                 }
                 else
                 {

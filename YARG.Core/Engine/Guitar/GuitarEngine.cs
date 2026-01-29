@@ -440,10 +440,10 @@ namespace YARG.Core.Engine.Guitar
         {
             return (EffectiveButtonMask & (1 << (int) fret)) != 0;
         }
-        
+
         protected int GetLaneMask()
         {
-            var laneMask = ButtonMask;
+            var laneMask = EffectiveButtonMask;
 
             foreach(var sustain in ActiveSustains)
             {

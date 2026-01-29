@@ -11,9 +11,9 @@ namespace YARG.Core.Chart
         private bool _discoFlip = false;
 
         private uint _lastLanePhraseTick;
-        private List<int>? _validLaneNotes = null; 
+        private List<int>? _validLaneNotes = null;
 
-        public InstrumentTrack<DrumNote> LoadDrumsTrack(Instrument instrument)
+        public InstrumentTrack<DrumNote> LoadDrumsTrack(Instrument instrument, InstrumentTrack<EliteDrumNote>? eliteDrumsFallback)
         {
             _discoFlip = false;
             return instrument.ToNativeGameMode() switch
@@ -332,6 +332,17 @@ namespace YARG.Core.Chart
             return DrumNoteFlags.None;
         }
 
+        private InstrumentDifficulty<DrumNote> LoadFromEliteDrumsDownchartDifficulty(Instrument instrument,
+            Difficulty difficulty, CreateNoteDelegate<DrumNote> createNote, ProcessTextDelegate? processText = null)
+        {
+            var downchart = _downCharts![difficulty];
+
+            var notes = GetNotes(downchart, difficulty, createNote, processText);
+            var phrases = GetPhrases(downchart);
+            var textEvents = GetTextEvents(downchart);
+            return new(instrument, difficulty, notes, phrases, textEvents);
+        }
+
         private NoteFlags ModifyDrumLaneFlags(MoonNote moonNote, Dictionary<MoonPhrase.Type, MoonPhrase> currentPhrases, NoteFlags flags)
         {
             MoonPhrase? lanePhrase = null;
@@ -373,11 +384,11 @@ namespace YARG.Core.Chart
                 // Iterate forward every note in this phrase to find the notes that appear the most
                 // Assumes that this will only run when the first note in a phrase is provided
                 Dictionary<int,int> noteTotals = new();
-                
+
                 // Stop searching if the current note value has this much of a lead over the others
                 const int CLINCH_THRESHOLD = 5;
                 int highestTotal = 0;
-                
+
                 for (var noteRef = moonNote; noteRef != null && IsEventInPhrase(noteRef, lanePhrase); noteRef = noteRef.next)
                 {
                     if (noteRef.isChord && noteRef.drumPad == MoonNote.DrumPad.Kick)
