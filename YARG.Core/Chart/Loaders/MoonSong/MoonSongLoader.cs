@@ -175,7 +175,9 @@ namespace YARG.Core.Chart
 
                 // Skip Expert+ notes if not on Expert+
                 if (difficulty != Difficulty.ExpertPlus && (moonNote.flags & MoonNote.Flags.InstrumentPlus) != 0)
+                {
                     continue;
+                }
 
                 var newNote = createNote(moonNote, currentPhrases);
                 AddNoteToList(notes, newNote);
@@ -213,7 +215,9 @@ namespace YARG.Core.Chart
                 };
 
                 if (!phraseType.HasValue)
+                {
                     continue;
+                }
 
                 double time = _moonSong.TickToTime(moonPhrase.tick);
                 var newPhrase = new Phrase(phraseType.Value, time, GetLengthInTime(moonPhrase), moonPhrase.tick, moonPhrase.length);
@@ -249,10 +253,14 @@ namespace YARG.Core.Chart
                 flags |= NoteFlags.StarPower;
 
                 if (previous == null || !IsEventInPhrase(previous, starPower))
+                {
                     flags |= NoteFlags.StarPowerStart;
+                }
 
                 if (next == null || !IsEventInPhrase(next, starPower))
+                {
                     flags |= NoteFlags.StarPowerEnd;
+                }
             }
 
             // Solos
@@ -261,10 +269,46 @@ namespace YARG.Core.Chart
                 flags |= NoteFlags.Solo;
 
                 if (previous == null || !IsEventInPhrase(previous, solo))
+                {
                     flags |= NoteFlags.SoloStart;
+                }
 
                 if (next == null || !IsEventInPhrase(next, solo))
+                {
                     flags |= NoteFlags.SoloEnd;
+                }
+            }
+
+            // Trill
+            if (currentPhrases.TryGetValue(MoonPhrase.Type.TrillLane, out var trill) && IsEventInPhrase(moonNote, trill))
+            {
+                flags |= NoteFlags.Trill;
+
+                if (previous == null || !IsEventInPhrase(previous, trill))
+                {
+                    flags |= NoteFlags.LaneStart;
+                }
+
+                if (next == null || !IsEventInPhrase(next, trill))
+                {
+                    flags |= NoteFlags.LaneEnd;
+                }
+            }
+
+            // Tremolo
+            if (currentPhrases.TryGetValue(MoonPhrase.Type.TremoloLane, out var tremolo) && IsEventInPhrase(moonNote, tremolo))
+            {
+                flags |= NoteFlags.Tremolo;
+                    
+                if (previous == null || !IsEventInPhrase(previous, tremolo))
+                {
+                    flags |= NoteFlags.LaneStart;
+                }
+
+                if (next == null || !IsEventInPhrase(next, tremolo))
+                {
+                    flags |= NoteFlags.LaneEnd;
+                }
             }
 
             return flags;
