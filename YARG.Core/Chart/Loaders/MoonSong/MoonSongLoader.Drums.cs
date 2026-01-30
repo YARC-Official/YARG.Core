@@ -391,9 +391,9 @@ namespace YARG.Core.Chart
 
                 for (var noteRef = moonNote; noteRef != null && IsEventInPhrase(noteRef, lanePhrase); noteRef = noteRef.next)
                 {
-                    if (noteRef.isChord && noteRef.drumPad == MoonNote.DrumPad.Kick)
+                    if (noteRef.drumPad == MoonNote.DrumPad.Kick)
                     {
-                        // Kick tremolos are only possible with a winning total on non-chorded kicks, no ties with other notes
+                        // Don't allow kick lanes
                         continue;
                     }
 
