@@ -282,6 +282,9 @@ namespace YARG.Core.Chart
             // Trill
             if (currentPhrases.TryGetValue(MoonPhrase.Type.TrillLane, out var trill) && IsEventInPhrase(moonNote, trill))
             {
+                // Sustains are not allowed in lanes, so make sure the note has zero length
+                moonNote.length = 0;
+
                 flags |= NoteFlags.Trill;
 
                 if (previous == null || !IsEventInPhrase(previous, trill))
@@ -298,8 +301,11 @@ namespace YARG.Core.Chart
             // Tremolo
             if (currentPhrases.TryGetValue(MoonPhrase.Type.TremoloLane, out var tremolo) && IsEventInPhrase(moonNote, tremolo))
             {
+                // Sustains are not allowed in lanes, so make sure the note has zero length
+                moonNote.length = 0;
+
                 flags |= NoteFlags.Tremolo;
-                    
+
                 if (previous == null || !IsEventInPhrase(previous, tremolo))
                 {
                     flags |= NoteFlags.LaneStart;
