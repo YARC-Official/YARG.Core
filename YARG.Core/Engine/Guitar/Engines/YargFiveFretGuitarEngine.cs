@@ -67,6 +67,8 @@ namespace YARG.Core.Engine.Guitar.Engines
         {
             var action = gameInput.GetAction<GuitarAction>();
 
+            bool newNoteInput = false;
+
             // Star power
             if (action is GuitarAction.StarPower)
             {
@@ -79,6 +81,7 @@ namespace YARG.Core.Engine.Guitar.Engines
             else if (action is GuitarAction.StrumDown or GuitarAction.StrumUp && gameInput.Button)
             {
                 HasStrummed = true;
+                newNoteInput = true;
             }
             else if (IsFretInput(gameInput))
             {
@@ -97,6 +100,24 @@ namespace YARG.Core.Engine.Guitar.Engines
                 {
                     // Some frets are held, disable the "open fret"
                     EffectiveButtonMask &= unchecked((byte) ~OPEN_MASK);
+                }
+
+                newNoteInput = true;
+            }
+
+            if (newNoteInput && IsLaneActive)
+            {
+                var laneMask = GetLaneMask();
+                if (MaskIsMultiFret(RequiredLaneNote))
+                {
+                    // Submit entire button mask to active chord lane
+                    SubmitLaneNote(laneMask);
+                }
+                else
+                {
+                    // Submit right-most fret to active single lane
+                    int singleFretMask = laneMask == OPEN_MASK ? OPEN_MASK : 1 << (GetMostSignificantBit(laneMask) - 1);
+                    SubmitLaneNote(singleFretMask);
                 }
             }
 
@@ -211,6 +232,12 @@ namespace YARG.Core.Engine.Guitar.Engines
                 {
                     if (isFirstNoteInWindow && missed)
                     {
+                        // Intercept missed note while lane phrase is active
+                        if (HitNoteFromLane(note))
+                        {
+                            break;
+                        }
+                        
                         MissNote(note);
                         YargLogger.LogFormatTrace("Missed note (Index: {0}, Mask: {1}) at {2}", i,
                             note.NoteMask, CurrentTime);
@@ -511,19 +538,6 @@ namespace YARG.Core.Engine.Guitar.Engines
             }
 
             return false;
-        }
-
-        private static int GetMostSignificantBit(int mask)
-        {
-            // Gets the most significant bit of the mask
-            var msbIndex = 0;
-            while (mask != 0)
-            {
-                mask >>= 1;
-                msbIndex++;
-            }
-
-            return msbIndex;
         }
     }
 }

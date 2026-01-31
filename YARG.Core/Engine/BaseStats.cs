@@ -103,6 +103,11 @@ namespace YARG.Core.Engine
         public int NotesHit;
 
         /// <summary>
+        /// Number of laned notes which have been hit.
+        /// </summary>
+        public int LanedNotesHit;
+
+        /// <summary>
         /// Number of notes in the chart. This value should never be modified.
         /// </summary>
         public int TotalNotes;
@@ -357,13 +362,18 @@ namespace YARG.Core.Engine
 
         public double GetAverageOffset()
         {
-            return NotesHit > 0 ? TotalOffset / NotesHit : 0.0;
+            var offsetNotes = NotesHit - LanedNotesHit;
+            return offsetNotes > 0 ? TotalOffset / offsetNotes : 0.0;
         }
 
         public void IncrementNotesHit<NoteType>(NoteType note, double current_time) where NoteType : Note<NoteType>
         {
             ++NotesHit;
-            TotalOffset += current_time - note.Time;
+            if (!note.IsLane)
+            {
+                LanedNotesHit++;
+                TotalOffset += current_time - note.Time;
+            }
         }
     }
 }

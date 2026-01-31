@@ -13,6 +13,9 @@ namespace YARG.Core.Engine.Guitar
 
         public const byte OPEN_MASK = 64;
 
+        // TODO: Make this configurable, or at least less of an arbitrary choice
+        private const double LANE_END_OVERSTRUM_LENIENCY = 0.080;
+
         public delegate void OverstrumEvent();
 
         public OverstrumEvent? OnOverstrum;
@@ -132,6 +135,24 @@ namespace YARG.Core.Engine.Guitar
             {
                 YargLogger.LogFormatTrace("Overstrum prevented during WaitCountdown at time: {0}, tick: {1}", CurrentTime, CurrentTick);
                 return;
+            }
+
+            // Prevent overstrum if the current ButtonMask satisfies the active lane
+            var laneMask = GetLaneMask();
+            if (ActiveLaneIncludesNote(laneMask))
+            {
+                UpdateLaneExpireTime();
+                return;
+            }
+
+            if (!IsLaneActive && CurrentTime - LaneExpireTime < LANE_END_OVERSTRUM_LENIENCY)
+            {
+                YargLogger.LogFormatTrace("Overstrum prevented by lane end leniency at {0}", CurrentTime);
+            }
+
+            if (IsLaneActive)
+            {
+                YargLogger.LogFormatTrace("Punishing lane overstrum at {0}. Current mask: {1}, RequiredLaneNote: {2}, NextTrillNote: {3}", CurrentTime, laneMask, RequiredLaneNote, NextTrillNote);
             }
 
             YargLogger.LogFormatTrace("Overstrummed at {0}", CurrentTime);
@@ -335,6 +356,34 @@ namespace YARG.Core.Engine.Guitar
             }
         }
 
+        protected override bool ActiveLaneIncludesNote(int mask)
+        {
+            if (!IsLaneActive)
+            {
+                return false;
+            }
+
+            if (MaskIsMultiFret(RequiredLaneNote)) // Active lane is chord tremolo
+            {
+                if (mask == RequiredLaneNote)
+                {
+                    // All frets held are an exact match
+                    return true;
+                }
+            }
+            else // Active lane is a single fret
+            {
+                var heldMSB = GetMostSignificantBit(mask);
+                if (heldMSB == GetMostSignificantBit(RequiredLaneNote) || (NextTrillNote != -1 && heldMSB == GetMostSignificantBit(NextTrillNote)))
+                {
+                    // The right-most held fret matches the active lane
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
         public override void SetSpeed(double speed)
         {
             base.SetSpeed(speed);
@@ -399,6 +448,43 @@ namespace YARG.Core.Engine.Guitar
         public bool IsFretHeld(GuitarAction fret)
         {
             return (EffectiveButtonMask & (1 << (int) fret)) != 0;
+        }
+
+        protected int GetLaneMask()
+        {
+            var laneMask = EffectiveButtonMask;
+
+            foreach(var sustain in ActiveSustains)
+            {
+                // Remove any frets from disjointed sustains
+                laneMask &= (byte) ~sustain.Note.NoteMask;
+            }
+
+            if ((RequiredLaneNote & OPEN_MASK) != 0 && MaskIsMultiFret(RequiredLaneNote))
+            {
+                // Active tremolo lane is an open chord, add open note to the final mask
+                laneMask |= OPEN_MASK;
+            }
+
+            return laneMask;
+        }
+
+        protected static bool MaskIsMultiFret(int mask)
+        {
+            return (mask & (mask - 1)) != 0;
+        }
+
+        protected static int GetMostSignificantBit(int mask)
+        {
+            // Gets the most significant bit of the mask
+            var msbIndex = 0;
+            while (mask != 0)
+            {
+                mask >>= 1;
+                msbIndex++;
+            }
+
+            return msbIndex;
         }
 
         protected static bool IsFretInput(GameInput input)

@@ -113,6 +113,14 @@ namespace YARG.Core.Engine
             public readonly string Reason;
         }
 
+        protected uint TotalLanes;
+        protected uint CurrentLaneIndex;
+        protected int RequiredLaneNote;
+        protected int NextTrillNote;
+        protected double LaneExpireTime;
+        public bool IsLaneActive => RequiredLaneNote != -1;
+        public bool LanesExist => CurrentLaneIndex <= TotalLanes;
+
         /// <summary>
         /// Whether or not the specified engine should treat a note as a chord, or separately.
         /// For example, guitars would treat each note as a chord, where as drums would treat them
@@ -383,6 +391,12 @@ namespace YARG.Core.Engine
             CurrentWaitCountdownIndex = 0;
 
             IsSoloActive = false;
+
+            TotalLanes = 0;
+            CurrentLaneIndex = 1;
+            RequiredLaneNote = -1;
+            NextTrillNote = -1;
+            LaneExpireTime = -1;
 
             IsWaitCountdownActive = false;
             IsStarPowerInputActive = false;

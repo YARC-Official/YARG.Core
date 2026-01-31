@@ -45,6 +45,7 @@ namespace YARG.Core.Engine.Keys.Engines
                     KeyHitThisUpdate = fiveLaneKeyIndex;
                     _keyPressedTimes[fiveLaneKeyIndex].NoteIndex = NoteIndex;
                     _keyPressedTimes[fiveLaneKeyIndex].Time = gameInput.Time;
+                    SubmitLaneNote(fiveLaneKeyIndex);
                 }
                 else
                 {
@@ -84,11 +85,15 @@ namespace YARG.Core.Engine.Keys.Engines
             {
                 if (missed)
                 {
-                    // If one of the notes in the chord was missed out the back end,
-                    // that means all of them would miss.
-                    foreach (var missedNote in parentNote.AllNotes)
+                    // Intercept missed note while lane phrase is active
+                    if (!HitNoteFromLane(parentNote))
                     {
-                        MissNote(missedNote);
+                        // If one of the notes in the chord was missed out the back end,
+                        // that means all of them would miss.
+                        foreach (var missedNote in parentNote.AllNotes)
+                        {
+                            MissNote(missedNote);
+                        }
                     }
                 }
             }
