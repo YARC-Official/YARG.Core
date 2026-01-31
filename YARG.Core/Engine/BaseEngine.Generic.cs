@@ -571,9 +571,7 @@ namespace YARG.Core.Engine
                 // Update next required note for trills to ensure alternating inputs
                 if (NextTrillNote != -1)
                 {
-                    int lastLaneNote = RequiredLaneNote;
-                    RequiredLaneNote = NextTrillNote;
-                    NextTrillNote = lastLaneNote;
+                    (RequiredLaneNote, NextTrillNote) = (NextTrillNote, RequiredLaneNote);
                 }
             }
         }
@@ -593,10 +591,10 @@ namespace YARG.Core.Engine
             return false;
         }
 
-        private void UpdateLaneExpireTime()
+        protected void UpdateLaneExpireTime()
         {
             LaneExpireTime = CurrentTime + EngineParameters.HitWindow.CalculateTremoloWindow();
-            //YargLogger.LogFormatDebug("LaneExpireTime extended to {0}. TremoloFrontEndPercent {1}. Increment {2}.", LaneExpireTime, EngineParameters.HitWindow.TremoloFrontEndPercent, LaneExpireTime - CurrentTime);
+            YargLogger.LogFormatDebug("LaneExpireTime extended to {0}. TremoloFrontEndPercent {1}. Increment {2}.", LaneExpireTime, EngineParameters.HitWindow.TremoloFrontEndPercent, LaneExpireTime - CurrentTime);
         }
 
         protected bool SkipPreviousNotes(TNoteType current)
