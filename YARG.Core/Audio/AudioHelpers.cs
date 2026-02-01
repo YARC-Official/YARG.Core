@@ -209,6 +209,7 @@ namespace YARG.Core.Audio
         {
             // Samples taken from https://www.reddit.com/r/audioengineering/comments/kg8gth/free_click_track_sound_archive/
             // Normalised with `ffmpeg -i <original> -filter:a "loudnorm=I=-11:LRA=7:TP=-1, volume=29dB" -c:a libvorbis <final>`
+            new Sample<MetronomeSample>(MetronomeSample.None, "", ""),
             new Sample<MetronomeSample>(MetronomeSample.Castanet, "castanet_hi", "castanet_lo"),
             new Sample<MetronomeSample>(MetronomeSample.Clap, "clap_hi", "clap_lo"),
             new Sample<MetronomeSample>(MetronomeSample.Party, "party_hi", "party_lo"),

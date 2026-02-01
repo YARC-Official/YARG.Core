@@ -141,6 +141,7 @@
 
     public enum MetronomeSample
     {
+        None,
         Castanet,
         Clap,
         Party,
