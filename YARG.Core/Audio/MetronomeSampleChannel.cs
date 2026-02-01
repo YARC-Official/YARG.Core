@@ -51,7 +51,6 @@ namespace YARG.Core.Audio
             {
                 if (!_disposed)
                 {
-                    volume *= _volume;
                     SetVolume_Internal(volume);
                 }
             }
