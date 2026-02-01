@@ -37,9 +37,10 @@ namespace YARG.Core.Chart
             }
         }
 
-        public static void ConvertFromOpenToGreen(this InstrumentDifficulty<GuitarNote> difficulty)
+        public static void ConvertFromOpenToGreen(this InstrumentDifficulty<GuitarNote> difficulty, SyncTrack syncTrack)
         {
             GuitarNote? lastGreenSustain = null;
+            uint sixteenthTickLength = syncTrack.Resolution / 4;
             foreach (var note in difficulty.Notes)
             {
                 if (note.Fret == FiveFretGuitarFret.Open.Convert() && !note.IsChord)
@@ -50,10 +51,21 @@ namespace YARG.Core.Chart
                 if (note.Fret == FiveFretGuitarFret.Green.Convert())
                 {
                     //cut off last green sustain early if there is another green note on it
-                    if (lastGreenSustain != null && lastGreenSustain.Tick + lastGreenSustain.TickLength > note.Tick)
+                    if (lastGreenSustain != null &&
+                        lastGreenSustain.Tick + lastGreenSustain.TickLength + sixteenthTickLength > note.Tick)
                     {
-                        lastGreenSustain.TickLength = note.Tick - lastGreenSustain.Tick;
-                        lastGreenSustain.TimeLength = note.Time - lastGreenSustain.Time;
+                        //if sustain would be cut off before starting remove sustain
+                        if (note.Tick - lastGreenSustain.Tick <= sixteenthTickLength)
+                        {
+                            lastGreenSustain.TickLength = 0;
+                            lastGreenSustain.TimeLength = 0;
+                        }
+                        else
+                        {
+                            lastGreenSustain.TickLength = note.Tick - sixteenthTickLength - lastGreenSustain.Tick;
+                            lastGreenSustain.TimeLength = syncTrack.TickToTime(note.Tick - sixteenthTickLength) -
+                                lastGreenSustain.Time;
+                        }
                     }
 
                     if (note.IsSustain)

@@ -233,7 +233,7 @@ namespace YARG.Core.Replays.Analyzer
                     // Reset the notes
                     var notes = _chart.GetFiveFretTrack(profile.CurrentInstrument)
                         .GetDifficulty(profile.CurrentDifficulty).Clone();
-                    profile.ApplyModifiers(notes);
+                    profile.ApplyModifiers(notes, _chart.SyncTrack);
                     foreach (var note in notes.Notes)
                     {
                         foreach (var subNote in note.AllNotes)
@@ -257,7 +257,7 @@ namespace YARG.Core.Replays.Analyzer
                     var notes = _chart.GetDrumsTrack(profile.CurrentInstrument)
                         .GetDifficulty(profile.CurrentDifficulty).Clone();
                     notes.SetDrumActivationFlags(profile.StarPowerActivationType);
-                    profile.ApplyModifiers(notes);
+                    profile.ApplyModifiers(notes, _chart.SyncTrack);
                     foreach (var note in notes.Notes)
                     {
                         foreach (var subNote in note.AllNotes)
@@ -280,7 +280,7 @@ namespace YARG.Core.Replays.Analyzer
                     {
                         // Reset the notes
                         var proNotes = _chart.ProKeys.GetDifficulty(profile.CurrentDifficulty).Clone();
-                        profile.ApplyModifiers(proNotes);
+                        profile.ApplyModifiers(proNotes, _chart.SyncTrack);
                         foreach (var note in proNotes.Notes)
                         {
                             foreach (var subNote in note.AllNotes)
@@ -301,7 +301,7 @@ namespace YARG.Core.Replays.Analyzer
                     // Reset the notes
                     var fiveLaneNotes = _chart.GetFiveFretTrack(profile.CurrentInstrument)
                         .GetDifficulty(profile.CurrentDifficulty).Clone();
-                    profile.ApplyModifiers(fiveLaneNotes);
+                    profile.ApplyModifiers(fiveLaneNotes, _chart.SyncTrack);
                     foreach (var note in fiveLaneNotes.Notes)
                     {
                         foreach (var subNote in note.AllNotes)
