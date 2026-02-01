@@ -466,7 +466,7 @@ namespace YARG.Core.Engine
                 AdvanceToNextNote(note);
             }
 
-            if (!LanesExist || !note.IsLane)
+            if (!LanesExist || !note.IsLane || !BaseParameters.EnableLanes)
             {
                 return;
             }
