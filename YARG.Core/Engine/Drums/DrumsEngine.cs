@@ -81,6 +81,12 @@ namespace YARG.Core.Engine.Drums
                 return;
             }
 
+            if (PadHit != null && ActiveLaneIncludesNote((int) PadHit))
+            {
+                // Do not count this as an overhit if the last pad hit was part of an active lane
+                return;
+            }
+
             if (NoteIndex < Notes.Count)
             {
                 // Don't remove the phrase if the current note being overstrummed is the start of a phrase

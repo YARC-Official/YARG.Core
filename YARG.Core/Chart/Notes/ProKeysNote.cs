@@ -16,6 +16,8 @@ namespace YARG.Core.Chart
 
         public bool IsSustain => TickLength > 0;
 
+        public override int LaneNote => Key;
+
         public ProKeysNote(int key, ProKeysNoteFlags proKeysFlags, NoteFlags flags,
             double time, double timeLength, uint tick, uint tickLength)
             : base(flags, time, timeLength, tick, tickLength)

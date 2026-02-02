@@ -18,16 +18,19 @@ namespace YARG.Core.Engine
 
         public readonly float[] StarMultiplierThresholds;
 
+        public readonly bool EnableLanes;
+
         public double SongSpeed;
 
         protected BaseEngineParameters(HitWindowSettings hitWindow, int maxMultiplier, double spWhammyBuffer,
-            double sustainDropLeniency, float[] starMultiplierThresholds)
+            double sustainDropLeniency, float[] starMultiplierThresholds, bool enableLanes)
         {
             HitWindow = hitWindow;
             StarPowerWhammyBuffer = spWhammyBuffer;
             SustainDropLeniency = sustainDropLeniency;
             MaxMultiplier = maxMultiplier;
             StarMultiplierThresholds = starMultiplierThresholds;
+            EnableLanes = enableLanes;
         }
 
         protected BaseEngineParameters(ref FixedArrayStream stream, int version)
