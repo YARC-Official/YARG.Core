@@ -1,4 +1,4 @@
-﻿using System.IO;
+using System.IO;
 using YARG.Core.Chart;
 using YARG.Core.Extensions;
 using YARG.Core.IO;
@@ -236,10 +236,12 @@ namespace YARG.Core.Engine
             SustainScore = stats.SustainScore;
             MultiplierScore = stats.MultiplierScore;
             BandBonusScore = stats.BandBonusScore;
+            BandBonusScoreHuman = stats.BandBonusScoreHuman;
             Combo = stats.Combo;
             MaxCombo = stats.MaxCombo;
             ScoreMultiplier = stats.ScoreMultiplier;
             BandMultiplier = stats.BandMultiplier;
+            BandMultiplierHuman = stats.BandMultiplierHuman;
 
             NotesHit = stats.NotesHit;
             TotalNotes = stats.TotalNotes;
@@ -312,10 +314,12 @@ namespace YARG.Core.Engine
             SustainScore = 0;
             MultiplierScore = 0;
             BandBonusScore = 0;
+            BandBonusScoreHuman = 0;
             Combo = 0;
             MaxCombo = 0;
             ScoreMultiplier = 1;
             BandMultiplier = 1;
+            BandMultiplierHuman = 1;
             NotesHit = 0;
             TotalOffset = 0.0;
             AverageOffset = 0.0;
