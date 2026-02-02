@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using YARG.Core.Chart;
@@ -310,6 +310,14 @@ namespace YARG.Core.Engine
                     }
                 }
             }
+
+            if (IsLaneActive)
+            {
+                if (IsTimeBetween(LaneExpireTime, previousTime, nextTime))
+                {
+                    QueueUpdateTime(LaneExpireTime, "Potential Lane Expiration Time");
+                }
+            }
         }
 
         protected void StartWhammyTimer(double time)
@@ -366,6 +374,17 @@ namespace YARG.Core.Engine
 
                         CurrentWaitCountdownIndex++;
                     }
+                }
+            }
+
+            if (IsLaneActive)
+            {
+                if (CurrentTime >= LaneExpireTime)
+                {
+                    // Lane forgiveness window expired, disable all lane behavior
+                    RequiredLaneNote = -1;
+                    NextTrillNote = -1;
+                    YargLogger.LogFormatTrace("Lane behavior turned off at {0}", CurrentTime);
                 }
             }
         }
@@ -425,6 +444,8 @@ namespace YARG.Core.Engine
                 solo.NotesHit = 0;
                 solo.SoloBonus = 0;
             }
+
+            GetTotalLanes();
         }
 
         protected abstract void CheckForNoteHit();
@@ -444,6 +465,66 @@ namespace YARG.Core.Engine
             {
                 AdvanceToNextNote(note);
             }
+
+            if (!LanesExist || !note.IsLane || !BaseParameters.EnableLanes)
+            {
+                return;
+            }
+
+            if (note.IsLaneStart || note.Time > LaneExpireTime)
+            {
+                YargLogger.LogFormatTrace("Starting lane behavior at time {0}. ", CurrentTime);
+
+                // This was a manually hit lane note while lane behavior was disabled,
+                // either IsLaneStart or starting a new combo after a mid-lane miss
+                if (note.IsTrill && note.NextNote!.IsTrill)
+                {
+                    RequiredLaneNote = note.NextNote!.LaneNote;
+                    NextTrillNote = note.LaneNote;
+                }
+                else
+                {
+                    RequiredLaneNote = note.LaneNote;
+                }
+
+                // Future updates during this lane will be handled on SubmitLaneNote inputs
+                UpdateLaneExpireTime();
+            }
+            else if (note.IsLaneEnd)
+            {
+                // Lane ends with this note, continue overstrum leniency while transitioning out of this lane
+                YargLogger.LogFormatTrace("Lane ending at {0}", CurrentTime);
+
+                UpdateLaneExpireTime();
+            }
+
+            YargLogger.LogFormatTrace("Lane note hit at {0}", CurrentTime);
+        }
+
+        // Intercept a missed note while a lane phrase is active
+        protected bool HitNoteFromLane(TNoteType note)
+        {
+            if (note.Time > LaneExpireTime)
+            {
+                return false;
+            }
+
+            if (note.IsLane)
+            {
+                if (note.IsLaneStart)
+                {
+                    // The leniency window at the end of the previous lane overlaps with the start of this one
+                    // The first note in a lane must be manually hit in order to count
+                    return false;
+                }
+
+                YargLogger.LogFormatTrace("Missed note with time of {0} was forgiven by lane", note.Time);
+                HitNote(note);
+
+                return true;
+            }
+
+            return false;
         }
 
         protected virtual void MissNote(TNoteType note)
@@ -454,12 +535,80 @@ namespace YARG.Core.Engine
             }
         }
 
+        protected void SubmitLaneNote(int newNote)
+        {
+            if (!IsLaneActive)
+            {
+                return;
+            }
+
+            if (newNote == RequiredLaneNote)
+            {
+                // Required input received, extend the lane expiration time
+                var currentNote = Notes[NoteIndex].ParentOrSelf;
+
+                var containsLaneNote = false;
+                foreach (var note in currentNote.AllNotes)
+                {
+                    if (note.IsLane)
+                    {
+                        containsLaneNote = true;
+                        break;
+                    }
+                }
+
+                if (!containsLaneNote)
+                {
+                    // This is either a non-lane note in the middle of the phrase
+                    // Or we are in overstrum forgiveness window after lane has ended
+                    YargLogger.LogFormatTrace("Lane input did not extend LaneExpireTime at {0}", CurrentTime);
+                    return;
+                }
+
+
+                UpdateLaneExpireTime();
+
+                // Update next required note for trills to ensure alternating inputs
+                if (NextTrillNote != -1)
+                {
+                    (RequiredLaneNote, NextTrillNote) = (NextTrillNote, RequiredLaneNote);
+                }
+            }
+        }
+
+        protected virtual bool ActiveLaneIncludesNote(int inputNote)
+        {
+            if (!IsLaneActive)
+            {
+                return false;
+            }
+
+            if (inputNote == RequiredLaneNote || (NextTrillNote != -1 && inputNote == NextTrillNote))
+            {
+                return true;
+            }
+
+            return false;
+        }
+
+        protected void UpdateLaneExpireTime()
+        {
+            LaneExpireTime = CurrentTime + EngineParameters.HitWindow.CalculateTremoloWindow();
+            YargLogger.LogFormatDebug("LaneExpireTime extended to {0}. TremoloFrontEndPercent {1}. Increment {2}.", LaneExpireTime, EngineParameters.HitWindow.TremoloFrontEndPercent, LaneExpireTime - CurrentTime);
+        }
+
         protected bool SkipPreviousNotes(TNoteType current)
         {
             bool skipped = false;
             var prevNote = current.PreviousNote;
             while (prevNote is not null && !prevNote.WasFullyHitOrMissed())
             {
+                if (HitNoteFromLane(prevNote))
+                {
+                    // Save this note from being counted as a skip if it satisfies the active lane
+                    continue;
+                }
+
                 skipped = true;
                 YargLogger.LogFormatTrace("Missed note (Index: {0}) ({1}) due to note skip at {2}", NoteIndex, prevNote.IsParent ? "Parent" : "Child", CurrentTime);
                 MissNote(prevNote);
@@ -979,6 +1128,17 @@ namespace YARG.Core.Engine
         {
             NoteIndex++;
             ReRunHitLogic = true;
+
+            if (!LanesExist)
+            {
+                return;
+            }
+
+            if (note.IsLaneEnd)
+            {
+                // Update the result of LanesExist
+                CurrentLaneIndex++;
+            }
         }
 
         public double GetAverageNoteDistance(TNoteType note)
@@ -1039,6 +1199,50 @@ namespace YARG.Core.Engine
                 soloSections.Add(new SoloSection(start, curr.Tick, soloNoteCount));
             }
             return soloSections;
+        }
+
+        private void GetTotalLanes()
+        {
+            TotalLanes = 0;
+
+            if (Notes.Count == 0)
+            {
+                return;
+            }
+
+            // Modify lane start and end points if selected practice sections cut off the charted boundaries
+            if (Notes[0].IsLane)
+            {
+                Notes[0].ActivateFlag(NoteFlags.LaneStart);
+            }
+
+            if (Notes[^1].IsLane)
+            {
+                Notes[^1].ActivateFlag(NoteFlags.LaneEnd);
+            }
+
+            for (int i = 0; i < Chart.Phrases.Count; i++)
+            {
+                var thisPhrase = Chart.Phrases[i];
+
+                if (thisPhrase.TickEnd < Notes[0].Tick)
+                {
+                    continue;
+                }
+
+                if (thisPhrase.Tick > Notes[^1].TickEnd)
+                {
+                    break;
+                }
+
+                switch (thisPhrase.Type)
+                {
+                    case PhraseType.TremoloLane:
+                    case PhraseType.TrillLane:
+                        TotalLanes++;
+                        break;
+                }
+            }
         }
 
         protected void GetWaitCountdowns(List<TNoteType> notes)
