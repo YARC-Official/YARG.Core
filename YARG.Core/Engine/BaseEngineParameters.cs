@@ -51,6 +51,12 @@ namespace YARG.Core.Engine
             }
 
             SongSpeed = stream.Read<double>(Endianness.Little);
+
+            // Version 10 and higher
+            if (version >= 10)
+            {
+                EnableLanes = stream.ReadBoolean();
+            }
         }
 
         public virtual void Serialize(BinaryWriter writer)
@@ -69,6 +75,7 @@ namespace YARG.Core.Engine
             }
 
             writer.Write(SongSpeed);
+            writer.Write(EnableLanes);
         }
 
         public override string ToString()
