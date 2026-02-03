@@ -56,6 +56,7 @@ namespace YARG.Core.Chart
                 {
                     currentGreen = note;
                 }
+
                 if (note.IsParent)
                 {
                     foreach (var childNote in note.ChildNotes)
@@ -120,7 +121,7 @@ namespace YARG.Core.Chart
                     {
                         currentOpen.Fret = FiveFretGuitarFret.Green.Convert();
                         //or the mask with the mask for green and then And the mask with all bits except purple
-                        note.NoteMask = noteMaskGreen | note.NoteMask & ~noteMaskOpen;
+                        note.NoteMask = note.NoteMask & ~noteMaskOpen;
                         //set note to strum if it would be a hopo on the same chord
                         if (lastNoteMask == note.NoteMask && note.IsHopo)
                         {
@@ -138,7 +139,7 @@ namespace YARG.Core.Chart
                     else
                     {
                         //or the mask with the mask for green and then And the mask with all bits except purple
-                        note.NoteMask = noteMaskGreen | note.NoteMask & ~noteMaskOpen;
+                        note.NoteMask = note.NoteMask & ~noteMaskOpen;
                         //set note to strum if it would be a hopo on the same chord
                         if (lastNoteMask == note.NoteMask && note.IsHopo)
                         {
