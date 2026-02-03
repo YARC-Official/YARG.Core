@@ -99,11 +99,6 @@ namespace YARG.Core.Chart
                     currentOpen.Fret = FiveFretGuitarFret.Green.Convert();
                     //or the mask with the mask for green and then And the mask with all bits except purple
                     note.NoteMask = noteMaskGreen | note.NoteMask & ~noteMaskOpen;
-                    //set note to strum if it would be a hopo on the same chord
-                    if (lastNoteMask == note.NoteMask && note.IsHopo)
-                    {
-                        note.Type = GuitarNoteType.Strum;
-                    }
                     if (currentOpen.IsChild)
                     {
                         currentOpen.NoteMask = noteMaskGreen;
@@ -122,11 +117,6 @@ namespace YARG.Core.Chart
                         currentOpen.Fret = FiveFretGuitarFret.Green.Convert();
                         //or the mask with the mask for green and then And the mask with all bits except purple
                         note.NoteMask = note.NoteMask & ~noteMaskOpen;
-                        //set note to strum if it would be a hopo on the same chord
-                        if (lastNoteMask == note.NoteMask && note.IsHopo)
-                        {
-                            note.Type = GuitarNoteType.Strum;
-                        }
                         currentOpen.TickLength = Math.Max(currentOpen.TickLength, currentGreen.TickLength);
                         currentOpen.TimeLength = Math.Max(currentOpen.TimeLength, currentGreen.TimeLength);
                         currentOpen.ChildNotes.Remove(currentGreen);
@@ -140,11 +130,6 @@ namespace YARG.Core.Chart
                     {
                         //or the mask with the mask for green and then And the mask with all bits except purple
                         note.NoteMask = note.NoteMask & ~noteMaskOpen;
-                        //set note to strum if it would be a hopo on the same chord
-                        if (lastNoteMask == note.NoteMask && note.IsHopo)
-                        {
-                            note.Type = GuitarNoteType.Strum;
-                        }
                         currentGreen.TickLength = Math.Max(currentOpen.TickLength, currentGreen.TickLength);
                         currentGreen.TimeLength = Math.Max(currentOpen.TimeLength, currentGreen.TimeLength);
                         note.ChildNotes.Remove(currentOpen);
@@ -157,16 +142,25 @@ namespace YARG.Core.Chart
                 //green notes just need to be set as last sustain
                 else if (currentGreen != null && currentOpen == null)
                 {
-                    //set note to strum if it would be a hopo on the same chord
-                    if (lastNoteMask == note.NoteMask && note.IsHopo)
-                    {
-                        note.Type = GuitarNoteType.Strum;
-                    }
                     if (currentGreen.IsSustain)
                     {
                         lastGreenSustain = currentGreen;
                     }
                 }
+
+                //set note to strum if it would be a hopo on the same chord
+                if ((noteMaskGreen & note.NoteMask) != 0 && lastNoteMask == note.NoteMask && note.IsHopo)
+                {
+                    note.Type = GuitarNoteType.Strum;
+                    if (note.IsParent)
+                    {
+                        foreach (var childNote in note.ChildNotes)
+                        {
+                            childNote.Type = GuitarNoteType.Strum;
+                        }
+                    }
+                }
+
                 //reset current notes for next iteration
                 currentGreen = null;
                 currentOpen = null;
