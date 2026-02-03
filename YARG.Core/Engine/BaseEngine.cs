@@ -423,10 +423,9 @@ namespace YARG.Core.Engine
             RebaseSustains(CurrentTick);
         }
 
-        public void UpdateBandMultiplier(int multiplier, int multiplierHuman)
+        public void UpdateBandMultiplier(int multiplier)
         {
             BaseStats.BandMultiplier = multiplier;
-            BaseStats.BandMultiplierHuman = multiplierHuman;
         }
 
         public double GetStarPowerBarAmount()

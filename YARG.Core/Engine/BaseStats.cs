@@ -53,11 +53,6 @@ namespace YARG.Core.Engine
         public int BandBonusScore;
 
         /// <summary>
-        /// Total score earned from band bonuses, but only counting human players.
-        /// </summary>
-        public int BandBonusScoreHuman;
-
-        /// <summary>
         /// The score used to calculate star progress.
         /// </summary>
         /// <remarks>
@@ -101,16 +96,6 @@ namespace YARG.Core.Engine
         /// See also <see cref="BandBonusScore"/>.
         /// </summary>
         public int BandBonusMultiplier => IsStarPowerActive ? BandMultiplier - 2 : BandMultiplier - 1;
-
-        /// <summary>
-        /// The band multiplier calculated from human players only, excluding bots.
-        /// </summary>
-        public int BandMultiplierHuman;
-
-        /// <summary>
-        /// The band bonus multiplier from Star Power activations for human players only, excluding bots.
-        /// </summary>
-        public int BandBonusMultiplierHuman => IsStarPowerActive ? BandMultiplierHuman - 2 : BandMultiplierHuman - 1;
 
         /// <summary>
         /// Number of notes which have been hit.
@@ -236,12 +221,10 @@ namespace YARG.Core.Engine
             SustainScore = stats.SustainScore;
             MultiplierScore = stats.MultiplierScore;
             BandBonusScore = stats.BandBonusScore;
-            BandBonusScoreHuman = stats.BandBonusScoreHuman;
             Combo = stats.Combo;
             MaxCombo = stats.MaxCombo;
             ScoreMultiplier = stats.ScoreMultiplier;
             BandMultiplier = stats.BandMultiplier;
-            BandMultiplierHuman = stats.BandMultiplierHuman;
 
             NotesHit = stats.NotesHit;
             TotalNotes = stats.TotalNotes;
@@ -314,12 +297,10 @@ namespace YARG.Core.Engine
             SustainScore = 0;
             MultiplierScore = 0;
             BandBonusScore = 0;
-            BandBonusScoreHuman = 0;
             Combo = 0;
             MaxCombo = 0;
             ScoreMultiplier = 1;
             BandMultiplier = 1;
-            BandMultiplierHuman = 1;
             NotesHit = 0;
             TotalOffset = 0.0;
             AverageOffset = 0.0;

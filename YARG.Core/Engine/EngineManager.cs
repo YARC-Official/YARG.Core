@@ -73,10 +73,6 @@ namespace YARG.Core.Engine
             private void OnStarPowerStatus(bool active)
             {
                 int delta = active ? 1 : -1;
-                if (!Engine.IsBot)
-                {
-                    _engineManager._humanStarpowerCount += delta;
-                }
                 _engineManager._starpowerCount += delta;
                 _engineManager.UpdateBandMultiplier();
             }

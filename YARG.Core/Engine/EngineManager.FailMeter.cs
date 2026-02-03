@@ -61,7 +61,6 @@ namespace YARG.Core.Engine
         private float _previousHappiness = 100f;
 
         private int _starpowerCount;
-        private int _humanStarpowerCount;
 
         public bool IsAnyStarpowerActive => _starpowerCount > 0;
 
