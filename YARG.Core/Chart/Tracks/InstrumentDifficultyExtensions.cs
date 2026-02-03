@@ -42,6 +42,7 @@ namespace YARG.Core.Chart
             GuitarNote? lastGreenSustain = null;
             GuitarNote? currentGreen = null;
             GuitarNote? currentOpen = null;
+            bool openInLastGreenSustainChordBeforeConversion = false;
             int lastNoteMask = 0;
             uint sixteenthTickLength = syncTrack.Resolution / 4;
             const int noteMaskGreen = 1;
@@ -75,7 +76,7 @@ namespace YARG.Core.Chart
                 if (currentOpen != null || currentGreen != null)
                 {
                     //cut off last green sustain early if there is another green note on it
-                    if (lastGreenSustain != null &&
+                    if (lastGreenSustain != null && (currentOpen != null || openInLastGreenSustainChordBeforeConversion) &&
                         lastGreenSustain.Tick + lastGreenSustain.TickLength + sixteenthTickLength > note.Tick)
                     {
                         //if sustain would be cut off before starting remove sustain
@@ -106,6 +107,7 @@ namespace YARG.Core.Chart
                     if (currentOpen.IsSustain)
                     {
                         lastGreenSustain = currentOpen;
+                        openInLastGreenSustainChordBeforeConversion = true;
                     }
                 }
                 //PG chords
@@ -123,6 +125,7 @@ namespace YARG.Core.Chart
                         if (currentOpen.IsSustain)
                         {
                             lastGreenSustain = currentOpen;
+                            openInLastGreenSustainChordBeforeConversion = true;
                         }
                     }
                     //any note other than open note is the parent note
@@ -136,6 +139,7 @@ namespace YARG.Core.Chart
                         if (currentGreen.IsSustain)
                         {
                             lastGreenSustain = currentGreen;
+                            openInLastGreenSustainChordBeforeConversion = true;
                         }
                     }
                 }
@@ -145,6 +149,7 @@ namespace YARG.Core.Chart
                     if (currentGreen.IsSustain)
                     {
                         lastGreenSustain = currentGreen;
+                        openInLastGreenSustainChordBeforeConversion = false;
                     }
                 }
 
