@@ -203,6 +203,12 @@ namespace YARG.Core.Audio
             new Sample<VoxSample>(VoxSample.FullBandFullCombo, "FullBandFullCombo"),
             new Sample<VoxSample>(VoxSample.HighScore, "HighScore"),
             new Sample<VoxSample>(VoxSample.FailSound, "FailSound"),
+            new Sample<VoxSample>(VoxSample.AntiPiracyBlurb, "AntiPiracyBlurb"),
+            new Sample<VoxSample>(VoxSample.YargTitleBlurb, "YargTitleBlurb"),
+            new Sample<VoxSample>(VoxSample.MenuSettings, "MenuSettings"),
+            new Sample<VoxSample>(VoxSample.MenuProfiles, "MenuProfiles"),
+            new Sample<VoxSample>(VoxSample.MenuLibrary, "MenuLibrary"),
+            new Sample<VoxSample>(VoxSample.Onboarding, "Onboarding"),
         };
 
         public static readonly IList<Sample<MetronomeSample>> MetronomeSamples = new[]
