@@ -6,7 +6,6 @@ namespace YARG.Core.Audio
 {
     public abstract class MetronomeSampleChannel : IDisposable
     {
-        public const int  ROUND_ROBIN_MAX_INDEX = 3;
         private      bool _disposed;
 
         protected readonly string _hiPath;

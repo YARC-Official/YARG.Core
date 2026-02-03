@@ -514,25 +514,34 @@ namespace YARG.Core.Audio
                     return;
                 }
 
-                switch (stem) {
+                switch (stem) 
+                {
                     case SongStem.DrumSfx:
                         foreach (DrumSampleChannel sample in _instance.DrumSfxSamples)
-                            sample?.SetOutputChannel(channel);
+                        {
+                            sample.SetOutputChannel(channel);
+                        }
                         break;
 
                     case SongStem.Metronome:
                         foreach (MetronomeSampleChannel sample in _instance.MetronomeSamples)
-                            sample?.SetOutputChannel(channel);
+                        {
+                            sample.SetOutputChannel(channel);
+                        }
                         break;
 
                     case SongStem.Sfx:
                         foreach (SampleChannel sample in _instance.SfxSamples)
-                            sample?.SetOutputChannel(channel);
+                        {
+                            sample.SetOutputChannel(channel);
+                        }
                         break;
 
                     case SongStem.VoxSample:
                         foreach (VoxSampleChannel sample in _instance.VoxSamples)
-                            sample?.SetOutputChannel(channel);
+                        {
+                            sample.SetOutputChannel(channel);
+                        }
                         break;
 
                     default:
