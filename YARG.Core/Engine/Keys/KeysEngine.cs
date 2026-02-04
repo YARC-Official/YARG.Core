@@ -134,6 +134,13 @@ namespace YARG.Core.Engine.Keys
                 return;
             }
 
+            // Prevent overhit during coda
+            if (IsCodaActive)
+            {
+                YargLogger.LogFormatTrace("Overhit prevented during coda at time: {0}, tick: {1}", CurrentTime, CurrentTick);
+                return;
+            }
+
             YargLogger.LogFormatTrace("Overhit at {0}", CurrentTime);
 
             // Break all active sustains

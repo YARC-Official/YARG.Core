@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 using YARG.Core.Chart;
 using YARG.Core.Input;
@@ -65,6 +66,12 @@ namespace YARG.Core.Engine.Keys.Engines
             // Update bot (will return if not enabled)
             UpdateBot(time);
 
+            // This is here after UpdateBot gets called so that the bot gets coda keypress logic
+            if (IsCodaActive)
+            {
+                HandleCodaFretChange(time);
+            }
+
             // Only check note logic if note index is within bounds
             if (NoteIndex < Notes.Count)
             {
@@ -79,6 +86,18 @@ namespace YARG.Core.Engine.Keys.Engines
         protected override void CheckForNoteHit()
         {
             var parentNote = Notes[NoteIndex];
+
+            // If we're in a coda section, we unconditionally mark the note as hit, but bypass normal hit logic
+            if (IsCodaActive)
+            {
+                foreach (var note in parentNote.AllNotes)
+                {
+                    note.WasHit = true;
+                }
+
+                AdvanceToNextNote(parentNote);
+                return;
+            }
 
             // Miss out the back end
             if (!IsNoteInWindow(parentNote, out bool missed))
@@ -330,6 +349,50 @@ namespace YARG.Core.Engine.Keys.Engines
                 MutateStateWithInput(new GameInput(note.Time, (int)action, true));
                 CheckForNoteHit();
             }
+        }
+
+        private void HandleCodaFretChange(double time)
+        {
+            if (!IsCodaActive)
+            {
+                return;
+            }
+
+            var coda = Codas[CurrentCodaIndex - 1];
+
+            // Figure out which keys changed
+            var pressed = KeyMask & ~PreviousKeyMask;
+
+            var openBit = 1 << 6;
+            // Shift the open bit from bit 6 to bit 5
+            pressed = (pressed & ~openBit) | ((pressed & openBit) >> 1);
+
+            // Hit the lane for any that were pressed
+            for (int i = 0; i < 6; i++)
+            {
+                int button = 1 << i;
+                if ((pressed & button) != 0)
+                {
+                    coda.HitLane(time, i);
+                }
+            }
+        }
+
+        protected override List<CodaSection> GetCodaSections()
+        {
+            var codaSections = new List<CodaSection>();
+
+            foreach (var phrase in Chart.Phrases)
+            {
+                if (phrase.Type != PhraseType.BigRockEnding)
+                {
+                    continue;
+                }
+
+                codaSections.Add(new CodaSection(6, phrase.Time, phrase.TimeEnd));
+            }
+
+            return codaSections;
         }
 
         private static ProKeysAction FiveLaneKeysActionToProKeysAction(FiveLaneKeysAction fiveLaneKeysAction)

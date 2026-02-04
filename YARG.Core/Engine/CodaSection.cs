@@ -65,10 +65,16 @@ namespace YARG.Core.Engine
         // then we'd have to be a generic for no good reason)
         public void HitLane(double time, int fret)
         {
-            // Discard values that don't correspond to a lane
-            if (fret < 0 || fret > Lanes - 1)
+            if (fret < 0)
             {
+                // How?
                 return;
+            }
+
+            // Remap values that don't correspond to a lane
+            if (fret > Lanes - 1)
+            {
+                fret %= Lanes - 1;
             }
 
             // Collect bonus for this lane
