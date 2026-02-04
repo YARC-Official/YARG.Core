@@ -20,6 +20,7 @@ namespace YARG.Core.Chart
         private delegate TNote CreateNoteDelegate<TNote>(MoonNote moonNote, CurrentPhrases currentPhrases)
             where TNote : Note<TNote>;
         private delegate void ProcessTextDelegate(MoonText text);
+        private delegate Phrase? ValidatePhraseDelegate(Phrase phrase);
 
         private MoonSong _moonSong;
         private ParseSettings _settings;
@@ -32,10 +33,13 @@ namespace YARG.Core.Chart
         private MoonSong.MoonInstrument _currentMoonInstrument;
         private MoonSong.Difficulty _currentMoonDifficulty;
 
+        private readonly double _codaTime;
+
         public MoonSongLoader(MoonSong song, in ParseSettings settings)
         {
             _moonSong = song;
             _settings = settings;
+            _codaTime = FindCodaTime();
         }
 
         public static MoonSongLoader LoadSong(ParseSettings settings, string filePath)
@@ -115,7 +119,8 @@ namespace YARG.Core.Chart
         }
 
         private InstrumentDifficulty<TNote> LoadDifficulty<TNote>(Instrument instrument, Difficulty difficulty,
-            CreateNoteDelegate<TNote> createNote, ProcessTextDelegate? processText = null)
+            CreateNoteDelegate<TNote> createNote, ProcessTextDelegate? processText = null,
+            ValidatePhraseDelegate? validatePhrase = null)
             where TNote : Note<TNote>
         {
             _currentMode = instrument.ToNativeGameMode();
@@ -128,7 +133,7 @@ namespace YARG.Core.Chart
 
             var moonChart = GetMoonChart(instrument, difficulty);
             var notes = GetNotes(moonChart, difficulty, createNote, processText);
-            var phrases = GetPhrases(moonChart);
+            var phrases = GetPhrases(moonChart, validatePhrase);
             var textEvents = GetTextEvents(moonChart);
             return new(instrument, difficulty, notes, phrases, textEvents);
         }
@@ -187,7 +192,7 @@ namespace YARG.Core.Chart
             return notes;
         }
 
-        private List<Phrase> GetPhrases(MoonChart moonChart)
+        private List<Phrase> GetPhrases(MoonChart moonChart, ValidatePhraseDelegate? validatePhrase = null)
         {
             var phrases = new List<Phrase>(moonChart.specialPhrases.Count);
             foreach (var moonPhrase in moonChart.specialPhrases)
@@ -200,6 +205,8 @@ namespace YARG.Core.Chart
                     MoonPhrase.Type.Versus_Player2      => PhraseType.VersusPlayer2,
                     MoonPhrase.Type.TremoloLane         => PhraseType.TremoloLane,
                     MoonPhrase.Type.TrillLane           => PhraseType.TrillLane,
+                    MoonPhrase.Type.BigRockEnding       => PhraseType.BigRockEnding,
+
                     MoonPhrase.Type.ProDrums_Activation => PhraseType.DrumFill,
 
                     MoonPhrase.Type.ProKeys_RangeShift0 => PhraseType.ProKeys_RangeShift0,
@@ -222,6 +229,18 @@ namespace YARG.Core.Chart
                 double time = _moonSong.TickToTime(moonPhrase.tick);
                 var newPhrase = new Phrase(phraseType.Value, time, GetLengthInTime(moonPhrase), moonPhrase.tick, moonPhrase.length);
                 phrases.Add(newPhrase);
+
+                if (validatePhrase == null)
+                {
+                    phrases.Add(newPhrase);
+                    continue;
+                }
+
+                var validatedPhrase = validatePhrase(newPhrase);
+                if (validatedPhrase != null)
+                {
+                    phrases.Add(validatedPhrase);
+                }
             }
 
             return phrases;
@@ -317,6 +336,13 @@ namespace YARG.Core.Chart
                 }
             }
 
+            // Big Rock Ending
+            if (currentPhrases.TryGetValue(MoonPhrase.Type.BigRockEnding, out var bigRockEnding) &&
+                IsEventInPhrase(moonNote, bigRockEnding))
+            {
+                flags |= NoteFlags.BigRockEnding;
+            }
+
             return flags;
         }
 
@@ -387,6 +413,23 @@ namespace YARG.Core.Chart
         {
             double time = _moonSong.TickToTime(animation.tick);
             return GetLengthInTime(time, animation.tick, animation.length);
+        }
+
+        private double FindCodaTime()
+        {
+            // Work backwards since the coda event should be very near the end
+            for (int i = _moonSong.events.Count - 1; i >= 0; i--)
+            {
+                if (_moonSong.events[i].text != "coda")
+                {
+                    continue;
+                }
+
+                return _moonSong.TickToTime(_moonSong.events[i].tick);
+            }
+
+            // Didn't find one, so set it to MaxValue
+            return double.MaxValue;
         }
 
         private static bool IsEventInPhrase(MoonObject songObj, MoonPhrase phrase)

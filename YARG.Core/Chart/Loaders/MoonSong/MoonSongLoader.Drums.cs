@@ -28,11 +28,11 @@ namespace YARG.Core.Chart
         {
             var difficulties = new Dictionary<Difficulty, InstrumentDifficulty<DrumNote>>()
             {
-                { Difficulty.Easy, LoadDifficulty(instrument, Difficulty.Easy, createNote, HandleTextEvent) },
-                { Difficulty.Medium, LoadDifficulty(instrument, Difficulty.Medium, createNote, HandleTextEvent) },
-                { Difficulty.Hard, LoadDifficulty(instrument, Difficulty.Hard, createNote, HandleTextEvent) },
-                { Difficulty.Expert, LoadDifficulty(instrument, Difficulty.Expert, createNote, HandleTextEvent) },
-                { Difficulty.ExpertPlus, LoadDifficulty(instrument, Difficulty.ExpertPlus, createNote, HandleTextEvent) },
+                { Difficulty.Easy, LoadDifficulty(instrument, Difficulty.Easy, createNote, HandleTextEvent, ValidateDrumsPhrase) },
+                { Difficulty.Medium, LoadDifficulty(instrument, Difficulty.Medium, createNote, HandleTextEvent, ValidateDrumsPhrase) },
+                { Difficulty.Hard, LoadDifficulty(instrument, Difficulty.Hard, createNote, HandleTextEvent, ValidateDrumsPhrase) },
+                { Difficulty.Expert, LoadDifficulty(instrument, Difficulty.Expert, createNote, HandleTextEvent, ValidateDrumsPhrase) },
+                { Difficulty.ExpertPlus, LoadDifficulty(instrument, Difficulty.ExpertPlus, createNote, HandleTextEvent, ValidateDrumsPhrase) },
             };
 
             foreach (var difficulty in difficulties)
@@ -114,6 +114,23 @@ namespace YARG.Core.Chart
                 return;
 
             _discoFlip = setting == DrumsMixSetting.DiscoFlip;
+        }
+
+        private Phrase ValidateDrumsPhrase(Phrase phrase)
+        {
+            if (phrase.Type != PhraseType.DrumFill)
+            {
+                // We only care about drum fills
+                return phrase;
+            }
+
+            if (phrase.Time < _codaTime)
+            {
+                return phrase;
+            }
+
+            // If we're here, we were presented a drum fill after a coda and that needs to be a BRE
+            return new Phrase(PhraseType.BigRockEnding, phrase.Time, phrase.TimeLength, phrase.Tick, phrase.TickLength);
         }
 
         private FourLaneDrumPad GetFourLaneDrumPad(MoonNote moonNote)

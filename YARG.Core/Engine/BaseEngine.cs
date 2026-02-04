@@ -22,6 +22,10 @@ namespace YARG.Core.Engine
         public delegate void StarPowerStatusEvent(bool active);
         public delegate void SoloStartEvent(SoloSection soloSection);
         public delegate void SoloEndEvent(SoloSection soloSection);
+
+        public delegate void CodaStartEvent(CodaSection codaSection);
+
+        public delegate void CodaEndEvent(CodaSection codaSection);
         public delegate void ComboResetEvent();
         public delegate void ComboIncrementEvent(int amount);
 
@@ -29,6 +33,8 @@ namespace YARG.Core.Engine
         public StarPowerStatusEvent? OnStarPowerStatus;
         public SoloStartEvent?       OnSoloStart;
         public SoloEndEvent?         OnSoloEnd;
+        public CodaStartEvent?       OnCodaStart;
+        public CodaEndEvent?         OnCodaEnd;
         public ComboResetEvent?      OnComboReset;
         public ComboIncrementEvent?  OnComboIncrement;
         public UnisonBonusAwardedEvent? OnUnisonBonusAwarded;
@@ -70,8 +76,11 @@ namespace YARG.Core.Engine
         public int CurrentSoloIndex { get; protected set; }
         public int CurrentStarIndex { get; protected set; }
         public int CurrentWaitCountdownIndex { get; protected set; }
+        public int CurrentCodaIndex { get; protected set; }
 
         public bool IsSoloActive { get; protected set; }
+        public bool IsCodaActive { get; protected set; }
+        public bool CodaHasStarted { get; protected set; }
 
         public bool IsWaitCountdownActive { get; protected set; }
         public bool IsStarPowerInputActive { get; protected set; }
@@ -389,6 +398,7 @@ namespace YARG.Core.Engine
             CurrentSoloIndex = 0;
             CurrentStarIndex = 0;
             CurrentWaitCountdownIndex = 0;
+            CurrentCodaIndex = 0;
 
             IsSoloActive = false;
 
@@ -423,7 +433,7 @@ namespace YARG.Core.Engine
             RebaseSustains(CurrentTick);
         }
 
-        
+
         public void UpdateBandMultiplier(int multiplier)
         {
             BaseStats.BandMultiplier = multiplier;

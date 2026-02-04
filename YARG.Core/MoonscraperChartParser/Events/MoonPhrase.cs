@@ -19,6 +19,8 @@ namespace MoonscraperChartEditor.Song
             TremoloLane,
             TrillLane,
 
+            BigRockEnding,
+
             // RB Pro Drums
 
             ProDrums_Activation,

@@ -77,6 +77,15 @@ namespace MoonscraperChartEditor.Song.IO
         public const byte FLAM_MARKER = 109;
         public const byte STARPOWER_NOTE = 116;            // http://docs.c3universe.com/rbndocs/index.php?title=Overdrive_and_Big_Rock_Endings
 
+        // https://docs.c3universe.com/rbndocs/index.php?title=Overdrive_and_Big_Rock_Endings
+        //  Repeating ourselves for the sake of readability elsewhere
+        public const byte PRO_KEYS_BIG_ROCK_ENDING_NOTE = 120;
+        public const byte BIG_ROCK_ENDING_NOTE_1        = 120;
+        public const byte BIG_ROCK_ENDING_NOTE_2        = 121;
+        public const byte BIG_ROCK_ENDING_NOTE_3        = 122;
+        public const byte BIG_ROCK_ENDING_NOTE_4        = 123;
+        public const byte BIG_ROCK_ENDING_NOTE_5        = 124;
+
         // http://docs.c3universe.com/rbndocs/index.php?title=Drum_Authoring#Drum_Fills
         public const byte DRUM_FILL_NOTE_0 = 120;
         public const byte DRUM_FILL_NOTE_1 = 121;
