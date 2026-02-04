@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using YARG.Core.Chart;
 using YARG.Core.Input;
 using YARG.Core.Logging;
@@ -33,6 +34,11 @@ namespace YARG.Core.Engine.Guitar.Engines
             EffectiveButtonMask = (byte) note.NoteMask;
 
             YargLogger.LogFormatTrace("[Bot] Set button mask to: {0}", EffectiveButtonMask);
+
+            if (IsCodaActive)
+            {
+                HandleCodaFretChange(time);
+            }
 
             HasTapped = EffectiveButtonMask != LastButtonMask;
             IsFretPress = true;
@@ -131,6 +137,12 @@ namespace YARG.Core.Engine.Guitar.Engines
 
             bool strumEatenByHopo = false;
 
+            // TODO: Why did I put this here instead of in MutateStateWithInput or something?
+            if (IsCodaActive)
+            {
+                HandleCodaFretChange(time);
+            }
+
             // This is up here so overstrumming still works when there are no notes left
             if (HasStrummed)
             {
@@ -187,6 +199,17 @@ namespace YARG.Core.Engine.Guitar.Engines
             var hitWindow = EngineParameters.HitWindow.CalculateHitWindow(GetAverageNoteDistance(note));
             var frontEnd = EngineParameters.HitWindow.GetFrontEnd(hitWindow);
 
+            if (note.IsBigRockEnding)
+            {
+                foreach (var n in note.AllNotes)
+                {
+                    n.WasHit = true;
+                }
+
+                AdvanceToNextNote(note);
+                return;
+            }
+
             if (HasFretted)
             {
                 HasTapped = true;
@@ -237,7 +260,7 @@ namespace YARG.Core.Engine.Guitar.Engines
                         {
                             break;
                         }
-                        
+
                         MissNote(note);
                         YargLogger.LogFormatTrace("Missed note (Index: {0}, Mask: {1}) at {2}", i,
                             note.NoteMask, CurrentTime);
@@ -538,6 +561,69 @@ namespace YARG.Core.Engine.Guitar.Engines
             }
 
             return false;
+        }
+
+        private void HandleCodaFretChange(double time)
+        {
+            // We shouldn't be called if a coda isn't active, but let's check just in case
+            if (!IsCodaActive)
+            {
+                return;
+            }
+
+            var coda = Codas[CurrentCodaIndex];
+
+            // This creates a button mask for each fret, indexed by fret number
+            byte[] fretMask = new byte[5];
+            byte changed = (byte) 0;
+            byte pressed = (byte) 0;
+
+            // If there was a strum, hit held frets
+            if (HasStrummed)
+            {
+                pressed = EffectiveButtonMask;
+            }
+            else
+            {
+                for (int i = 0; i < fretMask.Length; i++)
+                {
+                    fretMask[i] = (byte) (1 << i);
+                }
+
+                // If there was a fret press this update, we have to tell the CodaSection about it
+                if (IsFretPress)
+                {
+                    // Figure out which button was pressed
+                    changed = (byte) (EffectiveButtonMask ^ LastButtonMask);
+                    pressed = (byte) (changed & EffectiveButtonMask);
+                }
+            }
+
+            // Hit the corresponding coda lanes
+            for (int i = 0; i < fretMask.Length; i++)
+            {
+                if ((fretMask[i] & pressed) > 0)
+                {
+                    coda.HitLane(time, i);
+                }
+            }
+        }
+
+        protected override List<CodaSection> GetCodaSections()
+        {
+            var codaSections = new List<CodaSection>();
+
+            foreach (var phrase in Chart.Phrases)
+            {
+                if (phrase.Type != PhraseType.BigRockEnding)
+                {
+                    continue;
+                }
+
+                codaSections.Add(new CodaSection(5, phrase.Time, phrase.TimeEnd));
+            }
+
+            return codaSections;
         }
     }
 }

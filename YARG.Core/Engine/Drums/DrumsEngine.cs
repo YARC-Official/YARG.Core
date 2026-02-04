@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using YARG.Core.Chart;
 using YARG.Core.Input;
 using YARG.Core.Logging;
@@ -81,6 +82,12 @@ namespace YARG.Core.Engine.Drums
                 return;
             }
 
+            // Cancel overhit during coda
+            if (IsCodaActive)
+            {
+                return;
+            }
+
             if (PadHit != null && ActiveLaneIncludesNote((int) PadHit))
             {
                 // Do not count this as an overhit if the last pad hit was part of an active lane
@@ -111,6 +118,12 @@ namespace YARG.Core.Engine.Drums
 
         protected void HitNote(DrumNote note, bool activationAutoHit)
         {
+            // Cancel hit during coda
+            if (IsCodaActive)
+            {
+                return;
+            }
+
             if (note.WasHit || note.WasMissed)
             {
                 YargLogger.LogFormatTrace("Tried to hit/miss note twice (Pad: {0}, Index: {1}, Hit: {2}, Missed: {3})",
@@ -277,6 +290,12 @@ namespace YARG.Core.Engine.Drums
 
         protected override void MissNote(DrumNote note)
         {
+            // Cancel miss during coda
+            if (IsCodaActive)
+            {
+                return;
+            }
+
             if (note.WasHit || note.WasMissed)
             {
                 YargLogger.LogFormatTrace("Tried to hit/miss note twice (Pad: {0}, Index: {1}, Hit: {2}, Missed: {3})",
@@ -357,6 +376,22 @@ namespace YARG.Core.Engine.Drums
 
             YargLogger.LogDebug($"[Drums] Base score: {score}, Max Combo: {combo}");
             return (int) Math.Round(score);
+        }
+
+        protected override List<CodaSection> GetCodaSections()
+        {
+            var codaSections = new List<CodaSection>();
+            var lanes = EngineParameters.Mode == DrumsEngineParameters.DrumMode.FiveLane ? 6 : 5;
+
+            foreach (var phrase in Chart.Phrases)
+            {
+                if (phrase.Type == PhraseType.BigRockEnding)
+                {
+                    codaSections.Add(new CodaSection(lanes, phrase.Time, phrase.TimeEnd, false));
+                }
+            }
+
+            return codaSections;
         }
 
         protected static bool IsTomInput(GameInput input)

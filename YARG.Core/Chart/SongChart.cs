@@ -551,5 +551,20 @@ namespace YARG.Core.Chart
 
             return (musicStart, musicEnd);
         }
+
+        public TextEvent? GetCodaEvent()
+        {
+            // Reverse search since coda is near the end
+            for (int i = GlobalEvents.Count - 1; i >= 0; i--)
+            {
+                var text = GlobalEvents[i];
+                if (text.Text == TextEvents.BIG_ROCK_ENDING_START)
+                {
+                    return text;
+                }
+            }
+
+            return null;
+        }
     }
 }

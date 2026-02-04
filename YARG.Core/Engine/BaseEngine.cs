@@ -55,8 +55,8 @@ namespace YARG.Core.Engine
         public readonly uint TicksPerFullSpBar;
 
         protected List<SoloSection> Solos = new();
-
         protected List<WaitCountdown> WaitCountdowns = new();
+        protected List<CodaSection> Codas = new();
 
         protected readonly Queue<GameInput> InputQueue = new();
 
