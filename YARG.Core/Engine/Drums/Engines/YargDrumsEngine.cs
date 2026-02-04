@@ -25,13 +25,18 @@ namespace YARG.Core.Engine.Drums.Engines
                     var eliteDrumsAction = gameInput.GetAction<EliteDrumsAction>();
                     Action = ConvertMidiDrumsInput(eliteDrumsAction, Chart.Instrument);
                     PadHit = Action is null ? null : ConvertInputToPad(EngineParameters.Mode, Action.Value);
-                } else
+                }
+                else
                 {
                     Action = gameInput.GetAction<DrumsAction>();
                     PadHit = ConvertInputToPad(EngineParameters.Mode, gameInput.GetAction<DrumsAction>());
                 }
                 HitVelocity = gameInput.Axis;
-                SubmitLaneNote((int) PadHit);
+
+                if (PadHit != null)
+                {
+                    SubmitLaneNote((int) PadHit);
+                }
             }
         }
 
@@ -51,7 +56,9 @@ namespace YARG.Core.Engine.Drums.Engines
                     EliteDrumsAction.FourLaneGreenCymbal => DrumsAction.Cymbal3,
                     _ => null
                 };
-            } if (target is Instrument.FiveLaneDrums)
+            }
+
+            if (target is Instrument.FiveLaneDrums)
             {
                 return action switch
                 {
@@ -114,7 +121,7 @@ namespace YARG.Core.Engine.Drums.Engines
                                 {
                                     continue;
                                 }
-                                
+
                                 // Allow drummers to skip SP activation notes without being penalized.
                                 if (missedNote.IsStarPowerActivator && CanStarPowerActivate)
                                 {
@@ -124,7 +131,7 @@ namespace YARG.Core.Engine.Drums.Engines
                                 MissNote(missedNote);
                             }
                         }
-                        
+
                         break;
                     }
 

@@ -13,6 +13,9 @@ namespace YARG.Core.Engine.Guitar
 
         public const byte OPEN_MASK = 64;
 
+        // TODO: Make this configurable, or at least less of an arbitrary choice
+        private const double LANE_END_OVERSTRUM_LENIENCY = 0.080;
+
         public delegate void OverstrumEvent();
 
         public OverstrumEvent? OnOverstrum;
@@ -138,7 +141,13 @@ namespace YARG.Core.Engine.Guitar
             var laneMask = GetLaneMask();
             if (ActiveLaneIncludesNote(laneMask))
             {
+                UpdateLaneExpireTime();
                 return;
+            }
+
+            if (!IsLaneActive && CurrentTime - LaneExpireTime < LANE_END_OVERSTRUM_LENIENCY)
+            {
+                YargLogger.LogFormatTrace("Overstrum prevented by lane end leniency at {0}", CurrentTime);
             }
 
             if (IsLaneActive)

@@ -205,24 +205,44 @@ namespace YARG.Core.Audio
             new Sample<VoxSample>(VoxSample.FailSound, "FailSound"),
         };
 
+        public static readonly IList<Sample<MetronomeSample>> MetronomeSamples = new[]
+        {
+            // Samples taken from https://www.reddit.com/r/audioengineering/comments/kg8gth/free_click_track_sound_archive/
+            // Normalised with `ffmpeg -i <original> -filter:a "loudnorm=I=-11:LRA=7:TP=-1, volume=29dB" -c:a libvorbis <final>`
+            new Sample<MetronomeSample>(MetronomeSample.None, "", ""),
+            new Sample<MetronomeSample>(MetronomeSample.Castanet, "castanet_hi", "castanet_lo"),
+            new Sample<MetronomeSample>(MetronomeSample.Clap, "clap_hi", "clap_lo"),
+            new Sample<MetronomeSample>(MetronomeSample.Party, "party_hi", "party_lo"),
+            new Sample<MetronomeSample>(MetronomeSample.Quartz, "quartz_hi", "quartz_lo"),
+            new Sample<MetronomeSample>(MetronomeSample.Sine, "sine_hi", "sine_lo"),
+            new Sample<MetronomeSample>(MetronomeSample.Square, "square_hi", "square_lo"),
+            new Sample<MetronomeSample>(MetronomeSample.Trashcan, "trashcan_hi", "trashcan_lo"),
+        };
+
         public class Sample<T>
         {
             public T             Kind;
             public string        File;
+            public string        AlternateFile;
             public float         Volume;
             public bool          CanLoop;
             public bool          IsPlaying;
 
-            public Sample(T kind, string file, float volume = 1.0f, bool canLoop = false)
+            public Sample(T kind, string file, float volume = 1.0f, bool canLoop = false, string alternateFile = "")
             {
                 Kind = kind;
                 File = file;
+                AlternateFile = alternateFile;
                 Volume = volume;
                 CanLoop = canLoop;
                 IsPlaying = false;
             }
 
             public Sample(T kind, string file, bool canLoop) : this(kind, file, 1.0f, canLoop)
+            {
+            }
+
+            public Sample(T kind, string file, string alternateFile) : this(kind, file, 1.0f, false, alternateFile)
             {
             }
         }

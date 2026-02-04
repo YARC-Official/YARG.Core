@@ -91,6 +91,9 @@ namespace YARG.Core.Game
             [SettingType(SettingType.Toggle)]
             public bool NoStarPowerOverlap = false;
 
+            [SettingType(SettingType.Toggle)]
+            public bool EnableLanes = true;
+
             [SettingType(SettingType.MillisecondInput)]
             [SettingRange(min: 0f)]
             public double HopoLeniency = 0.08;
@@ -129,6 +132,7 @@ namespace YARG.Core.Game
                     HitWindow = HitWindow.Copy(),
                     SoloTaps = SoloTaps,
                     NoStarPowerOverlap = NoStarPowerOverlap,
+                    EnableLanes = EnableLanes,
                 };
             }
 
@@ -147,7 +151,8 @@ namespace YARG.Core.Game
                     InfiniteFrontEnd,
                     AntiGhosting,
                     SoloTaps,
-                    NoStarPowerOverlap);
+                    NoStarPowerOverlap,
+                    EnableLanes);
             }
         }
 
@@ -159,6 +164,9 @@ namespace YARG.Core.Game
         {
             [SettingType(SettingType.Toggle)]
             public bool NoStarPowerOverlap = false;
+
+            [SettingType(SettingType.Toggle)]
+            public bool EnableLanes = true;
 
             [SettingType(SettingType.Special)]
             public HitWindowPreset HitWindow = new()
@@ -175,6 +183,7 @@ namespace YARG.Core.Game
                 return new DrumsPreset
                 {
                     NoStarPowerOverlap = NoStarPowerOverlap,
+                    EnableLanes = EnableLanes,
                     HitWindow = HitWindow.Copy()
                 };
             }
@@ -187,7 +196,8 @@ namespace YARG.Core.Game
                     DEFAULT_MAX_MULTIPLIER,
                     starMultiplierThresholds,
                     mode,
-                    NoStarPowerOverlap);
+                    NoStarPowerOverlap,
+                    EnableLanes);
             }
         }
 
@@ -301,6 +311,9 @@ namespace YARG.Core.Game
             [SettingType(SettingType.Toggle)]
             public bool NoStarPowerOverlap = false;
 
+            [SettingType(SettingType.Toggle)]
+            public bool EnableLanes = true;
+
             [SettingType(SettingType.MillisecondInput)]
             [SettingRange(min: 0f)]
             public double ChordStaggerWindow = 0.05;
@@ -330,6 +343,7 @@ namespace YARG.Core.Game
                     NoStarPowerOverlap = NoStarPowerOverlap,
                     ChordStaggerWindow = ChordStaggerWindow,
                     FatFingerWindow = FatFingerWindow,
+                    EnableLanes = EnableLanes,
                     HitWindow = HitWindow.Copy(),
                 };
             }
@@ -345,7 +359,8 @@ namespace YARG.Core.Game
                     starMultiplierThresholds,
                     ChordStaggerWindow,
                     FatFingerWindow,
-                    NoStarPowerOverlap);
+                    NoStarPowerOverlap,
+                    EnableLanes);
             }
         }
     }

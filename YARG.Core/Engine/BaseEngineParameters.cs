@@ -18,16 +18,19 @@ namespace YARG.Core.Engine
 
         public readonly float[] StarMultiplierThresholds;
 
+        public readonly bool EnableLanes;
+
         public double SongSpeed;
 
         protected BaseEngineParameters(HitWindowSettings hitWindow, int maxMultiplier, double spWhammyBuffer,
-            double sustainDropLeniency, float[] starMultiplierThresholds)
+            double sustainDropLeniency, float[] starMultiplierThresholds, bool enableLanes)
         {
             HitWindow = hitWindow;
             StarPowerWhammyBuffer = spWhammyBuffer;
             SustainDropLeniency = sustainDropLeniency;
             MaxMultiplier = maxMultiplier;
             StarMultiplierThresholds = starMultiplierThresholds;
+            EnableLanes = enableLanes;
         }
 
         protected BaseEngineParameters(ref FixedArrayStream stream, int version)
@@ -48,6 +51,12 @@ namespace YARG.Core.Engine
             }
 
             SongSpeed = stream.Read<double>(Endianness.Little);
+
+            // Version 10 and higher
+            if (version >= 10)
+            {
+                EnableLanes = stream.ReadBoolean();
+            }
         }
 
         public virtual void Serialize(BinaryWriter writer)
@@ -66,6 +75,7 @@ namespace YARG.Core.Engine
             }
 
             writer.Write(SongSpeed);
+            writer.Write(EnableLanes);
         }
 
         public override string ToString()
