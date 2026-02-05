@@ -20,7 +20,7 @@ namespace YARG.Core.Chart
         private delegate TNote CreateNoteDelegate<TNote>(MoonNote moonNote, CurrentPhrases currentPhrases)
             where TNote : Note<TNote>;
         private delegate void ProcessTextDelegate(MoonText text);
-        private delegate Phrase? ValidatePhraseDelegate(Phrase phrase);
+        private delegate Phrase? ValidatePhraseDelegate(Phrase phrase, List<Phrase> phrases);
 
         private MoonSong _moonSong;
         private ParseSettings _settings;
@@ -236,7 +236,7 @@ namespace YARG.Core.Chart
                     continue;
                 }
 
-                var validatedPhrase = validatePhrase(newPhrase);
+                var validatedPhrase = validatePhrase(newPhrase, phrases);
                 if (validatedPhrase != null)
                 {
                     phrases.Add(validatedPhrase);

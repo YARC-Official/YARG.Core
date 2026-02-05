@@ -171,12 +171,21 @@ namespace YARG.Core.Chart
             return flags;
         }
 
-        private Phrase? ValidateGuitarPhrase(Phrase phrase)
+        private Phrase? ValidateGuitarPhrase(Phrase phrase, List<Phrase> phrases)
         {
             if (phrase.Type == PhraseType.BigRockEnding && phrase.Time < _codaTime)
             {
                 // BRE Phrases aren't allowed before the coda event
                 return null;
+            }
+
+            // Check that we don't already have an identical phrase
+            foreach (var otherPhrase in phrases)
+            {
+                if (otherPhrase.Type == phrase.Type && otherPhrase.Time == phrase.Time && otherPhrase.TimeEnd == phrase.TimeEnd)
+                {
+                    return null;
+                }
             }
 
             return phrase;

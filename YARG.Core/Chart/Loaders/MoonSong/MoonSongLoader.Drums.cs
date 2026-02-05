@@ -116,7 +116,7 @@ namespace YARG.Core.Chart
             _discoFlip = setting == DrumsMixSetting.DiscoFlip;
         }
 
-        private Phrase ValidateDrumsPhrase(Phrase phrase)
+        private Phrase? ValidateDrumsPhrase(Phrase phrase, List<Phrase> phrases)
         {
             if (phrase.Type != PhraseType.DrumFill)
             {
@@ -130,6 +130,16 @@ namespace YARG.Core.Chart
             }
 
             // If we're here, we were presented a drum fill after a coda and that needs to be a BRE
+
+            // Unless it would be a dupe of an existing phrase
+            foreach (var otherPhrase in phrases)
+            {
+                if (otherPhrase.Type == phrase.Type && otherPhrase.Time == phrase.Time && otherPhrase.TimeEnd == phrase.TimeEnd)
+                {
+                    return null;
+                }
+            }
+
             return new Phrase(PhraseType.BigRockEnding, phrase.Time, phrase.TimeLength, phrase.Tick, phrase.TickLength);
         }
 
