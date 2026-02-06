@@ -590,7 +590,7 @@ namespace YARG.Core.Engine
 
         protected void SubmitLaneNote(int newNote)
         {
-            if (!IsLaneActive)
+            if (!IsLaneActive || NoteIndex >= Notes.Count)
             {
                 return;
             }
