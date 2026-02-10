@@ -1,7 +1,10 @@
-﻿using System.IO;
+
+using System;
+using System.IO;
 using YARG.Core.Chart;
 using YARG.Core.Extensions;
 using YARG.Core.IO;
+using YARG.Core.Chart;
 using YARG.Core.Replays;
 
 namespace YARG.Core.Engine
@@ -199,15 +202,32 @@ namespace YARG.Core.Engine
         /// </summary>
         public virtual bool IsFullCombo => MaxCombo == TotalNotes;
 
-        /// <summary>
-        /// The total offset. This, together with notes hit is used to calculate the average offset.
+        /// The total note timing offset in milliseconds.
+        /// Used together with NotesHit to calculate the average timing offset.
         /// </summary>
-        private double TotalOffset;
+        public double TotalNoteTimingOffset;
 
         /// <summary>
-        /// The average offset.
+        /// The sum of squared note timing values for calculating variance and standard deviation.
         /// </summary>
-        private double AverageOffset;
+        public double TotalNoteTimingOffsetSquared;
+
+        /// <summary>
+        /// The timing accuracy of the last note hit in milliseconds.
+        /// Positive values indicate a late hit, negative values indicate an early hit.
+        /// </summary>
+        public double LastNoteTimingMs;
+
+        // Note judgement buckets (based on absolute deviation in ms)
+        public int NotesPerfect;
+        public int NotesGreat;
+        public int NotesGood;
+        public int NotesPoor;
+
+        /// <summary>
+        /// Whether to record advanced timing statistics. Set this before gameplay starts.
+        /// </summary>
+        public bool RecordTimingStatistics { get; set; }
 
         protected BaseStats()
         {
@@ -229,8 +249,11 @@ namespace YARG.Core.Engine
             NotesHit = stats.NotesHit;
             TotalNotes = stats.TotalNotes;
 
-            TotalOffset = stats.TotalOffset;
-            AverageOffset = stats.AverageOffset;
+            TotalNoteTimingOffset = stats.TotalNoteTimingOffset;
+            TotalNoteTimingOffsetSquared = stats.TotalNoteTimingOffsetSquared;
+
+            TotalNoteTimingOffset = stats.TotalNoteTimingOffset;
+            TotalNoteTimingOffsetSquared = stats.TotalNoteTimingOffsetSquared;
 
             StarPowerTickAmount = stats.StarPowerTickAmount;
             TotalStarPowerTicks = stats.TotalStarPowerTicks;
@@ -247,6 +270,11 @@ namespace YARG.Core.Engine
             StarPowerScore = stats.StarPowerScore;
 
             Stars = stats.Stars;
+
+            NotesPerfect = stats.NotesPerfect;
+            NotesGreat = stats.NotesGreat;
+            NotesGood = stats.NotesGood;
+            NotesPoor = stats.NotesPoor;
         }
 
         protected BaseStats(ref FixedArrayStream stream, int version)
@@ -302,8 +330,10 @@ namespace YARG.Core.Engine
             ScoreMultiplier = 1;
             BandMultiplier = 1;
             NotesHit = 0;
-            TotalOffset = 0.0;
-            AverageOffset = 0.0;
+            TotalNoteTimingOffset = 0.0;
+            TotalNoteTimingOffsetSquared = 0.0;
+            TotalNoteTimingOffset = 0.0;
+            TotalNoteTimingOffsetSquared = 0.0;
             // Don't reset TotalNotes
             // TotalNotes = 0;
 
@@ -322,6 +352,11 @@ namespace YARG.Core.Engine
             StarPowerScore = 0;
 
             Stars = 0;
+
+            NotesPerfect = 0;
+            NotesGreat = 0;
+            NotesGood = 0;
+            NotesPoor = 0;
         }
 
         public virtual void Serialize(BinaryWriter writer)
@@ -340,6 +375,10 @@ namespace YARG.Core.Engine
 
             writer.Write(NotesHit);
             writer.Write(TotalNotes);
+            writer.Write(TotalNoteTimingOffset);
+            writer.Write(TotalNoteTimingOffsetSquared);
+            writer.Write(TotalNoteTimingOffset);
+            writer.Write(TotalNoteTimingOffsetSquared);
 
             writer.Write(StarPowerTickAmount);
             writer.Write(TotalStarPowerTicks);
@@ -356,27 +395,80 @@ namespace YARG.Core.Engine
 
             // Deliberately not written so that stars can be re-calculated with different thresholds
             // writer.Write(Stars);
+
+            writer.Write(NotesPerfect);
+            writer.Write(NotesGreat);
+            writer.Write(NotesGood);
+            writer.Write(NotesPoor);
         }
 
         public abstract ReplayStats ConstructReplayStats(string name);
 
         public double GetAverageOffset()
         {
-            var offsetNotes = NotesHit - LanedNotesHit;
-            return offsetNotes > 0 ? TotalOffset / offsetNotes : 0.0;
+            return NotesHit > 0 ? TotalNoteTimingOffset / NotesHit : 0.0;
         }
 
-        public void IncrementNotesHit<NoteType>(NoteType note, double current_time) where NoteType : Note<NoteType>
+        /// <summary>
+        /// Calculates the standard deviation of note timing in milliseconds.
+        /// Standard deviation measures the consistency/precision of timing.
+        /// A lower value indicates more consistent timing.
+        /// </summary>
+        /// <returns>The standard deviation in milliseconds, or 0 if no notes have been hit.</returns>
+        public double GetStandardDeviation()
         {
-            NotesHit++;
+            if (NotesHit == 0) return 0.0;
 
-            if (!note.IsLane)
-            {
-                TotalOffset += current_time - note.Time;
-            }
+            double mean = GetAverageOffset();
+            double variance = (TotalNoteTimingOffsetSquared / NotesHit) - (mean * mean);
+            return Math.Sqrt(Math.Max(0, variance));
+        }
+
+        /// <summary>
+        /// Records timing statistics for a note hit if timing recording is enabled.
+        /// </summary>
+        /// <param name="note">The note that was hit</param>
+        /// <param name="currentTime">The current time when the note was hit</param>
+        /// <param name="maxHitWindow">The maximum hit window in seconds</param>
+        /// <param name="perfectPercent">Perfect threshold as percentage of hit window</param>
+        /// <param name="greatPercent">Great threshold as percentage of hit window</param>
+        /// <param name="goodPercent">Good threshold as percentage of hit window</param>
+        /// <param name="poorPercent">Poor threshold as percentage of hit window</param>
+        public void RecordNoteHitTiming<NoteType>(NoteType note, double currentTime, double maxHitWindow,
+            double perfectPercent, double greatPercent,
+            double goodPercent, double poorPercent) where NoteType : Note<NoteType>
+        {
+            ++NotesHit;
+
+            if (!RecordTimingStatistics)
+                return;
+            
+            // Calculate timing accuracy in milliseconds (signed: negative=early, positive=late)
+            double timingMs = (currentTime - note.Time) * 1000.0;
+            LastNoteTimingMs = timingMs;
+            TotalNoteTimingOffset += timingMs;
+            TotalNoteTimingOffsetSquared += timingMs * timingMs;
+        
+            // Grade thresholds as percentages of the half-window (since timing is centered):
+            // The hit window is split: early (negative) and late (positive) from the note time
+            // So we use half the window as the base for each direction.
+            double halfWindow = (maxHitWindow * 1000.0) / 2.0;
+            
+            // Convert percentages to actual thresholds
+            double perfectThreshold = halfWindow * (perfectPercent / 100.0);
+            double greatThreshold = halfWindow * (greatPercent / 100.0);
+            double goodThreshold = halfWindow * (goodPercent / 100.0);
+            double poorThreshold = halfWindow * (poorPercent / 100.0);
+
+            double abs = Math.Abs(timingMs);
+            if (abs <= perfectThreshold) NotesPerfect++;
+            else if (abs <= greatThreshold) NotesGreat++;
+            else if (abs <= goodThreshold) NotesGood++;
+            else if (abs <= poorThreshold) NotesPoor++;
             else
             {
-                LanedNotesHit++;
+                // Outside POOR is effectively a miss; don't count here since misses are tracked
+                // by NotesMissed.
             }
         }
     }

@@ -45,6 +45,23 @@ namespace YARG.Core.Game
             [SettingRange(0f, 2f)]
             public double FrontToBackRatio = 1.0;
 
+            // Timing judgement thresholds (as percentages of half-window)
+            [SettingType(SettingType.Slider)]
+            [SettingRange(0f, 100f)]
+            public double PerfectThresholdPercent = 15.0;
+
+            [SettingType(SettingType.Slider)]
+            [SettingRange(0f, 100f)]
+            public double GreatThresholdPercent = 30.0;
+
+            [SettingType(SettingType.Slider)]
+            [SettingRange(0f, 100f)]
+            public double GoodThresholdPercent = 60.0;
+
+            [SettingType(SettingType.Slider)]
+            [SettingRange(0f, 100f)]
+            public double PoorThresholdPercent = 100.0;
+
             [SettingType(SettingType.Slider)]
             [SettingRange(0f, 3f)]
             public double TremoloFrontEndPercent = 1.5;
@@ -52,7 +69,9 @@ namespace YARG.Core.Game
             public HitWindowSettings Create()
             {
                 return new HitWindowSettings(MaxWindow, MinWindow, FrontToBackRatio, IsDynamic,
-                    DynamicSlope, DynamicScale, DynamicGamma, TremoloFrontEndPercent);
+                    DynamicSlope, DynamicScale, DynamicGamma,
+                    PerfectThresholdPercent, GreatThresholdPercent, GoodThresholdPercent, PoorThresholdPercent,
+                    TremoloFrontEndPercent);
             }
 
             public HitWindowPreset Copy()
@@ -68,6 +87,11 @@ namespace YARG.Core.Game
                     DynamicGamma = DynamicGamma,
 
                     FrontToBackRatio = FrontToBackRatio,
+
+                    PerfectThresholdPercent = PerfectThresholdPercent,
+                    GreatThresholdPercent = GreatThresholdPercent,
+                    GoodThresholdPercent = GoodThresholdPercent,
+                    PoorThresholdPercent = PoorThresholdPercent,
 
                     TremoloFrontEndPercent = TremoloFrontEndPercent
                 };
@@ -288,7 +312,7 @@ namespace YARG.Core.Game
                 };
 
                 var hitWindow = new HitWindowSettings(
-                    PercussionHitWindow, PercussionHitWindow, 1, false, 0, 0, 0, 0);
+                    PercussionHitWindow, PercussionHitWindow, 1, false, 0, 0, 0, 15, 30, 60, 100, 0);
 
                 return new VocalsEngineParameters(
                     hitWindow,
