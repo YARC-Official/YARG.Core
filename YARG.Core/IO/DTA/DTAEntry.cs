@@ -17,10 +17,10 @@ namespace YARG.Core.IO
         public TextSpan? Album;
         public string? Genre;
         public string? Subgenre;
-        public string? Charter;
+        public TextSpan? Charter;
         public string? Source;
         public string? Playlist;
-        public string? LoadingPhrase;
+        public TextSpan? LoadingPhrase;
         public int? YearAsNumber;
 
         public long? SongLength;
@@ -64,6 +64,9 @@ namespace YARG.Core.IO
 
         public void LoadData(string nodename, YARGTextContainer<byte> container)
         {
+            YARGTextContainer<byte> containerPass2;
+            containerPass2 = container;
+
             while (YARGDTAReader.StartNode(ref container))
             {
                 string name = YARGDTAReader.GetNameOfNode(ref container, false);
@@ -233,7 +236,7 @@ namespace YARG.Core.IO
                     case "drum_bank": DrumBank = YARGDTAReader.ExtractText(ref container); break;
                     case "song_length": SongLength = YARGDTAReader.ExtractInteger<long>(ref container); break;
                     case "sub_genre": Subgenre = YARGDTAReader.ExtractText(ref container); break;
-                    case "author": Charter = YARGDTAReader.ExtractText(ref container); break;
+                    case "author": Charter = YARGDTAReader.ExtractTextBytes(ref container); break;
                     case "guide_pitch_volume": /*GuidePitchVolume = YARGDTAReader.Extract<float>(ref container);*/ break;
                     case "encoding":
                         MetadataEncoding = YARGDTAReader.ExtractText(ref container).ToLower() switch
@@ -250,41 +253,60 @@ namespace YARG.Core.IO
                     case "real_guitar_tuning": RealGuitarTuning = YARGDTAReader.ExtractIntegerArray<int>(ref container); break;
                     case "real_bass_tuning": RealBassTuning = YARGDTAReader.ExtractIntegerArray<int>(ref container); break;
                     case "video_venues": VideoVenues = YARGDTAReader.ExtractStringArray(ref container); break;
-                    case "loading_phrase": LoadingPhrase = YARGDTAReader.ExtractText(ref container); break;
+                    case "loading_phrase": LoadingPhrase = YARGDTAReader.ExtractTextBytes(ref container); break;
                     case "extra_authoring":
                     {
-                        StringBuilder authors = new();
                         foreach (string str in YARGDTAReader.ExtractStringArray(ref container))
                         {
                             if (str == "disc_update")
                             {
                                 DiscUpdate = true;
-                            }
-                            else
-                            {
-                                if (authors.Length == 0 && Charter == SongMetadata.DEFAULT_CHARTER)
-                                {
-                                    authors.Append(str);
-                                }
-                                else
-                                {
-                                    if (authors.Length == 0)
-                                        authors.Append(Charter);
-                                    authors.Append(", " + str);
-                                }
+                                break;
                             }
                         }
-
-                        if (authors.Length == 0)
-                        {
-                            authors.Append(Charter);
-                        }
-
-                        Charter = authors.ToString();
                     }
                     break;
                 }
                 YARGDTAReader.EndNode(ref container);
+            }
+
+            if (Charter is null)
+            {
+                // If no charter is specified,
+                // see if an old version of Magma put the author name in a comment
+                ReadOnlySpan<byte> legacyAuthorComment = new byte[]
+                {
+                    (byte)';',
+                    (byte)'S',
+                    (byte)'o',
+                    (byte)'n',
+                    (byte)'g',
+                    (byte)' ',
+                    (byte)'a',
+                    (byte)'u',
+                    (byte)'t',
+                    (byte)'h',
+                    (byte)'o',
+                    (byte)'r',
+                    (byte)'e',
+                    (byte)'d',
+                    (byte)' ',
+                    (byte)'b',
+                    (byte)'y',
+                    (byte)' '
+                };
+
+                TextSpan dtaLine = new TextSpan();
+
+                // Scan the DTA file for a line that starts with the Magma author comment
+                while (!YARGDTAReader.LineReader(ref containerPass2, ref dtaLine))
+                {
+                    if (dtaLine.StartsWith(legacyAuthorComment))
+                    {
+                        // If the comment is found, set the Charter to the author in the comment
+                        Charter = dtaLine.Slice(legacyAuthorComment.Length);
+                    }
+                }
             }
         }
 

@@ -38,7 +38,7 @@ public class DrumEngineTester
         var chart = SongChart.FromMidi(in ParseSettings.Default_Midi, midi);
         var notes = chart.ProDrums.GetDifficulty(Difficulty.Expert);
 
-        var engine = new YargDrumsEngine(notes, chart.SyncTrack, _engineParams, true);
+        var engine = new YargDrumsEngine(notes, chart.SyncTrack, _engineParams, true, false);
         var endTime = notes.GetEndTime();
         var timeStep = 0.01;
         for (double i = 0; i < endTime; i += timeStep)
@@ -59,7 +59,7 @@ public class DrumEngineTester
 
         notes.RemoveKickDrumNotes();
 
-        var engine = new YargDrumsEngine(notes, chart.SyncTrack, _engineParams, true);
+        var engine = new YargDrumsEngine(notes, chart.SyncTrack, _engineParams, true, false);
         var endTime = notes.GetEndTime();
         var timeStep = 0.01;
         for (double i = 0; i < endTime; i += timeStep)

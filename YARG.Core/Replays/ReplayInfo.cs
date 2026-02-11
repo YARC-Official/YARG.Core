@@ -28,9 +28,11 @@ namespace YARG.Core.Replays
         public readonly DateTime Date;
         public readonly HashWrapper SongChecksum;
 
+        public readonly PauseInfo[] Pauses;
+
         public readonly ReplayStats[] Stats;
 
-        public ReplayInfo(string path, string replayName, int replayVersion, int engineVerion, in HashWrapper replayChecksum, string song, string artist, string charter, in HashWrapper songChecksum, in DateTime date, float speed, double length, int score, StarAmount stars, ReplayStats[] stats)
+        public ReplayInfo(string path, string replayName, int replayVersion, int engineVerion, in HashWrapper replayChecksum, string song, string artist, string charter, in HashWrapper songChecksum, in DateTime date, float speed, double length, int score, StarAmount stars, PauseInfo[] pauses, ReplayStats[] stats)
         {
             FilePath = path;
             ReplayName = replayName;
@@ -48,6 +50,9 @@ namespace YARG.Core.Replays
             ReplayLength = length;
             BandScore = score;
             BandStars = stars;
+
+            Pauses = pauses;
+
             Stats = stats;
         }
 
@@ -73,6 +78,20 @@ namespace YARG.Core.Replays
             BandStars = (StarAmount) stream.ReadByte();
 
             ReplayName = ConstructReplayName(SongName, ArtistName, CharterName, in Date);
+
+            if (ReplayVersion > 10)
+            {
+                int pauseCount = stream.Read<int>(Endianness.Little);
+                Pauses = new PauseInfo[pauseCount];
+                for (int i = 0; i < pauseCount; i++)
+                {
+                    Pauses[i] = new PauseInfo(ref stream, ReplayVersion);
+                }
+            }
+            else
+            {
+                Pauses = Array.Empty<PauseInfo>();
+            }
 
             int statCount = stream.Read<int>(Endianness.Little);
             Stats = new ReplayStats[statCount];
@@ -107,6 +126,12 @@ namespace YARG.Core.Replays
             writer.Write(ReplayLength);
             writer.Write(BandScore);
             writer.Write((byte) BandStars);
+
+            writer.Write(Pauses.Length);
+            foreach (var pause in Pauses)
+            {
+                pause.Serialize(writer);
+            }
 
             writer.Write(Stats.Length);
             foreach (var stat in Stats)

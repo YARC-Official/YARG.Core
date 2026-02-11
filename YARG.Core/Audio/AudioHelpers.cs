@@ -13,13 +13,13 @@ namespace YARG.Core.Audio
             { "rhythm",   SongStem.Rhythm  },
             { "keys",     SongStem.Keys    },
             { "vocals",   SongStem.Vocals  },
-            { "vocals_1", SongStem.Vocals1 },
-            { "vocals_2", SongStem.Vocals2 },
+            { "vocals_1", SongStem.Vocals },
+            { "vocals_2", SongStem.Vocals },
             { "drums",    SongStem.Drums   },
-            { "drums_1",  SongStem.Drums1  },
-            { "drums_2",  SongStem.Drums2  },
-            { "drums_3",  SongStem.Drums3  },
-            { "drums_4",  SongStem.Drums4  },
+            { "drums_1",  SongStem.Drums  },
+            { "drums_2",  SongStem.Drums  },
+            { "drums_3",  SongStem.Drums  },
+            { "drums_4",  SongStem.Drums  },
             { "crowd",    SongStem.Crowd   },
             // "preview"
         };
@@ -35,20 +35,20 @@ namespace YARG.Core.Audio
         {
             return stem.ToLowerInvariant() switch
             {
-                "song"       => SongStem.Song,
-                "guitar"     => SongStem.Guitar,
-                "bass"       => SongStem.Bass,
-                "rhythm"     => SongStem.Rhythm,
-                "keys"       => SongStem.Keys,
-                "vocals"     => SongStem.Vocals,
-                "vocals_1"   => SongStem.Vocals1,
-                "vocals_2"   => SongStem.Vocals2,
-                "drums"      => SongStem.Drums,
-                "drums_1"    => SongStem.Drums1,
-                "drums_2"    => SongStem.Drums2,
-                "drums_3"    => SongStem.Drums3,
-                "drums_4"    => SongStem.Drums4,
-                "crowd"      => SongStem.Crowd,
+                "song"     => SongStem.Song,
+                "guitar"   => SongStem.Guitar,
+                "bass"     => SongStem.Bass,
+                "rhythm"   => SongStem.Rhythm,
+                "keys"     => SongStem.Keys,
+                "vocals"   => SongStem.Vocals,
+                "vocals_1" => SongStem.Vocals,
+                "vocals_2" => SongStem.Vocals,
+                "drums"    => SongStem.Drums,
+                "drums_1"  => SongStem.Drums,
+                "drums_2"  => SongStem.Drums,
+                "drums_3"  => SongStem.Drums,
+                "drums_4"  => SongStem.Drums,
+                "crowd"    => SongStem.Crowd,
                 // "preview" => SongStem.Preview,
                 _ => SongStem.Song,
             };
@@ -205,24 +205,44 @@ namespace YARG.Core.Audio
             new Sample<VoxSample>(VoxSample.FailSound, "FailSound"),
         };
 
+        public static readonly IList<Sample<MetronomeSample>> MetronomeSamples = new[]
+        {
+            // Samples taken from https://www.reddit.com/r/audioengineering/comments/kg8gth/free_click_track_sound_archive/
+            // Normalised with `ffmpeg -i <original> -filter:a "loudnorm=I=-11:LRA=7:TP=-1, volume=29dB" -c:a libvorbis <final>`
+            new Sample<MetronomeSample>(MetronomeSample.None, "", ""),
+            new Sample<MetronomeSample>(MetronomeSample.Castanet, "castanet_hi", "castanet_lo"),
+            new Sample<MetronomeSample>(MetronomeSample.Clap, "clap_hi", "clap_lo"),
+            new Sample<MetronomeSample>(MetronomeSample.Party, "party_hi", "party_lo"),
+            new Sample<MetronomeSample>(MetronomeSample.Quartz, "quartz_hi", "quartz_lo"),
+            new Sample<MetronomeSample>(MetronomeSample.Sine, "sine_hi", "sine_lo"),
+            new Sample<MetronomeSample>(MetronomeSample.Square, "square_hi", "square_lo"),
+            new Sample<MetronomeSample>(MetronomeSample.Trashcan, "trashcan_hi", "trashcan_lo"),
+        };
+
         public class Sample<T>
         {
             public T             Kind;
             public string        File;
+            public string        AlternateFile;
             public float         Volume;
             public bool          CanLoop;
             public bool          IsPlaying;
 
-            public Sample(T kind, string file, float volume = 1.0f, bool canLoop = false)
+            public Sample(T kind, string file, float volume = 1.0f, bool canLoop = false, string alternateFile = "")
             {
                 Kind = kind;
                 File = file;
+                AlternateFile = alternateFile;
                 Volume = volume;
                 CanLoop = canLoop;
                 IsPlaying = false;
             }
 
             public Sample(T kind, string file, bool canLoop) : this(kind, file, 1.0f, canLoop)
+            {
+            }
+
+            public Sample(T kind, string file, string alternateFile) : this(kind, file, 1.0f, false, alternateFile)
             {
             }
         }

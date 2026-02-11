@@ -113,6 +113,14 @@ namespace YARG.Core.Engine
             public readonly string Reason;
         }
 
+        protected uint TotalLanes;
+        protected uint CurrentLaneIndex;
+        protected int RequiredLaneNote;
+        protected int NextTrillNote;
+        protected double LaneExpireTime;
+        public bool IsLaneActive => RequiredLaneNote != -1;
+        public bool LanesExist => CurrentLaneIndex <= TotalLanes;
+
         /// <summary>
         /// Whether or not the specified engine should treat a note as a chord, or separately.
         /// For example, guitars would treat each note as a chord, where as drums would treat them
@@ -384,6 +392,12 @@ namespace YARG.Core.Engine
 
             IsSoloActive = false;
 
+            TotalLanes = 0;
+            CurrentLaneIndex = 1;
+            RequiredLaneNote = -1;
+            NextTrillNote = -1;
+            LaneExpireTime = -1;
+
             IsWaitCountdownActive = false;
             IsStarPowerInputActive = false;
         }
@@ -451,9 +465,7 @@ namespace YARG.Core.Engine
 
             BaseStats.IsStarPowerActive = false;
 
-            double roundedTime = SyncTrack.TickToTime(SyncTrack.TimeToTick(CurrentTime));
-            double roundedActivationTime = SyncTrack.TickToTime(SyncTrack.TimeToTick(StarPowerActivationTime));
-            double spTimeDelta = roundedTime - roundedActivationTime;
+            double spTimeDelta = CurrentTime - StarPowerActivationTime;
             BaseStats.TimeInStarPower = spTimeDelta + BaseTimeInStarPower;
 
             BaseTimeInStarPower = BaseStats.TimeInStarPower;
@@ -493,7 +505,7 @@ namespace YARG.Core.Engine
             double lastEndTime = StarPowerEndTime;
 
             StarPowerTickEndPosition = StarPowerTickPosition + BaseStats.StarPowerTickAmount;
-            StarPowerEndTime = SyncTrack.MeasureTickToTime(StarPowerTickEndPosition);
+            StarPowerEndTime = SyncTrack.FindMinTimeForMeasureTick(StarPowerTickEndPosition);
 
             YargLogger.LogFormatTrace(
                 "Updated Star Power end from {0} ({1}) to {2} ({3})",

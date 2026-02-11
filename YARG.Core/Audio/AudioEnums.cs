@@ -11,16 +11,11 @@
         Rhythm,
         Keys,
         Vocals,
-        Vocals1,
-        Vocals2,
         Drums,
-        Drums1,
-        Drums2,
-        Drums3,
-        Drums4,
         Crowd,
         Preview,
         VoxSample,
+        Metronome,
     }
 
     public enum SfxSample
@@ -136,6 +131,24 @@
         FullBandFullCombo,
         HighScore,
         FailSound
+    }
+
+    public enum MetronomeSample
+    {
+        None,
+        Castanet,
+        Clap,
+        Party,
+        Quartz,
+        Sine,
+        Square,
+        Trashcan,
+    }
+
+    public enum MetronomePitch
+    {
+        Hi,
+        Lo,
     }
 
     public enum DSPType

@@ -45,10 +45,14 @@ namespace YARG.Core.Game
             [SettingRange(0f, 2f)]
             public double FrontToBackRatio = 1.0;
 
+            [SettingType(SettingType.Slider)]
+            [SettingRange(0f, 3f)]
+            public double TremoloFrontEndPercent = 1.5;
+
             public HitWindowSettings Create()
             {
                 return new HitWindowSettings(MaxWindow, MinWindow, FrontToBackRatio, IsDynamic,
-                    DynamicSlope, DynamicScale, DynamicGamma);
+                    DynamicSlope, DynamicScale, DynamicGamma, TremoloFrontEndPercent);
             }
 
             public HitWindowPreset Copy()
@@ -63,7 +67,9 @@ namespace YARG.Core.Game
                     DynamicSlope = DynamicSlope,
                     DynamicGamma = DynamicGamma,
 
-                    FrontToBackRatio = FrontToBackRatio
+                    FrontToBackRatio = FrontToBackRatio,
+
+                    TremoloFrontEndPercent = TremoloFrontEndPercent
                 };
             }
         }
@@ -84,6 +90,9 @@ namespace YARG.Core.Game
 
             [SettingType(SettingType.Toggle)]
             public bool NoStarPowerOverlap = false;
+
+            [SettingType(SettingType.Toggle)]
+            public bool EnableLanes = true;
 
             [SettingType(SettingType.MillisecondInput)]
             [SettingRange(min: 0f)]
@@ -107,7 +116,8 @@ namespace YARG.Core.Game
                 MaxWindow = 0.14,
                 MinWindow = 0.14,
                 IsDynamic = false,
-                FrontToBackRatio = 1.0
+                FrontToBackRatio = 1.0,
+                TremoloFrontEndPercent = 1.5
             };
 
             public FiveFretGuitarPreset Copy()
@@ -122,6 +132,7 @@ namespace YARG.Core.Game
                     HitWindow = HitWindow.Copy(),
                     SoloTaps = SoloTaps,
                     NoStarPowerOverlap = NoStarPowerOverlap,
+                    EnableLanes = EnableLanes,
                 };
             }
 
@@ -140,7 +151,8 @@ namespace YARG.Core.Game
                     InfiniteFrontEnd,
                     AntiGhosting,
                     SoloTaps,
-                    NoStarPowerOverlap);
+                    NoStarPowerOverlap,
+                    EnableLanes);
             }
         }
 
@@ -153,13 +165,17 @@ namespace YARG.Core.Game
             [SettingType(SettingType.Toggle)]
             public bool NoStarPowerOverlap = false;
 
+            [SettingType(SettingType.Toggle)]
+            public bool EnableLanes = true;
+
             [SettingType(SettingType.Special)]
             public HitWindowPreset HitWindow = new()
             {
                 MaxWindow = 0.14,
                 MinWindow = 0.14,
                 IsDynamic = false,
-                FrontToBackRatio = 1.0
+                FrontToBackRatio = 1.0,
+                TremoloFrontEndPercent = 1.9
             };
 
             public DrumsPreset Copy()
@@ -167,6 +183,7 @@ namespace YARG.Core.Game
                 return new DrumsPreset
                 {
                     NoStarPowerOverlap = NoStarPowerOverlap,
+                    EnableLanes = EnableLanes,
                     HitWindow = HitWindow.Copy()
                 };
             }
@@ -179,7 +196,8 @@ namespace YARG.Core.Game
                     DEFAULT_MAX_MULTIPLIER,
                     starMultiplierThresholds,
                     mode,
-                    NoStarPowerOverlap);
+                    NoStarPowerOverlap,
+                    EnableLanes);
             }
         }
 
@@ -270,7 +288,7 @@ namespace YARG.Core.Game
                 };
 
                 var hitWindow = new HitWindowSettings(
-                    PercussionHitWindow, PercussionHitWindow, 1, false, 0, 0, 0);
+                    PercussionHitWindow, PercussionHitWindow, 1, false, 0, 0, 0, 0);
 
                 return new VocalsEngineParameters(
                     hitWindow,
@@ -293,6 +311,9 @@ namespace YARG.Core.Game
             [SettingType(SettingType.Toggle)]
             public bool NoStarPowerOverlap = false;
 
+            [SettingType(SettingType.Toggle)]
+            public bool EnableLanes = true;
+
             [SettingType(SettingType.MillisecondInput)]
             [SettingRange(min: 0f)]
             public double ChordStaggerWindow = 0.05;
@@ -311,7 +332,8 @@ namespace YARG.Core.Game
                 MaxWindow = 0.14,
                 MinWindow = 0.14,
                 IsDynamic = false,
-                FrontToBackRatio = 1.0
+                FrontToBackRatio = 1.0,
+                TremoloFrontEndPercent = 1.5
             };
 
             public ProKeysPreset Copy()
@@ -321,6 +343,7 @@ namespace YARG.Core.Game
                     NoStarPowerOverlap = NoStarPowerOverlap,
                     ChordStaggerWindow = ChordStaggerWindow,
                     FatFingerWindow = FatFingerWindow,
+                    EnableLanes = EnableLanes,
                     HitWindow = HitWindow.Copy(),
                 };
             }
@@ -336,7 +359,8 @@ namespace YARG.Core.Game
                     starMultiplierThresholds,
                     ChordStaggerWindow,
                     FatFingerWindow,
-                    NoStarPowerOverlap);
+                    NoStarPowerOverlap,
+                    EnableLanes);
             }
         }
     }

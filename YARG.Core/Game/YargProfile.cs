@@ -221,7 +221,7 @@ namespace YARG.Core.Game
             CurrentModifiers = profile.CurrentModifiers;
         }
 
-        public void ApplyModifiers<TNote>(InstrumentDifficulty<TNote> track) where TNote : Note<TNote>
+        public void ApplyModifiers<TNote>(InstrumentDifficulty<TNote> track, SyncTrack syncTrack) where TNote : Note<TNote>
         {
             switch (GameMode)
             {
@@ -230,6 +230,11 @@ namespace YARG.Core.Game
                     {
                         throw new InvalidOperationException("Cannot apply guitar modifiers to non-guitar track " +
                             $"with notes of {typeof(TNote)}!");
+                    }
+
+                    if (IsModifierActive(Modifier.OpensToGreens))
+                    {
+                        guitarTrack.ConvertFromOpenToGreen(syncTrack);
                     }
                     if (IsModifierActive(Modifier.AllStrums))
                     {
