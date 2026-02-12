@@ -401,6 +401,7 @@ namespace YARG.Core.Engine
             CurrentCodaIndex = 0;
 
             IsSoloActive = false;
+            IsCodaActive = false;
 
             TotalLanes = 0;
             CurrentLaneIndex = 1;

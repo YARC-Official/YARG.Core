@@ -110,8 +110,12 @@ namespace YARG.Core.Engine
         public void Reset(int earnedBonus = 0)
         {
             Success = true;
-            // TODO: Make sure we really need this
             TotalCodaBonus = earnedBonus;
+
+            for (int i = 0; i < LastCollectedTime.Length; i++)
+            {
+                LastCollectedTime[i] = 0;
+            }
         }
 
         public int GetCurrentLaneScore(int fret, double time)
