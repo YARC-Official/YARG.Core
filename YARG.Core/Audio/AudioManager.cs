@@ -84,14 +84,14 @@ namespace YARG.Core.Audio
             }
         }
 
-        protected internal virtual void SetOutputDevice(string name)
+        protected internal virtual bool SetOutputDevice(string name)
         {
             lock (_activeMixers)
             {
                 OutputDevice? device = GetOutputDevice(name);
                 if (device == null)
                 {
-                    return;
+                    return false;
                 }
 
                 foreach (var mixer in _activeMixers)
@@ -99,6 +99,8 @@ namespace YARG.Core.Audio
                     mixer.SetOutputDevice(device);
                 }
             }
+
+            return true;
         }
 
         internal void ToggleBuffer(bool enable)

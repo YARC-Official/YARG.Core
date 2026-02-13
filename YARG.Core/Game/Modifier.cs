@@ -48,7 +48,8 @@ namespace YARG.Core.Game
 
             var excusable = instrument switch {
                 Instrument.ProKeys =>
-                    Modifier.RangeCompress,
+                    Modifier.RangeCompress |
+                    Modifier.OpensToGreens,
 
                 _ => Modifier.None
             };
@@ -82,7 +83,8 @@ namespace YARG.Core.Game
                     Modifier.NoVocalPercussion,
 
                 GameMode.ProKeys =>
-                    Modifier.RangeCompress,
+                    Modifier.RangeCompress |
+                    Modifier.OpensToGreens,
 
                 GameMode.SixFretGuitar or
                 GameMode.ProGuitar     or

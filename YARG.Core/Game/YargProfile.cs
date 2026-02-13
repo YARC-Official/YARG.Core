@@ -296,6 +296,10 @@ namespace YARG.Core.Game
                         {
                             fiveLaneKeysTrack.CompressGuitarRange();
                         }
+                        if (IsModifierActive(Modifier.OpensToGreens))
+                        {
+                            fiveLaneKeysTrack.ConvertFromOpenToGreen(syncTrack);
+                        }
                         break;
                     }
 

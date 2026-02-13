@@ -84,7 +84,10 @@ namespace YARG.Core.Engine
             DynamicWindowScale = stream.Read<double>(Endianness.Little);
             DynamicWindowGamma = stream.Read<double>(Endianness.Little);
 
-            TremoloFrontEndPercent = stream.Read<double>(Endianness.Little);
+            if (version >= 10)
+            {
+                TremoloFrontEndPercent = stream.Read<double>(Endianness.Little);
+            }
 
             _minMaxWindowRatio = MinWindow / MaxWindow;
         }

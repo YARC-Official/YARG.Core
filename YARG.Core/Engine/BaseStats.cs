@@ -373,11 +373,15 @@ namespace YARG.Core.Engine
 
         public void IncrementNotesHit<NoteType>(NoteType note, double current_time) where NoteType : Note<NoteType>
         {
-            ++NotesHit;
+            NotesHit++;
+
             if (!note.IsLane)
             {
-                LanedNotesHit++;
                 TotalOffset += current_time - note.Time;
+            }
+            else
+            {
+                LanedNotesHit++;
             }
         }
     }
