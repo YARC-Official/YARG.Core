@@ -7,6 +7,21 @@ namespace YARG.Core.Game
 {
     public partial class ColorProfile
     {
+        public enum FourLaneDrumsFret
+        {
+            Kick,
+
+            RedDrum,
+            YellowDrum,
+            BlueDrum,
+            GreenDrum,
+
+            RedCymbal,
+            YellowCymbal,
+            BlueCymbal,
+            GreenCymbal
+        }
+
         public class FourLaneDrumsColors : IFretColorProvider, IBinarySerializable
         {
             #region Frets
@@ -31,17 +46,17 @@ namespace YARG.Core.Game
             {
                 return index switch
                 {
-                    0 => KickFret,
-                    1 => RedFret,
-                    2 => YellowFret,
-                    3 => BlueFret,
-                    4 => GreenFret,
+                    (int)FourLaneDrumsFret.Kick => KickFret,
+                    (int)FourLaneDrumsFret.RedDrum => RedFret,
+                    (int)FourLaneDrumsFret.YellowDrum => YellowFret,
+                    (int)FourLaneDrumsFret.BlueDrum => BlueFret,
+                    (int)FourLaneDrumsFret.GreenDrum => GreenFret,
 
                     // Exclusive to split view
-                    5 => RedCymbalFret,
-                    6 => YellowCymbalFret,
-                    7 => BlueCymbalFret,
-                    8 => GreenCymbalFret,
+                    (int)FourLaneDrumsFret.RedCymbal => RedCymbalFret,
+                    (int)FourLaneDrumsFret.YellowCymbal => YellowCymbalFret,
+                    (int)FourLaneDrumsFret.BlueCymbal => BlueCymbalFret,
+                    (int) FourLaneDrumsFret.GreenCymbal => GreenCymbalFret,
 
                     _ => default
                 };
@@ -67,17 +82,17 @@ namespace YARG.Core.Game
             {
                 return index switch
                 {
-                    0 => KickFretInner,
-                    1 => RedFretInner,
-                    2 => YellowFretInner,
-                    3 => BlueFretInner,
-                    4 => GreenFretInner,
+                    (int)FourLaneDrumsFret.Kick => KickFretInner,
+                    (int)FourLaneDrumsFret.RedDrum => RedFretInner,
+                    (int)FourLaneDrumsFret.YellowDrum => YellowFretInner,
+                    (int)FourLaneDrumsFret.BlueDrum => BlueFretInner,
+                    (int) FourLaneDrumsFret.GreenDrum => GreenFretInner,
 
                     // Exclusive to split view
-                    5 => RedCymbalFretInner,
-                    6 => YellowCymbalFretInner,
-                    7 => BlueCymbalFretInner,
-                    8 => GreenCymbalFretInner,
+                    (int)FourLaneDrumsFret.RedCymbal => RedCymbalFretInner,
+                    (int)FourLaneDrumsFret.YellowCymbal => YellowCymbalFretInner,
+                    (int)FourLaneDrumsFret.BlueCymbal => BlueCymbalFretInner,
+                    (int) FourLaneDrumsFret.GreenCymbal => GreenCymbalFretInner,
 
                     _ => default
                 };
@@ -103,17 +118,17 @@ namespace YARG.Core.Game
             {
                 return index switch
                 {
-                    0 => KickParticles,
-                    1 => RedParticles,
-                    2 => YellowParticles,
-                    3 => BlueParticles,
-                    4 => GreenParticles,
+                    (int)FourLaneDrumsFret.Kick => KickParticles,
+                    (int)FourLaneDrumsFret.RedDrum => RedParticles,
+                    (int)FourLaneDrumsFret.YellowDrum => YellowParticles,
+                    (int)FourLaneDrumsFret.BlueDrum => BlueParticles,
+                    (int) FourLaneDrumsFret.GreenDrum => GreenParticles,
 
                     // Exclusive to split view
-                    5 => RedCymbalParticles,
-                    6 => YellowCymbalParticles,
-                    7 => BlueCymbalParticles,
-                    8 => GreenCymbalParticles,
+                    (int)FourLaneDrumsFret.RedCymbal => RedCymbalParticles,
+                    (int)FourLaneDrumsFret.YellowCymbal => YellowCymbalParticles,
+                    (int)FourLaneDrumsFret.BlueCymbal => BlueCymbalParticles,
+                    (int) FourLaneDrumsFret.GreenCymbal => GreenCymbalParticles,
 
                     _ => default
                 };
