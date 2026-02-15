@@ -760,6 +760,12 @@ namespace YARG.Core.Song
                 {
                     entry._metadata.Source = dta.Source;
                 }
+
+                if (dta.Source == "beatles")
+                {
+                    entry._metadata.Artist = "The Beatles";
+                    entry._rbMetadata.VocalGender = VocalGender.Male;
+                }
             }
             if (dta.Playlist != null)             { entry._metadata.Playlist      = dta.Playlist; }
             if (dta.SongLength != null)           { entry._metadata.SongLength    = dta.SongLength.Value; }
