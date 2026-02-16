@@ -56,7 +56,7 @@ namespace MoonscraperChartEditor.Song.IO
         // 'lighting (flare_fast)' -> 'flare_fast'
         // 'lighting ()' -> ''
         public static readonly Regex LightingRegex = new(@"lighting\s+\((.*)\)", RegexOptions.Compiled | RegexOptions.Singleline);
-        public static readonly Regex DirectedCutRegex = new(@"do_directed_cut\s+(.*)", RegexOptions.Compiled | RegexOptions.Singleline);
+        public static readonly Regex DirectedCutRegex = new(@"(directed_\w+)", RegexOptions.Compiled | RegexOptions.Singleline);
         public static readonly Regex CameraCutRegex = new(@"coop_(\w+_\w+)", RegexOptions.Compiled | RegexOptions.Singleline);
 
         // Hand map regex
