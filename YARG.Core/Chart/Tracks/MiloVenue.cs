@@ -5,6 +5,8 @@ using YARG.Core.IO;
 using YARG.Core.Song;
 using MiloAnimationEvent = YARG.Core.IO.MiloAnimation.MiloAnimationEvent;
 using MiloAnimationType = YARG.Core.IO.MiloAnimation.MiloAnimationType;
+using LipsyncType = YARG.Core.Chart.LipsyncEvent.LipsyncType;
+using Visemes = YARG.Core.IO.MiloLipsync.Visemes;
 
 namespace YARG.Core.Chart
 {
@@ -13,20 +15,22 @@ namespace YARG.Core.Chart
     /// </summary>
     public class MiloVenue
     {
-        public List<CharacterState>      CharacterStates      { get; } = new();
-        public List<CameraCutEvent>      CameraCuts           { get; } = new();
-        public List<CrowdEvent>          CrowdEvents          { get; } = new();
-        public List<PostProcessingEvent> PostProcessingEvents { get; } = new();
-        public List<LightingEvent>       LightingEvents       { get; } = new();
-        public List<StageEffectEvent>    StageEvents          { get; } = new();
-        public List<PerformerEvent>      PerformerEvents      { get; } = new();
+        public List<CharacterState>         CharacterStates      { get; } = new();
+        public List<CameraCutEvent>         CameraCuts           { get; } = new();
+        public List<CrowdEvent>             CrowdEvents          { get; } = new();
+        public List<PostProcessingEvent>    PostProcessingEvents { get; } = new();
+        public List<LightingEvent>          LightingEvents       { get; } = new();
+        public List<StageEffectEvent>       StageEvents          { get; } = new();
+        public List<PerformerEvent>         PerformerEvents      { get; } = new();
+        public List<LipsyncEvent>           LipsyncEvents        { get; } = new();
 
         private List<MiloAnimationEvent> _rawEvents = new();
 
         private readonly SongChart _chart;
         private readonly SongEntry _song;
 
-        private          int       _rawEventIndex;
+        private int                          _rawEventIndex;
+        private List<MiloLipsync.VisemeData> _lipsyncData = new();
 
         public MiloVenue(SongChart chart, SongEntry song)
         {
@@ -42,9 +46,13 @@ namespace YARG.Core.Chart
                 var miloReader = new MiloAnimation(miloData);
                 _rawEvents = miloReader.GetMiloAnimation();
 
+                var lipsyncReader = new MiloLipsync(miloData);
+                _lipsyncData = lipsyncReader.GetLipsyncData();
+
                 // Dispose of the FixedArray and the reader (which has its own FixedArray)
                 miloData.Dispose();
                 miloReader.Dispose();
+                lipsyncReader.Dispose();
             }
             else
             {
@@ -97,6 +105,10 @@ namespace YARG.Core.Chart
             LightingEvents.Sort((a, b) => a.Time.CompareTo(b.Time));
             StageEvents.Sort((a, b) => a.Time.CompareTo(b.Time));
             PerformerEvents.Sort((a, b) => a.Time.CompareTo(b.Time));
+
+            // Deal with lipsync now
+            HandleLipsync();
+            LipsyncEvents.Sort((a, b) => a.Time.CompareTo(b.Time));
         }
 
         private void HandleStage()
@@ -266,6 +278,22 @@ namespace YARG.Core.Chart
             }
         }
 
+        private void HandleLipsync()
+        {
+            foreach (var viseme in _lipsyncData)
+            {
+                // Scale 0-255 int to 0.0-1.0 float
+                var value = viseme.Value / 255.0f;
+                var time = viseme.StartTime;
+
+                if (VisemeLookup.TryGetValue(viseme.Viseme, out var lipsyncType))
+                {
+                    LipsyncEvents.Add(new LipsyncEvent(lipsyncType, value, time,
+                        _chart.SyncTrack.TimeToTick(time)));
+                }
+            }
+        }
+
         private static readonly Dictionary<MiloAnimationType, Performer> PerformerLookup = new()
         {
             { MiloAnimationType.Part2Sing, Performer.Guitar },
@@ -288,6 +316,53 @@ namespace YARG.Core.Chart
             { MiloAnimationType.SpotDrums, PerformerEventType.Spotlight },
             { MiloAnimationType.SpotVocal, PerformerEventType.Spotlight },
             { MiloAnimationType.SpotKeyboard, PerformerEventType.Spotlight }
+        };
+
+        private static readonly Dictionary<Visemes, LipsyncType> VisemeLookup = new()
+        {
+                // Actual visemes
+                { Visemes.Bump_hi, LipsyncType.Bump_hi },
+                { Visemes.Bump_lo, LipsyncType.Bump_lo },
+                { Visemes.Cage_hi, LipsyncType.Cage_hi },
+                { Visemes.Cage_lo, LipsyncType.Cage_lo },
+                { Visemes.Church_hi, LipsyncType.Church_hi },
+                { Visemes.Church_lo, LipsyncType.Church_lo },
+                { Visemes.Earth_hi, LipsyncType.Earth_hi },
+                { Visemes.Earth_lo, LipsyncType.Earth_lo },
+                { Visemes.Eat_hi, LipsyncType.Eat_hi },
+                { Visemes.Eat_lo, LipsyncType.Eat_lo },
+                { Visemes.Fave_hi, LipsyncType.Fave_hi },
+                { Visemes.Fave_lo, LipsyncType.Fave_lo },
+                { Visemes.If_hi, LipsyncType.If_hi },
+                { Visemes.If_lo, LipsyncType.If_lo },
+                { Visemes.Neutral_hi, LipsyncType.Neutral_hi },
+                { Visemes.Neutral_lo, LipsyncType.Neutral_lo },
+                { Visemes.New_hi, LipsyncType.New_hi },
+                { Visemes.New_lo, LipsyncType.New_lo },
+                { Visemes.Oat_hi, LipsyncType.Oat_hi },
+                { Visemes.Oat_lo, LipsyncType.Oat_lo },
+                { Visemes.Ox_hi, LipsyncType.Ox_hi },
+                { Visemes.Ox_lo, LipsyncType.Ox_lo },
+                { Visemes.Roar_hi, LipsyncType.Roar_hi },
+                { Visemes.Roar_lo, LipsyncType.Roar_lo },
+                { Visemes.Size_hi, LipsyncType.Size_hi },
+                { Visemes.Size_lo, LipsyncType.Size_lo },
+                { Visemes.Though_hi, LipsyncType.Though_hi },
+                { Visemes.Though_lo, LipsyncType.Though_lo },
+                { Visemes.Told_hi, LipsyncType.Told_hi },
+                { Visemes.Told_lo, LipsyncType.Told_lo },
+                { Visemes.Wet_hi, LipsyncType.Wet_hi },
+                { Visemes.Wet_lo, LipsyncType.Wet_lo },
+
+                // Other facial animation stuff
+                { Visemes.Blink, LipsyncType.Blink },
+                { Visemes.Brow_aggressive, LipsyncType.Brow_aggressive },
+                { Visemes.Brow_down, LipsyncType.Brow_down },
+                { Visemes.Brow_dramatic, LipsyncType.Brow_dramatic },
+                { Visemes.Brow_pouty, LipsyncType.Brow_pouty },
+                { Visemes.Brow_up, LipsyncType.Brow_up },
+                { Visemes.Squint, LipsyncType.Squint },
+                { Visemes.Wide_eyed, LipsyncType.Wide_eyed },
         };
     }
 }

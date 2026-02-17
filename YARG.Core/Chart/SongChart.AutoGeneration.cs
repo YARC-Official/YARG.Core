@@ -516,6 +516,16 @@ namespace YARG.Core.Chart
             songChart.VenueTrack.Performer.AddRange(miloVenue.PerformerEvents);
         }
 
+        // TODO: Work it out such that we can combine venue and lipsync
+        //  Also, we need to eventually parse lipsync from midi if it's there (rare, but it happens)
+        public static void LoadLipsyncFromMilo(SongChart songChart, SongEntry songEntry)
+        {
+            var miloLipsync = new MiloVenue(songChart, songEntry);
+            miloLipsync.Load();
+
+            songChart.LipsyncEvents.AddRange(miloLipsync.LipsyncEvents);
+        }
+
         // Add range shift events to the InstrumentDifficulty
         private void CreateRangeShiftPhrases()
         {
