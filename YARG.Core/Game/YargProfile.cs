@@ -195,7 +195,8 @@ namespace YARG.Core.Game
             if (version >= 6)
             {
                 GameMode = (GameMode) stream.ReadByte();
-            } else
+            }
+            else
             {
                 GameMode = CurrentInstrument.ToNativeGameMode();
             }
@@ -203,7 +204,8 @@ namespace YARG.Core.Game
             if (version >= 7)
             {
                 OpenLaneDisplayType = (OpenLaneDisplayType) stream.ReadByte();
-            } else
+            }
+            else
             {
                 OpenLaneDisplayType = OpenLaneDisplayType.Never;
             }
