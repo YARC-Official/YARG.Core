@@ -11,20 +11,6 @@ namespace YARG.Core.Song
     /// <summary>
     /// The type of chart file to read.
     /// </summary>
-    public enum ChartFormat
-    {
-        Mid,
-        Midi,
-        Chart,
-    };
-
-    public enum EntryType
-    {
-        Ini,
-        Sng,
-        ExCON,
-        CON,
-    }
 
     public struct LoaderSettings
     {
@@ -185,6 +171,8 @@ namespace YARG.Core.Song
         public double VideoEndTimeSeconds => VideoEndTimeMilliseconds >= 0 ? VideoEndTimeMilliseconds / SongMetadata.MILLISECOND_FACTOR : -1;
 
         public float? VocalScrollSpeedScalingFactor => _metadata.VocalScrollSpeedScalingFactor;
+
+        public VocalGender VocalGender => _metadata.VocalGender;
 
         public int VocalsCount
         {
