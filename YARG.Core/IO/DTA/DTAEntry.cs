@@ -36,7 +36,7 @@ namespace YARG.Core.IO
         public string? DrumBank;
         public string? VocalPercussionBank;
         public uint? VocalSongScrollSpeed;
-        public VocalGender? VocalGender;
+        public RbVocalGender? VocalGender;
         public uint? VocalTonicNote;
         public SongTonality? SongTonality;
         public int? TuningOffsetCents;
@@ -195,7 +195,14 @@ namespace YARG.Core.IO
                     case "solo": Soloes = YARGDTAReader.ExtractStringArray(ref container); break;
                     case "genre": Genre = YARGDTAReader.ExtractText(ref container); break;
                     case "decade": /*Decade = YARGDTAReader.ExtractText(ref container);*/ break;
-                    case "vocal_gender": VocalGender = YARGDTAReader.ExtractText(ref container) == "male" ? Song.VocalGender.Male : Song.VocalGender.Female; break;
+                    case "vocal_gender":
+                        VocalGender = YARGDTAReader.ExtractText(ref container) switch
+                        {
+                            "male"   => RbVocalGender.Male,
+                            "female" => RbVocalGender.Female,
+                            _        => RbVocalGender.Unspecified
+                        };
+                        break;
                     case "format": /*Format = YARGDTAReader.Extract<uint>(ref container);*/ break;
                     case "version": VenueVersion = YARGDTAReader.ExtractInteger<uint>(ref container); break;
                     case "fake": /*IsFake = YARGDTAReader.ExtractText(ref container);*/ break;
@@ -307,6 +314,18 @@ namespace YARG.Core.IO
                     }
                 }
             }
+        }
+
+        public static VocalGender ConvertVocalGender(RbVocalGender? rbGender)
+        {
+            return rbGender switch
+            {
+                RbVocalGender.Female => Song.VocalGender.Female,
+                RbVocalGender.Male => Song.VocalGender.Male,
+                RbVocalGender.Unspecified => Song.VocalGender.Unspecified,
+                null => Song.VocalGender.Unspecified,
+                _ => throw new ArgumentOutOfRangeException()
+            };
         }
 
         public static DTAEntry Create(string nodename, YARGTextContainer<byte> container)

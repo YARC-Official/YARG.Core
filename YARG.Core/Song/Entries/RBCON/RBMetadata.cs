@@ -2,7 +2,7 @@
 
 namespace YARG.Core.Song
 {
-    public enum VocalGender : byte
+    public enum RbVocalGender : byte
     {
         Female,
         Male,
@@ -37,7 +37,7 @@ namespace YARG.Core.Song
             VocalTonicNote = 0,
             VenueVersion = 0,
             TuningOffsetCents = 0,
-            VocalGender = VocalGender.Unspecified,
+            RbVocalGender = RbVocalGender.Unspecified,
             SongTonality = SongTonality.Unspecified,
             Soloes = Array.Empty<string>(),
             VideoVenues = Array.Empty<string>(),
@@ -56,9 +56,9 @@ namespace YARG.Core.Song
         public uint VenueVersion;
         public int  TuningOffsetCents;
 
-        public VocalGender VocalGender;
+        public RbVocalGender RbVocalGender;
         public SongTonality SongTonality;
-        
+
         public string[] Soloes;
         public string[] VideoVenues;
 
