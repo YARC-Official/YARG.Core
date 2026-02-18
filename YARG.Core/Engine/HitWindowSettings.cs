@@ -44,12 +44,20 @@ namespace YARG.Core.Engine
         /// </summary>
         public readonly double FrontToBackRatio;
 
+        // Timing judgement thresholds (as percentages of half-window)
+        public readonly double PerfectThresholdPercent;
+        public readonly double GreatThresholdPercent;
+        public readonly double GoodThresholdPercent;
+        public readonly double PoorThresholdPercent;
+
         public readonly double TremoloFrontEndPercent;
 
         private readonly double _minMaxWindowRatio;
 
         public HitWindowSettings(double maxWindow, double minWindow, double frontToBackRatio, bool isDynamic,
-            double dwSlope, double dwScale, double dwGamma, double tremoloPercentage)
+            double dwSlope, double dwScale, double dwGamma,
+            double perfectPercent, double greatPercent,
+            double goodPercent, double poorPercent, double tremoloPercentage)
         {
             // Swap max and min if necessary to ensure that max is always larger than min
             if (maxWindow < minWindow)
@@ -66,6 +74,13 @@ namespace YARG.Core.Engine
             DynamicWindowSlope = Math.Clamp(dwSlope, 0, 1);
             DynamicWindowScale = Math.Clamp(dwScale, 0.3, 3);
             DynamicWindowGamma = Math.Clamp(dwGamma, 0.1, 10);
+
+            // Validate and clamp timing thresholds to ensure proper ordering:
+            // Perfect < Great < Good < Poor
+            PerfectThresholdPercent = Math.Clamp(perfectPercent, 0, 100);
+            GreatThresholdPercent = Math.Clamp(greatPercent, perfectPercent, 100);
+            GoodThresholdPercent = Math.Clamp(goodPercent, greatPercent, 100);
+            PoorThresholdPercent = Math.Clamp(poorPercent, goodPercent, 100);
 
             TremoloFrontEndPercent = tremoloPercentage;
 
@@ -89,6 +104,14 @@ namespace YARG.Core.Engine
                 TremoloFrontEndPercent = stream.Read<double>(Endianness.Little);
             }
 
+            if (version > 11)
+            {
+                PerfectThresholdPercent = stream.Read<double>(Endianness.Little);
+                GreatThresholdPercent = stream.Read<double>(Endianness.Little);
+                GoodThresholdPercent = stream.Read<double>(Endianness.Little);
+                PoorThresholdPercent = stream.Read<double>(Endianness.Little);
+            }
+
             _minMaxWindowRatio = MinWindow / MaxWindow;
         }
 
@@ -102,6 +125,11 @@ namespace YARG.Core.Engine
             writer.Write(DynamicWindowSlope);
             writer.Write(DynamicWindowScale);
             writer.Write(DynamicWindowGamma);
+
+            writer.Write(PerfectThresholdPercent);
+            writer.Write(GreatThresholdPercent);
+            writer.Write(GoodThresholdPercent);
+            writer.Write(PoorThresholdPercent);
 
             writer.Write(TremoloFrontEndPercent);
         }

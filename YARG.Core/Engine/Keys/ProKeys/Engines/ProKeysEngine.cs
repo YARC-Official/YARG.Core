@@ -127,7 +127,11 @@ namespace YARG.Core.Engine.Keys
                 IncrementCombo();
             }
 
-            EngineStats.IncrementNotesHit(note, CurrentTime);
+            EngineStats.RecordNoteHitTiming(note, CurrentTime, EngineParameters.HitWindow.MaxWindow,
+                EngineParameters.HitWindow.PerfectThresholdPercent,
+                EngineParameters.HitWindow.GreatThresholdPercent,
+                EngineParameters.HitWindow.GoodThresholdPercent,
+                EngineParameters.HitWindow.PoorThresholdPercent);
 
             UpdateMultiplier();
 
