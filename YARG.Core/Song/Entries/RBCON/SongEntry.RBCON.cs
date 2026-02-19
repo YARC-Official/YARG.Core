@@ -745,6 +745,7 @@ namespace YARG.Core.Song
             if (dta.Charter != null)              { entry._metadata.Charter       = YARGDTAReader.DecodeString(dta.Charter.Value, dta.MetadataEncoding); }
             if (dta.LoadingPhrase != null)        { entry._metadata.LoadingPhrase = YARGDTAReader.DecodeString(dta.LoadingPhrase.Value, dta.MetadataEncoding); }
             if (dta.Genre != null)                { entry._metadata.Genre         = dta.Genre; }
+            if (dta.Subgenre != null)             { entry._metadata.Subgenre      = dta.Subgenre; }
             if (dta.YearAsNumber != null)
             {
                 entry._yearAsNumber = dta.YearAsNumber.Value;
