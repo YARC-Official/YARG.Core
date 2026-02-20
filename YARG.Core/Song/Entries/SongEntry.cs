@@ -11,20 +11,6 @@ namespace YARG.Core.Song
     /// <summary>
     /// The type of chart file to read.
     /// </summary>
-    public enum ChartFormat
-    {
-        Mid,
-        Midi,
-        Chart,
-    };
-
-    public enum EntryType
-    {
-        Ini,
-        Sng,
-        ExCON,
-        CON,
-    }
 
     public struct LoaderSettings
     {
@@ -82,7 +68,8 @@ namespace YARG.Core.Song
         private SortString _name = SortString.Empty;
         private SortString _artist = SortString.Empty;
         private SortString _album = SortString.Empty;
-        private SortString _genre = SortString.Empty;
+        private SortString _rawGenre = SortString.Empty;
+        private SortString _rawSubgenre = SortString.Empty;
         private SortString _charter = SortString.Empty;
         private SortString _source = SortString.Empty;
         private SortString _playlist = SortString.Empty;
@@ -103,7 +90,10 @@ namespace YARG.Core.Song
         public SortString Name => _name;
         public SortString Artist => _artist;
         public SortString Album => _album;
-        public SortString Genre => _genre;
+        public SortString RawGenre  => _rawGenre;
+        public SortString Genre { get; set; } = SortString.Empty;
+        public SortString RawSubgenre => _rawSubgenre;
+        public SortString Subgenre { get; set; } = SortString.Empty;
         public SortString Charter => _charter;
         public SortString Source => _source;
         public SortString Playlist => _playlist;
@@ -185,6 +175,8 @@ namespace YARG.Core.Song
         public double VideoEndTimeSeconds => VideoEndTimeMilliseconds >= 0 ? VideoEndTimeMilliseconds / SongMetadata.MILLISECOND_FACTOR : -1;
 
         public float? VocalScrollSpeedScalingFactor => _metadata.VocalScrollSpeedScalingFactor;
+
+        public VocalGender VocalGender => _metadata.VocalGender;
 
         public int VocalsCount
         {
@@ -363,6 +355,7 @@ namespace YARG.Core.Song
             stream.Write(node.Artist, Endianness.Little);
             stream.Write(node.Album, Endianness.Little);
             stream.Write(node.Genre, Endianness.Little);
+            stream.Write(node.Subgenre, Endianness.Little);
             stream.Write(node.Year, Endianness.Little);
             stream.Write(node.Charter, Endianness.Little);
             stream.Write(node.Playlist, Endianness.Little);
@@ -447,10 +440,11 @@ namespace YARG.Core.Song
             _metadata.Artist =   strings.Artists  [stream.Read<int>(Endianness.Little)];
             _metadata.Album =    strings.Albums   [stream.Read<int>(Endianness.Little)];
             _metadata.Genre =    strings.Genres   [stream.Read<int>(Endianness.Little)];
+            _metadata.Subgenre = strings.Subgenres[stream.Read<int>(Endianness.Little)];
             _metadata.Year =     strings.Years    [stream.Read<int>(Endianness.Little)];
             _metadata.Charter =  strings.Charters [stream.Read<int>(Endianness.Little)];
             _metadata.Playlist = strings.Playlists[stream.Read<int>(Endianness.Little)];
-            _metadata.Source =   strings.Sources  [stream.Read<int>(Endianness.Little)];
+            _metadata.Source =   strings.Sources  [stream.Read<int>(Endianness.Little)];            
 
             _metadata.IsMaster =  stream.ReadBoolean();
             _metadata.VideoLoop = stream.ReadBoolean();
@@ -522,7 +516,10 @@ namespace YARG.Core.Song
             _name = new SortString(_metadata.Name);
             _artist = new SortString(_metadata.Artist);
             _album = new SortString(_metadata.Album);
-            _genre = new SortString(_metadata.Genre);
+            _rawGenre = new SortString(_metadata.Genre);
+            Genre = new SortString(_metadata.Genre);
+            _rawSubgenre = new SortString(_metadata.Subgenre);
+            Subgenre = new SortString(_metadata.Subgenre);
             _charter = new SortString(_metadata.Charter);
             _source = new SortString(_metadata.Source);
             _playlist = new SortString(_metadata.Playlist);
