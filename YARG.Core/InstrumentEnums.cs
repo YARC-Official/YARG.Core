@@ -128,9 +128,41 @@ namespace YARG.Core
     /// </summary>
     public enum OpenLaneDisplayType : byte
     {
+        // Serialized; do not reorder
         Never                   = 0,
         Always                  = 1,
         IfChartContainsOpens    = 2
+    }
+
+    /// <summary>
+    /// Potential entries in a drums highway ordering
+    /// </summary>
+    public enum DrumsHighwayItem
+    {
+        // Serialized; do not reorder
+        Kick                    = 0,
+        Kick1x                  = 1,
+        Kick2x                  = 2,
+        Kick2xConditional       = 3,
+
+        FourLaneRed             = 4,
+        FourLaneYellow          = 5,
+        FourLaneBlue            = 6,
+        FourLaneGreen           = 7,
+
+        FourLaneYellowCymbal    = 8,
+        FourLaneBlueCymbal      = 9,
+        FourLaneGreenCymbal     = 10,
+
+        FourLaneYellowDrum      = 11,
+        FourLaneBlueDrum        = 12,
+        FourLaneGreenDrum       = 13,
+
+        FiveLaneRed             = 14,
+        FiveLaneYellow          = 15,
+        FiveLaneBlue            = 16,
+        FiveLaneOrange          = 17,
+        FiveLaneGreen           = 18,
     }
 
     public static class ChartEnumExtensions
