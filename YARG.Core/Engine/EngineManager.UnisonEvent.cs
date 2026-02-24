@@ -116,17 +116,17 @@ namespace YARG.Core.Engine
             /// <returns></returns>
             public bool TickAlmostEquals(StarPowerSection other, uint tolerance)
             {
-                return Math.Abs(Tick - other.Tick) <= tolerance && Math.Abs(TickEnd - other.TickEnd) <= tolerance;
+                return StartTickAlmostEquals(other, tolerance) || EndTickAlmostEquals(other, tolerance);
             }
 
             public bool StartTickAlmostEquals(StarPowerSection other, uint tolerance)
             {
-                return Math.Abs(Tick - other.Tick) <= tolerance;
+                return Tick - other.Tick <= tolerance || other.Tick - Tick <= tolerance;
             }
 
             public bool EndTickAlmostEquals(StarPowerSection other, uint tolerance)
             {
-                return Math.Abs(TickEnd - other.TickEnd) <= tolerance;
+                return TickEnd - other.TickEnd <= tolerance || other.Tick - Tick <= tolerance;
             }
         }
 

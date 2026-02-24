@@ -37,6 +37,142 @@ namespace YARG.Core.Chart
             }
         }
 
+        public static void ConvertFromOpenToGreen(this InstrumentDifficulty<GuitarNote> difficulty, SyncTrack syncTrack)
+        {
+            GuitarNote? lastGreenSustain = null;
+            GuitarNote? currentGreen = null;
+            GuitarNote? currentOpen = null;
+            bool openInLastGreenSustainChordBeforeConversion = false;
+            int lastNoteMask = 0;
+            uint sixteenthTickLength = syncTrack.Resolution / 4;
+            const int noteMaskGreen = 1;
+            const int noteMaskOpen = 1 << 6;
+            foreach (var note in difficulty.Notes)
+            {
+                if (note.Fret == FiveFretGuitarFret.Open.Convert())
+                {
+                    currentOpen = note;
+                }
+                if (note.Fret == FiveFretGuitarFret.Green.Convert())
+                {
+                    currentGreen = note;
+                }
+
+                if (note.IsParent)
+                {
+                    foreach (var childNote in note.ChildNotes)
+                    {
+                        if (childNote.Fret == FiveFretGuitarFret.Open.Convert())
+                        {
+                            currentOpen = childNote;
+                        }
+                        if (childNote.Fret == FiveFretGuitarFret.Green.Convert())
+                        {
+                            currentGreen = childNote;
+                        }
+                    }
+                }
+
+                if (currentOpen != null || currentGreen != null)
+                {
+                    //cut off last green sustain early if there is another green note on it
+                    if (lastGreenSustain != null && (currentOpen != null || openInLastGreenSustainChordBeforeConversion) &&
+                        lastGreenSustain.Tick + lastGreenSustain.TickLength + sixteenthTickLength > note.Tick)
+                    {
+                        //if sustain would be cut off before starting remove sustain
+                        if (note.Tick - lastGreenSustain.Tick <= sixteenthTickLength)
+                        {
+                            lastGreenSustain.TickLength = 0;
+                            lastGreenSustain.TimeLength = 0;
+                        }
+                        else
+                        {
+                            lastGreenSustain.TickLength = note.Tick - sixteenthTickLength - lastGreenSustain.Tick;
+                            lastGreenSustain.TimeLength = syncTrack.TickToTime(note.Tick - sixteenthTickLength) -
+                                lastGreenSustain.Time;
+                        }
+                    }
+                }
+
+                //P note without G
+                if (currentGreen == null && currentOpen != null)
+                {
+                    currentOpen.Fret = FiveFretGuitarFret.Green.Convert();
+                    //or the mask with the mask for green and then And the mask with all bits except purple
+                    note.NoteMask = noteMaskGreen | note.NoteMask & ~noteMaskOpen;
+                    if (currentOpen.IsChild)
+                    {
+                        currentOpen.NoteMask = noteMaskGreen;
+                    }
+                    if (currentOpen.IsSustain)
+                    {
+                        lastGreenSustain = currentOpen;
+                        openInLastGreenSustainChordBeforeConversion = true;
+                    }
+                }
+                //PG chords
+                else if (currentGreen != null && currentOpen != null)
+                {
+                    //open note is the parent note
+                    if (currentOpen == note)
+                    {
+                        currentOpen.Fret = FiveFretGuitarFret.Green.Convert();
+                        //or the mask with the mask for green and then And the mask with all bits except purple
+                        note.NoteMask = note.NoteMask & ~noteMaskOpen;
+                        currentOpen.TickLength = Math.Max(currentOpen.TickLength, currentGreen.TickLength);
+                        currentOpen.TimeLength = Math.Max(currentOpen.TimeLength, currentGreen.TimeLength);
+                        currentOpen.ChildNotes.Remove(currentGreen);
+                        if (currentOpen.IsSustain)
+                        {
+                            lastGreenSustain = currentOpen;
+                            openInLastGreenSustainChordBeforeConversion = true;
+                        }
+                    }
+                    //any note other than open note is the parent note
+                    else
+                    {
+                        //or the mask with the mask for green and then And the mask with all bits except purple
+                        note.NoteMask = note.NoteMask & ~noteMaskOpen;
+                        currentGreen.TickLength = Math.Max(currentOpen.TickLength, currentGreen.TickLength);
+                        currentGreen.TimeLength = Math.Max(currentOpen.TimeLength, currentGreen.TimeLength);
+                        note.ChildNotes.Remove(currentOpen);
+                        if (currentGreen.IsSustain)
+                        {
+                            lastGreenSustain = currentGreen;
+                            openInLastGreenSustainChordBeforeConversion = true;
+                        }
+                    }
+                }
+                //green notes just need to be set as last sustain
+                else if (currentGreen != null && currentOpen == null)
+                {
+                    if (currentGreen.IsSustain)
+                    {
+                        lastGreenSustain = currentGreen;
+                        openInLastGreenSustainChordBeforeConversion = false;
+                    }
+                }
+
+                //set note to strum if it would be a hopo on the same chord
+                if ((noteMaskGreen & note.NoteMask) != 0 && lastNoteMask == note.NoteMask && note.IsHopo)
+                {
+                    note.Type = GuitarNoteType.Strum;
+                    if (note.IsParent)
+                    {
+                        foreach (var childNote in note.ChildNotes)
+                        {
+                            childNote.Type = GuitarNoteType.Strum;
+                        }
+                    }
+                }
+
+                //reset current notes for next iteration
+                currentGreen = null;
+                currentOpen = null;
+                lastNoteMask = note.NoteMask;
+            }
+        }
+
         // Transposes all ranges into the first range.
         // For example, if the song starts in the GRY range and later shifts to the RYB or YBO ranges
         // the notes in the later ranges are transposed into the first range. (If there was a case where the

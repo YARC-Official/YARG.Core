@@ -1,4 +1,5 @@
-﻿using System.IO;
+using System.Collections.Generic;
+using System.IO;
 using YARG.Core.Chart;
 using YARG.Core.Extensions;
 using YARG.Core.IO;
@@ -103,6 +104,11 @@ namespace YARG.Core.Engine
         public int NotesHit;
 
         /// <summary>
+        /// Number of laned notes which have been hit.
+        /// </summary>
+        public int LanedNotesHit;
+
+        /// <summary>
         /// Number of notes in the chart. This value should never be modified.
         /// </summary>
         public int TotalNotes;
@@ -204,6 +210,11 @@ namespace YARG.Core.Engine
         /// </summary>
         private double AverageOffset;
 
+        /// <summary>
+        /// Individual note offsets for all hittable note objects, in seconds.
+        /// </summary>
+        private readonly List<double> OffsetSamples = new();
+
         protected BaseStats()
         {
         }
@@ -226,6 +237,7 @@ namespace YARG.Core.Engine
 
             TotalOffset = stats.TotalOffset;
             AverageOffset = stats.AverageOffset;
+            OffsetSamples = new List<double>(stats.OffsetSamples);
 
             StarPowerTickAmount = stats.StarPowerTickAmount;
             TotalStarPowerTicks = stats.TotalStarPowerTicks;
@@ -299,6 +311,7 @@ namespace YARG.Core.Engine
             NotesHit = 0;
             TotalOffset = 0.0;
             AverageOffset = 0.0;
+            OffsetSamples.Clear();
             // Don't reset TotalNotes
             // TotalNotes = 0;
 
@@ -357,13 +370,33 @@ namespace YARG.Core.Engine
 
         public double GetAverageOffset()
         {
-            return NotesHit > 0 ? TotalOffset / NotesHit : 0.0;
+            var offsetNotes = NotesHit - LanedNotesHit;
+            return offsetNotes > 0 ? TotalOffset / offsetNotes : 0.0;
+        }
+
+        /// <summary>
+        /// Returns per-note timing offsets used for score-screen timing distribution visualization.
+        /// Values are in seconds, where negative is early and positive is late.
+        /// </summary>
+        public IReadOnlyList<double> GetOffsetSamples()
+        {
+            return OffsetSamples;
         }
 
         public void IncrementNotesHit<NoteType>(NoteType note, double current_time) where NoteType : Note<NoteType>
         {
-            ++NotesHit;
-            TotalOffset += current_time - note.Time;
+            NotesHit++;
+
+            if (!note.IsLane)
+            {
+                double offset = current_time - note.Time;
+                TotalOffset += offset;
+                OffsetSamples.Add(offset);
+            }
+            else
+            {
+                LanedNotesHit++;
+            }
         }
     }
 }

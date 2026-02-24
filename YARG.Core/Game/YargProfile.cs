@@ -12,7 +12,7 @@ namespace YARG.Core.Game
 {
     public class YargProfile
     {
-        private const int PROFILE_VERSION = 6;
+        private const int PROFILE_VERSION = 7;
 
         public Guid Id;
         public string Name;
@@ -35,6 +35,8 @@ namespace YARG.Core.Game
         public bool SwapSnareAndHiHat;
 
         public bool SwapCrashAndRide;
+
+        public OpenLaneDisplayType OpenLaneDisplayType;
 
         public StarPowerActivationType StarPowerActivationType;
 
@@ -125,6 +127,7 @@ namespace YARG.Core.Game
             SwapSnareAndHiHat = false;
             SwapCrashAndRide = false;
             StarPowerActivationType = StarPowerActivationType.RightmostNote;
+            OpenLaneDisplayType = OpenLaneDisplayType.Never;
 
             // Set preset IDs to default
             ColorProfile = Game.ColorProfile.Default.Id;
@@ -192,9 +195,19 @@ namespace YARG.Core.Game
             if (version >= 6)
             {
                 GameMode = (GameMode) stream.ReadByte();
-            } else
+            }
+            else
             {
                 GameMode = CurrentInstrument.ToNativeGameMode();
+            }
+
+            if (version >= 7)
+            {
+                OpenLaneDisplayType = (OpenLaneDisplayType) stream.ReadByte();
+            }
+            else
+            {
+                OpenLaneDisplayType = OpenLaneDisplayType.Never;
             }
         }
 
@@ -221,7 +234,7 @@ namespace YARG.Core.Game
             CurrentModifiers = profile.CurrentModifiers;
         }
 
-        public void ApplyModifiers<TNote>(InstrumentDifficulty<TNote> track) where TNote : Note<TNote>
+        public void ApplyModifiers<TNote>(InstrumentDifficulty<TNote> track, SyncTrack syncTrack) where TNote : Note<TNote>
         {
             switch (GameMode)
             {
@@ -230,6 +243,11 @@ namespace YARG.Core.Game
                     {
                         throw new InvalidOperationException("Cannot apply guitar modifiers to non-guitar track " +
                             $"with notes of {typeof(TNote)}!");
+                    }
+
+                    if (IsModifierActive(Modifier.OpensToGreens))
+                    {
+                        guitarTrack.ConvertFromOpenToGreen(syncTrack);
                     }
                     if (IsModifierActive(Modifier.AllStrums))
                     {
@@ -290,6 +308,10 @@ namespace YARG.Core.Game
                         if (IsModifierActive(Modifier.RangeCompress))
                         {
                             fiveLaneKeysTrack.CompressGuitarRange();
+                        }
+                        if (IsModifierActive(Modifier.OpensToGreens))
+                        {
+                            fiveLaneKeysTrack.ConvertFromOpenToGreen(syncTrack);
                         }
                         break;
                     }
@@ -381,6 +403,8 @@ namespace YARG.Core.Game
             writer.Write((byte) StarPowerActivationType);
 
             writer.Write((byte) GameMode);
+
+            writer.Write((byte) OpenLaneDisplayType);
         }
     }
 }

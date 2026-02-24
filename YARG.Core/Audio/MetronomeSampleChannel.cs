@@ -1,38 +1,45 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Text;
 
 namespace YARG.Core.Audio
 {
-    public abstract class DrumSampleChannel : IDisposable
+    public abstract class MetronomeSampleChannel : IDisposable
     {
-        public const int ROUND_ROBIN_MAX_INDEX = 3;
-        private bool _disposed;
+        private      bool _disposed;
 
-        protected readonly string _path;
-        protected readonly int _playbackCount;
-        protected double _volume;
+        protected readonly string _hiPath;
+        protected readonly string _loPath;
+        protected          double _volume = 1f;
 
-        public readonly DrumSfxSample Sample;
-        protected DrumSampleChannel(DrumSfxSample sample, string path, int playbackCount)
+        public readonly MetronomeSample Sample;
+
+        protected MetronomeSampleChannel(MetronomeSample sample, string hiPath, string loPath)
         {
             Sample = sample;
-            _path = path;
-            _playbackCount = playbackCount;
-
-            GlobalAudioHandler.StemSettings[SongStem.DrumSfx].OnVolumeChange += SetVolume;
+            _hiPath = hiPath;
+            _loPath = loPath;
+            GlobalAudioHandler.StemSettings[SongStem.Metronome].OnVolumeChange += SetVolume;
         }
 
-        public void Play(double volume)
+        public void PlayHi()
         {
             lock (this)
             {
                 if (!_disposed)
                 {
-                    _volume = volume;
-                    volume *= GlobalAudioHandler.GetVolumeSetting(SongStem.DrumSfx);
-                    SetVolume_Internal(volume);
-                    Play_Internal();
+                    PlayHi_Internal();
+                }
+            }
+        }
+
+        public void PlayLo()
+        {
+            lock (this)
+            {
+                if (!_disposed)
+                {
+                    PlayLo_Internal();
                 }
             }
         }
@@ -43,7 +50,6 @@ namespace YARG.Core.Audio
             {
                 if (!_disposed)
                 {
-                    volume *= _volume;
                     SetVolume_Internal(volume);
                 }
             }
@@ -60,12 +66,19 @@ namespace YARG.Core.Audio
             }
         }
 
-        protected abstract void Play_Internal();
+        protected abstract void PlayHi_Internal();
+        protected abstract void PlayLo_Internal();
         protected abstract void SetVolume_Internal(double volume);
+
         protected abstract void SetOutputChannel_Internal(OutputChannel? channel);
 
-        protected virtual void DisposeManagedResources() { }
-        protected virtual void DisposeUnmanagedResources() { }
+        protected virtual void DisposeManagedResources()
+        {
+        }
+
+        protected virtual void DisposeUnmanagedResources()
+        {
+        }
 
         private void Dispose(bool disposing)
         {
@@ -73,18 +86,19 @@ namespace YARG.Core.Audio
             {
                 if (!_disposed)
                 {
-                    GlobalAudioHandler.StemSettings[SongStem.DrumSfx].OnVolumeChange -= SetVolume;
+                    GlobalAudioHandler.StemSettings[SongStem.Metronome].OnVolumeChange -= SetVolume;
                     if (disposing)
                     {
                         DisposeManagedResources();
                     }
+
                     DisposeUnmanagedResources();
                     _disposed = true;
                 }
             }
         }
 
-        ~DrumSampleChannel()
+        ~MetronomeSampleChannel()
         {
             Dispose(disposing: false);
         }

@@ -34,7 +34,7 @@ namespace YARG.Core.Song.Cache
         /// Format is YY_MM_DD_RR: Y = year, M = month, D = day, R = revision (reset across dates, only increment
         /// if multiple cache version changes happen in a single day).
         /// </summary>
-        private const int CACHE_VERSION = 25_03_14_01;
+        private const int CACHE_VERSION = 26_02_11_00;
 
         public static ScanProgressTracker Progress => _progress;
         private static ScanProgressTracker _progress;
@@ -56,6 +56,8 @@ namespace YARG.Core.Song.Cache
                     // If a quick scan failed, there's no point to re-reading it in the full scan
                     FullScan(handler, !tryQuickScan, cacheLocation, badSongsLocation, fullDirectoryPlaylists);
                 }
+
+
             }
             catch (Exception ex)
             {
@@ -94,8 +96,6 @@ namespace YARG.Core.Song.Cache
                 return false;
             }
 
-            _progress.Stage = ScanStage.Sorting;
-            SongEntrySorting.SortEntries(handler.cache);
             YargLogger.LogFormatDebug("Total Entries: {0}", _progress.Count);
             return true;
         }
@@ -138,8 +138,6 @@ namespace YARG.Core.Song.Cache
             // Once all entries are processed, they are no longer useful to us, so we dispose of them here.
             handler.Dispose();
 
-            _progress.Stage = ScanStage.Sorting;
-            SongEntrySorting.SortEntries(handler.cache);
             YargLogger.LogFormatDebug("Total Entries: {0}", _progress.Count);
 
             try
@@ -168,6 +166,8 @@ namespace YARG.Core.Song.Cache
             {
                 YargLogger.LogException(ex, "Error when writing bad songs file!");
             }
+
+            _progress.Stage = ScanStage.Sorting;
         }
 
         #region Data

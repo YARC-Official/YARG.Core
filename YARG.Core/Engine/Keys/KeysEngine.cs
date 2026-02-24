@@ -127,6 +127,13 @@ namespace YARG.Core.Engine.Keys
                 return;
             }
 
+            // Prevent overhit if current button satisfies the active lane
+            if (IsLaneActive && ActiveLaneIncludesNote(key))
+            {
+                YargLogger.LogFormatTrace("Overhit prevented during lane at time: {0}, tick: {1}", CurrentTime, CurrentTick);
+                return;
+            }
+
             YargLogger.LogFormatTrace("Overhit at {0}", CurrentTime);
 
             // Break all active sustains

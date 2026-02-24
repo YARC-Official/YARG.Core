@@ -79,7 +79,7 @@ namespace YARG.Core.Song
                 stream.Write(new ReadOnlySpan<byte>(&intensities, sizeof(RBIntensities)));
             }
 
-            stream.WriteByte((byte)_rbMetadata.VocalGender);
+            stream.WriteByte((byte)_rbMetadata.RbVocalGender);
             stream.WriteByte((byte)_rbMetadata.SongTonality);
             stream.WriteByte((byte)_rbMetadata.MidiEncoding);
 
@@ -154,6 +154,7 @@ namespace YARG.Core.Song
                 HopoThreshold = _settings.HopoThreshold,
                 SustainCutoffThreshold = _settings.SustainCutoffThreshold,
                 StarPowerNote = _settings.OverdiveMidiNote,
+                TuningOffsetCents = _settings.TuningOffsetCents,
                 DrumsType = DrumsType.FourLane,
                 ChordHopoCancellation = true
             };
@@ -180,7 +181,7 @@ namespace YARG.Core.Song
             stream.Seek(start, SeekOrigin.Begin);
 
             bool clampStemVolume = _metadata.Source.ToLowerInvariant() == "yarg";
-            var mixer = GlobalAudioHandler.CreateMixer(ToString(), speed, volume, clampStemVolume);
+            var mixer = GlobalAudioHandler.CreateMixer(ToString(), speed, volume, clampStemVolume, true);
             if (mixer == null)
             {
                 YargLogger.LogError("Mogg failed to load!");
@@ -202,26 +203,26 @@ namespace YARG.Core.Song
                         break;
                     //drum (0 1 2): mono kick, stereo snare/kit --> (0) (1 2)
                     case 3:
-                        stemInfos.Add(new StemInfo(SongStem.Drums1, _indices.Drums[0..1], _panning.Drums[0..2]));
-                        stemInfos.Add(new StemInfo(SongStem.Drums2, _indices.Drums[1..3], _panning.Drums[2..6]));
+                        stemInfos.Add(new StemInfo(SongStem.Drums, _indices.Drums[0..1], _panning.Drums[0..2]));
+                        stemInfos.Add(new StemInfo(SongStem.Drums, _indices.Drums[1..3], _panning.Drums[2..6]));
                         break;
                     //drum (0 1 2 3): mono kick, mono snare, stereo kit --> (0) (1) (2 3)
                     case 4:
-                        stemInfos.Add(new StemInfo(SongStem.Drums1, _indices.Drums[0..1], _panning.Drums[0..2]));
-                        stemInfos.Add(new StemInfo(SongStem.Drums2, _indices.Drums[1..2], _panning.Drums[2..4]));
-                        stemInfos.Add(new StemInfo(SongStem.Drums3, _indices.Drums[2..4], _panning.Drums[4..8]));
+                        stemInfos.Add(new StemInfo(SongStem.Drums, _indices.Drums[0..1], _panning.Drums[0..2]));
+                        stemInfos.Add(new StemInfo(SongStem.Drums, _indices.Drums[1..2], _panning.Drums[2..4]));
+                        stemInfos.Add(new StemInfo(SongStem.Drums, _indices.Drums[2..4], _panning.Drums[4..8]));
                         break;
                     //drum (0 1 2 3 4): mono kick, stereo snare, stereo kit --> (0) (1 2) (3 4)
                     case 5:
-                        stemInfos.Add(new StemInfo(SongStem.Drums1, _indices.Drums[0..1], _panning.Drums[0..2]));
-                        stemInfos.Add(new StemInfo(SongStem.Drums2, _indices.Drums[1..3], _panning.Drums[2..6]));
-                        stemInfos.Add(new StemInfo(SongStem.Drums3, _indices.Drums[3..5], _panning.Drums[6..10]));
+                        stemInfos.Add(new StemInfo(SongStem.Drums, _indices.Drums[0..1], _panning.Drums[0..2]));
+                        stemInfos.Add(new StemInfo(SongStem.Drums, _indices.Drums[1..3], _panning.Drums[2..6]));
+                        stemInfos.Add(new StemInfo(SongStem.Drums, _indices.Drums[3..5], _panning.Drums[6..10]));
                         break;
                     //drum (0 1 2 3 4 5): stereo kick, stereo snare, stereo kit --> (0 1) (2 3) (4 5)
                     case 6:
-                        stemInfos.Add(new StemInfo(SongStem.Drums1, _indices.Drums[0..2], _panning.Drums[0..4]));
-                        stemInfos.Add(new StemInfo(SongStem.Drums2, _indices.Drums[2..4], _panning.Drums[4..8]));
-                        stemInfos.Add(new StemInfo(SongStem.Drums3, _indices.Drums[4..6], _panning.Drums[8..12]));
+                        stemInfos.Add(new StemInfo(SongStem.Drums, _indices.Drums[0..2], _panning.Drums[0..4]));
+                        stemInfos.Add(new StemInfo(SongStem.Drums, _indices.Drums[2..4], _panning.Drums[4..8]));
+                        stemInfos.Add(new StemInfo(SongStem.Drums, _indices.Drums[4..6], _panning.Drums[8..12]));
                         break;
                 }
             }
@@ -282,7 +283,7 @@ namespace YARG.Core.Song
                 _rbIntensities = intensities;
             }
 
-            _rbMetadata.VocalGender  = (VocalGender) stream.ReadByte();
+            _rbMetadata.RbVocalGender  = (RbVocalGender) stream.ReadByte();
             _rbMetadata.SongTonality = (SongTonality)stream.ReadByte();
             _rbMetadata.MidiEncoding = (EncodingType)stream.ReadByte();
 
@@ -738,11 +739,12 @@ namespace YARG.Core.Song
 
         private static void ParseDTA(RBCONEntry entry, in DTAEntry dta, ref string? location, ref float[]? volumes, ref float[]? pans, ref float[]? cores)
         {
-            if (dta.Name != null)    { entry._metadata.Name    = YARGDTAReader.DecodeString(dta.Name.Value, dta.MetadataEncoding); }
-            if (dta.Artist != null)  { entry._metadata.Artist  = YARGDTAReader.DecodeString(dta.Artist.Value, dta.MetadataEncoding); }
-            if (dta.Album != null)   { entry._metadata.Album   = YARGDTAReader.DecodeString(dta.Album.Value, dta.MetadataEncoding); }
-            if (dta.Charter != null) { entry._metadata.Charter = dta.Charter; }
-            if (dta.Genre != null)   { entry._metadata.Genre   = dta.Genre; }
+            if (dta.Name != null)                 { entry._metadata.Name          = YARGDTAReader.DecodeString(dta.Name.Value, dta.MetadataEncoding); }
+            if (dta.Artist != null)               { entry._metadata.Artist        = YARGDTAReader.DecodeString(dta.Artist.Value, dta.MetadataEncoding); }
+            if (dta.Album != null)                { entry._metadata.Album         = YARGDTAReader.DecodeString(dta.Album.Value, dta.MetadataEncoding); }
+            if (dta.Charter != null)              { entry._metadata.Charter       = YARGDTAReader.DecodeString(dta.Charter.Value, dta.MetadataEncoding); }
+            if (dta.LoadingPhrase != null)        { entry._metadata.LoadingPhrase = YARGDTAReader.DecodeString(dta.LoadingPhrase.Value, dta.MetadataEncoding); }
+            if (dta.Genre != null)                { entry._metadata.Genre         = dta.Genre; }
             if (dta.YearAsNumber != null)
             {
                 entry._yearAsNumber = dta.YearAsNumber.Value;
@@ -766,7 +768,6 @@ namespace YARG.Core.Song
             if (dta.Preview != null)              { entry._metadata.Preview       = dta.Preview.Value; }
             if (dta.HopoThreshold != null)        { entry._settings.HopoThreshold = dta.HopoThreshold.Value; }
             if (dta.SongRating != null)           { entry._metadata.SongRating    = dta.SongRating.Value; }
-            if (dta.LoadingPhrase != null)        { entry._metadata.LoadingPhrase = dta.LoadingPhrase; }
             if (dta.VocalSongScrollSpeed != null) {
                 entry._rbMetadata.VocalSongScrollSpeed = dta.VocalSongScrollSpeed.Value;
 
@@ -779,7 +780,7 @@ namespace YARG.Core.Song
             }
 
             if (dta.VocalPercussionBank != null)  { entry._rbMetadata.VocalPercussionBank  = dta.VocalPercussionBank; }
-            if (dta.VocalGender != null)          { entry._rbMetadata.VocalGender          = dta.VocalGender.Value; }
+            if (dta.VocalGender != null)          { entry._rbMetadata.RbVocalGender          = dta.VocalGender.Value; }
             if (dta.VocalTonicNote != null)       { entry._rbMetadata.VocalTonicNote       = dta.VocalTonicNote.Value; }
             if (dta.VideoVenues != null)          { entry._rbMetadata.VideoVenues          = dta.VideoVenues; }
             if (dta.DrumBank != null)             { entry._rbMetadata.DrumBank             = dta.DrumBank; }
@@ -797,7 +798,15 @@ namespace YARG.Core.Song
 
             if (dta.Location != null) { location = dta.Location; }
 
-            if (dta.Indices != null)  { entry._indices = dta.Indices.Value; }
+            if (dta.Indices != null)
+            {
+                int[] existingCrowd = entry._indices.Crowd;
+                entry._indices = dta.Indices.Value;
+                if (dta.CrowdChannels == null && existingCrowd.Length > 0)
+                {
+                    entry._indices.Crowd = existingCrowd;
+                }
+            }
 
             if (dta.CrowdChannels != null) { entry._indices.Crowd = dta.CrowdChannels; }
 
@@ -814,6 +823,8 @@ namespace YARG.Core.Song
             if (dta.Intensities.ProKeys >= 0)        { entry._rbIntensities.ProKeys        = dta.Intensities.ProKeys; }
             if (dta.Intensities.LeadVocals >= 0)     { entry._rbIntensities.LeadVocals     = dta.Intensities.LeadVocals; }
             if (dta.Intensities.HarmonyVocals >= 0)  { entry._rbIntensities.HarmonyVocals  = dta.Intensities.HarmonyVocals; }
+
+            entry._metadata.VocalGender = DTAEntry.ConvertVocalGender(dta.VocalGender);
         }
 
         private static int GetIntensity(int rank, int[] values)

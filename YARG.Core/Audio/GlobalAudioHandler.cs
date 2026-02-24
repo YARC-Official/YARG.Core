@@ -28,9 +28,6 @@ namespace YARG.Core.Audio
 
         static GlobalAudioHandler()
         {
-            var vocals = new StemSettings();
-            var drums = new StemSettings();
-
             StemSettings = new()
             {
                 { SongStem.Song,     new StemSettings() },
@@ -38,18 +35,13 @@ namespace YARG.Core.Audio
                 { SongStem.Bass,     new StemSettings() },
                 { SongStem.Rhythm,   new StemSettings() },
                 { SongStem.Keys,     new StemSettings() },
-                { SongStem.Vocals,   vocals },
-                { SongStem.Vocals1,  vocals },
-                { SongStem.Vocals2,  vocals },
-                { SongStem.Drums,    drums },
-                { SongStem.Drums1,   drums },
-                { SongStem.Drums2,   drums },
-                { SongStem.Drums3,   drums },
-                { SongStem.Drums4,   drums },
+                { SongStem.Vocals,   new StemSettings() },
+                { SongStem.Drums,    new StemSettings() },
                 { SongStem.Crowd,    new StemSettings() },
                 { SongStem.Sfx,      new StemSettings() },
                 { SongStem.DrumSfx,  new StemSettings() },
                 { SongStem.VoxSample, new StemSettings() },
+                { SongStem.Metronome, new StemSettings() },
                 { SongStem.Preview, new StemSettings() },
             };
         }
@@ -334,7 +326,7 @@ namespace YARG.Core.Audio
             }
         }
 
-        public static StemMixer? LoadCustomFile(string name, Stream stream, float speed, double volume, SongStem stem = SongStem.Song)
+        public static void PlayMetronomeSoundEffect(MetronomeSample sample, MetronomePitch pitch)
         {
             lock (_instanceLock)
             {
@@ -342,11 +334,19 @@ namespace YARG.Core.Audio
                 {
                     throw new NotInitializedException();
                 }
-                return _instance.LoadCustomFile(name, stream, speed, volume, stem);
+
+                if (pitch == MetronomePitch.Hi)
+                {
+                    _instance.MetronomeSamples[(int) sample]?.PlayHi();
+
+                    return;
+                }
+
+                _instance.MetronomeSamples[(int) sample]?.PlayLo();
             }
         }
 
-        public static StemMixer? LoadCustomFile(string file, float speed, double volume, SongStem stem = SongStem.Song)
+        public static StemMixer? LoadCustomFile(string name, Stream stream, float speed, double volume, bool normalize = false, SongStem stem = SongStem.Song)
         {
             lock (_instanceLock)
             {
@@ -354,11 +354,11 @@ namespace YARG.Core.Audio
                 {
                     throw new NotInitializedException();
                 }
-                return _instance.LoadCustomFile(file, speed, volume, stem);
+                return _instance.LoadCustomFile(name, stream, speed, volume, normalize, stem);
             }
         }
 
-        public static StemMixer? CreateMixer(string name, float speed, double mixerVolume, bool clampStemVolume)
+        public static StemMixer? LoadCustomFile(string file, float speed, double volume, bool normalize = false, SongStem stem = SongStem.Song)
         {
             lock (_instanceLock)
             {
@@ -366,7 +366,19 @@ namespace YARG.Core.Audio
                 {
                     throw new NotInitializedException();
                 }
-                return _instance.CreateMixer(name, speed, mixerVolume, clampStemVolume);
+                return _instance.LoadCustomFile(file, speed, volume, normalize, stem);
+            }
+        }
+
+        public static StemMixer? CreateMixer(string name, float speed, double mixerVolume, bool clampStemVolume, bool normalize)
+        {
+            lock (_instanceLock)
+            {
+                if (_instance == null)
+                {
+                    throw new NotInitializedException();
+                }
+                return _instance.CreateMixer(name, speed, mixerVolume, clampStemVolume, normalize);
             }
         }
 
@@ -394,7 +406,7 @@ namespace YARG.Core.Audio
             }
         }
 
-        public static MicDevice? CreateDevice(int deviceId, string name)
+        public static MicDevice? CreateInputDevice(int deviceId, string name)
         {
             lock (_instanceLock)
             {
@@ -402,7 +414,7 @@ namespace YARG.Core.Audio
                 {
                     throw new NotInitializedException();
                 }
-                return _instance.CreateDevice(deviceId, name);
+                return _instance.CreateInputDevice(deviceId, name);
             }
         }
 
@@ -439,6 +451,106 @@ namespace YARG.Core.Audio
                     throw new NotInitializedException();
                 }
                 _instance.SetBufferLength(length);
+            }
+        }
+
+        public static List<(int id, string name)> GetAllOutputDevices()
+        {
+            lock (_instanceLock)
+            {
+                if (_instance == null)
+                {
+                    throw new NotInitializedException();
+                }
+                return _instance.GetAllOutputDevices();
+            }
+        }
+
+        public static int GetOutputChannelCount()
+        {
+            lock (_instanceLock)
+            {
+                if (_instance == null)
+                {
+                    throw new NotInitializedException();
+                }
+                return _instance.GetOutputChannelCount();
+            }
+        }
+
+        public static OutputDevice? GetOutputDevice(string name)
+        {
+            lock (_instanceLock)
+            {
+                if (_instance == null)
+                {
+                    throw new NotInitializedException();
+                }
+                return _instance.GetOutputDevice(name);
+            }
+        }
+
+        public static void SetOutputChannel(SongStem stem, int channelId)
+        {
+            lock (_instanceLock)
+            {
+                if (_instance == null)
+                {
+                    throw new NotInitializedException();
+                }
+
+                OutputChannel? channel = _instance.CreateOutputChannel(channelId);
+                if (channel == null)
+                {
+                    return;
+                }
+
+                switch (stem)
+                {
+                    case SongStem.DrumSfx:
+                        foreach (DrumSampleChannel sample in _instance.DrumSfxSamples)
+                        {
+                            sample?.SetOutputChannel(channel);
+                        }
+                        break;
+
+                    case SongStem.Metronome:
+                        foreach (MetronomeSampleChannel sample in _instance.MetronomeSamples)
+                        {
+                            sample?.SetOutputChannel(channel);
+                        }
+                        break;
+
+                    case SongStem.Sfx:
+                        foreach (SampleChannel sample in _instance.SfxSamples)
+                        {
+                            sample?.SetOutputChannel(channel);
+                        }
+                        break;
+
+                    case SongStem.VoxSample:
+                        foreach (VoxSampleChannel sample in _instance.VoxSamples)
+                        {
+                            sample?.SetOutputChannel(channel);
+                        }
+                        break;
+
+                    default:
+                        _instance?.SetOutputChannel(channel);
+                        break;
+                }
+            }
+        }
+
+        public static void SetOutputDevice(string name)
+        {
+            lock (_instanceLock)
+            {
+                if (_instance == null)
+                {
+                    throw new NotInitializedException();
+                }
+                _instance.SetOutputDevice(name);
             }
         }
     }

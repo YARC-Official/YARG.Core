@@ -18,6 +18,7 @@ namespace YARG.Core.Game
         NoDynamics    = 1 << 8,
         NoVocalPercussion = 1 << 9,
         RangeCompress = 1 << 10,
+        OpensToGreens = 1 << 11
     }
 
     public static class ModifierConflicts
@@ -47,7 +48,8 @@ namespace YARG.Core.Game
 
             var excusable = instrument switch {
                 Instrument.ProKeys =>
-                    Modifier.RangeCompress,
+                    Modifier.RangeCompress |
+                    Modifier.OpensToGreens,
 
                 _ => Modifier.None
             };
@@ -67,7 +69,8 @@ namespace YARG.Core.Game
                     Modifier.AllTaps       |
                     Modifier.HoposToTaps   |
                     Modifier.TapsToHopos   |
-                    Modifier.RangeCompress,
+                    Modifier.RangeCompress |
+                    Modifier.OpensToGreens,
 
                 GameMode.FourLaneDrums or
                 GameMode.FiveLaneDrums or
@@ -80,7 +83,8 @@ namespace YARG.Core.Game
                     Modifier.NoVocalPercussion,
 
                 GameMode.ProKeys =>
-                    Modifier.RangeCompress,
+                    Modifier.RangeCompress |
+                    Modifier.OpensToGreens,
 
                 GameMode.SixFretGuitar or
                 GameMode.ProGuitar     or

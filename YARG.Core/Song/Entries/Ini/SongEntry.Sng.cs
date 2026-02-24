@@ -54,7 +54,7 @@ namespace YARG.Core.Song
                 {
                     var stream = sngFile.CreateStream(filename, in listing);
                     string fakename = Path.Combine(_location, filename);
-                    var mixer = GlobalAudioHandler.LoadCustomFile(fakename, stream, speed, 0, SongStem.Preview);
+                    var mixer = GlobalAudioHandler.LoadCustomFile(fakename, stream, speed, 0, true, SongStem.Preview);
                     if (mixer == null)
                     {
                         stream.Dispose();
@@ -194,7 +194,7 @@ namespace YARG.Core.Song
         private StemMixer? CreateAudioMixer(float speed, double volume, in SngFile sngFile, params SongStem[] ignoreStems)
         {
             bool clampStemVolume = _metadata.Source.ToLowerInvariant() == "yarg";
-            var mixer = GlobalAudioHandler.CreateMixer(ToString(), speed, volume, clampStemVolume);
+            var mixer = GlobalAudioHandler.CreateMixer(ToString(), speed, volume, true, clampStemVolume);
             if (mixer == null)
             {
                 YargLogger.LogError("Failed to create mixer");

@@ -16,6 +16,7 @@ namespace YARG.Core.Song
         Album,
         Artist_Album,
         Genre,
+        Subgenre,
         Year,
         Charter,
         Playlist,
@@ -453,9 +454,9 @@ namespace YARG.Core.Song
 
         private static readonly Func<SongCache, Dictionary<SongEntry, CacheWriteIndices>, List<string>>[] COLLECTORS =
         {
-            CollectCacheTitles, CollectCacheArtists,  CollectCacheAlbums,    CollectCacheGenres,
+            CollectCacheTitles, CollectCacheArtists,  CollectCacheAlbums,    CollectCacheGenres, CollectCacheSubgenres,
             CollectCacheYears,  CollectCacheCharters, CollectCachePlaylists, CollectCacheSources,
-        };
+        }
 
         internal static void WriteCategoriesToCache(FileStream filestream, SongCache cache, Dictionary<SongEntry, CacheWriteIndices> nodes)
         {
@@ -492,7 +493,7 @@ namespace YARG.Core.Song
         private static List<string> CollectCacheTitles(SongCache cache, Dictionary<SongEntry, CacheWriteIndices> nodes)
         {
             var strings = new List<string>();
-            foreach (var element in cache.Titles)
+            foreach (var element in cache.Entries)
             {
                 foreach (var entry in element.Value)
                 {
@@ -516,7 +517,7 @@ namespace YARG.Core.Song
             using var placements = FixedArray<int>.Alloc(64);
 
             var strings = new List<string>();
-            foreach (var element in cache.Artists)
+            foreach (var element in cache.Entries)
             {
                 if (element.Value.Count > placements.Length)
                 {
@@ -554,7 +555,7 @@ namespace YARG.Core.Song
             using var placements = FixedArray<int>.Alloc(64);
 
             var strings = new List<string>();
-            foreach (var element in cache.Albums)
+            foreach (var element in cache.Entries)
             {
                 if (element.Value.Count > placements.Length)
                 {
@@ -592,7 +593,7 @@ namespace YARG.Core.Song
             using var placements = FixedArray<int>.Alloc(64);
 
             var strings = new List<string>();
-            foreach (var element in cache.Genres)
+            foreach (var element in cache.Entries)
             {
                 if (element.Value.Count > placements.Length)
                 {
@@ -625,12 +626,50 @@ namespace YARG.Core.Song
             return strings;
         }
 
+        private static List<string> CollectCacheSubgenres(SongCache cache, Dictionary<SongEntry, CacheWriteIndices> nodes)
+        {
+            using var placements = FixedArray<int>.Alloc(64);
+
+            var strings = new List<string>();
+            foreach (var element in cache.Entries)
+            {
+                if (element.Value.Count > placements.Length)
+                {
+                    placements.Resize(element.Value.Count);
+                }
+
+                for (int i = 0; i < element.Value.Count; i++)
+                {
+                    var entry = element.Value[i];
+                    var indices = nodes[entry];
+
+                    int query = 0;
+                    while (query < i && element.Value[query].Subgenre != entry.Subgenre)
+                    {
+                        query++;
+                    }
+
+                    if (query == i)
+                    {
+                        placements[i] = strings.Count;
+                        strings.Add(entry.Subgenre);
+                    }
+                    else
+                    {
+                        placements[i] = placements[query];
+                    }
+                    indices.Subgenre = placements[i];
+                }
+            }
+            return strings;
+        }
+
         private static List<string> CollectCacheYears(SongCache cache, Dictionary<SongEntry, CacheWriteIndices> nodes)
         {
             using var placements = FixedArray<int>.Alloc(64);
 
             var strings = new List<string>();
-            foreach (var element in cache.Years)
+            foreach (var element in cache.Entries)
             {
                 if (element.Value.Count > placements.Length)
                 {
@@ -668,7 +707,7 @@ namespace YARG.Core.Song
             using var placements = FixedArray<int>.Alloc(64);
 
             var strings = new List<string>();
-            foreach (var element in cache.Charters)
+            foreach (var element in cache.Entries)
             {
                 if (element.Value.Count > placements.Length)
                 {
@@ -706,7 +745,7 @@ namespace YARG.Core.Song
             using var placements = FixedArray<int>.Alloc(64);
 
             var strings = new List<string>();
-            foreach (var element in cache.Playlists)
+            foreach (var element in cache.Entries)
             {
                 if (element.Value.Count > placements.Length)
                 {
@@ -744,7 +783,7 @@ namespace YARG.Core.Song
             using var placements = FixedArray<int>.Alloc(64);
 
             var strings = new List<string>();
-            foreach (var element in cache.Sources)
+            foreach (var element in cache.Entries)
             {
                 if (element.Value.Count > placements.Length)
                 {
