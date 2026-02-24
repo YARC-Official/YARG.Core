@@ -21,6 +21,12 @@ namespace YARG.Core.IO
 
         public List<VisemeData> GetLipsyncData()
         {
+            if (_data.Length == 0)
+            {
+                YargLogger.LogWarning("Milo file does not contain lipsync data");
+                return new List<VisemeData>();
+            }
+
             // Why 8? I have no idea
             var bufferIndex = 8;
             byte[] fourBytes = new byte[4];
