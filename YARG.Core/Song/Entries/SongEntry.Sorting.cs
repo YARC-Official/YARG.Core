@@ -456,7 +456,7 @@ namespace YARG.Core.Song
         {
             CollectCacheTitles, CollectCacheArtists,  CollectCacheAlbums,    CollectCacheGenres, CollectCacheSubgenres,
             CollectCacheYears,  CollectCacheCharters, CollectCachePlaylists, CollectCacheSources,
-        }
+        };
 
         internal static void WriteCategoriesToCache(FileStream filestream, SongCache cache, Dictionary<SongEntry, CacheWriteIndices> nodes)
         {
