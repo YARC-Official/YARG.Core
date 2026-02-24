@@ -33,7 +33,7 @@ namespace YARG.Core.Game
             public Color GreenFret  = DefaultGreen;
 
             // Exclusive to split-dedicated kick lanes
-            public Color DoubleKickFret = DefaultSilver;
+            public Color DoubleKickFret = DefaultSilverFret;
 
             /// <summary>
             /// Gets the fret color for a specific note index.
@@ -64,7 +64,7 @@ namespace YARG.Core.Game
             public Color GreenFretInner  = DefaultGreen;
 
             // Exclusive to split-dedicated kick lanes
-            public Color DoubleKickFretInner = DefaultSilver;
+            public Color DoubleKickFretInner = DefaultSilverFret;
 
             /// <summary>
             /// Gets the inner fret color for a specific note index.
@@ -95,7 +95,7 @@ namespace YARG.Core.Game
             public Color GreenParticles  = DefaultGreen;
 
             // Exclusive to split-dedicated kick lanes
-            public Color DoubleKickParticles = DefaultSilver;
+            public Color DoubleKickParticles = DefaultSilverFret;
 
             /// <summary>
             /// Gets the particle color for a specific note index.

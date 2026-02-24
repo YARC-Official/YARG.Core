@@ -196,23 +196,23 @@ namespace YARG.Core.Game
                     ProDrumsHighwayOrderingLength = splitProTomsAndCymbals ? 7 : 4;
                     ProDrumsHighwayOrdering = splitProTomsAndCymbals ? new DrumsHighwayItem[]
                     {
-                        swapSnareAndHiHat ?  DrumsHighwayItem.FourLaneYellowCymbal : DrumsHighwayItem.FourLaneRed,
-                        swapSnareAndHiHat ?  DrumsHighwayItem.FourLaneRed : DrumsHighwayItem.FourLaneYellowCymbal,
-                        DrumsHighwayItem.FourLaneYellowDrum,
-                        swapCrashAndRide ? DrumsHighwayItem.FourLaneGreenCymbal : DrumsHighwayItem.FourLaneBlueCymbal,
-                        DrumsHighwayItem.FourLaneBlueDrum,
-                        swapCrashAndRide ? DrumsHighwayItem.FourLaneBlueCymbal : DrumsHighwayItem.FourLaneGreenCymbal,
-                        DrumsHighwayItem.FourLaneGreenDrum,
+                        swapSnareAndHiHat ?  DrumsHighwayItem.YellowCymbal : DrumsHighwayItem.Red,
+                        swapSnareAndHiHat ?  DrumsHighwayItem.Red : DrumsHighwayItem.YellowCymbal,
+                        DrumsHighwayItem.YellowDrum,
+                        swapCrashAndRide ? DrumsHighwayItem.GreenCymbal : DrumsHighwayItem.BlueCymbal,
+                        DrumsHighwayItem.BlueDrum,
+                        swapCrashAndRide ? DrumsHighwayItem.BlueCymbal : DrumsHighwayItem.GreenCymbal,
+                        DrumsHighwayItem.GreenDrum,
                     } : DEFAULT_FOUR_LANE_ORDERING;
 
                     FiveLaneDrumsHighwayOrderingLength = 5;
                     FiveLaneDrumsHighwayOrdering = new DrumsHighwayItem[]
                     {
-                        swapSnareAndHiHat ? DrumsHighwayItem.FiveLaneYellow : DrumsHighwayItem.FiveLaneRed,
-                        swapSnareAndHiHat ? DrumsHighwayItem.FiveLaneRed : DrumsHighwayItem.FiveLaneYellow,
-                        DrumsHighwayItem.FiveLaneBlue,
-                        DrumsHighwayItem.FiveLaneOrange,
-                        DrumsHighwayItem.FiveLaneGreen
+                        swapSnareAndHiHat ? DrumsHighwayItem.Yellow : DrumsHighwayItem.Red,
+                        swapSnareAndHiHat ? DrumsHighwayItem.Red : DrumsHighwayItem.Yellow,
+                        DrumsHighwayItem.Blue,
+                        DrumsHighwayItem.Orange,
+                        DrumsHighwayItem.Green
                     };
                 }
             } else
@@ -492,18 +492,18 @@ namespace YARG.Core.Game
         }
 
         private static DrumsHighwayItem[] DEFAULT_FOUR_LANE_ORDERING = new DrumsHighwayItem[] {
-            DrumsHighwayItem.FourLaneRed,
-            DrumsHighwayItem.FourLaneYellow,
-            DrumsHighwayItem.FourLaneBlue,
-            DrumsHighwayItem.FourLaneGreen
+            DrumsHighwayItem.Red,
+            DrumsHighwayItem.Yellow,
+            DrumsHighwayItem.Blue,
+            DrumsHighwayItem.Green
         };
 
         private static DrumsHighwayItem[] DEFAULT_FIVE_LANE_ORDERING = new DrumsHighwayItem[] {
-            DrumsHighwayItem.FiveLaneRed,
-            DrumsHighwayItem.FiveLaneYellow,
-            DrumsHighwayItem.FiveLaneBlue,
-            DrumsHighwayItem.FiveLaneOrange,
-            DrumsHighwayItem.FiveLaneGreen
+            DrumsHighwayItem.Red,
+            DrumsHighwayItem.Yellow,
+            DrumsHighwayItem.Blue,
+            DrumsHighwayItem.Orange,
+            DrumsHighwayItem.Green
         };
     }
 }

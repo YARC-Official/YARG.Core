@@ -145,24 +145,20 @@ namespace YARG.Core
         Kick2x                  = 2,
         Kick2xConditional       = 3,
 
-        FourLaneRed             = 4,
-        FourLaneYellow          = 5,
-        FourLaneBlue            = 6,
-        FourLaneGreen           = 7,
+        Red             = 4,
+        Yellow          = 5,
+        Blue            = 6,
+        Green           = 7,
 
-        FourLaneYellowCymbal    = 8,
-        FourLaneBlueCymbal      = 9,
-        FourLaneGreenCymbal     = 10,
+        YellowCymbal    = 8,
+        BlueCymbal      = 9,
+        GreenCymbal     = 10,
 
-        FourLaneYellowDrum      = 11,
-        FourLaneBlueDrum        = 12,
-        FourLaneGreenDrum       = 13,
+        YellowDrum      = 11,
+        BlueDrum        = 12,
+        GreenDrum       = 13,
 
-        FiveLaneRed             = 14,
-        FiveLaneYellow          = 15,
-        FiveLaneBlue            = 16,
-        FiveLaneOrange          = 17,
-        FiveLaneGreen           = 18,
+        Orange          = 14
     }
 
     public static class ChartEnumExtensions

@@ -21,13 +21,13 @@ namespace YARG.Core.Game
             {
                 ProDrumsHighwayOrdering = new DrumsHighwayItem[]
                     {
-                        SwapSnareAndHiHat.Value ?  DrumsHighwayItem.FourLaneYellowCymbal : DrumsHighwayItem.FourLaneRed,
-                        SwapSnareAndHiHat.Value ?  DrumsHighwayItem.FourLaneRed : DrumsHighwayItem.FourLaneYellowCymbal,
-                        DrumsHighwayItem.FourLaneYellowDrum,
-                        SwapCrashAndRide.Value ? DrumsHighwayItem.FourLaneGreenCymbal : DrumsHighwayItem.FourLaneBlueCymbal,
-                        DrumsHighwayItem.FourLaneBlueDrum,
-                        SwapCrashAndRide.Value ? DrumsHighwayItem.FourLaneBlueCymbal : DrumsHighwayItem.FourLaneGreenCymbal,
-                        DrumsHighwayItem.FourLaneGreenDrum,
+                        SwapSnareAndHiHat.Value ?  DrumsHighwayItem.YellowCymbal : DrumsHighwayItem.Red,
+                        SwapSnareAndHiHat.Value ?  DrumsHighwayItem.Red : DrumsHighwayItem.YellowCymbal,
+                        DrumsHighwayItem.YellowDrum,
+                        SwapCrashAndRide.Value ? DrumsHighwayItem.GreenCymbal : DrumsHighwayItem.BlueCymbal,
+                        DrumsHighwayItem.BlueDrum,
+                        SwapCrashAndRide.Value ? DrumsHighwayItem.BlueCymbal : DrumsHighwayItem.GreenCymbal,
+                        DrumsHighwayItem.GreenDrum,
                     };
             }
 
@@ -35,11 +35,11 @@ namespace YARG.Core.Game
             {
                 FiveLaneDrumsHighwayOrdering = new DrumsHighwayItem[]
                     {
-                        DrumsHighwayItem.FiveLaneYellow,
-                        DrumsHighwayItem.FiveLaneRed,
-                        DrumsHighwayItem.FiveLaneBlue,
-                        DrumsHighwayItem.FiveLaneOrange,
-                        DrumsHighwayItem.FiveLaneGreen
+                        DrumsHighwayItem.Yellow,
+                        DrumsHighwayItem.Red,
+                        DrumsHighwayItem.Blue,
+                        DrumsHighwayItem.Orange,
+                        DrumsHighwayItem.Green
                     };
             }
 

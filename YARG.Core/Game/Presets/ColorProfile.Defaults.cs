@@ -21,7 +21,12 @@ namespace YARG.Core.Game
         [SettingType(SettingType.Ignore)]
         public static readonly Color DefaultOrange = Color.FromArgb(0xFF, 0xFF, 0x84, 0x00); // #FF8400
         [SettingType(SettingType.Ignore)]
-        public static readonly Color DefaultSilver = Color.FromArgb(0xFF, 0x50, 0x50, 0x50); // #505050
+        public static readonly Color DefaultSilver = Color.FromArgb(0xFF, 0x20, 0x20, 0x20); // #202020
+
+        // Values bright enough to look good on silver frets make silver notes look white like SP notes,
+        // so silver gets separate fret and note colors
+        [SettingType(SettingType.Ignore)]
+        public static readonly Color DefaultSilverFret = Color.FromArgb(0xFF, 0xBF, 0xBF, 0xBF); // #AAAAAA
 
         // By default, use these colors for notes only, not fret coloring or particles
         [SettingType(SettingType.Ignore)]
