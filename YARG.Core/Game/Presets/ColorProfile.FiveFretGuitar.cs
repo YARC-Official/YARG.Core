@@ -1,4 +1,4 @@
-using System.Drawing;
+﻿using System.Drawing;
 using System.IO;
 using YARG.Core.Chart;
 using YARG.Core.Extensions;
@@ -27,11 +27,11 @@ namespace YARG.Core.Game
             {
                 return index switch
                 {
-                    1 => GreenFret,
-                    2 => RedFret,
-                    3 => YellowFret,
-                    4 => BlueFret,
-                    5 => OrangeFret,
+                    (int) FiveFretGuitarFret.Green => GreenFret,
+                    (int) FiveFretGuitarFret.Red => RedFret,
+                    (int) FiveFretGuitarFret.Yellow => YellowFret,
+                    (int) FiveFretGuitarFret.Blue => BlueFret,
+                    (int) FiveFretGuitarFret.Orange => OrangeFret,
                     (int) FiveFretGuitarFret.Open => OpenFret,
                     _ => default
                 };
@@ -52,12 +52,12 @@ namespace YARG.Core.Game
             {
                 return index switch
                 {
-                    0 => OpenFretInner,
-                    1 => GreenFretInner,
-                    2 => RedFretInner,
-                    3 => YellowFretInner,
-                    4 => BlueFretInner,
-                    5 => OrangeFretInner,
+                    (int) FiveFretGuitarFret.Green => GreenFretInner,
+                    (int) FiveFretGuitarFret.Red => RedFretInner,
+                    (int) FiveFretGuitarFret.Yellow => YellowFretInner,
+                    (int) FiveFretGuitarFret.Blue => BlueFretInner,
+                    (int) FiveFretGuitarFret.Orange => OrangeFretInner,
+                    (int) FiveFretGuitarFret.Open => OpenFretInner,
                     _ => default
                 };
             }
@@ -77,12 +77,12 @@ namespace YARG.Core.Game
             {
                 return index switch
                 {
-                    0 => OpenParticles,
-                    1 => GreenParticles,
-                    2 => RedParticles,
-                    3 => YellowParticles,
-                    4 => BlueParticles,
-                    5 => OrangeParticles,
+                    (int) FiveFretGuitarFret.Green => GreenParticles,
+                    (int) FiveFretGuitarFret.Red => RedParticles,
+                    (int) FiveFretGuitarFret.Yellow => YellowParticles,
+                    (int) FiveFretGuitarFret.Blue => BlueParticles,
+                    (int) FiveFretGuitarFret.Orange => OrangeParticles,
+                    (int) FiveFretGuitarFret.Open => OpenParticles,
                     _ => default
                 };
             }

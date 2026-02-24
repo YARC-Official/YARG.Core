@@ -466,7 +466,7 @@ namespace YARG.Core.Engine.Drums
                     (int) FourLaneDrumPad.RedDrum    => DrumsAction.RedDrum,
                     (int) FourLaneDrumPad.YellowDrum => DrumsAction.YellowDrum,
                     (int) FourLaneDrumPad.BlueDrum   => DrumsAction.BlueDrum,
-                    (int) FourLaneDrumPad.GreenDrum  => DrumsAction.GreenCymbal,
+                    (int) FourLaneDrumPad.GreenDrum  => DrumsAction.GreenDrum,
 
                     (int) FourLaneDrumPad.YellowCymbal => DrumsAction.YellowCymbal,
                     (int) FourLaneDrumPad.BlueCymbal   => DrumsAction.BlueCymbal,
