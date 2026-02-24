@@ -10,7 +10,7 @@ using YARG.Core.IO;
 
 namespace YARG.Core.Game
 {
-    public class YargProfile
+    public partial class YargProfile
     {
         private const int PROFILE_VERSION = 8;
 
