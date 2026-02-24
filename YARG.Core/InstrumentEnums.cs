@@ -137,7 +137,7 @@ namespace YARG.Core
     /// <summary>
     /// Potential entries in a drums highway ordering
     /// </summary>
-    public enum DrumsHighwayItem
+    public enum DrumsHighwayItem : byte
     {
         // Serialized; do not reorder
         Kick                    = 0,

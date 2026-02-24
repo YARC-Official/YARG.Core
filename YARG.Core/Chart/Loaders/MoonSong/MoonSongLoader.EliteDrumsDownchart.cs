@@ -205,13 +205,13 @@ namespace YARG.Core.Chart
             (MoonNote.DrumPad? pad, MoonNote.Flags flags) = ((EliteDrumPad) eliteDrumNote.Pad) switch
             {
                 EliteDrumPad.HatPedal =>    (GetDrumPadForChannelFlag(eliteDrumNote,   null),                      MoonNote.Flags.ProDrums_Cymbal),
-                EliteDrumPad.Kick =>        (                                          MoonNote.DrumPad.Kick,      MoonNote.Flags.None),
+                EliteDrumPad.Kick =>        (                                          MoonNote.DrumPad.Kick,      eliteDrumNote.IsDoubleKick ? MoonNote.Flags.InstrumentPlus : MoonNote.Flags.None),
                 EliteDrumPad.Snare =>       (GetDrumPadForChannelFlag(eliteDrumNote,   MoonNote.DrumPad.Red),      MoonNote.Flags.None),
                 EliteDrumPad.HiHat =>       (GetDrumPadForChannelFlag(eliteDrumNote,   MoonNote.DrumPad.Yellow),   MoonNote.Flags.ProDrums_Cymbal),
                 EliteDrumPad.LeftCrash =>   (GetDrumPadForChannelFlag(eliteDrumNote,   MoonNote.DrumPad.Blue),     MoonNote.Flags.ProDrums_Cymbal),
                 EliteDrumPad.Tom1 =>        (GetDrumPadForChannelFlag(eliteDrumNote,   MoonNote.DrumPad.Yellow),   MoonNote.Flags.None),
-                EliteDrumPad.Tom2 =>        (GetDrumPadForChannelFlag(eliteDrumNote,   MoonNote.DrumPad.Blue),   MoonNote.Flags.None),
-                EliteDrumPad.Tom3 =>        (GetDrumPadForChannelFlag(eliteDrumNote,   MoonNote.DrumPad.Green),   MoonNote.Flags.None),
+                EliteDrumPad.Tom2 =>        (GetDrumPadForChannelFlag(eliteDrumNote,   MoonNote.DrumPad.Blue),     MoonNote.Flags.None),
+                EliteDrumPad.Tom3 =>        (GetDrumPadForChannelFlag(eliteDrumNote,   MoonNote.DrumPad.Green),    MoonNote.Flags.None),
                 EliteDrumPad.Ride =>        (GetDrumPadForChannelFlag(eliteDrumNote,   MoonNote.DrumPad.Blue),     MoonNote.Flags.ProDrums_Cymbal),
                 EliteDrumPad.RightCrash =>  (GetDrumPadForChannelFlag(eliteDrumNote,   MoonNote.DrumPad.Green),    MoonNote.Flags.ProDrums_Cymbal),
                 _ => throw new Exception("Unreachable.")

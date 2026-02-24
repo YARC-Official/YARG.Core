@@ -20,6 +20,8 @@ namespace YARG.Core.Game
         public static readonly Color DefaultBlue   = Color.FromArgb(0xFF, 0x00, 0xBF, 0xFF); // #00BFFF
         [SettingType(SettingType.Ignore)]
         public static readonly Color DefaultOrange = Color.FromArgb(0xFF, 0xFF, 0x84, 0x00); // #FF8400
+        [SettingType(SettingType.Ignore)]
+        public static readonly Color DefaultSilver = Color.FromArgb(0xFF, 0xEE, 0xEE, 0xEE); // #EEEEEE
 
         // By default, use these colors for notes only, not fret coloring or particles
         [SettingType(SettingType.Ignore)]
@@ -47,6 +49,8 @@ namespace YARG.Core.Game
         public static readonly Color DefaultOrangeActivationNote = Color.FromArgb(0xFF, 0xFF, 0xA5, 0x00); // #FFA500
         [SettingType(SettingType.Ignore)]
         public static readonly Color DefaultGreenActivationNote  = Color.FromArgb(0xFF, 0x00, 0xFF, 0x00); // #00FF00
+        [SettingType(SettingType.Ignore)]
+        public static readonly Color DefaultSilverActivationNote = Color.FromArgb(0xFF, 0xFF, 0xFF, 0xFF); // #FFFFFF
 
         [SettingType(SettingType.Ignore)]
         public static readonly Color DefaultMetal          = Color.FromArgb(0xFF, 0xFF, 0xFF, 0xFF); // #FFFFFF
