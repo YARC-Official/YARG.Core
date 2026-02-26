@@ -17,6 +17,11 @@ namespace YARG.Core.Game
 #pragma warning disable 612, 618 // Ignore obsolete warnings since this is the place where we grandfather them in
         public void GrandfatherIn()
         {
+            UpgradeDrumCustomization();
+        }
+
+        private void UpgradeDrumCustomization()
+        {
             if (SplitProTomsAndCymbals is not null && SplitProTomsAndCymbals.Value)
             {
                 ProDrumsHighwayOrdering = new DrumsHighwayItem[]
