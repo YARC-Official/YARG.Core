@@ -135,6 +135,14 @@ namespace YARG.Core
 
     public static class ChartEnumExtensions
     {
+        public static bool IsFiveFret(this Instrument instrument)
+        {
+            return instrument is Instrument.FiveFretGuitar
+                or Instrument.FiveFretBass
+                or Instrument.FiveFretRhythm
+                or Instrument.FiveFretCoopGuitar;
+        }
+
         public static GameMode ToNativeGameMode(this Instrument instrument)
         {
             return instrument switch
