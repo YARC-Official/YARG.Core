@@ -9,12 +9,15 @@ namespace YARG.Core.Chart
     {
         private const double TRANSITION_TIME = 0.12;
         private const double HALF_TRANSITION = TRANSITION_TIME / 2;
+        private const int TRANSITION_STEPS = 4; // 30fps * 0.12s = ~4 steps
+        private const float VISEME_WEIGHT = 140f / 255f; // Match onyx weight
         
         private static Dictionary<string, string[]> _cmuDict;
 
         public static List<LipsyncEvent> GenerateFromLyrics(VocalsPart vocals)
         {
             var events = new List<LipsyncEvent>();
+            var defaultViseme = LipsyncEvent.LipsyncType.Neutral_lo;
             
             foreach (var phrase in vocals.NotePhrases)
             {
@@ -24,87 +27,244 @@ namespace YARG.Core.Chart
                 for (int i = 0; i < phrase.Lyrics.Count; i++)
                 {
                     var lyric = phrase.Lyrics[i];
-                    var viseme = GetVisemeForLyric(lyric.Text);
+                    var syllable = GetSyllableForLyric(lyric.Text);
                     
-                    // Add viseme at lyric start (value normalized to 0-1)
-                    events.Add(new LipsyncEvent(viseme, 1.0f, lyric.Time, lyric.Tick));
-                    
-                    // Reset the same viseme after lyric
                     var endTime = i < phrase.Lyrics.Count - 1 
                         ? phrase.Lyrics[i + 1].Time 
                         : phrase.Time + phrase.TimeLength;
                     
-                    events.Add(new LipsyncEvent(viseme, 0f, 
-                        endTime - HALF_TRANSITION, lyric.Tick));
+                    var duration = endTime - lyric.Time;
+                    var initialFront = Math.Min(HALF_TRANSITION, lyric.Time - phrase.Time);
+                    var initialBack = Math.Min(HALF_TRANSITION, duration / 2);
+                    var finalFront = Math.Min(HALF_TRANSITION, duration / 2);
+                    var finalBack = HALF_TRANSITION;
+                    
+                    var startTime = lyric.Time - initialFront;
+                    
+                    // Transition from default to initial consonants
+                    if (syllable.Initial.Count > 0)
+                    {
+                        AddTransition(events, startTime, initialFront + initialBack, 
+                            defaultViseme, syllable.Initial, lyric.Tick);
+                        startTime += initialFront + initialBack;
+                    }
+                    else
+                    {
+                        AddTransition(events, startTime, initialFront + initialBack,
+                            defaultViseme, new List<LipsyncEvent.LipsyncType> { syllable.VowelMain }, lyric.Tick);
+                        startTime += initialFront + initialBack;
+                    }
+                    
+                    // Hold vowel (with diphthong if present)
+                    var vowelDuration = duration - initialBack - finalFront;
+                    if (syllable.VowelEnd.HasValue)
+                    {
+                        // Diphthong: transition from main to end vowel
+                        AddDiphthong(events, startTime, vowelDuration,
+                            syllable.VowelMain, syllable.VowelEnd.Value, lyric.Tick);
+                    }
+                    else
+                    {
+                        events.Add(new LipsyncEvent(syllable.VowelMain, VISEME_WEIGHT, startTime, lyric.Tick));
+                    }
+                    startTime += vowelDuration;
+                    
+                    // Transition to final consonants then back to neutral (closed mouth)
+                    if (syllable.Final.Count > 0)
+                    {
+                        AddTransition(events, startTime, finalFront + finalBack,
+                            syllable.VowelEnd ?? syllable.VowelMain, syllable.Final, lyric.Tick);
+                        startTime += finalFront + finalBack;
+                    }
+                    
+                    // Close mouth - set all active visemes to 0
+                    var lastViseme = syllable.Final.Count > 0 ? syllable.Final.Last() : 
+                                     (syllable.VowelEnd ?? syllable.VowelMain);
+                    events.Add(new LipsyncEvent(lastViseme, 0f, startTime, lyric.Tick));
                 }
             }
 
             return events.OrderBy(e => e.Time).ToList();
         }
 
-        private static LipsyncEvent.LipsyncType GetVisemeForLyric(string text)
+        private static void AddTransition(List<LipsyncEvent> events, double startTime, double duration,
+            LipsyncEvent.LipsyncType from, List<LipsyncEvent.LipsyncType> toSequence, uint tick)
         {
+            if (toSequence.Count == 0) return;
+            
+            var segmentDuration = duration / (toSequence.Count + 1);
+            var currentTime = startTime;
+            var current = from;
+            
+            foreach (var target in toSequence)
+            {
+                AddSmoothTransition(events, currentTime, segmentDuration, current, target, tick);
+                currentTime += segmentDuration;
+                current = target;
+            }
+        }
+
+        private static void AddSmoothTransition(List<LipsyncEvent> events, double startTime, double duration,
+            LipsyncEvent.LipsyncType from, LipsyncEvent.LipsyncType to, uint tick)
+        {
+            if (duration <= 0)
+            {
+                events.Add(new LipsyncEvent(to, VISEME_WEIGHT, startTime, tick));
+                return;
+            }
+            
+            var stepDuration = duration / TRANSITION_STEPS;
+            for (int i = 0; i < TRANSITION_STEPS; i++)
+            {
+                var t = (float)i / TRANSITION_STEPS;
+                var time = startTime + i * stepDuration;
+                
+                // Linear interpolation between visemes
+                events.Add(new LipsyncEvent(from, VISEME_WEIGHT * (1 - t), time, tick));
+                events.Add(new LipsyncEvent(to, VISEME_WEIGHT * t, time, tick));
+            }
+            events.Add(new LipsyncEvent(to, VISEME_WEIGHT, startTime + duration, tick));
+        }
+
+        private static void AddDiphthong(List<LipsyncEvent> events, double startTime, double duration,
+            LipsyncEvent.LipsyncType main, LipsyncEvent.LipsyncType end, uint tick)
+        {
+            var transitionStart = startTime + duration * 0.6; // Start transition 60% through
+            var transitionDuration = duration * 0.4;
+            
+            events.Add(new LipsyncEvent(main, VISEME_WEIGHT, startTime, tick));
+            
+            var stepDuration = transitionDuration / TRANSITION_STEPS;
+            for (int i = 1; i <= TRANSITION_STEPS; i++)
+            {
+                var t = (float)i / TRANSITION_STEPS;
+                t = EaseInExpo(t); // Use exponential easing for diphthongs
+                var time = transitionStart + i * stepDuration;
+                
+                events.Add(new LipsyncEvent(main, VISEME_WEIGHT * (1 - t), time, tick));
+                events.Add(new LipsyncEvent(end, VISEME_WEIGHT * t, time, tick));
+            }
+        }
+
+        private static float EaseInExpo(float t)
+        {
+            return t == 0 ? 0 : (float)Math.Pow(2, 10 * t - 10);
+        }
+
+        private struct Syllable
+        {
+            public List<LipsyncEvent.LipsyncType> Initial;
+            public LipsyncEvent.LipsyncType VowelMain;
+            public LipsyncEvent.LipsyncType? VowelEnd;
+            public List<LipsyncEvent.LipsyncType> Final;
+        }
+
+        private static Syllable GetSyllableForLyric(string text)
+        {
+            var syllable = new Syllable
+            {
+                Initial = new List<LipsyncEvent.LipsyncType>(),
+                VowelMain = LipsyncEvent.LipsyncType.Neutral_lo,
+                VowelEnd = null,
+                Final = new List<LipsyncEvent.LipsyncType>()
+            };
+
             if (string.IsNullOrWhiteSpace(text))
-                return LipsyncEvent.LipsyncType.Neutral_lo;
+                return syllable;
 
             var clean = text.ToLowerInvariant()
-                .Replace("-", "")
-                .Replace("=", "")
-                .Replace("#", "")
-                .Replace("^", "")
-                .Replace("$", "")
-                .Trim();
+                .Replace("-", "").Replace("=", "").Replace("#", "")
+                .Replace("^", "").Replace("$", "").Trim();
 
             if (clean.Length == 0)
-                return LipsyncEvent.LipsyncType.Neutral_lo;
+                return syllable;
 
-            // Try CMU dictionary first
+            // Try CMU dictionary
             if (TryGetPhonemes(clean, out var phonemes) && phonemes.Length > 0)
             {
-                // Find primary vowel (first vowel phoneme)
-                foreach (var phoneme in phonemes)
+                return PhonemesToSyllable(phonemes);
+            }
+
+            // Fallback to simple mapping
+            return SimpleSyllable(clean);
+        }
+
+        private static Syllable PhonemesToSyllable(string[] phonemes)
+        {
+            var syllable = new Syllable
+            {
+                Initial = new List<LipsyncEvent.LipsyncType>(),
+                VowelMain = LipsyncEvent.LipsyncType.Neutral_lo,
+                VowelEnd = null,
+                Final = new List<LipsyncEvent.LipsyncType>()
+            };
+
+            bool foundVowel = false;
+            
+            foreach (var phoneme in phonemes)
+            {
+                var (viseme, isDiphthong, diphthongEnd) = PhonemeToViseme(phoneme);
+                
+                if (viseme == LipsyncEvent.LipsyncType.Neutral_lo)
+                    continue;
+                
+                if (IsVowelPhoneme(phoneme))
                 {
-                    var viseme = PhonemeToViseme(phoneme);
-                    if (viseme != LipsyncEvent.LipsyncType.Neutral_lo)
-                        return viseme;
+                    if (!foundVowel)
+                    {
+                        syllable.VowelMain = viseme;
+                        if (isDiphthong)
+                            syllable.VowelEnd = diphthongEnd;
+                        foundVowel = true;
+                    }
+                }
+                else
+                {
+                    if (!foundVowel)
+                        syllable.Initial.Add(viseme);
+                    else
+                        syllable.Final.Add(viseme);
                 }
             }
 
-            // Fallback to simple vowel-based mapping
-            var vowels = clean.Where(c => "aeiou".Contains(c)).ToArray();
-            if (vowels.Length == 0)
+            return syllable;
+        }
+
+        private static Syllable SimpleSyllable(string text)
+        {
+            var syllable = new Syllable
             {
-                // Consonant-heavy, use appropriate viseme
-                if (clean.Any(c => "bpm".Contains(c)))
-                    return LipsyncEvent.LipsyncType.Bump_lo;
-                if (clean.Any(c => "fv".Contains(c)))
-                    return LipsyncEvent.LipsyncType.Fave_lo;
-                if (clean.Any(c => "td".Contains(c)))
-                    return LipsyncEvent.LipsyncType.Told_lo;
-                if (clean.Any(c => "sz".Contains(c)))
-                    return LipsyncEvent.LipsyncType.Size_lo;
-                if (clean.Any(c => "ckg".Contains(c)))
-                    return LipsyncEvent.LipsyncType.Cage_lo;
-                if (clean.Any(c => "rl".Contains(c)))
-                    return LipsyncEvent.LipsyncType.Roar_lo;
-                if (clean.Any(c => "w".Contains(c)))
-                    return LipsyncEvent.LipsyncType.Wet_lo;
-                if (clean.Any(c => "th".Contains(c)))
-                    return LipsyncEvent.LipsyncType.Though_lo;
-                
-                return LipsyncEvent.LipsyncType.Neutral_lo;
+                Initial = new List<LipsyncEvent.LipsyncType>(),
+                VowelMain = LipsyncEvent.LipsyncType.If_lo,
+                VowelEnd = null,
+                Final = new List<LipsyncEvent.LipsyncType>()
+            };
+
+            var vowels = text.Where(c => "aeiou".Contains(c)).ToArray();
+            if (vowels.Length > 0)
+            {
+                syllable.VowelMain = vowels[0] switch
+                {
+                    'a' => LipsyncEvent.LipsyncType.Ox_lo,
+                    'e' => LipsyncEvent.LipsyncType.Cage_lo,
+                    'i' => LipsyncEvent.LipsyncType.Eat_lo,
+                    'o' => LipsyncEvent.LipsyncType.Oat_lo,
+                    'u' => LipsyncEvent.LipsyncType.Wet_lo,
+                    _ => LipsyncEvent.LipsyncType.If_lo
+                };
             }
 
-            // Map primary vowel to viseme
-            var primaryVowel = vowels[0];
-            return primaryVowel switch
+            return syllable;
+        }
+
+        private static bool IsVowelPhoneme(string phoneme)
+        {
+            return phoneme switch
             {
-                'a' => LipsyncEvent.LipsyncType.Ox_lo,
-                'e' => LipsyncEvent.LipsyncType.Cage_lo,
-                'i' => LipsyncEvent.LipsyncType.Eat_lo,
-                'o' => LipsyncEvent.LipsyncType.Oat_lo,
-                'u' => LipsyncEvent.LipsyncType.Wet_lo,
-                _ => LipsyncEvent.LipsyncType.Neutral_lo
+                "AA" or "AE" or "AH" or "AO" or "AW" or "AY" or
+                "EH" or "ER" or "EY" or "IH" or "IY" or "OW" or
+                "OY" or "UH" or "UW" => true,
+                _ => false
             };
         }
 
@@ -155,37 +315,42 @@ namespace YARG.Core.Chart
             }
         }
 
-        private static LipsyncEvent.LipsyncType PhonemeToViseme(string phoneme)
+        private static (LipsyncEvent.LipsyncType viseme, bool isDiphthong, LipsyncEvent.LipsyncType? diphthongEnd) 
+            PhonemeToViseme(string phoneme)
         {
             return phoneme switch
             {
-                "AA" => LipsyncEvent.LipsyncType.Ox_lo,
-                "AE" => LipsyncEvent.LipsyncType.Cage_lo,
-                "AH" => LipsyncEvent.LipsyncType.If_lo,
-                "AO" => LipsyncEvent.LipsyncType.Earth_lo,
-                "AW" => LipsyncEvent.LipsyncType.If_lo,
-                "AY" => LipsyncEvent.LipsyncType.Ox_lo,
-                "EH" => LipsyncEvent.LipsyncType.Cage_lo,
-                "ER" => LipsyncEvent.LipsyncType.Church_lo,
-                "EY" => LipsyncEvent.LipsyncType.Cage_lo,
-                "IH" => LipsyncEvent.LipsyncType.If_lo,
-                "IY" => LipsyncEvent.LipsyncType.Eat_lo,
-                "OW" => LipsyncEvent.LipsyncType.Earth_lo,
-                "OY" => LipsyncEvent.LipsyncType.Oat_lo,
-                "UH" => LipsyncEvent.LipsyncType.Though_lo,
-                "UW" => LipsyncEvent.LipsyncType.Wet_lo,
-                "B" or "P" or "M" => LipsyncEvent.LipsyncType.Bump_lo,
-                "F" or "V" => LipsyncEvent.LipsyncType.Fave_lo,
-                "TH" or "DH" => LipsyncEvent.LipsyncType.Though_lo,
-                "S" or "Z" => LipsyncEvent.LipsyncType.Size_lo,
-                "T" or "D" or "N" or "L" => LipsyncEvent.LipsyncType.Told_lo,
-                "SH" or "ZH" or "CH" or "JH" => LipsyncEvent.LipsyncType.Church_lo,
-                "K" or "G" or "NG" => LipsyncEvent.LipsyncType.Cage_lo,
-                "R" => LipsyncEvent.LipsyncType.Roar_lo,
-                "W" => LipsyncEvent.LipsyncType.Wet_lo,
-                "Y" => LipsyncEvent.LipsyncType.Eat_lo,
-                "HH" => LipsyncEvent.LipsyncType.If_lo,
-                _ => LipsyncEvent.LipsyncType.Neutral_lo
+                // Vowels
+                "AA" => (LipsyncEvent.LipsyncType.Ox_lo, false, null),
+                "AE" => (LipsyncEvent.LipsyncType.Cage_lo, false, null),
+                "AH" => (LipsyncEvent.LipsyncType.If_lo, false, null),
+                "AO" => (LipsyncEvent.LipsyncType.Earth_lo, false, null),
+                "EH" => (LipsyncEvent.LipsyncType.Cage_lo, false, null),
+                "ER" => (LipsyncEvent.LipsyncType.Church_lo, false, null),
+                "IH" => (LipsyncEvent.LipsyncType.If_lo, false, null),
+                "IY" => (LipsyncEvent.LipsyncType.Eat_lo, false, null),
+                "UH" => (LipsyncEvent.LipsyncType.Though_lo, false, null),
+                "UW" => (LipsyncEvent.LipsyncType.Wet_lo, false, null),
+                
+                // Diphthongs
+                "AY" => (LipsyncEvent.LipsyncType.Ox_lo, true, LipsyncEvent.LipsyncType.If_lo),
+                "EY" => (LipsyncEvent.LipsyncType.Cage_lo, true, LipsyncEvent.LipsyncType.If_lo),
+                "OW" => (LipsyncEvent.LipsyncType.Oat_lo, true, LipsyncEvent.LipsyncType.Wet_lo),
+                "AW" => (LipsyncEvent.LipsyncType.Ox_lo, true, LipsyncEvent.LipsyncType.Wet_lo),
+                "OY" => (LipsyncEvent.LipsyncType.Oat_lo, true, LipsyncEvent.LipsyncType.If_lo),
+                
+                // Consonants
+                "B" or "P" or "M" => (LipsyncEvent.LipsyncType.Bump_lo, false, null),
+                "F" or "V" => (LipsyncEvent.LipsyncType.Fave_lo, false, null),
+                "TH" or "DH" => (LipsyncEvent.LipsyncType.Told_lo, false, null),
+                "S" or "Z" => (LipsyncEvent.LipsyncType.Size_lo, false, null),
+                "T" or "D" or "N" or "L" => (LipsyncEvent.LipsyncType.Told_lo, false, null),
+                "SH" or "ZH" or "CH" or "JH" => (LipsyncEvent.LipsyncType.Told_lo, false, null),
+                "R" => (LipsyncEvent.LipsyncType.Roar_lo, false, null),
+                "W" => (LipsyncEvent.LipsyncType.Wet_lo, false, null),
+                "Y" => (LipsyncEvent.LipsyncType.Eat_lo, false, null),
+                
+                _ => (LipsyncEvent.LipsyncType.Neutral_lo, false, null)
             };
         }
     }
