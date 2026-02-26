@@ -19,6 +19,9 @@ namespace YARG.Core.Chart
             var events = new List<LipsyncEvent>();
             var defaultViseme = LipsyncEvent.LipsyncType.Neutral_lo;
             
+            var random = new Random();
+            var nextBlinkTime = 2.0 + random.NextDouble() * 3.0; // First blink between 2-5s
+            
             foreach (var phrase in vocals.NotePhrases)
             {
                 if (phrase.IsPercussion || phrase.Lyrics.Count == 0)
@@ -27,6 +30,15 @@ namespace YARG.Core.Chart
                 for (int i = 0; i < phrase.Lyrics.Count; i++)
                 {
                     var lyric = phrase.Lyrics[i];
+                    
+                    // Add blinks if enough time has passed
+                    while (nextBlinkTime < lyric.Time)
+                    {
+                        events.Add(new LipsyncEvent(LipsyncEvent.LipsyncType.Blink, 1.0f, nextBlinkTime, 0));
+                        events.Add(new LipsyncEvent(LipsyncEvent.LipsyncType.Blink, 0f, nextBlinkTime + 0.15, 0));
+                        nextBlinkTime += 2.0 + random.NextDouble() * 4.0; // Next blink in 2-6s
+                    }
+                    
                     var syllable = GetSyllableForLyric(lyric.Text);
                     
                     var endTime = i < phrase.Lyrics.Count - 1 
@@ -34,25 +46,17 @@ namespace YARG.Core.Chart
                         : phrase.Time + phrase.TimeLength;
                     
                     var duration = endTime - lyric.Time;
-                    var initialFront = Math.Min(HALF_TRANSITION, lyric.Time - phrase.Time);
                     var initialBack = Math.Min(HALF_TRANSITION, duration / 2);
                     var finalFront = Math.Min(HALF_TRANSITION, duration / 2);
-                    var finalBack = HALF_TRANSITION;
                     
-                    var startTime = lyric.Time - initialFront;
+                    var startTime = lyric.Time;
                     
-                    // Transition from default to initial consonants
+                    // Transition to initial consonants or vowel
                     if (syllable.Initial.Count > 0)
                     {
-                        AddTransition(events, startTime, initialFront + initialBack, 
+                        AddTransition(events, startTime, initialBack, 
                             defaultViseme, syllable.Initial, lyric.Tick);
-                        startTime += initialFront + initialBack;
-                    }
-                    else
-                    {
-                        AddTransition(events, startTime, initialFront + initialBack,
-                            defaultViseme, new List<LipsyncEvent.LipsyncType> { syllable.VowelMain }, lyric.Tick);
-                        startTime += initialFront + initialBack;
+                        startTime += initialBack;
                     }
                     
                     // Hold vowel (with diphthong if present)
@@ -69,15 +73,15 @@ namespace YARG.Core.Chart
                     }
                     startTime += vowelDuration;
                     
-                    // Transition to final consonants then back to neutral (closed mouth)
+                    // Transition through final consonants then close
                     if (syllable.Final.Count > 0)
                     {
-                        AddTransition(events, startTime, finalFront + finalBack,
+                        AddTransition(events, startTime, finalFront,
                             syllable.VowelEnd ?? syllable.VowelMain, syllable.Final, lyric.Tick);
-                        startTime += finalFront + finalBack;
+                        startTime += finalFront;
                     }
                     
-                    // Close mouth - set all active visemes to 0
+                    // Close mouth
                     var lastViseme = syllable.Final.Count > 0 ? syllable.Final.Last() : 
                                      (syllable.VowelEnd ?? syllable.VowelMain);
                     events.Add(new LipsyncEvent(lastViseme, 0f, startTime, lyric.Tick));
