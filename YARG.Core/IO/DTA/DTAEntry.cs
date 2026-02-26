@@ -22,6 +22,7 @@ namespace YARG.Core.IO
         public string? Playlist;
         public TextSpan? LoadingPhrase;
         public int? YearAsNumber;
+        public int? YearSecondaryAsNumber;
 
         public long? SongLength;
         public SongRating? SongRating;
@@ -233,8 +234,8 @@ namespace YARG.Core.IO
                     case "rating": SongRating = (SongRating) YARGDTAReader.ExtractInteger<uint>(ref container); break;
                     case "short_version": /*ShortVersion = YARGDTAReader.Extract<uint>(ref container);*/ break;
                     case "album_art": /*HasAlbumArt = YARGDTAReader.ExtractBoolean(ref container);*/ break;
-                    case "year_released":
-                    case "year_recorded": YearAsNumber = YARGDTAReader.ExtractInteger<int>(ref container); break;
+                    case "year_released": YearAsNumber = YARGDTAReader.ExtractInteger<int>(ref container); break;
+                    case "year_recorded": YearSecondaryAsNumber = YARGDTAReader.ExtractInteger<int>(ref container); break;
                     case "album_name": Album = YARGDTAReader.ExtractTextBytes(ref container); break;
                     case "album_track_number": AlbumTrack = YARGDTAReader.ExtractInteger<int>(ref container); break;
                     case "pack_name": Playlist = YARGDTAReader.ExtractText(ref container); break;

@@ -101,6 +101,7 @@ namespace YARG.Core.Song
         public string UnmodifiedYear => _metadata.Year;
         public string ParsedYear => _parsedYear;
         public int YearAsNumber => _yearAsNumber;
+        public string YearSecondary => _metadata.YearSecondary;
 
         public bool IsMaster => _metadata.IsMaster;
         public bool VideoLoop => _metadata.VideoLoop;
@@ -378,6 +379,7 @@ namespace YARG.Core.Song
             stream.Write(_metadata.Video.End, Endianness.Little);
 
             stream.Write(_metadata.LoadingPhrase);
+            stream.Write(_metadata.YearSecondary);
 
             stream.Write(_metadata.LinkBandcamp);
             stream.Write(_metadata.LinkBluesky);
@@ -444,7 +446,7 @@ namespace YARG.Core.Song
             _metadata.Year =     strings.Years    [stream.Read<int>(Endianness.Little)];
             _metadata.Charter =  strings.Charters [stream.Read<int>(Endianness.Little)];
             _metadata.Playlist = strings.Playlists[stream.Read<int>(Endianness.Little)];
-            _metadata.Source =   strings.Sources  [stream.Read<int>(Endianness.Little)];            
+            _metadata.Source =   strings.Sources  [stream.Read<int>(Endianness.Little)];
 
             _metadata.IsMaster =  stream.ReadBoolean();
             _metadata.VideoLoop = stream.ReadBoolean();
@@ -463,6 +465,7 @@ namespace YARG.Core.Song
             _metadata.Video.End = stream.Read<long>(Endianness.Little);
 
             _metadata.LoadingPhrase = stream.ReadString();
+            _metadata.YearSecondary = stream.ReadString();
 
             _metadata.LinkBandcamp = stream.ReadString();
             _metadata.LinkBluesky = stream.ReadString();
