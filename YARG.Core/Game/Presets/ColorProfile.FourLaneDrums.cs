@@ -19,7 +19,9 @@ namespace YARG.Core.Game
             RedCymbal,
             YellowCymbal,
             BlueCymbal,
-            GreenCymbal
+            GreenCymbal,
+
+            DoubleKick,
         }
 
         public class FourLaneDrumsColors : IFretColorProvider, IBinarySerializable
@@ -38,6 +40,8 @@ namespace YARG.Core.Game
             public Color BlueCymbalFret = DefaultBlue;
             public Color GreenCymbalFret = DefaultGreen;
 
+            // Exclusive to split-dedicated kick lanes
+            public Color DoubleKickFret = DefaultPurple;
             /// <summary>
             /// Gets the fret color for a specific note index.
             /// 0 = kick note, 1 = red, 4 = green.
@@ -58,6 +62,9 @@ namespace YARG.Core.Game
                     (int)FourLaneDrumsFret.BlueCymbal => BlueCymbalFret,
                     (int)FourLaneDrumsFret.GreenCymbal => GreenCymbalFret,
 
+                    // Exclusive to split-dedicated kick lanes
+                    (int) FourLaneDrumsFret.DoubleKick => DoubleKickFret,
+
                     _ => default
                 };
             }
@@ -73,6 +80,9 @@ namespace YARG.Core.Game
             public Color YellowCymbalFretInner = DefaultYellow;
             public Color BlueCymbalFretInner = DefaultBlue;
             public Color GreenCymbalFretInner = DefaultGreen;
+
+            // Exclusive to split-dedicated kick lanes
+            public Color DoubleKickFretInner = DefaultPurple;
 
             /// <summary>
             /// Gets the inner fret color for a specific note index.
@@ -94,6 +104,8 @@ namespace YARG.Core.Game
                     (int)FourLaneDrumsFret.BlueCymbal => BlueCymbalFretInner,
                     (int)FourLaneDrumsFret.GreenCymbal => GreenCymbalFretInner,
 
+                    // Exclusive to split-dedicated kick lanes
+                    (int)FourLaneDrumsFret.DoubleKick => DoubleKickFretInner,
                     _ => default
                 };
             }
@@ -109,6 +121,9 @@ namespace YARG.Core.Game
             public Color YellowCymbalParticles = DefaultYellow;
             public Color BlueCymbalParticles = DefaultBlue;
             public Color GreenCymbalParticles = DefaultGreen;
+
+            // Exclusive to split-dedicated kick lanes
+            public Color DoubleKickParticles = DefaultPurple;
 
             /// <summary>
             /// Gets the particle color for a specific note index.
@@ -130,6 +145,9 @@ namespace YARG.Core.Game
                     (int)FourLaneDrumsFret.BlueCymbal => BlueCymbalParticles,
                     (int)FourLaneDrumsFret.GreenCymbal => GreenCymbalParticles,
 
+                    // Exclusive to split-dedicated kick lanes
+                    (int)FourLaneDrumsFret.DoubleKick => DoubleKickParticles,
+
                     _ => default
                 };
             }
@@ -149,6 +167,9 @@ namespace YARG.Core.Game
             public Color YellowCymbal = DefaultYellowCymbal;
             public Color BlueCymbal   = DefaultBlueCymbal;
             public Color GreenCymbal  = DefaultGreenCymbal;
+
+            // Exclusive to split-dedicated kick lanes
+            public Color DoubleKickNote = DefaultPurple;
 
             /// <summary>
             /// Gets the note color for a specific note index.
@@ -171,6 +192,9 @@ namespace YARG.Core.Game
                     (int)FourLaneDrumsFret.BlueCymbal => BlueCymbal,
                     (int)FourLaneDrumsFret.GreenCymbal => GreenCymbal,
 
+                    // Exclusive to split-dedicated kick lanes
+                    (int)FourLaneDrumsFret.DoubleKick => DoubleKickNote,
+
                     _ => default
                 };
             }
@@ -186,6 +210,9 @@ namespace YARG.Core.Game
             public Color YellowCymbalStarpower = DefaultStarpower;
             public Color BlueCymbalStarpower   = DefaultStarpower;
             public Color GreenCymbalStarpower  = DefaultStarpower;
+
+            // Exclusive to split-dedicated kick lanes
+            public Color DoubleKickStarpower = DefaultStarpower;
 
             /// <summary>
             /// Gets the Star Power note color for a specific note index.
@@ -208,6 +235,9 @@ namespace YARG.Core.Game
                     (int)FourLaneDrumsFret.BlueCymbal => BlueCymbalStarpower,
                     (int)FourLaneDrumsFret.GreenCymbal => GreenCymbalStarpower,
 
+                    // Exclusive to split-dedicated kick lanes
+                    (int)FourLaneDrumsFret.DoubleKick => DoubleKickStarpower,
+
                     _ => default
                 };
             }
@@ -223,6 +253,9 @@ namespace YARG.Core.Game
             public Color YellowCymbalActivationNote = DefaultYellowActivationNote;
             public Color BlueCymbalActivationNote   = DefaultBlueActivationNote;
             public Color GreenCymbalActivationNote  = DefaultGreenActivationNote;
+
+            // Exclusive to split-dedicated kick lanes
+            public Color DoubleKickActivationNote = DefaultPurpleActivationNote;
 
             /// <summary>
             /// Gets the activation note color for a specific note index.
@@ -244,6 +277,8 @@ namespace YARG.Core.Game
                     (int)FourLaneDrumsFret.YellowCymbal => YellowCymbalActivationNote,
                     (int)FourLaneDrumsFret.BlueCymbal => BlueCymbalActivationNote,
                     (int)FourLaneDrumsFret.GreenCymbal => GreenCymbalActivationNote,
+
+                    (int)FourLaneDrumsFret.DoubleKick => DoubleKickActivationNote,
 
                     _ => default
                 };
@@ -348,6 +383,15 @@ namespace YARG.Core.Game
                 writer.Write(YellowCymbalParticles);
                 writer.Write(BlueCymbalParticles);
                 writer.Write(GreenCymbalParticles);
+
+
+                writer.Write(DoubleKickFret);
+                writer.Write(DoubleKickFretInner);
+                writer.Write(DoubleKickParticles);
+                writer.Write(DoubleKickNote);
+                writer.Write(DoubleKickStarpower);
+                writer.Write(DoubleKickActivationNote);
+
             }
 
             public void Deserialize(BinaryReader reader, int version = 0)
@@ -422,6 +466,12 @@ namespace YARG.Core.Game
                 BlueCymbalParticles = reader.ReadColor();
                 GreenCymbalParticles = reader.ReadColor();
 
+                DoubleKickFret = reader.ReadColor();
+                DoubleKickFretInner = reader.ReadColor();
+                DoubleKickParticles = reader.ReadColor();
+                DoubleKickNote = reader.ReadColor();
+                DoubleKickStarpower = reader.ReadColor();
+                DoubleKickActivationNote = reader.ReadColor();
             }
 
             #endregion

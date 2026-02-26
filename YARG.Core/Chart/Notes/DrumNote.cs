@@ -9,6 +9,8 @@ namespace YARG.Core.Chart
 
         public int Pad { get; }
 
+        public bool IsDoubleKick { get; }
+
         public DrumNoteType Type { get; set; }
 
         private int _padMask;
@@ -24,22 +26,23 @@ namespace YARG.Core.Chart
         public override int LaneNote => Pad;
 
         public DrumNote(FourLaneDrumPad pad, DrumNoteType noteType, DrumNoteFlags drumFlags,
-            NoteFlags flags, double time, uint tick)
-            : this((int)pad, noteType, drumFlags, flags, time, tick)
+            NoteFlags flags, double time, uint tick, bool isDoubleKick)
+            : this((int)pad, noteType, drumFlags, flags, time, tick, isDoubleKick)
         {
         }
 
         public DrumNote(FiveLaneDrumPad pad, DrumNoteType noteType, DrumNoteFlags drumFlags,
-            NoteFlags flags, double time, uint tick)
-            : this((int)pad, noteType, drumFlags, flags, time, tick)
+            NoteFlags flags, double time, uint tick, bool isDoubleKick)
+            : this((int)pad, noteType, drumFlags, flags, time, tick, isDoubleKick)
         {
         }
 
-        public DrumNote(int pad, DrumNoteType noteType, DrumNoteFlags drumFlags, NoteFlags flags, double time, uint tick)
+        public DrumNote(int pad, DrumNoteType noteType, DrumNoteFlags drumFlags, NoteFlags flags, double time, uint tick, bool isDoubleKick)
             : base(flags, time, 0, tick, 0)
         {
             Pad = pad;
             Type = noteType;
+            IsDoubleKick = isDoubleKick;
 
             DrumFlags = _drumFlags = drumFlags;
 
@@ -50,6 +53,7 @@ namespace YARG.Core.Chart
         {
             Pad = other.Pad;
             Type = other.Type;
+            IsDoubleKick = other.IsDoubleKick;
 
             DrumFlags = _drumFlags = other._drumFlags;
 
