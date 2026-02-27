@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using YARG.Core.Logging;
 
 namespace YARG.Core.Chart
 {
@@ -41,6 +42,13 @@ namespace YARG.Core.Chart
                     
                     var syllable = GetSyllableForLyric(lyric.Text);
                     
+                    YargLogger.LogFormatTrace("Lyric '{0}' at tick {1} -> Initial: [{2}], Vowel: {3}, VowelEnd: {4}, Final: [{5}]",
+                        (object)lyric.Text, (object)lyric.Tick,
+                        (object)string.Join(", ", syllable.Initial),
+                        (object)syllable.VowelMain,
+                        (object)(syllable.VowelEnd?.ToString() ?? "none"),
+                        (object)string.Join(", ", syllable.Final));
+                    
                     var endTime = i < phrase.Lyrics.Count - 1 
                         ? phrase.Lyrics[i + 1].Time 
                         : phrase.Time + phrase.TimeLength;
@@ -50,6 +58,7 @@ namespace YARG.Core.Chart
                     var finalFront = Math.Min(HALF_TRANSITION, duration / 2);
                     
                     var startTime = lyric.Time;
+                    var eventCountBefore = events.Count;
                     
                     // Transition to initial consonants or vowel
                     if (syllable.Initial.Count > 0)
@@ -85,6 +94,10 @@ namespace YARG.Core.Chart
                     var lastViseme = syllable.Final.Count > 0 ? syllable.Final.Last() : 
                                      (syllable.VowelEnd ?? syllable.VowelMain);
                     events.Add(new LipsyncEvent(lastViseme, 0f, startTime, lyric.Tick));
+                    
+                    var eventCount = events.Count - eventCountBefore;
+                    YargLogger.LogFormatTrace("  Generated {0} lipsync events for lyric '{1}'", 
+                        (object)eventCount, (object)lyric.Text);
                 }
             }
 
@@ -204,6 +217,8 @@ namespace YARG.Core.Chart
             };
 
             bool foundVowel = false;
+            
+            YargLogger.LogFormatTrace("  Phonemes: [{0}]", string.Join(", ", phonemes));
             
             foreach (var phoneme in phonemes)
             {
