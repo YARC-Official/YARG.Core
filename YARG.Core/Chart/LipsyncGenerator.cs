@@ -22,11 +22,19 @@ namespace YARG.Core.Chart
             
             var random = new Random();
             var nextBlinkTime = 2.0 + random.NextDouble() * 3.0; // First blink between 2-5s
+            var nextExpressionTime = 4.0 + random.NextDouble() * 4.0; // First expression between 4-8s
             
             foreach (var phrase in vocals.NotePhrases)
             {
                 if (phrase.IsPercussion || phrase.Lyrics.Count == 0)
                     continue;
+
+                // Add expression at phrase start occasionally
+                if (phrase.Time > nextExpressionTime && random.NextDouble() > 0.5)
+                {
+                    AddRandomExpression(events, phrase.Time, phrase.TimeLength, random);
+                    nextExpressionTime = phrase.Time + phrase.TimeLength + 3.0 + random.NextDouble() * 5.0;
+                }
 
                 for (int i = 0; i < phrase.Lyrics.Count; i++)
                 {
@@ -110,6 +118,25 @@ namespace YARG.Core.Chart
             }
 
             return events.OrderBy(e => e.Time).ToList();
+        }
+
+        private static void AddRandomExpression(List<LipsyncEvent> events, double time, double duration, Random random)
+        {
+            var expressions = new[]
+            {
+                LipsyncEvent.LipsyncType.Brow_up,
+                LipsyncEvent.LipsyncType.Brow_down,
+                LipsyncEvent.LipsyncType.exp_rocker_smile_mellow_01,
+                LipsyncEvent.LipsyncType.exp_rocker_teethgrit_happy_01,
+                LipsyncEvent.LipsyncType.exp_dramatic_happy_eyesopen_01,
+            };
+            
+            var expression = expressions[random.Next(expressions.Length)];
+            var intensity = 0.3f + (float)random.NextDouble() * 0.4f; // 0.3 to 0.7
+            var expressionDuration = Math.Min(duration * 0.6, 1.5); // Max 1.5s or 60% of phrase
+            
+            events.Add(new LipsyncEvent(expression, intensity, time, 0));
+            events.Add(new LipsyncEvent(expression, 0f, time + expressionDuration, 0));
         }
 
         private static void AddTransition(List<LipsyncEvent> events, double startTime, double duration,
