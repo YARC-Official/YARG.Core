@@ -13,7 +13,7 @@ namespace YARG.Core.Chart
         private const int TRANSITION_STEPS = 4; // 30fps * 0.12s = ~4 steps
         private const float VISEME_WEIGHT = 140f / 255f; // Match onyx weight
         
-        private static Dictionary<string, string[]> _cmuDict;
+        private static readonly Dictionary<string, string[]> _cmuDict = CMUDict.GetDictionary();
 
         public static List<LipsyncEvent> GenerateFromLyrics(VocalsPart vocals)
         {
@@ -289,49 +289,8 @@ namespace YARG.Core.Chart
 
         private static bool TryGetPhonemes(string word, out string[] phonemes)
         {
-            if (_cmuDict == null)
-                LoadCMUDict();
-
             var key = word.ToUpperInvariant();
             return _cmuDict.TryGetValue(key, out phonemes);
-        }
-
-        private static void LoadCMUDict()
-        {
-            _cmuDict = new Dictionary<string, string[]>();
-            
-            var assembly = typeof(LipsyncGenerator).Assembly;
-            var resourceName = "YARG.Core.Resources.cmudict.txt";
-            
-            using (var stream = assembly.GetManifestResourceStream(resourceName))
-            {
-                if (stream == null)
-                    return;
-                    
-                using (var reader = new StreamReader(stream))
-                {
-                    string line;
-                    while ((line = reader.ReadLine()) != null)
-                    {
-                        if (line.StartsWith(";;;") || string.IsNullOrWhiteSpace(line))
-                            continue;
-
-                        var parts = line.Split(new[] { ' ', '\t' }, StringSplitOptions.RemoveEmptyEntries);
-                        if (parts.Length < 2)
-                            continue;
-
-                        var word = parts[0];
-                        var parenIdx = word.IndexOf('(');
-                        if (parenIdx > 0)
-                            word = word.Substring(0, parenIdx);
-
-                        var phonemes = parts.Skip(1).Select(p => p.TrimEnd('0', '1', '2')).ToArray();
-                        
-                        if (!_cmuDict.ContainsKey(word))
-                            _cmuDict[word] = phonemes;
-                    }
-                }
-            }
         }
 
         private static (LipsyncEvent.LipsyncType viseme, bool isDiphthong, LipsyncEvent.LipsyncType? diphthongEnd) 
