@@ -90,10 +90,18 @@ namespace YARG.Core.Chart
                         startTime += finalFront;
                     }
                     
-                    // Close mouth
-                    var lastViseme = syllable.Final.Count > 0 ? syllable.Final.Last() : 
-                                     (syllable.VowelEnd ?? syllable.VowelMain);
-                    events.Add(new LipsyncEvent(lastViseme, 0f, startTime, lyric.Tick));
+                    // Close mouth - reset all visemes used in this syllable
+                    var usedVisemes = new HashSet<LipsyncEvent.LipsyncType>();
+                    usedVisemes.UnionWith(syllable.Initial);
+                    usedVisemes.Add(syllable.VowelMain);
+                    if (syllable.VowelEnd.HasValue)
+                        usedVisemes.Add(syllable.VowelEnd.Value);
+                    usedVisemes.UnionWith(syllable.Final);
+                    
+                    foreach (var viseme in usedVisemes)
+                    {
+                        events.Add(new LipsyncEvent(viseme, 0f, startTime, lyric.Tick));
+                    }
                     
                     var eventCount = events.Count - eventCountBefore;
                     YargLogger.LogFormatTrace("  Generated {0} lipsync events for lyric '{1}'", 
