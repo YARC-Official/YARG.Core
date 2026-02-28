@@ -1,4 +1,5 @@
-﻿using System.IO;
+﻿using System.Collections.Generic;
+using System.IO;
 using YARG.Core.Extensions;
 using YARG.Core.IO;
 using YARG.Core.Replays;
@@ -11,6 +12,11 @@ namespace YARG.Core.Engine.Drums
         /// Number of overhits which have occurred.
         /// </summary>
         public int Overhits;
+
+        /// <summary>
+        /// Number of overhits which have occurred for each drum action.
+        /// </summary>
+        public readonly Dictionary<int, int> OverhitsByAction = new();
 
         /// <summary>
         /// Number of ghosts the player hit with correct dynamics.
@@ -44,6 +50,11 @@ namespace YARG.Core.Engine.Drums
         public DrumsStats(DrumsStats stats) : base(stats)
         {
             Overhits = stats.Overhits;
+            foreach (var (action, count) in stats.OverhitsByAction)
+            {
+                OverhitsByAction[action] = count;
+            }
+
             GhostsHit = stats.GhostsHit;
             TotalGhosts = stats.TotalGhosts;
             AccentsHit = stats.AccentsHit;
@@ -66,6 +77,7 @@ namespace YARG.Core.Engine.Drums
         {
             base.Reset();
             Overhits = 0;
+            OverhitsByAction.Clear();
             GhostsHit = 0;
             // Don't reset TotalGhosts
             // TotalGhosts = 0;
@@ -87,6 +99,18 @@ namespace YARG.Core.Engine.Drums
             writer.Write(AccentsHit);
             writer.Write(TotalAccents);
             writer.Write(DynamicsBonus);
+        }
+
+        public void RecordOverhit(int? action)
+        {
+            Overhits++;
+
+            if (!action.HasValue)
+            {
+                return;
+            }
+
+            OverhitsByAction[action.Value] = OverhitsByAction.GetValueOrDefault(action.Value) + 1;
         }
 
         public override ReplayStats ConstructReplayStats(string name)
