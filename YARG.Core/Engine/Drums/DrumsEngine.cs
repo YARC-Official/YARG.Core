@@ -97,7 +97,7 @@ namespace YARG.Core.Engine.Drums
             }
 
             ResetCombo();
-            EngineStats.Overhits++;
+            EngineStats.RecordOverhit((int?) Action);
 
             UpdateMultiplier();
 
