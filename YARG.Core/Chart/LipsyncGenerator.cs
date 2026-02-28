@@ -225,7 +225,7 @@ namespace YARG.Core.Chart
                 return syllable;
 
             var clean = text.ToLowerInvariant()
-                .Replace("-", "").Replace("=", "").Replace("#", "")
+                .Replace("-", "").Replace("=", "").Replace("#", "").Replace("!", "")
                 .Replace("^", "").Replace("$", "").Trim();
 
             if (clean.Length == 0)
