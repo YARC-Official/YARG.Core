@@ -524,6 +524,31 @@ namespace YARG.Core.Chart
             miloLipsync.Load();
 
             songChart.LipsyncEvents.AddRange(miloLipsync.LipsyncEvents);
+            
+            // Generate lipsync from vocals if no lipsync data was found
+            if (songChart.LipsyncEvents.Count == 0)
+            {
+                GenerateLipsyncFromVocals(songChart);
+            }
+        }
+
+        public static void GenerateLipsyncFromVocals(SongChart songChart)
+        {
+            // Try to find any vocals part with lyrics
+            VocalsPart vocals = null;
+            foreach (var part in songChart.Vocals.Parts)
+            {
+                if (!part.IsEmpty && part.NotePhrases.Count > 0)
+                {
+                    vocals = part;
+                    break;
+                }
+            }
+
+            if (vocals != null)
+            {
+                songChart.LipsyncEvents.AddRange(LipsyncGenerator.GenerateFromLyrics(vocals));
+            }
         }
 
         // Add range shift events to the InstrumentDifficulty
