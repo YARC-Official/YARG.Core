@@ -20,7 +20,7 @@ namespace YARG.Core.Audio
             _path = path;
             _playbackCount = playbackCount;
 
-            GlobalAudioHandler.StemSettings[SongStem.DrumSfx].OnVolumeChange += SetVolume;
+            GlobalAudioHandler.SampleStemSettings[SongStem.DrumSfx].OnVolumeChange += SetVolume;
         }
 
         public void Play(double volume)
@@ -30,7 +30,7 @@ namespace YARG.Core.Audio
                 if (!_disposed)
                 {
                     _volume = volume;
-                    volume *= GlobalAudioHandler.GetVolumeSetting(SongStem.DrumSfx);
+                    volume *= GlobalAudioHandler.GetSampleVolumeSetting(SongStem.DrumSfx);
                     SetVolume_Internal(volume);
                     Play_Internal();
                 }
@@ -73,7 +73,7 @@ namespace YARG.Core.Audio
             {
                 if (!_disposed)
                 {
-                    GlobalAudioHandler.StemSettings[SongStem.DrumSfx].OnVolumeChange -= SetVolume;
+                    GlobalAudioHandler.SampleStemSettings[SongStem.DrumSfx].OnVolumeChange -= SetVolume;
                     if (disposing)
                     {
                         DisposeManagedResources();

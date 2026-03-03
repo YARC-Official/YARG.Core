@@ -36,7 +36,7 @@ namespace YARG.Core.Audio
                 mixer.Dispose();
                 return null;
             }
-            GlobalAudioHandler.SetMixer(mixer);
+            MixerAudioHandler.SetMixer(mixer);
             YargLogger.LogDebug("Custom audio file loaded");
             return mixer;
         }
@@ -189,7 +189,7 @@ namespace YARG.Core.Audio
                 _activeMixers.Remove(mixer);
             }
 
-            GlobalAudioHandler.RemoveMixer(mixer);
+            MixerAudioHandler.RemoveMixer(mixer);
         }
 
         protected virtual void DisposeManagedResources() { }

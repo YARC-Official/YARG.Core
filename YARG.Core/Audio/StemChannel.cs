@@ -18,7 +18,7 @@ namespace YARG.Core.Audio
             _manager = manager;
             Stem = stem;
 
-            var settings = GlobalAudioHandler.StemSettings[Stem];
+            var settings = MixerAudioHandler.StemSettings[Stem];
             settings.OnVolumeChange += SetVolume;
         }
 
@@ -98,7 +98,7 @@ namespace YARG.Core.Audio
             {
                 if (!_disposed)
                 {
-                    GlobalAudioHandler.StemSettings[Stem].OnVolumeChange -= SetVolume;
+                    MixerAudioHandler.StemSettings[Stem].OnVolumeChange -= SetVolume;
                     if (disposing)
                     {
                         DisposeManagedResources();
