@@ -24,25 +24,16 @@ namespace YARG.Core.Audio
             _ => 2
         };
 
-        internal static readonly Dictionary<SongStem, StemSettings> StemSettings;
+        internal static readonly Dictionary<SongStem, StemSettings> SampleStemSettings;
 
         static GlobalAudioHandler()
         {
-            StemSettings = new()
+            SampleStemSettings = new()
             {
-                { SongStem.Song,     new StemSettings() },
-                { SongStem.Guitar,   new StemSettings() },
-                { SongStem.Bass,     new StemSettings() },
-                { SongStem.Rhythm,   new StemSettings() },
-                { SongStem.Keys,     new StemSettings() },
-                { SongStem.Vocals,   new StemSettings() },
-                { SongStem.Drums,    new StemSettings() },
-                { SongStem.Crowd,    new StemSettings() },
-                { SongStem.Sfx,      new StemSettings() },
-                { SongStem.DrumSfx,  new StemSettings() },
+                { SongStem.Sfx,       new StemSettings() },
+                { SongStem.DrumSfx,   new StemSettings() },
                 { SongStem.VoxSample, new StemSettings() },
                 { SongStem.Metronome, new StemSettings() },
-                { SongStem.Preview, new StemSettings() },
             };
         }
 
@@ -78,42 +69,22 @@ namespace YARG.Core.Audio
         /// </remarks>
         public static int WhammyOversampleFactor = WHAMMY_OVERSAMPLE_DEFAULT;
 
-        public static double GetTrueVolume(SongStem stem)
+        public static double GetSampleTrueVolume(SongStem stem)
         {
-            return StemSettings[stem].TrueVolume;
+            return SampleStemSettings[stem].TrueVolume;
         }
 
-        public static double GetVolumeSetting(SongStem stem)
+        public static double GetSampleVolumeSetting(SongStem stem)
         {
-            return StemSettings[stem].VolumeSetting;
+            return SampleStemSettings[stem].VolumeSetting;
         }
 
-        public static void SetVolumeSetting(SongStem stem, double volume)
+        public static void SetSampleVolumeSetting(SongStem stem, double volume)
         {
-            StemSettings[stem].VolumeSetting = volume;
+            SampleStemSettings[stem].VolumeSetting = volume;
         }
 
-        public static bool GetReverbSetting(SongStem stem)
-        {
-            return StemSettings[stem].Reverb;
-        }
-
-        public static void SetReverbSetting(SongStem stem, bool reverb)
-        {
-            StemSettings[stem].Reverb = reverb;
-        }
-
-        public static float GetWhammyPitchSetting(SongStem stem)
-        {
-            return StemSettings[stem].WhammyPitch;
-        }
-
-        public static void SetWhammyPitchSetting(SongStem stem, float percent)
-        {
-            StemSettings[stem].WhammyPitch = percent;
-        }
-
-        private static object _instanceLock = new();
+        private static readonly object _instanceLock = new();
         private static AudioManager? _instance;
 
         public static void Initialize<TAudioManager>()
