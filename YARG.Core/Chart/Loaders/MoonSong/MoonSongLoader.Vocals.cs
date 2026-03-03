@@ -66,7 +66,7 @@ namespace YARG.Core.Chart
             // For solo vocals and HARM1, the static lyric phrases are always the same as the scoring phrases. HARM2 and HARM3 derive
             // their static lyric phrases from a different phrase type, so we have to run through again, looking for that type instead
             var staticLyricPhrases = isBacking ? GetVocalsPhrases(moonChart, harmonyPart, true) : notePhrases.Duplicate();
-            
+
             var otherPhrases = GetPhrases(moonChart);
             var textEvents = GetTextEvents(moonChart);
             TrimOrphanPhrases(notePhrases, otherPhrases);
@@ -112,7 +112,8 @@ namespace YARG.Core.Chart
             int moonNoteIndex = 0;
             int moonTextIndex = 0;
 
-            MoonNote? carriedNote = null;
+            VocalNote? carriedNote = null;
+            VocalNote? previousParentLyric = null;
             for (int moonPhraseIndex = 0; moonPhraseIndex < moonChart.specialPhrases.Count;)
             {
                 var moonPhrase = moonChart.specialPhrases[moonPhraseIndex++];
@@ -133,7 +134,7 @@ namespace YARG.Core.Chart
                     moonPhraseIndex++;
                 }
 
-                if (carriedNote != null && carriedNote.tick + carriedNote.length < moonPhrase.tick)
+                if (carriedNote != null && carriedNote.Tick + carriedNote.TotalTickLength < moonPhrase.tick)
                 {
                     carriedNote = null;
                 }
@@ -182,19 +183,47 @@ namespace YARG.Core.Chart
 
                     // Create new note
                     var note = CreateVocalNote(moonNote, harmonyPart, lyricFlags);
-                    if ((lyricFlags & LyricSymbolFlags.PitchSlide) != 0 && previousNote is not null)
+                    if ((lyricFlags & LyricSymbolFlags.PitchSlide) != 0)
                     {
-                        previousNote.AddChildNote(note);
-                        continue;
+                        if (previousNote is not null)
+                        {
+                            previousNote.AddChildNote(note);
+                            continue;
+                        }
+
+                        // Previous note is not in current phrase, add to existing carried note if it exists
+                        if (carriedNote is not null)
+                        {
+                            carriedNote.AddChildNote(note);
+                            continue;
+                        }
+
+                        // Previous note did not cross phrase boundary, but we are sliding across the boundary
+                        if (phrases.Count == 0)
+                        {
+                            // Must be a charting error, continue
+                            continue;
+                        }
+
+                        // Add to the previous parent note, making previous parent a carried note
+                        if (previousParentLyric is not null)
+                        {
+                            previousParentLyric.AddChildNote(note);
+
+                            carriedNote ??= previousParentLyric;
+
+                            continue;
+                        }
                     }
 
                     if (moonNote.tick + moonNote.length > moonPhrase.tick + moonPhrase.length)
                     {
-                        carriedNote = moonNote;
+                        carriedNote = note.ParentOrSelf;
                     }
 
                     notes.Add(note);
                     previousNote = note;
+                    previousParentLyric = note.ParentOrSelf.Type == VocalNoteType.Lyric ? note.ParentOrSelf : previousParentLyric;
                 }
 
                 if (notes.Count < 1 && carriedNote == null)
