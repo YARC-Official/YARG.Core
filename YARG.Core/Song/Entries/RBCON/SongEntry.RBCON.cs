@@ -750,6 +750,10 @@ namespace YARG.Core.Song
                 entry._yearAsNumber = dta.YearAsNumber.Value;
                 entry._metadata.Year = entry._yearAsNumber.ToString("D4");
             }
+            if (dta.YearSecondaryAsNumber != null)
+            {
+                entry._metadata.YearSecondary = dta.YearSecondaryAsNumber.Value.ToString("D4");
+            }
             if (dta.Source != null)
             {
                 if (!entry._nodeName.StartsWith("UGC_", StringComparison.OrdinalIgnoreCase) && (dta.Source == "ugc" || dta.Source == "ugc_plus" || (dta.Source == "rb2" && dta.UGC.HasValue && dta.UGC.Value)))
