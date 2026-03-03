@@ -58,7 +58,7 @@ namespace YARG.Core.Audio
             }
         }
 
-        private void SetVolume(double volume)
+        internal void SetVolume(double volume)
         {
             lock (this)
             {

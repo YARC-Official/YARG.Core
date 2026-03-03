@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Text;
 
@@ -72,7 +72,7 @@ namespace YARG.Core.Audio
             }
         }
 
-        private void SetVolume(double volume)
+        internal void SetVolume(double volume)
         {
             lock (this)
             {

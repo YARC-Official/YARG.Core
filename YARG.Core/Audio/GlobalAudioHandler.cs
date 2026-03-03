@@ -91,6 +91,11 @@ namespace YARG.Core.Audio
         public static void SetVolumeSetting(SongStem stem, double volume)
         {
             StemSettings[stem].VolumeSetting = volume;
+            lock (_instanceLock) //TODO: do we need this?
+            {
+                var trueVolume = GetTrueVolume(stem);
+                _currentMixer?[stem]?.SetVolume(trueVolume);
+            }
         }
 
         public static bool GetReverbSetting(SongStem stem)
@@ -115,6 +120,18 @@ namespace YARG.Core.Audio
 
         private static object _instanceLock = new();
         private static AudioManager? _instance;
+        private static StemMixer? _currentMixer;
+
+        public static StemMixer? CurrentMixer
+        {
+            get
+            {
+                lock (_instanceLock)
+                {
+                    return _currentMixer;
+                }
+            }
+        }
 
         public static void Initialize<TAudioManager>()
             where TAudioManager : AudioManager, new()
@@ -136,6 +153,7 @@ namespace YARG.Core.Audio
             {
                 _instance?.Dispose();
                 _instance = null;
+                _currentMixer = null;
             }
         }
 
@@ -379,6 +397,25 @@ namespace YARG.Core.Audio
                     throw new NotInitializedException();
                 }
                 return _instance.CreateMixer(name, speed, mixerVolume, clampStemVolume, normalize);
+            }
+        }
+
+        public static void SetMixer(StemMixer mixer)
+        {
+            lock (_instanceLock)
+            {
+                _currentMixer = mixer;
+            }
+        }
+
+        internal static void RemoveMixer(StemMixer mixer)
+        {
+            lock (_instanceLock)
+            {
+                if (ReferenceEquals(_currentMixer, mixer))
+                {
+                    _currentMixer = null;
+                }
             }
         }
 
