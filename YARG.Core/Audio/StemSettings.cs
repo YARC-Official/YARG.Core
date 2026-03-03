@@ -7,8 +7,6 @@ namespace YARG.Core.Audio
         public static bool ApplySettings = true;
 
         private Action<double>? _onVolumeChange;
-        private Action<bool>? _onReverbChange;
-        private Action<float>? _onWhammyPitchChange;
         private double _volume;
         private bool _reverb;
         private float _whammyPitch;
@@ -22,18 +20,6 @@ namespace YARG.Core.Audio
         {
             add { _onVolumeChange += value; }
             remove { _onVolumeChange -= value; }
-        }
-
-        public event Action<bool> OnReverbChange
-        {
-            add { _onReverbChange += value; }
-            remove { _onReverbChange -= value; }
-        }
-
-        public event Action<float> OnWhammyPitchChange
-        {
-            add { _onWhammyPitchChange += value; }
-            remove { _onWhammyPitchChange -= value; }
         }
 
         public double VolumeSetting
@@ -51,28 +37,13 @@ namespace YARG.Core.Audio
         public bool Reverb
         {
             get => _reverb;
-            set
-            {
-                if (value != _reverb)
-                {
-                    _reverb = value;
-                    _onReverbChange?.Invoke(value);
-                }
-            }
+            set => _reverb = value;
         }
 
         public float WhammyPitch
         {
             get => _whammyPitch;
-            set
-            {
-                value = Math.Clamp(value, 0, 1);
-                if (value != _whammyPitch)
-                {
-                    _whammyPitch = value;
-                    _onWhammyPitchChange?.Invoke(value);
-                }
-            }
+            set => _whammyPitch = Math.Clamp(value, 0, 1);
         }
     }
 }

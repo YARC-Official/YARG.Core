@@ -106,6 +106,10 @@ namespace YARG.Core.Audio
         public static void SetReverbSetting(SongStem stem, bool reverb)
         {
             StemSettings[stem].Reverb = reverb;
+            lock (_instanceLock)
+            {
+                _currentMixer?[stem]?.SetReverb(reverb);
+            }
         }
 
         public static float GetWhammyPitchSetting(SongStem stem)
@@ -116,6 +120,11 @@ namespace YARG.Core.Audio
         public static void SetWhammyPitchSetting(SongStem stem, float percent)
         {
             StemSettings[stem].WhammyPitch = percent;
+            lock (_instanceLock)
+            {
+                var whammyPitch = GetWhammyPitchSetting(stem);
+                _currentMixer?[stem]?.SetWhammyPitch(whammyPitch);
+            }
         }
 
         private static object _instanceLock = new();
