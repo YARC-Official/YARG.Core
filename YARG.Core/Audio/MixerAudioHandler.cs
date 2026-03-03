@@ -50,12 +50,17 @@ namespace YARG.Core.Audio
 
         public static void SetVolumeSetting(SongStem stem, double volume)
         {
+            SetVolumeSetting(stem, volume, 0);
+        }
+
+        public static void SetVolumeSetting(SongStem stem, double volume, double duration)
+        {
             ValidateStem(stem);
             StemSettings[stem].VolumeSetting = volume;
             lock (_instanceLock)
             {
                 var trueVolume = GetTrueVolume(stem);
-                _currentMixer?[stem]?.SetVolume(trueVolume);
+                _currentMixer?[stem]?.SetVolume(trueVolume, duration);
             }
         }
 

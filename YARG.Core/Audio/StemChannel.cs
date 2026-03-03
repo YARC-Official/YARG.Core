@@ -19,7 +19,12 @@ namespace YARG.Core.Audio
             Stem = stem;
 
             var settings = MixerAudioHandler.StemSettings[Stem];
-            settings.OnVolumeChange += SetVolume;
+            settings.OnVolumeChange += OnVolumeChanged;
+        }
+
+        private void OnVolumeChanged(double volume)
+        {
+            SetVolume(volume);
         }
 
         public void SetWhammyPitch(float percent)
@@ -56,7 +61,7 @@ namespace YARG.Core.Audio
             }
         }
 
-        internal void SetVolume(double volume)
+        internal void SetVolume(double volume, double duration = 0)
         {
             lock (this)
             {
@@ -66,7 +71,7 @@ namespace YARG.Core.Audio
                     {
                         volume = MINIMUM_STEM_VOLUME;
                     }
-                    SetVolume_Internal(volume);
+                    SetVolume_Internal(volume, duration);
                 }
             }
         }
@@ -86,7 +91,7 @@ namespace YARG.Core.Audio
         protected abstract float GetWhammyPitch_Internal();
         protected abstract void SetPosition_Internal(double position);
 
-        protected abstract void SetVolume_Internal(double newVolume);
+        protected abstract void SetVolume_Internal(double newVolume, double duration = 0);
         protected abstract void SetReverb_Internal(bool reverb);
 
         protected virtual void DisposeManagedResources() { }
@@ -98,7 +103,7 @@ namespace YARG.Core.Audio
             {
                 if (!_disposed)
                 {
-                    MixerAudioHandler.StemSettings[Stem].OnVolumeChange -= SetVolume;
+                    MixerAudioHandler.StemSettings[Stem].OnVolumeChange -= OnVolumeChanged;
                     if (disposing)
                     {
                         DisposeManagedResources();
