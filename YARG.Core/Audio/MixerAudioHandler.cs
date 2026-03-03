@@ -25,7 +25,6 @@ namespace YARG.Core.Audio
 
         private static readonly object _instanceLock = new();
         private static StemMixer? _currentMixer;
-
         public static StemMixer? CurrentMixer
         {
             get
@@ -60,36 +59,22 @@ namespace YARG.Core.Audio
             }
         }
 
-        public static bool GetReverbSetting(SongStem stem)
-        {
-            ValidateStem(stem);
-            return StemSettings[stem].Reverb;
-        }
-
         public static void SetReverbSetting(SongStem stem, bool reverb)
         {
             ValidateStem(stem);
-            StemSettings[stem].Reverb = reverb;
             lock (_instanceLock)
             {
                 _currentMixer?[stem]?.SetReverb(reverb);
             }
         }
 
-        public static float GetWhammyPitchSetting(SongStem stem)
-        {
-            ValidateStem(stem);
-            return StemSettings[stem].WhammyPitch;
-        }
-
         public static void SetWhammyPitchSetting(SongStem stem, float percent)
         {
             ValidateStem(stem);
-            StemSettings[stem].WhammyPitch = percent;
+            percent = Math.Clamp(percent, 0, 1);
             lock (_instanceLock)
             {
-                var whammyPitch = GetWhammyPitchSetting(stem);
-                _currentMixer?[stem]?.SetWhammyPitch(whammyPitch);
+                _currentMixer?[stem]?.SetWhammyPitch(percent);
             }
         }
 

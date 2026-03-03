@@ -8,8 +8,6 @@ namespace YARG.Core.Audio
 
         private Action<double>? _onVolumeChange;
         private double _volume;
-        private bool _reverb;
-        private float _whammyPitch;
 
         public StemSettings()
         {
@@ -33,17 +31,5 @@ namespace YARG.Core.Audio
         }
 
         public double TrueVolume => (ApplySettings ? _volume : 1);
-
-        public bool Reverb
-        {
-            get => _reverb;
-            set => _reverb = value;
-        }
-
-        public float WhammyPitch
-        {
-            get => _whammyPitch;
-            set => _whammyPitch = Math.Clamp(value, 0, 1);
-        }
     }
 }
