@@ -17,14 +17,6 @@ namespace YARG.Core.Audio
             _clampVolume = clampVolume;
             _manager = manager;
             Stem = stem;
-
-            var settings = MixerAudioHandler.StemSettings[Stem];
-            settings.OnVolumeChange += OnVolumeChanged;
-        }
-
-        private void OnVolumeChanged(double volume)
-        {
-            SetVolume(volume);
         }
 
         public void SetWhammyPitch(float percent)
@@ -103,7 +95,6 @@ namespace YARG.Core.Audio
             {
                 if (!_disposed)
                 {
-                    MixerAudioHandler.StemSettings[Stem].OnVolumeChange -= OnVolumeChanged;
                     if (disposing)
                     {
                         DisposeManagedResources();

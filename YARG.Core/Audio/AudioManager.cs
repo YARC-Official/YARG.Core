@@ -128,6 +128,50 @@ namespace YARG.Core.Audio
             }
         }
 
+        internal void SetSfxVolume(double volume)
+        {
+            lock (SfxSamples)
+            {
+                foreach (var sample in SfxSamples)
+                {
+                    sample?.SetVolume(volume);
+                }
+            }
+        }
+
+        internal void SetDrumSfxVolume(double volume)
+        {
+            lock (DrumSfxSamples)
+            {
+                foreach (var sample in DrumSfxSamples)
+                {
+                    sample?.SetVolume(volume);
+                }
+            }
+        }
+
+        internal void SetVoxSampleVolume(double volume)
+        {
+            lock (VoxSamples)
+            {
+                foreach (var sample in VoxSamples)
+                {
+                    sample?.SetVolume(volume);
+                }
+            }
+        }
+
+        internal void SetMetronomeVolume(double volume)
+        {
+            lock (MetronomeSamples)
+            {
+                foreach (var sample in MetronomeSamples)
+                {
+                    sample?.SetVolume(volume);
+                }
+            }
+        }
+
         protected abstract void ToggleBuffer_Internal(bool enable);
 
         protected abstract void SetBufferLength_Internal(int length);

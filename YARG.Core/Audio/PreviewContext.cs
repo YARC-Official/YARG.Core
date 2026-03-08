@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Threading.Tasks;
 using System.Threading;
 using YARG.Core.Logging;
@@ -107,6 +107,8 @@ namespace YARG.Core.Audio
         private readonly float _volume;
         private readonly CancellationTokenSource _token;
         private bool _disposed;
+
+        public StemMixer Mixer => _mixer;
 
         private PreviewContext(StemMixer mixer, double previewStartTime, double previewLength, double fadeDuration, float volume, CancellationTokenSource token)
         {

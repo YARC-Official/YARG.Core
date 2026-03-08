@@ -24,19 +24,6 @@ namespace YARG.Core.Audio
             _ => 2
         };
 
-        internal static readonly Dictionary<SongStem, StemSettings> SampleStemSettings;
-
-        static GlobalAudioHandler()
-        {
-            SampleStemSettings = new()
-            {
-                { SongStem.Sfx,       new StemSettings() },
-                { SongStem.DrumSfx,   new StemSettings() },
-                { SongStem.VoxSample, new StemSettings() },
-                { SongStem.Metronome, new StemSettings() },
-            };
-        }
-
         public static bool LogMixerStatus { get; internal set; }
 
         public static bool UseWhammyFx;
@@ -69,19 +56,27 @@ namespace YARG.Core.Audio
         /// </remarks>
         public static int WhammyOversampleFactor = WHAMMY_OVERSAMPLE_DEFAULT;
 
-        public static double GetSampleTrueVolume(SongStem stem)
-        {
-            return SampleStemSettings[stem].TrueVolume;
-        }
-
-        public static double GetSampleVolumeSetting(SongStem stem)
-        {
-            return SampleStemSettings[stem].VolumeSetting;
-        }
-
         public static void SetSampleVolumeSetting(SongStem stem, double volume)
         {
-            SampleStemSettings[stem].VolumeSetting = volume;
+            volume = Math.Clamp(volume, 0, 1);
+            lock (_instanceLock)
+            {
+                switch (stem)
+                {
+                    case SongStem.Sfx:
+                        _instance?.SetSfxVolume(volume);
+                        break;
+                    case SongStem.DrumSfx:
+                        _instance?.SetDrumSfxVolume(volume);
+                        break;
+                    case SongStem.VoxSample:
+                        _instance?.SetVoxSampleVolume(volume);
+                        break;
+                    case SongStem.Metronome:
+                        _instance?.SetMetronomeVolume(volume);
+                        break;
+                }
+            }
         }
 
         private static readonly object _instanceLock = new();

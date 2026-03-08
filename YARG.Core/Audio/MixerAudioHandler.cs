@@ -1,66 +1,19 @@
 using System;
-using System.Collections.Generic;
 
 namespace YARG.Core.Audio
 {
     public static class MixerAudioHandler
     {
-        internal static readonly Dictionary<SongStem, StemSettings> StemSettings;
-
-        static MixerAudioHandler()
-        {
-            StemSettings = new()
-            {
-                { SongStem.Song,    new StemSettings() },
-                { SongStem.Guitar,  new StemSettings() },
-                { SongStem.Bass,    new StemSettings() },
-                { SongStem.Rhythm,  new StemSettings() },
-                { SongStem.Keys,    new StemSettings() },
-                { SongStem.Vocals,  new StemSettings() },
-                { SongStem.Drums,   new StemSettings() },
-                { SongStem.Crowd,   new StemSettings() },
-                { SongStem.Preview, new StemSettings() },
-            };
-        }
-
         private static readonly object _instanceLock = new();
         private static StemMixer? _currentMixer;
-        public static StemMixer? CurrentMixer
-        {
-            get
-            {
-                lock (_instanceLock)
-                {
-                    return _currentMixer;
-                }
-            }
-        }
 
-        public static double GetTrueVolume(SongStem stem)
+        public static void SetVolumeSetting(SongStem stem, double volume, double duration = 0)
         {
             ValidateStem(stem);
-            return StemSettings[stem].TrueVolume;
-        }
-
-        public static double GetVolumeSetting(SongStem stem)
-        {
-            ValidateStem(stem);
-            return StemSettings[stem].VolumeSetting;
-        }
-
-        public static void SetVolumeSetting(SongStem stem, double volume)
-        {
-            SetVolumeSetting(stem, volume, 0);
-        }
-
-        public static void SetVolumeSetting(SongStem stem, double volume, double duration)
-        {
-            ValidateStem(stem);
-            StemSettings[stem].VolumeSetting = volume;
+            volume = Math.Clamp(volume, 0, 1);
             lock (_instanceLock)
             {
-                var trueVolume = GetTrueVolume(stem);
-                _currentMixer?[stem]?.SetVolume(trueVolume, duration);
+                _currentMixer?[stem]?.SetVolume(volume, duration);
             }
         }
 
@@ -104,7 +57,18 @@ namespace YARG.Core.Audio
 
         private static void ValidateStem(SongStem stem)
         {
-            if (!StemSettings.ContainsKey(stem))
+            var isValidStem = stem is
+                SongStem.Song or
+                SongStem.Guitar or
+                SongStem.Bass or
+                SongStem.Rhythm or
+                SongStem.Keys or
+                SongStem.Vocals or
+                SongStem.Drums or
+                SongStem.Crowd or
+                SongStem.Preview;
+
+            if (!isValidStem)
             {
                 throw new ArgumentException($"Stem {stem} is not a mixer stem", nameof(stem));
             }
