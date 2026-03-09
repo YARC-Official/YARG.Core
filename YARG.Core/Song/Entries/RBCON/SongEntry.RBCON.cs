@@ -744,6 +744,7 @@ namespace YARG.Core.Song
             if (dta.Album != null)                { entry._metadata.Album         = YARGDTAReader.DecodeString(dta.Album.Value, dta.MetadataEncoding); }
             if (dta.Charter != null)              { entry._metadata.Charter       = YARGDTAReader.DecodeString(dta.Charter.Value, dta.MetadataEncoding); }
             if (dta.LoadingPhrase != null)        { entry._metadata.LoadingPhrase = YARGDTAReader.DecodeString(dta.LoadingPhrase.Value, dta.MetadataEncoding); }
+            if (dta.Playlist != null)             { entry._metadata.Playlist      = YARGDTAReader.DecodeString(dta.Playlist.Value, dta.MetadataEncoding); }
             if (dta.Genre != null)                { entry._metadata.Genre         = dta.Genre; }
             if (dta.YearAsNumber != null)
             {
@@ -761,7 +762,6 @@ namespace YARG.Core.Song
                     entry._metadata.Source = dta.Source;
                 }
             }
-            if (dta.Playlist != null)             { entry._metadata.Playlist      = dta.Playlist; }
             if (dta.SongLength != null)           { entry._metadata.SongLength    = dta.SongLength.Value; }
             if (dta.IsMaster != null)             { entry._metadata.IsMaster      = dta.IsMaster.Value; }
             if (dta.AlbumTrack != null)           { entry._metadata.AlbumTrack    = dta.AlbumTrack.Value; }
