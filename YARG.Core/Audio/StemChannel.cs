@@ -19,7 +19,7 @@ namespace YARG.Core.Audio
             Stem = stem;
         }
 
-        public void SetWhammyPitch(float percent)
+        internal void SetWhammyPitch(float percent)
         {
             lock (this)
             {

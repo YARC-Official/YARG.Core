@@ -4,7 +4,7 @@ using System.IO;
 
 namespace YARG.Core.Audio
 {
-    public abstract class StemMixer : IDisposable
+    public abstract class StemMixer : IDisposable, IStemController
     {
         public struct StemInfo
         {
@@ -40,7 +40,7 @@ namespace YARG.Core.Audio
         public readonly string Name;
 
         public double Length => _length;
-        public IReadOnlyList<StemChannel> Channels => _channels;
+        internal IReadOnlyList<StemChannel> Channels => _channels;
         public bool IsPaused => _isPaused;
 
         public abstract event Action SongEnd;
@@ -54,7 +54,40 @@ namespace YARG.Core.Audio
             _manager.AddMixer(this);
         }
 
-        public StemChannel? this[SongStem stem] => _channels.Find(x => x.Stem == stem);
+        internal StemChannel? this[SongStem stem] => _channels.Find(x => x.Stem == stem);
+
+        public IReadOnlyList<SongStem> Stems
+        {
+            get
+            {
+                lock (this)
+                {
+                    var stems = new SongStem[_channels.Count];
+                    for (int i = 0; i < _channels.Count; i++)
+                    {
+                        stems[i] = _channels[i].Stem;
+                    }
+                    return stems;
+                }
+            }
+        }
+
+        public void SetVolume(SongStem stem, double volume, double duration = 0)
+        {
+            volume = Math.Clamp(volume, 0d, 1d);
+            this[stem]?.SetVolume(volume, duration);
+        }
+
+        public void SetReverb(SongStem stem, bool reverb)
+        {
+            this[stem]?.SetReverb(reverb);
+        }
+
+        public void SetWhammyPitch(SongStem stem, float percent)
+        {
+            percent = Math.Clamp(percent, 0f, 1f);
+            this[stem]?.SetWhammyPitch(percent);
+        }
 
         public int Play()
         {
