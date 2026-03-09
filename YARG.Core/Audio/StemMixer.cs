@@ -4,7 +4,7 @@ using System.IO;
 
 namespace YARG.Core.Audio
 {
-    public abstract class StemMixer : IDisposable, IStemController
+    public abstract class StemMixer : IDisposable
     {
         public struct StemInfo
         {
