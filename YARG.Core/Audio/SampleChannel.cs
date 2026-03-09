@@ -18,8 +18,6 @@ namespace YARG.Core.Audio
             Sample = sample;
             _path = path;
             _playbackCount = playbackCount;
-
-            GlobalAudioHandler.SampleStemSettings[SongStem.Sfx].OnVolumeChange += SetVolume;
         }
 
         public void Play(double duration = 0)
@@ -134,7 +132,6 @@ namespace YARG.Core.Audio
             {
                 if (!_disposed)
                 {
-                    GlobalAudioHandler.SampleStemSettings[SongStem.Sfx].OnVolumeChange -= SetVolume;
                     if (disposing)
                     {
                         DisposeManagedResources();

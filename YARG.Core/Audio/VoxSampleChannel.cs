@@ -19,8 +19,6 @@ namespace YARG.Core.Audio
         {
             Sample = sample;
             _path = path;
-
-            GlobalAudioHandler.SampleStemSettings[SongStem.VoxSample].OnVolumeChange += SetVolume;
         }
 
         public string Path => _path;
@@ -84,7 +82,6 @@ namespace YARG.Core.Audio
             {
                 if (!_disposed)
                 {
-                    GlobalAudioHandler.SampleStemSettings[SongStem.VoxSample].OnVolumeChange -= SetVolume;
                     if (disposing)
                     {
                         DisposeManagedResources();

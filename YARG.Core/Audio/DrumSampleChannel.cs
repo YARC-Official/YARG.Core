@@ -12,6 +12,7 @@ namespace YARG.Core.Audio
         protected readonly string _path;
         protected readonly int _playbackCount;
         protected double _volume;
+        private double _settingVolume = 1;
 
         public readonly DrumSfxSample Sample;
         protected DrumSampleChannel(DrumSfxSample sample, string path, int playbackCount)
@@ -19,8 +20,6 @@ namespace YARG.Core.Audio
             Sample = sample;
             _path = path;
             _playbackCount = playbackCount;
-
-            GlobalAudioHandler.SampleStemSettings[SongStem.DrumSfx].OnVolumeChange += SetVolume;
         }
 
         public void Play(double volume)
@@ -30,8 +29,7 @@ namespace YARG.Core.Audio
                 if (!_disposed)
                 {
                     _volume = volume;
-                    volume *= GlobalAudioHandler.GetSampleVolumeSetting(SongStem.DrumSfx);
-                    SetVolume_Internal(volume);
+                    SetVolume_Internal(volume * _settingVolume);
                     Play_Internal();
                 }
             }
@@ -43,8 +41,8 @@ namespace YARG.Core.Audio
             {
                 if (!_disposed)
                 {
-                    volume *= _volume;
-                    SetVolume_Internal(volume);
+                    _settingVolume = volume;
+                    SetVolume_Internal(volume * _volume);
                 }
             }
         }
@@ -73,7 +71,6 @@ namespace YARG.Core.Audio
             {
                 if (!_disposed)
                 {
-                    GlobalAudioHandler.SampleStemSettings[SongStem.DrumSfx].OnVolumeChange -= SetVolume;
                     if (disposing)
                     {
                         DisposeManagedResources();

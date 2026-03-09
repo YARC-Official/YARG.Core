@@ -19,7 +19,6 @@ namespace YARG.Core.Audio
             Sample = sample;
             _hiPath = hiPath;
             _loPath = loPath;
-            GlobalAudioHandler.SampleStemSettings[SongStem.Metronome].OnVolumeChange += SetVolume;
         }
 
         public void PlayHi()
@@ -86,7 +85,6 @@ namespace YARG.Core.Audio
             {
                 if (!_disposed)
                 {
-                    GlobalAudioHandler.SampleStemSettings[SongStem.Metronome].OnVolumeChange -= SetVolume;
                     if (disposing)
                     {
                         DisposeManagedResources();
