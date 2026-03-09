@@ -54,18 +54,18 @@ namespace YARG.Core.Audio
             _manager.AddMixer(this);
         }
 
-        internal StemChannel? this[SongStem stem] => _channels.Find(x => x.Stem == stem);
+        private StemChannel? this[SongStem stem] => _channels.Find(x => x.Stem == stem);
 
-        public IReadOnlyList<SongStem> Stems
+        public IReadOnlyCollection<SongStem> Stems
         {
             get
             {
                 lock (this)
                 {
-                    var stems = new SongStem[_channels.Count];
-                    for (int i = 0; i < _channels.Count; i++)
+                    var stems = new HashSet<SongStem>();
+                    foreach (var channel in _channels)
                     {
-                        stems[i] = _channels[i].Stem;
+                        stems.Add(channel.Stem);
                     }
                     return stems;
                 }
