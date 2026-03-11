@@ -9,7 +9,8 @@ namespace YARG.Core.Song
         Family_Friendly,
         Supervision_Recommended,
         Mature,
-        No_Rating
+        No_Rating,
+        Sensitive_Content
     };
 
     public struct SongMetadata
