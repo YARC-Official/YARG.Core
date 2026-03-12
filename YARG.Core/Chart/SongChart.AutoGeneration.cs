@@ -106,6 +106,10 @@ namespace YARG.Core.Chart
                 if (!isPhraseEnd(phraseEndExpert))
                 {
                     phraseEndExpert.ActivateFlag(phraseEndFlag);
+                    foreach (var child in phraseEndExpert.ChildNotes)
+                    {
+                        child.ActivateFlag(phraseEndFlag);
+                    }
                 }
             }
         }
