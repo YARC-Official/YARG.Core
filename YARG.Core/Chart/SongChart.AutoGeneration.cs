@@ -545,9 +545,9 @@ namespace YARG.Core.Chart
                 }
             }
 
-            if (vocals != null)
+            if (!songChart.Lyrics.IsEmpty)
             {
-                songChart.LipsyncEvents.AddRange(LipsyncGenerator.GenerateFromLyrics(vocals));
+                songChart.LipsyncEvents.AddRange(LipsyncGenerator.GenerateFromLyrics(songChart.Lyrics));
             }
         }
 

@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
 using YARG.Core.Logging;
 
@@ -15,7 +14,7 @@ namespace YARG.Core.Chart
         
         private static readonly Dictionary<string, string[]> _cmuDict = CMUDict.GetDictionary();
 
-        public static List<LipsyncEvent> GenerateFromLyrics(VocalsPart vocals)
+        public static List<LipsyncEvent> GenerateFromLyrics(LyricsTrack lyrics)
         {
             var events = new List<LipsyncEvent>();
             var defaultViseme = LipsyncEvent.LipsyncType.Neutral_lo;
@@ -24,9 +23,9 @@ namespace YARG.Core.Chart
             var nextBlinkTime = 2.0 + random.NextDouble() * 3.0; // First blink between 2-5s
             var nextExpressionTime = 4.0 + random.NextDouble() * 4.0; // First expression between 4-8s
             
-            foreach (var phrase in vocals.NotePhrases)
+            foreach (var phrase in lyrics.Phrases)
             {
-                if (phrase.IsPercussion || phrase.Lyrics.Count == 0)
+                if (phrase.Lyrics.Count == 0)
                     continue;
 
                 // Add expression at phrase start occasionally
@@ -40,6 +39,10 @@ namespace YARG.Core.Chart
                 {
                     var lyric = phrase.Lyrics[i];
                     
+                    var text = LyricSymbols.StripForLyrics(lyric.Text);
+                    if (string.IsNullOrWhiteSpace(text))
+                        continue;
+                    
                     // Add blinks if enough time has passed
                     while (nextBlinkTime < lyric.Time)
                     {
@@ -48,10 +51,10 @@ namespace YARG.Core.Chart
                         nextBlinkTime += 2.0 + random.NextDouble() * 4.0; // Next blink in 2-6s
                     }
                     
-                    var syllable = GetSyllableForLyric(lyric.Text);
+                    var syllable = GetSyllableForLyric(text);
                     
                     YargLogger.LogFormatTrace("Lyric '{0}' at tick {1} -> Initial: [{2}], Vowel: {3}, VowelEnd: {4}, Final: [{5}]",
-                        (object)lyric.Text, (object)lyric.Tick,
+                        (object)text, (object)lyric.Tick,
                         (object)string.Join(", ", syllable.Initial),
                         (object)syllable.VowelMain,
                         (object)(syllable.VowelEnd?.ToString() ?? "none"),
@@ -113,7 +116,7 @@ namespace YARG.Core.Chart
                     
                     var eventCount = events.Count - eventCountBefore;
                     YargLogger.LogFormatTrace("  Generated {0} lipsync events for lyric '{1}'", 
-                        (object)eventCount, (object)lyric.Text);
+                        (object)eventCount, (object)text);
                 }
             }
 
