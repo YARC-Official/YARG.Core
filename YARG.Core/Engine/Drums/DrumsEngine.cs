@@ -341,17 +341,12 @@ namespace YARG.Core.Engine.Drums
         {
             double score = 0;
             int combo = 0;
-            int multiplier;
-            double weight;
             foreach (var note in Notes)
             {
                 // Get the current multiplier given the current combo
-                multiplier = Math.Min((combo / 10) + 1, BaseParameters.MaxMultiplier);
+                int multiplier = Math.Min((combo / 10) + 1, BaseParameters.MaxMultiplier);
 
-                // invert it to calculate leniency
-                weight = 1.0 * multiplier / BaseParameters.MaxMultiplier;
-
-                score += weight * (GetPointsPerNote() * (1 + note.ChildNotes.Count));
+                score += multiplier * (GetPointsPerNote() * (1 + note.ChildNotes.Count));
                 combo += 1 + note.ChildNotes.Count;
             }
 

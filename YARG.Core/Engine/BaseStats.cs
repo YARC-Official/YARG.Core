@@ -58,9 +58,8 @@ namespace YARG.Core.Engine
         /// </summary>
         /// <remarks>
         /// Calculated from <see cref="CommittedScore"/> and <see cref="PendingScore"/>.
-        /// <see cref="SoloBonuses"/> is not included in star progress.
         /// </remarks>
-        public int StarScore => CommittedScore + PendingScore;
+        public int StarScore => CommittedScore + PendingScore + SoloBonuses;
 
         /// <summary>
         /// The player's current combo (such as 500 note streak)
@@ -186,6 +185,11 @@ namespace YARG.Core.Engine
         public int SoloBonuses;
 
         /// <summary>
+        /// Total number of bonus points available from solos. Should not be modified.
+        /// </summary>
+        public int TotalSoloBonusPoints;
+
+        /// <summary>
         /// Amount of points earned from Star Power.
         /// </summary>
         public int StarPowerScore;
@@ -251,6 +255,7 @@ namespace YARG.Core.Engine
             TotalStarPowerPhrases = stats.TotalStarPowerPhrases;
 
             SoloBonuses = stats.SoloBonuses;
+            TotalSoloBonusPoints = stats.TotalSoloBonusPoints;
             StarPowerScore = stats.StarPowerScore;
 
             Stars = stats.Stars;
@@ -290,6 +295,7 @@ namespace YARG.Core.Engine
             TotalStarPowerPhrases = stream.Read<int>(Endianness.Little);
 
             SoloBonuses = stream.Read<int>(Endianness.Little);
+            TotalSoloBonusPoints = stream.Read<int>(Endianness.Little);
             StarPowerScore = stream.Read<int>(Endianness.Little);
 
             // Deliberately not read so that stars can be re-calculated if thresholds change

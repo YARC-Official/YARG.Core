@@ -329,16 +329,15 @@ namespace YARG.Core.Engine.Vocals
         {
             double score = 0;
             int combo = 0;
-            int multiplier;
-            double weight;
-            foreach (var note in Notes.Where(note => note.ChildNotes.Any()))
+            foreach (var note in Notes)
             {
-                // Get the current multiplier given the current combo
-                multiplier = Math.Min(combo + 1, BaseParameters.MaxMultiplier);
+                if (note.ChildNotes.Count == 0)
+                {
+                    continue;
+                };
 
-                // invert it to calculate leniency
-                weight = 1.0 * multiplier / BaseParameters.MaxMultiplier;
-                score += weight * EngineParameters.PointsPerPhrase;
+                int multiplier = Math.Min(combo + 1, BaseParameters.MaxMultiplier);
+                score += multiplier * EngineParameters.PointsPerPhrase;
                 combo++;
             }
 

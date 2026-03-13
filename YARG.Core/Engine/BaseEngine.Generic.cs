@@ -42,7 +42,6 @@ namespace YARG.Core.Engine
 
         protected double WhammyTicksRemainder = 0.0;
 
-        protected          int[]  StarScoreThresholds { get; }
         protected readonly double TicksPerSustainPoint;
         protected readonly uint   SustainBurstThreshold;
 
@@ -93,14 +92,25 @@ namespace YARG.Core.Engine
             // ReSharper disable once VirtualMemberCallInConstructor
             BaseScore = CalculateBaseScore();
 
+            Solos = GetSoloSections();
+            EngineStats.TotalSoloBonusPoints = CalculateTotalSoloBonus(Solos);
+
             float[] multiplierThresholds = engineParameters.StarMultiplierThresholds;
-            StarScoreThresholds = new int[multiplierThresholds.Length];
-            for (int i = 0; i < multiplierThresholds.Length; i++)
+            StarScoreThresholds = PopulateStarScoreThresholds(multiplierThresholds, BaseScore, EngineStats.TotalSoloBonusPoints);
+        }
+        public static int[] PopulateStarScoreThresholds(float[] multiplierThresh, int baseScore, int soloScore)
+        {
+            float[] soloMultipliers = {
+                0.05f, 0.1f, 0.2f, 0.35f, 0.65f, 0.95f
+            };
+            var starScoreThresh = new int[multiplierThresh.Length];
+
+            for (int i = 0; i < multiplierThresh.Length; i++)
             {
-                StarScoreThresholds[i] = (int) (BaseScore * multiplierThresholds[i]);
+                starScoreThresh[i] = (int)Math.Floor(baseScore * multiplierThresh[i] + soloScore * soloMultipliers[i]);
             }
 
-            Solos = GetSoloSections();
+            return starScoreThresh;
         }
 
         protected override void GenerateQueuedUpdates(double nextTime)
@@ -1072,6 +1082,7 @@ namespace YARG.Core.Engine
 
         /// <summary>
         /// Calculates the base score of the chart, which can be used to calculate star thresholds.
+        /// Base score is defined as the score if a player were to FC and hit all sustains fully.
         /// </summary>
         /// <remarks>
         /// Please be mindful that this virtual method is called in the constructor of
@@ -1079,6 +1090,22 @@ namespace YARG.Core.Engine
         /// <b>ONLY</b> use the <see cref="Notes"/> property to calculate this.
         /// </remarks>
         protected abstract int CalculateBaseScore();
+
+        /// <summary>
+        /// Calculates the total bonus points that could be awarded from solos.
+        /// </summary>
+        /// <param name="soloSections">The list of solos for a given player. Has to be passed as parameter since Solos may not be defined yet.</param>
+        /// <returns></returns>
+        protected int CalculateTotalSoloBonus(List<SoloSection> soloSections)
+        {
+            int score = 0;
+            foreach (var solo in soloSections)
+            {
+                //TODO: This should probably be a constant
+                score += solo.NoteCount * 100;
+            }
+            return score;
+        }
 
         protected bool IsNoteInWindow(TNoteType note) => IsNoteInWindow(note, out _);
 

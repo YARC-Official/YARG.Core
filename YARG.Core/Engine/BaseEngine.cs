@@ -101,6 +101,8 @@ namespace YARG.Core.Engine
 
         public double BaseTimeInStarPower { get; protected set; }
 
+        public          int[]  StarScoreThresholds { get; protected set;  }
+
         public readonly struct EngineFrameUpdate
         {
             public EngineFrameUpdate(double time, string reason)
@@ -423,7 +425,7 @@ namespace YARG.Core.Engine
             RebaseSustains(CurrentTick);
         }
 
-        
+
         public void UpdateBandMultiplier(int multiplier)
         {
             BaseStats.BandMultiplier = multiplier;
