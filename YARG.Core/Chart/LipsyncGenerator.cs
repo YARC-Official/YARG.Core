@@ -39,7 +39,7 @@ namespace YARG.Core.Chart
                 {
                     var lyric = phrase.Lyrics[i];
                     
-                    var text = LyricSymbols.StripForLyrics(lyric.Text);
+                    var text = LyricSymbols.StripForVocals(lyric.Text);
                     if (string.IsNullOrWhiteSpace(text))
                         continue;
                     
