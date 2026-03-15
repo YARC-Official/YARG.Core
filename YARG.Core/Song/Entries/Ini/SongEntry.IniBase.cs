@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using YARG.Core.Chart;
+using YARG.Core.Chart.Loaders.UltraStar;
 using YARG.Core.Extensions;
 using YARG.Core.IO;
 using YARG.Core.IO.Ini;
@@ -20,7 +21,9 @@ namespace YARG.Core.Song
         {
             foreach (string stem in SupportedStems)
                 foreach (string format in SupportedFormats)
-                    SupportedAudioFiles.Add(stem + format);
+            {
+                SupportedAudioFiles.Add(stem + format);
+            }
         }
 
         public static bool IsAudioFile(string file)
@@ -98,7 +101,9 @@ namespace YARG.Core.Song
             };
 
             if (_chartFormat == ChartFormat.UltraStar)
+            {
                 return SongChart.FromUltraStarBytes(in parseSettings, data.ReadOnlySpan);
+            }
 
             using var stream = data.ToReferenceStream();
             if (_chartFormat == ChartFormat.Mid || _chartFormat == ChartFormat.Midi)
@@ -523,7 +528,9 @@ namespace YARG.Core.Song
 
             string? title = loader.GetMetadata("TITLE");
             if (string.IsNullOrWhiteSpace(title))
+            {
                 return ScanResult.NoName;
+            }
 
             entry._metadata = SongMetadata.Default;
 
@@ -533,6 +540,7 @@ namespace YARG.Core.Song
             entry._metadata.Genre = loader.GetMetadata("GENRE") ?? string.Empty;
             entry._metadata.Year = loader.GetMetadata("YEAR") ?? SongMetadata.DEFAULT_YEAR;
             entry._metadata.Charter = loader.GetMetadata("CREATOR") ?? SongMetadata.DEFAULT_CHARTER;
+            entry._metadata.LinkYoutube = loader.GetMetadata("VIDEO")?.Split(",")[0].Insert(0, "https://www.youtube.com/watch?") ?? string.Empty; 
 
             if (loader.GetMetadata("GAP") is string gapStr &&
                 double.TryParse(gapStr,
@@ -552,9 +560,23 @@ namespace YARG.Core.Song
                 entry._metadata.Preview.Start = (long) previewMs;
             }
 
-            entry._parts.LeadVocals.SubTracks = 1; 
-            entry._parts.LeadVocals.ActivateDifficulty(Difficulty.Expert); 
-            entry._parts.LeadVocals.Intensity = -1;
+            entry._parts.LeadVocals.Difficulties = DifficultyMask.None;
+            entry._parts.HarmonyVocals.Difficulties = DifficultyMask.None;
+
+            entry._parts.LeadVocals.SubTracks = 1;
+            entry._parts.LeadVocals.ActivateDifficulty(Difficulty.Expert);
+            entry._parts.LeadVocals.Intensity = 0;
+
+            if (loader.GetMetadata("PARTS") == "2")
+            {
+                entry._parts.HarmonyVocals.SubTracks = 2;
+                entry._parts.HarmonyVocals.Intensity = 0;
+                entry._parts.HarmonyVocals.ActivateDifficulty(Difficulty.Expert);
+            }
+            else
+            {
+                entry._parts.HarmonyVocals.SubTracks = 0;
+            }
 
             entry._hash = HashWrapper.Hash(file.ReadOnlySpan);
             (entry._parsedYear, entry._yearAsNumber) = ParseYear(entry._metadata.Year);
