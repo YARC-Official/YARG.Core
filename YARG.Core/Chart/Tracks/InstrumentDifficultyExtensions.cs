@@ -45,8 +45,8 @@ namespace YARG.Core.Chart
             bool openInLastGreenSustainChordBeforeConversion = false;
             int lastNoteMask = 0;
             uint sixteenthTickLength = syncTrack.Resolution / 4;
-            const int noteMaskGreen = 1;
-            const int noteMaskOpen = 1 << 6;
+            int noteMaskGreen = 1 << (FiveFretGuitarFret.Green.Convert() - 1);
+            int noteMaskOpen = 1 << (FiveFretGuitarFret.Open.Convert() - 1);
             foreach (var note in difficulty.Notes)
             {
                 if (note.Fret == FiveFretGuitarFret.Open.Convert())

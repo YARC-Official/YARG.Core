@@ -19,7 +19,7 @@ namespace YARG.Core.IO
         public string? Subgenre;
         public TextSpan? Charter;
         public string? Source;
-        public string? Playlist;
+        public TextSpan? Playlist;
         public TextSpan? LoadingPhrase;
         public int? YearAsNumber;
 
@@ -237,7 +237,7 @@ namespace YARG.Core.IO
                     case "year_recorded": YearAsNumber = YARGDTAReader.ExtractInteger<int>(ref container); break;
                     case "album_name": Album = YARGDTAReader.ExtractTextBytes(ref container); break;
                     case "album_track_number": AlbumTrack = YARGDTAReader.ExtractInteger<int>(ref container); break;
-                    case "pack_name": Playlist = YARGDTAReader.ExtractText(ref container); break;
+                    case "pack_name": Playlist = YARGDTAReader.ExtractTextBytes(ref container); break;
                     case "base_points": /*BasePoints = YARGDTAReader.Extract<uint>(ref container);*/ break;
                     case "band_fail_cue": /*BandFailCue = YARGDTAReader.ExtractText(ref container);*/ break;
                     case "drum_bank": DrumBank = YARGDTAReader.ExtractText(ref container); break;
