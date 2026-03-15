@@ -68,7 +68,8 @@ namespace YARG.Core.Extensions
 
             if (reader.BaseStream is MemoryStream memoryStream)
             {
-                return SpanReadUntilBarrier(memoryStream.GetBuffer().AsSpan((int) memoryStream.Position), barrier,
+                var remaining = (int) (memoryStream.Length - memoryStream.Position);
+                return SpanReadUntilBarrier(memoryStream.GetBuffer().AsSpan((int) memoryStream.Position, remaining), barrier,
                     reader.BaseStream);
             }
 

@@ -49,6 +49,11 @@ namespace YARG.Core.IO
                 var entry = directory.EntryNames[i];
                 if (filename.SequenceEqual(entry.value))
                 {
+                    if (i >= directory.Files.Count)
+                    {
+                        YargLogger.LogFormatWarning("Inconsistent milo directory when searching for: {0}", Encoding.UTF8.GetString(filename));
+                        return ReadOnlySpan<byte>.Empty;
+                    }
                     var file = directory.Files[i];
                     return data.Slice(file.offset, file.length);
                 }
@@ -146,7 +151,8 @@ namespace YARG.Core.IO
 
             var fixedArray = FixedArray<byte>.Alloc((int) output.Length);
             output.Position = 0;
-            output.Read(fixedArray.Span);
+            var readBytes = output.Read(fixedArray.Span);
+            YargLogger.AssertFormat(readBytes == fixedArray.Length, "Read {0} bytes, expected {1}", readBytes, fixedArray.Length);
             return fixedArray;
         }
 
@@ -273,10 +279,18 @@ namespace YARG.Core.IO
             directory.Files = new List<(int offset, int length)>((int)entryCount);
             for (var i = 0; i < entryCount; i++)
             {
-                var fileSpan = reader.ReadUntilBarrier(magicBarrier);
-                long currentPos = baseStream.Position - fileSpan.Length - magicBarrier.Length;
-                YargLogger.Assert(currentPos >= 0, "File offset is negative");
-                directory.Files.Add(((int) currentPos, fileSpan.Length));
+                try
+                {
+                    var fileSpan = reader.ReadUntilBarrier(magicBarrier);
+                    long currentPos = baseStream.Position - fileSpan.Length - magicBarrier.Length;
+                    YargLogger.Assert(currentPos >= 0, "File offset is negative");
+                    directory.Files.Add(((int) currentPos, fileSpan.Length));
+                }
+                catch (InvalidDataException)
+                {
+                    YargLogger.LogWarning("Couldn't load milo files. Bug wyrdough to fix whatever in CONFileStream.LoadFile is causing it to return bad data for the last block.");
+                    break;
+                }
             }
 
             return directory;

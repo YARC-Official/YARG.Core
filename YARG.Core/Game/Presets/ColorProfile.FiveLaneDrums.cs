@@ -1,4 +1,5 @@
-﻿using System.Drawing;
+﻿using DG.Tweening;
+using System.Drawing;
 using System.IO;
 using YARG.Core.Extensions;
 using YARG.Core.Utility;
@@ -7,6 +8,16 @@ namespace YARG.Core.Game
 {
     public partial class ColorProfile
     {
+        public enum FiveLaneDrumsFret
+        {
+            Kick,
+            Red,
+            Yellow,
+            Blue,
+            Orange,
+            Green
+        }
+
         public class FiveLaneDrumsColors : IFretColorProvider, IBinarySerializable
         {
             #region Frets
@@ -26,12 +37,12 @@ namespace YARG.Core.Game
             {
                 return index switch
                 {
-                    0 => KickFret,
-                    1 => RedFret,
-                    2 => YellowFret,
-                    3 => BlueFret,
-                    4 => OrangeFret,
-                    5 => GreenFret,
+                    (int)FiveLaneDrumsFret.Kick => KickFret,
+                    (int)FiveLaneDrumsFret.Red => RedFret,
+                    (int)FiveLaneDrumsFret.Yellow => YellowFret,
+                    (int)FiveLaneDrumsFret.Blue => BlueFret,
+                    (int)FiveLaneDrumsFret.Orange => OrangeFret,
+                    (int)FiveLaneDrumsFret.Green => GreenFret,
                     _ => default
                 };
             }
@@ -51,12 +62,12 @@ namespace YARG.Core.Game
             {
                 return index switch
                 {
-                    0 => KickFretInner,
-                    1 => RedFretInner,
-                    2 => YellowFretInner,
-                    3 => BlueFretInner,
-                    4 => OrangeFretInner,
-                    5 => GreenFretInner,
+                    (int)FiveLaneDrumsFret.Kick => KickFretInner,
+                    (int)FiveLaneDrumsFret.Red => RedFretInner,
+                    (int)FiveLaneDrumsFret.Yellow => YellowFretInner,
+                    (int)FiveLaneDrumsFret.Blue => BlueFretInner,
+                    (int)FiveLaneDrumsFret.Orange => OrangeFretInner,
+                    (int) FiveLaneDrumsFret.Green => GreenFretInner,
                     _ => default
                 };
             }
@@ -76,12 +87,12 @@ namespace YARG.Core.Game
             {
                 return index switch
                 {
-                    0 => KickParticles,
-                    1 => RedParticles,
-                    2 => YellowParticles,
-                    3 => BlueParticles,
-                    4 => OrangeParticles,
-                    5 => GreenParticles,
+                    (int)FiveLaneDrumsFret.Kick => KickParticles,
+                    (int)FiveLaneDrumsFret.Red => RedParticles,
+                    (int)FiveLaneDrumsFret.Yellow => YellowParticles,
+                    (int)FiveLaneDrumsFret.Blue => BlueParticles,
+                    (int)FiveLaneDrumsFret.Orange => OrangeParticles,
+                    (int) FiveLaneDrumsFret.Green => GreenParticles,
                     _ => default
                 };
             }

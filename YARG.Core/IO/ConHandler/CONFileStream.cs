@@ -321,7 +321,7 @@ namespace YARG.Core.IO
                         long blockLocation = CalculateBlockLocation(currentBlock, listing.Shift);
                         stream.Position = blockLocation;
 
-                        int readCount = i + 1 < listing.BlockCount ? BYTES_PER_BLOCK : listing.Length % BYTES_PER_BLOCK;
+                        int readCount = i + 1 < listing.BlockCount ? BYTES_PER_BLOCK : listing.Length - (i * BYTES_PER_BLOCK);
                         if (stream.Read(new Span<byte>(position, readCount)) != readCount)
                         {
                             throw new Exception("Block read error in CON subfile - Split");

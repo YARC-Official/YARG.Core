@@ -7,6 +7,21 @@ namespace YARG.Core.Game
 {
     public partial class ColorProfile
     {
+        public enum FourLaneDrumsFret
+        {
+            Kick,
+
+            RedDrum,
+            YellowDrum,
+            BlueDrum,
+            GreenDrum,
+
+            RedCymbal,
+            YellowCymbal,
+            BlueCymbal,
+            GreenCymbal
+        }
+
         public class FourLaneDrumsColors : IFretColorProvider, IBinarySerializable
         {
             #region Frets
@@ -31,17 +46,17 @@ namespace YARG.Core.Game
             {
                 return index switch
                 {
-                    0 => KickFret,
-                    1 => RedFret,
-                    2 => YellowFret,
-                    3 => BlueFret,
-                    4 => GreenFret,
+                    (int)FourLaneDrumsFret.Kick => KickFret,
+                    (int)FourLaneDrumsFret.RedDrum => RedFret,
+                    (int)FourLaneDrumsFret.YellowDrum => YellowFret,
+                    (int)FourLaneDrumsFret.BlueDrum => BlueFret,
+                    (int)FourLaneDrumsFret.GreenDrum => GreenFret,
 
                     // Exclusive to split view
-                    5 => RedCymbalFret,
-                    6 => YellowCymbalFret,
-                    7 => BlueCymbalFret,
-                    8 => GreenCymbalFret,
+                    (int)FourLaneDrumsFret.RedCymbal => RedCymbalFret,
+                    (int)FourLaneDrumsFret.YellowCymbal => YellowCymbalFret,
+                    (int)FourLaneDrumsFret.BlueCymbal => BlueCymbalFret,
+                    (int)FourLaneDrumsFret.GreenCymbal => GreenCymbalFret,
 
                     _ => default
                 };
@@ -67,17 +82,17 @@ namespace YARG.Core.Game
             {
                 return index switch
                 {
-                    0 => KickFretInner,
-                    1 => RedFretInner,
-                    2 => YellowFretInner,
-                    3 => BlueFretInner,
-                    4 => GreenFretInner,
+                    (int)FourLaneDrumsFret.Kick => KickFretInner,
+                    (int)FourLaneDrumsFret.RedDrum => RedFretInner,
+                    (int)FourLaneDrumsFret.YellowDrum => YellowFretInner,
+                    (int)FourLaneDrumsFret.BlueDrum => BlueFretInner,
+                    (int)FourLaneDrumsFret.GreenDrum => GreenFretInner,
 
                     // Exclusive to split view
-                    5 => RedCymbalFretInner,
-                    6 => YellowCymbalFretInner,
-                    7 => BlueCymbalFretInner,
-                    8 => GreenCymbalFretInner,
+                    (int)FourLaneDrumsFret.RedCymbal => RedCymbalFretInner,
+                    (int)FourLaneDrumsFret.YellowCymbal => YellowCymbalFretInner,
+                    (int)FourLaneDrumsFret.BlueCymbal => BlueCymbalFretInner,
+                    (int)FourLaneDrumsFret.GreenCymbal => GreenCymbalFretInner,
 
                     _ => default
                 };
@@ -103,17 +118,17 @@ namespace YARG.Core.Game
             {
                 return index switch
                 {
-                    0 => KickParticles,
-                    1 => RedParticles,
-                    2 => YellowParticles,
-                    3 => BlueParticles,
-                    4 => GreenParticles,
+                    (int)FourLaneDrumsFret.Kick => KickParticles,
+                    (int)FourLaneDrumsFret.RedDrum => RedParticles,
+                    (int)FourLaneDrumsFret.YellowDrum => YellowParticles,
+                    (int)FourLaneDrumsFret.BlueDrum => BlueParticles,
+                    (int)FourLaneDrumsFret.GreenDrum => GreenParticles,
 
                     // Exclusive to split view
-                    5 => RedCymbalParticles,
-                    6 => YellowCymbalParticles,
-                    7 => BlueCymbalParticles,
-                    8 => GreenCymbalParticles,
+                    (int)FourLaneDrumsFret.RedCymbal => RedCymbalParticles,
+                    (int)FourLaneDrumsFret.YellowCymbal => YellowCymbalParticles,
+                    (int)FourLaneDrumsFret.BlueCymbal => BlueCymbalParticles,
+                    (int)FourLaneDrumsFret.GreenCymbal => GreenCymbalParticles,
 
                     _ => default
                 };
@@ -144,17 +159,17 @@ namespace YARG.Core.Game
             {
                 return index switch
                 {
-                    0 => KickNote,
+                    (int)FourLaneDrumsFret.Kick => KickNote,
 
-                    1 => RedDrum,
-                    2 => YellowDrum,
-                    3 => BlueDrum,
-                    4 => GreenDrum,
+                    (int)FourLaneDrumsFret.RedDrum => RedDrum,
+                    (int)FourLaneDrumsFret.YellowDrum => YellowDrum,
+                    (int)FourLaneDrumsFret.BlueDrum => BlueDrum,
+                    (int) FourLaneDrumsFret.GreenDrum => GreenDrum,
 
-                    5 => YellowCymbal,
-                    6 => BlueCymbal,
-                    7 => GreenCymbal,
-                    8 => RedCymbal,
+                    (int)FourLaneDrumsFret.RedCymbal => RedCymbal,
+                    (int)FourLaneDrumsFret.YellowCymbal => YellowCymbal,
+                    (int)FourLaneDrumsFret.BlueCymbal => BlueCymbal,
+                    (int)FourLaneDrumsFret.GreenCymbal => GreenCymbal,
 
                     _ => default
                 };
@@ -181,17 +196,17 @@ namespace YARG.Core.Game
             {
                 return index switch
                 {
-                    0 => KickStarpower,
+                    (int)FourLaneDrumsFret.Kick => KickStarpower,
 
-                    1 => RedDrumStarpower,
-                    2 => YellowDrumStarpower,
-                    3 => BlueDrumStarpower,
-                    4 => GreenDrumStarpower,
+                    (int)FourLaneDrumsFret.RedDrum => RedDrumStarpower,
+                    (int)FourLaneDrumsFret.YellowDrum => YellowDrumStarpower,
+                    (int)FourLaneDrumsFret.BlueDrum => BlueDrumStarpower,
+                    (int)FourLaneDrumsFret.GreenDrum => GreenDrumStarpower,
 
-                    5 => YellowCymbalStarpower,
-                    6 => BlueCymbalStarpower,
-                    7 => GreenCymbalStarpower,
-                    8 => RedCymbalStarpower,
+                    (int)FourLaneDrumsFret.RedCymbal => RedCymbalStarpower,
+                    (int)FourLaneDrumsFret.YellowCymbal => YellowCymbalStarpower,
+                    (int)FourLaneDrumsFret.BlueCymbal => BlueCymbalStarpower,
+                    (int)FourLaneDrumsFret.GreenCymbal => GreenCymbalStarpower,
 
                     _ => default
                 };
@@ -218,17 +233,17 @@ namespace YARG.Core.Game
             {
                 return index switch
                 {
-                    0 => KickActivationNote,
+                    (int)FourLaneDrumsFret.Kick => KickActivationNote,
 
-                    1 => RedPadActivationNote,
-                    2 => YellowPadActivationNote,
-                    3 => BluePadActivationNote,
-                    4 => GreenPadActivationNote,
+                    (int)FourLaneDrumsFret.RedDrum => RedPadActivationNote,
+                    (int)FourLaneDrumsFret.YellowDrum => YellowPadActivationNote,
+                    (int)FourLaneDrumsFret.BlueDrum => BluePadActivationNote,
+                    (int)FourLaneDrumsFret.GreenDrum => GreenPadActivationNote,
 
-                    5 => YellowCymbalActivationNote,
-                    6 => BlueCymbalActivationNote,
-                    7 => GreenCymbalActivationNote,
-                    8 => RedCymbalActivationNote,
+                    (int)FourLaneDrumsFret.RedCymbal => RedCymbalActivationNote,
+                    (int)FourLaneDrumsFret.YellowCymbal => YellowCymbalActivationNote,
+                    (int)FourLaneDrumsFret.BlueCymbal => BlueCymbalActivationNote,
+                    (int)FourLaneDrumsFret.GreenCymbal => GreenCymbalActivationNote,
 
                     _ => default
                 };

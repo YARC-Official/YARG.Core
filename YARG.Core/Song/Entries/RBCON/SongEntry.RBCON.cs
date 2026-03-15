@@ -79,7 +79,7 @@ namespace YARG.Core.Song
                 stream.Write(new ReadOnlySpan<byte>(&intensities, sizeof(RBIntensities)));
             }
 
-            stream.WriteByte((byte)_rbMetadata.VocalGender);
+            stream.WriteByte((byte)_rbMetadata.RbVocalGender);
             stream.WriteByte((byte)_rbMetadata.SongTonality);
             stream.WriteByte((byte)_rbMetadata.MidiEncoding);
 
@@ -283,7 +283,7 @@ namespace YARG.Core.Song
                 _rbIntensities = intensities;
             }
 
-            _rbMetadata.VocalGender  = (VocalGender) stream.ReadByte();
+            _rbMetadata.RbVocalGender  = (RbVocalGender) stream.ReadByte();
             _rbMetadata.SongTonality = (SongTonality)stream.ReadByte();
             _rbMetadata.MidiEncoding = (EncodingType)stream.ReadByte();
 
@@ -780,7 +780,7 @@ namespace YARG.Core.Song
             }
 
             if (dta.VocalPercussionBank != null)  { entry._rbMetadata.VocalPercussionBank  = dta.VocalPercussionBank; }
-            if (dta.VocalGender != null)          { entry._rbMetadata.VocalGender          = dta.VocalGender.Value; }
+            if (dta.VocalGender != null)          { entry._rbMetadata.RbVocalGender          = dta.VocalGender.Value; }
             if (dta.VocalTonicNote != null)       { entry._rbMetadata.VocalTonicNote       = dta.VocalTonicNote.Value; }
             if (dta.VideoVenues != null)          { entry._rbMetadata.VideoVenues          = dta.VideoVenues; }
             if (dta.DrumBank != null)             { entry._rbMetadata.DrumBank             = dta.DrumBank; }
@@ -823,6 +823,8 @@ namespace YARG.Core.Song
             if (dta.Intensities.ProKeys >= 0)        { entry._rbIntensities.ProKeys        = dta.Intensities.ProKeys; }
             if (dta.Intensities.LeadVocals >= 0)     { entry._rbIntensities.LeadVocals     = dta.Intensities.LeadVocals; }
             if (dta.Intensities.HarmonyVocals >= 0)  { entry._rbIntensities.HarmonyVocals  = dta.Intensities.HarmonyVocals; }
+
+            entry._metadata.VocalGender = DTAEntry.ConvertVocalGender(dta.VocalGender);
         }
 
         private static int GetIntensity(int rank, int[] values)

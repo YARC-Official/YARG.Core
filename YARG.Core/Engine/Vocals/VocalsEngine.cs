@@ -252,7 +252,7 @@ namespace YARG.Core.Engine.Vocals
         /// </returns>
         protected VocalNote? GetNoteInPhraseAtSongTick(VocalNote phrase, uint tick)
         {
-            if (CarriedVocalNote != null && tick >= CarriedVocalNote.Tick && tick <= CarriedVocalNote.TickEnd)
+            if (CarriedVocalNote != null && tick >= CarriedVocalNote.Tick && tick <= CarriedVocalNote.TotalTickEnd)
             {
                 return CarriedVocalNote;
             }

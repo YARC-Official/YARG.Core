@@ -123,6 +123,16 @@ namespace YARG.Core
         AllNotes      = 3, // Old YARG style
     }
 
+    /// <summary>
+    /// Options for displaying a dedicated open note lane in non-Pro Keys.
+    /// </summary>
+    public enum OpenLaneDisplayType : byte
+    {
+        Never                   = 0,
+        Always                  = 1,
+        IfChartContainsOpens    = 2
+    }
+
     public static class ChartEnumExtensions
     {
         public static GameMode ToNativeGameMode(this Instrument instrument)
