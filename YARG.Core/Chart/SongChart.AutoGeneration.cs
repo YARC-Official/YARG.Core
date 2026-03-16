@@ -534,17 +534,6 @@ namespace YARG.Core.Chart
 
         public static void GenerateLipsyncFromVocals(SongChart songChart)
         {
-            // Try to find any vocals part with lyrics
-            VocalsPart vocals = null;
-            foreach (var part in songChart.Vocals.Parts)
-            {
-                if (!part.IsEmpty && part.NotePhrases.Count > 0)
-                {
-                    vocals = part;
-                    break;
-                }
-            }
-
             if (!songChart.Lyrics.IsEmpty)
             {
                 songChart.LipsyncEvents.AddRange(LipsyncGenerator.GenerateFromLyrics(songChart.Lyrics));
