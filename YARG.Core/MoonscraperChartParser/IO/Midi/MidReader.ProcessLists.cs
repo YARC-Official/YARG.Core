@@ -368,7 +368,7 @@ namespace MoonscraperChartEditor.Song.IO
         {
             var song = processParams.song;
 
-            if (song.events.All(e => e.text != "coda"))
+            if (song.events.All(e => e.text != MidIOHelper.CODA_START))
             {
                 return;
             }
@@ -385,7 +385,7 @@ namespace MoonscraperChartEditor.Song.IO
             var codaRanges = new List<(uint start, uint end)>();
             foreach (var ev in song.events)
             {
-                if (ev.text == "coda")
+                if (ev.text == MidIOHelper.CODA_START)
                 {
                     if (codaRanges.Count > 0 && codaRanges[^1].end == uint.MaxValue)
                     {
@@ -396,7 +396,7 @@ namespace MoonscraperChartEditor.Song.IO
                     codaCount++;
                     codaRanges.Add((ev.tick, uint.MaxValue));
                 }
-                else if (ev.text == "coda_end")
+                else if (ev.text == MidIOHelper.CODA_END)
                 {
                     if (codaCount != codaRanges.Count)
                     {

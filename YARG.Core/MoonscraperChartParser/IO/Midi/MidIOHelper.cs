@@ -50,6 +50,10 @@ namespace MoonscraperChartEditor.Song.IO
         public const string PRO_KEYS_MEDIUM = "PART REAL_KEYS_M";
         public const string PRO_KEYS_EASY = "PART REAL_KEYS_E";
 
+        // Coda text events
+        public const string CODA_START = "coda";
+        public const string CODA_END = "coda_end";
+
 
         // Matches venue lighting events and groups the text inside (parentheses), not including the parentheses
         // 'lighting (verse)' -> 'verse'
