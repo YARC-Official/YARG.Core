@@ -367,21 +367,50 @@ namespace MoonscraperChartEditor.Song.IO
         private static void ReplaceDrumFillDuringCoda(ref EventProcessParams processParams)
         {
             var song = processParams.song;
-            var codaEvent = song.events.Find(e => e.text == "coda");
-            var codaEndEvent = song.events.Find(e => e.text == "coda_end");
 
-            if (codaEvent == null)
+            if (song.events.All(e => e.text != "coda"))
             {
                 return;
             }
 
-            var codaStart = codaEvent.tick;
-            var codaEnd = codaEndEvent?.tick ?? uint.MaxValue;
-
             var chart = processParams.song.GetChart(processParams.instrument, MoonSong.Difficulty.Expert);
 
             if (chart.specialPhrases.Any(sp => sp.type == MoonPhrase.Type.BigRockEnding)
-                || !chart.specialPhrases.Any(sp => sp.type == MoonPhrase.Type.ProDrums_Activation))
+                || chart.specialPhrases.All(sp => sp.type != MoonPhrase.Type.ProDrums_Activation))
+            {
+                return;
+            }
+
+            var codaCount = 0;
+            var codaRanges = new List<(uint start, uint end)>();
+            foreach (var ev in song.events)
+            {
+                if (ev.text == "coda")
+                {
+                    if (codaRanges.Count > 0 && codaRanges[^1].end == uint.MaxValue)
+                    {
+                        YargLogger.LogError("Unbalanced coda/coda_end events, ignoring BREs (missing coda_end)");
+                        return;
+                    }
+
+                    codaCount++;
+                    codaRanges.Add((ev.tick, uint.MaxValue));
+                }
+                else if (ev.text == "coda_end")
+                {
+                    if (codaCount != codaRanges.Count)
+                    {
+                        YargLogger.LogError("Unbalanced coda/coda_end events, ignoring BREs (missing coda)");
+                        return;
+                    }
+
+                    var range = codaRanges[^1];
+                    range.end = ev.tick;
+                    codaRanges[^1] = range;
+                }
+            }
+
+            if (codaRanges.Count == 0)
             {
                 return;
             }
@@ -391,7 +420,8 @@ namespace MoonscraperChartEditor.Song.IO
                 chart = processParams.song.GetChart(processParams.instrument, diff);
                 foreach (var phrase in chart.specialPhrases)
                 {
-                    if (phrase.type == MoonPhrase.Type.ProDrums_Activation && (phrase.tick >= codaStart && phrase.tick <= codaEnd))
+                    if (phrase.type == MoonPhrase.Type.ProDrums_Activation
+                        && codaRanges.Any(range => phrase.tick >= range.start && phrase.tick <= range.end))
                     {
                         phrase.type = MoonPhrase.Type.BigRockEnding;
                     }
