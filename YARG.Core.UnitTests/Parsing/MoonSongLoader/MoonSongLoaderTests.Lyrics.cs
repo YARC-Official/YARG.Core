@@ -1,4 +1,4 @@
-using MoonscraperChartEditor.Song;
+﻿using MoonscraperChartEditor.Song;
 using NUnit.Framework;
 using YARG.Core.Chart;
 

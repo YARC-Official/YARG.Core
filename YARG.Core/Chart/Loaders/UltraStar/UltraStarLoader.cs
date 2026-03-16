@@ -11,10 +11,16 @@ namespace YARG.Core.Chart.Loaders.UltraStar
 {
     internal partial class UltraStarLoader : ISongLoader
     {
+        #region Constants
+
         // MIDI base constant
         // UltraStar pitch is RELATIVE
         // MIDI 60 = C4
         private const int ULTRASTAR_PITCH_BASE = 60;
+
+        #endregion
+
+        #region Fields
 
         private readonly Dictionary<string, string> _metadata     = new(StringComparer.OrdinalIgnoreCase);
         private          uint                       _ticksPerBeat = 120;
@@ -34,6 +40,10 @@ namespace YARG.Core.Chart.Loaders.UltraStar
         };
         private int _currentPart = 0;
 
+        #endregion
+
+        #region UltraStarNote
+
         private class UltraStarNote
         {
             public int    PartIndex     { get; set; } = 0; 
@@ -49,6 +59,8 @@ namespace YARG.Core.Chart.Loaders.UltraStar
 
             public bool IsMelisma => Lyric.TrimStart().StartsWith("~");
         }
+
+        #endregion
 
         public UltraStarLoader(FixedArray<byte> file)
         {
@@ -187,7 +199,7 @@ namespace YARG.Core.Chart.Loaders.UltraStar
 
         #endregion
 
-        #region Beats
+        #region Beat Conversion
 
         private uint BeatToTick(uint beat)
         {
@@ -199,13 +211,6 @@ namespace YARG.Core.Chart.Loaders.UltraStar
         private double BeatsToSeconds(uint beats) => beats * 60.0 / _bpm;
 
         #endregion
-
-        /// <summary>
-        /// Converts UltraStar relative pitch to absolute MIDI pitch for YARG.
-        /// Clamp to the range 0-127.
-        /// </summary>
-        private static int ToMidiPitch(int ultraStarPitch)
-            => Math.Clamp(ultraStarPitch + ULTRASTAR_PITCH_BASE, 0, 127);
 
         #region Loading
 
@@ -316,6 +321,8 @@ namespace YARG.Core.Chart.Loaders.UltraStar
 
         #endregion
 
+        #region Vocals Processing
+
         private VocalsPart BuildVocalsPart(List<UltraStarNote> notes, bool isHarmony)
         {
             var phrases = new List<VocalsPhrase>();
@@ -351,6 +358,8 @@ namespace YARG.Core.Chart.Loaders.UltraStar
             YargLogger.LogDebug($"[UltraStar] Total phrases with SP: {phrases.Count(p => p.IsStarPower)}");
             YargLogger.LogDebug($"[UltraStar] Built {phrases.Count} vocal phrases");
             YargLogger.LogDebug($"[UltraStar] OtherPhrases SP count: {otherPhrases.Count(p => p.Type == PhraseType.StarPower)}");
+
+            otherPhrases = otherPhrases.OrderBy(p => p.Tick).ToList();
 
             return new VocalsPart(isHarmony, phrases, new List<VocalsPhrase>(), otherPhrases, textEvents);
         }
@@ -452,7 +461,7 @@ namespace YARG.Core.Chart.Loaders.UltraStar
                 if (!string.IsNullOrWhiteSpace(uNote.Lyric))
                 {
                     var flags = isUnpitched ? LyricSymbolFlags.NonPitched : LyricSymbolFlags.None;
-                    lyrics.Add(new LyricEvent(flags, FormatLyric(uNote.Lyric), noteTime, noteTick));
+                    lyrics.Add(new LyricEvent(flags, FormatLyric(uNote.Lyric), noteTime, noteTick)); 
                 }
             }
 
@@ -477,16 +486,24 @@ namespace YARG.Core.Chart.Loaders.UltraStar
                 parentNote, lyrics);
         }
 
+        #endregion
+
+        #region Utilities
+
         /// <summary>
-        /// Clears lyric from UltraStar:
-        /// trailing space = JoinWithNext (next syllable without spaces)
-        /// - at the end = HyphenateWithNext
-        /// ~ = melisma (handled above, shouldn't go here)
+        /// Clears lyric from UltraStar
         /// </summary>
         private static string FormatLyric(string raw)
         {
             return raw.Trim();
         }
+
+        /// <summary>
+        /// Converts UltraStar relative pitch to absolute MIDI pitch for YARG.
+        /// Clamp to the range 0-127.
+        /// </summary>
+        private static int ToMidiPitch(int ultraStarPitch)
+            => Math.Clamp(ultraStarPitch + ULTRASTAR_PITCH_BASE, 0, 127);
 
         public void DumpToLog()
         {
@@ -521,5 +538,7 @@ namespace YARG.Core.Chart.Loaders.UltraStar
                 }
             }
         }
+
+        #endregion
     }
 }

@@ -540,7 +540,6 @@ namespace YARG.Core.Song
             entry._metadata.Genre = loader.GetMetadata("GENRE") ?? string.Empty;
             entry._metadata.Year = loader.GetMetadata("YEAR") ?? SongMetadata.DEFAULT_YEAR;
             entry._metadata.Charter = loader.GetMetadata("CREATOR") ?? SongMetadata.DEFAULT_CHARTER;
-            entry._metadata.LinkYoutube = loader.GetMetadata("VIDEO")?.Split(",")[0].Insert(0, "https://www.youtube.com/watch?") ?? string.Empty; 
 
             if (loader.GetMetadata("GAP") is string gapStr &&
                 double.TryParse(gapStr,

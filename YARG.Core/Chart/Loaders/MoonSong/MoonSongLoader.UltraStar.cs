@@ -4,13 +4,13 @@ using System.Linq;
 using MoonscraperChartEditor.Song;
 using YARG.Core.Chart.Loaders.UltraStar;
 using YARG.Core.IO;
-using YARG.Core.Logging;
-using YARG.Core.Parsing;
 
 namespace YARG.Core.Chart
 {
     internal partial class MoonSongLoader : ISongLoader
     {
+        #region Loading
+
         public static MoonSongLoader LoadUltraStar(ParseSettings settings, string filePath)
         {
             using var fixedArray = FixedArray.LoadFile(filePath);
@@ -30,7 +30,11 @@ namespace YARG.Core.Chart
             return new MoonSongLoader(moonSong, settings);
         }
 
-        static void AddPartToChart(IEnumerable<VocalsPart> parts, MoonChart chart)
+        #endregion
+
+        #region Conversion
+
+        private static void AddPartToChart(IEnumerable<VocalsPart> parts, MoonChart chart)
         {
             var allPhrases = new List<MoonPhrase>();
             var allText = new List<MoonText>();
@@ -57,6 +61,7 @@ namespace YARG.Core.Chart
                         }
 
                         var flags = child.IsNonPitched ? MoonNote.Flags.Vocals_Percussion : MoonNote.Flags.None;
+
                         int rawNote = child.IsNonPitched ? 0 : (int) child.Pitch;
 
                         allNotes.Add(new MoonNote(child.Tick, rawNote, child.TickLength, flags));
@@ -64,15 +69,28 @@ namespace YARG.Core.Chart
                 }
             }
 
-            var uniquePhrases = allPhrases
-                .OrderBy(p => p.tick)
-                .ThenByDescending(p => p.length)
-                .GroupBy(p => p.tick)
-                .Select(g => g.First());
+            var allPhrasesList = new List<MoonPhrase>();
 
-            foreach (var p in uniquePhrases)
+            var lyricPhrases = allPhrases
+                .Where(p => p.type == MoonPhrase.Type.Vocals_ScoringPhrase || p.type == MoonPhrase.Type.Vocals_StaticLyricPhrase)
+                .GroupBy(p => p.tick)
+                .Select(g => g.OrderByDescending(p => p.length).First());
+            allPhrasesList.AddRange(lyricPhrases);
+
+            foreach (var part in parts)
             {
-                chart.Add(p);
+                foreach (var phrase in part.OtherPhrases)
+                {
+                    if (phrase.Type == PhraseType.StarPower)
+                    {
+                        allPhrasesList.Add(new MoonPhrase(phrase.Tick, phrase.TickLength, MoonPhrase.Type.Starpower));
+                    }
+                }
+            }
+
+            foreach (var p in allPhrasesList.OrderBy(p => p.tick))
+            {
+                chart.Add(p); 
             }
 
             var uniqueText = allText
@@ -135,5 +153,7 @@ namespace YARG.Core.Chart
 
             return moonSong;
         }
+
+        #endregion
     }
 }
