@@ -355,10 +355,6 @@ namespace YARG.Core.Chart.Loaders.UltraStar
                 }
             }
 
-            YargLogger.LogDebug($"[UltraStar] Total phrases with SP: {phrases.Count(p => p.IsStarPower)}");
-            YargLogger.LogDebug($"[UltraStar] Built {phrases.Count} vocal phrases");
-            YargLogger.LogDebug($"[UltraStar] OtherPhrases SP count: {otherPhrases.Count(p => p.Type == PhraseType.StarPower)}");
-
             otherPhrases = otherPhrases.OrderBy(p => p.Tick).ToList();
 
             return new VocalsPart(isHarmony, phrases, new List<VocalsPhrase>(), otherPhrases, textEvents);
@@ -475,10 +471,6 @@ namespace YARG.Core.Chart.Loaders.UltraStar
                 YargLogger.LogWarning($"[UltraStar] Phrase at tick {phraseStartTick} has 0 child notes — skipping");
                 return null;
             }
-
-            YargLogger.LogDebug($"[UltraStar] Phrase tick={phraseStartTick} " +
-                $"notes={parentNote.ChildNotes.Count} lyrics={lyrics.Count} " +
-                $"time={phraseStartTime:F2}s");
 
             return new VocalsPhrase(
                 phraseStartTime, phraseTimeLen,

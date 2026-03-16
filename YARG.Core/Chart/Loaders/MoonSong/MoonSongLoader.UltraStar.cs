@@ -15,8 +15,8 @@ namespace YARG.Core.Chart
         {
             using var fixedArray = FixedArray.LoadFile(filePath);
             var ultraStarLoader = new UltraStarLoader(fixedArray);
-            //ultraStarLoader.DumpToLog();
             var moonSong = ConvertUltraStarToMoonSong(ultraStarLoader);
+
             return new MoonSongLoader(moonSong, settings);
         }
 
@@ -25,8 +25,8 @@ namespace YARG.Core.Chart
             using var ms = new MemoryStream(bytes);
             using var fixedArray = FixedArray.Read(ms, bytes.Length);
             var ultraStarLoader = new UltraStarLoader(fixedArray);
-            //ultraStarLoader.DumpToLog();
             var moonSong = ConvertUltraStarToMoonSong(ultraStarLoader);
+
             return new MoonSongLoader(moonSong, settings);
         }
 
