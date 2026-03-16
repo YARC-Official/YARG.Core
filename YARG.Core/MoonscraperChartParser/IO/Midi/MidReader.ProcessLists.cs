@@ -198,6 +198,7 @@ namespace MoonscraperChartEditor.Song.IO
         private static readonly List<EventProcessFn> DrumsPostProcessList = new()
         {
             DisambiguateDrumsType,
+            ReplaceDrumFillDuringCoda
         };
 
         private static readonly List<EventProcessFn> VocalsPostProcessList = new()
@@ -359,6 +360,41 @@ namespace MoonscraperChartEditor.Song.IO
                 {
                     if (phrase.type == MoonPhrase.Type.Solo)
                         phrase.type = MoonPhrase.Type.Starpower;
+                }
+            }
+        }
+
+        private static void ReplaceDrumFillDuringCoda(ref EventProcessParams processParams)
+        {
+            var song = processParams.song;
+            var codaEvent = song.events.Find(e => e.text == "coda");
+            var codaEndEvent = song.events.Find(e => e.text == "coda_end");
+
+            if (codaEvent == null)
+            {
+                return;
+            }
+
+            var codaStart = codaEvent.tick;
+            var codaEnd = codaEndEvent?.tick ?? uint.MaxValue;
+
+            var chart = processParams.song.GetChart(processParams.instrument, MoonSong.Difficulty.Expert);
+
+            if (chart.specialPhrases.Any(sp => sp.type == MoonPhrase.Type.BigRockEnding)
+                || !chart.specialPhrases.Any(sp => sp.type == MoonPhrase.Type.ProDrums_Activation))
+            {
+                return;
+            }
+
+            foreach (var diff in EnumExtensions<MoonSong.Difficulty>.Values)
+            {
+                chart = processParams.song.GetChart(processParams.instrument, diff);
+                foreach (var phrase in chart.specialPhrases)
+                {
+                    if (phrase.type == MoonPhrase.Type.ProDrums_Activation && (phrase.tick >= codaStart && phrase.tick <= codaEnd))
+                    {
+                        phrase.type = MoonPhrase.Type.BigRockEnding;
+                    }
                 }
             }
         }

@@ -28,11 +28,11 @@ namespace YARG.Core.Chart
         {
             var difficulties = new Dictionary<Difficulty, InstrumentDifficulty<DrumNote>>()
             {
-                { Difficulty.Easy, LoadDifficulty(instrument, Difficulty.Easy, createNote, HandleTextEvent, ValidateDrumsPhrase) },
-                { Difficulty.Medium, LoadDifficulty(instrument, Difficulty.Medium, createNote, HandleTextEvent, ValidateDrumsPhrase) },
-                { Difficulty.Hard, LoadDifficulty(instrument, Difficulty.Hard, createNote, HandleTextEvent, ValidateDrumsPhrase) },
-                { Difficulty.Expert, LoadDifficulty(instrument, Difficulty.Expert, createNote, HandleTextEvent, ValidateDrumsPhrase) },
-                { Difficulty.ExpertPlus, LoadDifficulty(instrument, Difficulty.ExpertPlus, createNote, HandleTextEvent, ValidateDrumsPhrase) },
+                { Difficulty.Easy, LoadDifficulty(instrument, Difficulty.Easy, createNote, HandleTextEvent) },
+                { Difficulty.Medium, LoadDifficulty(instrument, Difficulty.Medium, createNote, HandleTextEvent) },
+                { Difficulty.Hard, LoadDifficulty(instrument, Difficulty.Hard, createNote, HandleTextEvent) },
+                { Difficulty.Expert, LoadDifficulty(instrument, Difficulty.Expert, createNote, HandleTextEvent) },
+                { Difficulty.ExpertPlus, LoadDifficulty(instrument, Difficulty.ExpertPlus, createNote, HandleTextEvent) },
             };
 
             foreach (var difficulty in difficulties)
@@ -116,6 +116,7 @@ namespace YARG.Core.Chart
             _discoFlip = setting == DrumsMixSetting.DiscoFlip;
         }
 
+        // Left as an example of how to use phrase validation/replacement despite being no longer required
         private Phrase? ValidateDrumsPhrase(Phrase phrase, List<Phrase> phrases)
         {
             if (phrase.Type != PhraseType.DrumFill)
@@ -130,16 +131,6 @@ namespace YARG.Core.Chart
             }
 
             // If we're here, we were presented a drum fill after a coda and that needs to be a BRE
-
-            // Unless it would be a dupe of an existing phrase
-            foreach (var otherPhrase in phrases)
-            {
-                if (otherPhrase.Type == phrase.Type && otherPhrase.Time == phrase.Time && otherPhrase.TimeEnd == phrase.TimeEnd)
-                {
-                    return null;
-                }
-            }
-
             return new Phrase(PhraseType.BigRockEnding, phrase.Time, phrase.TimeLength, phrase.Tick, phrase.TickLength);
         }
 
