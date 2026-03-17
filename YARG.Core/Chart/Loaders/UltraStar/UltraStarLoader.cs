@@ -214,10 +214,11 @@ namespace YARG.Core.Chart.Loaders.UltraStar
 
         #region Loading
 
-        public List<TextEvent> LoadGlobalEvents()
-        {
-            return new List<TextEvent> { new (string.Empty, 0.0, 0u) }; 
-        }
+        /// <summary>
+        /// UltraStar format doesn't use global events
+        /// but this is required by the ISongLoader interface.
+        /// </summary>
+        public List<TextEvent> LoadGlobalEvents() => _globalEvents ??= new();
         public List<Section> LoadSections() => _sections ??= new();
         public VenueTrack LoadVenueTrack() => _venueTrack ??= new VenueTrack();
 

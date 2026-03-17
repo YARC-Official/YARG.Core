@@ -12,13 +12,14 @@ namespace YARG.Core.UnitTests.Parsing
         protected static FixedArray<byte> CreateUltraStarFile(string content)
         {
             var bytes = Encoding.UTF8.GetBytes(content);
-            var ms = new MemoryStream(bytes);
+
+            using var ms = new MemoryStream(bytes);
             return FixedArray.Read(ms, bytes.Length);
         }
 
         protected static UltraStarLoader LoadUltraStar(string content)
         {
-            var file = CreateUltraStarFile(content);
+            using var file = CreateUltraStarFile(content);
             return new UltraStarLoader(file);
         }
 
