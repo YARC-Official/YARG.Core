@@ -228,7 +228,6 @@ namespace YARG.Core.Chart
 
                 double time = _moonSong.TickToTime(moonPhrase.tick);
                 var newPhrase = new Phrase(phraseType.Value, time, GetLengthInTime(moonPhrase), moonPhrase.tick, moonPhrase.length);
-                phrases.Add(newPhrase);
 
                 if (validatePhrase == null)
                 {
