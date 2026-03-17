@@ -380,7 +380,6 @@ public partial class Cli
         PrintStatDifference("SustainScore",           originalStats.SustainScore,           resultStats.SustainScore);
         PrintStatDifference("MultiplierScore",        originalStats.MultiplierScore,        resultStats.MultiplierScore);
         PrintStatDifference("TotalScore",             originalStats.TotalScore,             resultStats.TotalScore);
-        PrintStatDifference("StarScore",              originalStats.StarScore,              resultStats.StarScore);
         PrintStatDifference("Combo",                  originalStats.Combo,                  resultStats.Combo);
         PrintStatDifference("MaxCombo",               originalStats.MaxCombo,               resultStats.MaxCombo);
         PrintStatDifference("ScoreMultiplier",        originalStats.ScoreMultiplier,        resultStats.ScoreMultiplier);

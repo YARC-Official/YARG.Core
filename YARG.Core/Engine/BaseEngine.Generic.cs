@@ -904,7 +904,7 @@ namespace YARG.Core.Engine
         {
             // Update which star we're on
             while (CurrentStarIndex < StarScoreThresholds.Length &&
-                EngineStats.StarScore > StarScoreThresholds[CurrentStarIndex])
+                EngineStats.TotalScore > StarScoreThresholds[CurrentStarIndex])
             {
                 CurrentStarIndex++;
             }
@@ -915,7 +915,7 @@ namespace YARG.Core.Engine
             {
                 int previousPoints = CurrentStarIndex > 0 ? StarScoreThresholds[CurrentStarIndex - 1] : 0;
                 int nextPoints = StarScoreThresholds[CurrentStarIndex];
-                progress = YargMath.InverseLerpF(previousPoints, nextPoints, EngineStats.StarScore);
+                progress = YargMath.InverseLerpF(previousPoints, nextPoints, EngineStats.TotalScore);
             }
 
             EngineStats.Stars = CurrentStarIndex + progress;
