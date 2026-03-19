@@ -208,6 +208,7 @@ namespace MoonscraperChartEditor.Song.IO
 
         private static readonly List<EventProcessFn> ProKeysPostProcessList = new()
         {
+            CopyDownBREPhrases,
         };
 
         private static readonly List<EventProcessFn> EliteDrumsPostProcessList = new()
@@ -457,6 +458,39 @@ namespace MoonscraperChartEditor.Song.IO
 
             // Assume 4-lane if otherwise undetermined
             processParams.settings.DrumsType = DrumsType.FourLane;
+        }
+
+        // ReSharper disable once InconsistentNaming
+        private static void CopyDownBREPhrases(ref EventProcessParams processParams)
+        {
+            var chart = processParams.song.GetChart(processParams.instrument, MoonSong.Difficulty.Expert);
+            if (processParams.instrument is not MoonSong.MoonInstrument.ProKeys)
+            {
+                return;
+            }
+
+            var brePhrases = new List<MoonPhrase>();
+            foreach (var phrase in chart.specialPhrases)
+            {
+                if (phrase.type == MoonPhrase.Type.BigRockEnding)
+                {
+                    brePhrases.Add(phrase);
+                }
+            }
+
+            foreach (var diff in EnumExtensions<MoonSong.Difficulty>.Values)
+            {
+                if (diff == MoonSong.Difficulty.Expert)
+                {
+                    continue;
+                }
+
+                var ldChart = processParams.song.GetChart(processParams.instrument, diff);
+                foreach (var phrase in brePhrases)
+                {
+                    MoonObjectHelper.OrderedInsertFromBack(phrase, ldChart.specialPhrases);
+                }
+            }
         }
 
         private static void CopyDownPhrases(ref EventProcessParams processParams)
