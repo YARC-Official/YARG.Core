@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 
 namespace YARG.Core.Engine
 {
@@ -35,7 +36,8 @@ namespace YARG.Core.Engine
 
         public bool Success { get; private set; }
 
-        private bool _fretMode = true;
+        private readonly bool                  _fretMode;
+        private          Dictionary<int, int>? _indexToLane;
 
         public delegate void LaneHitEvent(int lane);
         public LaneHitEvent? OnLaneHit;
@@ -69,6 +71,11 @@ namespace YARG.Core.Engine
             {
                 // How?
                 return;
+            }
+
+            if (_indexToLane != null && _indexToLane.TryGetValue(fret, out int lane))
+            {
+                fret = lane;
             }
 
             // Remap values that don't correspond to a lane
@@ -135,6 +142,11 @@ namespace YARG.Core.Engine
         public float GetNormalizedTimeSinceLastHit(int fret, double time)
         {
             return (float) (Math.Min(time - LastHitTime[fret], BONUS_RECHARGE_TIME) / BONUS_RECHARGE_TIME);
+        }
+
+        public void SetLaneIndexes(Dictionary<int, int> indexToLane)
+        {
+            _indexToLane = indexToLane;
         }
     }
 }
