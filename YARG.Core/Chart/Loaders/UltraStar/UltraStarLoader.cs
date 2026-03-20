@@ -56,8 +56,6 @@ namespace YARG.Core.Chart.Loaders.UltraStar
             public bool IsGolden    => Type == '*' || Type == 'G';
             public bool IsUnpitched => Type == 'F' || Type == 'R' || Type == 'G';
             public bool IsRest      => Type == '-';
-
-            public bool IsMelisma => Lyric.TrimStart().StartsWith("~");
         }
 
         #endregion
@@ -186,6 +184,15 @@ namespace YARG.Core.Chart.Loaders.UltraStar
 
             string lyric = parts.Length > 4 ? string.Join(" ", parts.Skip(4)) : string.Empty;
 
+            if (lyric.StartsWith("~"))
+            {
+                lyric = lyric.Substring(1);
+                if (lyric.Length > 0)
+                    lyric += "+";
+                else
+                    lyric = "+";
+            }
+
             _partNotes[_currentPart].Add(new UltraStarNote
             {
                 PartIndex = _currentPart,
@@ -267,11 +274,6 @@ namespace YARG.Core.Chart.Loaders.UltraStar
                 var events = new List<LyricEvent>();
                 foreach (var n in group)
                 {
-                    if (n.IsMelisma)
-                    {
-                        continue;
-                    }
-
                     if (string.IsNullOrWhiteSpace(n.Lyric))
                     {
                         continue;
@@ -526,7 +528,7 @@ namespace YARG.Core.Chart.Loaders.UltraStar
 
                         YargLogger.LogDebug($"[UltraStar]   P{partIndex + 1} {n.Type} beat={n.StartBeat} dur={n.DurationBeats} " +
                             $"pitch={n.Pitch}→midi={midiText} tick={BeatToTick(n.StartBeat)} " +
-                            $"time={BeatToTime(n.StartBeat):F3}s lyric='{n.Lyric}' melisma={n.IsMelisma}");
+                            $"time={BeatToTime(n.StartBeat):F3}s lyric='{n.Lyric}'");
                     }
                 }
             }
