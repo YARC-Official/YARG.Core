@@ -358,7 +358,7 @@ namespace YARG.Core.Engine.Keys.Engines
                 return;
             }
 
-            var coda = Codas[CurrentCodaIndex - 1];
+            var coda = Codas[CurrentCodaIndex];
 
             // Figure out which keys changed
             var pressed = KeyMask & ~PreviousKeyMask;

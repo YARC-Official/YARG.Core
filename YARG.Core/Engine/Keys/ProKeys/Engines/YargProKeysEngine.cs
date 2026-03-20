@@ -513,7 +513,7 @@ namespace YARG.Core.Engine.Keys.Engines
                     continue;
                 }
 
-                codaSections.Add(new CodaSection(5, phrase.Time, phrase.TimeEnd));
+                codaSections.Add(new CodaSection(4, phrase.Time, phrase.TimeEnd));
             }
 
             return codaSections;
