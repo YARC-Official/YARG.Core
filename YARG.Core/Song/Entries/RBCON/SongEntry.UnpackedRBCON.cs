@@ -1,7 +1,6 @@
 ﻿using System;
 using System.IO;
 using YARG.Core.Extensions;
-using YARG.Core.Song.Cache;
 using YARG.Core.IO;
 using YARG.Core.Venue;
 using YARG.Core.Logging;
@@ -10,6 +9,8 @@ namespace YARG.Core.Song
 {
     internal sealed class UnpackedRBCONEntry : RBCONEntry
     {
+        private const int    ENCRYPTED_EDAT_MAGIC       = 0x4E504400;
+
         private DateTime _midiLastWrite;
 
         public override EntryType SubType => EntryType.ExCON;
@@ -33,6 +34,14 @@ namespace YARG.Core.Song
                 if (File.Exists(path))
                 {
                     image = YARGImage.LoadDXT(path);
+                }
+                else
+                {
+                    path  = Path.Combine(_root.FullName, _subName, "gen", _subName + "_keep.png_ps3");
+                    if (File.Exists(path))
+                    {
+                        image = YARGImage.LoadPS3DXT(path);
+                    }
                 }
             }
             return image;
@@ -86,10 +95,20 @@ namespace YARG.Core.Song
             var data = LoadUpdateMiloData();
             if (data == null)
             {
-                string path = Path.Combine(_root.FullName, _subName, "gen", _subName + ".mogg");
+                string path = Path.Combine(_root.FullName, _subName, "gen", _subName + ".milo_xbox");
                 if (File.Exists(path))
                 {
                     data = FixedArray.LoadFile(path);
+                }
+                else
+                {
+                    // milo files are identical on PS3 and Xbox, unless they have textures embedded,
+                    // which apparently only applies to TBRB, and I don't think YARG reads them anyway
+                    path = Path.Combine(_root.FullName, _subName, "gen", _subName + ".milo_ps3");
+                    if (File.Exists(path))
+                    {
+                        data = FixedArray.LoadFile(path);
+                    }
                 }
             }
             return data;
@@ -98,6 +117,10 @@ namespace YARG.Core.Song
         protected override FixedArray<byte>? GetMainMidiData()
         {
             string path = Path.Combine(_root.FullName, _subName, _subName + ".mid");
+            if (!File.Exists(path))
+            {
+                path = Path.Combine(_root.FullName, _subName, _subName + ".mid.edat");
+            }
             return File.Exists(path) ? FixedArray.LoadFile(path) : null;
         }
 
@@ -142,7 +165,18 @@ namespace YARG.Core.Song
                 var midiInfo = new FileInfo(Path.Combine(songDirectory, entry._subName + ".mid"));
                 if (!midiInfo.Exists)
                 {
-                    return new ScanUnexpected(ScanResult.MissingCONMidi);
+                    // Try the PS3 .mid.edat file
+                    midiInfo = new FileInfo(Path.Combine(songDirectory, entry._subName + ".mid.edat"));
+                    if (!midiInfo.Exists)
+                    {
+                        return new ScanUnexpected(ScanResult.MissingCONMidi);
+                    }
+                    // First three bytes should be 4E 50 44 if encrypted
+                    using var midiStream = new FileStream(midiInfo.FullName, FileMode.Open, FileAccess.Read, FileShare.Read, 1);
+                    if ((midiStream.Read<int>(Endianness.Big) & 0xFFFFFF00) == ENCRYPTED_EDAT_MAGIC)
+                    {
+                        return new ScanUnexpected(ScanResult.EdatMidiEncrypted);
+                    }
                 }
 
                 string moggPath = Path.Combine(songDirectory, entry._subName + ".mogg");
@@ -184,7 +218,14 @@ namespace YARG.Core.Song
             var midiInfo = new FileInfo(midiPath);
             if (!midiInfo.Exists)
             {
-                return null;
+                // Try the PS3 .mid.edat file
+                midiPath = Path.Combine(root.FullName, subname, subname + ".mid.edat");
+                midiInfo = new FileInfo(midiPath);
+                // I don't think we need to check encryption here, since if the .mid.edat is encrypted, it should have been caught during the initial scan.
+                if (!midiInfo.Exists)
+                {
+                    return null;
+                }
             }
 
             var midiLastWrite = DateTime.FromBinary(stream.Read<long>(Endianness.Little));

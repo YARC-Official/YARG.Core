@@ -52,6 +52,15 @@ namespace YARG.Core.IO
             using var data = FixedArray.LoadFile(path);
             return TransferDXT(data);
         }
+        public static YARGImage LoadPS3DXT(string path)
+        {
+            using var data = FixedArray.LoadFile(path);
+            // .png_ps3 files are identical to the .png_xbox ones, just with every pair of bytes swapped in the raw image data.
+            for (var i = 32; i < data.Length; i += 2) {
+                (data[i], data[i + 1]) = (data[i + 1], data[i]);
+            }
+            return TransferDXT(data);
+        }
 
         public static unsafe YARGImage TransferDXT(FixedArray<byte> file)
         {

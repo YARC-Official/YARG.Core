@@ -552,6 +552,9 @@ namespace YARG.Core.Song.Cache
                     case ScanResult.MissingCONMidi:
                         writer.WriteLine("Midi file queried for found missing");
                         break;
+                    case ScanResult.EdatMidiEncrypted:
+                        writer.WriteLine(".mid.edat file found to be encrypted");
+                        break;
                     case ScanResult.PossibleCorruption:
                         writer.WriteLine("Possible corruption of a queried midi file");
                         break;
