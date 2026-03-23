@@ -34,9 +34,8 @@ namespace YARG.Core.Engine
         public UnisonBonusAwardedEvent? OnUnisonBonusAwarded;
 
         public bool CanStarPowerActivate => BaseStats.StarPowerTickAmount >= TicksPerHalfSpBar;
-
         public int BaseScore { get; protected set; }
-
+        public int NoteScore { get; protected set; }
         public abstract BaseEngineParameters BaseParameters { get; }
         public abstract BaseStats            BaseStats      { get; }
 

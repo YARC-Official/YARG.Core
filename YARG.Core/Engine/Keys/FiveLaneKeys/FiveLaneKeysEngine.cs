@@ -174,29 +174,29 @@ namespace YARG.Core.Engine.Keys
             EngineStats.NoteScore += POINTS_PER_NOTE;
         }
 
-        protected sealed override int CalculateBaseScore()
+        protected sealed override (int baseScore, int noteScore) CalculateChartScores()
         {
-            double score = 0;
+            double baseScore = 0;
+            double noteScore = 0;
             int combo = 0;
-            int multiplier;
             foreach (var note in Notes)
             {
                 // Get the current multiplier given the current combo
-                multiplier = Math.Min((combo / 10) + 1, BaseParameters.MaxMultiplier);
-
-                score += multiplier * (POINTS_PER_NOTE * (1 + note.ChildNotes.Count));
+                int multiplier = Math.Min((combo / 10) + 1, BaseParameters.MaxMultiplier);
+                double scoreForNote = POINTS_PER_NOTE * (1 + note.ChildNotes.Count);
 
                 foreach (var child in note.AllNotes)
                 {
-                    score += multiplier * (int) Math.Ceiling(child.TickLength / TicksPerSustainPoint);
+                    scoreForNote += (int) Math.Ceiling(child.TickLength / TicksPerSustainPoint);
                 }
-
+                baseScore += multiplier * scoreForNote;
+                noteScore += scoreForNote;
                 // Pro Keys combo increments per chord, not per note.
                 combo++;
             }
 
-            YargLogger.LogDebug($"[Pro Keys] Base score: {score}, Max Combo: {combo}");
-            return (int) Math.Round(score);
+            YargLogger.LogDebug($"[Pro Keys] Base score: {baseScore}, Max Combo: {combo}");
+            return ((int) Math.Round(baseScore), (int) Math.Round(noteScore));
         }
 
         protected override bool IsKeyInTime(GuitarNote note, double frontEnd) => IsKeyInTime(note, (int)note.FiveLaneKeysAction, frontEnd);

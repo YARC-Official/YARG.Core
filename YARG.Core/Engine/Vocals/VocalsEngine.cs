@@ -325,9 +325,10 @@ namespace YARG.Core.Engine.Vocals
             }
         }
 
-        protected sealed override int CalculateBaseScore()
+        protected sealed override (int baseScore, int noteScore) CalculateChartScores()
         {
-            double score = 0;
+            double baseScore = 0;
+            double noteScore = 0;
             int combo = 0;
             foreach (var note in Notes)
             {
@@ -335,14 +336,21 @@ namespace YARG.Core.Engine.Vocals
                 {
                     continue;
                 };
-
+                if (note.IsPercussionPhrase)
+                {
+                    // I am assuming all notes in a percussion phrase are percussion because I want to avoid nested loops
+                    baseScore += POINTS_PER_PERCUSSION * note.ChildNotes.Count;
+                    noteScore += POINTS_PER_PERCUSSION;
+                    continue;
+                }
                 int multiplier = Math.Min(combo + 1, BaseParameters.MaxMultiplier);
-                score += multiplier * EngineParameters.PointsPerPhrase;
+                baseScore += multiplier * EngineParameters.PointsPerPhrase;
+                noteScore += EngineParameters.PointsPerPhrase;
                 combo++;
             }
 
-            YargLogger.LogDebug($"[Vocals] Base score: {score}, Max Combo: {combo}");
-            return (int) Math.Round(score);
+            YargLogger.LogDebug($"[Vocals] Base score: {baseScore}, Max Combo: {combo}");
+            return ((int) Math.Round(baseScore), (int) Math.Round(noteScore));
         }
 
         protected override bool CanSustainHold(VocalNote note) => throw new InvalidOperationException();

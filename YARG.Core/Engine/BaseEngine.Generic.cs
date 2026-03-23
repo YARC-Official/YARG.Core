@@ -90,7 +90,7 @@ namespace YARG.Core.Engine
 
             // This method should only rely on the `Notes` property (which is assigned above).
             // ReSharper disable once VirtualMemberCallInConstructor
-            BaseScore = CalculateBaseScore();
+            (BaseScore, NoteScore) = CalculateChartScores();
 
             Solos = GetSoloSections();
             EngineStats.TotalSoloBonusPoints = CalculateTotalSoloBonus(Solos);
@@ -1081,15 +1081,16 @@ namespace YARG.Core.Engine
         }
 
         /// <summary>
-        /// Calculates the base score of the chart, which can be used to calculate star thresholds.
+        /// Calculates both the base score and note score of the chart, which can be used to calculate star thresholds.
         /// Base score is defined as the score if a player were to FC and hit all sustains fully.
+        /// Note score is base score, but without multiplier.
         /// </summary>
         /// <remarks>
         /// Please be mindful that this virtual method is called in the constructor of
-        /// <see cref="BaseEngine{TNoteType,TEngineParams,TEngineStats,TEngineState}"/>.
+        /// <see cref="BaseEngine{TNoteType,TEngineParams,TEngineStats}"/>.
         /// <b>ONLY</b> use the <see cref="Notes"/> property to calculate this.
         /// </remarks>
-        protected abstract int CalculateBaseScore();
+        protected abstract (int baseScore, int noteScore) CalculateChartScores();
 
         /// <summary>
         /// Calculates the total bonus points that could be awarded from solos.
@@ -1101,7 +1102,6 @@ namespace YARG.Core.Engine
             int score = 0;
             foreach (var solo in soloSections)
             {
-                //TODO: This should probably be a constant
                 score += solo.NoteCount * 100;
             }
             return score;

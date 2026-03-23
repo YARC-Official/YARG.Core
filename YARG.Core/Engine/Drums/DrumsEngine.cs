@@ -337,21 +337,23 @@ namespace YARG.Core.Engine.Drums
             EngineStats.NoteScore += pointsPerNote;
         }
 
-        protected sealed override int CalculateBaseScore()
+        protected sealed override (int baseScore, int noteScore) CalculateChartScores()
         {
-            double score = 0;
+            double baseScore = 0;
+            double noteScore = 0;
             int combo = 0;
             foreach (var note in Notes)
             {
                 // Get the current multiplier given the current combo
                 int multiplier = Math.Min((combo / 10) + 1, BaseParameters.MaxMultiplier);
-
-                score += multiplier * (GetPointsPerNote() * (1 + note.ChildNotes.Count));
+                double scoreForNote = GetPointsPerNote() * (1 + note.ChildNotes.Count);
+                baseScore += multiplier * scoreForNote;
+                noteScore += scoreForNote;
                 combo += 1 + note.ChildNotes.Count;
             }
 
-            YargLogger.LogDebug($"[Drums] Base score: {score}, Max Combo: {combo}");
-            return (int) Math.Round(score);
+            YargLogger.LogDebug($"[Drums] Base score: {baseScore}, Max Combo: {combo}");
+            return ((int) Math.Round(baseScore), (int) Math.Round(noteScore));
         }
 
         protected static bool IsTomInput(GameInput input)
