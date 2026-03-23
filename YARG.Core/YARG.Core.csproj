@@ -16,6 +16,10 @@
   </ItemGroup>
 
   <ItemGroup>
+    <EmbeddedResource Include="Resources\cmudict.txt" />
+  </ItemGroup>
+
+  <ItemGroup>
     <None Update="Logging\YargLogger.Methods.t4">
       <Generator>TextTemplatingFileGenerator</Generator>
       <LastGenOutput>YargLogger.Methods.cs</LastGenOutput>

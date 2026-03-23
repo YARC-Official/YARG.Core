@@ -5,6 +5,7 @@
         Mid,
         Midi,
         Chart,
+        UltraStar
     };
 
     public enum EntryType

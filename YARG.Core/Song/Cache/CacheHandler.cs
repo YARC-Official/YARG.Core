@@ -797,8 +797,9 @@ namespace YARG.Core.Song.Cache
         /// <returns>Whether files pertaining to an unpacked ini entry were discovered</returns>
         private bool ScanIniEntry(in FileCollection collection, IniEntryGroup group, string defaultPlaylist)
         {
-            int i = collection.FindFile("song.ini", out var ini) ? 0 : 2;
-            while (i < 3)
+            bool hasIni = collection.FindFile("song.ini", out var ini);
+            int i = hasIni ? 0 : 3;
+            while (i < 4)
             {
                 if (!collection.FindFile(IniSubEntry.CHART_FILE_TYPES[i].Filename, out var chart))
                 {
@@ -818,7 +819,7 @@ namespace YARG.Core.Song.Cache
 
                 try
                 {
-                    var entry = UnpackedIniEntry.ProcessNewEntry(collection.Directory, chart, IniSubEntry.CHART_FILE_TYPES[i].Format, ini, defaultPlaylist);
+                    var entry = UnpackedIniEntry.ProcessNewEntry(collection.Directory, chart, IniSubEntry.CHART_FILE_TYPES[i].Format, hasIni ? ini : null, defaultPlaylist);
                     if (entry)
                     {
                         AddEntry(entry.Value);

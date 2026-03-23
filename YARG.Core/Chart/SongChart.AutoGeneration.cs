@@ -106,6 +106,10 @@ namespace YARG.Core.Chart
                 if (!isPhraseEnd(phraseEndExpert))
                 {
                     phraseEndExpert.ActivateFlag(phraseEndFlag);
+                    foreach (var child in phraseEndExpert.ChildNotes)
+                    {
+                        child.ActivateFlag(phraseEndFlag);
+                    }
                 }
             }
         }
@@ -524,6 +528,20 @@ namespace YARG.Core.Chart
             miloLipsync.Load();
 
             songChart.LipsyncEvents.AddRange(miloLipsync.LipsyncEvents);
+            
+            // Generate lipsync from vocals if no lipsync data was found
+            if (songChart.LipsyncEvents.Count == 0)
+            {
+                GenerateLipsyncFromVocals(songChart);
+            }
+        }
+
+        public static void GenerateLipsyncFromVocals(SongChart songChart)
+        {
+            if (!songChart.Lyrics.IsEmpty)
+            {
+                songChart.LipsyncEvents.AddRange(LipsyncGenerator.GenerateFromLyrics(songChart.Lyrics));
+            }
         }
 
         // Add range shift events to the InstrumentDifficulty
