@@ -1,49 +1,80 @@
-﻿using MoonscraperChartEditor.Song.IO;
-using System;
+﻿using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
+using MoonscraperChartEditor.Song.IO;
 using YARG.Core.Chart;
+using YARG.Core.Chart.Loaders.SingStar;
 using YARG.Core.Chart.Loaders.UltraStar;
 using YARG.Core.Extensions;
 using YARG.Core.IO;
 using YARG.Core.IO.Ini;
-using YARG.Core.Logging;
 
 namespace YARG.Core.Song
 {
     public static class IniAudio
     {
-        public static readonly string[] SupportedStems = { "song", "guitar", "bass", "rhythm", "keys", "vocals", "vocals_1", "vocals_2", "drums", "drums_1", "drums_2", "drums_3", "drums_4", "crowd", };
-        public static readonly string[] SupportedFormats = { ".opus", ".ogg", ".mp3", ".wav", ".aiff", };
+        public static readonly string[] SupportedStems =
+        {
+            "song",
+            "guitar",
+            "bass",
+            "rhythm",
+            "keys",
+            "vocals",
+            "vocals_1",
+            "vocals_2",
+            "drums",
+            "drums_1",
+            "drums_2",
+            "drums_3",
+            "drums_4",
+            "crowd",
+        };
+        public static readonly string[] SupportedFormats =
+        {
+            ".opus",
+            ".ogg",
+            ".mp3",
+            ".wav",
+            ".aiff",
+        };
         private static readonly HashSet<string> SupportedAudioFiles = new();
 
         static IniAudio()
         {
             foreach (string stem in SupportedStems)
-                foreach (string format in SupportedFormats)
+            foreach (string format in SupportedFormats)
             {
                 SupportedAudioFiles.Add(stem + format);
             }
         }
 
-        public static bool IsAudioFile(string file)
-        {
-            return SupportedAudioFiles.Contains(file);
-        }
+        public static bool IsAudioFile(string file) => SupportedAudioFiles.Contains(file);
     }
 
     internal abstract class IniSubEntry : SongEntry
     {
+        private const int GUITAR_FIVEFRET_MAX = 5;
+        private const int OPEN_NOTE           = 7;
         public static readonly (string Filename, ChartFormat Format)[] CHART_FILE_TYPES =
         {
-            ("notes.mid"  , ChartFormat.Mid),
-            ("notes.midi" , ChartFormat.Midi),
+            ("notes.mid", ChartFormat.Mid),
+            ("notes.midi", ChartFormat.Midi),
             ("notes.chart", ChartFormat.Chart),
-            ("notes.txt"  , ChartFormat.UltraStar),
+            ("notes.txt", ChartFormat.UltraStar),
+            ("vocals.xml", ChartFormat.SingStar),
         };
 
-        protected static readonly string[] ALBUMART_FILES;
-        protected static readonly string[] PREVIEW_FILES;
+        protected static readonly string[]    ALBUMART_FILES;
+        protected static readonly string[]    PREVIEW_FILES;
+        protected readonly        ChartFormat _chartFormat;
+        protected readonly        DateTime    _chartLastWrite;
+
+        protected readonly string _location;
+        protected          string _background = string.Empty;
+        protected          string _cover      = string.Empty;
+        protected          string _video      = string.Empty;
 
         static IniSubEntry()
         {
@@ -60,16 +91,16 @@ namespace YARG.Core.Song
             }
         }
 
-        protected readonly string _location;
-        protected readonly DateTime _chartLastWrite;
-        protected readonly ChartFormat _chartFormat;
-        protected string _background = string.Empty;
-        protected string _video = string.Empty;
-        protected string _cover = string.Empty;
+        protected IniSubEntry(string location, in DateTime chartLastWrite, ChartFormat chartFormat)
+        {
+            _location = location;
+            _chartLastWrite = chartLastWrite;
+            _chartFormat = chartFormat;
+        }
 
         public override string SortBasedLocation => _location;
-        public override string ActualLocation => _location;
-        public override DateTime GetLastWriteTime() { return _chartLastWrite; }
+        public override string ActualLocation    => _location;
+        public override DateTime GetLastWriteTime() => _chartLastWrite;
 
         protected abstract FixedArray<byte>? GetChartData(string filename);
 
@@ -90,19 +121,24 @@ namespace YARG.Core.Song
                 return null;
             }
 
-            var parseSettings = new ParseSettings()
+            var parseSettings = new ParseSettings
             {
                 HopoThreshold = _settings.HopoThreshold,
                 SustainCutoffThreshold = _settings.SustainCutoffThreshold,
                 StarPowerNote = _settings.OverdiveMidiNote,
                 TuningOffsetCents = _settings.TuningOffsetCents,
                 DrumsType = ParseDrumsType(in _parts),
-                ChordHopoCancellation = _chartFormat != ChartFormat.Chart
+                ChordHopoCancellation = _chartFormat != ChartFormat.Chart,
             };
 
             if (_chartFormat == ChartFormat.UltraStar)
             {
                 return SongChart.FromUltraStarBytes(in parseSettings, data.ReadOnlySpan);
+            }
+
+            if (_chartFormat == ChartFormat.SingStar)
+            {
+                return SongChart.FromSingStarBytes(in parseSettings, data.ReadOnlySpan);
             }
 
             using var stream = data.ToReferenceStream();
@@ -115,10 +151,7 @@ namespace YARG.Core.Song
             return SongChart.FromDotChart(in parseSettings, reader.ReadToEnd());
         }
 
-        public override FixedArray<byte>? LoadMiloData()
-        {
-            return null;
-        }
+        public override FixedArray<byte>? LoadMiloData() => null;
 
         protected new void Deserialize(ref FixedArrayStream stream, CacheReadStrings strings)
         {
@@ -129,14 +162,8 @@ namespace YARG.Core.Song
             (_parsedYear, _yearAsNumber) = ParseYear(_metadata.Year);
         }
 
-        protected IniSubEntry(string location, in DateTime chartLastWrite, ChartFormat chartFormat)
-        {
-            _location = location;
-            _chartLastWrite = chartLastWrite;
-            _chartFormat = chartFormat;
-        }
-
-        protected internal static ScanResult ScanChart(IniSubEntry entry, FixedArray<byte> file, IniModifierCollection modifiers)
+        protected internal static ScanResult ScanChart(IniSubEntry entry, FixedArray<byte> file,
+            IniModifierCollection modifiers)
         {
             var drums_type = DrumsType.FourOrFive;
             if (modifiers.Extract("five_lane_drums", out bool fiveLaneDrums))
@@ -147,6 +174,13 @@ namespace YARG.Core.Song
             if (entry._chartFormat == ChartFormat.UltraStar)
             {
                 return ScanUltraStar(entry, file);
+            }
+
+            if (entry._chartFormat == ChartFormat.SingStar)
+            {
+                SongMetadata.FillFromIni(ref entry._metadata, modifiers);
+                SetIntensities(modifiers, ref entry._parts);
+                return ScanSingStar(entry, file);
             }
 
             ScanExpected<long> resolution;
@@ -205,7 +239,8 @@ namespace YARG.Core.Song
                 entry._settings.TuningOffsetCents = tuningOffsetCents;
             }
 
-            if (!modifiers.Extract("hopo_frequency", out entry._settings.HopoThreshold) || entry._settings.HopoThreshold <= 0)
+            if (!modifiers.Extract("hopo_frequency", out entry._settings.HopoThreshold) ||
+                entry._settings.HopoThreshold <= 0)
             {
                 if (modifiers.Extract("eighthnote_hopo", out bool eighthNoteHopo))
                 {
@@ -221,7 +256,7 @@ namespace YARG.Core.Song
                         3 => 8,
                         4 => 6,
                         5 => 4,
-                        _ => throw new NotImplementedException($"Unhandled hopofreq value {hopoFreq}!")
+                        _ => throw new NotImplementedException($"Unhandled hopofreq value {hopoFreq}!"),
                     };
                     entry._settings.HopoThreshold = 4 * resolution.Value / denominator;
                 }
@@ -242,14 +277,16 @@ namespace YARG.Core.Song
 
             // .chart defaults to no sustain cutoff whatsoever if the ini does not define the value.
             // Since a failed `Extract` sets the value to zero, we need no additional work unless it's .mid
-            if (!modifiers.Extract("sustain_cutoff_threshold", out entry._settings.SustainCutoffThreshold) && entry._chartFormat != ChartFormat.Chart)
+            if (!modifiers.Extract("sustain_cutoff_threshold", out entry._settings.SustainCutoffThreshold) &&
+                entry._chartFormat != ChartFormat.Chart)
             {
                 entry._settings.SustainCutoffThreshold = resolution.Value / 3;
             }
 
             if (entry._chartFormat == ChartFormat.Mid || entry._chartFormat == ChartFormat.Midi)
             {
-                if (!modifiers.Extract("multiplier_note", out entry._settings.OverdiveMidiNote) || entry._settings.OverdiveMidiNote != 103)
+                if (!modifiers.Extract("multiplier_note", out entry._settings.OverdiveMidiNote) ||
+                    entry._settings.OverdiveMidiNote != 103)
                 {
                     entry._settings.OverdiveMidiNote = 116;
                 }
@@ -278,6 +315,7 @@ namespace YARG.Core.Song
                     entry._metadata.SongLength = (long) (mixer.Length * SongMetadata.MILLISECOND_FACTOR);
                 }
             }
+
             return ScanResult.Success;
         }
 
@@ -294,7 +332,7 @@ namespace YARG.Core.Song
                 }
             }
 
-            foreach (var (shortname, image) in dict)
+            foreach ((string? shortname, var image) in dict)
             {
                 if (!shortname.StartsWith("background"))
                 {
@@ -317,6 +355,7 @@ namespace YARG.Core.Song
                 value = default!;
                 return false;
             }
+
             value = images[BACKROUND_RNG.Next(images.Count)];
             return true;
         }
@@ -327,14 +366,17 @@ namespace YARG.Core.Song
             {
                 return DrumsType.FourLane;
             }
+
             if (parts.FiveLaneDrums.IsActive())
             {
                 return DrumsType.FiveLane;
             }
+
             return DrumsType.Unknown;
         }
 
-        private static ScanExpected<long> ParseDotChart<TChar>(ref YARGTextContainer<TChar> container, IniModifierCollection modifiers, ref AvailableParts parts, ref DrumsType drumsType)
+        private static ScanExpected<long> ParseDotChart<TChar>(ref YARGTextContainer<TChar> container,
+            IniModifierCollection modifiers, ref AvailableParts parts, ref DrumsType drumsType)
             where TChar : unmanaged, IEquatable<TChar>, IConvertible
         {
             if (drumsType != DrumsType.FiveLane && modifiers.Extract("pro_drums", out bool proDrums) && proDrums)
@@ -355,6 +397,7 @@ namespace YARG.Core.Song
                         return new ScanUnexpected(ScanResult.InvalidResolution);
                     }
                 }
+
                 modifiers.Union(chartMods);
             }
 
@@ -365,10 +408,12 @@ namespace YARG.Core.Song
                     YARGChartFileReader.SkipToNextTrack(ref container);
                 }
             }
+
             return resolution;
         }
 
-        private static ScanExpected<long> ParseDotMidi(FixedArray<byte> file, IniModifierCollection modifiers, ref AvailableParts parts, ref DrumsType drumsType)
+        private static ScanExpected<long> ParseDotMidi(FixedArray<byte> file, IniModifierCollection modifiers,
+            ref AvailableParts parts, ref DrumsType drumsType)
         {
             if (drumsType != DrumsType.FiveLane && (!modifiers.Extract("pro_drums", out bool proDrums) || proDrums))
             {
@@ -376,11 +421,13 @@ namespace YARG.Core.Song
                 drumsType |= DrumsType.ProDrums;
                 drumsType &= ~DrumsType.FourLane;
             }
+
             return ParseMidi(file, ref parts, ref drumsType);
         }
 
         /// <returns>Whether the track was fully traversed</returns>
-        private static unsafe bool TraverseChartTrack<TChar>(ref YARGTextContainer<TChar> container, ref AvailableParts parts, ref DrumsType drumsType)
+        private static bool TraverseChartTrack<TChar>(ref YARGTextContainer<TChar> container, ref AvailableParts parts,
+            ref DrumsType drumsType)
             where TChar : unmanaged, IEquatable<TChar>, IConvertible
         {
             if (!YARGChartFileReader.ValidateInstrument(ref container, out var instrument, out var difficulty))
@@ -390,23 +437,23 @@ namespace YARG.Core.Song
 
             return instrument switch
             {
-                Instrument.FiveFretGuitar     => ScanFiveFret(ref parts.FiveFretGuitar,               ref container, difficulty),
-                Instrument.FiveFretBass       => ScanFiveFret(ref parts.FiveFretBass,                 ref container, difficulty),
-                Instrument.FiveFretRhythm     => ScanFiveFret(ref parts.FiveFretRhythm,               ref container, difficulty),
-                Instrument.FiveFretCoopGuitar => ScanFiveFret(ref parts.FiveFretCoopGuitar,           ref container, difficulty),
-                Instrument.Keys               => ScanFiveFret(ref parts.Keys,                         ref container, difficulty),
-                Instrument.SixFretGuitar      => ScanSixFret (ref parts.SixFretGuitar,                ref container, difficulty),
-                Instrument.SixFretBass        => ScanSixFret (ref parts.SixFretBass,                  ref container, difficulty),
-                Instrument.SixFretRhythm      => ScanSixFret (ref parts.SixFretRhythm,                ref container, difficulty),
-                Instrument.SixFretCoopGuitar  => ScanSixFret (ref parts.SixFretCoopGuitar,            ref container, difficulty),
-                Instrument.FourLaneDrums      => ScanDrums   (ref parts.FourLaneDrums, ref drumsType, ref container, difficulty),
+                Instrument.FiveFretGuitar     => ScanFiveFret(ref parts.FiveFretGuitar, ref container, difficulty),
+                Instrument.FiveFretBass       => ScanFiveFret(ref parts.FiveFretBass, ref container, difficulty),
+                Instrument.FiveFretRhythm     => ScanFiveFret(ref parts.FiveFretRhythm, ref container, difficulty),
+                Instrument.FiveFretCoopGuitar => ScanFiveFret(ref parts.FiveFretCoopGuitar, ref container, difficulty),
+                Instrument.Keys               => ScanFiveFret(ref parts.Keys, ref container, difficulty),
+                Instrument.SixFretGuitar      => ScanSixFret(ref parts.SixFretGuitar, ref container, difficulty),
+                Instrument.SixFretBass        => ScanSixFret(ref parts.SixFretBass, ref container, difficulty),
+                Instrument.SixFretRhythm      => ScanSixFret(ref parts.SixFretRhythm, ref container, difficulty),
+                Instrument.SixFretCoopGuitar  => ScanSixFret(ref parts.SixFretCoopGuitar, ref container, difficulty),
+                Instrument.FourLaneDrums => ScanDrums(ref parts.FourLaneDrums, ref drumsType, ref container,
+                    difficulty),
                 _ => false,
             };
         }
 
-        private const int GUITAR_FIVEFRET_MAX = 5;
-        private const int OPEN_NOTE = 7;
-        private static bool ScanFiveFret<TChar>(ref PartValues part, ref YARGTextContainer<TChar> container, Difficulty difficulty)
+        private static bool ScanFiveFret<TChar>(ref PartValues part, ref YARGTextContainer<TChar> container,
+            Difficulty difficulty)
             where TChar : unmanaged, IEquatable<TChar>, IConvertible
         {
             if (part[difficulty])
@@ -428,10 +475,12 @@ namespace YARG.Core.Song
                     }
                 }
             }
+
             return true;
         }
 
-        private static bool ScanSixFret<TChar>(ref PartValues part, ref YARGTextContainer<TChar> container, Difficulty difficulty)
+        private static bool ScanSixFret<TChar>(ref PartValues part, ref YARGTextContainer<TChar> container,
+            Difficulty difficulty)
             where TChar : unmanaged, IEquatable<TChar>, IConvertible
         {
             const int SIX_FRET_BLACK1 = 8;
@@ -454,17 +503,19 @@ namespace YARG.Core.Song
                     }
                 }
             }
+
             return true;
         }
 
-        private static bool ScanDrums<TChar>(ref PartValues part, ref DrumsType drumsType, ref YARGTextContainer<TChar> container, Difficulty difficulty)
+        private static bool ScanDrums<TChar>(ref PartValues part, ref DrumsType drumsType,
+            ref YARGTextContainer<TChar> container, Difficulty difficulty)
             where TChar : unmanaged, IEquatable<TChar>, IConvertible
         {
             const int YELLOW_CYMBAL = 66;
             const int GREEN_CYMBAL = 68;
             const int DOUBLE_BASS_MODIFIER = 32;
 
-            var diff_mask = (DifficultyMask)(1 << (int)difficulty);
+            var diff_mask = (DifficultyMask) (1 << (int) difficulty);
             // No point in scan a difficulty that already exists
             if ((part.Difficulties & diff_mask) > DifficultyMask.None)
             {
@@ -513,12 +564,14 @@ namespace YARG.Core.Song
                     }
 
                     //  Testing against zero would not work in expert
-                    if ((part.Difficulties & requiredMask) == requiredMask && drumsType is DrumsType.ProDrums or DrumsType.FiveLane)
+                    if ((part.Difficulties & requiredMask) == requiredMask &&
+                        drumsType is DrumsType.ProDrums or DrumsType.FiveLane)
                     {
                         return false;
                     }
                 }
             }
+
             return true;
         }
 
@@ -543,8 +596,8 @@ namespace YARG.Core.Song
 
             if (loader.GetMetadata("GAP") is string gapStr &&
                 double.TryParse(gapStr,
-                    System.Globalization.NumberStyles.Float,
-                    System.Globalization.CultureInfo.InvariantCulture,
+                    NumberStyles.Float,
+                    CultureInfo.InvariantCulture,
                     out double gapMs))
             {
                 entry._metadata.SongOffset = 0;
@@ -552,8 +605,8 @@ namespace YARG.Core.Song
 
             if (loader.GetMetadata("PREVIEWSTART") is string previewStr &&
                 double.TryParse(previewStr,
-                    System.Globalization.NumberStyles.Float,
-                    System.Globalization.CultureInfo.InvariantCulture,
+                    NumberStyles.Float,
+                    CultureInfo.InvariantCulture,
                     out double previewMs))
             {
                 entry._metadata.Preview.Start = (long) previewMs;
@@ -593,6 +646,71 @@ namespace YARG.Core.Song
             return ScanResult.Success;
         }
 
+        private static ScanResult ScanSingStar(IniSubEntry entry, FixedArray<byte> file)
+        {
+            var loader = new SingStarLoader(file);
+
+            // fallbacks to XML comments (.ini main source)
+            if (string.IsNullOrWhiteSpace(entry._metadata.Name))
+            {
+                string? title = loader.GetMetadata("TITLE");
+                if (string.IsNullOrWhiteSpace(title))
+                    return ScanResult.NoName;
+                entry._metadata.Name = title;
+            }
+
+            if (string.IsNullOrWhiteSpace(entry._metadata.Artist) ||
+                entry._metadata.Artist == SongMetadata.DEFAULT_ARTIST)
+            {
+                string? artist = loader.GetMetadata("ARTIST");
+                if (!string.IsNullOrWhiteSpace(artist))
+                    entry._metadata.Artist = artist;
+            }
+
+            if (string.IsNullOrWhiteSpace(entry._metadata.Genre))
+            {
+                entry._metadata.Genre = loader.GetMetadata("GENRE") ?? string.Empty;
+            }
+
+            if (string.IsNullOrWhiteSpace(entry._metadata.Year) ||
+                entry._metadata.Year == SongMetadata.DEFAULT_YEAR)
+            {
+                entry._metadata.Year = loader.GetMetadata("YEAR") ?? SongMetadata.DEFAULT_YEAR;
+            }
+
+            // Vocals parts
+            entry._parts.LeadVocals.Difficulties = DifficultyMask.None;
+            entry._parts.HarmonyVocals.Difficulties = DifficultyMask.None;
+
+            entry._parts.LeadVocals.SubTracks = 1;
+            entry._parts.LeadVocals.ActivateDifficulty(Difficulty.Expert);
+            entry._parts.LeadVocals.Intensity = 0;
+
+            if (loader.GetMetadata("PARTS") == "2")
+            {
+                entry._parts.HarmonyVocals.SubTracks = 2;
+                entry._parts.HarmonyVocals.Intensity = 0;
+                entry._parts.HarmonyVocals.ActivateDifficulty(Difficulty.Expert);
+            }
+            else
+            {
+                entry._parts.HarmonyVocals.SubTracks = 0;
+            }
+
+            entry._hash = HashWrapper.Hash(file.ReadOnlySpan);
+            (entry._parsedYear, entry._yearAsNumber) = ParseYear(entry._metadata.Year);
+            entry.SetSortStrings();
+
+            if (entry._metadata.SongLength <= 0)
+            {
+                using var mixer = entry.LoadAudio(0, 0);
+                if (mixer != null)
+                    entry._metadata.SongLength = (long) (mixer.Length * SongMetadata.MILLISECOND_FACTOR);
+            }
+
+            return ScanResult.Success;
+        }
+
         private static void SetIntensities(IniModifierCollection modifiers, ref AvailableParts parts)
         {
             if (modifiers.Extract("diff_band", out int intensity))
@@ -606,12 +724,14 @@ namespace YARG.Core.Song
 
             if (modifiers.Extract("diff_guitar", out intensity))
             {
-                parts.ProGuitar_22Fret.Intensity = parts.ProGuitar_17Fret.Intensity = parts.FiveFretGuitar.Intensity = (sbyte) intensity;
+                parts.ProGuitar_22Fret.Intensity = parts.ProGuitar_17Fret.Intensity =
+                    parts.FiveFretGuitar.Intensity = (sbyte) intensity;
             }
 
             if (modifiers.Extract("diff_bass", out intensity))
             {
-                parts.ProBass_22Fret.Intensity = parts.ProBass_17Fret.Intensity = parts.FiveFretBass.Intensity = (sbyte) intensity;
+                parts.ProBass_22Fret.Intensity =
+                    parts.ProBass_17Fret.Intensity = parts.FiveFretBass.Intensity = (sbyte) intensity;
             }
 
             if (modifiers.Extract("diff_rhythm", out intensity))
@@ -770,6 +890,7 @@ namespace YARG.Core.Song
                     {
                         number = 10 * number + str[curr] - '0';
                     }
+
                     ++curr;
                 }
 
@@ -778,6 +899,7 @@ namespace YARG.Core.Song
                     return (str[start..curr], number);
                 }
             }
+
             return (str, int.MaxValue);
         }
     }

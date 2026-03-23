@@ -798,8 +798,8 @@ namespace YARG.Core.Song.Cache
         private bool ScanIniEntry(in FileCollection collection, IniEntryGroup group, string defaultPlaylist)
         {
             bool hasIni = collection.FindFile("song.ini", out var ini);
-            int i = hasIni ? 0 : 3;
-            while (i < 4)
+            int i = 0;
+            while (i < 5)
             {
                 if (!collection.FindFile(IniSubEntry.CHART_FILE_TYPES[i].Filename, out var chart))
                 {
