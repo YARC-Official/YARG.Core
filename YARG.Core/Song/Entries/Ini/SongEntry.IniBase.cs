@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using YARG.Core.Chart;
+using YARG.Core.Chart.Loaders.SingStar;
 using YARG.Core.Chart.Loaders.UltraStar;
 using YARG.Core.Extensions;
 using YARG.Core.IO;
@@ -43,6 +44,15 @@ namespace YARG.Core.Song
             ("notes.midi" , ChartFormat.Midi),
             ("notes.chart", ChartFormat.Chart),
             ("notes.txt"  , ChartFormat.UltraStar),
+            ("notes.xml"  , ChartFormat.SingStar),
+            ("vocals.xml" , ChartFormat.SingStar),
+            ("melody.xml" , ChartFormat.SingStar),
+            ("melody_1.xml", ChartFormat.SingStar),
+            ("melody_2.xml", ChartFormat.SingStar),
+            ("melody_3.xml", ChartFormat.SingStar),
+            ("melody_4.xml", ChartFormat.SingStar),
+            ("melody_5.xml", ChartFormat.SingStar),
+            ("melody_6.xml", ChartFormat.SingStar),
         };
 
         protected static readonly string[] ALBUMART_FILES;
@@ -101,12 +111,10 @@ namespace YARG.Core.Song
                 return File.GetLastWriteTime(_location);
             }
 
-            foreach (var chart in CHART_FILE_TYPES)
+            string chartPath = Path.Combine(_location, _chartFileName);
+            if (File.Exists(chartPath))
             {
-                if (chart.Format == _chartFormat)
-                {
-                    return File.GetLastWriteTime(Path.Combine(_location, chart.Filename));
-                }
+                return File.GetLastWriteTime(chartPath);
             }
 
             return base.GetLastModifiedTime();
@@ -172,6 +180,11 @@ namespace YARG.Core.Song
                 return SongChart.FromUltraStar(in parseSettings, data, harmonyData);
             }
 
+            if (_chartFormat == ChartFormat.SingStar)
+            {
+                return SongChart.FromSingStar(in parseSettings, data);
+            }
+
             using var stream = data.ToReferenceStream();
             if (_chartFormat == ChartFormat.Mid || _chartFormat == ChartFormat.Midi)
             {
@@ -228,6 +241,13 @@ namespace YARG.Core.Song
             if (entry._chartFormat == ChartFormat.UltraStar)
             {
                 return ScanUltraStar(entry, file, collection, header, duetChart);
+            }
+
+            if (entry._chartFormat == ChartFormat.SingStar)
+            {
+                SongMetadata.FillFromIni(ref entry._metadata, modifiers);
+                SetIntensities(modifiers, ref entry._parts);
+                return ScanSingStar(entry, file, collection);
             }
 
             ScanExpected<long> resolution;
@@ -746,6 +766,74 @@ namespace YARG.Core.Song
 
             // UltraStar has no length tag.
             FillSongLengthFromAudio(entry, files);
+            return ScanResult.Success;
+        }
+
+        private static ScanResult ScanSingStar(IniSubEntry entry, FixedArray<byte> file, FileCollection? collection)
+        {
+            var loader = new SingStarLoader(file);
+
+            // XML comments are the fallback when song.ini doesn't provide the field.
+            if (string.IsNullOrWhiteSpace(entry._metadata.Name) ||
+                entry._metadata.Name == SongMetadata.DEFAULT_NAME)
+            {
+                string? title = loader.GetMetadata("TITLE");
+                if (string.IsNullOrWhiteSpace(title))
+                {
+                    return ScanResult.NoName;
+                }
+                entry._metadata.Name = title;
+            }
+
+            if (string.IsNullOrWhiteSpace(entry._metadata.Artist) ||
+                entry._metadata.Artist == SongMetadata.DEFAULT_ARTIST)
+            {
+                string? artist = loader.GetMetadata("ARTIST");
+                if (!string.IsNullOrWhiteSpace(artist))
+                {
+                    entry._metadata.Artist = artist;
+                }
+            }
+
+            if (string.IsNullOrWhiteSpace(entry._metadata.Genre))
+            {
+                entry._metadata.Genre = loader.GetMetadata("GENRE") ?? string.Empty;
+            }
+
+            if (string.IsNullOrWhiteSpace(entry._metadata.Year) ||
+                entry._metadata.Year == SongMetadata.DEFAULT_YEAR)
+            {
+                entry._metadata.Year = loader.GetMetadata("YEAR") ?? SongMetadata.DEFAULT_YEAR;
+            }
+
+            entry._parts.LeadVocals.Difficulties = DifficultyMask.None;
+            entry._parts.HarmonyVocals.Difficulties = DifficultyMask.None;
+
+            entry._parts.LeadVocals.SubTracks = 1;
+            entry._parts.LeadVocals.ActivateDifficulty(Difficulty.Expert);
+            entry._parts.LeadVocals.Intensity = 0;
+
+            if (loader.GetMetadata("PARTS") == "2")
+            {
+                entry._parts.HarmonyVocals.ActivateSubtrack(0);
+                entry._parts.HarmonyVocals.ActivateSubtrack(1);
+                entry._parts.HarmonyVocals.Intensity = 0;
+                entry._parts.HarmonyVocals.ActivateDifficulty(Difficulty.Expert);
+            }
+            else
+            {
+                entry._parts.HarmonyVocals.SubTracks = 0;
+            }
+
+            entry._hash = HashWrapper.Hash(file.ReadOnlySpan);
+            (entry._parsedYear, entry._yearAsNumber) = ParseYear(entry._metadata.Year);
+            entry.SetSortStrings();
+
+            if (entry._metadata.SongLength <= 0)
+            {
+                FillSongLengthFromAudio(entry, collection);
+            }
+
             return ScanResult.Success;
         }
 
