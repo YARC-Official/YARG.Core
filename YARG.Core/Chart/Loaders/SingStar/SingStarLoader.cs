@@ -491,19 +491,25 @@ namespace YARG.Core.Chart.Loaders.SingStar
         /// </summary>
         private List<List<SingStarNote>> GroupNotesIntoPhrases(List<SingStarNote> notes)
         {
+            const uint REST_GAP_THRESHOLD = SINGSTAR_UNITS_PER_BEAT * 2;
             var groups = new List<List<SingStarNote>>();
             var currentGroup = new List<SingStarNote>();
 
             foreach (var note in notes.OrderBy(n => n.StartUnit))
             {
-                if (note.IsSentenceStart)
+                var isLongRest = note.IsRest && note.Duration >= REST_GAP_THRESHOLD;
+                if (note.IsSentenceStart || isLongRest)
                 {
                     if (currentGroup.Count > 0)
                     {
                         groups.Add(currentGroup);
                     }
+
                     currentGroup = new List<SingStarNote>();
+
+                    if (isLongRest) continue;
                 }
+
                 currentGroup.Add(note);
             }
 
