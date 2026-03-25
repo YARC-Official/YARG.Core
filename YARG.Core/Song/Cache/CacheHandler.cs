@@ -34,7 +34,7 @@ namespace YARG.Core.Song.Cache
         /// Format is YY_MM_DD_RR: Y = year, M = month, D = day, R = revision (reset across dates, only increment
         /// if multiple cache version changes happen in a single day).
         /// </summary>
-        private const int CACHE_VERSION = 26_02_11_00;
+        private const int CACHE_VERSION = 26_03_25_00;
 
         public static ScanProgressTracker Progress => _progress;
         private static ScanProgressTracker _progress;
@@ -661,7 +661,7 @@ namespace YARG.Core.Song.Cache
                         var dta = new FileInfo(Path.Combine(directory.FullName, CONEntryGroup.SONGS_DTA));
                         if (dta.Exists)
                         {
-                            if (UnpackedCONEntryGroup.Create(directory.FullName, dta, tracker.Playlist, out var entryGroup))
+                            if (UnpackedConsolePackageEntryGroup.Create(directory.FullName, dta, tracker.Playlist, out var entryGroup))
                             {
                                 lock (conEntryGroups)
                                 {
@@ -917,7 +917,7 @@ namespace YARG.Core.Song.Cache
         /// </summary>
         /// <param name="cacheLocation">File location for the cache</param>
         /// <param name="fullDirectoryPlaylists">Toggle for the display style of directory-based playlists</param>
-        /// <returns>A FixedArray instance pointing to a buffer of the cache file's data, or <see cref="FixedArray&lt;&rt;"/>.Null if invalid</returns>
+        /// <returns>A FixedArray instance pointing to a buffer of the cache file's data, or <see cref="FixedArray&lt;&gt;"/>.Null if invalid</returns>
         private static FixedArray<byte>? LoadCacheToMemory(string cacheLocation, bool fullDirectoryPlaylists)
         {
             FileInfo info = new(cacheLocation);
@@ -1420,7 +1420,7 @@ namespace YARG.Core.Song.Cache
                 if (dtaInfo.Exists)
                 {
                     FindOrMarkDirectory(location);
-                    if (UnpackedCONEntryGroup.Create(location, dtaInfo, defaultPlaylist, out var unpacked))
+                    if (UnpackedConsolePackageEntryGroup.Create(location, dtaInfo, defaultPlaylist, out var unpacked))
                     {
                         lock (conEntryGroups)
                         {
@@ -1463,8 +1463,8 @@ namespace YARG.Core.Song.Cache
         {
             var root = new AbridgedFileInfo(ref stream);
             List<CONFileListing>? listings = null;
-            bool packed = stream.ReadBoolean();
-            if (packed)
+            var type = (CONEntryGroup.CONEntryType) stream.Read<int>(Endianness.Little);
+            if (type == CONEntryGroup.CONEntryType.PackedCONEntry)
             {
                 listings = GetCacheCONListings(root.FullName);
             }
@@ -1475,9 +1475,13 @@ namespace YARG.Core.Song.Cache
                 {
                     string name = node.Slice.ReadString();
                     int index = node.Slice.ReadByte();
-                    RBCONEntry entry = packed
-                            ? PackedRBCONEntry.ForceDeserialize(listings, in root, name, ref node.Slice, strings)
-                            : UnpackedRBCONEntry.ForceDeserialize(in root, name, ref node.Slice, strings);
+                    RBCONEntry entry = type switch
+                    {
+                        CONEntryGroup.CONEntryType.PackedCONEntry   => PackedRBCONEntry.ForceDeserialize(listings, in root, name, ref node.Slice, strings),
+                        CONEntryGroup.CONEntryType.UnpackedCONEntry => UnpackedRBCONEntry.ForceDeserialize(in root, name, ref node.Slice, strings),
+                        CONEntryGroup.CONEntryType.UnpackedPKGEntry => UnpackedRBPKGEntry.ForceDeserialize(in root, name, ref node.Slice, strings),
+                        _ => throw new InvalidOperationException($"Invalid CON entry type {type} in cache!")
+                    };
 
                     if (cacheCONModifications.TryGetValue(name, out var mods))
                     {

@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using YARG.Core.IO;
@@ -6,21 +6,21 @@ using YARG.Core.Logging;
 
 namespace YARG.Core.Song.Cache
 {
-    internal class UnpackedCONEntryGroup : CONEntryGroup
+    internal class UnpackedPKGEntryGroup : CONEntryGroup
     {
-        protected override CONEntryType Tag => CONEntryType.UnpackedCONEntry;
+        protected override CONEntryType Tag => CONEntryType.UnpackedPKGEntry;
 
-        private UnpackedCONEntryGroup(in AbridgedFileInfo root, string defaultPlaylist)
+        private UnpackedPKGEntryGroup(in AbridgedFileInfo root, string defaultPlaylist)
             : base(root, defaultPlaylist) { }
 
         public override ScanExpected<RBCONEntry> CreateEntry(in RBScanParameters paramaters)
         {
-            return UnpackedRBCONEntry.Create(in paramaters);
+            return UnpackedRBPKGEntry.Create(in paramaters);
         }
 
         public override void DeserializeEntry(ref FixedArrayStream stream, string name, int index, CacheReadStrings strings)
         {
-            var entry = UnpackedRBCONEntry.TryDeserialize(in _root, name, ref stream, strings);
+            var entry = UnpackedRBPKGEntry.TryDeserialize(in _root, name, ref stream, strings);
             if (entry != null)
             {
                 AddEntry(name, index, entry);
@@ -31,11 +31,10 @@ namespace YARG.Core.Song.Cache
         {
             var dtaLastWrite = AbridgedFileInfo.NormalizedLastWrite(dtaInfo);
             var root = new AbridgedFileInfo(directory, dtaLastWrite);
-            group = new UnpackedCONEntryGroup(in root, defaultPlaylist);
+            group = new UnpackedPKGEntryGroup(in root, defaultPlaylist);
             try
             {
                 using var data = FixedArray.LoadFile(dtaInfo.FullName);
-
                 var container = YARGDTAReader.Create(data);
                 while (YARGDTAReader.StartNode(ref container))
                 {

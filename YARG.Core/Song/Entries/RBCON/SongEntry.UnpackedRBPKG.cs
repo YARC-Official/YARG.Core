@@ -6,18 +6,19 @@ using YARG.Core.Logging;
 
 namespace YARG.Core.Song
 {
-    internal sealed class UnpackedRBCONEntry : UnpackedConsolePackageEntry
+    internal sealed class UnpackedRBPKGEntry : UnpackedConsolePackageEntry
     {
-        protected override YARGImage DXTImageLoader(string path) => YARGImage.LoadDXT(path);
+        private const int    ENCRYPTED_EDAT_MAGIC       = 0x4E504400;
+        protected override YARGImage DXTImageLoader(string path) => YARGImage.LoadPS3DXT(path);
 
-        private UnpackedRBCONEntry(in AbridgedFileInfo root, string nodeName)
+        private UnpackedRBPKGEntry(in AbridgedFileInfo root, string nodeName)
             : base(in root, nodeName) {}
 
         public static ScanExpected<RBCONEntry> Create(in RBScanParameters parameters)
         {
             try
             {
-                var entry = new UnpackedRBCONEntry(in parameters.Root, parameters.NodeName)
+                var entry = new UnpackedRBPKGEntry(in parameters.Root, parameters.NodeName)
                 {
                     _updateDirectoryAndDtaLastWrite = parameters.UpdateDirectory,
                     _updateMidiLastWrite = parameters.UpdateMidi,
@@ -34,10 +35,17 @@ namespace YARG.Core.Song
                 entry._subName = location.Value[6..location.Value.IndexOf('/', 6)];
 
                 string songDirectory = Path.Combine(parameters.Root.FullName, entry._subName);
-                var midiInfo = new FileInfo(Path.Combine(songDirectory, entry._subName + ".mid"));
+
+                var midiInfo = new FileInfo(Path.Combine(songDirectory, entry._subName + ".mid.edat"));
                 if (!midiInfo.Exists)
                 {
                     return new ScanUnexpected(ScanResult.MissingCONMidi);
+                }
+                // First three bytes should be 4E 50 44 if encrypted
+                using var midiStream = new FileStream(midiInfo.FullName, FileMode.Open, FileAccess.Read, FileShare.Read, 1);
+                if ((midiStream.Read<int>(Endianness.Big) & 0xFFFFFF00) == ENCRYPTED_EDAT_MAGIC)
+                {
+                    return new ScanUnexpected(ScanResult.EdatMidiEncrypted);
                 }
 
                 string moggPath = Path.Combine(songDirectory, entry._subName + ".mogg");
@@ -72,10 +80,10 @@ namespace YARG.Core.Song
             }
         }
 
-        public static UnpackedRBCONEntry? TryDeserialize(in AbridgedFileInfo root, string nodeName, ref FixedArrayStream stream, CacheReadStrings strings)
+        public static UnpackedRBPKGEntry? TryDeserialize(in AbridgedFileInfo root, string nodeName, ref FixedArrayStream stream, CacheReadStrings strings)
         {
             string subname = stream.ReadString();
-            string midiPath = Path.Combine(root.FullName, subname, subname + ".mid");
+            string midiPath = Path.Combine(root.FullName, subname, subname + ".mid.edat");
             var midiInfo = new FileInfo(midiPath);
             if (!midiInfo.Exists)
             {
@@ -88,7 +96,7 @@ namespace YARG.Core.Song
                 return null;
             }
 
-            var entry = new UnpackedRBCONEntry(in root, nodeName)
+            var entry = new UnpackedRBPKGEntry(in root, nodeName)
             {
                 _subName = subname,
                 _midiLastWrite = midiLastWrite,
@@ -97,9 +105,9 @@ namespace YARG.Core.Song
             return entry;
         }
 
-        public static UnpackedRBCONEntry ForceDeserialize(in AbridgedFileInfo root, string nodeName, ref FixedArrayStream stream, CacheReadStrings strings)
+        public static UnpackedRBPKGEntry ForceDeserialize(in AbridgedFileInfo root, string nodeName, ref FixedArrayStream stream, CacheReadStrings strings)
         {
-            var entry = new UnpackedRBCONEntry(in root, nodeName)
+            var entry = new UnpackedRBPKGEntry(in root, nodeName)
             {
                 _subName = stream.ReadString(),
                 _midiLastWrite = DateTime.FromBinary(stream.Read<long>(Endianness.Little)),
@@ -108,10 +116,10 @@ namespace YARG.Core.Song
             return entry;
         }
 
-        public override YARGImage? LoadAlbumData() => LoadAlbumData(".png_xbox");
+        public override YARGImage? LoadAlbumData() => LoadAlbumData(".png_ps3");
 
-        public override FixedArray<byte>? LoadMiloData() => LoadMiloData(".milo_xbox");
+        public override FixedArray<byte>? LoadMiloData() => LoadMiloData(".milo_ps3");
 
-        protected override FixedArray<byte>? GetMainMidiData() => GetMainMidiData(".mid");
+        protected override FixedArray<byte>? GetMainMidiData() => GetMainMidiData(".mid.edat");
     }
 }
