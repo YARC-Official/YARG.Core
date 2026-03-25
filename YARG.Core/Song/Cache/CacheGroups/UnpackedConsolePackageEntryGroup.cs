@@ -21,6 +21,7 @@ namespace YARG.Core.Song.Cache
                 {
                     string name = YARGDTAReader.GetNameOfNode(ref container, true);
 
+
                     if (File.Exists(Path.Combine(directory, name, name + ".mid.edat")))
                     {
                         return UnpackedPKGEntryGroup.Create(directory, dtaInfo, defaultPlaylist, out group);
@@ -29,7 +30,7 @@ namespace YARG.Core.Song.Cache
                     {
                         return UnpackedCONEntryGroup.Create(directory, dtaInfo, defaultPlaylist, out group);
                     }
-                    YargLogger.LogWarning("Node contained neither .mid nor .mid.edat, cannot determine entry group, checking next node if available");
+                    YargLogger.LogFormatWarning("Node {0} contained neither .mid nor .mid.edat, cannot determine entry group, checking next node if available", name);
                     YARGDTAReader.EndNode(ref container);
                 }
 
