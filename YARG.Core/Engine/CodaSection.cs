@@ -125,8 +125,13 @@ namespace YARG.Core.Engine
             }
         }
 
-        public int GetCurrentLaneScore(int fret, double time)
+        private int GetCurrentLaneScore(int fret, double time)
         {
+            if (_indexToLane != null && _indexToLane.TryGetValue(fret, out int lane))
+            {
+                fret = lane;
+            }
+
             return (int) Math.Floor((Math.Min(time - LastCollectedTime[fret], BONUS_RECHARGE_TIME) / BONUS_RECHARGE_TIME) * MaxLaneScore);
         }
 
@@ -141,6 +146,11 @@ namespace YARG.Core.Engine
         /// <returns>float range 0.0f to 1.0f</returns>
         public float GetNormalizedTimeSinceLastHit(int fret, double time)
         {
+            if (_indexToLane != null && _indexToLane.TryGetValue(fret, out int lane))
+            {
+                fret = lane;
+            }
+
             return (float) (Math.Min(time - LastHitTime[fret], BONUS_RECHARGE_TIME) / BONUS_RECHARGE_TIME);
         }
 
