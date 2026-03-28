@@ -137,12 +137,6 @@ namespace YARG.Core.Engine.Guitar.Engines
 
             bool strumEatenByHopo = false;
 
-            // TODO: Why did I put this here instead of in MutateStateWithInput or something?
-            if (IsCodaActive)
-            {
-                HandleCodaFretChange(time);
-            }
-
             // This is up here so overstrumming still works when there are no notes left
             if (HasStrummed)
             {
@@ -183,6 +177,11 @@ namespace YARG.Core.Engine.Guitar.Engines
 
             // Update bot (will return if not enabled)
             UpdateBot(time);
+
+            if (IsCodaActive)
+            {
+                HandleCodaFretChange(time);
+            }
 
             // Quit early if there are no notes left
             if (NoteIndex >= Notes.Count)
@@ -568,7 +567,7 @@ namespace YARG.Core.Engine.Guitar.Engines
             byte pressed = (byte) 0;
 
             // If there was a strum, hit held frets
-            if (HasStrummed)
+            if (HasStrummed && !IsBot)
             {
                 pressed = EffectiveButtonMask;
             }
