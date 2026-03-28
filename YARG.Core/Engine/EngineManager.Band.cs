@@ -1,5 +1,5 @@
 ﻿using System;
-using YARG.Core.Logging;
+using System.Collections.Generic;
 
 namespace YARG.Core.Engine
 {
@@ -22,22 +22,21 @@ namespace YARG.Core.Engine
             }
         }
 
-        public int[] GetStarScoreCutoffs(int playerCount)
+        public static int[] GetStarScoreCutoffs(List<int[]> starScoreCutoffsList)
         {
 
             int[] bandStarScoreCutoffs = new int[6];
             for (int i = 0; i < 6; i++)
             {
-                float totalStarCutoff = 0f;
-
-                foreach (var engineContainer in Engines)
+                int totalStarCutoff = 0;
+                foreach (var playerCutoffsList in starScoreCutoffsList)
                 {
-                    totalStarCutoff += engineContainer.Engine.StarScoreThresholds[i];
+                    totalStarCutoff += playerCutoffsList[i];
                 }
 
                 //TODO: May want to adjust that .265f depending on the chart's SP status (e.g. None/Yes/Unison)
                 bandStarScoreCutoffs[i] = (int) Math.Floor(totalStarCutoff *
-                    (1 + .265f * (playerCount - 1)));
+                    (1 + .265f * (starScoreCutoffsList.Count - 1)));
             }
 
             return bandStarScoreCutoffs;
