@@ -90,7 +90,7 @@ namespace YARG.Core.Engine
 
             // This method should only rely on the `Notes` property (which is assigned above).
             // ReSharper disable once VirtualMemberCallInConstructor
-            (BaseScore, NoteScore) = CalculateChartScores();
+            (BaseScore, BaseNoteScore) = CalculateChartScores();
 
             Solos = GetSoloSections();
             EngineStats.TotalSoloBonusPoints = CalculateTotalSoloBonus();
