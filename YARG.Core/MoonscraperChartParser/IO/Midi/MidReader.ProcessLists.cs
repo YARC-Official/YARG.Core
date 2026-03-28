@@ -185,6 +185,7 @@ namespace MoonscraperChartEditor.Song.IO
         private static readonly List<EventProcessFn> GuitarPostProcessList = new()
         {
             FixupStarPowerIfNeeded,
+            SetCodaFlags,
         };
 
         private static readonly List<EventProcessFn> GhlGuitarPostProcessList = new()
@@ -198,7 +199,8 @@ namespace MoonscraperChartEditor.Song.IO
         private static readonly List<EventProcessFn> DrumsPostProcessList = new()
         {
             DisambiguateDrumsType,
-            ReplaceDrumFillDuringCoda
+            ReplaceDrumFillDuringCoda,
+            SetCodaFlags,
         };
 
         private static readonly List<EventProcessFn> VocalsPostProcessList = new()
@@ -209,12 +211,14 @@ namespace MoonscraperChartEditor.Song.IO
         private static readonly List<EventProcessFn> ProKeysPostProcessList = new()
         {
             CopyDownBREPhrases,
+            SetCodaFlags,
         };
 
         private static readonly List<EventProcessFn> EliteDrumsPostProcessList = new()
         {
             SuppressNonStrictStompsAndSplashes,
-            CreateKickFlams
+            CreateKickFlams,
+            SetCodaFlags,
         };
 
         private static Dictionary<int, EventProcessFn> GetNoteProcessDict(MoonChart.GameMode gameMode)
@@ -365,6 +369,75 @@ namespace MoonscraperChartEditor.Song.IO
             }
         }
 
+        private static void SetCodaFlags(ref EventProcessParams processParams)
+        {
+            // Find coda starts and ends
+            var song = processParams.song;
+
+            if (song.events.All(e => e.text != MidIOHelper.CODA_START))
+            {
+                return;
+            }
+
+            var codaRanges = GetCodaRanges(song);
+
+            if (codaRanges.Count == 0)
+            {
+                return;
+            }
+
+            // Get all the difficulties that exist in this chart and add the coda start/end flags to the first/last notes in the
+            // coda sections we found above
+            var codaIndex = 0;
+            foreach (var diff in EnumExtensions<MoonSong.Difficulty>.Values)
+            {
+                var chart = processParams.song.GetChart(processParams.instrument, diff);
+
+                if (chart.notes.Count == 0)
+                {
+                    continue;
+                }
+
+                var lastNoteTick = chart.notes[^1].tick;
+
+                var codaStartFound = false;
+                for (int i = 0; i < chart.notes.Count; i++)
+                {
+                    if (chart.notes[i].tick < codaRanges[codaIndex].start)
+                    {
+                        continue;
+                    }
+
+                    if (chart.notes[i].tick >= codaRanges[codaIndex].start && !codaStartFound)
+                    {
+                        codaStartFound = true;
+                    }
+
+                    if (chart.notes[i].tick >= codaRanges[codaIndex].end)
+                    {
+                        // Previous note is the end of the coda
+                        chart.notes[i - 1].flags |= MoonNote.Flags.CodaEnd;
+                        codaStartFound = false;
+                        codaIndex++;
+                    }
+
+                    // Handles legacy charts that have no coda_end event
+                    if (chart.notes[i].tick == lastNoteTick && codaStartFound)
+                    {
+                        chart.notes[i].flags |= MoonNote.Flags.CodaEnd;
+                        break;
+                    }
+
+                    // If there are no more codas, no need to keep processing notes (this can happen if the chart doesn't end with a coda)
+                    if (codaIndex >= codaRanges.Count)
+                    {
+                        break;
+                    }
+                }
+            }
+
+        }
+
         private static void ReplaceDrumFillDuringCoda(ref EventProcessParams processParams)
         {
             var song = processParams.song;
@@ -382,34 +455,7 @@ namespace MoonscraperChartEditor.Song.IO
                 return;
             }
 
-            var codaCount = 0;
-            var codaRanges = new List<(uint start, uint end)>();
-            foreach (var ev in song.events)
-            {
-                if (ev.text == MidIOHelper.CODA_START)
-                {
-                    if (codaRanges.Count > 0 && codaRanges[^1].end == uint.MaxValue)
-                    {
-                        YargLogger.LogError("Unbalanced coda/coda_end events, ignoring BREs (missing coda_end)");
-                        return;
-                    }
-
-                    codaCount++;
-                    codaRanges.Add((ev.tick, uint.MaxValue));
-                }
-                else if (ev.text == MidIOHelper.CODA_END)
-                {
-                    if (codaCount != codaRanges.Count)
-                    {
-                        YargLogger.LogError("Unbalanced coda/coda_end events, ignoring BREs (missing coda)");
-                        return;
-                    }
-
-                    var range = codaRanges[^1];
-                    range.end = ev.tick;
-                    codaRanges[^1] = range;
-                }
-            }
+            var codaRanges = GetCodaRanges(song);
 
             if (codaRanges.Count == 0)
             {
@@ -428,6 +474,40 @@ namespace MoonscraperChartEditor.Song.IO
                     }
                 }
             }
+        }
+
+        private static List<(uint start, uint end)> GetCodaRanges(MoonSong song)
+        {
+            var codaCount = 0;
+            var codaRanges = new List<(uint start, uint end)>();
+            foreach (var ev in song.events)
+            {
+                if (ev.text == MidIOHelper.CODA_START)
+                {
+                    if (codaRanges.Count > 0 && codaRanges[^1].end == uint.MaxValue)
+                    {
+                        YargLogger.LogError("Unbalanced coda/coda_end events, ignoring BREs (missing coda_end)");
+                        return codaRanges;
+                    }
+
+                    codaCount++;
+                    codaRanges.Add((ev.tick, uint.MaxValue));
+                }
+                else if (ev.text == MidIOHelper.CODA_END)
+                {
+                    if (codaCount != codaRanges.Count)
+                    {
+                        YargLogger.LogError("Unbalanced coda/coda_end events, ignoring BREs (missing coda)");
+                        return codaRanges;
+                    }
+
+                    var range = codaRanges[^1];
+                    range.end = ev.tick;
+                    codaRanges[^1] = range;
+                }
+            }
+
+            return codaRanges;
         }
 
         private static void DisambiguateDrumsType(ref EventProcessParams processParams)

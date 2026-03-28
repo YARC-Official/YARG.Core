@@ -79,7 +79,9 @@ namespace YARG.Core.Engine
         public int CurrentCodaIndex { get; protected set; }
 
         public bool IsSoloActive { get; protected set; }
+        // Whether engine should be using coda behavior for overhit/miss/hit
         public bool IsCodaActive { get; protected set; }
+        // Whether we are in a coda section, regardless of whether coda behavior is active
         public bool CodaHasStarted { get; protected set; }
 
         public bool IsWaitCountdownActive { get; protected set; }

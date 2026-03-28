@@ -182,7 +182,7 @@ namespace YARG.Core.Chart
             // Check that we don't already have an identical phrase
             foreach (var otherPhrase in phrases)
             {
-                if (otherPhrase.Type == phrase.Type && otherPhrase.Time == phrase.Time && otherPhrase.TimeEnd == phrase.TimeEnd)
+                if (otherPhrase.Type == phrase.Type && otherPhrase.Tick == phrase.Tick && otherPhrase.TickEnd == phrase.TickEnd)
                 {
                     return null;
                 }

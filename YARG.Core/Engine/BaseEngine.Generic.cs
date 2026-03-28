@@ -373,7 +373,7 @@ namespace YARG.Core.Engine
                 else if (time >= Codas[CurrentCodaIndex].EndTime && IsCodaActive)
                 {
                     YargLogger.LogFormatTrace("Coda {0} deactivated at time {1}", CurrentCodaIndex, time);
-                    EndCoda();
+                    IsCodaActive = false;
                 }
             }
 
@@ -499,14 +499,11 @@ namespace YARG.Core.Engine
         protected virtual void HitNote(TNoteType note)
         {
             // If this is the last note in the chart and there was a successful coda, award coda bonus
-            // TODO: This logic will need to be changed when multiple codas are supported
-            //  probably should add a note flag on the last note in a coda/last note in the chart
-            //  to trigger this behavior
-            if (CodaHasStarted && NoteIndex == Notes.Count - 1 && Codas[CurrentCodaIndex - 1].Success)
+            if (CodaHasStarted && note.IsCodaEnd)
             {
-                var coda = Codas[CurrentCodaIndex - 1];
+                var coda = Codas[CurrentCodaIndex];
                 EngineStats.CodaBonuses += coda.TotalCodaBonus;
-                OnCodaEnd?.Invoke(coda);
+                EndCoda();
             }
 
             if (note.ParentOrSelf.WasFullyHitOrMissed())
@@ -577,9 +574,14 @@ namespace YARG.Core.Engine
 
         protected virtual void MissNote(TNoteType note)
         {
-            if (CodaHasStarted && !IsCodaActive)
+            if (CodaHasStarted)
             {
-                Codas[CurrentCodaIndex - 1].MissNote();
+                Codas[CurrentCodaIndex].MissNote();
+            }
+
+            if (CodaHasStarted && note.IsCodaEnd)
+            {
+                EndCoda();
             }
 
             if (note.ParentOrSelf.WasFullyHitOrMissed())
@@ -1094,8 +1096,8 @@ namespace YARG.Core.Engine
             YargLogger.LogFormatTrace("Coda ended at time {0} with bonus score {1}", CurrentTime, Codas[CurrentCodaIndex].TotalCodaBonus);
 
             IsCodaActive = false;
-            // TODO: Why is this commented out?
-            // OnCodaEnd?.Invoke(Codas[CurrentCodaIndex]);
+            CodaHasStarted = false;
+            OnCodaEnd?.Invoke(Codas[CurrentCodaIndex]);
             CurrentCodaIndex++;
         }
 

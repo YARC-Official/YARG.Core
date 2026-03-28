@@ -20,6 +20,7 @@ namespace MoonscraperChartEditor.Song
             TrillLane,
 
             BigRockEnding,
+            Coda,
 
             // RB Pro Drums
 

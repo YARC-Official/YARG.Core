@@ -206,6 +206,7 @@ namespace YARG.Core.Chart
                     MoonPhrase.Type.TremoloLane         => PhraseType.TremoloLane,
                     MoonPhrase.Type.TrillLane           => PhraseType.TrillLane,
                     MoonPhrase.Type.BigRockEnding       => PhraseType.BigRockEnding,
+                    MoonPhrase.Type.Coda                => PhraseType.Coda,
 
                     MoonPhrase.Type.ProDrums_Activation => PhraseType.DrumFill,
 
@@ -340,6 +341,13 @@ namespace YARG.Core.Chart
                 IsEventInPhrase(moonNote, bigRockEnding))
             {
                 flags |= NoteFlags.BigRockEnding;
+            }
+
+            // Coda End (this one is weird because creating a MoonPhrase from text events seems hard so we set the flag
+            // in postproc)
+            if ((moonNote.flags & MoonNote.Flags.CodaEnd) != 0)
+            {
+                flags |= NoteFlags.CodaEnd;
             }
 
             return flags;
