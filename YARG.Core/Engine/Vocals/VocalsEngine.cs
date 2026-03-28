@@ -336,14 +336,14 @@ namespace YARG.Core.Engine.Vocals
                 {
                     continue;
                 };
+                int multiplier = Math.Min(combo + 1, BaseParameters.MaxMultiplier);
                 if (note.IsPercussionPhrase)
                 {
                     // I am assuming all notes in a percussion phrase are percussion because I want to avoid nested loops
-                    baseScore += POINTS_PER_PERCUSSION * note.ChildNotes.Count;
-                    noteScore += POINTS_PER_PERCUSSION;
+                    baseScore += POINTS_PER_PERCUSSION * note.ChildNotes.Count * multiplier;
+                    noteScore += POINTS_PER_PERCUSSION * note.ChildNotes.Count;
                     continue;
                 }
-                int multiplier = Math.Min(combo + 1, BaseParameters.MaxMultiplier);
                 baseScore += multiplier * EngineParameters.PointsPerPhrase;
                 noteScore += EngineParameters.PointsPerPhrase;
                 combo++;

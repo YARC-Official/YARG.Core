@@ -287,7 +287,6 @@ namespace YARG.Core.Engine
             TotalStarPowerPhrases = stream.Read<int>(Endianness.Little);
 
             SoloBonuses = stream.Read<int>(Endianness.Little);
-            //TotalSoloBonusPoints = stream.Read<int>(Endianness.Little);
             StarPowerScore = stream.Read<int>(Endianness.Little);
 
             // Deliberately not read so that stars can be re-calculated if thresholds change
@@ -325,7 +324,7 @@ namespace YARG.Core.Engine
             // TotalStarPowerPhrases = 0;
 
             SoloBonuses = 0;
-            TotalSoloBonusPoints = 0;
+            // TotalSoloBonusPoints = 0;
             StarPowerScore = 0;
 
             Stars = 0;

@@ -13,9 +13,9 @@ namespace YARG.Core.Engine.Keys
         public readonly bool NoStarPowerOverlap;
 
         public KeysEngineParameters(HitWindowSettings hitWindow, int maxMultiplier, double spWhammyBuffer,
-            double sustainDropLeniency, float[] starMultiplierThresholds, double chordStaggerWindow, double fatFingerWindow,
+            double sustainDropLeniency, float[] starMultiplierThresholds, float[] soloBonusStarMultiplierThresholds, double chordStaggerWindow, double fatFingerWindow,
             bool noStarPowerOverlap, bool enableLanes)
-            : base(hitWindow, maxMultiplier, spWhammyBuffer, sustainDropLeniency, starMultiplierThresholds, enableLanes)
+            : base(hitWindow, maxMultiplier, spWhammyBuffer, sustainDropLeniency, starMultiplierThresholds, soloBonusStarMultiplierThresholds, enableLanes)
         {
             ChordStaggerWindow = chordStaggerWindow;
             FatFingerWindow = fatFingerWindow;

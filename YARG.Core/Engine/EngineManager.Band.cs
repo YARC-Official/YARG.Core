@@ -34,7 +34,6 @@ namespace YARG.Core.Engine
                     totalStarCutoff += playerCutoffsList[i];
                 }
 
-                //TODO: May want to adjust that .265f depending on the chart's SP status (e.g. None/Yes/Unison)
                 bandStarScoreCutoffs[i] = (int) Math.Floor(totalStarCutoff *
                     (1 + .265f * (starScoreCutoffsList.Count - 1)));
             }
