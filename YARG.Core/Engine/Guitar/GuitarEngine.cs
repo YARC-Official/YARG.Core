@@ -230,6 +230,13 @@ namespace YARG.Core.Engine.Guitar
 
             note.SetHitState(true, true);
 
+            // Cancel the rest of hit logic during BRE phrase
+            if (IsCodaActive && note.IsBigRockEnding)
+            {
+                base.HitNote(note);
+                return;
+            }
+
             // Detect if the last note(s) were skipped
             bool skipped = SkipPreviousNotes(note);
 
@@ -297,6 +304,14 @@ namespace YARG.Core.Engine.Guitar
             if (note.WasHit || note.WasMissed)
             {
                 YargLogger.LogFormatTrace("Tried to hit/miss note twice (Fret: {0}, Index: {1}, Hit: {2}, Missed: {3})", note.Fret, NoteIndex, note.WasHit, note.WasMissed);
+                return;
+            }
+
+            // Note can't be missed during BRE phrase
+            if (IsCodaActive && note.IsBigRockEnding)
+            {
+                note.SetHitState(true, true);
+                base.HitNote(note);
                 return;
             }
 

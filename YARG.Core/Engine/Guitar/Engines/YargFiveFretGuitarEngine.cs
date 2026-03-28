@@ -199,16 +199,16 @@ namespace YARG.Core.Engine.Guitar.Engines
             var hitWindow = EngineParameters.HitWindow.CalculateHitWindow(GetAverageNoteDistance(note));
             var frontEnd = EngineParameters.HitWindow.GetFrontEnd(hitWindow);
 
-            if (note.IsBigRockEnding)
-            {
-                foreach (var n in note.AllNotes)
-                {
-                    n.WasHit = true;
-                }
-
-                AdvanceToNextNote(note);
-                return;
-            }
+            // if (note.IsBigRockEnding)
+            // {
+            //     foreach (var n in note.AllNotes)
+            //     {
+            //         n.WasHit = true;
+            //     }
+            //
+            //     AdvanceToNextNote(note);
+            //     return;
+            // }
 
             if (HasFretted)
             {

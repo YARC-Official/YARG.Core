@@ -118,12 +118,6 @@ namespace YARG.Core.Engine.Drums
 
         protected void HitNote(DrumNote note, bool activationAutoHit)
         {
-            // Cancel hit during coda
-            if (IsCodaActive)
-            {
-                return;
-            }
-
             if (note.WasHit || note.WasMissed)
             {
                 YargLogger.LogFormatTrace("Tried to hit/miss note twice (Pad: {0}, Index: {1}, Hit: {2}, Missed: {3})",
@@ -132,6 +126,13 @@ namespace YARG.Core.Engine.Drums
             }
 
             note.SetHitState(true, false);
+
+            // Cancel the rest of hit logic during BRE phrase
+            if (IsCodaActive && note.IsBigRockEnding)
+            {
+                base.HitNote(note);
+                return;
+            }
 
             // Detect if the last note(s) were skipped
             bool skipped = SkipPreviousNotes(note.ParentOrSelf);
@@ -290,16 +291,18 @@ namespace YARG.Core.Engine.Drums
 
         protected override void MissNote(DrumNote note)
         {
-            // Cancel miss during coda
-            if (IsCodaActive)
-            {
-                return;
-            }
-
             if (note.WasHit || note.WasMissed)
             {
                 YargLogger.LogFormatTrace("Tried to hit/miss note twice (Pad: {0}, Index: {1}, Hit: {2}, Missed: {3})",
                     note.Pad, NoteIndex, note.WasHit, note.WasMissed);
+                return;
+            }
+
+            // BRE notes can't be missed
+            if (IsCodaActive && note.IsBigRockEnding)
+            {
+                note.SetHitState(true, false);
+                base.HitNote(note);
                 return;
             }
 

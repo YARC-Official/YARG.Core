@@ -87,6 +87,21 @@ namespace YARG.Core.Engine
         public bool IsWaitCountdownActive { get; protected set; }
         public bool IsStarPowerInputActive { get; protected set; }
 
+        public int CodaBonus
+        {
+            get
+            {
+                if (Codas.Count == 0 || CurrentCodaIndex >= Codas.Count)
+                {
+                    return 0;
+                }
+
+                return Codas[CurrentCodaIndex].TotalCodaBonus;
+            }
+        }
+
+        public bool CodaSuccess => Codas.Count > 0 && CurrentCodaIndex < Codas.Count && Codas[CurrentCodaIndex].Success;
+
         protected EngineTimer StarPowerWhammyTimer;
 
         /// <summary>
