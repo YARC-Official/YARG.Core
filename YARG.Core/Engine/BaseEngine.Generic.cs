@@ -91,7 +91,7 @@ namespace YARG.Core.Engine
                 // Remove BRE notes from TotalNotes
                 foreach (var note in Notes)
                 {
-                    if (!note.IsBigRockEnding)
+                    if (note.IsBigRockEnding)
                     {
                         EngineStats.TotalNotes--;
                     }

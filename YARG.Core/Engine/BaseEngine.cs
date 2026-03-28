@@ -22,9 +22,7 @@ namespace YARG.Core.Engine
         public delegate void StarPowerStatusEvent(bool active);
         public delegate void SoloStartEvent(SoloSection soloSection);
         public delegate void SoloEndEvent(SoloSection soloSection);
-
         public delegate void CodaStartEvent(CodaSection codaSection);
-
         public delegate void CodaEndEvent(CodaSection codaSection);
         public delegate void ComboResetEvent();
         public delegate void ComboIncrementEvent(int amount);
@@ -419,6 +417,7 @@ namespace YARG.Core.Engine
 
             IsSoloActive = false;
             IsCodaActive = false;
+            CodaHasStarted = false;
 
             TotalLanes = 0;
             CurrentLaneIndex = 1;

@@ -427,7 +427,7 @@ namespace YARG.Core.Chart
             // Work backwards since the coda event should be very near the end
             for (int i = _moonSong.events.Count - 1; i >= 0; i--)
             {
-                if (_moonSong.events[i].text != "coda")
+                if (_moonSong.events[i].text != MidIOHelper.CODA_START)
                 {
                     continue;
                 }

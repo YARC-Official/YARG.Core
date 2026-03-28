@@ -413,10 +413,11 @@ namespace MoonscraperChartEditor.Song.IO
                         codaStartFound = true;
                     }
 
-                    if (chart.notes[i].tick >= codaRanges[codaIndex].end)
+                    if (chart.notes[i].tick >= codaRanges[codaIndex].end && codaStartFound)
                     {
-                        // Previous note is the end of the coda
-                        chart.notes[i - 1].flags |= MoonNote.Flags.CodaEnd;
+                        // Previous note is the end of the coda unless there is no previous note
+                        var endNote = i > 0 ? i - 1 : i;
+                        chart.notes[endNote].flags |= MoonNote.Flags.CodaEnd;
                         codaStartFound = false;
                         codaIndex++;
                     }

@@ -490,8 +490,7 @@ namespace YARG.Core.Engine.Keys.Engines
             // Figure out which keys changed
             var pressed = KeyMask & ~PreviousKeyMask;
 
-            // Hit the lane for any that were pressed..I guess we let CodaSection deal with ignoring
-            // keys that are currently out of range and mapping them to specific lanes? FML
+            // Hit the lane for any that were pressed
             for (int i = 0; i < 25; i++)
             {
                 int button = 1 << i;
