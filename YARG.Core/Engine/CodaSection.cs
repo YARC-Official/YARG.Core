@@ -123,6 +123,11 @@ namespace YARG.Core.Engine
             {
                 LastCollectedTime[i] = 0;
             }
+
+            for (int i = 0; i < LastHitTime.Length; i++)
+            {
+                LastHitTime[i] = 0;
+            }
         }
 
         private int GetCurrentLaneScore(int fret, double time)
