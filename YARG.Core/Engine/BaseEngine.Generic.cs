@@ -93,7 +93,7 @@ namespace YARG.Core.Engine
             (BaseScore, NoteScore) = CalculateChartScores();
 
             Solos = GetSoloSections();
-            EngineStats.TotalSoloBonusPoints = CalculateTotalSoloBonus(Solos);
+            EngineStats.TotalSoloBonusPoints = CalculateTotalSoloBonus();
 
             StarScoreThresholds = PopulateStarScoreThresholds(engineParameters.StarMultiplierThresholds, engineParameters.SoloBonusStarMultiplierThresholds, BaseScore, EngineStats.TotalSoloBonusPoints);
         }
@@ -1090,13 +1090,13 @@ namespace YARG.Core.Engine
 
         /// <summary>
         /// Calculates the total bonus points that could be awarded from solos.
+        /// This must be called after <see cref="GetSoloSections"/>.
         /// </summary>
-        /// <param name="soloSections">The list of solos for a given player. Has to be passed as parameter since Solos may not be defined yet.</param>
         /// <returns></returns>
-        protected int CalculateTotalSoloBonus(List<SoloSection> soloSections)
+        protected int CalculateTotalSoloBonus()
         {
             int score = 0;
-            foreach (var solo in soloSections)
+            foreach (var solo in Solos)
             {
                 score += solo.NoteCount * 100;
             }
