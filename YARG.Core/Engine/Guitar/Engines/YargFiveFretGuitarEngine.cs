@@ -571,7 +571,7 @@ namespace YARG.Core.Engine.Guitar.Engines
             {
                 pressed = EffectiveButtonMask;
             }
-            else
+            else if (IsBot || !StandardButtonHeld)
             {
                 for (int i = 0; i < fretMask.Length; i++)
                 {
