@@ -145,5 +145,12 @@ namespace YARG.Core.Engine
             public EngineCommandType CommandType;
             public double            Time;
         }
+
+        public void Unregister(EngineContainer engineContainer)
+        {
+            RemovePlayerFromUnisons(engineContainer);
+            _allEngines.Remove(engineContainer);
+            _allEnginesById.Remove(engineContainer.EngineId);
+        }
     }
 }

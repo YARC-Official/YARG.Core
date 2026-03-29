@@ -332,6 +332,7 @@ namespace YARG.Core.Engine
             // TotalStarPowerPhrases = 0;
 
             SoloBonuses = 0;
+            CodaBonuses = 0;
             StarPowerScore = 0;
 
             Stars = 0;

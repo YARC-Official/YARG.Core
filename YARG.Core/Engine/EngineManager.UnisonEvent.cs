@@ -48,6 +48,15 @@ namespace YARG.Core.Engine
                 PartCount++;
             }
 
+            public void RemovePlayer(EngineContainer engineContainer)
+            {
+                if (ParticipantIds.Contains(engineContainer.EngineId))
+                {
+                    ParticipantIds.Remove(engineContainer.EngineId);
+                    PartCount--;
+                }
+            }
+
             // Returns true if all players succesfully completed the unison
             public bool Success(EngineContainer engineContainer)
             {
@@ -195,6 +204,37 @@ namespace YARG.Core.Engine
                 fiveLaneKeysEngine.OnStarPowerPhraseHit += engineContainer.OnStarPowerPhraseHit;
             }
             // Vocals don't participate in unisons, so they get left out.
+        }
+
+        private void RemovePlayerFromUnisons(EngineContainer engineContainer)
+        {
+            foreach (var unisonEvent in _unisonEvents)
+            {
+                unisonEvent.RemovePlayer(engineContainer);
+            }
+
+            // Unsubscribe the container from OnStarPowerPhraseHit so bonuses can be awarded as appropriate
+            if (engineContainer.Engine is BaseEngine<GuitarNote,GuitarEngineParameters,GuitarStats> guitarEngine)
+            {
+                guitarEngine.OnStarPowerPhraseHit -= engineContainer.OnStarPowerPhraseHit;
+            }
+
+            if (engineContainer.Engine is BaseEngine<DrumNote, DrumsEngineParameters, DrumsStats> drumEngine)
+            {
+                drumEngine.OnStarPowerPhraseHit -= engineContainer.OnStarPowerPhraseHit;
+            }
+
+            if (engineContainer.Engine is BaseEngine<ProKeysNote, KeysEngineParameters, KeysStats>
+                proKeysEngine)
+            {
+                proKeysEngine.OnStarPowerPhraseHit -= engineContainer.OnStarPowerPhraseHit;
+            }
+
+            if (engineContainer.Engine is BaseEngine<GuitarNote, KeysEngineParameters, KeysStats>
+                fiveLaneKeysEngine)
+            {
+                fiveLaneKeysEngine.OnStarPowerPhraseHit -= engineContainer.OnStarPowerPhraseHit;
+            }
         }
 
         /// <summary>

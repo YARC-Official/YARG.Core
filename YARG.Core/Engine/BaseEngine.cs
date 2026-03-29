@@ -94,7 +94,7 @@ namespace YARG.Core.Engine
                     return 0;
                 }
 
-                return Codas[CurrentCodaIndex].TotalCodaBonus;
+                return CodaHasStarted ? Codas[CurrentCodaIndex].TotalCodaBonus : BaseStats.CodaBonuses;
             }
         }
 
