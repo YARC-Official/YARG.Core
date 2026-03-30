@@ -477,7 +477,7 @@ namespace MoonscraperChartEditor.Song.IO
             }
         }
 
-        private static List<(uint start, uint end)> GetCodaRanges(MoonSong song)
+        public static List<(uint start, uint end)> GetCodaRanges(MoonSong song)
         {
             var codaCount = 0;
             var codaRanges = new List<(uint start, uint end)>();

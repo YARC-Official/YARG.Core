@@ -34,12 +34,14 @@ namespace YARG.Core.Chart
         private MoonSong.Difficulty _currentMoonDifficulty;
 
         private readonly double _codaTime;
+        private readonly List<(uint start,uint end)> _codaTicks;
 
         public MoonSongLoader(MoonSong song, in ParseSettings settings)
         {
             _moonSong = song;
             _settings = settings;
             _codaTime = FindCodaTime();
+            _codaTicks = GetCodaTicks();
         }
 
         public static MoonSongLoader LoadSong(ParseSettings settings, string filePath)
@@ -437,6 +439,11 @@ namespace YARG.Core.Chart
 
             // Didn't find one, so set it to MaxValue
             return double.MaxValue;
+        }
+
+        private List<(uint,uint)> GetCodaTicks()
+        {
+            return MidReader.GetCodaRanges(_moonSong);
         }
 
         private static bool IsEventInPhrase(MoonObject songObj, MoonPhrase phrase)

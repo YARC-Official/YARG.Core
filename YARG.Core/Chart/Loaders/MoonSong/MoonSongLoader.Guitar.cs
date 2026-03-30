@@ -173,10 +173,13 @@ namespace YARG.Core.Chart
 
         private Phrase? ValidateGuitarPhrase(Phrase phrase, List<Phrase> phrases)
         {
-            if (phrase.Type == PhraseType.BigRockEnding && phrase.Time < _codaTime)
+            if (phrase.Type == PhraseType.BigRockEnding)
             {
-                // BRE Phrases aren't allowed before the coda event
-                return null;
+                // BRE Phrases aren't allowed outside a coda event
+                if (!IsWithinCoda(phrase))
+                {
+                    return null;
+                }
             }
 
             // Check that we don't already have an identical phrase
@@ -189,6 +192,19 @@ namespace YARG.Core.Chart
             }
 
             return phrase;
+        }
+
+        private bool IsWithinCoda(Phrase phrase)
+        {
+            foreach ((uint start, uint end) in _codaTicks)
+            {
+                if (phrase.Tick >= start && phrase.TickEnd <= end)
+                {
+                    return true;
+                }
+            }
+
+            return false;
         }
     }
 }
