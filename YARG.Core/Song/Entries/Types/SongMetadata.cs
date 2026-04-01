@@ -27,6 +27,7 @@ namespace YARG.Core.Song
         {
             Name = DEFAULT_NAME,
             Artist = DEFAULT_ARTIST,
+            CoveredBy = string.Empty,
             Album = DEFAULT_ALBUM,
             Genre = string.Empty,
             Subgenre = string.Empty,
@@ -86,6 +87,7 @@ namespace YARG.Core.Song
 
         public string Name;
         public string Artist;
+        public string CoveredBy;
         public string Album;
         public string Genre;
         public string Subgenre;
@@ -170,6 +172,11 @@ namespace YARG.Core.Song
             if (modifiers.Extract("artist", out string artist) && artist.Length > 0)
             {
                 metadata.Artist = artist;
+            }
+
+            if (modifiers.Extract("covered_by", out string coveredBy))
+            {
+                metadata.CoveredBy = coveredBy;
             }
 
             if (modifiers.Extract("album", out string album) && album.Length > 0)

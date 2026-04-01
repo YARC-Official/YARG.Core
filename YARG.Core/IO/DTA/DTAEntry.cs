@@ -14,6 +14,7 @@ namespace YARG.Core.IO
 
         public TextSpan? Name;
         public TextSpan? Artist;
+        public TextSpan? CoveredBy;
         public TextSpan? Album;
         public string? Genre;
         public string? Subgenre;
@@ -75,6 +76,7 @@ namespace YARG.Core.IO
                 {
                     case "name": Name = YARGDTAReader.ExtractTextBytes(ref container); break;
                     case "artist": Artist = YARGDTAReader.ExtractTextBytes(ref container); break;
+                    case "covered_by": CoveredBy = YARGDTAReader.ExtractTextBytes(ref container); break;
                     case "master": IsMaster = YARGDTAReader.ExtractBoolean_FlippedDefault(ref container); break;
                     case "context":
                         unsafe

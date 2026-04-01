@@ -46,6 +46,7 @@ namespace YARG.Core.IO.Ini
                 { "charter_vocals",                       new("charter_vocals", ModifierType.String) },
                 { "count",                                new("count", ModifierType.UInt32) },
                 { "cover",                                new("cover", ModifierType.String) },
+                { "covered_by",                           new("covered_by", ModifierType.String) },
                 { "credit_album_art_by",                  new("credit_album_art_designed_by", ModifierType.String) },
                 { "credit_album_art_designed_by",         new("credit_album_art_designed_by", ModifierType.String) },
                 { "credit_album_cover",                   new("credit_album_art_designed_by", ModifierType.String) },
