@@ -9,6 +9,7 @@ using YARG.Core.Chart.Loaders.UltraStar;
 using YARG.Core.Extensions;
 using YARG.Core.IO;
 using YARG.Core.IO.Ini;
+using YARG.Core.Logging;
 
 namespace YARG.Core.Song
 {
@@ -29,7 +30,7 @@ namespace YARG.Core.Song
             "drums_2",
             "drums_3",
             "drums_4",
-            "crowd",
+            "crowd"
         };
         public static readonly string[] SupportedFormats =
         {
@@ -63,13 +64,33 @@ namespace YARG.Core.Song
             ("notes.midi", ChartFormat.Midi),
             ("notes.chart", ChartFormat.Chart),
             ("notes.txt", ChartFormat.UltraStar),
+            ("notes.xml", ChartFormat.SingStar),
             ("vocals.xml", ChartFormat.SingStar),
+            ("melody_1.xml", ChartFormat.SingStar),
+            ("melody_2.xml", ChartFormat.SingStar),
+            ("melody_3.xml", ChartFormat.SingStar),
+            ("melody_4.xml", ChartFormat.SingStar),
+            ("melody_5.xml", ChartFormat.SingStar),
+            ("melody_6.xml", ChartFormat.SingStar),
         };
 
-        protected static readonly string[]    ALBUMART_FILES;
-        protected static readonly string[]    PREVIEW_FILES;
-        protected readonly        ChartFormat _chartFormat;
-        protected readonly        DateTime    _chartLastWrite;
+        protected static int FindChartFileTypeIndex(ChartFormat format)
+        {
+            for (int i = 0; i < CHART_FILE_TYPES.Length; i++)
+            {
+                if (CHART_FILE_TYPES[i].Format == format)
+                {
+                    return i;
+                }
+            }
+            return 0; // fallback
+        }
+        
+    protected static readonly string[]    ALBUMART_FILES;
+    protected static readonly string[]    PREVIEW_FILES;
+    protected readonly        ChartFormat _chartFormat;
+    protected readonly        DateTime    _chartLastWrite;
+    protected readonly        int         _chartFileTypeIndex;
 
         protected readonly string _location;
         protected          string _background = string.Empty;
@@ -91,11 +112,12 @@ namespace YARG.Core.Song
             }
         }
 
-        protected IniSubEntry(string location, in DateTime chartLastWrite, ChartFormat chartFormat)
+        protected IniSubEntry(string location, in DateTime chartLastWrite, ChartFormat chartFormat, int chartFileTypeIndex)
         {
             _location = location;
             _chartLastWrite = chartLastWrite;
             _chartFormat = chartFormat;
+            _chartFileTypeIndex = chartFileTypeIndex;
         }
 
         public override string SortBasedLocation => _location;
@@ -114,7 +136,7 @@ namespace YARG.Core.Song
 
         public override SongChart? LoadChart()
         {
-            using var data = GetChartData(CHART_FILE_TYPES[(int) _chartFormat].Filename);
+            using var data = GetChartData(CHART_FILE_TYPES[_chartFileTypeIndex].Filename);
 
             if (data == null)
             {
@@ -651,7 +673,7 @@ namespace YARG.Core.Song
             var loader = new SingStarLoader(file);
 
             // fallbacks to XML comments (.ini main source)
-            if (string.IsNullOrWhiteSpace(entry._metadata.Name))
+            if (string.IsNullOrWhiteSpace(entry._metadata.Name) || entry._metadata.Name == SongMetadata.DEFAULT_NAME)
             {
                 string? title = loader.GetMetadata("TITLE");
                 if (string.IsNullOrWhiteSpace(title))
@@ -659,8 +681,7 @@ namespace YARG.Core.Song
                 entry._metadata.Name = title;
             }
 
-            if (string.IsNullOrWhiteSpace(entry._metadata.Artist) ||
-                entry._metadata.Artist == SongMetadata.DEFAULT_ARTIST)
+            if (string.IsNullOrWhiteSpace(entry._metadata.Artist) || entry._metadata.Name == SongMetadata.DEFAULT_ARTIST)
             {
                 string? artist = loader.GetMetadata("ARTIST");
                 if (!string.IsNullOrWhiteSpace(artist))
