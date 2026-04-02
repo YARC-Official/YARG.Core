@@ -22,16 +22,16 @@ namespace YARG.Core.Chart.Loaders.SingStar
 
         private class SingStarNote
         {
-            public int    PartIndex       { get; set; }
-            public int    MidiNote        { get; set; } // Absolute MIDI pitch; 0 = rest/silence
-            public uint   StartUnit       { get; set; } // Cumulative position in 1/8-note units
-            public uint   Duration        { get; set; } // Length in 1/8-note units
-            public string Lyric           { get; set; } = string.Empty;
-            public bool   IsBonus         { get; set; } // Bonus="Yes" -> power star
-            public bool   IsSentenceStart { get; set; }
+            public int PartIndex { get; set; }
+            public int MidiNote { get; set; } // Absolute MIDI pitch; 0 = rest/silence
+            public uint StartUnit { get; set; } // Cumulative position in 1/8-note units
+            public uint Duration { get; set; } // Length in 1/8-note units
+            public string Lyric { get; set; } = string.Empty;
+            public bool IsBonus { get; set; } // Bonus="Yes" -> power star
+            public bool IsSentenceStart { get; set; }
 
             // A rest is a note with MidiNote == 0 AND no lyric text.
-            public bool IsRest   => MidiNote == SINGSTAR_REST_NOTE && string.IsNullOrEmpty(Lyric);
+            public bool IsRest => MidiNote == SINGSTAR_REST_NOTE && string.IsNullOrEmpty(Lyric);
             public bool IsGolden => IsBonus;
         }
 
@@ -39,26 +39,26 @@ namespace YARG.Core.Chart.Loaders.SingStar
 
         #region Constants
 
-        private const int  SINGSTAR_REST_NOTE      = 0;
+        private const int SINGSTAR_REST_NOTE = 0;
         private const uint SINGSTAR_UNITS_PER_BEAT = 8;
 
         #endregion
 
         #region Fields
 
-        private readonly Dictionary<string, string> _metadata     = new(StringComparer.OrdinalIgnoreCase);
-        private          uint                       _ticksPerBeat = 120;
-        private          double                     _bpm          = 120.0;
+        private readonly Dictionary<string, string> _metadata = new(StringComparer.OrdinalIgnoreCase);
+        private uint _ticksPerBeat = 120;
+        private double _bpm = 120.0;
 
         private List<TextEvent>? _globalEvents;
-        private List<Section>?   _sections;
-        private SyncTrack?       _syncTrack;
-        private VenueTrack?      _venueTrack;
-        private LyricsTrack?     _lyricsTrack;
+        private List<Section>? _sections;
+        private SyncTrack? _syncTrack;
+        private VenueTrack? _venueTrack;
+        private LyricsTrack? _lyricsTrack;
 
         private uint _barMarkerDelay;
-        private int  _formatVersion = 2;
-        private int  _currentPartIndex;
+        private int _formatVersion = 2;
+        private int _currentPartIndex;
 
         private readonly uint[] _cumulativeUnits = new uint[2];
 
@@ -78,10 +78,9 @@ namespace YARG.Core.Chart.Loaders.SingStar
             unsafe
             {
                 using var stream = new UnmanagedMemoryStream(file.Ptr, file.Length);
-
                 var settings = new XmlReaderSettings
                 {
-                    IgnoreComments = false, // Read Artist/Title from comments
+                    IgnoreComments = false,
                     IgnoreWhitespace = true,
                     DtdProcessing = DtdProcessing.Ignore,
                     XmlResolver = null,
@@ -89,7 +88,6 @@ namespace YARG.Core.Chart.Loaders.SingStar
 
                 using var reader = XmlReader.Create(stream, settings);
 
-                // Read global attributes from <MELODY> root first
                 while (reader.Read())
                 {
                     if (reader.NodeType == XmlNodeType.Comment)
@@ -99,38 +97,35 @@ namespace YARG.Core.Chart.Loaders.SingStar
                     }
 
                     if (reader.NodeType != XmlNodeType.Element)
-                    {
                         continue;
-                    }
 
-                    if (reader.Name == "MELODY")
-                    {
-                        ParseMelodyAttributes(reader);
-                        continue;
-                    }
-
-                    if (reader.Name == "TRACK")
-                    {
-                        string? name = reader.GetAttribute("Name");
-                        _currentPartIndex = (name != null &&
-                            name.Equals("Player2", StringComparison.OrdinalIgnoreCase))
-                            ? 1
-                            : 0;
-
-                        if (_formatVersion == 2)
-                        {
-                            ParseTrack(reader); // Version 2: SENTENCE in TRACK
-                        }
-
-                        // Version 1: TRACK is empty
-                        continue;
-                    }
-
-                    if (reader.Name == "SENTENCE" && _formatVersion == 1)
-                    {
-                        ParseSentence(reader, _currentPartIndex, ref _cumulativeUnits[_currentPartIndex]);
-                    }
+                    HandleElement(reader);
                 }
+            }
+        }
+
+        private void HandleElement(XmlReader reader)
+        {
+            switch (reader.Name)
+            {
+                case "MELODY":
+                    ParseMelodyAttributes(reader);
+                    break;
+
+                case "TRACK":
+                    string? trackName = reader.GetAttribute("Name");
+                    _currentPartIndex = (trackName?.Equals("Player2",
+                        StringComparison.OrdinalIgnoreCase) == true) ? 1 : 0;
+
+                    if (_formatVersion == 2)
+                        ParseTrack(reader);
+                    break;
+
+                case "SENTENCE":
+                    if (_formatVersion == 1)
+                        ParseSentence(reader, _currentPartIndex,
+                            ref _cumulativeUnits[_currentPartIndex]);
+                    break;
             }
         }
 
@@ -186,16 +181,17 @@ namespace YARG.Core.Chart.Loaders.SingStar
         /// </summary>
         private void ParseComment(string comment)
         {
-            comment = comment.Trim();
+            var parts = comment.Split(':', 2);
+            if (parts.Length < 2) return;
 
-            if (comment.StartsWith("Artist:", StringComparison.OrdinalIgnoreCase))
-            {
-                _metadata["ARTIST"] = comment["Artist:".Length..].Trim();
-            }
-            else if (comment.StartsWith("Title:", StringComparison.OrdinalIgnoreCase))
-            {
-                _metadata["TITLE"] = comment["Title:".Length..].Trim();
-            }
+            string key = parts[0].Trim();
+            string value = parts[1].Trim();
+
+            if (key.Equals("Artist", StringComparison.OrdinalIgnoreCase))
+                _metadata["ARTIST"] = value;
+            else if (key.Equals("Title", StringComparison.OrdinalIgnoreCase))
+                _metadata["TITLE"] = value;
+
         }
 
         /// <summary>
@@ -285,6 +281,10 @@ namespace YARG.Core.Chart.Loaders.SingStar
                 if (!isRest)
                 {
                     lyric = ProcessLyricForMelisma(lyric, ref inMelismaContinuation);
+                }
+                else
+                {
+                    inMelismaContinuation = false;
                 }
 
                 _partNotes[partIndex].Add(new SingStarNote
@@ -602,17 +602,11 @@ namespace YARG.Core.Chart.Loaders.SingStar
         #region Utilities
 
         /// <summary>
-        ///     Removes SingStar word-continuation markers (" -" suffix) from lyric text
-        ///     so only the clean syllable text is stored.
+        ///     Trims lyric text
         /// </summary>
         private static string FormatLyric(string raw)
         {
             raw = raw.Trim();
-            if (raw.EndsWith(" -", StringComparison.Ordinal))
-            {
-                raw = raw[..^2].TrimEnd() + "-";
-            }
-
             return raw;
         }
 
@@ -643,7 +637,7 @@ namespace YARG.Core.Chart.Loaders.SingStar
                 return lyric.Substring(0, lyric.Length - 2).TrimEnd();
             }
 
-            if (lyric.EndsWith("-", StringComparison.Ordinal))
+            if (lyric.Length == 1 && lyric.EndsWith("-", StringComparison.Ordinal))
             {
                 return lyric.Substring(0, lyric.Length - 1).TrimEnd();
             }
