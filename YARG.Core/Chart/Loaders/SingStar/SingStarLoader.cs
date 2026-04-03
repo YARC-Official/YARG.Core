@@ -61,6 +61,7 @@ namespace YARG.Core.Chart.Loaders.SingStar
         private int _currentPartIndex;
 
         private readonly uint[] _cumulativeUnits = new uint[2];
+        private string? _currentPartName;
 
         // Key 0 = Player1, Key 1 = Player2
         private readonly Dictionary<int, List<SingStarNote>> _partNotes = new()
@@ -117,14 +118,17 @@ namespace YARG.Core.Chart.Loaders.SingStar
                     _currentPartIndex = (trackName?.Equals("Player2",
                         StringComparison.OrdinalIgnoreCase) == true) ? 1 : 0;
 
-                    if (_formatVersion == 2)
+                    if (_formatVersion == 2 || _formatVersion == 4)
                         ParseTrack(reader);
                     break;
 
                 case "SENTENCE":
                     if (_formatVersion == 1)
+                    {
+                        string? partName = reader.GetAttribute("Part");
                         ParseSentence(reader, _currentPartIndex,
-                            ref _cumulativeUnits[_currentPartIndex]);
+                            ref _cumulativeUnits[_currentPartIndex], partName);
+                    }
                     break;
             }
         }
@@ -224,7 +228,8 @@ namespace YARG.Core.Chart.Loaders.SingStar
 
                 if (subtree.Name == "SENTENCE")
                 {
-                    ParseSentence(subtree, partIndex, ref cumulativeUnits);
+                    string? partName = subtree.GetAttribute("Part");
+                    ParseSentence(subtree, partIndex, ref cumulativeUnits, partName);
                 }
             }
         }
@@ -233,8 +238,15 @@ namespace YARG.Core.Chart.Loaders.SingStar
         ///     Parses one SENTENCE (phrase). Each SENTENCE is a lyric line.
         ///     Notes inside are positional — each note starts exactly where the previous one ended
         /// </summary>
-        private void ParseSentence(XmlReader reader, int partIndex, ref uint cumulativeUnits)
+        private void ParseSentence(XmlReader reader, int partIndex, ref uint cumulativeUnits, string? partName)
         {
+            if (!string.IsNullOrEmpty(partName) && partName != _currentPartName)
+            {
+                _sections ??= new List<Section>();
+                _sections.Add(new Section(partName, UnitsToTime(cumulativeUnits), UnitsToTick(cumulativeUnits)));
+                _currentPartName = partName;
+            }
+
             using var subtree = reader.ReadSubtree();
 
             bool inMelismaContinuation = false;

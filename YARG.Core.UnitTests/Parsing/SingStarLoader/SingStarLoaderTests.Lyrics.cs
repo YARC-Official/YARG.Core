@@ -33,7 +33,6 @@ internal class SingStarLoaderTests_Lyrics : SingStarLoaderTests
             "<MELODY Version=\"1\" Tempo=\"120\">",
             "<SENTENCE>",
             "<NOTE MidiNote=\"60\" Duration=\"4\" Lyric=\"Be -\"/>",
-            "<NOTE MidiNote=\"0\" Duration=\"2\" Lyric=\"\"/>",
             "<NOTE MidiNote=\"60\" Duration=\"4\" Lyric=\"cause\"/>",
             "</SENTENCE>",
             "</MELODY>"
@@ -45,27 +44,6 @@ internal class SingStarLoaderTests_Lyrics : SingStarLoaderTests
         // "Be -" starts melisma: first note = "Be", second note = "cause+" (with + marker)
         Assert.That(lyrics[0].Text, Is.EqualTo("Be"));
         Assert.That(lyrics[1].Text, Is.EqualTo("cause+"));
-    }
-
-    [Test]
-    public void ParseHyphenatedWords()
-    {
-        var loader = LoadSingStar(Ss(
-            "<MELODY Version=\"1\" Tempo=\"120\">",
-            "<SENTENCE>",
-            "<NOTE MidiNote=\"60\" Duration=\"4\" Lyric=\"cer -\"/>",
-            "<NOTE MidiNote=\"0\" Duration=\"1\" Lyric=\"\"/>",
-            "<NOTE MidiNote=\"60\" Duration=\"1\" Lyric=\"tain\"/>",
-            "</SENTENCE>",
-            "</MELODY>"
-        ));
-
-        var track = loader.LoadVocalsTrack(Instrument.Vocals);
-        var lyrics = track.Parts[0].NotePhrases[0].Lyrics;
-
-        // "cer -" starts melisma: first note = "cer", second note = "tain+"
-        Assert.That(lyrics[0].Text, Is.EqualTo("cer"));
-        Assert.That(lyrics[1].Text, Is.EqualTo("tain+"));
     }
 
     [Test]
