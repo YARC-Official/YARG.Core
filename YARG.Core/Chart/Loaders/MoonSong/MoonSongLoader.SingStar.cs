@@ -1,5 +1,7 @@
-﻿using System.IO;
+﻿using System.Collections.Generic;
+using System.IO;
 using MoonscraperChartEditor.Song;
+using YARG.Core.Chart.Events;
 using YARG.Core.Chart.Loaders.SingStar;
 using YARG.Core.IO;
 
@@ -24,6 +26,26 @@ namespace YARG.Core.Chart
             foreach (var ts in syncTrack.TimeSignatures)
             {
                 moonSong.AddTimeSignature(ts.Numerator, ts.Denominator, ts.Tick);
+            }
+
+            // Copy sections from SingStar loader (derived from Part attributes)
+            // Sort by tick to handle duets where Player2 sections may have earlier
+            // ticks than late Player1 sections. For sections at the same tick,
+            // keep only the first one (MoonSong requires strictly increasing tick order)
+            var sections = loader.LoadSections();
+            if (sections.Count > 0)
+            {
+                sections.Sort((a, b) => a.Tick.CompareTo(b.Tick));
+
+                uint lastAddedTick = uint.MaxValue;
+                foreach (var section in sections)
+                {
+                    if (section.Tick != lastAddedTick)
+                    {
+                        moonSong.AddSection(new MoonText(section.Name, section.Tick));
+                        lastAddedTick = section.Tick;
+                    }
+                }
             }
 
             bool isDuet = loader.GetMetadata("PARTS") == "2";

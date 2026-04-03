@@ -681,7 +681,7 @@ namespace YARG.Core.Song
                 entry._metadata.Name = title;
             }
 
-            if (string.IsNullOrWhiteSpace(entry._metadata.Artist) || entry._metadata.Name == SongMetadata.DEFAULT_ARTIST)
+            if (string.IsNullOrWhiteSpace(entry._metadata.Artist) || entry._metadata.Artist == SongMetadata.DEFAULT_ARTIST)
             {
                 string? artist = loader.GetMetadata("ARTIST");
                 if (!string.IsNullOrWhiteSpace(artist))
