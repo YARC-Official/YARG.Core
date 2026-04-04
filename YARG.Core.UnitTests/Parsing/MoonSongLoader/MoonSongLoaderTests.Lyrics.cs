@@ -15,9 +15,9 @@ namespace YARG.Core.UnitTests.Parsing
             [
                 new(LyricSymbolFlags.None,         "A",      SECONDS(0), TICKS(0)),
 
-                new(LyricSymbolFlags.JoinWithNext, "state-", SECONDS(1), TICKS(1)),
-                new(LyricSymbolFlags.JoinWithNext, "of-",    SECONDS(2), TICKS(2)),
-                new(LyricSymbolFlags.JoinWithNext, "the-",   SECONDS(3), TICKS(3)),
+                new(LyricSymbolFlags.HyphenateWithNext, "state-", SECONDS(1), TICKS(1)),
+                new(LyricSymbolFlags.HyphenateWithNext, "of-",    SECONDS(2), TICKS(2)),
+                new(LyricSymbolFlags.HyphenateWithNext, "the-",   SECONDS(3), TICKS(3)),
                 new(LyricSymbolFlags.None,         "art",    SECONDS(4), TICKS(4)),
 
                 new(LyricSymbolFlags.JoinWithNext, "wel",    SECONDS(5), TICKS(5)),
@@ -55,7 +55,7 @@ namespace YARG.Core.UnitTests.Parsing
                 new(LyricSymbolFlags.None,         "For",   SECONDS(20 + 0), TICKS(20 + 0)),
                 new(LyricSymbolFlags.None,         "a",     SECONDS(20 + 1), TICKS(20 + 1)),
 
-                new(LyricSymbolFlags.JoinWithNext, "high-", SECONDS(20 + 2), TICKS(20 + 2)),
+                new(LyricSymbolFlags.HyphenateWithNext, "high-", SECONDS(20 + 2), TICKS(20 + 2)),
                 new(LyricSymbolFlags.None,         "speed", SECONDS(20 + 3), TICKS(20 + 3)),
 
                 new(LyricSymbolFlags.JoinWithNext, "as",    SECONDS(20 + 4), TICKS(20 + 4)),
@@ -92,9 +92,9 @@ namespace YARG.Core.UnitTests.Parsing
                     var lyric = phrase.Lyrics[lyricIndex];
 
                     string text = lyric.Text;
-                    if (lyric.JoinWithNext)
+                    if (lyric.JoinOrHyphenateWithNext)
                     {
-                        if (text.EndsWith('-'))
+                        if (lyric.HyphenateWithNext && text.EndsWith('-'))
                             text = text[..^1] + LyricSymbols.LYRIC_JOIN_HYPHEN_SYMBOL;
                         else
                             text += LyricSymbols.LYRIC_JOIN_SYMBOL;

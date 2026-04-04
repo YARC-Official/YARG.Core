@@ -1,0 +1,32 @@
+name: Run Tests
+
+on:
+  pull_request:
+  push:
+    branches:
+      - master
+  workflow_dispatch:
+
+jobs:
+  dotnet-tests:
+    name: .NET Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout project
+        uses: actions/checkout@v6
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: 8.0.x
+
+      - name: Restore
+        run: dotnet restore YARG.Core.sln
+
+      - name: Run tests
+        run: >
+          dotnet test YARG.Core.sln
+          --configuration Debug
+          --no-restore

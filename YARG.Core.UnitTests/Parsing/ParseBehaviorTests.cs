@@ -25,8 +25,6 @@ namespace YARG.Core.UnitTests.Parsing
         IEnumerator IEnumerable.GetEnumerator() => throw new NotImplementedException();
     }
 
-    // TODO: Vocals_LyricPhrase has been changed to Vocals_ScoringPhrase, but we may also need to implement
-    //  Vocals_StaticLyricPhrase
     internal class ParseBehaviorTests
     {
         public const uint RESOLUTION = 192;
@@ -383,6 +381,7 @@ namespace YARG.Core.UnitTests.Parsing
         {
             NewSpecial(0, MoonPhrase.Type.Versus_Player1, length: 12),
             NewSpecial(0, MoonPhrase.Type.Vocals_ScoringPhrase, length: 12),
+            NewSpecial(0, MoonPhrase.Type.Vocals_StaticLyricPhrase, length: 12),
             NewNote(0, VOCALS_RANGE_START + 0, length: 0.5f),
             NewNote(1, VOCALS_RANGE_START + 1, length: 0.5f),
             NewNote(2, VOCALS_RANGE_START + 2, length: 0.5f),
@@ -398,6 +397,7 @@ namespace YARG.Core.UnitTests.Parsing
 
             NewSpecial(12, MoonPhrase.Type.Versus_Player2, length: 12),
             NewSpecial(12, MoonPhrase.Type.Vocals_ScoringPhrase, length: 12),
+            NewSpecial(12, MoonPhrase.Type.Vocals_StaticLyricPhrase, length: 12),
             NewSpecial(12, MoonPhrase.Type.Starpower, length: 12),
             NewNote(12, VOCALS_RANGE_START + 12, length: 0.5f),
             NewNote(13, VOCALS_RANGE_START + 13, length: 0.5f),
@@ -415,6 +415,7 @@ namespace YARG.Core.UnitTests.Parsing
             NewSpecial(24, MoonPhrase.Type.Versus_Player1, length: 12),
             NewSpecial(24, MoonPhrase.Type.Versus_Player2, length: 12),
             NewSpecial(24, MoonPhrase.Type.Vocals_ScoringPhrase, length: 12),
+            NewSpecial(24, MoonPhrase.Type.Vocals_StaticLyricPhrase, length: 12),
             NewNote(24, VOCALS_RANGE_START + 24, length: 0.5f),
             NewNote(25, VOCALS_RANGE_START + 25, length: 0.5f),
             NewNote(26, VOCALS_RANGE_START + 26, length: 0.5f),
@@ -430,6 +431,7 @@ namespace YARG.Core.UnitTests.Parsing
 
             NewSpecial(36, MoonPhrase.Type.Versus_Player2, length: 13),
             NewSpecial(36, MoonPhrase.Type.Vocals_ScoringPhrase, length: 13),
+            NewSpecial(36, MoonPhrase.Type.Vocals_StaticLyricPhrase, length: 13),
             NewNote(36, VOCALS_RANGE_START + 36, length: 0.5f),
             NewNote(37, VOCALS_RANGE_START + 37, length: 0.5f),
             NewNote(38, VOCALS_RANGE_START + 38, length: 0.5f),
@@ -446,6 +448,7 @@ namespace YARG.Core.UnitTests.Parsing
 
             NewSpecial(49, MoonPhrase.Type.Versus_Player1, length: 1),
             NewSpecial(49, MoonPhrase.Type.Vocals_ScoringPhrase, length: 1),
+            NewSpecial(49, MoonPhrase.Type.Vocals_StaticLyricPhrase, length: 1),
             NewNote(49, 0, flags: Flags.Vocals_Percussion),
         };
 
@@ -529,12 +532,18 @@ namespace YARG.Core.UnitTests.Parsing
 
         public static MoonSong GenerateSong()
         {
+            return GenerateSong(EnumExtensions<MoonInstrument>.Values.Where((instrument) =>
+                CanGenerateSongData(MoonSong.InstrumentToChartGameMode(instrument))));
+        }
+
+        public static MoonSong GenerateSong(IEnumerable<MoonInstrument> instruments)
+        {
             var song = new MoonSong(RESOLUTION);
 
             PopulateSyncTrack(song);
             PopulateGlobalEvents(song);
 
-            foreach (var instrument in EnumExtensions<MoonInstrument>.Values)
+            foreach (var instrument in instruments)
             {
                 var gameMode = MoonSong.InstrumentToChartGameMode(instrument);
                 var track = GameModeToChartData(gameMode);
@@ -589,6 +598,42 @@ namespace YARG.Core.UnitTests.Parsing
 
             // ParseBehavior is simply an initialization wrapper, don't return it directly
             return behavior.chart;
+        }
+
+        public static bool CanGenerateSongData(GameMode gameMode)
+        {
+            return gameMode is GameMode.Guitar
+                or GameMode.GHLGuitar
+                or GameMode.ProGuitar
+                or GameMode.Drums
+                or GameMode.Vocals
+                or GameMode.ProKeys;
+        }
+
+        public static void NormalizeHarmonyPhrasesForMidi(MoonSong song)
+        {
+            foreach (var difficulty in EnumExtensions<Difficulty>.Values)
+            {
+                var harm1 = song.GetChart(MoonInstrument.Harmony1, difficulty);
+                var harm2 = song.GetChart(MoonInstrument.Harmony2, difficulty);
+                var harm3 = song.GetChart(MoonInstrument.Harmony3, difficulty);
+
+                var copiedPhrases = (difficulty == Difficulty.Expert ? harm1.specialPhrases : harm2.specialPhrases)
+                    .Where((phrase) => difficulty == Difficulty.Expert
+                        ? phrase.type is MoonPhrase.Type.Vocals_ScoringPhrase or MoonPhrase.Type.Starpower
+                        : phrase.type is MoonPhrase.Type.Starpower)
+                    .Select((phrase) => phrase.Clone())
+                    .ToArray();
+
+                harm2.specialPhrases.Clear();
+                harm3.specialPhrases.Clear();
+
+                foreach (var phrase in copiedPhrases)
+                {
+                    harm2.Insert(phrase.Clone());
+                    harm3.Insert(phrase.Clone());
+                }
+            }
         }
 
         public static void PopulateInstrument(MoonSong song, MoonInstrument instrument, MoonChart track)

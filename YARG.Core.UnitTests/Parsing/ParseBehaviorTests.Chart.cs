@@ -81,6 +81,10 @@ namespace YARG.Core.UnitTests.Parsing
             { GameMode.GHLGuitar, GhlGuitarNoteLookup },
         };
 
+        private static readonly MoonInstrument[] SupportedInstruments = InstrumentToNameLookup.Keys
+            .Where((instrument) => InstrumentToNoteLookupLookup.ContainsKey(MoonSong.InstrumentToChartGameMode(instrument)))
+            .ToArray();
+
         private static readonly Dictionary<MoonPhrase.Type, uint> SpecialPhraseLookup = new()
         {
             { MoonPhrase.Type.Starpower,           PHRASE_STARPOWER },
@@ -319,7 +323,7 @@ namespace YARG.Core.UnitTests.Parsing
 
         public static string GenerateChartFile()
         {
-            var song = GenerateSong();
+            var song = GenerateSong(SupportedInstruments);
             return GenerateChartFile(song);
         }
 
@@ -328,7 +332,7 @@ namespace YARG.Core.UnitTests.Parsing
         {
             YargLogger.AddLogListener(new DebugYargLogListener());
 
-            var sourceSong = GenerateSong();
+            var sourceSong = GenerateSong(SupportedInstruments);
             string chartText = GenerateChartFile(sourceSong);
             MoonSong parsedSong;
             try
