@@ -29,6 +29,7 @@ namespace YARG.Core.Chart.Loaders.SingStar
             public string Lyric { get; set; } = string.Empty;
             public bool IsBonus { get; set; } // Bonus="Yes" -> power star
             public bool IsSentenceStart { get; set; }
+            public bool IsFreeStyle { get; set; }
 
             // A rest is a note with MidiNote == 0 AND no lyric text.
             public bool IsRest => MidiNote == SINGSTAR_REST_NOTE && string.IsNullOrEmpty(Lyric);
@@ -57,8 +58,10 @@ namespace YARG.Core.Chart.Loaders.SingStar
         private LyricsTrack? _lyricsTrack;
 
         private uint _barMarkerDelay;
-        private int _formatVersion = 2;
-        private int _currentPartIndex;
+        private int  _formatVersion   = 2;
+        private int  _v1CurrentSinger = 0;
+        private bool _v1LastWasGroup  = false;
+        private bool _readerAdvanced  = false;
 
         private readonly uint[] _cumulativeUnits = new uint[2];
         private string? _currentPartName;
@@ -100,37 +103,106 @@ namespace YARG.Core.Chart.Loaders.SingStar
                     if (reader.NodeType != XmlNodeType.Element)
                         continue;
 
-                    HandleElement(reader);
+                    bool wasAdvanced = HandleElement(reader);
+
+                    // If HandleElement consumed the reader (ReadOuterXml),
+                    // process current position without calling Read() again
+                    while (wasAdvanced && reader.NodeType == XmlNodeType.Element)
+                    {
+                        wasAdvanced = HandleElement(reader);
+                    }
                 }
             }
         }
 
-        private void HandleElement(XmlReader reader)
+        private bool HandleElement(XmlReader reader)
         {
             switch (reader.Name)
             {
                 case "MELODY":
                     ParseMelodyAttributes(reader);
-                    break;
+                    return false;
 
                 case "TRACK":
-                    string? trackName = reader.GetAttribute("Name");
-                    _currentPartIndex = (trackName?.Equals("Player2",
-                        StringComparison.OrdinalIgnoreCase) == true) ? 1 : 0;
-
-                    if (_formatVersion == 2 || _formatVersion == 4)
-                        ParseTrack(reader);
-                    break;
+                    if (_formatVersion == 2 || _formatVersion == 4) ParseTrack(reader);
+                    return false;
 
                 case "SENTENCE":
                     if (_formatVersion == 1)
                     {
+                        string? singerAttr = reader.GetAttribute("Singer");
                         string? partName = reader.GetAttribute("Part");
-                        ParseSentence(reader, _currentPartIndex,
-                            ref _cumulativeUnits[_currentPartIndex], partName);
+
+                        bool isGroup = singerAttr != null &&
+                            singerAttr.Equals("Group", StringComparison.OrdinalIgnoreCase);
+                        bool isSolo1 = singerAttr != null &&
+                            singerAttr.Equals("Solo 1", StringComparison.OrdinalIgnoreCase);
+                        bool isSolo2 = singerAttr != null &&
+                            singerAttr.Equals("Solo 2", StringComparison.OrdinalIgnoreCase);
+                        bool isDuet = _metadata.TryGetValue("PARTS", out var p) && p == "2";
+
+                        if (isSolo1 || !isDuet)
+                        {
+                            _v1CurrentSinger = 0;
+                            _v1LastWasGroup = false;
+                        }
+                        else if (isSolo2)
+                        {
+                            _v1CurrentSinger = 1;
+                            _v1LastWasGroup = false;
+                        }
+                        else if (isGroup)
+                        {
+                            _v1LastWasGroup = true;
+                        }
+
+                        if (isGroup || _v1LastWasGroup)
+                        {
+                            string sentenceXml = reader.ReadOuterXml();
+                            ParseSentenceFromXml(sentenceXml, 0, ref _cumulativeUnits[0], partName);
+                            ParseSentenceFromXml(sentenceXml, 1, ref _cumulativeUnits[1], partName);
+                            return true;
+                        }
+                        else
+                        {
+                            ParseSentence(reader, _v1CurrentSinger,
+                                ref _cumulativeUnits[_v1CurrentSinger], partName);
+                            int other = 1 - _v1CurrentSinger;
+                            if (_cumulativeUnits[other] < _cumulativeUnits[_v1CurrentSinger])
+                                _cumulativeUnits[other] = _cumulativeUnits[_v1CurrentSinger];
+                            return false;
+                        }
                     }
-                    break;
+                    return false;
             }
+            return false;
+        }
+
+        /// <summary>
+        ///     Helper for Group in v1 parses SENTENCE from a ready-made XML string.
+        ///     Needed because XmlReader is forward-only and Group requires
+        ///     going through the same data twice
+        /// </summary>
+        private void ParseSentenceFromXml(
+            string sentenceXml,
+            int partIndex,
+            ref uint cumulativeUnits,
+            string? partName)
+        {
+            var settings = new XmlReaderSettings
+            {
+                IgnoreComments = true,
+                IgnoreWhitespace = true,
+                DtdProcessing = DtdProcessing.Ignore,
+                XmlResolver = null,
+            };
+
+            using var stringReader = new StringReader(sentenceXml);
+            using var xmlReader = XmlReader.Create(stringReader, settings);
+
+            xmlReader.MoveToContent();
+
+            ParseSentence(xmlReader, partIndex, ref cumulativeUnits, partName);
         }
 
         /// <summary>
@@ -247,8 +319,9 @@ namespace YARG.Core.Chart.Loaders.SingStar
                 _currentPartName = partName;
             }
 
-            using var subtree = reader.ReadSubtree();
+            int sentenceStartIndex = _partNotes[partIndex].Count;
 
+            using var subtree = reader.ReadSubtree();
             bool inMelismaContinuation = false;
             bool firstNote = true;
 
@@ -276,6 +349,8 @@ namespace YARG.Core.Chart.Loaders.SingStar
                 string? durStr = subtree.GetAttribute("Duration");
                 string? lyric = subtree.GetAttribute("Lyric") ?? string.Empty;
                 string? bonus = subtree.GetAttribute("Bonus");
+                string? freestyle = subtree.GetAttribute("FreeStyle");
+                var isFreestyle = freestyle != null && freestyle.Equals("Yes", StringComparison.OrdinalIgnoreCase);
 
                 if (midiStr == null || durStr == null)
                 {
@@ -290,13 +365,19 @@ namespace YARG.Core.Chart.Loaders.SingStar
 
                 bool isRest = midiNote == SINGSTAR_REST_NOTE;
 
-                if (!isRest)
+                if (!isRest && !isFreestyle)
                 {
                     lyric = ProcessLyricForMelisma(lyric, ref inMelismaContinuation);
                 }
                 else
                 {
                     inMelismaContinuation = false;
+                }
+
+                if (isFreestyle)
+                {
+                    // Non-Pitched Symbol
+                    lyric = FormatLyric(lyric) + "#";
                 }
 
                 _partNotes[partIndex].Add(new SingStarNote
@@ -308,12 +389,15 @@ namespace YARG.Core.Chart.Loaders.SingStar
                     Lyric = lyric,
                     IsBonus = bonus != null && bonus.Equals("Yes", StringComparison.OrdinalIgnoreCase),
                     IsSentenceStart = firstNote,
+                    IsFreeStyle = isFreestyle
                 });
 
                 firstNote = false;
 
                 cumulativeUnits += duration;
             }
+
+            PostProcessMelismaMarkers(_partNotes[partIndex], sentenceStartIndex);
         }
 
         #endregion
@@ -540,6 +624,8 @@ namespace YARG.Core.Chart.Loaders.SingStar
                 return null;
             }
 
+            bool isStarPower = phraseNotes.Any(n => n.IsGolden);
+
             uint phraseStartTick = UnitsToTick(phraseNotes[0].StartUnit);
             uint phraseEndTick = UnitsToTick(phraseNotes[^1].StartUnit + phraseNotes[^1].Duration);
             uint phraseTickLen = phraseEndTick - phraseStartTick;
@@ -548,7 +634,7 @@ namespace YARG.Core.Chart.Loaders.SingStar
             double phraseTimeLen = phraseEndTime - phraseStartTime;
 
             var parentNote = new VocalNote(
-                NoteFlags.None, false,
+                isStarPower ? NoteFlags.StarPower : NoteFlags.None, false,
                 phraseStartTime, phraseTimeLen,
                 phraseStartTick, phraseTickLen);
 
@@ -562,7 +648,7 @@ namespace YARG.Core.Chart.Loaders.SingStar
                 double noteTime = UnitsToTime(sNote.StartUnit);
                 double noteTimeLen = UnitsDurationToSeconds(sNote.Duration);
 
-                // SingStar pitch is already absolute MIDI — no conversion needed.
+                // SingStar pitch is already absolute MIDI - no conversion needed.
                 // Clamp to valid range just in case.
                 float midiPitch = Math.Clamp(sNote.MidiNote, 0, 127);
 
@@ -592,11 +678,6 @@ namespace YARG.Core.Chart.Loaders.SingStar
                 }
             }
 
-            if (phraseNotes.Any(n => n.IsGolden))
-            {
-                parentNote.ActivateFlag(NoteFlags.StarPower);
-            }
-
             if (parentNote.ChildNotes.Count == 0)
             {
                 YargLogger.LogWarning($"[SingStar] Phrase at tick {phraseStartTick} has 0 child notes — skipping");
@@ -619,6 +700,10 @@ namespace YARG.Core.Chart.Loaders.SingStar
         private static string FormatLyric(string raw)
         {
             raw = raw.Trim();
+            if (raw.EndsWith(" -", StringComparison.Ordinal))
+            {
+                raw = raw[..^2].TrimEnd() + "-";
+            }
             return raw;
         }
 
@@ -646,12 +731,12 @@ namespace YARG.Core.Chart.Loaders.SingStar
 
             if (lyric.EndsWith(" -", StringComparison.Ordinal))
             {
-                return lyric.Substring(0, lyric.Length - 2).TrimEnd();
+                return lyric.Substring(0, lyric.Length - 2).TrimEnd() + "-";
             }
 
-            if (lyric.Length == 1 && lyric.EndsWith("-", StringComparison.Ordinal))
+            if (lyric == "-")
             {
-                return lyric.Substring(0, lyric.Length - 1).TrimEnd();
+                return "";
             }
 
             return lyric;
@@ -708,6 +793,57 @@ namespace YARG.Core.Chart.Loaders.SingStar
             return trimmed;
         }
 
+        /// <summary>
+        ///     Removes dangling melisma dash markers that have no valid continuation.
+        ///     After <see cref="ProcessLyricForMelisma"/> runs, a note may end with "-"
+        ///     or "-+" if it opened a melisma chain. If the next non-rest note in the
+        ///     sentence has an empty lyric or is already "+" (i.e. nothing real to
+        ///     connect to), the "-" is stripped while preserving any trailing "+".
+        ///     Examples:
+        ///     <list type="bullet">
+        ///         <item>"lone-+" → "lone+" when next lyric is empty</item>
+        ///         <item>"a-"    → "a"    when there is no next note</item>
+        ///     </list>
+        /// </summary>
+        private static void PostProcessMelismaMarkers(List<SingStarNote> notes, int fromIndex)
+        {
+            // fromIndex = index of the first note added in this sentence
+            int count = notes.Count;
+            for (int i = fromIndex; i < count; i++)
+            {
+                var note = notes[i];
+                if (note.IsRest || string.IsNullOrWhiteSpace(note.Lyric))
+                    continue;
+
+                bool endsWithDashPlus = note.Lyric.EndsWith("-+", StringComparison.Ordinal);
+                bool endsWithDash = !endsWithDashPlus && note.Lyric.EndsWith("-", StringComparison.Ordinal);
+
+                if (!endsWithDashPlus && !endsWithDash)
+                    continue;
+
+                // Find the next non rest note in this sentence
+                SingStarNote? next = null;
+                for (int j = i + 1; j < count; j++)
+                {
+                    if (!notes[j].IsRest)
+                    {
+                        next = notes[j];
+                        break;
+                    }
+                }
+
+                bool nextIsEmpty = next == null
+                    || string.IsNullOrWhiteSpace(next.Lyric)
+                    || next.Lyric.Trim() == "+";
+
+                if (!nextIsEmpty)
+                    continue;
+
+                int dashIndex = note.Lyric.Length - (endsWithDashPlus ? 2 : 1);
+                note.Lyric = note.Lyric.Remove(dashIndex, 1).TrimEnd();
+            }
+        }
+
         public void DumpToLog()
         {
             int totalNotes = _partNotes.Values.Sum(list => list.Count);
@@ -732,7 +868,7 @@ namespace YARG.Core.Chart.Loaders.SingStar
 
                     foreach (var n in g)
                     {
-                        YargLogger.LogDebug($"[SingStar]   P{partIndex + 1} midi={n.MidiNote} " +
+                        YargLogger.LogDebug($"[SingStar] P{partIndex + 1} midi={n.MidiNote} " +
                             $"start={n.StartUnit} dur={n.Duration} " +
                             $"tick={UnitsToTick(n.StartUnit)} time={UnitsToTime(n.StartUnit):F3}s " +
                             $"lyric='{n.Lyric}' golden={n.IsGolden}");
