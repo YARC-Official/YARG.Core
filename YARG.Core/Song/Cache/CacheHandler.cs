@@ -598,7 +598,7 @@ namespace YARG.Core.Song.Cache
             // supplying directories as the actual playlist (null -> empty -> directory)
             private readonly string? _playlist;
 
-            public string Playlist => !string.IsNullOrEmpty(_playlist) ? _playlist : "Unknown Playlist";
+            public string Playlist => !string.IsNullOrEmpty(_playlist) ? _playlist! : "Unknown Playlist";
 
             public PlaylistTracker(bool fullDirectoryFlag, string? playlist)
             {

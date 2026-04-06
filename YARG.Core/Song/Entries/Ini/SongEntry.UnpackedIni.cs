@@ -157,6 +157,7 @@ namespace YARG.Core.Song
             return null;
         }
 
+        #nullable disable
         public override FixedArray<byte> LoadMiloData()
         {
             return null;
@@ -178,13 +179,14 @@ namespace YARG.Core.Song
                     return null;
                 }
             }
-            else if (File.Exists(iniPath)) 
+            else if (File.Exists(iniPath))
             {
                 return null;
             }
 
             return FixedArray.LoadFile(chartPath);
         }
+        #nullable restore
 
         private Dictionary<string, string> GetSubFiles()
         {

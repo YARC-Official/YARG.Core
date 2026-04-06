@@ -137,6 +137,24 @@ namespace MoonscraperChartEditor.Song.IO
             }
             ReadSync(syncTrack, song);
 
+            // Next, find the events track and deal with it since it can modify the meaning of events in other tracks
+            for (int i = 1; i < midi.Chunks.Count; i++)
+            {
+                var chunk = midi.Chunks[i];
+
+                if (chunk is not TrackChunk track)
+                {
+                    continue;
+                }
+
+                string trackName = track.GetTrackName();
+                if (trackName == MidIOHelper.EVENTS_TRACK)
+                {
+                    ReadSongGlobalEvents(track, song);
+                    break;
+                }
+            }
+
             for (int i = 1; i < midi.Chunks.Count; i++)
             {
                 var chunk = midi.Chunks[i];
@@ -160,7 +178,7 @@ namespace MoonscraperChartEditor.Song.IO
                         break;
 
                     case MidIOHelper.EVENTS_TRACK:
-                        ReadSongGlobalEvents(track, song);
+                        // Already processed, so just break
                         break;
 
                     case MidIOHelper.VENUE_TRACK:
@@ -443,7 +461,6 @@ namespace MoonscraperChartEditor.Song.IO
                 if (MidIOHelper.IsTextEvent(trackEvent, out var text))
                 {
                     string eventText = TextEvents.NormalizeTextEvent(text.Text).ToString();
-                    bool matched = false;
                     foreach (var (regex, (lookup, type, defaultValue)) in MidIOHelper.ANIMATION_EVENT_REGEX_TO_LOOKUP)
                     {
                         if (regex.Match(eventText) is not { Success: true } match) continue;
@@ -456,7 +473,6 @@ namespace MoonscraperChartEditor.Song.IO
 
                         MoonObjectHelper.OrderedInsertFromBack(new MoonAnimation(type, converted, (uint) absoluteTime),
                             animations);
-                        matched = true;
                     }
                 }
             }

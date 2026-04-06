@@ -116,6 +116,24 @@ namespace YARG.Core.Chart
             _discoFlip = setting == DrumsMixSetting.DiscoFlip;
         }
 
+        // Left as an example of how to use phrase validation/replacement despite being no longer required
+        private Phrase? ValidateDrumsPhrase(Phrase phrase, List<Phrase> phrases)
+        {
+            if (phrase.Type != PhraseType.DrumFill)
+            {
+                // We only care about drum fills
+                return phrase;
+            }
+
+            if (phrase.Time < _codaTime)
+            {
+                return phrase;
+            }
+
+            // If we're here, we were presented a drum fill after a coda and that needs to be a BRE
+            return new Phrase(PhraseType.BigRockEnding, phrase.Time, phrase.TimeLength, phrase.Tick, phrase.TickLength);
+        }
+
         private FourLaneDrumPad GetFourLaneDrumPad(MoonNote moonNote)
         {
             var pad = _settings.DrumsType switch

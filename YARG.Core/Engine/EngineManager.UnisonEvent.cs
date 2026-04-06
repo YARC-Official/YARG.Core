@@ -48,6 +48,15 @@ namespace YARG.Core.Engine
                 PartCount++;
             }
 
+            public void RemovePlayer(EngineContainer engineContainer)
+            {
+                if (ParticipantIds.Contains(engineContainer.EngineId))
+                {
+                    ParticipantIds.Remove(engineContainer.EngineId);
+                    PartCount--;
+                }
+            }
+
             // Returns true if all players succesfully completed the unison
             public bool Success(EngineContainer engineContainer)
             {
@@ -135,8 +144,6 @@ namespace YARG.Core.Engine
         public delegate void UnisonPhraseSuccessEvent();
 
         public  UnisonPhraseSuccessEvent?                       OnUnisonPhraseSuccess;
-        private bool                                            _unisonsReady      = false;
-        private int                                             _playerCount  = 0;
 
         // Instrument groups whose combination cannot be the source of a unison
         public static readonly List<List<Instrument>> InstrumentGroups = new List<List<Instrument>>()
@@ -197,6 +204,37 @@ namespace YARG.Core.Engine
             // Vocals don't participate in unisons, so they get left out.
         }
 
+        private void RemovePlayerFromUnisons(EngineContainer engineContainer)
+        {
+            foreach (var unisonEvent in _unisonEvents)
+            {
+                unisonEvent.RemovePlayer(engineContainer);
+            }
+
+            // Unsubscribe the container from OnStarPowerPhraseHit so bonuses can be awarded as appropriate
+            if (engineContainer.Engine is BaseEngine<GuitarNote,GuitarEngineParameters,GuitarStats> guitarEngine)
+            {
+                guitarEngine.OnStarPowerPhraseHit -= engineContainer.OnStarPowerPhraseHit;
+            }
+
+            if (engineContainer.Engine is BaseEngine<DrumNote, DrumsEngineParameters, DrumsStats> drumEngine)
+            {
+                drumEngine.OnStarPowerPhraseHit -= engineContainer.OnStarPowerPhraseHit;
+            }
+
+            if (engineContainer.Engine is BaseEngine<ProKeysNote, KeysEngineParameters, KeysStats>
+                proKeysEngine)
+            {
+                proKeysEngine.OnStarPowerPhraseHit -= engineContainer.OnStarPowerPhraseHit;
+            }
+
+            if (engineContainer.Engine is BaseEngine<GuitarNote, KeysEngineParameters, KeysStats>
+                fiveLaneKeysEngine)
+            {
+                fiveLaneKeysEngine.OnStarPowerPhraseHit -= engineContainer.OnStarPowerPhraseHit;
+            }
+        }
+
         /// <summary>
         /// Builds unison phrases for a combination of instrument and chart
         /// </summary>
@@ -227,7 +265,7 @@ namespace YARG.Core.Engine
             {
                 if (fiveFretTrack.TryGetAnyInstrumentDifficulty(out var difficulty))
                 {
-                    sourceSpSections = difficulty.GetStarpowerSections();
+                    sourceSpSections = difficulty!.GetStarpowerSections();
                     foundSelf = true;
                 }
             }
@@ -236,7 +274,7 @@ namespace YARG.Core.Engine
             {
                 if (drumsTrack.TryGetAnyInstrumentDifficulty(out var difficulty))
                 {
-                    sourceSpSections = difficulty.GetStarpowerSections();
+                    sourceSpSections = difficulty!.GetStarpowerSections();
                     foundSelf = true;
                 }
             }
@@ -245,7 +283,7 @@ namespace YARG.Core.Engine
             {
                 if (sixFretTrack.TryGetAnyInstrumentDifficulty(out var difficulty))
                 {
-                    sourceSpSections = difficulty.GetStarpowerSections();
+                    sourceSpSections = difficulty!.GetStarpowerSections();
                     foundSelf = true;
                 }
             }
@@ -254,7 +292,7 @@ namespace YARG.Core.Engine
             {
                 if (proGuitarTrack.TryGetAnyInstrumentDifficulty(out var difficulty))
                 {
-                    sourceSpSections = difficulty.GetStarpowerSections();
+                    sourceSpSections = difficulty!.GetStarpowerSections();
                     foundSelf = true;
                 }
             }
@@ -263,7 +301,7 @@ namespace YARG.Core.Engine
             {
                 if (chart.ProKeys.TryGetAnyInstrumentDifficulty(out var difficulty))
                 {
-                    sourceSpSections = difficulty.GetStarpowerSections();
+                    sourceSpSections = difficulty!.GetStarpowerSections();
                     foundSelf = true;
                 }
             }
@@ -272,7 +310,7 @@ namespace YARG.Core.Engine
             {
                 if (chart.Keys.TryGetAnyInstrumentDifficulty(out var difficulty))
                 {
-                    sourceSpSections = difficulty.GetStarpowerSections();
+                    sourceSpSections = difficulty!.GetStarpowerSections();
                     foundSelf = true;
                 }
             }
@@ -369,7 +407,7 @@ namespace YARG.Core.Engine
                     }
                 }
 
-                instrumentTrack = null;
+                instrumentTrack = null!;
                 return false;
             }
         }

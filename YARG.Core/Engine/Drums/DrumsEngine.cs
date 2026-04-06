@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using YARG.Core.Chart;
 using YARG.Core.Input;
 using YARG.Core.Logging;
@@ -81,6 +82,12 @@ namespace YARG.Core.Engine.Drums
                 return;
             }
 
+            // Cancel overhit during coda
+            if (IsCodaActive)
+            {
+                return;
+            }
+
             if (PadHit != null && ActiveLaneIncludesNote((int) PadHit))
             {
                 // Do not count this as an overhit if the last pad hit was part of an active lane
@@ -119,6 +126,13 @@ namespace YARG.Core.Engine.Drums
             }
 
             note.SetHitState(true, false);
+
+            // Cancel the rest of hit logic during BRE phrase
+            if (IsCodaActive && note.IsBigRockEnding)
+            {
+                base.HitNote(note);
+                return;
+            }
 
             // Detect if the last note(s) were skipped
             bool skipped = SkipPreviousNotes(note.ParentOrSelf);
@@ -284,6 +298,14 @@ namespace YARG.Core.Engine.Drums
                 return;
             }
 
+            // BRE notes can't be missed
+            if (IsCodaActive && note.IsBigRockEnding)
+            {
+                note.SetHitState(true, false);
+                base.HitNote(note);
+                return;
+            }
+
             note.SetMissState(true, false);
 
             if (note.IsStarPower)
@@ -344,6 +366,12 @@ namespace YARG.Core.Engine.Drums
             int combo = 0;
             foreach (var note in Notes)
             {
+                // Exclude BRE notes from base score calculation since they can't be scored
+                if (note.IsBigRockEnding)
+                {
+                    continue;
+                }
+
                 // Get the current multiplier given the current combo
                 int multiplier = Math.Min((combo / 10) + 1, BaseParameters.MaxMultiplier);
                 double scoreForNote = GetPointsPerNote() * (1 + note.ChildNotes.Count);
@@ -354,6 +382,22 @@ namespace YARG.Core.Engine.Drums
 
             YargLogger.LogDebug($"[Drums] Base score: {baseScore}, Max Combo: {combo}");
             return ((int) Math.Round(baseScore), (int) Math.Round(noteScore));
+        }
+
+        protected override List<CodaSection> GetCodaSections()
+        {
+            var codaSections = new List<CodaSection>();
+            var lanes = EngineParameters.Mode == DrumsEngineParameters.DrumMode.FiveLane ? 6 : 5;
+
+            foreach (var phrase in Chart.Phrases)
+            {
+                if (phrase.Type == PhraseType.BigRockEnding)
+                {
+                    codaSections.Add(new CodaSection(lanes, phrase.Time, phrase.TimeEnd, true));
+                }
+            }
+
+            return codaSections;
         }
 
         protected static bool IsTomInput(GameInput input)

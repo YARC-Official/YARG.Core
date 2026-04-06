@@ -145,9 +145,17 @@ namespace YARG.Core.Engine.Guitar
                 return;
             }
 
+            // Prevent overstrum too close to the expiration of lane behavior
             if (!IsLaneActive && CurrentTime - LaneExpireTime < LANE_END_OVERSTRUM_LENIENCY)
             {
                 YargLogger.LogFormatTrace("Overstrum prevented by lane end leniency at {0}", CurrentTime);
+            }
+
+            // Prevent overstrum during coda
+            if (IsCodaActive)
+            {
+                YargLogger.LogFormatTrace("Overstrum prevented during coda at {0}", CurrentTime);
+                return;
             }
 
             if (IsLaneActive)
@@ -222,6 +230,13 @@ namespace YARG.Core.Engine.Guitar
 
             note.SetHitState(true, true);
 
+            // Cancel the rest of hit logic during BRE phrase
+            if (IsCodaActive && note.IsBigRockEnding)
+            {
+                base.HitNote(note);
+                return;
+            }
+
             // Detect if the last note(s) were skipped
             bool skipped = SkipPreviousNotes(note);
 
@@ -289,6 +304,14 @@ namespace YARG.Core.Engine.Guitar
             if (note.WasHit || note.WasMissed)
             {
                 YargLogger.LogFormatTrace("Tried to hit/miss note twice (Fret: {0}, Index: {1}, Hit: {2}, Missed: {3})", note.Fret, NoteIndex, note.WasHit, note.WasMissed);
+                return;
+            }
+
+            // Note can't be missed during BRE phrase
+            if (IsCodaActive && note.IsBigRockEnding)
+            {
+                note.SetHitState(true, true);
+                base.HitNote(note);
                 return;
             }
 
@@ -398,6 +421,12 @@ namespace YARG.Core.Engine.Guitar
             int combo = 0;
             foreach (var note in Notes)
             {
+                // Exclude BRE notes from base score calculation since they can't be scored
+                if (note.IsBigRockEnding)
+                {
+                    continue;
+                }
+
                 // Get the current multiplier given the current combo
                 int multiplier = Math.Min((combo / 10) + 1, BaseParameters.MaxMultiplier);
                 double pointsForNote = POINTS_PER_NOTE * (1 + note.ChildNotes.Count);

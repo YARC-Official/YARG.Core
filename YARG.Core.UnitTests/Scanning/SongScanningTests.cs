@@ -4,8 +4,11 @@ using YARG.Core.Song.Cache;
 
 namespace YARG.Core.UnitTests.Scanning
 {
+    [Category("Integration")]
     public class SongScanningTests
     {
+        private const string SONG_DIRECTORIES_ENV_VAR = "YARG_TEST_SONG_DIRS";
+
         private List<string> songDirectories;
         private readonly bool FULL_DIRECTORY_PATHS = false;
         private static readonly string SongCachePath = Path.Combine(Environment.CurrentDirectory, "songcache.bin");
@@ -14,11 +17,21 @@ namespace YARG.Core.UnitTests.Scanning
         [SetUp]
         public void Setup()
         {
-            songDirectories = new()
+            var configuredDirectories = Environment.GetEnvironmentVariable(SONG_DIRECTORIES_ENV_VAR);
+            if (string.IsNullOrWhiteSpace(configuredDirectories))
             {
-                
-            };
-            Assert.That(songDirectories, Is.Not.Empty, "Add directories to scan for the test");
+                Assert.Ignore($"Set {SONG_DIRECTORIES_ENV_VAR} to one or more song directories to run scanning tests.");
+            }
+
+            songDirectories = configuredDirectories
+                .Split(Path.PathSeparator, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+                .Where(Directory.Exists)
+                .ToList();
+
+            if (songDirectories.Count == 0)
+            {
+                Assert.Ignore($"No valid song directories were found in {SONG_DIRECTORIES_ENV_VAR}.");
+            }
         }
 
         [TestCase]

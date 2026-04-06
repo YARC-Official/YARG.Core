@@ -22,10 +22,10 @@ namespace YARG.Core.Chart
         {
             var difficulties = new Dictionary<Difficulty, InstrumentDifficulty<GuitarNote>>()
             {
-                { Difficulty.Easy, LoadDifficulty(instrument, Difficulty.Easy, createNote) },
-                { Difficulty.Medium, LoadDifficulty(instrument, Difficulty.Medium, createNote) },
-                { Difficulty.Hard, LoadDifficulty(instrument, Difficulty.Hard, createNote) },
-                { Difficulty.Expert, LoadDifficulty(instrument, Difficulty.Expert, createNote) },
+                { Difficulty.Easy, LoadDifficulty(instrument, Difficulty.Easy, createNote, null, ValidateGuitarPhrase) },
+                { Difficulty.Medium, LoadDifficulty(instrument, Difficulty.Medium, createNote, null, ValidateGuitarPhrase) },
+                { Difficulty.Hard, LoadDifficulty(instrument, Difficulty.Hard, createNote, null, ValidateGuitarPhrase) },
+                { Difficulty.Expert, LoadDifficulty(instrument, Difficulty.Expert, createNote, null, ValidateGuitarPhrase) },
             };
 
             var track = new InstrumentTrack<GuitarNote>(instrument, difficulties, GetAnimationTrack(instrument));
@@ -169,6 +169,42 @@ namespace YARG.Core.Chart
             }
 
             return flags;
+        }
+
+        private Phrase? ValidateGuitarPhrase(Phrase phrase, List<Phrase> phrases)
+        {
+            if (phrase.Type == PhraseType.BigRockEnding)
+            {
+                // BRE Phrases aren't allowed outside a coda event
+                if (!IsWithinCoda(phrase))
+                {
+                    return null;
+                }
+            }
+
+            // Check that we don't already have an identical phrase
+            foreach (var otherPhrase in phrases)
+            {
+                if (otherPhrase.Type == phrase.Type && otherPhrase.Tick == phrase.Tick && otherPhrase.TickEnd == phrase.TickEnd)
+                {
+                    return null;
+                }
+            }
+
+            return phrase;
+        }
+
+        private bool IsWithinCoda(Phrase phrase)
+        {
+            foreach ((uint start, uint end) in _codaTicks)
+            {
+                if (phrase.Tick >= start && phrase.TickEnd <= end)
+                {
+                    return true;
+                }
+            }
+
+            return false;
         }
     }
 }

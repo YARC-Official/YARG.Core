@@ -108,7 +108,6 @@ namespace YARG.Core.IO
             {
                 var blockSize = reader.ReadUInt32();
                 var compressed = false;
-                FileType blockType;
                 switch (type)
                 {
                     case FileType.MILO_A:
@@ -338,17 +337,18 @@ namespace YARG.Core.IO
             return decompressed.ToArray();
         }
 
+        // I do not like the = null! syntax, but we don't have required yet
         private class MiloDirectory
         {
             // Probably only ever 25 or 28 (pre-RB3, RB3+)
             public uint   Version;
-            public byte[] Type;
-            public byte[] Name;
+            public byte[] Type = null!;
+            public byte[] Name = null!;
             // Count of strings in this part
             public uint MiloU1;
             // Count of names + total length
             public uint                              MiloU2;
-            public List<(byte[] name, byte[] value)> EntryNames;
+            public List<(byte[] name, byte[] value)> EntryNames = null!;
             // Unknown
             public uint MiloU3;
             // Seems to be 2 for TBRB
@@ -358,22 +358,22 @@ namespace YARG.Core.IO
             public uint? MiloU5;
             // ???
             public uint?             MiloU6;
-            public List<List<float>> MiloMatrices;
+            public List<List<float>> MiloMatrices = null!;
             // Almost always 0
             public uint MiloU7;
             // Always 1
             public byte MiloU8;
             // Always 0
             public uint         MiloU9;
-            public List<byte[]> MiloParents;
+            public List<byte[]> MiloParents = null!;
             // 0 in parent directory, usually 1 in subdirectory, but not always?
             public byte         MiloU10;
-            public List<byte[]> MiloChildren;
+            public List<byte[]> MiloChildren = null!;
             // In v25 always nothing, v28 is always 256 in root, nothing in subdirectories
             public ushort?                      MiloU11;
-            public List<MiloDirectory>          SubDirectories;
-            public byte[]                       UnknownBytes;
-            public List<(int offset, int length)> Files;
+            public List<MiloDirectory>          SubDirectories = null!;
+            public byte[]                       UnknownBytes = null!;
+            public List<(int offset, int length)> Files = null!;
         }
 
         struct BlockInfo

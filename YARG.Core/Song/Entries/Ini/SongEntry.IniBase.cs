@@ -534,7 +534,7 @@ namespace YARG.Core.Song
 
             entry._metadata = SongMetadata.Default;
 
-            entry._metadata.Name = title;
+            entry._metadata.Name = title!; // We will have returned already if title is null
             entry._metadata.Artist = loader.GetMetadata("ARTIST") ?? SongMetadata.DEFAULT_ARTIST;
             entry._metadata.Album = loader.GetMetadata("ALBUM") ?? SongMetadata.DEFAULT_ALBUM;
             entry._metadata.Genre = loader.GetMetadata("GENRE") ?? string.Empty;
@@ -554,7 +554,7 @@ namespace YARG.Core.Song
                 double.TryParse(previewStr,
                     System.Globalization.NumberStyles.Float,
                     System.Globalization.CultureInfo.InvariantCulture,
-                    out double previewMs)) 
+                    out double previewMs))
             {
                 entry._metadata.Preview.Start = (long) previewMs;
             }

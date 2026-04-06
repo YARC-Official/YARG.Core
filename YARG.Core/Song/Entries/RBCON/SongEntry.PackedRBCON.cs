@@ -28,6 +28,7 @@ namespace YARG.Core.Song
             base.Serialize(stream, node);
         }
 
+        #nullable disable
         public override YARGImage LoadAlbumData()
         {
             var image = LoadUpdateAlbumData();
@@ -38,6 +39,7 @@ namespace YARG.Core.Song
             }
             return image;
         }
+        #nullable restore
 
         public override BackgroundResult? LoadBackground()
         {
