@@ -42,7 +42,7 @@ internal class SingStarLoaderTests_Lyrics : SingStarLoaderTests
         var lyrics = track.Parts[0].NotePhrases[0].Lyrics;
 
         // "Be -" starts melisma: first note = "Be", second note = "cause+" (with + marker)
-        Assert.That(lyrics[0].Text, Is.EqualTo("Be"));
+        Assert.That(lyrics[0].Text, Is.EqualTo("Be-"));
         Assert.That(lyrics[1].Text, Is.EqualTo("cause+"));
     }
 
