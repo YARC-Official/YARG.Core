@@ -745,7 +745,11 @@ namespace YARG.Core.Song
             if (dta.Charter != null)              { entry._metadata.Charter       = YARGDTAReader.DecodeString(dta.Charter.Value, dta.MetadataEncoding); }
             if (dta.LoadingPhrase != null)        { entry._metadata.LoadingPhrase = YARGDTAReader.DecodeString(dta.LoadingPhrase.Value, dta.MetadataEncoding); }
             if (dta.Playlist != null)             { entry._metadata.Playlist      = YARGDTAReader.DecodeString(dta.Playlist.Value, dta.MetadataEncoding); }
-            if (dta.Genre != null)                { entry._metadata.Genre         = dta.Genre; }
+            if (dta.Genre != null)
+            {
+                entry._metadata.Genre    = dta.Genre;
+                entry._metadata.Subgenre = string.Empty;
+            }
             if (dta.Subgenre != null)             { entry._metadata.Subgenre      = dta.Subgenre.Replace("subgenre_", ""); }
             if (dta.YearAsNumber != null)
             {
