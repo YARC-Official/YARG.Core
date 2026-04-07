@@ -139,7 +139,7 @@ namespace YARG.Core.Game
                     (int) FiveFretGuitarFret.Yellow => YellowNoteStarPower,
                     (int) FiveFretGuitarFret.Blue => BlueNoteStarPower,
                     (int) FiveFretGuitarFret.Orange => OrangeNoteStarPower,
-                    (int) FiveFretGuitarFret.Wildcard => WildcardNote,
+                    (int) FiveFretGuitarFret.Wildcard => WildcardNoteStarPower,
                     (int) FiveFretGuitarFret.Open => OpenNoteStarPower,
                     _ => default
                 };
