@@ -13,6 +13,7 @@ namespace YARG.Core.Engine.Keys
             YellowKey = 2,
             BlueKey = 3,
             OrangeKey = 4,
+            Wildcard = 5,
 
             OpenNote = 6
         }

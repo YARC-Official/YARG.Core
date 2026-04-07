@@ -111,6 +111,7 @@ namespace YARG.Core.Game
                 YellowNote = CircularYellow,
                 BlueNote   = CircularBlue,
                 OrangeNote = CircularOrange,
+                WildcardNote = DefaultWildcard,
 
                 OpenNoteStarPower   = CircularStarpower,
                 GreenNoteStarPower  = CircularStarpower,
@@ -118,6 +119,7 @@ namespace YARG.Core.Game
                 YellowNoteStarPower = CircularStarpower,
                 BlueNoteStarPower   = CircularStarpower,
                 OrangeNoteStarPower = CircularStarpower,
+                WildcardNoteStarPower = DefaultWildcardStarpower,
             }
         };
 
@@ -131,6 +133,7 @@ namespace YARG.Core.Game
                 YellowFret = AprilFoolsYellow,
                 BlueFret   = AprilFoolsBlue,
                 OrangeFret = AprilFoolsPurple,
+                WildcardNote = DefaultWildcard,
 
                 OpenFretInner   = CircularOrange,
                 GreenFretInner  = AprilFoolsGreen,
@@ -152,6 +155,7 @@ namespace YARG.Core.Game
                 YellowNoteStarPower = CircularStarpower,
                 BlueNoteStarPower   = CircularStarpower,
                 OrangeNoteStarPower = CircularStarpower,
+                WildcardNoteStarPower = DefaultWildcardStarpower,
             },
             FourLaneDrums = new FourLaneDrumsColors
             {

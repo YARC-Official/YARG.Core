@@ -118,12 +118,13 @@ namespace YARG.Core.Game
                 };
             }
 
-            public Color OpenNoteStarPower   = DefaultStarpower;
-            public Color GreenNoteStarPower  = DefaultStarpower;
-            public Color RedNoteStarPower    = DefaultStarpower;
-            public Color YellowNoteStarPower = DefaultStarpower;
-            public Color BlueNoteStarPower   = DefaultStarpower;
-            public Color OrangeNoteStarPower = DefaultStarpower;
+            public Color OpenNoteStarPower     = DefaultStarpower;
+            public Color GreenNoteStarPower    = DefaultStarpower;
+            public Color RedNoteStarPower      = DefaultStarpower;
+            public Color YellowNoteStarPower   = DefaultStarpower;
+            public Color BlueNoteStarPower     = DefaultStarpower;
+            public Color OrangeNoteStarPower   = DefaultStarpower;
+            public Color WildcardNoteStarPower = DefaultWildcardStarpower;
 
             /// <summary>
             /// Gets the Star Power note color for a specific note index.
@@ -133,11 +134,12 @@ namespace YARG.Core.Game
             {
                 return index switch
                 {
-                    1 => GreenNoteStarPower,
-                    2 => RedNoteStarPower,
-                    3 => YellowNoteStarPower,
-                    4 => BlueNoteStarPower,
-                    5 => OrangeNoteStarPower,
+                    (int) FiveFretGuitarFret.Green => GreenNoteStarPower,
+                    (int) FiveFretGuitarFret.Red => RedNoteStarPower,
+                    (int) FiveFretGuitarFret.Yellow => YellowNoteStarPower,
+                    (int) FiveFretGuitarFret.Blue => BlueNoteStarPower,
+                    (int) FiveFretGuitarFret.Orange => OrangeNoteStarPower,
+                    (int) FiveFretGuitarFret.Wildcard => WildcardNote,
                     (int) FiveFretGuitarFret.Open => OpenNoteStarPower,
                     _ => default
                 };
