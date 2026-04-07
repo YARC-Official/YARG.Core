@@ -22,6 +22,7 @@ namespace YARG.Core.Chart
         {
             var difficulties = new Dictionary<Difficulty, InstrumentDifficulty<GuitarNote>>()
             {
+                { Difficulty.Beginner, LoadDifficulty(instrument, Difficulty.Beginner, CreateFiveFretBeginnerNote, null, ValidateGuitarPhrase) },
                 { Difficulty.Easy, LoadDifficulty(instrument, Difficulty.Easy, createNote, null, ValidateGuitarPhrase) },
                 { Difficulty.Medium, LoadDifficulty(instrument, Difficulty.Medium, createNote, null, ValidateGuitarPhrase) },
                 { Difficulty.Hard, LoadDifficulty(instrument, Difficulty.Hard, createNote, null, ValidateGuitarPhrase) },
@@ -39,6 +40,17 @@ namespace YARG.Core.Chart
             var noteType = GetGuitarNoteType(moonNote);
             var generalFlags = GetGeneralFlags(moonNote, currentPhrases);
             var guitarFlags = GetGuitarNoteFlags(moonNote);
+
+            double time = _moonSong.TickToTime(moonNote.tick);
+            return new GuitarNote(fret, noteType, guitarFlags, generalFlags, time, GetLengthInTime(moonNote), moonNote.tick, moonNote.length);
+        }
+
+        private GuitarNote CreateFiveFretBeginnerNote(MoonNote moonNote, Dictionary<MoonPhrase.Type, MoonPhrase> currentPhrases)
+        {
+            var fret = FiveFretGuitarFret.Wildcard;
+            var noteType = GuitarNoteType.Strum;
+            var generalFlags = GetGeneralFlags(moonNote, currentPhrases);
+            var guitarFlags = GuitarNoteFlags.None;
 
             double time = _moonSong.TickToTime(moonNote.tick);
             return new GuitarNote(fret, noteType, guitarFlags, generalFlags, time, GetLengthInTime(moonNote), moonNote.tick, moonNote.length);

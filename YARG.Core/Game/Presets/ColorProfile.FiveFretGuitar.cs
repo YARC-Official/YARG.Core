@@ -91,12 +91,13 @@ namespace YARG.Core.Game
 
             #region Notes
 
-            public Color OpenNote   = DefaultPurple;
-            public Color GreenNote  = DefaultGreen;
-            public Color RedNote    = DefaultRed;
-            public Color YellowNote = DefaultYellow;
-            public Color BlueNote   = DefaultBlue;
-            public Color OrangeNote = DefaultOrange;
+            public Color OpenNote     = DefaultPurple;
+            public Color GreenNote    = DefaultGreen;
+            public Color RedNote      = DefaultRed;
+            public Color YellowNote   = DefaultYellow;
+            public Color BlueNote     = DefaultBlue;
+            public Color OrangeNote   = DefaultOrange;
+            public Color WildcardNote = DefaultWildcard;
 
             /// <summary>
             /// Gets the note color for a specific note index.
@@ -106,11 +107,12 @@ namespace YARG.Core.Game
             {
                 return index switch
                 {
-                    1 => GreenNote,
-                    2 => RedNote,
-                    3 => YellowNote,
-                    4 => BlueNote,
-                    5 => OrangeNote,
+                    (int) FiveFretGuitarFret.Green => GreenNote,
+                    (int) FiveFretGuitarFret.Red => RedNote,
+                    (int) FiveFretGuitarFret.Yellow => YellowNote,
+                    (int) FiveFretGuitarFret.Blue => BlueNote,
+                    (int) FiveFretGuitarFret.Orange => OrangeNote,
+                    (int) FiveFretGuitarFret.Wildcard => WildcardNote,
                     (int) FiveFretGuitarFret.Open => OpenNote,
                     _ => default
                 };

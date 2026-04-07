@@ -228,7 +228,27 @@ namespace YARG.Core.Engine.Keys
             return (int) Math.Round(score);
         }
 
-        protected override bool IsKeyInTime(GuitarNote note, double frontEnd) => IsKeyInTime(note, (int)note.FiveLaneKeysAction, frontEnd);
+        // protected override bool IsKeyInTime(GuitarNote note, double frontEnd) => IsKeyInTime(note, (int)note.FiveLaneKeysAction, frontEnd);
+
+        protected override bool IsKeyInTime(GuitarNote note, double frontEnd)
+        {
+            if (note.Fret != (int) FiveFretGuitarFret.Wildcard)
+            {
+                return IsKeyInTime(note, (int) note.FiveLaneKeysAction, frontEnd);
+            }
+
+            // Check that any key was pressed within the front end
+            // TODO: Eliminate this loop by tracking a global LastKeyPressTime or something
+            foreach (var pressTime in KeyPressTimes)
+            {
+                if (pressTime > note.Time + frontEnd)
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
 
         protected FiveLaneKeysAction ProKeysActionToFiveLaneKeysAction(ProKeysAction action)
         {

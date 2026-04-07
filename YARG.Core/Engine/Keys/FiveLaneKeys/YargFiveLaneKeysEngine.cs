@@ -200,6 +200,13 @@ namespace YARG.Core.Engine.Keys.Engines
             double hitWindow = EngineParameters.HitWindow.CalculateHitWindow(GetAverageNoteDistance(note));
             double frontEnd = EngineParameters.HitWindow.GetFrontEnd(hitWindow);
 
+            // TODO: This is probably note correct for chords, but we shouldn't have chords in easy anyway
+            //  this will need to be fixed if we allow wildcard notes in other difficulties
+            if (note.Fret == (int) FiveFretGuitarFret.Wildcard && IsKeyInTime(note, frontEnd))
+            {
+                return true;
+            }
+
             if ((KeyMask & note.NoteMask) == note.NoteMask)
             {
                 foreach (var childNote in note.AllNotes)

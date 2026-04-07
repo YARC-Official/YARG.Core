@@ -109,6 +109,13 @@ namespace YARG.Core.Song
                     }
                 }
             }
+
+            if ((validations & DifficultyMask.Easy) > 0)
+            {
+                // If easy is present, we can autogen beginner
+                validations |= DifficultyMask.Beginner;
+            }
+
             return validations;
         }
     }

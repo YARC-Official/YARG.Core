@@ -373,6 +373,12 @@ namespace YARG.Core.Engine.Guitar.Engines
 
             static bool IsNoteHittable(GuitarNote note, ushort buttonsMasked)
             {
+                // Wildcard notes are always hittable regardless of what frets are held
+                if (note.Fret == (int) FiveFretGuitarFret.Wildcard)
+                {
+                    return true;
+                }
+
                 // Only used for sustain logic
                 bool useDisjointSustainMask = note is { IsDisjoint: true, WasHit: true };
 

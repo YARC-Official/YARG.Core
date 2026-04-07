@@ -20,6 +20,8 @@ namespace YARG.Core.Game
         public static readonly Color DefaultBlue   = Color.FromArgb(0xFF, 0x00, 0xBF, 0xFF); // #00BFFF
         [SettingType(SettingType.Ignore)]
         public static readonly Color DefaultOrange = Color.FromArgb(0xFF, 0xFF, 0x84, 0x00); // #FF8400
+        [SettingType(SettingType.Ignore)]
+        public static readonly Color DefaultWildcard = Color.FromArgb(0xFF, 0xFF, 0x84, 0x00); // #FF8400 (same as orange)
 
         // By default, use these colors for notes only, not fret coloring or particles
         [SettingType(SettingType.Ignore)]
@@ -33,6 +35,8 @@ namespace YARG.Core.Game
 
         [SettingType(SettingType.Ignore)]
         public static readonly Color DefaultStarpower = Color.White; // #FFFFFF
+        [SettingType(SettingType.Ignore)]
+        public static readonly Color DefaultWildcardStarpower = Color.FromArgb(0xFF, 0xFF, 0x80, 0xFF);
 
         // Overly saturate colors compared to the defaults for activations
         [SettingType(SettingType.Ignore)]
