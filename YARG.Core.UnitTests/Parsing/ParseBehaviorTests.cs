@@ -2,6 +2,7 @@
 using MoonscraperChartEditor.Song;
 using MoonscraperChartEditor.Song.IO;
 using NUnit.Framework;
+using NUnit.Framework.Legacy;
 using YARG.Core.Chart;
 using YARG.Core.Extensions;
 
@@ -721,18 +722,18 @@ namespace YARG.Core.UnitTests.Parsing
 
         public static void VerifyGlobal(MoonSong sourceSong, MoonSong parsedSong)
         {
-            Assert.Multiple(() =>
+            using (Assert.EnterMultipleScope())
             {
                 Assert.That(parsedSong.resolution, Is.EqualTo(sourceSong.resolution), "Resolution was not parsed correctly!");
 
-                CollectionAssert.AreEqual(sourceSong.events, parsedSong.events, "Global events do not match!");
-                CollectionAssert.AreEqual(sourceSong.sections, parsedSong.sections, "Sections do not match!");
-                CollectionAssert.AreEqual(sourceSong.venue, parsedSong.venue, "Venue events do not match!");
+                Assert.That(parsedSong.events, Is.EqualTo(sourceSong.events).AsCollection, "Global events do not match!");
+                Assert.That(parsedSong.sections, Is.EqualTo(sourceSong.sections).AsCollection, "Sections do not match!");
+                Assert.That(parsedSong.venue, Is.EqualTo(sourceSong.venue).AsCollection, "Venue events do not match!");
 
-                CollectionAssert.AreEqual(sourceSong.syncTrack.Tempos, parsedSong.syncTrack.Tempos, "BPMs do not match!");
-                CollectionAssert.AreEqual(sourceSong.syncTrack.TimeSignatures, parsedSong.syncTrack.TimeSignatures, "Time signatures do not match!");
-                CollectionAssert.AreEqual(sourceSong.syncTrack.Beatlines, parsedSong.syncTrack.Beatlines, "Beatlines do not match!");
-            });
+                Assert.That(parsedSong.syncTrack.Tempos, Is.EqualTo(sourceSong.syncTrack.Tempos).AsCollection, "BPMs do not match!");
+                Assert.That(parsedSong.syncTrack.TimeSignatures, Is.EqualTo(sourceSong.syncTrack.TimeSignatures).AsCollection, "Time signatures do not match!");
+                Assert.That(parsedSong.syncTrack.Beatlines, Is.EqualTo(sourceSong.syncTrack.Beatlines).AsCollection, "Beatlines do not match!");
+            }
         }
 
         public static void VerifyInstrument(MoonSong sourceSong, MoonSong parsedSong, MoonInstrument instrument)
@@ -754,9 +755,9 @@ namespace YARG.Core.UnitTests.Parsing
 
                 var sourceChart = sourceSong.GetChart(instrument, difficulty);
                 var parsedChart = parsedSong.GetChart(instrument, difficulty);
-                CollectionAssert.AreEqual(sourceChart.notes, parsedChart.notes, $"Notes on {difficulty} {instrument} do not match!");
-                CollectionAssert.AreEqual(sourceChart.specialPhrases, parsedChart.specialPhrases, $"Special phrases on {difficulty} {instrument} do not match!");
-                CollectionAssert.AreEqual(sourceChart.events, parsedChart.events, $"Local events on {difficulty} {instrument} do not match!");
+                Assert.That(parsedChart.notes, Is.EqualTo(sourceChart.notes).AsCollection, $"Notes on {difficulty} {instrument} do not match!");
+                Assert.That(parsedChart.specialPhrases, Is.EqualTo(sourceChart.specialPhrases).AsCollection, $"Special phrases on {difficulty} {instrument} do not match!");
+                Assert.That(parsedChart.events, Is.EqualTo(sourceChart.events).AsCollection, $"Local events on {difficulty} {instrument} do not match!");
             });
         }
     }
