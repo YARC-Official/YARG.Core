@@ -110,11 +110,8 @@ namespace YARG.Core.Song
                 }
             }
 
-            if ((validations & DifficultyMask.Easy) > 0)
-            {
-                // If easy is present, we can autogen beginner
-                validations |= DifficultyMask.Beginner;
-            }
+            // Add beginner to the mask if easy is present (mask easy, shift right, or result with validations)
+            validations |= (DifficultyMask)((byte)(validations & DifficultyMask.Easy) >> 1);
 
             return validations;
         }
