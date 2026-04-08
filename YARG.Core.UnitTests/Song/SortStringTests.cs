@@ -11,7 +11,7 @@ public class SortStringTests
     {
         var sortString = new SortString("  <b>The   Ænema\t</b>  ");
 
-        Assert.Multiple(() =>
+        using (Assert.EnterMultipleScope())
         {
             Assert.That(sortString.Original, Is.EqualTo("  <b>The   Ænema\t</b>  "));
             Assert.That(sortString.SearchStr, Is.EqualTo("the aenema"));
@@ -19,7 +19,7 @@ public class SortStringTests
             Assert.That(sortString.Group, Is.EqualTo(CharacterGroup.AsciiLetter));
             Assert.That(sortString.Length, Is.EqualTo(sortString.Original.Length));
             Assert.That(sortString.ToString(), Is.EqualTo(sortString.Original));
-        });
+        }
     }
 
     [TestCase("The Beatles", "beatles")]
@@ -40,11 +40,11 @@ public class SortStringTests
     {
         var sortString = new SortString("Meet the Beatles");
 
-        Assert.Multiple(() =>
+        using (Assert.EnterMultipleScope())
         {
             Assert.That(sortString.SearchStr, Is.EqualTo("meet the beatles"));
             Assert.That(sortString.SortStr, Is.EqualTo("meet the beatles"));
-        });
+        }
     }
 
     [TestCase("", CharacterGroup.Empty)]
@@ -65,11 +65,11 @@ public class SortStringTests
         var left = new SortString("  <b>The   Béatles</b>  ");
         var right = new SortString("beatles");
 
-        Assert.Multiple(() =>
+        using (Assert.EnterMultipleScope())
         {
             Assert.That(left.CompareTo(right), Is.Zero);
             Assert.That(right.CompareTo(left), Is.Zero);
-        });
+        }
     }
 
     [Test]
@@ -96,10 +96,10 @@ public class SortStringTests
         var alpha = new SortString("Alpha");
         var beta = new SortString("Beta");
 
-        Assert.Multiple(() =>
+        using (Assert.EnterMultipleScope())
         {
             Assert.That(alpha.CompareTo(beta), Is.LessThan(0));
             Assert.That(beta.CompareTo(alpha), Is.GreaterThan(0));
-        });
+        }
     }
 }

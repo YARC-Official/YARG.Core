@@ -25,7 +25,7 @@ public class SongMetadataTests
             """
         );
 
-        Assert.Multiple(() =>
+        using (Assert.EnterMultipleScope())
         {
             Assert.That(metadata.Name, Is.EqualTo("Test Name"));
             Assert.That(metadata.Artist, Is.EqualTo("Test Artist"));
@@ -35,7 +35,7 @@ public class SongMetadataTests
             Assert.That(metadata.Source, Is.EqualTo("Custom Source"));
             Assert.That(metadata.Playlist, Is.EqualTo("Featured"));
             Assert.That(metadata.LoadingPhrase, Is.EqualTo("Ready to play"));
-        });
+        }
     }
 
     [Test]
@@ -49,12 +49,12 @@ public class SongMetadataTests
             """
         );
 
-        Assert.Multiple(() =>
+        using (Assert.EnterMultipleScope())
         {
             Assert.That(metadata.Charter, Is.EqualTo("Alias Charter"));
             Assert.That(metadata.AlbumTrack, Is.EqualTo(7));
             Assert.That(metadata.PlaylistTrack, Is.EqualTo(int.MaxValue));
-        });
+        }
     }
 
     [Test]
@@ -76,12 +76,12 @@ public class SongMetadataTests
 
         SongMetadata.FillFromIni(ref metadata, modifiers);
 
-        Assert.Multiple(() =>
+        using (Assert.EnterMultipleScope())
         {
             Assert.That(metadata.Name, Is.EqualTo("Existing Name"));
             Assert.That(metadata.Artist, Is.EqualTo("Existing Artist"));
             Assert.That(metadata.Album, Is.EqualTo("Existing Album"));
-        });
+        }
     }
 
     [TestCase(", 1999", "1999")]
@@ -137,11 +137,11 @@ public class SongMetadataTests
             ("delay_seconds", "3.5", ModifierType.Double)
         ));
 
-        Assert.Multiple(() =>
+        using (Assert.EnterMultipleScope())
         {
             Assert.That(explicitDelay.SongOffset, Is.EqualTo(500));
             Assert.That(fallbackDelay.SongOffset, Is.EqualTo(3500));
-        });
+        }
     }
 
     [Test]
@@ -157,13 +157,13 @@ public class SongMetadataTests
             """
         );
 
-        Assert.Multiple(() =>
+        using (Assert.EnterMultipleScope())
         {
             Assert.That(metadata.IsMaster, Is.False);
             Assert.That(metadata.VideoLoop, Is.True);
             Assert.That(metadata.VocalScrollSpeedScalingFactor, Is.EqualTo(0.8f));
             Assert.That(metadata.SongRating, Is.EqualTo(SongRating.Mature));
-        });
+        }
     }
 
     private static SongMetadata CreateMetadataFromSongIni(string iniContents)
