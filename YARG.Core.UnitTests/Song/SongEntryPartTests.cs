@@ -1,7 +1,4 @@
 using NUnit.Framework;
-using YARG.Core.Audio;
-using YARG.Core.Chart;
-using YARG.Core.IO;
 using YARG.Core.Song;
 
 namespace YARG.Core.UnitTests.Song;
@@ -143,33 +140,5 @@ public class SongEntryPartTests
         var entry = new TestSongEntry();
         entry.SetParts(parts);
         return entry;
-    }
-
-    private sealed class TestSongEntry : SongEntry
-    {
-        public override EntryType SubType => EntryType.Ini;
-
-        public override string SortBasedLocation => "test-location";
-
-        public override string ActualLocation => "test-location";
-
-        public void SetParts(AvailableParts parts)
-        {
-            _parts = parts;
-        }
-
-        public override DateTime GetLastWriteTime() => DateTime.UnixEpoch;
-
-        public override SongChart? LoadChart() => null;
-
-        public override StemMixer? LoadAudio(float speed, double volume, params SongStem[] ignoreStems) => null;
-
-        public override StemMixer? LoadPreviewAudio(float speed) => null;
-
-        public override YARGImage? LoadAlbumData() => null;
-
-        public override BackgroundResult? LoadBackground() => null;
-
-        public override FixedArray<byte>? LoadMiloData() => null;
     }
 }
