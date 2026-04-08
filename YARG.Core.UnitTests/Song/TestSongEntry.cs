@@ -74,6 +74,39 @@ internal sealed class TestSongEntry : SongEntry
         _actualLocation = actualLocation ?? sortBasedLocation;
     }
 
+    public void SetTimingMetadata(
+        long? songLength = null,
+        long? songOffset = null,
+        (long Start, long End)? preview = null,
+        (long Start, long End)? video = null)
+    {
+        if (songLength.HasValue)
+        {
+            _metadata.SongLength = songLength.Value;
+        }
+        if (songOffset.HasValue)
+        {
+            _metadata.SongOffset = songOffset.Value;
+        }
+        if (preview.HasValue)
+        {
+            _metadata.Preview = preview.Value;
+        }
+        if (video.HasValue)
+        {
+            _metadata.Video = video.Value;
+        }
+    }
+
+    public void SetVocalMetadata(float? vocalScrollSpeedScalingFactor = null, VocalGender? vocalGender = null)
+    {
+        _metadata.VocalScrollSpeedScalingFactor = vocalScrollSpeedScalingFactor;
+        if (vocalGender.HasValue)
+        {
+            _metadata.VocalGender = vocalGender.Value;
+        }
+    }
+
     public override DateTime GetLastWriteTime() => DateTime.UnixEpoch;
 
     public override SongChart? LoadChart() => null;
