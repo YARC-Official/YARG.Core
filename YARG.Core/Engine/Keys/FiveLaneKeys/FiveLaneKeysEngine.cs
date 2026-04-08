@@ -34,8 +34,10 @@ namespace YARG.Core.Engine.Keys
 
         protected override bool CanSustainHold(GuitarNote note)
         {
-            return (KeyMask & note.DisjointMask) != 0;
+            return (KeyMask & note.DisjointMask) != 0 ||
+                (KeyMask > 0 && note.FiveLaneKeysAction is FiveLaneKeysAction.Wildcard);
         }
+
         protected override void HitNote(GuitarNote note)
         {
             if (note.WasHit || note.WasMissed)

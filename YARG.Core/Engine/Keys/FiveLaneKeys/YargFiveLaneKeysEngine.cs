@@ -401,6 +401,7 @@ namespace YARG.Core.Engine.Keys.Engines
                 FiveLaneKeysAction.YellowKey => ProKeysAction.YellowKey,
                 FiveLaneKeysAction.BlueKey => ProKeysAction.BlueKey,
                 FiveLaneKeysAction.OrangeKey => ProKeysAction.OrangeKey,
+                FiveLaneKeysAction.Wildcard => ProKeysAction.OpenNote, // Doesn't actually matter what action we use here
                 _ => throw new Exception("Unhandled.")
             };
         }
