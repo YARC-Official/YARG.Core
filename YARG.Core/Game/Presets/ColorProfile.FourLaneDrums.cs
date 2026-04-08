@@ -250,6 +250,7 @@ namespace YARG.Core.Game
                     (int)FourLaneDrumsFret.YellowCymbal => YellowCymbalActivationNote,
                     (int)FourLaneDrumsFret.BlueCymbal => BlueCymbalActivationNote,
                     (int)FourLaneDrumsFret.GreenCymbal => GreenCymbalActivationNote,
+                    (int)FourLaneDrumsFret.WildcardPad => DefaultWildcard,
 
                     _ => default
                 };

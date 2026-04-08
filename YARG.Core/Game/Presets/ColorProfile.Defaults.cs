@@ -21,7 +21,7 @@ namespace YARG.Core.Game
         [SettingType(SettingType.Ignore)]
         public static readonly Color DefaultOrange = Color.FromArgb(0xFF, 0xFF, 0x84, 0x00); // #FF8400
         [SettingType(SettingType.Ignore)]
-        public static readonly Color DefaultWildcard = Color.FromArgb(0xFF, 0xFF, 0x84, 0x00); // #FF8400 (same as orange)
+        public static readonly Color DefaultWildcard = Color.FromArgb(0xFF, 0xA0, 0xD0, 0x10); // #A0D010 (only lightness really matters)
 
         // By default, use these colors for notes only, not fret coloring or particles
         [SettingType(SettingType.Ignore)]

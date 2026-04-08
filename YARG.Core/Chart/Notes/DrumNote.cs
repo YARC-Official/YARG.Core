@@ -105,7 +105,7 @@ namespace YARG.Core.Chart
         BlueCymbal,
         GreenCymbal,
 
-        Wildcard,
+        Wildcard = 9,
     }
 
     public enum FiveLaneDrumPad
@@ -118,7 +118,7 @@ namespace YARG.Core.Chart
         Orange,
         Green,
 
-        Wildcard = 8,
+        Wildcard = 9,
     }
 
     public enum DrumNoteType
