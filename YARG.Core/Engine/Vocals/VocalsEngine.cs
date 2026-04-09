@@ -339,9 +339,9 @@ namespace YARG.Core.Engine.Vocals
                 int multiplier = Math.Min(combo + 1, BaseParameters.MaxMultiplier);
                 if (note.IsPercussionPhrase)
                 {
-                    // I am assuming all notes in a percussion phrase are percussion because I want to avoid nested loops
-                    baseScore += POINTS_PER_PERCUSSION * note.ChildNotes.Count * multiplier;
-                    noteScore += POINTS_PER_PERCUSSION * note.ChildNotes.Count;
+                    // Intentionally not counting percussion notes for base score so they don't affect star calculations
+                    // baseScore += POINTS_PER_PERCUSSION * note.ChildNotes.Count * multiplier;
+                    // noteScore += POINTS_PER_PERCUSSION * note.ChildNotes.Count;
                     continue;
                 }
                 baseScore += multiplier * EngineParameters.PointsPerPhrase;
