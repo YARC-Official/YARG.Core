@@ -26,8 +26,13 @@ namespace YARG.Core.Chart
 
         private InstrumentTrack<DrumNote> LoadDrumsTrack(Instrument instrument, CreateNoteDelegate<DrumNote> createNote, InstrumentTrack<EliteDrumNote>? eliteDrumsFallback)
         {
+            CreateNoteDelegate<DrumNote> beginnerNoteDelegate = instrument is Instrument.FourLaneDrums
+                ? CreateFourLaneDrumBeginnerNote
+                : CreateFiveLaneDrumBeginnerNote;
+
             var difficulties = new Dictionary<Difficulty, InstrumentDifficulty<DrumNote>>()
             {
+                { Difficulty.Beginner, LoadDifficulty(instrument, Difficulty.Beginner, beginnerNoteDelegate, HandleTextEvent) },
                 { Difficulty.Easy, LoadDifficulty(instrument, Difficulty.Easy, createNote, HandleTextEvent) },
                 { Difficulty.Medium, LoadDifficulty(instrument, Difficulty.Medium, createNote, HandleTextEvent) },
                 { Difficulty.Hard, LoadDifficulty(instrument, Difficulty.Hard, createNote, HandleTextEvent) },
@@ -56,6 +61,7 @@ namespace YARG.Core.Chart
 
                     difficulties = new Dictionary<Difficulty, InstrumentDifficulty<DrumNote>>()
                     {
+                        { Difficulty.Beginner, LoadFromEliteDrumsDownchartDifficulty(instrument, Difficulty.Beginner, beginnerNoteDelegate, HandleTextEvent) },
                         { Difficulty.Easy, LoadFromEliteDrumsDownchartDifficulty(instrument, Difficulty.Easy, createNote, HandleTextEvent)},
                         { Difficulty.Medium, LoadFromEliteDrumsDownchartDifficulty(instrument, Difficulty.Medium, createNote, HandleTextEvent)},
                         { Difficulty.Hard, LoadFromEliteDrumsDownchartDifficulty(instrument, Difficulty.Hard, createNote, HandleTextEvent)},
@@ -96,6 +102,28 @@ namespace YARG.Core.Chart
             return new DrumNote(pad, noteType, drumFlags, generalFlags, time, moonNote.tick);
         }
 
+        private DrumNote CreateFourLaneDrumBeginnerNote(MoonNote moonNote, Dictionary<MoonPhrase.Type, MoonPhrase> currentPhrases)
+        {
+            var pad = FourLaneDrumPad.Wildcard;
+            var noteType = DrumNoteType.Neutral;
+            var generalFlags = GetGeneralFlags(moonNote, currentPhrases);
+            var drumFlags = GetDrumNoteFlags(moonNote, currentPhrases);
+
+            double time = _moonSong.TickToTime(moonNote.tick);
+            return new DrumNote(pad, noteType, drumFlags, generalFlags, time, moonNote.tick);
+        }
+
+        private DrumNote CreateFiveLaneDrumBeginnerNote(MoonNote moonNote, Dictionary<MoonPhrase.Type, MoonPhrase> currentPhrases)
+        {
+            var pad = FiveLaneDrumPad.Wildcard;
+            var noteType = DrumNoteType.Neutral;
+            var generalFlags = GetGeneralFlags(moonNote, currentPhrases);
+            var drumFlags = GetDrumNoteFlags(moonNote, currentPhrases);
+
+            double time = _moonSong.TickToTime(moonNote.tick);
+            return new DrumNote(pad, noteType, drumFlags, generalFlags, time, moonNote.tick);
+        }
+
         private void HandleTextEvent(MoonText text)
         {
             // Ignore on 5-lane or standard Drums
@@ -114,6 +142,24 @@ namespace YARG.Core.Chart
                 return;
 
             _discoFlip = setting == DrumsMixSetting.DiscoFlip;
+        }
+
+        // Left as an example of how to use phrase validation/replacement despite being no longer required
+        private Phrase? ValidateDrumsPhrase(Phrase phrase, List<Phrase> phrases)
+        {
+            if (phrase.Type != PhraseType.DrumFill)
+            {
+                // We only care about drum fills
+                return phrase;
+            }
+
+            if (phrase.Time < _codaTime)
+            {
+                return phrase;
+            }
+
+            // If we're here, we were presented a drum fill after a coda and that needs to be a BRE
+            return new Phrase(PhraseType.BigRockEnding, phrase.Time, phrase.TimeLength, phrase.Tick, phrase.TickLength);
         }
 
         private FourLaneDrumPad GetFourLaneDrumPad(MoonNote moonNote)

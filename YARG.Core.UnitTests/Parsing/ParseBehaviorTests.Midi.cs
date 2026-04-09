@@ -247,6 +247,12 @@ namespace YARG.Core.UnitTests.Parsing
             { GameMode.ProKeys,   ProKeysNoteOffsetLookup },
         };
 
+        private static readonly MoonInstrument[] SupportedInstruments = InstrumentToNameLookup.Keys
+            .Concat(InstrumentDifficultyToNameLookupLookup.Keys)
+            .Where((instrument) => InstrumentNoteOffsetLookup.ContainsKey(MoonSong.InstrumentToChartGameMode(instrument)))
+            .Distinct()
+            .ToArray();
+
         private static readonly Dictionary<GameMode, Dictionary<MoonNoteType, int>> InstrumentForceOffsetLookup = new()
         {
             { GameMode.Guitar,    GuitarForceOffsetLookup },
@@ -667,7 +673,8 @@ namespace YARG.Core.UnitTests.Parsing
         {
             YargLogger.AddLogListener(new DebugYargLogListener());
 
-            var sourceSong = GenerateSong();
+            var sourceSong = GenerateSong(SupportedInstruments);
+            NormalizeHarmonyPhrasesForMidi(sourceSong);
             var midi = GenerateMidi(sourceSong);
             MoonSong parsedSong;
             try

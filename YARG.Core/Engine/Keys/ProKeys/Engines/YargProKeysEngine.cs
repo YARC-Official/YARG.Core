@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using YARG.Core.Chart;
 using YARG.Core.Input;
 using YARG.Core.Logging;
@@ -8,6 +9,7 @@ namespace YARG.Core.Engine.Keys.Engines
     public class YargProKeysEngine : ProKeysEngine
     {
         private KeyPressedTimes[] _keyPressedTimes = new KeyPressedTimes[(int)ProKeysAction.Key25 + 1];
+        private bool              _keyPressedThisUpdate;
 
         public YargProKeysEngine(InstrumentDifficulty<ProKeysNote> chart, SyncTrack syncTrack,
             KeysEngineParameters engineParameters, bool isBot) : base(chart, syncTrack, engineParameters, isBot)
@@ -61,6 +63,12 @@ namespace YARG.Core.Engine.Keys.Engines
         {
             // Update bot (will return if not enabled)
             UpdateBot(time);
+
+            // This is here after UpdateBot gets called so that the bot gets coda keypress logic
+            if (IsCodaActive)
+            {
+                HandleCodaFretChange(time);
+            }
 
             if (FatFingerTimer.IsActive)
             {
@@ -455,8 +463,49 @@ namespace YARG.Core.Engine.Keys.Engines
             foreach (var chordNote in note.AllNotes)
             {
                 MutateStateWithInput(new GameInput(note.Time, chordNote.Key, true));
+                // We have to call HandleCodaFretChange here because KeyHitThisUpdate gets cleared by CheckForNoteHit
+                HandleCodaFretChange(time);
                 CheckForNoteHit();
             }
+        }
+
+        private void HandleCodaFretChange(double time)
+        {
+            if (!IsCodaActive || !KeyHitThisUpdate.HasValue)
+            {
+                return;
+            }
+
+            var coda = Codas[CurrentCodaIndex];
+
+            var pressed = 1 << KeyHitThisUpdate.Value;
+
+            // Hit the lane for any that were pressed
+            for (int i = 0; i < 25; i++)
+            {
+                int button = 1 << i;
+                if ((pressed & button) != 0)
+                {
+                    coda.HitLane(time, i);
+                }
+            }
+        }
+
+        protected override List<CodaSection> GetCodaSections()
+        {
+            var codaSections = new List<CodaSection>();
+
+            foreach (var phrase in Chart.Phrases)
+            {
+                if (phrase.Type != PhraseType.BigRockEnding)
+                {
+                    continue;
+                }
+
+                codaSections.Add(new CodaSection(4, phrase.Time, phrase.TimeEnd));
+            }
+
+            return codaSections;
         }
     }
 }

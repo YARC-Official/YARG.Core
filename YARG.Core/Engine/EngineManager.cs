@@ -105,6 +105,8 @@ namespace YARG.Core.Engine
             _allEngines.Add(engineContainer);
             _allEnginesById.Add(engineContainer.EngineId, engineContainer);
             AddPlayerToUnisons(engineContainer);
+            engine.OnCodaStart += CodaStartHandler;
+            engine.OnCodaEnd += CodaEndHandler;
 
             return engineContainer;
         }
@@ -144,6 +146,13 @@ namespace YARG.Core.Engine
         {
             public EngineCommandType CommandType;
             public double            Time;
+        }
+
+        public void Unregister(EngineContainer engineContainer)
+        {
+            RemovePlayerFromUnisons(engineContainer);
+            _allEngines.Remove(engineContainer);
+            _allEnginesById.Remove(engineContainer.EngineId);
         }
     }
 }

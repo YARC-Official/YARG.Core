@@ -85,6 +85,13 @@ namespace YARG.Core.Engine.Keys
 
             KeyPressTimes[note.Key] = DEFAULT_PRESS_TIME;
 
+            // Cancel rest of hit logic during BRE phrase
+            if (IsCodaActive && note.IsBigRockEnding)
+            {
+                base.HitNote(note);
+                return;
+            }
+
             // Detect if the last note(s) were skipped
             // bool skipped = SkipPreviousNotes(note);
 
@@ -151,9 +158,17 @@ namespace YARG.Core.Engine.Keys
                 return;
             }
 
-            note.SetMissState(true, false);
-
             KeyPressTimes[note.Key] = DEFAULT_PRESS_TIME;
+
+            // Can't miss a note during BRE phrase
+            if (IsCodaActive && note.IsBigRockEnding)
+            {
+                note.SetHitState(true, false);
+                base.HitNote(note);
+                return;
+            }
+
+            note.SetMissState(true, false);
 
             if (note.IsStarPower)
             {
@@ -198,6 +213,11 @@ namespace YARG.Core.Engine.Keys
 
             UpdateMultiplier();
 
+            if (CodaHasStarted)
+            {
+                Codas[CurrentCodaIndex].MissNote();
+            }
+
             OnNoteMissed?.Invoke(NoteIndex, note);
             base.HitNote(note);
         }
@@ -216,6 +236,12 @@ namespace YARG.Core.Engine.Keys
             double weight;
             foreach (var note in Notes)
             {
+                // Exclude BRE notes from base score calculation since they can't be scored
+                if (note.IsBigRockEnding)
+                {
+                    continue;
+                }
+
                 // Get the current multiplier given the current combo
                 multiplier = Math.Min((combo / 10) + 1, BaseParameters.MaxMultiplier);
 

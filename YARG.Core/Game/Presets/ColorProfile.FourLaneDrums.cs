@@ -19,7 +19,9 @@ namespace YARG.Core.Game
             RedCymbal,
             YellowCymbal,
             BlueCymbal,
-            GreenCymbal
+            GreenCymbal,
+
+            WildcardPad,
         }
 
         public class FourLaneDrumsColors : IFretColorProvider, IBinarySerializable
@@ -171,6 +173,8 @@ namespace YARG.Core.Game
                     (int)FourLaneDrumsFret.BlueCymbal => BlueCymbal,
                     (int)FourLaneDrumsFret.GreenCymbal => GreenCymbal,
 
+                    (int)FourLaneDrumsFret.WildcardPad => DefaultWildcard,
+
                     _ => default
                 };
             }
@@ -208,6 +212,8 @@ namespace YARG.Core.Game
                     (int)FourLaneDrumsFret.BlueCymbal => BlueCymbalStarpower,
                     (int)FourLaneDrumsFret.GreenCymbal => GreenCymbalStarpower,
 
+                    (int)FourLaneDrumsFret.WildcardPad => DefaultWildcardStarpower,
+
                     _ => default
                 };
             }
@@ -244,6 +250,7 @@ namespace YARG.Core.Game
                     (int)FourLaneDrumsFret.YellowCymbal => YellowCymbalActivationNote,
                     (int)FourLaneDrumsFret.BlueCymbal => BlueCymbalActivationNote,
                     (int)FourLaneDrumsFret.GreenCymbal => GreenCymbalActivationNote,
+                    (int)FourLaneDrumsFret.WildcardPad => DefaultWildcard,
 
                     _ => default
                 };

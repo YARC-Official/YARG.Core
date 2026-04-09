@@ -21,6 +21,10 @@ namespace YARG.Core.Chart
         Trill      = 1 << 7,
         LaneStart = 1 << 8,
         LaneEnd   = 1 << 9,
+
+        BigRockEnding = 1 << 10,
+        CodaStart = 1 << 11,
+        CodaEnd = 1 << 12,
     }
 
     public abstract class Note<TNote> : ChartEvent, ICloneable<TNote>
@@ -97,6 +101,10 @@ namespace YARG.Core.Chart
         public bool IsLaneStart => (Flags & NoteFlags.LaneStart) != 0;
         public bool IsLaneEnd   => (Flags & NoteFlags.LaneEnd) != 0;
 
+        public bool IsBigRockEnding => (Flags & NoteFlags.BigRockEnding) != 0;
+        public bool IsCodaStart     => (Flags & NoteFlags.CodaStart) != 0;
+        public bool IsCodaEnd       => (Flags & NoteFlags.CodaEnd) != 0;
+
         public virtual int LaneNote => -1;
 
         /// <summary>
@@ -139,7 +147,7 @@ namespace YARG.Core.Chart
         public void SetHitState(bool hit, bool includeChildren)
         {
             WasHit = hit;
-            if (!includeChildren) 
+            if (!includeChildren)
             {
                 return;
             }

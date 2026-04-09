@@ -157,6 +157,7 @@ namespace YARG.Core.Song
             return null;
         }
 
+        #nullable disable
         public override FixedArray<byte> LoadMiloData()
         {
             return null;
@@ -164,21 +165,28 @@ namespace YARG.Core.Song
 
         protected override FixedArray<byte> GetChartData(string filename)
         {
-            var data = default(FixedArray<byte>);
-
             string chartPath = Path.Combine(_location, filename);
-            if (AbridgedFileInfo.Validate(chartPath, in _chartLastWrite))
+            if (!AbridgedFileInfo.Validate(chartPath, in _chartLastWrite))
             {
-                string iniPath = Path.Combine(_location, "song.ini");
-                if (_iniLastWrite.HasValue
-                    ? AbridgedFileInfo.Validate(iniPath, _iniLastWrite.Value)
-                    : !File.Exists(iniPath))
+                return null;
+            }
+
+            string iniPath = Path.Combine(_location, "song.ini");
+            if (_iniLastWrite.HasValue)
+            {
+                if (!AbridgedFileInfo.Validate(iniPath, _iniLastWrite.Value) && File.Exists(iniPath))
                 {
-                    data = FixedArray.LoadFile(chartPath);
+                    return null;
                 }
             }
-            return data;
+            else if (File.Exists(iniPath))
+            {
+                return null;
+            }
+
+            return FixedArray.LoadFile(chartPath);
         }
+        #nullable restore
 
         private Dictionary<string, string> GetSubFiles()
         {

@@ -12,6 +12,7 @@
     <Configuration>Release</Configuration>
     <IsPackable>false</IsPackable>
     <LangVersion>12</LangVersion>
+    <IsTestingPlatformApplication>false</IsTestingPlatformApplication>
   </PropertyGroup>
 
   <ItemGroup>

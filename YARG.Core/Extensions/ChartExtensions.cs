@@ -35,7 +35,7 @@ namespace YARG.Core.Extensions
                     continue;
                 }
 
-                var candidateSpSections = GetStarpowerSections(instrumentDifficulty);
+                var candidateSpSections = GetStarpowerSections(instrumentDifficulty!);
                 if (!SpListIsDuplicate(candidateSpSections, acceptedSpSections, tickTolerance))
                 {
                     acceptedSpSections.Add(candidateSpSections);
@@ -68,7 +68,7 @@ namespace YARG.Core.Extensions
                 return;
             }
 
-            var candidateSpSections = GetStarpowerSections(instrumentDifficulty);
+            var candidateSpSections = GetStarpowerSections(instrumentDifficulty!);
             if (!SpListIsDuplicate(candidateSpSections, acceptedSpSections, tickTolerance))
             {
                 acceptedSpSections.Add(candidateSpSections);

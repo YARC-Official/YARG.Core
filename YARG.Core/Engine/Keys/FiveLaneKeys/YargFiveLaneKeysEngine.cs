@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 using YARG.Core.Chart;
 using YARG.Core.Input;
@@ -64,6 +65,12 @@ namespace YARG.Core.Engine.Keys.Engines
         {
             // Update bot (will return if not enabled)
             UpdateBot(time);
+
+            // This is here after UpdateBot gets called so that the bot gets coda keypress logic
+            if (IsCodaActive)
+            {
+                HandleCodaFretChange(time);
+            }
 
             // Only check note logic if note index is within bounds
             if (NoteIndex < Notes.Count)
@@ -192,6 +199,13 @@ namespace YARG.Core.Engine.Keys.Engines
         {
             double hitWindow = EngineParameters.HitWindow.CalculateHitWindow(GetAverageNoteDistance(note));
             double frontEnd = EngineParameters.HitWindow.GetFrontEnd(hitWindow);
+
+            // TODO: This is probably note correct for chords, but we shouldn't have chords in easy anyway
+            //  this will need to be fixed if we allow wildcard notes in other difficulties
+            if (note.Fret == (int) FiveFretGuitarFret.Wildcard && IsKeyInTime(note, frontEnd))
+            {
+                return true;
+            }
 
             if ((KeyMask & note.NoteMask) == note.NoteMask)
             {
@@ -328,8 +342,53 @@ namespace YARG.Core.Engine.Keys.Engines
                 var action = FiveLaneKeysActionToProKeysAction(chordNote.FiveLaneKeysAction);
 
                 MutateStateWithInput(new GameInput(note.Time, (int)action, true));
+                HandleCodaFretChange(time);
                 CheckForNoteHit();
             }
+        }
+
+        private void HandleCodaFretChange(double time)
+        {
+            if (!IsCodaActive || !KeyHitThisUpdate.HasValue)
+            {
+                return;
+            }
+
+            var coda = Codas[CurrentCodaIndex];
+
+            // Figure out which keys changed
+            var pressed = 1 << KeyHitThisUpdate.Value;
+
+            const int openBit = 1 << 6;
+            // Shift the open bit from bit 6 to bit 5
+            pressed = (pressed & ~openBit) | ((pressed & openBit) >> 1);
+
+            // Hit the lane for any that were pressed
+            for (int i = 0; i < 6; i++)
+            {
+                int button = 1 << i;
+                if ((pressed & button) != 0)
+                {
+                    coda.HitLane(time, i);
+                }
+            }
+        }
+
+        protected override List<CodaSection> GetCodaSections()
+        {
+            var codaSections = new List<CodaSection>();
+
+            foreach (var phrase in Chart.Phrases)
+            {
+                if (phrase.Type != PhraseType.BigRockEnding)
+                {
+                    continue;
+                }
+
+                codaSections.Add(new CodaSection(6, phrase.Time, phrase.TimeEnd));
+            }
+
+            return codaSections;
         }
 
         private static ProKeysAction FiveLaneKeysActionToProKeysAction(FiveLaneKeysAction fiveLaneKeysAction)
@@ -342,6 +401,7 @@ namespace YARG.Core.Engine.Keys.Engines
                 FiveLaneKeysAction.YellowKey => ProKeysAction.YellowKey,
                 FiveLaneKeysAction.BlueKey => ProKeysAction.BlueKey,
                 FiveLaneKeysAction.OrangeKey => ProKeysAction.OrangeKey,
+                FiveLaneKeysAction.Wildcard => ProKeysAction.OpenNote, // Doesn't actually matter what action we use here
                 _ => throw new Exception("Unhandled.")
             };
         }

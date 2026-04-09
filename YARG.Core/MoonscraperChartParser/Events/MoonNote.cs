@@ -120,6 +120,8 @@ namespace MoonscraperChartEditor.Song
             EliteDrums_Sizzle = 1 << 20, // Reserved, not MVP
             EliteDrums_RimBell = 1 << 21, // Reserved, not MVP
             EliteDrums_Choke = 1 << 22, // Reserved, not MVP
+
+            CodaEnd = 1 << 23,
         }
 
         public uint length;

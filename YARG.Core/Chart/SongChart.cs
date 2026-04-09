@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Melanchall.DryWetMidi.Core;
 using YARG.Core.Chart.Events;
+using YARG.Core.Logging;
 using YARG.Core.Parsing;
 
 namespace YARG.Core.Chart
@@ -555,6 +556,21 @@ namespace YARG.Core.Chart
             }
 
             return (musicStart, musicEnd);
+        }
+
+        public TextEvent? GetCodaEvent()
+        {
+            // Reverse search since coda is near the end
+            for (int i = GlobalEvents.Count - 1; i >= 0; i--)
+            {
+                var text = GlobalEvents[i];
+                if (text.Text == TextEvents.BIG_ROCK_ENDING_START)
+                {
+                    return text;
+                }
+            }
+
+            return null;
         }
     }
 }

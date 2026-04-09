@@ -231,7 +231,7 @@ namespace YARG.Core.IO
                         break;
                     }
                     case "song_id": SongID = YARGDTAReader.ExtractText(ref container); break;
-                    case "rating": SongRating = (SongRating) YARGDTAReader.ExtractInteger<uint>(ref container); break;
+                    case "rating": SongRating = RatingHelper.ParseSongRating(YARGDTAReader.ExtractInteger<uint>(ref container)); break;
                     case "short_version": /*ShortVersion = YARGDTAReader.Extract<uint>(ref container);*/ break;
                     case "album_art": /*HasAlbumArt = YARGDTAReader.ExtractBoolean(ref container);*/ break;
                     case "year_released": YearAsNumber = YARGDTAReader.ExtractInteger<int>(ref container); break;
@@ -336,5 +336,19 @@ namespace YARG.Core.IO
             entry.LoadData(nodename, container);
             return entry;
         }
+        //
+        // private static SongRating ParseSongRating(ref YARGTextContainer<byte> container)
+        // {
+        //     return YARGDTAReader.ExtractInteger<uint>(ref container) switch
+        //     {
+        //         0 => Song.SongRating.Unspecified,
+        //         1 => Song.SongRating.Family_Friendly,
+        //         2 => Song.SongRating.Supervision_Recommended,
+        //         3 => Song.SongRating.Mature,
+        //         4 => Song.SongRating.No_Rating,
+        //         5 => Song.SongRating.Sensitive_Content,
+        //         _ => Song.SongRating.Unspecified
+        //     };
+        // }
     }
 }

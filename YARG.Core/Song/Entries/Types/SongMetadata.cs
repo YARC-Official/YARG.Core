@@ -1,17 +1,19 @@
 ﻿using System;
+using YARG.Core.IO;
 using YARG.Core.IO.Ini;
 
 namespace YARG.Core.Song
 {
     public enum SongRating : uint
     {
-        Unspecified,
         Family_Friendly,
         Supervision_Recommended,
         Mature,
+        Sensitive_Content,
+        Unspecified,
         No_Rating,
-        Sensitive_Content
-    };
+        Any                 // Make sure 'any' is always last in the list
+    }
 
     public struct SongMetadata
     {
@@ -425,7 +427,7 @@ namespace YARG.Core.Song
 
             if (modifiers.Extract("rating", out uint songRating))
             {
-                metadata.SongRating = (SongRating)songRating;
+                metadata.SongRating = RatingHelper.ParseSongRating(songRating);
             }
 
             if (modifiers.Extract("song_length", out long songLength))

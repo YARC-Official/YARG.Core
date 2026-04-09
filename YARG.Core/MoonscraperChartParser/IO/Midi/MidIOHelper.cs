@@ -50,6 +50,10 @@ namespace MoonscraperChartEditor.Song.IO
         public const string PRO_KEYS_MEDIUM = "PART REAL_KEYS_M";
         public const string PRO_KEYS_EASY = "PART REAL_KEYS_E";
 
+        // Coda text events
+        public const string CODA_START = "coda";
+        public const string CODA_END = "coda_end";
+
 
         // Matches venue lighting events and groups the text inside (parentheses), not including the parentheses
         // 'lighting (verse)' -> 'verse'
@@ -76,6 +80,15 @@ namespace MoonscraperChartEditor.Song.IO
         public const byte LYRICS_PHRASE_2 = VERSUS_PHRASE_PLAYER_2; // Rock Band 3 dropped these versus phrases however, and on vocals just uses note 105
         public const byte FLAM_MARKER = 109;
         public const byte STARPOWER_NOTE = 116;            // http://docs.c3universe.com/rbndocs/index.php?title=Overdrive_and_Big_Rock_Endings
+
+        // https://docs.c3universe.com/rbndocs/index.php?title=Overdrive_and_Big_Rock_Endings
+        //  Repeating ourselves for the sake of readability elsewhere
+        public const byte PRO_KEYS_BIG_ROCK_ENDING_NOTE = 120;
+        public const byte BIG_ROCK_ENDING_NOTE_1        = 120;
+        public const byte BIG_ROCK_ENDING_NOTE_2        = 121;
+        public const byte BIG_ROCK_ENDING_NOTE_3        = 122;
+        public const byte BIG_ROCK_ENDING_NOTE_4        = 123;
+        public const byte BIG_ROCK_ENDING_NOTE_5        = 124;
 
         // http://docs.c3universe.com/rbndocs/index.php?title=Drum_Authoring#Drum_Fills
         public const byte DRUM_FILL_NOTE_0 = 120;

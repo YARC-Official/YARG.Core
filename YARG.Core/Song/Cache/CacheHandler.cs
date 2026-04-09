@@ -34,7 +34,7 @@ namespace YARG.Core.Song.Cache
         /// Format is YY_MM_DD_RR: Y = year, M = month, D = day, R = revision (reset across dates, only increment
         /// if multiple cache version changes happen in a single day).
         /// </summary>
-        private const int CACHE_VERSION = 26_03_25_00;
+        private const int CACHE_VERSION = 26_04_09_00;
 
         public static ScanProgressTracker Progress => _progress;
         private static ScanProgressTracker _progress;
@@ -601,7 +601,7 @@ namespace YARG.Core.Song.Cache
             // supplying directories as the actual playlist (null -> empty -> directory)
             private readonly string? _playlist;
 
-            public string Playlist => !string.IsNullOrEmpty(_playlist) ? _playlist : "Unknown Playlist";
+            public string Playlist => !string.IsNullOrEmpty(_playlist) ? _playlist! : "Unknown Playlist";
 
             public PlaylistTracker(bool fullDirectoryFlag, string? playlist)
             {
@@ -800,8 +800,9 @@ namespace YARG.Core.Song.Cache
         /// <returns>Whether files pertaining to an unpacked ini entry were discovered</returns>
         private bool ScanIniEntry(in FileCollection collection, IniEntryGroup group, string defaultPlaylist)
         {
-            int i = collection.FindFile("song.ini", out var ini) ? 0 : 2;
-            while (i < 3)
+            bool hasIni = collection.FindFile("song.ini", out var ini);
+            int i = hasIni ? 0 : 3;
+            while (i < 4)
             {
                 if (!collection.FindFile(IniSubEntry.CHART_FILE_TYPES[i].Filename, out var chart))
                 {
@@ -821,7 +822,7 @@ namespace YARG.Core.Song.Cache
 
                 try
                 {
-                    var entry = UnpackedIniEntry.ProcessNewEntry(collection.Directory, chart, IniSubEntry.CHART_FILE_TYPES[i].Format, ini, defaultPlaylist);
+                    var entry = UnpackedIniEntry.ProcessNewEntry(collection.Directory, chart, IniSubEntry.CHART_FILE_TYPES[i].Format, hasIni ? ini : null, defaultPlaylist);
                     if (entry)
                     {
                         AddEntry(entry.Value);

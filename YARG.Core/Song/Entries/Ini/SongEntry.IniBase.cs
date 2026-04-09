@@ -3,9 +3,11 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using YARG.Core.Chart;
+using YARG.Core.Chart.Loaders.UltraStar;
 using YARG.Core.Extensions;
 using YARG.Core.IO;
 using YARG.Core.IO.Ini;
+using YARG.Core.Logging;
 
 namespace YARG.Core.Song
 {
@@ -19,7 +21,9 @@ namespace YARG.Core.Song
         {
             foreach (string stem in SupportedStems)
                 foreach (string format in SupportedFormats)
-                    SupportedAudioFiles.Add(stem + format);
+            {
+                SupportedAudioFiles.Add(stem + format);
+            }
         }
 
         public static bool IsAudioFile(string file)
@@ -35,6 +39,7 @@ namespace YARG.Core.Song
             ("notes.mid"  , ChartFormat.Mid),
             ("notes.midi" , ChartFormat.Midi),
             ("notes.chart", ChartFormat.Chart),
+            ("notes.txt"  , ChartFormat.UltraStar),
         };
 
         protected static readonly string[] ALBUMART_FILES;
@@ -79,6 +84,7 @@ namespace YARG.Core.Song
         public override SongChart? LoadChart()
         {
             using var data = GetChartData(CHART_FILE_TYPES[(int) _chartFormat].Filename);
+
             if (data == null)
             {
                 return null;
@@ -93,6 +99,11 @@ namespace YARG.Core.Song
                 DrumsType = ParseDrumsType(in _parts),
                 ChordHopoCancellation = _chartFormat != ChartFormat.Chart
             };
+
+            if (_chartFormat == ChartFormat.UltraStar)
+            {
+                return SongChart.FromUltraStarBytes(in parseSettings, data.ReadOnlySpan);
+            }
 
             using var stream = data.ToReferenceStream();
             if (_chartFormat == ChartFormat.Mid || _chartFormat == ChartFormat.Midi)
@@ -131,6 +142,11 @@ namespace YARG.Core.Song
             if (modifiers.Extract("five_lane_drums", out bool fiveLaneDrums))
             {
                 drums_type = fiveLaneDrums ? DrumsType.FiveLane : DrumsType.FourLane;
+            }
+
+            if (entry._chartFormat == ChartFormat.UltraStar)
+            {
+                return ScanUltraStar(entry, file);
             }
 
             ScanExpected<long> resolution;
@@ -504,6 +520,77 @@ namespace YARG.Core.Song
                 }
             }
             return true;
+        }
+
+        private static ScanResult ScanUltraStar(IniSubEntry entry, FixedArray<byte> file)
+        {
+            var loader = new UltraStarLoader(file);
+
+            string? title = loader.GetMetadata("TITLE");
+            if (string.IsNullOrWhiteSpace(title))
+            {
+                return ScanResult.NoName;
+            }
+
+            entry._metadata = SongMetadata.Default;
+
+            entry._metadata.Name = title!; // We will have returned already if title is null
+            entry._metadata.Artist = loader.GetMetadata("ARTIST") ?? SongMetadata.DEFAULT_ARTIST;
+            entry._metadata.Album = loader.GetMetadata("ALBUM") ?? SongMetadata.DEFAULT_ALBUM;
+            entry._metadata.Genre = loader.GetMetadata("GENRE") ?? string.Empty;
+            entry._metadata.Year = loader.GetMetadata("YEAR") ?? SongMetadata.DEFAULT_YEAR;
+            entry._metadata.Charter = loader.GetMetadata("CREATOR") ?? SongMetadata.DEFAULT_CHARTER;
+
+            if (loader.GetMetadata("GAP") is string gapStr &&
+                double.TryParse(gapStr,
+                    System.Globalization.NumberStyles.Float,
+                    System.Globalization.CultureInfo.InvariantCulture,
+                    out double gapMs))
+            {
+                entry._metadata.SongOffset = 0;
+            }
+
+            if (loader.GetMetadata("PREVIEWSTART") is string previewStr &&
+                double.TryParse(previewStr,
+                    System.Globalization.NumberStyles.Float,
+                    System.Globalization.CultureInfo.InvariantCulture,
+                    out double previewMs))
+            {
+                entry._metadata.Preview.Start = (long) previewMs;
+            }
+
+            entry._parts.LeadVocals.Difficulties = DifficultyMask.None;
+            entry._parts.HarmonyVocals.Difficulties = DifficultyMask.None;
+
+            entry._parts.LeadVocals.SubTracks = 1;
+            entry._parts.LeadVocals.ActivateDifficulty(Difficulty.Expert);
+            entry._parts.LeadVocals.Intensity = 0;
+
+            if (loader.GetMetadata("PARTS") == "2")
+            {
+                entry._parts.HarmonyVocals.SubTracks = 2;
+                entry._parts.HarmonyVocals.Intensity = 0;
+                entry._parts.HarmonyVocals.ActivateDifficulty(Difficulty.Expert);
+            }
+            else
+            {
+                entry._parts.HarmonyVocals.SubTracks = 0;
+            }
+
+            entry._hash = HashWrapper.Hash(file.ReadOnlySpan);
+            (entry._parsedYear, entry._yearAsNumber) = ParseYear(entry._metadata.Year);
+            entry.SetSortStrings();
+
+            if (entry._metadata.SongLength <= 0)
+            {
+                using var mixer = entry.LoadAudio(0, 0);
+                if (mixer != null)
+                {
+                    entry._metadata.SongLength = (long) (mixer.Length * SongMetadata.MILLISECOND_FACTOR);
+                }
+            }
+
+            return ScanResult.Success;
         }
 
         private static void SetIntensities(IniModifierCollection modifiers, ref AvailableParts parts)

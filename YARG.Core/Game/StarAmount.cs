@@ -1,3 +1,5 @@
+using System;
+
 namespace YARG.Core.Game
 {
     public enum StarAmount : sbyte
@@ -49,7 +51,8 @@ namespace YARG.Core.Game
                 StarAmount.Star2    => 2,
                 StarAmount.Star1    => 1,
                 StarAmount.None     => 0,
-                StarAmount.NoPart   => -1
+                StarAmount.NoPart   => -1,
+                _                   => throw new ArgumentOutOfRangeException($"Unhandled star amount: {stars}")
             };
         }
 

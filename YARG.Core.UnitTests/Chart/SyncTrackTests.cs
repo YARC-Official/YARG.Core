@@ -1,4 +1,5 @@
 using NUnit.Framework;
+using NUnit.Framework.Legacy;
 using YARG.Core.Chart;
 using YARG.Core.Extensions;
 
@@ -120,11 +121,11 @@ public class SyncTrackTests
 
         syncTrack.Beatlines.Clear();
         syncTrack.GenerateBeatlines(18.5);
-        CollectionAssert.AreEqual(expected, syncTrack.Beatlines);
+        Assert.That(syncTrack.Beatlines, Is.EqualTo(expected).AsCollection);
 
         syncTrack.Beatlines.Clear();
         syncTrack.GenerateBeatlines(16320);
-        CollectionAssert.AreEqual(expected, syncTrack.Beatlines);
+        Assert.That(syncTrack.Beatlines, Is.EqualTo(expected).AsCollection);
     }
 
     [Test]

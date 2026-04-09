@@ -29,9 +29,9 @@ namespace YARG.Core.Engine
         /// Total score across all score values.
         /// </summary>
         /// <remarks>
-        /// Calculated from <see cref="CommittedScore"/>, <see cref="PendingScore"/> and <see cref="SoloBonuses"/>.
+        /// Calculated from <see cref="CommittedScore"/>, <see cref="PendingScore"/>, <see cref="SoloBonuses"/>, and <see cref="CodaBonuses"/>.
         /// </remarks>
-        public int TotalScore => CommittedScore + PendingScore + SoloBonuses;
+        public int TotalScore => CommittedScore + PendingScore + SoloBonuses + CodaBonuses;
 
         /// <summary>
         /// Total score earned from hitting notes.
@@ -186,6 +186,11 @@ namespace YARG.Core.Engine
         public int SoloBonuses;
 
         /// <summary>
+        /// Amount of points earned from coda bonuses.
+        /// </summary>
+        public int CodaBonuses;
+
+        /// <summary>
         /// Amount of points earned from Star Power.
         /// </summary>
         public int StarPowerScore;
@@ -327,6 +332,7 @@ namespace YARG.Core.Engine
             // TotalStarPowerPhrases = 0;
 
             SoloBonuses = 0;
+            CodaBonuses = 0;
             StarPowerScore = 0;
 
             Stars = 0;

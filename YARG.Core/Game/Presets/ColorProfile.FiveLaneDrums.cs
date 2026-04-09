@@ -1,5 +1,4 @@
-﻿using DG.Tweening;
-using System.Drawing;
+﻿using System.Drawing;
 using System.IO;
 using YARG.Core.Extensions;
 using YARG.Core.Utility;

@@ -109,6 +109,10 @@ namespace YARG.Core.Song
                     }
                 }
             }
+
+            // Add beginner to the mask if easy is present (mask easy, shift right, or result with validations)
+            validations |= (DifficultyMask)((byte)(validations & DifficultyMask.Easy) >> 1);
+
             return validations;
         }
     }
