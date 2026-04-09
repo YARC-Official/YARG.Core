@@ -107,6 +107,17 @@ internal sealed class TestSongEntry : SongEntry
         }
     }
 
+    public static AvailableParts FinalizeDrumsForTest(AvailableParts parts, DrumsType drumsType)
+    {
+        FinalizeDrums(ref parts, drumsType);
+        return parts;
+    }
+
+    public static bool IsValidForTest(in AvailableParts parts)
+    {
+        return IsValid(in parts);
+    }
+
     public override DateTime GetLastWriteTime() => DateTime.UnixEpoch;
 
     public override SongChart? LoadChart() => null;
