@@ -333,6 +333,8 @@ namespace YARG.Core.Chart
 
         private static bool TryGetPhonemes(string word, out string[] phonemes)
         {
+            phonemes = null!;
+            if (_cmuDict == null) return false;
             var key = word.ToUpperInvariant();
             return _cmuDict.TryGetValue(key, out phonemes);
         }
