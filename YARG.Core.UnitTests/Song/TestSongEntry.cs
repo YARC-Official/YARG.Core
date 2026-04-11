@@ -28,6 +28,7 @@ internal sealed class TestSongEntry : SongEntry
         string? charter = null,
         string? genre = null,
         string? subgenre = null,
+        string? year = null,
         string? source = null,
         string? playlist = null)
     {
@@ -55,6 +56,10 @@ internal sealed class TestSongEntry : SongEntry
         if (subgenre != null)
         {
             _metadata.Subgenre = subgenre;
+        }
+        if (year != null)
+        {
+            _metadata.Year = year;
         }
         if (source != null)
         {
