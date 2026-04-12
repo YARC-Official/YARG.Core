@@ -257,12 +257,19 @@ namespace YARG.Core.Engine.Vocals
                 return CarriedVocalNote;
             }
 
-            return phrase
-                .ChildNotes
-                .FirstOrDefault(phraseNote =>
-                    !phraseNote.IsPercussion &&
+            var childNotes = phrase.ChildNotes;
+            for (int i = 0; i < childNotes.Count; i++)
+            {
+                var phraseNote = childNotes[i];
+                if (!phraseNote.IsPercussion &&
                     tick >= phraseNote.Tick &&
-                    tick <= phraseNote.TotalTickEnd);
+                    tick <= phraseNote.TotalTickEnd)
+                {
+                    return phraseNote;
+                }
+            }
+
+            return null;
         }
 
         protected static VocalNote? GetNextPercussionNote(VocalNote phrase, uint tick)
