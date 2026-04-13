@@ -11,7 +11,7 @@ namespace YARG.Core.Engine.Drums
     {
         public delegate void OverhitEvent();
 
-        public delegate void PadHitEvent(DrumsAction action, bool noteWasHit, bool wereBonusPointsAwarded, DrumNoteType type, float velocity);
+        public delegate void PadHitEvent(DrumsAction action, bool noteWasHit, bool wereBonusPointsAwarded, bool wasOverhitInLane, DrumNoteType type, float velocity);
 
         public OverhitEvent? OnOverhit;
         public PadHitEvent?  OnPadHit;
