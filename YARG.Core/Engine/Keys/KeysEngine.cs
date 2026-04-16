@@ -141,6 +141,13 @@ namespace YARG.Core.Engine.Keys
                 return;
             }
 
+            // Punish overhit during post-BRE coda section
+            if (CodaHasStarted)
+            {
+                Codas[CurrentCodaIndex].Overhit();
+                return;
+            }
+
             YargLogger.LogFormatTrace("Overhit at {0}", CurrentTime);
 
             // Break all active sustains

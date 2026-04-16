@@ -111,6 +111,11 @@ namespace YARG.Core.Engine
             Success = false;
         }
 
+        public void Overhit()
+        {
+            Success = false;
+        }
+
         /// <summary>
         /// Resets Coda state. Useful for replay rewind or practice mode restart.
         /// </summary>

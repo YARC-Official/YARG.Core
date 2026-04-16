@@ -87,7 +87,7 @@ namespace YARG.Core.Engine.Drums.Engines
             }
             else if (Action is { } padAction)
             {
-                OnPadHit?.Invoke(padAction, false, false, DrumNoteType.Neutral, HitVelocity.GetValueOrDefault(0));
+                OnPadHit?.Invoke(padAction, false, false, false, DrumNoteType.Neutral, HitVelocity.GetValueOrDefault(0));
                 ResetPadState();
             }
         }
@@ -143,7 +143,7 @@ namespace YARG.Core.Engine.Drums.Engines
                         // TODO - Deadly Dynamics modifier check on awardVelocityBonus
 
                         HitNote(note);
-                        OnPadHit?.Invoke(Action!.Value, true, awardVelocityBonus, note.Type, HitVelocity.GetValueOrDefault(0));
+                        OnPadHit?.Invoke(Action!.Value, true, awardVelocityBonus, false, note.Type, HitVelocity.GetValueOrDefault(0));
 
                         if (awardVelocityBonus)
                         {
@@ -183,7 +183,7 @@ namespace YARG.Core.Engine.Drums.Engines
             // If no note was hit but the user hit a pad, then over hit
             if (PadHit != null)
             {
-                OnPadHit?.Invoke(Action!.Value, false, false, DrumNoteType.Neutral, HitVelocity.GetValueOrDefault(0));
+                OnPadHit?.Invoke(Action!.Value, false, false, ActiveLaneIncludesNote((int) PadHit), DrumNoteType.Neutral, HitVelocity.GetValueOrDefault(0));
                 Overhit();
                 ResetPadState();
             }
@@ -191,8 +191,8 @@ namespace YARG.Core.Engine.Drums.Engines
 
         protected override bool CanNoteBeHit(DrumNote note)
         {
-            return note.Pad == PadHit;
-        }
+            return note.Pad == PadHit || (PadHit != null && note.Pad == (int) FourLaneDrumPad.Wildcard);
+    }
 
         protected override void UpdateBot(double time)
         {

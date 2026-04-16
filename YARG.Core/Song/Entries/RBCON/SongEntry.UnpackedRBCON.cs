@@ -1,119 +1,14 @@
 ﻿using System;
 using System.IO;
 using YARG.Core.Extensions;
-using YARG.Core.Song.Cache;
 using YARG.Core.IO;
-using YARG.Core.Venue;
 using YARG.Core.Logging;
 
 namespace YARG.Core.Song
 {
-    internal sealed class UnpackedRBCONEntry : RBCONEntry
+    internal sealed class UnpackedRBCONEntry : UnpackedConsolePackageEntry
     {
-        private DateTime _midiLastWrite;
-
-        public override EntryType SubType => EntryType.ExCON;
-        public override string SortBasedLocation => Path.Combine(_root.FullName, _subName);
-        public override string ActualLocation => Path.Combine(_root.FullName, _subName);
-        protected override DateTime MidiLastWriteTime => _midiLastWrite;
-
-        internal override void Serialize(MemoryStream stream, CacheWriteIndices node)
-        {
-            stream.Write(_subName);
-            stream.Write(_midiLastWrite.ToBinary(), Endianness.Little);
-            base.Serialize(stream, node);
-        }
-
-        public override YARGImage? LoadAlbumData()
-        {
-            var image = LoadUpdateAlbumData();
-            if (image == null)
-            {
-                string path = Path.Combine(_root.FullName, _subName, "gen", _subName + "_keep.png_xbox");
-                if (File.Exists(path))
-                {
-                    image = YARGImage.LoadDXT(path);
-                }
-            }
-            return image;
-        }
-
-        public override BackgroundResult? LoadBackground()
-        {
-            string yarground = Path.Combine(_root.FullName, _subName, YARGROUND_FULLNAME);
-            if (File.Exists(yarground))
-            {
-                var stream = File.OpenRead(yarground);
-                return new BackgroundResult(BackgroundType.Yarground, stream);
-            }
-
-            foreach (var name in BACKGROUND_FILENAMES)
-            {
-                var fileBase = Path.Combine(_root.FullName, _subName, name);
-                foreach (var ext in VIDEO_EXTENSIONS)
-                {
-                    string videoFile = fileBase + ext;
-                    if (File.Exists(videoFile))
-                    {
-                        var stream = File.OpenRead(videoFile);
-                        return new BackgroundResult(BackgroundType.Video, stream);
-                    }
-                }
-            }
-
-            //                                     No "video"
-            foreach (var name in BACKGROUND_FILENAMES[..2])
-            {
-                var fileBase = Path.Combine(_root.FullName, _subName, name);
-                foreach (var ext in IMAGE_EXTENSIONS)
-                {
-                    string imageFile = fileBase + ext;
-                    if (File.Exists(imageFile))
-                    {
-                        var image = YARGImage.Load(imageFile);
-                        if (image != null)
-                        {
-                            return new BackgroundResult(image);
-                        }
-                    }
-                }
-            }
-            return null;
-        }
-
-        public override FixedArray<byte>? LoadMiloData()
-        {
-            var data = LoadUpdateMiloData();
-            if (data == null)
-            {
-                string path = Path.Combine(_root.FullName, _subName, "gen", _subName + ".mogg");
-                if (File.Exists(path))
-                {
-                    data = FixedArray.LoadFile(path);
-                }
-            }
-            return data;
-        }
-
-        protected override FixedArray<byte>? GetMainMidiData()
-        {
-            string path = Path.Combine(_root.FullName, _subName, _subName + ".mid");
-            return File.Exists(path) ? FixedArray.LoadFile(path) : null;
-        }
-
-        protected override Stream? GetMoggStream()
-        {
-            var stream = LoadUpdateMoggStream();
-            if (stream == null)
-            {
-                string path = Path.Combine(_root.FullName, _subName, _subName + ".mogg");
-                if (File.Exists(path))
-                {
-                    stream = File.OpenRead(path);
-                }
-            }
-            return stream;
-        }
+        protected override YARGImage DXTImageLoader(string path) => YARGImage.LoadDXT(path);
 
         private UnpackedRBCONEntry(in AbridgedFileInfo root, string nodeName)
             : base(in root, nodeName) {}
@@ -212,5 +107,11 @@ namespace YARG.Core.Song
             entry.Deserialize(ref stream, strings);
             return entry;
         }
+
+        public override YARGImage? LoadAlbumData() => LoadAlbumData(".png_xbox");
+
+        public override FixedArray<byte>? LoadMiloData() => LoadMiloData(".milo_xbox");
+
+        protected override FixedArray<byte>? GetMainMidiData() => GetMainMidiData(".mid");
     }
 }

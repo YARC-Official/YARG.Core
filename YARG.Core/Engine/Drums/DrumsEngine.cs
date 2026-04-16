@@ -11,7 +11,7 @@ namespace YARG.Core.Engine.Drums
     {
         public delegate void OverhitEvent();
 
-        public delegate void PadHitEvent(DrumsAction action, bool noteWasHit, bool wereBonusPointsAwarded, DrumNoteType type, float velocity);
+        public delegate void PadHitEvent(DrumsAction action, bool noteWasHit, bool wereBonusPointsAwarded, bool wasOverhitInLane, DrumNoteType type, float velocity);
 
         public OverhitEvent? OnOverhit;
         public PadHitEvent?  OnPadHit;
@@ -92,6 +92,19 @@ namespace YARG.Core.Engine.Drums
             {
                 // Do not count this as an overhit if the last pad hit was part of an active lane
                 return;
+            }
+
+            // Prevent overstrum too close to the expiration of lane behavior
+            if (!IsLaneActive && CurrentTime - LaneExpireTime < LANE_END_LENIENCY)
+            {
+                YargLogger.LogFormatTrace("Overstrum prevented by lane end leniency at {0}", CurrentTime);
+                return;
+            }
+
+            // Fail coda in post-BRE coda section
+            if (CodaHasStarted)
+            {
+                Codas[CurrentCodaIndex].Overhit();
             }
 
             if (NoteIndex < Notes.Count)
@@ -452,6 +465,8 @@ namespace YARG.Core.Engine.Drums
                     DrumsAction.BlueCymbal   => (int) FourLaneDrumPad.BlueDrum,
                     DrumsAction.GreenCymbal  => (int) FourLaneDrumPad.GreenDrum,
 
+                    DrumsAction.WildcardPad => (int) FourLaneDrumPad.Wildcard,
+
                     _ => -1
                 },
                 DrumsEngineParameters.DrumMode.ProFourLane => action switch
@@ -467,6 +482,8 @@ namespace YARG.Core.Engine.Drums
                     DrumsAction.BlueCymbal   => (int) FourLaneDrumPad.BlueCymbal,
                     DrumsAction.GreenCymbal  => (int) FourLaneDrumPad.GreenCymbal,
 
+                    DrumsAction.WildcardPad => (int) FourLaneDrumPad.Wildcard,
+
                     _ => -1
                 },
                 DrumsEngineParameters.DrumMode.FiveLane => action switch
@@ -479,6 +496,8 @@ namespace YARG.Core.Engine.Drums
 
                     DrumsAction.YellowCymbal => (int) FiveLaneDrumPad.Yellow,
                     DrumsAction.OrangeCymbal => (int) FiveLaneDrumPad.Orange,
+
+                    DrumsAction.WildcardPad => (int) FiveLaneDrumPad.Wildcard,
 
                     _ => -1
                 },
@@ -499,6 +518,8 @@ namespace YARG.Core.Engine.Drums
                     (int) FourLaneDrumPad.BlueDrum   => DrumsAction.BlueDrum,
                     (int) FourLaneDrumPad.GreenDrum  => DrumsAction.GreenDrum,
 
+                    (int) FourLaneDrumPad.Wildcard => DrumsAction.WildcardPad,
+
                     _ => throw new Exception("Unreachable.")
                 },
                 DrumsEngineParameters.DrumMode.ProFourLane => pad switch
@@ -514,6 +535,8 @@ namespace YARG.Core.Engine.Drums
                     (int) FourLaneDrumPad.BlueCymbal   => DrumsAction.BlueCymbal,
                     (int) FourLaneDrumPad.GreenCymbal  => DrumsAction.GreenCymbal,
 
+                    (int) FourLaneDrumPad.Wildcard => DrumsAction.WildcardPad,
+
                     _ => throw new Exception("Unreachable.")
                 },
                 DrumsEngineParameters.DrumMode.FiveLane => pad switch
@@ -526,6 +549,8 @@ namespace YARG.Core.Engine.Drums
 
                     (int) FiveLaneDrumPad.Yellow => DrumsAction.YellowCymbal,
                     (int) FiveLaneDrumPad.Orange => DrumsAction.OrangeCymbal,
+
+                    (int) FiveLaneDrumPad.Wildcard => DrumsAction.WildcardPad,
 
                     _ => throw new Exception("Unreachable.")
                 },

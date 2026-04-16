@@ -12,7 +12,13 @@ namespace YARG.Core.Chart
         private const int TRANSITION_STEPS = 4; // 30fps * 0.12s = ~4 steps
         private const float VISEME_WEIGHT = 140f / 255f; // Match onyx weight
         
-        private static readonly Dictionary<string, string[]> _cmuDict = CMUDict.GetDictionary();
+        private static IReadOnlyDictionary<string, string[]>? _cmuDict;
+
+        public static void Initialize(string dictionaryText)
+        {
+            CMUDict.Initialize(dictionaryText);
+            _cmuDict = CMUDict.GetDictionary();
+        }
 
         public static List<LipsyncEvent> GenerateFromLyrics(LyricsTrack lyrics)
         {
@@ -327,6 +333,8 @@ namespace YARG.Core.Chart
 
         private static bool TryGetPhonemes(string word, out string[] phonemes)
         {
+            phonemes = null!;
+            if (_cmuDict == null) return false;
             var key = word.ToUpperInvariant();
             return _cmuDict.TryGetValue(key, out phonemes);
         }

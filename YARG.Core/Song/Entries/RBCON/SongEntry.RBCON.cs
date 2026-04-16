@@ -741,11 +741,16 @@ namespace YARG.Core.Song
         {
             if (dta.Name != null)                 { entry._metadata.Name          = YARGDTAReader.DecodeString(dta.Name.Value, dta.MetadataEncoding); }
             if (dta.Artist != null)               { entry._metadata.Artist        = YARGDTAReader.DecodeString(dta.Artist.Value, dta.MetadataEncoding); }
+            if (dta.CoveredBy != null)            { entry._metadata.CoveredBy     = YARGDTAReader.DecodeString(dta.CoveredBy.Value, dta.MetadataEncoding); }
             if (dta.Album != null)                { entry._metadata.Album         = YARGDTAReader.DecodeString(dta.Album.Value, dta.MetadataEncoding); }
             if (dta.Charter != null)              { entry._metadata.Charter       = YARGDTAReader.DecodeString(dta.Charter.Value, dta.MetadataEncoding); }
             if (dta.LoadingPhrase != null)        { entry._metadata.LoadingPhrase = YARGDTAReader.DecodeString(dta.LoadingPhrase.Value, dta.MetadataEncoding); }
             if (dta.Playlist != null)             { entry._metadata.Playlist      = YARGDTAReader.DecodeString(dta.Playlist.Value, dta.MetadataEncoding); }
-            if (dta.Genre != null)                { entry._metadata.Genre         = dta.Genre; }
+            if (dta.Genre != null)
+            {
+                entry._metadata.Genre    = dta.Genre;
+                entry._metadata.Subgenre = string.Empty;
+            }
             if (dta.Subgenre != null)             { entry._metadata.Subgenre      = dta.Subgenre.Replace("subgenre_", ""); }
             if (dta.YearAsNumber != null)
             {

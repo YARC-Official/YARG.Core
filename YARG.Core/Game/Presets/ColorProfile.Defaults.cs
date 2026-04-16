@@ -20,6 +20,8 @@ namespace YARG.Core.Game
         public static readonly Color DefaultBlue   = Color.FromArgb(0xFF, 0x00, 0xBF, 0xFF); // #00BFFF
         [SettingType(SettingType.Ignore)]
         public static readonly Color DefaultOrange = Color.FromArgb(0xFF, 0xFF, 0x84, 0x00); // #FF8400
+        [SettingType(SettingType.Ignore)]
+        public static readonly Color DefaultWildcard = Color.FromArgb(0xFF, 0xA0, 0xD0, 0x10); // #A0D010 (only lightness really matters)
 
         // By default, use these colors for notes only, not fret coloring or particles
         [SettingType(SettingType.Ignore)]
@@ -33,6 +35,8 @@ namespace YARG.Core.Game
 
         [SettingType(SettingType.Ignore)]
         public static readonly Color DefaultStarpower = Color.White; // #FFFFFF
+        [SettingType(SettingType.Ignore)]
+        public static readonly Color DefaultWildcardStarpower = Color.FromArgb(0xFF, 0xFF, 0x80, 0xFF);
 
         // Overly saturate colors compared to the defaults for activations
         [SettingType(SettingType.Ignore)]
@@ -107,6 +111,7 @@ namespace YARG.Core.Game
                 YellowNote = CircularYellow,
                 BlueNote   = CircularBlue,
                 OrangeNote = CircularOrange,
+                WildcardNote = DefaultWildcard,
 
                 OpenNoteStarPower   = CircularStarpower,
                 GreenNoteStarPower  = CircularStarpower,
@@ -114,6 +119,7 @@ namespace YARG.Core.Game
                 YellowNoteStarPower = CircularStarpower,
                 BlueNoteStarPower   = CircularStarpower,
                 OrangeNoteStarPower = CircularStarpower,
+                WildcardNoteStarPower = DefaultWildcardStarpower,
             }
         };
 
@@ -127,6 +133,7 @@ namespace YARG.Core.Game
                 YellowFret = AprilFoolsYellow,
                 BlueFret   = AprilFoolsBlue,
                 OrangeFret = AprilFoolsPurple,
+                WildcardNote = DefaultWildcard,
 
                 OpenFretInner   = CircularOrange,
                 GreenFretInner  = AprilFoolsGreen,
@@ -148,6 +155,7 @@ namespace YARG.Core.Game
                 YellowNoteStarPower = CircularStarpower,
                 BlueNoteStarPower   = CircularStarpower,
                 OrangeNoteStarPower = CircularStarpower,
+                WildcardNoteStarPower = DefaultWildcardStarpower,
             },
             FourLaneDrums = new FourLaneDrumsColors
             {

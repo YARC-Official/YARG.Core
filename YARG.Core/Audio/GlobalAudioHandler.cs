@@ -542,6 +542,21 @@ namespace YARG.Core.Audio
             }
         }
 
+        public static void StopAllSfxChannels()
+        {
+            lock (_instanceLock)
+            {
+                if (_instance == null)
+                {
+                    throw new NotInitializedException();
+                }
+                foreach (SampleChannel sample in _instance.SfxSamples)
+                {
+                    sample?.Stop();
+                }
+            }
+        }
+
         public static void SetOutputDevice(string name)
         {
             lock (_instanceLock)

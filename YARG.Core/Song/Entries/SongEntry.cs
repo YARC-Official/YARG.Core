@@ -98,6 +98,8 @@ namespace YARG.Core.Song
         public SortString Source => _source;
         public SortString Playlist => _playlist;
 
+        public string CoveredBy => _metadata.CoveredBy;
+
         public string UnmodifiedYear => _metadata.Year;
         public string ParsedYear => _parsedYear;
         public int YearAsNumber => _yearAsNumber;
@@ -378,6 +380,7 @@ namespace YARG.Core.Song
             stream.Write(_metadata.Video.Start, Endianness.Little);
             stream.Write(_metadata.Video.End, Endianness.Little);
 
+            stream.Write(_metadata.CoveredBy);
             stream.Write(_metadata.LoadingPhrase);
             stream.Write(_metadata.YearSecondary);
 
@@ -464,6 +467,7 @@ namespace YARG.Core.Song
             _metadata.Video.Start = stream.Read<long>(Endianness.Little);
             _metadata.Video.End = stream.Read<long>(Endianness.Little);
 
+            _metadata.CoveredBy = stream.ReadString();
             _metadata.LoadingPhrase = stream.ReadString();
             _metadata.YearSecondary = stream.ReadString();
 

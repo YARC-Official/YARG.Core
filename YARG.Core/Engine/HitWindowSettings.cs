@@ -44,12 +44,15 @@ namespace YARG.Core.Engine
         /// </summary>
         public readonly double FrontToBackRatio;
 
-        public readonly double TremoloFrontEndPercent;
+        /// <summary>
+        /// The size of the forgiveness window for trill/tremolo/roll lanes
+        /// </summary>
+        public readonly double TremoloWindow;
 
         private readonly double _minMaxWindowRatio;
 
         public HitWindowSettings(double maxWindow, double minWindow, double frontToBackRatio, bool isDynamic,
-            double dwSlope, double dwScale, double dwGamma, double tremoloPercentage)
+            double dwSlope, double dwScale, double dwGamma, double tremoloWindow)
         {
             // Swap max and min if necessary to ensure that max is always larger than min
             if (maxWindow < minWindow)
@@ -67,7 +70,7 @@ namespace YARG.Core.Engine
             DynamicWindowScale = Math.Clamp(dwScale, 0.3, 3);
             DynamicWindowGamma = Math.Clamp(dwGamma, 0.1, 10);
 
-            TremoloFrontEndPercent = tremoloPercentage;
+            TremoloWindow = tremoloWindow;
 
             _minMaxWindowRatio = MinWindow / MaxWindow;
         }
@@ -84,9 +87,15 @@ namespace YARG.Core.Engine
             DynamicWindowScale = stream.Read<double>(Endianness.Little);
             DynamicWindowGamma = stream.Read<double>(Endianness.Little);
 
-            if (version >= 10)
+            if (version is >= 10 and < 12)
             {
-                TremoloFrontEndPercent = stream.Read<double>(Endianness.Little);
+                var tremoloFrontendPercent = stream.Read<double>(Endianness.Little);
+                TremoloWindow = -GetFrontEnd(MaxWindow) * tremoloFrontendPercent;
+            }
+
+            if (version >= 12)
+            {
+                TremoloWindow = stream.Read<double>(Endianness.Little);
             }
 
             _minMaxWindowRatio = MinWindow / MaxWindow;
@@ -103,7 +112,7 @@ namespace YARG.Core.Engine
             writer.Write(DynamicWindowScale);
             writer.Write(DynamicWindowGamma);
 
-            writer.Write(TremoloFrontEndPercent);
+            writer.Write(TremoloWindow);
         }
 
         /// <summary>
@@ -149,11 +158,6 @@ namespace YARG.Core.Engine
             }
 
             return Dark_Yarg_Impl(averageTimeDistance);
-        }
-
-        public double CalculateTremoloWindow()
-        {
-            return -GetFrontEnd(MaxWindow) * TremoloFrontEndPercent;
         }
 
         private double Original_Yarg_Impl(double averageTimeDistance)

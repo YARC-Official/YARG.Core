@@ -270,6 +270,9 @@
         /// <summary>(4-lane only) Green cymbal hit velocity. Red cymbal under lefty flip.</summary>
         /// <remarks>Alias of <see cref="Cymbal3"/>.</remarks>
         GreenCymbal = Cymbal3,
+
+        // <summary>The (not real) wildcard pad, needed for the bot to be able to activate wildcard notes</summary>
+        WildcardPad = 13,
     }
 
     /// <summary>
@@ -306,6 +309,9 @@
         EliteRide = 11,
         /// <summary>Elite Drums right crash hit velocity</summary>
         EliteRightCrash = 12,
+
+        // <summary>The (not real) wildcard pad, needed for the bot to be able to activate wildcard notes</summary>
+        WildcardPad = 13,
 
 
         /// <summary>4L Drums red drum hit velocity</summary>

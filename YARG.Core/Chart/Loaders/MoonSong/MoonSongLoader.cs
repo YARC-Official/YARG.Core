@@ -576,6 +576,7 @@ namespace YARG.Core.Chart
 
         private static MoonSong.Difficulty YargDifficultyToMoonDifficulty(Difficulty difficulty) => difficulty switch
         {
+            Difficulty.Beginner or
             Difficulty.Easy       => MoonSong.Difficulty.Easy,
             Difficulty.Medium     => MoonSong.Difficulty.Medium,
             Difficulty.Hard       => MoonSong.Difficulty.Hard,

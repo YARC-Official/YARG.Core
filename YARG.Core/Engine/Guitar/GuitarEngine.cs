@@ -14,9 +14,6 @@ namespace YARG.Core.Engine.Guitar
 
         public const byte OPEN_MASK = 64;
 
-        // TODO: Make this configurable, or at least less of an arbitrary choice
-        private const double LANE_END_OVERSTRUM_LENIENCY = 0.080;
-
         public delegate void OverstrumEvent();
 
         public OverstrumEvent? OnOverstrum;
@@ -147,7 +144,7 @@ namespace YARG.Core.Engine.Guitar
             }
 
             // Prevent overstrum too close to the expiration of lane behavior
-            if (!IsLaneActive && CurrentTime - LaneExpireTime < LANE_END_OVERSTRUM_LENIENCY)
+            if (!IsLaneActive && CurrentTime - LaneExpireTime < LANE_END_LENIENCY)
             {
                 YargLogger.LogFormatTrace("Overstrum prevented by lane end leniency at {0}", CurrentTime);
             }
@@ -157,6 +154,12 @@ namespace YARG.Core.Engine.Guitar
             {
                 YargLogger.LogFormatTrace("Overstrum prevented during coda at {0}", CurrentTime);
                 return;
+            }
+
+            if (CodaHasStarted)
+            {
+                YargLogger.LogFormatTrace("Overstrum punished during post-BRE coda section at {0}", CurrentTime);
+                Codas[CurrentCodaIndex].Overhit();
             }
 
             if (IsLaneActive)
@@ -308,9 +311,10 @@ namespace YARG.Core.Engine.Guitar
                 return;
             }
 
-            // Note can't be missed during BRE phrase
-            if (IsCodaActive && note.IsBigRockEnding)
+            // BRE notes can't be missed during coda section
+            if (CodaHasStarted && note.IsBigRockEnding)
             {
+                YargLogger.LogFormatDebug("Tried to miss BRE note at {0}, converting miss to hit", CurrentTime);
                 note.SetHitState(true, true);
                 base.HitNote(note);
                 return;

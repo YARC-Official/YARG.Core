@@ -14,6 +14,7 @@ namespace YARG.Core.Engine.Keys
             YellowKey = 2,
             BlueKey = 3,
             OrangeKey = 4,
+            Wildcard = 5,
 
             OpenNote = 6
         }
@@ -34,8 +35,10 @@ namespace YARG.Core.Engine.Keys
 
         protected override bool CanSustainHold(GuitarNote note)
         {
-            return (KeyMask & note.DisjointMask) != 0;
+            return (KeyMask & note.DisjointMask) != 0 ||
+                (KeyMask > 0 && note.FiveLaneKeysAction is FiveLaneKeysAction.Wildcard);
         }
+
         protected override void HitNote(GuitarNote note)
         {
             if (note.WasHit || note.WasMissed)
@@ -248,7 +251,27 @@ namespace YARG.Core.Engine.Keys
             return ((int) Math.Round(baseScore), (int) Math.Round(noteScore));
         }
 
-        protected override bool IsKeyInTime(GuitarNote note, double frontEnd) => IsKeyInTime(note, (int)note.FiveLaneKeysAction, frontEnd);
+        // protected override bool IsKeyInTime(GuitarNote note, double frontEnd) => IsKeyInTime(note, (int)note.FiveLaneKeysAction, frontEnd);
+
+        protected override bool IsKeyInTime(GuitarNote note, double frontEnd)
+        {
+            if (note.Fret != (int) FiveFretGuitarFret.Wildcard)
+            {
+                return IsKeyInTime(note, (int) note.FiveLaneKeysAction, frontEnd);
+            }
+
+            // Check that any key was pressed within the front end
+            // TODO: Eliminate this loop by tracking a global LastKeyPressTime or something
+            foreach (var pressTime in KeyPressTimes)
+            {
+                if (pressTime > note.Time + frontEnd)
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
 
         protected FiveLaneKeysAction ProKeysActionToFiveLaneKeysAction(ProKeysAction action)
         {
