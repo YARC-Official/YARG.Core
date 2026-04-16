@@ -330,13 +330,14 @@ namespace YARG.Core.Engine.Vocals
             double baseScore = 0;
             double noteScore = 0;
             int combo = 0;
+            int multiplier;
             foreach (var note in Notes)
             {
                 if (note.ChildNotes.Count == 0)
                 {
                     continue;
                 };
-                int multiplier = Math.Min(combo + 1, BaseParameters.MaxMultiplier);
+                multiplier = Math.Min(combo + 1, BaseParameters.MaxMultiplier);
                 if (note.IsPercussionPhrase)
                 {
                     // Intentionally not counting percussion notes for base score so they don't affect star calculations

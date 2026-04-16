@@ -51,11 +51,11 @@ namespace YARG.Core.Engine
             for (int i = 0; i < StarMultiplierThresholds.Length; i++)
             {
                 // The way BaseScore is calculated changed in version 12, so the thresholds are stored differently (multiplied by the max multiplier) for older versions
-                int factor = version >= 12 ? 1 : MaxMultiplier;
+                int factor = version >= 13 ? 1 : MaxMultiplier;
                 StarMultiplierThresholds[i] = stream.Read<float>(Endianness.Little) / factor;
             }
 
-            if (version >= 12)
+            if (version >= 13)
             {
                 // Read solo star multiplier thresholds
                 int starMultCount = stream.Read<int>(Endianness.Little);
@@ -97,7 +97,8 @@ namespace YARG.Core.Engine
 
             // Write solo multiplier star thresholds
             writer.Write(SoloBonusStarMultiplierThresholds.Length);
-            foreach (var f in SoloBonusStarMultiplierThresholds)            {
+            foreach (var f in SoloBonusStarMultiplierThresholds)
+            {
                 writer.Write(f);
             }
 

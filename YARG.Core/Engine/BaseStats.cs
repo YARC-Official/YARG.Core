@@ -179,7 +179,7 @@ namespace YARG.Core.Engine
         /// <summary>
         /// Total number of bonus points available from solos. Should not be modified.
         /// </summary>
-        public int TotalSoloBonusPoints;
+        public int MaxSoloBonusPoints;
 
         /// <summary>
         /// Amount of points earned from coda bonuses.
@@ -252,7 +252,7 @@ namespace YARG.Core.Engine
             TotalStarPowerPhrases = stats.TotalStarPowerPhrases;
 
             SoloBonuses = stats.SoloBonuses;
-            TotalSoloBonusPoints = stats.TotalSoloBonusPoints;
+            MaxSoloBonusPoints = stats.MaxSoloBonusPoints;
             StarPowerScore = stats.StarPowerScore;
 
             Stars = stats.Stars;

@@ -110,10 +110,11 @@ namespace YARG.Core.Engine
 
             Solos = GetSoloSections();
             Codas = GetCodaSections();
-            EngineStats.TotalSoloBonusPoints = CalculateTotalSoloBonus();
+            EngineStats.MaxSoloBonusPoints = CalculateTotalSoloBonus();
 
-            StarScoreThresholds = PopulateStarScoreThresholds(engineParameters.StarMultiplierThresholds, engineParameters.SoloBonusStarMultiplierThresholds, BaseScore, EngineStats.TotalSoloBonusPoints);
+            StarScoreThresholds = PopulateStarScoreThresholds(engineParameters.StarMultiplierThresholds, engineParameters.SoloBonusStarMultiplierThresholds, BaseScore, EngineStats.MaxSoloBonusPoints);
         }
+
         public static int[] PopulateStarScoreThresholds(float[] multiplierThresholds, float[] soloBonusMultiplierThresholds, int baseScore, int soloScore)
         {
             var starScoreThresh = new int[multiplierThresholds.Length];

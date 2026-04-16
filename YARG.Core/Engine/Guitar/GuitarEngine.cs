@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using YARG.Core.Chart;
 using YARG.Core.Input;
 using YARG.Core.Logging;
@@ -419,6 +420,7 @@ namespace YARG.Core.Engine.Guitar
             double baseScore = 0;
             double noteScore = 0;
             int combo = 0;
+            int multiplier;
             foreach (var note in Notes)
             {
                 // Exclude BRE notes from base score calculation since they can't be scored
@@ -428,7 +430,7 @@ namespace YARG.Core.Engine.Guitar
                 }
 
                 // Get the current multiplier given the current combo
-                int multiplier = Math.Min((combo / 10) + 1, BaseParameters.MaxMultiplier);
+                multiplier = Math.Min((combo / 10) + 1, BaseParameters.MaxMultiplier);
                 double pointsForNote = POINTS_PER_NOTE * (1 + note.ChildNotes.Count);
                 baseScore += multiplier * pointsForNote;
                 noteScore += pointsForNote;
@@ -440,13 +442,18 @@ namespace YARG.Core.Engine.Guitar
                 // If a note is disjoint, each sustain is counted separately.
                 if (note.IsDisjoint)
                 {
+                    HashSet<uint> seenNoteTicks = new();
                     foreach (var child in note.ChildNotes)
                     {
                         double pointsForDisjoint = Math.Ceiling(child.TickLength / TicksPerSustainPoint);
                         baseScore += multiplier * pointsForDisjoint;
                         noteScore += pointsForDisjoint;
-                        //TODO: Check if disjoint notes should increase combo
-                        combo++;
+                        // Only increment combo if we haven't already seen a note in that tick
+                        if (!seenNoteTicks.Contains(child.Tick))
+                        {
+                            combo++;
+                            seenNoteTicks.Add(child.Tick);
+                        }
                     }
                 }
             }

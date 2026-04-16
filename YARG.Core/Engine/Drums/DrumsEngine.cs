@@ -364,6 +364,7 @@ namespace YARG.Core.Engine.Drums
             double baseScore = 0;
             double noteScore = 0;
             int combo = 0;
+            int multiplier;
             foreach (var note in Notes)
             {
                 // Exclude BRE notes from base score calculation since they can't be scored
@@ -373,7 +374,7 @@ namespace YARG.Core.Engine.Drums
                 }
 
                 // Get the current multiplier given the current combo
-                int multiplier = Math.Min((combo / 10) + 1, BaseParameters.MaxMultiplier);
+                multiplier = Math.Min((combo / 10) + 1, BaseParameters.MaxMultiplier);
                 double scoreForNote = GetPointsPerNote() * (1 + note.ChildNotes.Count);
                 baseScore += multiplier * scoreForNote;
                 noteScore += scoreForNote;

@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using YARG.Core.Chart;
 using YARG.Core.Input;
 using YARG.Core.Logging;
@@ -199,6 +200,7 @@ namespace YARG.Core.Engine.Keys
             double baseScore = 0;
             double noteScore = 0;
             int combo = 0;
+            int multiplier;
             foreach (var note in Notes)
             {
                 // Exclude BRE notes from base score calculation since they can't be scored
@@ -208,7 +210,7 @@ namespace YARG.Core.Engine.Keys
                 }
 
                 // Get the current multiplier given the current combo
-                int multiplier = Math.Min((combo / 10) + 1, BaseParameters.MaxMultiplier);
+                multiplier = Math.Min((combo / 10) + 1, BaseParameters.MaxMultiplier);
                 double scoreForNote = POINTS_PER_NOTE * (1 + note.ChildNotes.Count);
 
                 foreach (var child in note.AllNotes)
@@ -217,11 +219,32 @@ namespace YARG.Core.Engine.Keys
                 }
                 baseScore += multiplier * scoreForNote;
                 noteScore += scoreForNote;
-                // Pro Keys combo increments per chord, not per note.
+
+                double pointsForSustain = Math.Ceiling(note.TickLength / TicksPerSustainPoint);
+                baseScore += multiplier * pointsForSustain;
+                noteScore += pointsForSustain;
+                combo++;
+                // If a note is disjoint, each sustain is counted separately.
+                if (note.IsDisjoint)
+                {
+                    foreach (var child in note.ChildNotes)
+                    {
+                        HashSet<uint> seenNoteTicks = new();
+                        double pointsForDisjoint = Math.Ceiling(child.TickLength / TicksPerSustainPoint);
+                        baseScore += multiplier * pointsForDisjoint;
+                        noteScore += pointsForDisjoint;
+                        // Only increment combo if we haven't already seen a note in that tick
+                        if (!seenNoteTicks.Contains(child.Tick))
+                        {
+                            combo++;
+                            seenNoteTicks.Add(child.Tick);
+                        }
+                    }
+                }
                 combo++;
             }
 
-            YargLogger.LogDebug($"[Pro Keys] Base score: {baseScore}, Max Combo: {combo}");
+            YargLogger.LogDebug($"[Keys] Base score: {baseScore}, Max Combo: {combo}");
             return ((int) Math.Round(baseScore), (int) Math.Round(noteScore));
         }
 
