@@ -1,4 +1,4 @@
-﻿using Microsoft.Win32.SafeHandles;
+using Microsoft.Win32.SafeHandles;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -49,10 +49,10 @@ namespace YARG.Core.Song.Cache
             }
         }
 
-        public static bool Create(Stream stream, List<CONFileListing> listings, in AbridgedFileInfo root, string defaultPlaylist, out PackedCONEntryGroup group)
+        public static bool Create(Stream stream, List<CONFileListing> listings, in AbridgedFileInfo root, string defaultPlaylist, out PackedCONEntryGroup? group)
         {
             const string SONGS_PATH = "songs/songs.dta";
-            group = null;
+            group = null!;
             if (listings.FindListing(SONGS_PATH, out var listing))
             {
                 group = new PackedCONEntryGroup(listings, in root, defaultPlaylist);

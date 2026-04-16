@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.IO;
@@ -15,7 +15,7 @@ namespace YARG.Core.Song.Cache
         private readonly            string                                                  _defaultPlaylist;
         protected readonly          AbridgedFileInfo                                        _root;
         protected internal readonly Dictionary<string, List<YARGTextContainer<byte>>>       _nodes;
-        protected internal          FixedArray<byte>                                        _data;
+        protected internal          FixedArray<byte>?                                       _data;
 
         public enum CONEntryType : int
         {
@@ -114,7 +114,7 @@ namespace YARG.Core.Song.Cache
 
         public virtual void Dispose()
         {
-            _data.Dispose();
+            _data?.Dispose();
         }
 
         public Dictionary<string, List<YARGTextContainer<byte>>>.Enumerator GetEnumerator()

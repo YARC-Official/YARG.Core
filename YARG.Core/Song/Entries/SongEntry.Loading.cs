@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.IO;
 using YARG.Core.Audio;
 using YARG.Core.Chart;
@@ -13,7 +13,7 @@ namespace YARG.Core.Song
         public  BackgroundType Type   { get; }
         public  Stream?        Stream { get; }
 
-        public YARGImage Image => _image;
+        public YARGImage? Image => _image;
 
         public BackgroundResult(BackgroundType type, Stream stream)
         {
