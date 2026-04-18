@@ -5,10 +5,14 @@ namespace YARG.Core.Engine
 {
     public partial class EngineManager
     {
-        public int Score { get; set; }
-        public int Combo { get; set; }
-        public float Stars { get; set; }
-        public int BandMultiplier => Math.Max(_starpowerCount * 2, 1);
+        public int   Score { get; set; }
+        public int   Combo { get; set; }
+        public float Stars { get; private set; }
+
+        private int _currentStarIndex;
+
+        public int[] StarScoreThresholds = new int[6];
+        public  int   BandMultiplier => Math.Max(_starpowerCount * 2, 1);
 
         private int          _activeCodaCount;
 
@@ -79,6 +83,46 @@ namespace YARG.Core.Engine
             {
                 engine.Engine.UpdateBandMultiplier(BandMultiplier);
             }
+        }
+
+        public static int[] GetStarScoreCutoffs(List<int[]> starScoreCutoffsList)
+        {
+
+            int[] bandStarScoreCutoffs = new int[6];
+            for (int i = 0; i < 6; i++)
+            {
+                int totalStarCutoff = 0;
+                foreach (var playerCutoffsList in starScoreCutoffsList)
+                {
+                    totalStarCutoff += playerCutoffsList[i];
+                }
+
+                bandStarScoreCutoffs[i] = (int) Math.Floor(totalStarCutoff *
+                    (1 + .265f * (starScoreCutoffsList.Count - 1)));
+            }
+
+            return bandStarScoreCutoffs;
+        }
+
+        public void UpdateStars()
+        {
+            // Update which star we're on
+            while (_currentStarIndex < StarScoreThresholds.Length &&
+                Score > StarScoreThresholds[_currentStarIndex])
+            {
+                _currentStarIndex++;
+            }
+
+            // Calculate current star progress
+            float progress = 0f;
+            if (_currentStarIndex < StarScoreThresholds.Length)
+            {
+                int previousPoints = _currentStarIndex > 0 ? StarScoreThresholds[_currentStarIndex - 1] : 0;
+                int nextPoints = StarScoreThresholds[_currentStarIndex];
+                progress = YargMath.InverseLerpF(previousPoints, nextPoints, Score);
+            }
+
+            Stars = _currentStarIndex + progress;
         }
     }
 }

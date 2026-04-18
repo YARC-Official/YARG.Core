@@ -332,25 +332,33 @@ namespace YARG.Core.Engine.Vocals
             }
         }
 
-        protected sealed override int CalculateBaseScore()
+        protected sealed override (int baseScore, int noteScore) CalculateChartScores()
         {
-            double score = 0;
+            double baseScore = 0;
+            double noteScore = 0;
             int combo = 0;
             int multiplier;
-            double weight;
-            foreach (var note in Notes.Where(note => note.ChildNotes.Any()))
+            foreach (var note in Notes)
             {
-                // Get the current multiplier given the current combo
+                if (note.ChildNotes.Count == 0)
+                {
+                    continue;
+                };
                 multiplier = Math.Min(combo + 1, BaseParameters.MaxMultiplier);
-
-                // invert it to calculate leniency
-                weight = 1.0 * multiplier / BaseParameters.MaxMultiplier;
-                score += weight * EngineParameters.PointsPerPhrase;
+                if (note.IsPercussionPhrase)
+                {
+                    // Intentionally not counting percussion notes for base score so they don't affect star calculations
+                    // baseScore += POINTS_PER_PERCUSSION * note.ChildNotes.Count * multiplier;
+                    // noteScore += POINTS_PER_PERCUSSION * note.ChildNotes.Count;
+                    continue;
+                }
+                baseScore += multiplier * EngineParameters.PointsPerPhrase;
+                noteScore += EngineParameters.PointsPerPhrase;
                 combo++;
             }
 
-            YargLogger.LogDebug($"[Vocals] Base score: {score}, Max Combo: {combo}");
-            return (int) Math.Round(score);
+            YargLogger.LogDebug($"[Vocals] Base score: {baseScore}, Max Combo: {combo}");
+            return ((int) Math.Round(baseScore), (int) Math.Round(noteScore));
         }
 
         protected override bool CanSustainHold(VocalNote note) => throw new InvalidOperationException();

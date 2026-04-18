@@ -48,7 +48,7 @@ public class PartValuesTests
 
         using (Assert.EnterMultipleScope())
         {
-            Assert.That(partValues.Difficulties, Is.EqualTo(DifficultyMask.Easy | DifficultyMask.Expert));
+            Assert.That(partValues.Difficulties, Is.EqualTo(DifficultyMask.Beginner | DifficultyMask.Easy | DifficultyMask.Expert));
             Assert.That(partValues[Difficulty.Easy], Is.True);
             Assert.That(partValues[Difficulty.Medium], Is.False);
             Assert.That(partValues[Difficulty.Expert], Is.True);
@@ -65,9 +65,10 @@ public class PartValuesTests
         using (Assert.EnterMultipleScope())
         {
             Assert.That(partValues.IsActive(), Is.True);
-            Assert.That(partValues.SubTracks, Is.EqualTo((byte) DifficultyMask.Easy));
-            Assert.That(partValues[0], Is.False);
+            Assert.That(partValues.SubTracks, Is.EqualTo((byte) (DifficultyMask.Beginner | DifficultyMask.Easy)));
+            Assert.That(partValues[0], Is.True);
             Assert.That(partValues[1], Is.True);
+            Assert.That(partValues[2], Is.False);
         }
     }
 

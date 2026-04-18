@@ -21,9 +21,6 @@ namespace YARG.Core.Engine
         // Last time bonus was collected for given lane
         private double[] LastCollectedTime { get; set; }
 
-        // We need this because collected and hit are different for non-guitar instruments
-        private double[] LastHitTime { get; set; }
-
         // Maximum bonus for one fret press or drum hit
         public int MaxLaneScore { get; private set; }
 
@@ -45,18 +42,22 @@ namespace YARG.Core.Engine
         private const int MAX_FRET_SCORE  = 150;
 
         // Time taken for bonus to recharge after collection
-        private const double BONUS_RECHARGE_TIME = 1.5;
+        public const double BONUS_RECHARGE_TIME = 1.5;
 
-        public CodaSection(int lanes, double startTime, double endTime, bool fretMode = true)
+        public static float GetNormalizedTimeSinceLastHit(double visualTime, double mostRecentTime)
         {
-            ScoringZones = lanes;
-            LastCollectedTime = new double[lanes];
-            LastHitTime = new double[lanes];
-            MaxLaneScore = fretMode ? MAX_FRET_SCORE : MAX_DRUM_SCORE;
+            return (float)(Math.Min(visualTime - mostRecentTime, BONUS_RECHARGE_TIME) / BONUS_RECHARGE_TIME);
+        }
+
+        public CodaSection(int scoringZones, double startTime, double endTime)
+        {
+            ScoringZones = scoringZones;
+            LastCollectedTime = new double[scoringZones];
+            _fretMode = scoringZones == 1;
+            MaxLaneScore = _fretMode ? MAX_FRET_SCORE : MAX_DRUM_SCORE;
             TotalCodaBonus = 0;
             StartTime = startTime;
             EndTime = endTime;
-            _fretMode = fretMode;
             // MissNote will change this if necessary
             Success = true;
         }
@@ -101,8 +102,6 @@ namespace YARG.Core.Engine
                 TotalCodaBonus += bonusScore;
             }
 
-            LastHitTime[scoringZoneIndex] = time;
-
             OnLaneHit?.Invoke(fret);
         }
 
@@ -129,11 +128,6 @@ namespace YARG.Core.Engine
             {
                 LastCollectedTime[i] = 0;
             }
-
-            for (int i = 0; i < LastHitTime.Length; i++)
-            {
-                LastHitTime[i] = 0;
-            }
         }
 
         private int GetCurrentScoringZonePayout(int scoringZoneIndex, double time)
@@ -142,18 +136,6 @@ namespace YARG.Core.Engine
         }
 
         public double GetTimeSinceLastHit(int fret, double time) => time - LastCollectedTime[fret];
-
-        /// <summary>
-        /// Returns normalized time since last hit<br/>
-        /// Reaches 1.0f at BONUS_RECHARGE_TIME
-        /// </summary>
-        /// <param name="scoringZoneIndex"></param>
-        /// <param name="time"></param>
-        /// <returns>float range 0.0f to 1.0f</returns>
-        public float GetNormalizedTimeSinceLastHit(int scoringZoneIndex, double time)
-        {
-            return (float) (Math.Min(time - LastHitTime[scoringZoneIndex], BONUS_RECHARGE_TIME) / BONUS_RECHARGE_TIME);
-        }
 
         public void SetLaneIndexes(Dictionary<int, int> indexToLane)
         {

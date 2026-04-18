@@ -501,6 +501,8 @@ namespace YARG.Core.Engine.Keys.Engines
                     continue;
                 }
 
+                // We might only need 3 scoring zones in practice, depending on the range, but the engine can't
+                // know about the range shifts so we have to just allocate the max
                 codaSections.Add(new CodaSection(4, phrase.Time, phrase.TimeEnd));
             }
 

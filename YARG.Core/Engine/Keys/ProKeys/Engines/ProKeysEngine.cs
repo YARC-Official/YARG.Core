@@ -228,12 +228,12 @@ namespace YARG.Core.Engine.Keys
             EngineStats.NoteScore += POINTS_PER_PRO_KEYS_NOTE;
         }
 
-        protected sealed override int CalculateBaseScore()
+        protected sealed override (int baseScore, int noteScore) CalculateChartScores()
         {
-            double score = 0;
+            double baseScore = 0;
+            double noteScore = 0;
             int combo = 0;
             int multiplier;
-            double weight;
             foreach (var note in Notes)
             {
                 // Exclude BRE notes from base score calculation since they can't be scored
@@ -244,22 +244,22 @@ namespace YARG.Core.Engine.Keys
 
                 // Get the current multiplier given the current combo
                 multiplier = Math.Min((combo / 10) + 1, BaseParameters.MaxMultiplier);
-
-                // invert it to calculate leniency
-                weight = 1.0 * multiplier / BaseParameters.MaxMultiplier;
-                score += weight * (POINTS_PER_PRO_KEYS_NOTE * (1 + note.ChildNotes.Count));
-
+                double pointsForNote = POINTS_PER_PRO_KEYS_NOTE * (1 + note.ChildNotes.Count);
+                baseScore += multiplier * pointsForNote;
+                noteScore += pointsForNote;
                 foreach (var child in note.AllNotes)
                 {
-                    score += weight * (int) Math.Ceiling(child.TickLength / TicksPerSustainPoint);
+                    int pointsForSustain = (int) Math.Ceiling(child.TickLength / TicksPerSustainPoint);
+                    baseScore += multiplier * pointsForSustain;
+                    noteScore += pointsForSustain;
                 }
 
                 // Pro Keys combo increments per chord, not per note.
                 combo++;
             }
 
-            YargLogger.LogDebug($"[Pro Keys] Base score: {score}, Max Combo: {combo}");
-            return (int) Math.Round(score);
+            YargLogger.LogDebug($"[Pro Keys] Base score: {baseScore}, Max Combo: {combo}");
+            return ((int) Math.Round(baseScore), (int) Math.Round(noteScore));
         }
 
         protected override bool IsKeyInTime(ProKeysNote note, double frontEnd) => IsKeyInTime(note, note.Key, frontEnd);

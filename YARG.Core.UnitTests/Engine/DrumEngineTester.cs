@@ -12,11 +12,15 @@ public class DrumEngineTester
 {
     public static float[] StarMultiplierThresholds { get; } =
     {
-        0.21f, 0.46f, 0.77f, 1.85f, 3.08f, 4.29f
+        0.06f, 0.12f, 0.2f, 0.45f, 0.75f, 1.09f
+    };
+    // This should probably be in some parent class of the tester, but right now there's only drums tests so it's fine
+    public static float[] SoloBonusStarMultiplierThresholds = {
+        0.05f, 0.1f, 0.2f, 0.35f, 0.65f, 0.95f
     };
 
     private readonly DrumsEngineParameters _engineParams =
-        EnginePreset.Default.Drums.Create(StarMultiplierThresholds, DrumsEngineParameters.DrumMode.ProFourLane);
+        EnginePreset.Default.Drums.Create(StarMultiplierThresholds, SoloBonusStarMultiplierThresholds, DrumsEngineParameters.DrumMode.ProFourLane);
 
     private string? _chartsDirectory;
 

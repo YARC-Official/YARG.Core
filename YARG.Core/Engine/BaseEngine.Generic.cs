@@ -42,7 +42,6 @@ namespace YARG.Core.Engine
 
         protected double WhammyTicksRemainder = 0.0;
 
-        protected          int[]  StarScoreThresholds { get; }
         protected readonly double TicksPerSustainPoint;
         protected readonly uint   SustainBurstThreshold;
 
@@ -109,17 +108,25 @@ namespace YARG.Core.Engine
 
             // This method should only rely on the `Notes` property (which is assigned above).
             // ReSharper disable once VirtualMemberCallInConstructor
-            BaseScore = CalculateBaseScore();
-
-            float[] multiplierThresholds = engineParameters.StarMultiplierThresholds;
-            StarScoreThresholds = new int[multiplierThresholds.Length];
-            for (int i = 0; i < multiplierThresholds.Length; i++)
-            {
-                StarScoreThresholds[i] = (int) (BaseScore * multiplierThresholds[i]);
-            }
+            (BaseScore, BaseNoteScore) = CalculateChartScores();
 
             Solos = GetSoloSections();
             Codas = GetCodaSections();
+            EngineStats.MaxSoloBonusPoints = CalculateTotalSoloBonus();
+
+            StarScoreThresholds = PopulateStarScoreThresholds(engineParameters.StarMultiplierThresholds, engineParameters.SoloBonusStarMultiplierThresholds, BaseScore, EngineStats.MaxSoloBonusPoints);
+        }
+
+        public static int[] PopulateStarScoreThresholds(float[] multiplierThresholds, float[] soloBonusMultiplierThresholds, int baseScore, int soloScore)
+        {
+            var starScoreThresh = new int[multiplierThresholds.Length];
+
+            for (int i = 0; i < multiplierThresholds.Length; i++)
+            {
+                starScoreThresh[i] = (int)Math.Floor(baseScore * multiplierThresholds[i] + soloScore * soloBonusMultiplierThresholds[i]);
+            }
+
+            return starScoreThresh;
         }
 
         protected override void GenerateQueuedUpdates(double nextTime)
@@ -949,7 +956,7 @@ namespace YARG.Core.Engine
         {
             // Update which star we're on
             while (CurrentStarIndex < StarScoreThresholds.Length &&
-                EngineStats.StarScore > StarScoreThresholds[CurrentStarIndex])
+                EngineStats.TotalScore > StarScoreThresholds[CurrentStarIndex])
             {
                 CurrentStarIndex++;
             }
@@ -960,7 +967,7 @@ namespace YARG.Core.Engine
             {
                 int previousPoints = CurrentStarIndex > 0 ? StarScoreThresholds[CurrentStarIndex - 1] : 0;
                 int nextPoints = StarScoreThresholds[CurrentStarIndex];
-                progress = YargMath.InverseLerpF(previousPoints, nextPoints, EngineStats.StarScore);
+                progress = YargMath.InverseLerpF(previousPoints, nextPoints, EngineStats.TotalScore);
             }
 
             EngineStats.Stars = CurrentStarIndex + progress;
@@ -1148,14 +1155,31 @@ namespace YARG.Core.Engine
         }
 
         /// <summary>
-        /// Calculates the base score of the chart, which can be used to calculate star thresholds.
+        /// Calculates both the base score and note score of the chart, which can be used to calculate star thresholds.
+        /// Base score is defined as the score if a player were to FC and hit all sustains fully.
+        /// Note score is base score, but without multiplier.
         /// </summary>
         /// <remarks>
         /// Please be mindful that this virtual method is called in the constructor of
-        /// <see cref="BaseEngine{TNoteType,TEngineParams,TEngineStats,TEngineState}"/>.
+        /// <see cref="BaseEngine{TNoteType,TEngineParams,TEngineStats}"/>.
         /// <b>ONLY</b> use the <see cref="Notes"/> property to calculate this.
         /// </remarks>
-        protected abstract int CalculateBaseScore();
+        protected abstract (int baseScore, int noteScore) CalculateChartScores();
+
+        /// <summary>
+        /// Calculates the total bonus points that could be awarded from solos.
+        /// This must be called after <see cref="GetSoloSections"/>.
+        /// </summary>
+        /// <returns></returns>
+        protected int CalculateTotalSoloBonus()
+        {
+            int score = 0;
+            foreach (var solo in Solos)
+            {
+                score += solo.NoteCount * 100;
+            }
+            return score;
+        }
 
         protected bool IsNoteInWindow(TNoteType note) => IsNoteInWindow(note, out _);
 

@@ -120,8 +120,9 @@ namespace YARG.Core.Chart
         Yellow,
         Blue,
         Orange,
-        Wildcard,
+        // 6 intentionally left blank for symmetry with 6F
         Open = 7,
+        Wildcard = 8,
     }
 
     public enum SixFretGuitarFret
@@ -133,6 +134,7 @@ namespace YARG.Core.Chart
         White2,
         White3,
         Open,
+        Wildcard,
     }
 
     public enum GuitarNoteType

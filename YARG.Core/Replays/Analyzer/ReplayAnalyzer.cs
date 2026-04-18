@@ -77,7 +77,6 @@ namespace YARG.Core.Replays.Analyzer
             AppendStatDifference("CommittedScore", originalStats.CommittedScore, resultStats.CommittedScore);
             AppendStatDifference("PendingScore", originalStats.PendingScore, resultStats.PendingScore);
             AppendStatDifference("TotalScore", originalStats.TotalScore, resultStats.TotalScore);
-            AppendStatDifference("StarScore", originalStats.StarScore, resultStats.StarScore);
             AppendStatDifference("Combo", originalStats.Combo, resultStats.Combo);
             AppendStatDifference("MaxCombo", originalStats.MaxCombo, resultStats.MaxCombo);
             AppendStatDifference("ScoreMultiplier", originalStats.ScoreMultiplier, resultStats.ScoreMultiplier);

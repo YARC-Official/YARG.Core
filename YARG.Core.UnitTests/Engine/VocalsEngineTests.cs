@@ -8,10 +8,21 @@ namespace YARG.Core.UnitTests.Engine;
 
 public sealed class VocalsEngineTests
 {
+
+    public static float[] StarMultiplierThresholds { get; } =
+    {
+        0.05f, 0.11f, 0.19f, 0.46f, 0.77f, 1.06f
+    };
+
+    public static float[] SoloBonusStarMultiplierThresholds = {
+        0.05f, 0.1f, 0.2f, 0.35f, 0.65f, 0.95f
+    };
+
     private static readonly VocalsEngineParameters EngineParameters = new(
         new HitWindowSettings(0.1, 0.1, 1.0, false, 0, 1, 1, 0),
         4,
-        new[] { 0.25f, 0.5f, 0.75f },
+        StarMultiplierThresholds,
+        SoloBonusStarMultiplierThresholds,
         1.5f,
         0.5f,
         0.75,

@@ -18,18 +18,21 @@ namespace YARG.Core.Engine
 
         public readonly float[] StarMultiplierThresholds;
 
+        public readonly float[] SoloBonusStarMultiplierThresholds;
+
         public readonly bool EnableLanes;
 
         public double SongSpeed;
 
         protected BaseEngineParameters(HitWindowSettings hitWindow, int maxMultiplier, double spWhammyBuffer,
-            double sustainDropLeniency, float[] starMultiplierThresholds, bool enableLanes)
+            double sustainDropLeniency, float[] starMultiplierThresholds, float[] soloBonusStarMultiplierThresholds, bool enableLanes)
         {
             HitWindow = hitWindow;
             StarPowerWhammyBuffer = spWhammyBuffer;
             SustainDropLeniency = sustainDropLeniency;
             MaxMultiplier = maxMultiplier;
             StarMultiplierThresholds = starMultiplierThresholds;
+            SoloBonusStarMultiplierThresholds = soloBonusStarMultiplierThresholds;
             EnableLanes = enableLanes;
         }
 
@@ -47,7 +50,25 @@ namespace YARG.Core.Engine
             StarMultiplierThresholds = new float[count];
             for (int i = 0; i < StarMultiplierThresholds.Length; i++)
             {
-                StarMultiplierThresholds[i] = stream.Read<float>(Endianness.Little);
+                // The way BaseScore is calculated changed in version 12, so the thresholds are stored differently (multiplied by the max multiplier) for older versions
+                int factor = version >= 13 ? 1 : MaxMultiplier;
+                StarMultiplierThresholds[i] = stream.Read<float>(Endianness.Little) / factor;
+            }
+
+            if (version >= 13)
+            {
+                // Read solo star multiplier thresholds
+                int starMultCount = stream.Read<int>(Endianness.Little);
+                SoloBonusStarMultiplierThresholds = new float[starMultCount];
+                for (int i = 0; i < SoloBonusStarMultiplierThresholds.Length; i++)
+                {
+                    SoloBonusStarMultiplierThresholds[i] = stream.Read<float>(Endianness.Little);
+                }
+            }
+            else
+            {
+                // Before version 12, solo bonuses had no effect on scoring.
+                SoloBonusStarMultiplierThresholds = new float[6];
             }
 
             SongSpeed = stream.Read<double>(Endianness.Little);
@@ -70,6 +91,13 @@ namespace YARG.Core.Engine
             // Write star multiplier thresholds
             writer.Write(StarMultiplierThresholds.Length);
             foreach (var f in StarMultiplierThresholds)
+            {
+                writer.Write(f);
+            }
+
+            // Write solo multiplier star thresholds
+            writer.Write(SoloBonusStarMultiplierThresholds.Length);
+            foreach (var f in SoloBonusStarMultiplierThresholds)
             {
                 writer.Write(f);
             }

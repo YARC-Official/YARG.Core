@@ -62,6 +62,35 @@ public class SongEntryPartTests
     }
 
     [Test]
+    public void HasDifficultyForInstrument_ReturnsBeginnerWhenEasyIsActivated()
+    {
+        var parts = AvailableParts.Default;
+        parts.FiveFretGuitar.ActivateDifficulty(Difficulty.Easy);
+
+        var entry = CreateEntry(parts);
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(entry.HasDifficultyForInstrument(Instrument.FiveFretGuitar, DifficultyMask.Beginner), Is.True);
+            Assert.That(entry.HasDifficultyForInstrument(Instrument.FiveFretGuitar, DifficultyMask.Easy), Is.True);
+            Assert.That(entry.HasDifficultyForInstrument(Instrument.FiveFretGuitar, DifficultyMask.Expert), Is.False);
+        }
+    }
+
+    [Test]
+    public void HasDifficultyForInstrument_DoesNotReturnBeginnerWhenEasyIsNotActivated()
+    {
+        var parts = AvailableParts.Default;
+        parts.FiveFretGuitar.ActivateDifficulty(Difficulty.Medium);
+        parts.FiveFretGuitar.ActivateDifficulty(Difficulty.Hard);
+        parts.FiveFretGuitar.ActivateDifficulty(Difficulty.Expert);
+
+        var entry = CreateEntry(parts);
+
+        Assert.That(entry.HasDifficultyForInstrument(Instrument.FiveFretGuitar, DifficultyMask.Beginner), Is.False);
+    }
+
+    [Test]
     public void HasDifficultyForInstrument_ReturnsTrueWhenRequestedMaskIsSubsetOfAvailableDifficulties()
     {
         var parts = AvailableParts.Default;

@@ -81,6 +81,7 @@ namespace YARG.Core.Song
             CharterVocals = string.Empty,
             SongLength = 0,
             SongOffset = 0,
+            SongRating = SongRating.Unspecified,
             Preview = (-1, -1),
             Video = (0, -1),
             VocalScrollSpeedScalingFactor = null,

@@ -136,7 +136,7 @@ namespace YARG.Core.Game
                 };
             }
 
-            public GuitarEngineParameters Create(float[] starMultiplierThresholds, bool isBass)
+            public GuitarEngineParameters Create(float[] starMultiplierThresholds, float[] soloBonusStarMultiplierThresholds, bool isBass)
             {
                 var hitWindow = HitWindow.Create();
                 return new GuitarEngineParameters(
@@ -145,6 +145,7 @@ namespace YARG.Core.Game
                     DEFAULT_WHAMMY_BUFFER,
                     SustainDropLeniency,
                     starMultiplierThresholds,
+                    soloBonusStarMultiplierThresholds,
                     HopoLeniency,
                     StrumLeniency,
                     StrumLeniencySmall,
@@ -188,13 +189,14 @@ namespace YARG.Core.Game
                 };
             }
 
-            public DrumsEngineParameters Create(float[] starMultiplierThresholds, DrumsEngineParameters.DrumMode mode)
+            public DrumsEngineParameters Create(float[] starMultiplierThresholds, float[] soloBonusStarMultiplierThresholds, DrumsEngineParameters.DrumMode mode)
             {
                 var hitWindow = HitWindow.Create();
                 return new DrumsEngineParameters(
                     hitWindow,
                     DEFAULT_MAX_MULTIPLIER,
                     starMultiplierThresholds,
+                    soloBonusStarMultiplierThresholds,
                     mode,
                     NoStarPowerOverlap,
                     EnableLanes);
@@ -284,7 +286,7 @@ namespace YARG.Core.Game
                 };
             }
 
-            public VocalsEngineParameters Create(float[] starMultiplierThresholds, Difficulty difficulty,
+            public VocalsEngineParameters Create(float[] starMultiplierThresholds, float[] soloBonusStarMultiplierThresholds, Difficulty difficulty,
                 float updatesPerSecond, bool singToActivateStarPower)
             {
                 // Hit window is in semitones (max. difference between correct pitch and sung pitch).
@@ -305,6 +307,7 @@ namespace YARG.Core.Game
                     hitWindow,
                     DEFAULT_MAX_MULTIPLIER,
                     starMultiplierThresholds,
+                    soloBonusStarMultiplierThresholds,
                     pitchWindow,
                     pitchWindow * PerfectPitchPercent,
                     hitPercent,
@@ -359,7 +362,7 @@ namespace YARG.Core.Game
                 };
             }
 
-            public KeysEngineParameters Create(float[] starMultiplierThresholds, bool isBass)
+            public KeysEngineParameters Create(float[] starMultiplierThresholds, float[] soloBonusStarMultiplierThresholds, bool isBass)
             {
                 var hitWindow = HitWindow.Create();
                 return new KeysEngineParameters(
@@ -368,6 +371,7 @@ namespace YARG.Core.Game
                     DEFAULT_WHAMMY_BUFFER,
                     SustainDropLeniency,
                     starMultiplierThresholds,
+                    soloBonusStarMultiplierThresholds,
                     ChordStaggerWindow,
                     FatFingerWindow,
                     NoStarPowerOverlap,

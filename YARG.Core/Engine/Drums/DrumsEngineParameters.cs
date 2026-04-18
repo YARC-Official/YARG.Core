@@ -28,9 +28,9 @@ namespace YARG.Core.Engine.Drums
         // Whether or not we can earn more star power while its already active
         public readonly bool NoStarPowerOverlap;
 
-        public DrumsEngineParameters(HitWindowSettings hitWindow, int maxMultiplier, float[] starMultiplierThresholds,
+        public DrumsEngineParameters(HitWindowSettings hitWindow, int maxMultiplier, float[] starMultiplierThresholds, float[] soloBonusStarMultiplierThresholds,
             DrumMode mode, bool noStarPowerOverlap, bool enableLanes)
-            : base(hitWindow, maxMultiplier, 0, 0, starMultiplierThresholds, enableLanes)
+            : base(hitWindow, maxMultiplier, 0, 0, starMultiplierThresholds, soloBonusStarMultiplierThresholds, enableLanes)
         {
             Mode = mode;
             VelocityThreshold = 0.35f;

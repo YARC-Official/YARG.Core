@@ -372,12 +372,12 @@ namespace YARG.Core.Engine.Drums
             EngineStats.NoteScore += pointsPerNote;
         }
 
-        protected sealed override int CalculateBaseScore()
+        protected sealed override (int baseScore, int noteScore) CalculateChartScores()
         {
-            double score = 0;
+            double baseScore = 0;
+            double noteScore = 0;
             int combo = 0;
             int multiplier;
-            double weight;
             foreach (var note in Notes)
             {
                 // Exclude BRE notes from base score calculation since they can't be scored
@@ -388,28 +388,25 @@ namespace YARG.Core.Engine.Drums
 
                 // Get the current multiplier given the current combo
                 multiplier = Math.Min((combo / 10) + 1, BaseParameters.MaxMultiplier);
-
-                // invert it to calculate leniency
-                weight = 1.0 * multiplier / BaseParameters.MaxMultiplier;
-
-                score += weight * (GetPointsPerNote() * (1 + note.ChildNotes.Count));
+                double scoreForNote = GetPointsPerNote() * (1 + note.ChildNotes.Count);
+                baseScore += multiplier * scoreForNote;
+                noteScore += scoreForNote;
                 combo += 1 + note.ChildNotes.Count;
             }
 
-            YargLogger.LogDebug($"[Drums] Base score: {score}, Max Combo: {combo}");
-            return (int) Math.Round(score);
+            YargLogger.LogDebug($"[Drums] Base score: {baseScore}, Max Combo: {combo}");
+            return ((int) Math.Round(baseScore), (int) Math.Round(noteScore));
         }
 
         protected override List<CodaSection> GetCodaSections()
         {
             var codaSections = new List<CodaSection>();
-            var lanes = EngineParameters.Mode == DrumsEngineParameters.DrumMode.FiveLane ? 6 : 5;
 
             foreach (var phrase in Chart.Phrases)
             {
                 if (phrase.Type == PhraseType.BigRockEnding)
                 {
-                    codaSections.Add(new CodaSection(lanes, phrase.Time, phrase.TimeEnd, true));
+                    codaSections.Add(new CodaSection(1, phrase.Time, phrase.TimeEnd));
                 }
             }
 

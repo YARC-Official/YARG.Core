@@ -54,15 +54,6 @@ namespace YARG.Core.Engine
         public int BandBonusScore;
 
         /// <summary>
-        /// The score used to calculate star progress.
-        /// </summary>
-        /// <remarks>
-        /// Calculated from <see cref="CommittedScore"/> and <see cref="PendingScore"/>.
-        /// <see cref="SoloBonuses"/> is not included in star progress.
-        /// </remarks>
-        public int StarScore => CommittedScore + PendingScore;
-
-        /// <summary>
         /// The player's current combo (such as 500 note streak)
         /// </summary>
         public int Combo;
@@ -186,6 +177,11 @@ namespace YARG.Core.Engine
         public int SoloBonuses;
 
         /// <summary>
+        /// Total number of bonus points available from solos. Should not be modified.
+        /// </summary>
+        public int MaxSoloBonusPoints;
+
+        /// <summary>
         /// Amount of points earned from coda bonuses.
         /// </summary>
         public int CodaBonuses;
@@ -256,6 +252,7 @@ namespace YARG.Core.Engine
             TotalStarPowerPhrases = stats.TotalStarPowerPhrases;
 
             SoloBonuses = stats.SoloBonuses;
+            MaxSoloBonusPoints = stats.MaxSoloBonusPoints;
             StarPowerScore = stats.StarPowerScore;
 
             Stars = stats.Stars;
@@ -333,6 +330,7 @@ namespace YARG.Core.Engine
 
             SoloBonuses = 0;
             CodaBonuses = 0;
+            // TotalSoloBonusPoints = 0;
             StarPowerScore = 0;
 
             Stars = 0;

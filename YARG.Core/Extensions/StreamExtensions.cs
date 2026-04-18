@@ -64,9 +64,8 @@ namespace YARG.Core.Extensions
             return (int) result;
         }
 
-        public static string ReadString(this Stream stream)
+        public static string ReadString(this Stream stream, int length)
         {
-            int length = Read7BitEncodedInt(stream);
             if (length == 0)
             {
                 return string.Empty;
@@ -87,6 +86,25 @@ namespace YARG.Core.Extensions
 
             var bytes = stream.ReadBytes(length);
             return Encoding.UTF8.GetString(bytes);
+        }
+
+        public static string ReadString(this Stream stream)
+        {
+            int length = Read7BitEncodedInt(stream);
+
+            return stream.ReadString(length);
+        }
+
+        public static string ReadString(this Stream stream, Endianness endianness)
+        {
+            uint length = stream.Read<uint>(endianness);
+
+            if (length > int.MaxValue)
+            {
+                throw new ArgumentOutOfRangeException(nameof(length), "String length is too long.");
+            }
+
+            return stream.ReadString((int) length);
         }
 
         public static Color ReadColor(this Stream stream)
@@ -113,6 +131,78 @@ namespace YARG.Core.Extensions
                 throw new EndOfStreamException($"Not enough data in the stream to read {length} bytes!");
             }
             return buffer;
+        }
+
+        /// <summary>
+        /// Reads bytes from the stream until a specific 4-byte barrier is found.
+        /// It returns the bytes read *before* the barrier and advances the stream
+        /// to the position *after* the barrier.
+        /// </summary>
+        public static ReadOnlySpan<byte> ReadUntilBarrier(this Stream stream, ReadOnlySpan<byte> barrier)
+        {
+            if (barrier.Length != 4)
+            {
+                throw new ArgumentException("Barrier must be 4 bytes long.", nameof(barrier));
+            }
+
+            if (stream is MemoryStream memoryStream)
+            {
+                var remaining = (int) (memoryStream.Length - memoryStream.Position);
+                return SpanReadUntilBarrier(memoryStream.GetBuffer().AsSpan((int) memoryStream.Position, remaining), barrier,
+                    stream);
+            }
+
+            if (stream is UnmanagedMemoryStream unmanagedStream)
+            {
+                unsafe
+                {
+                    return SpanReadUntilBarrier(
+                        new ReadOnlySpan<byte>(unmanagedStream.PositionPointer,
+                            (int) (unmanagedStream.Length - unmanagedStream.Position)), barrier,
+                            stream);
+                }
+            }
+
+            // Slow path, which should never be necessary, so should really probably go away entirely
+            // Reads slow because of single byte reads, allocates too much memory, just bad
+            using var memoryStream2 = new MemoryStream();
+            byte[] buffer = new byte[4];
+            while (stream.Read(buffer, 0, 1) > 0)
+            {
+                // Maybe we happened to match the first byte?
+                if (buffer[0] == barrier[0])
+                {
+                    if (stream.Read(buffer, 1, 3) == 3 && barrier.SequenceEqual(buffer))
+                    {
+                        return memoryStream2.ToArray();
+                    }
+
+                    // No match, save read data and continue
+                    memoryStream2.Write(buffer, 0, 4);
+                    continue;
+                }
+
+                // No match, save read data and continue
+                memoryStream2.Write(buffer, 0, 1);
+            }
+
+            throw new InvalidDataException("Could not find the specified barrier in the stream.");
+        }
+
+        private static ReadOnlySpan<byte> SpanReadUntilBarrier(ReadOnlySpan<byte> span, ReadOnlySpan<byte> barrier,
+            Stream stream)
+        {
+            var index = span.IndexOf(barrier);
+            if (index == -1)
+            {
+                throw new InvalidDataException("Could not find the specified barrier in the stream.");
+            }
+
+            // Position the stream to the end of the barrier
+            stream.Position += index + barrier.Length;
+
+            // Return the data up to the barrier
+            return span[..index];
         }
 
         public static void Write<TType>(this Stream stream, TType value, Endianness endianness)
