@@ -99,8 +99,6 @@ public class PreviewContextTests
 
     private sealed class TestPreviewSongEntry(Func<StemMixer?> loadPreviewAudio) : SongEntry
     {
-        private readonly Func<StemMixer?> _loadPreviewAudio = loadPreviewAudio;
-
         public int LoadPreviewAudioCallCount { get; private set; }
 
         public override EntryType SubType => EntryType.Ini;
@@ -116,7 +114,7 @@ public class PreviewContextTests
         public override StemMixer? LoadPreviewAudio(float speed)
         {
             LoadPreviewAudioCallCount++;
-            return _loadPreviewAudio();
+            return loadPreviewAudio();
         }
 
         public override YARGImage? LoadAlbumData() => null;
