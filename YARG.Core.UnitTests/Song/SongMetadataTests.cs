@@ -16,6 +16,7 @@ public class SongMetadataTests
             [song]
             name = Test Name
             artist = Test Artist
+            covered_by = Test Cover Artist
             album = Test Album
             genre = Rock
             sub_genre = Alt Rock
@@ -29,6 +30,7 @@ public class SongMetadataTests
         {
             Assert.That(metadata.Name, Is.EqualTo("Test Name"));
             Assert.That(metadata.Artist, Is.EqualTo("Test Artist"));
+            Assert.That(metadata.CoveredBy, Is.EqualTo("Test Cover Artist"));
             Assert.That(metadata.Album, Is.EqualTo("Test Album"));
             Assert.That(metadata.Genre, Is.EqualTo("Rock"));
             Assert.That(metadata.Subgenre, Is.EqualTo("Alt Rock"));
@@ -142,6 +144,41 @@ public class SongMetadataTests
             Assert.That(explicitDelay.SongOffset, Is.EqualTo(500));
             Assert.That(fallbackDelay.SongOffset, Is.EqualTo(3500));
         }
+    }
+
+    [Test]
+    public void Default_HasUnspecifiedSongRating()
+    {
+        Assert.That(SongMetadata.Default.SongRating, Is.EqualTo(SongRating.Unspecified));
+    }
+
+    [Test]
+    public void CreateFromIni_LeavesSongRatingUnspecifiedWhenRatingIsMissing()
+    {
+        var metadata = CreateMetadataFromSongIni(
+            """
+            [song]
+            name = No Rating Song
+            """
+        );
+
+        Assert.That(metadata.SongRating, Is.EqualTo(SongRating.Unspecified));
+    }
+
+    [TestCase("0", SongRating.Unspecified)]
+    [TestCase("1", SongRating.Family_Friendly)]
+    [TestCase("2", SongRating.Supervision_Recommended)]
+    [TestCase("3", SongRating.Mature)]
+    [TestCase("4", SongRating.No_Rating)]
+    [TestCase("5", SongRating.Sensitive_Content)]
+    [TestCase("999", SongRating.Unspecified)]
+    public void CreateFromIni_NormalizesSongRatingValues(string rawRating, SongRating expectedRating)
+    {
+        var metadata = SongMetadata.CreateFromIni(CreateModifiers(
+            ("rating", rawRating, ModifierType.UInt32)
+        ));
+
+        Assert.That(metadata.SongRating, Is.EqualTo(expectedRating));
     }
 
     [Test]
