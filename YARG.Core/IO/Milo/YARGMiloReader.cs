@@ -1,7 +1,6 @@
 using System;
 using System.Buffers;
 using System.Collections.Generic;
-using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.IO.Compression;
 using System.Text;
@@ -126,7 +125,7 @@ namespace YARG.Core.IO
                         break;
                 }
 
-                blockInfo[i] = new BlockInfo {Compressed = compressed, Size = blockSize };
+                blockInfo[i] = new BlockInfo {Compressed = compressed, Size = blockSize, Type = type };
             }
 
             // Seek to data_offset
@@ -377,6 +376,7 @@ namespace YARG.Core.IO
 
         struct BlockInfo
         {
+            public FileType Type;
             public bool     Compressed;
             public uint     Size;
         }
