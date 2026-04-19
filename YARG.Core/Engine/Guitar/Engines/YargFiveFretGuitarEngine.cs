@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using YARG.Core.Chart;
 using YARG.Core.Input;
@@ -371,7 +371,7 @@ namespace YARG.Core.Engine.Guitar.Engines
             // If masked/extended sustain logic didn't work, try original ButtonMask
             return IsNoteHittable(note, EffectiveButtonMask);
 
-            static bool IsNoteHittable(GuitarNote note, ushort buttonsMasked)
+            bool IsNoteHittable(GuitarNote note, ushort buttonsMasked)
             {
                 // Wildcard notes are always hittable regardless of what frets are held
                 if (note.Fret == (int) FiveFretGuitarFret.Wildcard)
@@ -436,18 +436,8 @@ namespace YARG.Core.Engine.Guitar.Engines
 
                     // Anchoring hopo/tap chords
 
-                    // Gets the lowest fret of the chord.
-                    var chordMask = 0;
-                    for (var fret = GuitarAction.GreenFret; fret <= GuitarAction.OrangeFret; fret++)
-                    {
-                        chordMask = 1 << (int) fret;
-
-                        // If the current fret mask is part of the chord, break
-                        if ((chordMask & note.NoteMask) == chordMask)
-                        {
-                            break;
-                        }
-                    }
+                    // Get the lowest fret of the chord.
+                    int chordMask = GetChordLowestFretMask(note);
 
                     // Anchor part:
                     // Lowest fret of chord must be bigger or equal to anchor buttons
@@ -568,7 +558,7 @@ namespace YARG.Core.Engine.Guitar.Engines
             var coda = Codas[CurrentCodaIndex];
 
             // This creates a button mask for each fret, indexed by fret number
-            byte[] fretMask = new byte[5];
+            byte[] fretMask = CreateCodaFretMask();
             byte changed = (byte) 0;
             byte pressed = (byte) 0;
 
@@ -614,10 +604,31 @@ namespace YARG.Core.Engine.Guitar.Engines
                     continue;
                 }
 
-                codaSections.Add(new CodaSection(5, phrase.Time, phrase.TimeEnd));
+                codaSections.Add(new CodaSection(GetCodaFretCount(), phrase.Time, phrase.TimeEnd));
             }
 
             return codaSections;
         }
+
+        protected virtual int GetChordLowestFretMask(GuitarNote note)
+        {
+            var chordMask = 0;
+            for (var fret = GuitarAction.GreenFret; fret <= GuitarAction.OrangeFret; fret++)
+            {
+                chordMask = 1 << (int) fret;
+
+                // If the current fret mask is part of the chord, break
+                if ((chordMask & note.NoteMask) == chordMask)
+                {
+                    break;
+                }
+            }
+
+            return chordMask;
+        }
+
+        protected virtual byte[] CreateCodaFretMask() => new byte[5];
+
+        protected virtual int GetCodaFretCount() => 5;
     }
 }

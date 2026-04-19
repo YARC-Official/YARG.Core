@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Text;
 using YARG.Core.Chart;
@@ -243,6 +243,25 @@ namespace YARG.Core.Replays.Analyzer
 
                     // Create engine
                     return new YargFiveFretGuitarEngine(
+                        notes,
+                        _chart.SyncTrack,
+                        (GuitarEngineParameters) parameters,
+                        profile.IsBot);
+                }
+                case GameMode.SixFretGuitar:
+                {
+                    var notes = _chart.GetSixFretTrack(profile.CurrentInstrument)
+                        .GetDifficulty(profile.CurrentDifficulty).Clone();
+                    profile.ApplyModifiers(notes, _chart.SyncTrack);
+                    foreach (var note in notes.Notes)
+                    {
+                        foreach (var subNote in note.AllNotes)
+                        {
+                            subNote.ResetNoteState();
+                        }
+                    }
+
+                    return new YargSixFretGuitarEngine(
                         notes,
                         _chart.SyncTrack,
                         (GuitarEngineParameters) parameters,
