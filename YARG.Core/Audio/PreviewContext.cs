@@ -131,43 +131,36 @@ namespace YARG.Core.Audio
             try
             {
                 var watch = new Stopwatch();
-                while (true)
+                _mixer.SetPosition(_previewStartTime);
+                _mixer.FadeIn(_volume, _fadeDruation);
+                _mixer.Play();
+                watch.Restart();
+                while (watch.Elapsed.TotalSeconds < _previewLength - _fadeDruation && !_token.IsCancellationRequested)
                 {
-                    _mixer.SetPosition(_previewStartTime);
-                    _mixer.FadeIn(_volume, _fadeDruation);
-                    _mixer.Play();
-                    watch.Restart();
-                    while (watch.Elapsed.TotalSeconds < _previewLength - _fadeDruation && !_token.IsCancellationRequested)
+                    if (_disposed)
                     {
-                        if (_disposed)
-                        {
-                            return;
-                        }
-                        await Task.Delay(1);
-                    }
-
-                    watch.Restart();
-                    _mixer.FadeOut(_fadeDruation);
-                    while (watch.Elapsed.TotalSeconds < _fadeDruation)
-                    {
-                        if (_disposed)
-                        {
-                            return;
-                        }
-                        await Task.Delay(1);
-                    }
-
-                    _mixer.Pause();
-                    if (_token.IsCancellationRequested)
-                    {
-                        Dispose();
                         return;
                     }
+                    await Task.Delay(1);
                 }
+
+                watch.Restart();
+                _mixer.FadeOut(_fadeDruation);
+                while (watch.Elapsed.TotalSeconds < _fadeDruation)
+                {
+                    if (_disposed)
+                    {
+                        return;
+                    }
+                    await Task.Delay(1);
+                }
+
+                _mixer.Pause();
+                Dispose();
             }
             catch (Exception ex)
             {
-                YargLogger.LogException(ex, "Error while looping song preview!");
+                YargLogger.LogException(ex, "Error while playing song preview!");
             }
         }
 
