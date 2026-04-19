@@ -135,7 +135,7 @@ namespace YARG.Core.Engine
 
             public bool EndTickAlmostEquals(StarPowerSection other, uint tolerance)
             {
-                return TickEnd - other.TickEnd <= tolerance || other.Tick - Tick <= tolerance;
+                return TickEnd - other.TickEnd <= tolerance || other.TickEnd - TickEnd <= tolerance;
             }
         }
 
