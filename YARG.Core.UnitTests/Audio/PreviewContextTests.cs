@@ -97,6 +97,40 @@ public class PreviewContextTests
         Assert.That(mixer.DisposeCount, Is.EqualTo(1));
     }
 
+    [Test]
+    public async Task WaitForCompletionAsync_AllowsFadeOutAfterCancellation()
+    {
+        using var cancellationTokenSource = new CancellationTokenSource();
+        var manager = new FakeAudioManager();
+        var mixer = new FakeStemMixer(manager, length: 0.5);
+        var entry = new TestPreviewSongEntry(() => mixer);
+
+        var context = await PreviewContext.Create(
+            entry,
+            volume: 1f,
+            speed: 1f,
+            delaySeconds: 0,
+            fadeDuration: 0.05,
+            cancellationTokenSource.Token);
+
+        Assert.That(context, Is.Not.Null);
+
+        var waitTask = context!.WaitForCompletionAsync();
+        cancellationTokenSource.Cancel();
+
+        await Task.Delay(10);
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(mixer.FadeOutCallCount, Is.EqualTo(1));
+            Assert.That(waitTask.IsCompleted, Is.False);
+        }
+
+        await waitTask;
+
+        Assert.That(mixer.DisposeCount, Is.EqualTo(1));
+    }
+
     private sealed class TestPreviewSongEntry(Func<StemMixer?> loadPreviewAudio) : SongEntry
     {
         public int LoadPreviewAudioCallCount { get; private set; }
@@ -161,6 +195,7 @@ public class PreviewContextTests
         }
 
         public int DisposeCount { get; private set; }
+        public int FadeOutCallCount { get; private set; }
 
         public override event Action SongEnd
         {
@@ -172,7 +207,10 @@ public class PreviewContextTests
 
         protected override void FadeIn_Internal(double maxVolume, double duration) { }
 
-        protected override void FadeOut_Internal(double duration) { }
+        protected override void FadeOut_Internal(double duration)
+        {
+            FadeOutCallCount++;
+        }
 
         protected override int Pause_Internal() => 0;
 

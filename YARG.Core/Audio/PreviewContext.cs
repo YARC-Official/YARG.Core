@@ -158,7 +158,8 @@ namespace YARG.Core.Audio
                         {
                             return;
                         }
-                        await Task.Delay(1, _token);
+                        // ReSharper disable once MethodSupportsCancellation
+                        await Task.Delay(1);
                     }
 
                     watch.Restart();
@@ -169,7 +170,8 @@ namespace YARG.Core.Audio
                         {
                             return;
                         }
-                        await Task.Delay(1, _token);
+                        // ReSharper disable once MethodSupportsCancellation
+                        await Task.Delay(1);
                     }
 
                     _mixer.Pause();
@@ -179,10 +181,6 @@ namespace YARG.Core.Audio
                         return;
                     }
                 }
-            }
-            catch (OperationCanceledException) when (_token.IsCancellationRequested)
-            {
-                Dispose();
             }
             catch (Exception ex)
             {
