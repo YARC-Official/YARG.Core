@@ -1,4 +1,4 @@
-﻿using System.Drawing;
+using System.Drawing;
 using System.IO;
 using Newtonsoft.Json;
 using YARG.Core.Game.Settings;
@@ -27,6 +27,8 @@ namespace YARG.Core.Game
         [SettingSubSection]
         public FiveFretGuitarColors FiveFretGuitar;
         [SettingSubSection]
+        public SixFretGuitarColors SixFretGuitar;
+        [SettingSubSection]
         public FourLaneDrumsColors FourLaneDrums;
         [SettingSubSection]
         public FiveLaneDrumsColors FiveLaneDrums;
@@ -36,6 +38,7 @@ namespace YARG.Core.Game
         public ColorProfile(string name, bool defaultPreset = false) : base(name, defaultPreset)
         {
             FiveFretGuitar = new FiveFretGuitarColors();
+            SixFretGuitar = new SixFretGuitarColors();
             FourLaneDrums = new FourLaneDrumsColors();
             FiveLaneDrums = new FiveLaneDrumsColors();
             ProKeys = new ProKeysColors();
@@ -46,6 +49,7 @@ namespace YARG.Core.Game
             return new ColorProfile(name)
             {
                 FiveFretGuitar = FiveFretGuitar.Copy(),
+                SixFretGuitar = SixFretGuitar.Copy(),
                 FourLaneDrums = FourLaneDrums.Copy(),
                 FiveLaneDrums = FiveLaneDrums.Copy(),
                 ProKeys = ProKeys.Copy(),
@@ -58,6 +62,7 @@ namespace YARG.Core.Game
             writer.Write(Name);
 
             FiveFretGuitar.Serialize(writer);
+            SixFretGuitar.Serialize(writer);
             FourLaneDrums.Serialize(writer);
             FiveLaneDrums.Serialize(writer);
             ProKeys.Serialize(writer);
@@ -69,6 +74,7 @@ namespace YARG.Core.Game
             Name = reader.ReadString();
 
             FiveFretGuitar.Deserialize(reader, version);
+            SixFretGuitar.Deserialize(reader, version);
             FourLaneDrums.Deserialize(reader, version);
             FiveLaneDrums.Deserialize(reader, version);
             ProKeys.Deserialize(reader, version);
