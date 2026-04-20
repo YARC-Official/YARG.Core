@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using YARG.Core.Engine;
 using YARG.Core.Engine.Drums;
 using YARG.Core.Engine.Guitar;
@@ -76,6 +76,7 @@ namespace YARG.Core.Game
 
         /// <summary>
         /// The engine preset for five fret guitar.
+        /// Also used for six fret guitar, which uses the same engine parameters.
         /// </summary>
         public class FiveFretGuitarPreset
         {
