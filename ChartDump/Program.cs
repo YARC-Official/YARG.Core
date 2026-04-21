@@ -138,9 +138,19 @@ class Program
             }
             catch { /* ignore ini read errors */ }
         }
-        // Seed settings so the parser disambiguates to the right drum type and
-        // SongChart only populates the canonical drum track.
-        settings.DrumsType = iniDrumsType;
+        // Seed settings so the parser disambiguates to the right drum type.
+        // YARG's own runtime only ever feeds FourLane / FiveLane / Unknown into
+        // `settings.DrumsType` (ProDrums is a 4-lane interpretation that lives
+        // downstream, not a terminal parse setting) — collapse our ini-derived
+        // ProDrums hint into FourLane here so MoonSongLoader.Drums doesn't throw
+        // "Unexpected drums type" inside SongChart.FromFile. `iniDrumsType` is
+        // preserved separately for canonical-drum-track selection in BuildDump.
+        settings.DrumsType = iniDrumsType switch
+        {
+            DrumsType.FiveLane => DrumsType.FiveLane,
+            DrumsType.ProDrums or DrumsType.FourLane => DrumsType.FourLane,
+            _ => DrumsType.Unknown,
+        };
 
         // Apply HOPO threshold from ini — this matches SongEntry.IniBase's logic.
         // Resolution-dependent computation happens in MidReader/ChartReader based
@@ -177,6 +187,14 @@ class Program
             // Not common — leave default for now.
         }
 
+        // ChordHopoCancellation mirrors what SongEntry.IniBase applies at game
+        // load time: true for .mid/.midi, false for .chart. Without this, the
+        // SongChart-derived `normalizedTracks` types diverge from what YARG
+        // actually plays (the MoonSongLoader.Guitar post-pass wouldn't fire,
+        // so chord→subset-single transitions stay HOPO instead of being
+        // rewritten back to Strum).
+        settings.ChordHopoCancellation = ext == ".mid";
+
         MoonSong song;
         if (ext == ".mid")
             song = MoonscraperChartEditor.Song.IO.MidReader.ReadMidi(ref settings, chartFile);
@@ -189,7 +207,7 @@ class Program
         {
             songChart = SongChart.FromFile(settings, chartFile);
         }
-        catch { /* vocals parsing may fail on some charts */ }
+        catch (Exception ex) { Console.Error.WriteLine($"[SongChart.FromFile] {ex.GetType().Name}: {ex.Message}"); }
 
         return BuildDump(song, ext, songChart, iniDrumsType);
     }
