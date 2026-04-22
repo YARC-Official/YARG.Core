@@ -1,5 +1,6 @@
 ﻿using System.Drawing;
 using System.IO;
+using YARG.Core.Chart;
 using YARG.Core.Extensions;
 using YARG.Core.Utility;
 
@@ -14,7 +15,8 @@ namespace YARG.Core.Game
             Yellow,
             Blue,
             Orange,
-            Green
+            Green,
+            Wildcard,
         }
 
         public class FiveLaneDrumsColors : IFretColorProvider, IBinarySerializable
@@ -116,13 +118,15 @@ namespace YARG.Core.Game
             {
                 return index switch
                 {
-                    0 => KickNote,
+                    (int) FiveLaneDrumPad.Kick => KickNote,
 
-                    1 => RedNote,
-                    2 => YellowNote,
-                    3 => BlueNote,
-                    4 => OrangeNote,
-                    5 => GreenNote,
+                    (int) FiveLaneDrumPad.Red => RedNote,
+                    (int) FiveLaneDrumPad.Yellow => YellowNote,
+                    (int) FiveLaneDrumPad.Blue => BlueNote,
+                    (int) FiveLaneDrumPad.Orange => OrangeNote,
+                    (int) FiveLaneDrumPad.Green => GreenNote,
+
+                    (int) FiveLaneDrumPad.Wildcard => DefaultWildcard,
 
                     _ => default
                 };
@@ -144,13 +148,15 @@ namespace YARG.Core.Game
             {
                 return index switch
                 {
-                    0 => KickStarpower,
+                    (int) FiveLaneDrumPad.Kick => KickStarpower,
 
-                    1 => RedStarpower,
-                    2 => YellowStarpower,
-                    3 => BlueStarpower,
-                    4 => OrangeStarpower,
-                    5 => GreenStarpower,
+                    (int) FiveLaneDrumPad.Red => RedStarpower,
+                    (int) FiveLaneDrumPad.Yellow => YellowStarpower,
+                    (int) FiveLaneDrumPad.Blue => BlueStarpower,
+                    (int) FiveLaneDrumPad.Orange => OrangeStarpower,
+                    (int) FiveLaneDrumPad.Green => GreenStarpower,
+
+                    (int) FiveLaneDrumPad.Wildcard => DefaultWildcardStarpower,
 
                     _ => default
                 };
@@ -172,13 +178,15 @@ namespace YARG.Core.Game
             {
                 return index switch
                 {
-                    0 => KickActivationNote,
+                    (int) FiveLaneDrumPad.Kick => KickActivationNote,
 
-                    1 => RedActivationNote,
-                    2 => YellowActivationNote,
-                    3 => BlueActivationNote,
-                    4 => OrangeActivationNote,
-                    5 => GreenActivationNote,
+                    (int) FiveLaneDrumPad.Red => RedActivationNote,
+                    (int) FiveLaneDrumPad.Yellow => YellowActivationNote,
+                    (int) FiveLaneDrumPad.Blue => BlueActivationNote,
+                    (int) FiveLaneDrumPad.Orange => OrangeActivationNote,
+                    (int) FiveLaneDrumPad.Green => GreenActivationNote,
+
+                    (int) FiveLaneDrumPad.Wildcard => DefaultWildcard,
 
                     _ => default
                 };

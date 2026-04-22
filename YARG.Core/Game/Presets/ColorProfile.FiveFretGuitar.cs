@@ -2,6 +2,7 @@
 using System.IO;
 using YARG.Core.Chart;
 using YARG.Core.Extensions;
+using YARG.Core.Game.Settings;
 using YARG.Core.Utility;
 
 namespace YARG.Core.Game
@@ -97,7 +98,6 @@ namespace YARG.Core.Game
             public Color YellowNote   = DefaultYellow;
             public Color BlueNote     = DefaultBlue;
             public Color OrangeNote   = DefaultOrange;
-            public Color WildcardNote = DefaultWildcard;
 
             /// <summary>
             /// Gets the note color for a specific note index.
@@ -112,7 +112,7 @@ namespace YARG.Core.Game
                     (int) FiveFretGuitarFret.Yellow => YellowNote,
                     (int) FiveFretGuitarFret.Blue => BlueNote,
                     (int) FiveFretGuitarFret.Orange => OrangeNote,
-                    (int) FiveFretGuitarFret.Wildcard => WildcardNote,
+                    (int) FiveFretGuitarFret.Wildcard => DefaultWildcard,
                     (int) FiveFretGuitarFret.Open => OpenNote,
                     _ => default
                 };
@@ -124,7 +124,6 @@ namespace YARG.Core.Game
             public Color YellowNoteStarPower   = DefaultStarpower;
             public Color BlueNoteStarPower     = DefaultStarpower;
             public Color OrangeNoteStarPower   = DefaultStarpower;
-            public Color WildcardNoteStarPower = DefaultWildcardStarpower;
 
             /// <summary>
             /// Gets the Star Power note color for a specific note index.
@@ -139,7 +138,7 @@ namespace YARG.Core.Game
                     (int) FiveFretGuitarFret.Yellow => YellowNoteStarPower,
                     (int) FiveFretGuitarFret.Blue => BlueNoteStarPower,
                     (int) FiveFretGuitarFret.Orange => OrangeNoteStarPower,
-                    (int) FiveFretGuitarFret.Wildcard => WildcardNoteStarPower,
+                    (int) FiveFretGuitarFret.Wildcard => DefaultWildcardStarpower,
                     (int) FiveFretGuitarFret.Open => OpenNoteStarPower,
                     _ => default
                 };

@@ -8,31 +8,12 @@ using YARG.Core.Input;
 
 namespace YARG.Core.UnitTests.Engine;
 
-public class DrumEngineTester
+public class DrumEngineTester : EngineTester
 {
-    public static float[] StarMultiplierThresholds { get; } =
-    {
-        0.06f, 0.12f, 0.2f, 0.45f, 0.75f, 1.09f
-    };
     // This should probably be in some parent class of the tester, but right now there's only drums tests so it's fine
-    public static float[] SoloBonusStarMultiplierThresholds = {
-        0.05f, 0.1f, 0.2f, 0.35f, 0.65f, 0.95f
-    };
 
     private readonly DrumsEngineParameters _engineParams =
         EnginePreset.Default.Drums.Create(StarMultiplierThresholds, SoloBonusStarMultiplierThresholds, DrumsEngineParameters.DrumMode.ProFourLane);
-
-    private string? _chartsDirectory;
-
-    [SetUp]
-    public void Setup()
-    {
-        string workingDirectory = Environment.CurrentDirectory;
-
-        string projectDirectory = Directory.GetParent(workingDirectory)!.Parent!.Parent!.Parent!.FullName;
-
-        _chartsDirectory = Path.Combine(projectDirectory, "Engine", "Test Charts");
-    }
 
     [Test]
     public void DrumSoloThatEndsInChord_ShouldWorkCorrectly()
@@ -224,7 +205,7 @@ public class DrumEngineTester
 
     private (YargDrumsEngine Engine, InstrumentDifficulty<DrumNote> Notes) CreateEngine(bool isBot)
     {
-        var chartPath = Path.Combine(_chartsDirectory!, "drawntotheflame.mid");
+        var chartPath = Path.Combine(ChartDirectory!, "drawntotheflame.mid");
         var midi = MidiFile.Read(chartPath);
         var chart = SongChart.FromMidi(in ParseSettings.Default_Midi, midi);
         var notes = chart.ProDrums.GetDifficulty(Difficulty.Expert);
