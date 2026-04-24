@@ -49,19 +49,16 @@ namespace YARG.Core.Song
             }
 
             string actualDirectory = Path.GetDirectoryName(_root.FullName)!;
-            string conName = Path.GetFileNameWithoutExtension(_root.FullName);
-            string specifcVenue = Path.Combine(actualDirectory, _subName + YARGROUND_EXTENSION);
-            if (File.Exists(specifcVenue))
+            string conName = Path.GetFileName(_root.FullName);
+            string conNameWithoutExtension = Path.GetFileNameWithoutExtension(_root.FullName);
+            foreach (var name in GetPackedConBackgroundNames(_subName, conName, conNameWithoutExtension))
             {
-                var stream = File.OpenRead(specifcVenue);
-                return new BackgroundResult(BackgroundType.Yarground, stream);
-            }
-
-            specifcVenue = Path.Combine(actualDirectory, conName + YARGROUND_EXTENSION);
-            if (File.Exists(specifcVenue))
-            {
-                var stream = File.OpenRead(specifcVenue);
-                return new BackgroundResult(BackgroundType.Yarground, stream);
+                string specificVenue = Path.Combine(actualDirectory, name + YARGROUND_EXTENSION);
+                if (File.Exists(specificVenue))
+                {
+                    var stream = File.OpenRead(specificVenue);
+                    return new BackgroundResult(BackgroundType.Yarground, stream);
+                }
             }
 
             var venues = Directory.GetFiles(actualDirectory, YARGROUND_EXTENSION);
@@ -71,7 +68,7 @@ namespace YARG.Core.Song
                 return new BackgroundResult(BackgroundType.Yarground, stream);
             }
 
-            foreach (var name in new[]{ _subName, conName, "bg", "background", "video" })
+            foreach (var name in GetPackedBackgroundNames(_subName, conName, conNameWithoutExtension, includeVideo: true))
             {
                 string fileBase = Path.Combine(actualDirectory, name);
                 foreach (var ext in VIDEO_EXTENSIONS)
@@ -85,7 +82,7 @@ namespace YARG.Core.Song
                 }
             }
 
-            foreach (var name in new[]{ _subName, conName, "bg", "background" })
+            foreach (var name in GetPackedBackgroundNames(_subName, conName, conNameWithoutExtension, includeVideo: false))
             {
                 var fileBase = Path.Combine(actualDirectory, name);
                 foreach (var ext in IMAGE_EXTENSIONS)
@@ -102,6 +99,33 @@ namespace YARG.Core.Song
                 }
             }
             return null;
+        }
+
+        private static IEnumerable<string> GetPackedConBackgroundNames(string subName, string conName, string conNameWithoutExtension)
+        {
+            yield return subName;
+            yield return conName;
+
+            if (conNameWithoutExtension != conName)
+            {
+                yield return conNameWithoutExtension;
+            }
+        }
+
+        private static IEnumerable<string> GetPackedBackgroundNames(string subName, string conName, string conNameWithoutExtension, bool includeVideo)
+        {
+            foreach (var name in GetPackedConBackgroundNames(subName, conName, conNameWithoutExtension))
+            {
+                yield return name;
+            }
+
+            yield return "bg";
+            yield return "background";
+
+            if (includeVideo)
+            {
+                yield return "video";
+            }
         }
 
         public override FixedArray<byte>? LoadMiloData()
