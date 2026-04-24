@@ -1,6 +1,4 @@
 using NUnit.Framework;
-using System.Reflection;
-using YARG.Core.Audio;
 using YARG.Core.Extensions;
 using YARG.Core.IO;
 using YARG.Core.Song;
@@ -155,9 +153,7 @@ public class RBCONEntryTests
             string videoPath = Path.Combine(root, conName + ".mp4");
             File.WriteAllBytes(videoPath, [0x00]);
 
-            var entry = CreatePackedEntryForBackgroundTest(conPath, "testsong");
-
-            using var background = entry.LoadBackground();
+            using var background = PackedRBCONEntry.LoadExternalBackground(conPath, "testsong");
 
             Assert.That(background, Is.Not.Null);
             Assert.That(background!.Type, Is.EqualTo(BackgroundType.Video));
@@ -184,9 +180,7 @@ public class RBCONEntryTests
             string videoPath = Path.Combine(root, "testsong.mp4");
             File.WriteAllBytes(videoPath, [0x00]);
 
-            var entry = CreatePackedEntryForBackgroundTest(conPath, "othersong");
-
-            using var background = entry.LoadBackground();
+            using var background = PackedRBCONEntry.LoadExternalBackground(conPath, "othersong");
 
             Assert.That(background, Is.Not.Null);
             Assert.That(background!.Type, Is.EqualTo(BackgroundType.Video));
@@ -278,28 +272,6 @@ public class RBCONEntryTests
         var result = UnpackedRBCONEntry.Create(in parameters);
         Assert.That(result.HasValue, Is.True, $"Expected RBCON creation to succeed, but got {result.Error}.");
         return result.Value;
-    }
-
-    private static RBCONEntry CreatePackedEntryForBackgroundTest(string conPath, string subName)
-    {
-        var root = new AbridgedFileInfo(conPath, DateTime.UnixEpoch);
-        var constructor = typeof(PackedRBCONEntry).GetConstructor(
-            BindingFlags.Instance | BindingFlags.NonPublic,
-            null,
-            [typeof(AbridgedFileInfo).MakeByRefType(), typeof(string)],
-            null);
-        Assert.That(constructor, Is.Not.Null);
-
-        var entry = (RBCONEntry) constructor!.Invoke([root, subName]);
-        typeof(PackedRBCONEntry)
-            .GetField("_midiListing", BindingFlags.Instance | BindingFlags.NonPublic)!
-            .SetValue(entry, new CONFileListing());
-
-        typeof(RBCONEntry)
-            .GetField("_subName", BindingFlags.Instance | BindingFlags.NonPublic)!
-            .SetValue(entry, subName);
-
-        return entry;
     }
 
     private static string CreateTempDirectory()

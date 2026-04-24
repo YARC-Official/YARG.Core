@@ -48,10 +48,15 @@ namespace YARG.Core.Song
                 return null;
             }
 
-            string actualDirectory = Path.GetDirectoryName(_root.FullName)!;
-            string conName = Path.GetFileName(_root.FullName);
-            string conNameWithoutExtension = Path.GetFileNameWithoutExtension(_root.FullName);
-            foreach (var name in GetPackedConBackgroundNames(_subName, conName, conNameWithoutExtension))
+            return LoadExternalBackground(_root.FullName, _subName);
+        }
+
+        internal static BackgroundResult? LoadExternalBackground(string conPath, string subName)
+        {
+            string actualDirectory = Path.GetDirectoryName(conPath)!;
+            string conName = Path.GetFileName(conPath);
+            string conNameWithoutExtension = Path.GetFileNameWithoutExtension(conPath);
+            foreach (var name in GetPackedConBackgroundNames(subName, conName, conNameWithoutExtension))
             {
                 string specificVenue = Path.Combine(actualDirectory, name + YARGROUND_EXTENSION);
                 if (File.Exists(specificVenue))
@@ -68,7 +73,7 @@ namespace YARG.Core.Song
                 return new BackgroundResult(BackgroundType.Yarground, stream);
             }
 
-            foreach (var name in GetPackedBackgroundNames(_subName, conName, conNameWithoutExtension, includeVideo: true))
+            foreach (var name in GetPackedBackgroundNames(subName, conName, conNameWithoutExtension, includeVideo: true))
             {
                 string fileBase = Path.Combine(actualDirectory, name);
                 foreach (var ext in VIDEO_EXTENSIONS)
@@ -82,7 +87,7 @@ namespace YARG.Core.Song
                 }
             }
 
-            foreach (var name in GetPackedBackgroundNames(_subName, conName, conNameWithoutExtension, includeVideo: false))
+            foreach (var name in GetPackedBackgroundNames(subName, conName, conNameWithoutExtension, includeVideo: false))
             {
                 var fileBase = Path.Combine(actualDirectory, name);
                 foreach (var ext in IMAGE_EXTENSIONS)
