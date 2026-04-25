@@ -330,9 +330,13 @@ namespace YARG.Core.Song.Cache
                             try
                             {
                                 using var stream = new FileStream(moggPath, FileMode.Open, FileAccess.Read, FileShare.Read, 1);
-                                if (stream.Read<int>(Endianness.Little) != RBCONEntry.UNENCRYPTED_MOGG)
+                                var moggResult = RBCONEntry.ValidateMoggHeader(stream);
+                                if (moggResult != ScanResult.Success)
                                 {
-                                    AddToBadSongs(group.Root.FullName + " - " + node.Key, ScanResult.MoggError_Update);
+                                    AddToBadSongs(group.Root.FullName + " - " + node.Key,
+                                        moggResult == ScanResult.UnsupportedEncryption
+                                            ? moggResult
+                                            : ScanResult.MoggError_Update);
                                     return;
                                 }
                             }

@@ -52,9 +52,10 @@ namespace YARG.Core.Song
                 if (File.Exists(moggPath))
                 {
                     using var moggStream = new FileStream(moggPath, FileMode.Open, FileAccess.Read, FileShare.Read, 1);
-                    if (moggStream.Read<int>(Endianness.Little) != UNENCRYPTED_MOGG)
+                    var moggResult = ValidateMoggHeader(moggStream);
+                    if (moggResult != ScanResult.Success)
                     {
-                        return new ScanUnexpected(ScanResult.MoggError);
+                        return new ScanUnexpected(moggResult);
                     }
                 }
                 else

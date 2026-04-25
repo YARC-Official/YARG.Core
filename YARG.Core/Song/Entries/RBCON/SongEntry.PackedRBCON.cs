@@ -171,9 +171,12 @@ namespace YARG.Core.Song
                 long moggLocation = CONFileStream.CalculateBlockLocation(entry._moggListing.BlockOffset, entry._moggListing.Shift);
                 lock (stream)
                 {
-                    if (stream.Seek(moggLocation, SeekOrigin.Begin) != moggLocation || stream.Read<int>(Endianness.Little) != UNENCRYPTED_MOGG)
+                    var moggResult = stream.Seek(moggLocation, SeekOrigin.Begin) == moggLocation
+                        ? ValidateMoggHeader(stream)
+                        : ScanResult.MoggError;
+                    if (moggResult != ScanResult.Success)
                     {
-                        return new ScanUnexpected(ScanResult.MoggError);
+                        return new ScanUnexpected(moggResult);
                     }
                     mainMidi = CONFileStream.LoadFile(stream, entry._midiListing);
                 }
