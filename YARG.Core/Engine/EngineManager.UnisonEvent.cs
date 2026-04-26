@@ -78,6 +78,12 @@ namespace YARG.Core.Engine
                 YargLogger.Assert(SuccessCount <= ParticipantIds.Count, "SuccessCount mismanagement detected");
                 return false;
             }
+
+            public void Reset()
+            {
+                Awarded = false;
+                SuccessCount = 0;
+            }
         }
 
         private List<UnisonEvent> _unisonEvents = new();
