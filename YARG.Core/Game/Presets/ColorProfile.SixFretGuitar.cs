@@ -115,8 +115,8 @@ namespace YARG.Core.Game
                 };
             }
 
-            public Color BlackNoteStarPower = DefaultStarpower;
-            public Color WhiteNoteStarPower = DefaultStarpower;
+            public Color BlackNoteStarPower = Color.Black;
+            public Color WhiteNoteStarPower = Color.White;
             public Color WildcardNoteStarPower = DefaultWildcardStarpower;
 
             /// <summary>
