@@ -203,7 +203,8 @@ namespace YARG.Core.Song
             stream.Seek(start, SeekOrigin.Begin);
 
             bool clampStemVolume = _metadata.Source.ToLowerInvariant() == "yarg";
-            var mixer = GlobalAudioHandler.CreateMixer(ToString(), speed, volume, clampStemVolume, true);
+            var mixer = GlobalAudioHandler.CreateMixer(ToString(), speed, volume, clampStemVolume: clampStemVolume,
+                normalize: true);
             if (mixer == null)
             {
                 YargLogger.LogError("Mogg failed to load!");

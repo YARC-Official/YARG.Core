@@ -378,7 +378,7 @@ namespace YARG.Core.Audio
                 {
                     throw new NotInitializedException();
                 }
-                return _instance.CreateMixer(name, speed, mixerVolume, clampStemVolume, normalize);
+                return _instance.CreateMixer(name, speed, mixerVolume, clampStemVolume: clampStemVolume, normalize: normalize);
             }
         }
 

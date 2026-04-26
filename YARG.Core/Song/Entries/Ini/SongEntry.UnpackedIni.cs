@@ -33,7 +33,8 @@ namespace YARG.Core.Song
         public override StemMixer? LoadAudio(float speed, double volume, params SongStem[] ignoreStems)
         {
             bool clampStemVolume = _metadata.Source.ToLowerInvariant() == "yarg";
-            var mixer = GlobalAudioHandler.CreateMixer(ToString(), speed, volume, clampStemVolume, true);
+            var mixer = GlobalAudioHandler.CreateMixer(ToString(), speed, volume, clampStemVolume: clampStemVolume,
+                normalize: true);
             if (mixer == null)
             {
                 YargLogger.LogError("Failed to create mixer!");
