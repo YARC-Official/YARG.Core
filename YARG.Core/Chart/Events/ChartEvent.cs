@@ -38,10 +38,11 @@ namespace YARG.Core.Chart
         }
 
         /// <summary>
-        /// Walks the list, comparing each event against the last kept event.
-        /// Skips events where shouldSkip returns true.
+        /// Filters events by enforcing a minimum interval between them,
+        /// and dropping duplicates detected by the given predicate.
         /// </summary>
-        public static List<T> FilterByPrevious<T>(List<T> events, Func<T, T, bool> shouldSkip) where T : ChartEvent
+        public static List<T> FilterByInterval<T>(List<T> events, double interval,
+            Func<T, T, bool> isDuplicate) where T : ChartEvent
         {
             if (events.Count == 0)
             {
@@ -51,24 +52,17 @@ namespace YARG.Core.Chart
             var filtered = new List<T>(events.Count) { events[0] };
             for (var i = 1; i < events.Count; i++)
             {
-                if (!shouldSkip(events[i], filtered[^1]))
+                var current = events[i];
+                var previous = filtered[^1];
+                var isWithinInterval = current.Time - previous.Time < interval;
+                var shouldSkipDuplicate = isDuplicate(current, previous);
+                if (!isWithinInterval && !shouldSkipDuplicate)
                 {
-                    filtered.Add(events[i]);
+                    filtered.Add(current);
                 }
             }
-            return filtered;
-        }
 
-        /// <summary>
-        /// Reduces events by enforcing a minimum interval between them,
-        /// and optionally dropping duplicates detected by the given predicate.
-        /// </summary>
-        public static List<T> ReduceByInterval<T>(List<T> events, double interval,
-            Func<T, T, bool> isDuplicate = null) where T : ChartEvent
-        {
-            return FilterByPrevious(events, (curr, prev) =>
-                curr.Time - prev.Time < interval ||
-                (isDuplicate != null && isDuplicate(curr, prev)));
+            return filtered;
         }
 
     }
