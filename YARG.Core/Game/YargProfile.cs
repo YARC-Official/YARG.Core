@@ -12,7 +12,7 @@ namespace YARG.Core.Game
 {
     public class YargProfile
     {
-        private const int PROFILE_VERSION = 7;
+        private const int PROFILE_VERSION = 8;
 
         public Guid Id;
         public string Name;
@@ -37,6 +37,8 @@ namespace YARG.Core.Game
         public bool SwapCrashAndRide;
 
         public OpenLaneDisplayType OpenLaneDisplayType;
+
+        public bool SixFretSplitLanes;
 
         public StarPowerActivationType StarPowerActivationType;
 
@@ -208,6 +210,15 @@ namespace YARG.Core.Game
             else
             {
                 OpenLaneDisplayType = OpenLaneDisplayType.Never;
+            }
+
+            if (version >= 8)
+            {
+                SixFretSplitLanes = stream.ReadBoolean();
+            }
+            else
+            {
+                SixFretSplitLanes = false;
             }
         }
 
@@ -405,6 +416,8 @@ namespace YARG.Core.Game
             writer.Write((byte) GameMode);
 
             writer.Write((byte) OpenLaneDisplayType);
+
+            writer.Write(SixFretSplitLanes);
         }
     }
 }
