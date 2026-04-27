@@ -29,10 +29,10 @@ namespace YARG.Core.Game
             return new EnginePreset(name)
             {
                 FiveFretGuitar = FiveFretGuitar.Copy(),
-                 SixFretGuitar = SixFretGuitar.Copy(),
-                 Drums = Drums.Copy(),
-                 Vocals = Vocals.Copy(),
-                 ProKeys = ProKeys.Copy(),
+                SixFretGuitar = SixFretGuitar.Copy(),
+                Drums = Drums.Copy(),
+                Vocals = Vocals.Copy(),
+                ProKeys = ProKeys.Copy(),
             };
         }
     }

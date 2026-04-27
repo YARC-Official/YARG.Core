@@ -91,13 +91,11 @@ namespace YARG.Core.Game
 
             public Color BlackNote  = Color.Black;
             public Color WhiteNote  = Color.White;
-            public Color WildcardNote = DefaultWildcard;
 
             /// <summary>
             /// Gets the note color for a specific note index.
             /// Black frets: 0=Black1, 1=Black2, 2=Black3.
             /// White frets: 3=White1, 4=White2, 5=White3.
-            /// Wildcard and Open: 6, 7.
             /// </summary>
             public Color GetNoteColor(int index)
             {
@@ -109,7 +107,7 @@ namespace YARG.Core.Game
                     (int) SixFretGuitarFret.White1 => WhiteNote,
                     (int) SixFretGuitarFret.White2 => WhiteNote,
                     (int) SixFretGuitarFret.White3 => WhiteNote,
-                    (int) SixFretGuitarFret.Wildcard => WildcardNote,
+                    (int) SixFretGuitarFret.Wildcard => DefaultWildcard,
                     (int) SixFretGuitarFret.Open => WhiteNote,
                     _ => default
                 };
@@ -117,13 +115,11 @@ namespace YARG.Core.Game
 
             public Color BlackNoteStarPower = Color.Black;
             public Color WhiteNoteStarPower = Color.White;
-            public Color WildcardNoteStarPower = DefaultWildcardStarpower;
 
             /// <summary>
             /// Gets the Star Power note color for a specific note index.
             /// Black frets: 0=Black1, 1=Black2, 2=Black3.
             /// White frets: 3=White1, 4=White2, 5=White3.
-            /// Wildcard and Open: 6, 7.
             /// </summary>
             public Color GetNoteStarPowerColor(int index)
             {
@@ -135,7 +131,7 @@ namespace YARG.Core.Game
                     (int) SixFretGuitarFret.White1 => WhiteNoteStarPower,
                     (int) SixFretGuitarFret.White2 => WhiteNoteStarPower,
                     (int) SixFretGuitarFret.White3 => WhiteNoteStarPower,
-                    (int) SixFretGuitarFret.Wildcard => WildcardNoteStarPower,
+                    (int) SixFretGuitarFret.Wildcard => DefaultWildcardStarpower,
                     (int) SixFretGuitarFret.Open => WhiteNoteStarPower,
                     _ => default
                 };
@@ -165,6 +161,7 @@ namespace YARG.Core.Game
 
             public SixFretGuitarColors Copy()
             {
+                // Kinda yucky, but it's easier to maintain
                 return (SixFretGuitarColors) MemberwiseClone();
             }
 
