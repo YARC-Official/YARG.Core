@@ -8,6 +8,8 @@ namespace YARG.Core.UnitTests.Song;
 
 public class RBCONEntryTests
 {
+    private const string TEST_NODE_NAME = "testsong";
+
     [Test]
     public void Create_AppliesFourLaneLeadVocalAndBandIntensities()
     {
@@ -113,6 +115,54 @@ public class RBCONEntryTests
     }
 
     [Test]
+    public void Create_UnpackedEntryAcceptsYargMoggVersion()
+    {
+        string root = CreateTempDirectory();
+        try
+        {
+            var entry = CreateUnpackedEntry(root, TEST_NODE_NAME, CreateBasicDta(TEST_NODE_NAME), 0xF0);
+
+            Assert.That(entry, Is.Not.Null);
+        }
+        finally
+        {
+            if (Directory.Exists(root))
+            {
+                Directory.Delete(root, true);
+            }
+        }
+    }
+
+    [Test]
+    public void Create_PackedEntryReportsUnsupportedEncryptionForEncryptedMogg()
+    {
+        using var stream = CreatePackedConStream(moggVersion: 0x0D);
+        var listings = CreatePackedConListings(TEST_NODE_NAME, midiLength: 1);
+        var parameters = CreateScanParameters("test-root", TEST_NODE_NAME, CreateDta(CreateBasicDta(TEST_NODE_NAME)));
+
+        var result = PackedRBCONEntry.Create(in parameters, listings, stream);
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(result.HasValue, Is.False);
+            Assert.That(result.Error, Is.EqualTo(ScanResult.UnsupportedEncryption));
+        }
+    }
+
+    [Test]
+    public void Create_PackedEntryAcceptsYargMoggVersion()
+    {
+        byte[] midi = File.ReadAllBytes(GetTestMidiPath());
+        using var stream = CreatePackedConStream(moggVersion: 0xF0, midi: midi);
+        var listings = CreatePackedConListings(TEST_NODE_NAME, midi.Length);
+        var parameters = CreateScanParameters("test-root", TEST_NODE_NAME, CreateDta(CreateBasicDta(TEST_NODE_NAME)));
+
+        var result = PackedRBCONEntry.Create(in parameters, listings, stream);
+
+        Assert.That(result.HasValue, Is.True, $"Expected packed RBCON creation to succeed, but got {result.Error}.");
+    }
+
+    [Test]
     public void GetLastWriteTime_ReturnsMostRecentValueAcrossBaseUpdateAndUpgrade()
     {
         var baseMidi = new DateTime(2024, 01, 01, 0, 0, 0, DateTimeKind.Utc);
@@ -140,7 +190,7 @@ public class RBCONEntryTests
         Assert.That(entry.GetLastWriteTime(), Is.EqualTo(baseMidi));
     }
 
-    private static RBCONEntry CreateUnpackedEntry(string root, string nodeName, string dtaText)
+    private static RBCONEntry CreateUnpackedEntry(string root, string nodeName, string dtaText, int moggVersion = RBCONEntry.UNENCRYPTED_MOGG)
     {
         string songDirectory = Path.Combine(root, nodeName);
         Directory.CreateDirectory(songDirectory);
@@ -151,9 +201,18 @@ public class RBCONEntryTests
         string moggPath = Path.Combine(songDirectory, $"{nodeName}.mogg");
         using (var mogg = new FileStream(moggPath, FileMode.Create, FileAccess.Write, FileShare.None))
         {
-            mogg.Write(RBCONEntry.UNENCRYPTED_MOGG, Endianness.Little);
+            mogg.Write(moggVersion, Endianness.Little);
         }
 
+        var parameters = CreateScanParameters(root, nodeName, CreateDta(dtaText));
+
+        var result = UnpackedRBCONEntry.Create(in parameters);
+        Assert.That(result.HasValue, Is.True, $"Expected RBCON creation to succeed, but got {result.Error}.");
+        return result.Value;
+    }
+
+    private static DTAEntry CreateDta(string dtaText)
+    {
         byte[] bytes = YARGTextReader.UTF8Strict.GetBytes(dtaText);
         using var buffer = FixedArray<byte>.Alloc(bytes.Length);
         bytes.CopyTo(buffer.Span);
@@ -161,9 +220,12 @@ public class RBCONEntryTests
         var container = YARGDTAReader.Create(buffer);
         Assert.That(YARGDTAReader.StartNode(ref container), Is.True);
         string parsedNodeName = YARGDTAReader.GetNameOfNode(ref container, false);
-        var dta = DTAEntry.Create(parsedNodeName, container);
+        return DTAEntry.Create(parsedNodeName, container);
+    }
 
-        var parameters = new RBScanParameters
+    private static RBScanParameters CreateScanParameters(string root, string nodeName, DTAEntry dta)
+    {
+        return new RBScanParameters
         {
             Root = new AbridgedFileInfo(root, DateTime.UnixEpoch),
             NodeName = nodeName,
@@ -175,10 +237,74 @@ public class RBCONEntryTests
             UpdateMidi = null,
             Upgrade = null,
         };
+    }
 
-        var result = UnpackedRBCONEntry.Create(in parameters);
-        Assert.That(result.HasValue, Is.True, $"Expected RBCON creation to succeed, but got {result.Error}.");
-        return result.Value;
+    private static string CreateBasicDta(string nodeName)
+    {
+        return $$"""
+        ({{nodeName}}
+          (name "Test Song")
+          (song
+            (name "songs/{{nodeName}}/{{nodeName}}")
+            (pans (0.0))
+            (vols (0.0))
+            (cores (0.0))
+          )
+        )
+        """;
+    }
+
+    private static List<CONFileListing> CreatePackedConListings(string nodeName, int midiLength)
+    {
+        int midiBlockCount = (midiLength + CONFileStream.BYTES_PER_BLOCK - 1) / CONFileStream.BYTES_PER_BLOCK;
+        return new List<CONFileListing>
+        {
+            new()
+            {
+                Name = "songs",
+                Flags = CONFileListing.Flag.Directory,
+                PathIndex = -1,
+            },
+            new()
+            {
+                Name = $"songs/{nodeName}",
+                Flags = CONFileListing.Flag.Directory,
+                PathIndex = 0,
+            },
+            new()
+            {
+                Name = $"songs/{nodeName}/{nodeName}.mid",
+                Flags = CONFileListing.Flag.Consecutive,
+                BlockCount = midiBlockCount,
+                BlockOffset = 1,
+                PathIndex = 1,
+                Length = midiLength,
+            },
+            new()
+            {
+                Name = $"songs/{nodeName}/{nodeName}.mogg",
+                Flags = CONFileListing.Flag.Consecutive,
+                BlockCount = 1,
+                BlockOffset = 80,
+                PathIndex = 1,
+                Length = CONFileStream.BYTES_PER_BLOCK,
+            },
+        };
+    }
+
+    private static MemoryStream CreatePackedConStream(int moggVersion, byte[]? midi = null)
+    {
+        int imageLength = checked((int) (CONFileStream.CalculateBlockLocation(80, 0) + CONFileStream.BYTES_PER_BLOCK));
+        byte[] image = new byte[imageLength];
+        if (midi != null)
+        {
+            midi.CopyTo(image.AsSpan((int) CONFileStream.CalculateBlockLocation(1, 0)));
+        }
+
+        using var mogg = new MemoryStream(image, (int) CONFileStream.CalculateBlockLocation(80, 0), CONFileStream.BYTES_PER_BLOCK);
+        mogg.Write(moggVersion, Endianness.Little);
+
+        return new MemoryStream(image, writable: false);
     }
 
     private static string CreateTempDirectory()

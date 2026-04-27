@@ -919,11 +919,18 @@ namespace MoonscraperChartEditor.Song.IO
             var song = eventProcessParams.song;
             var instrument = eventProcessParams.instrument;
 
+            // Extend the lookup window backward to catch notes whose note-off would have overlapped
+            // the marker start before note lengths were zeroed out during parsing.
+            uint noteSnapThreshold = (uint)eventProcessParams.settings.NoteSnapThreshold;
+            uint lookbackStart = noteSnapThreshold > 0 && startTick >= noteSnapThreshold
+                ? startTick - noteSnapThreshold
+                : startTick;
+
             foreach (var difficulty in EnumExtensions<MoonSong.Difficulty>.Values)
             {
                 var chart = song.GetChart(instrument, difficulty);
 
-                MoonObjectHelper.GetRange(chart.notes, startTick, endTick, out int index, out int length);
+                MoonObjectHelper.GetRange(chart.notes, lookbackStart, endTick, out int index, out int length);
 
                 for (int i = index; i < index + length; ++i)
                 {

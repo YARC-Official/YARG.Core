@@ -129,6 +129,29 @@ namespace YARG.Core.Engine
             UpdateBandMultiplier();
         }
 
+        public void Reset()
+        {
+            _activeCodaCount = 0;
+            _currentStarIndex = 0;
+            _previousHappiness = 100f;
+            _starpowerCount = 0;
+            // These values are derived from others, so there's no reason to reset them
+            // Score = 0; derived from all players' Score + BandBonusScore
+            // Stars = 0; derived from Score
+
+            // Combo is calculated a bit differently, so we still reset it even though it's dependent on player combo
+            Combo = 0;
+            foreach (var engineContainer in _allEngines)
+            {
+                engineContainer.ResetHappiness();
+            }
+
+            foreach (var unisonEvent in _unisonEvents)
+            {
+                unisonEvent.Reset();
+            }
+        }
+
         public void UpdateEngines(double time)
         {
             foreach (var engine in _allEngines)

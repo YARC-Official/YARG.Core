@@ -74,13 +74,13 @@ namespace YARG.Core.Chart
             return new(instrument, difficulties, GetAnimationTrack(instrument));
         }
 
-        private DrumNote CreateFourLaneDrumNote(MoonNote moonNote, Dictionary<MoonPhrase.Type, MoonPhrase> currentPhrases)
+        private DrumNote CreateFourLaneDrumNote(MoonNote moonNote, Dictionary<MoonPhrase.Type, MoonPhrase> currentPhrases, List<DrumNote> notes)
         {
             var pad = GetFourLaneDrumPad(moonNote);
             var noteType = GetDrumNoteType(moonNote);
 
             var generalFlags = GetGeneralFlags(moonNote, currentPhrases);
-            generalFlags = ModifyDrumLaneFlags(moonNote, currentPhrases, generalFlags);
+            generalFlags = ModifyDrumLaneFlags(moonNote, currentPhrases, generalFlags, notes);
 
             var drumFlags = GetDrumNoteFlags(moonNote, currentPhrases);
 
@@ -88,13 +88,13 @@ namespace YARG.Core.Chart
             return new DrumNote(pad, noteType, drumFlags, generalFlags, time, moonNote.tick);
         }
 
-        private DrumNote CreateFiveLaneDrumNote(MoonNote moonNote, Dictionary<MoonPhrase.Type, MoonPhrase> currentPhrases)
+        private DrumNote CreateFiveLaneDrumNote(MoonNote moonNote, Dictionary<MoonPhrase.Type, MoonPhrase> currentPhrases, List<DrumNote> notes)
         {
             var pad = GetFiveLaneDrumPad(moonNote);
             var noteType = GetDrumNoteType(moonNote);
 
             var generalFlags = GetGeneralFlags(moonNote, currentPhrases);
-            generalFlags = ModifyDrumLaneFlags(moonNote, currentPhrases, generalFlags);
+            generalFlags = ModifyDrumLaneFlags(moonNote, currentPhrases, generalFlags, notes);
 
             var drumFlags = GetDrumNoteFlags(moonNote, currentPhrases);
 
@@ -102,10 +102,10 @@ namespace YARG.Core.Chart
             return new DrumNote(pad, noteType, drumFlags, generalFlags, time, moonNote.tick);
         }
 
-        private DrumNote CreateFourLaneDrumBeginnerNote(MoonNote moonNote, Dictionary<MoonPhrase.Type, MoonPhrase> currentPhrases)
+        private DrumNote CreateFourLaneDrumBeginnerNote(MoonNote moonNote, Dictionary<MoonPhrase.Type, MoonPhrase> currentPhrases, List<DrumNote> notes)
         {
-            var pad = FourLaneDrumPad.Wildcard;
-            var noteType = DrumNoteType.Neutral;
+            const FourLaneDrumPad pad = FourLaneDrumPad.Wildcard;
+            const DrumNoteType noteType = DrumNoteType.Neutral;
             var generalFlags = GetGeneralFlags(moonNote, currentPhrases);
             var drumFlags = GetDrumNoteFlags(moonNote, currentPhrases);
 
@@ -113,10 +113,10 @@ namespace YARG.Core.Chart
             return new DrumNote(pad, noteType, drumFlags, generalFlags, time, moonNote.tick);
         }
 
-        private DrumNote CreateFiveLaneDrumBeginnerNote(MoonNote moonNote, Dictionary<MoonPhrase.Type, MoonPhrase> currentPhrases)
+        private DrumNote CreateFiveLaneDrumBeginnerNote(MoonNote moonNote, Dictionary<MoonPhrase.Type, MoonPhrase> currentPhrases, List<DrumNote> notes)
         {
-            var pad = FiveLaneDrumPad.Wildcard;
-            var noteType = DrumNoteType.Neutral;
+            const FiveLaneDrumPad pad = FiveLaneDrumPad.Wildcard;
+            const DrumNoteType noteType = DrumNoteType.Neutral;
             var generalFlags = GetGeneralFlags(moonNote, currentPhrases);
             var drumFlags = GetDrumNoteFlags(moonNote, currentPhrases);
 
@@ -389,7 +389,8 @@ namespace YARG.Core.Chart
             return new(instrument, difficulty, notes, phrases, textEvents);
         }
 
-        private NoteFlags ModifyDrumLaneFlags(MoonNote moonNote, Dictionary<MoonPhrase.Type, MoonPhrase> currentPhrases, NoteFlags flags)
+        private NoteFlags ModifyDrumLaneFlags(MoonNote moonNote, Dictionary<MoonPhrase.Type, MoonPhrase> currentPhrases,
+            NoteFlags flags, List<DrumNote> notes)
         {
             MoonPhrase? lanePhrase = null;
             bool isTrill = false;
@@ -417,6 +418,18 @@ namespace YARG.Core.Chart
 
             if (!_validLaneNotes.Contains(moonNote.rawNote))
             {
+                // Fix up lane end since we're going to nuke it
+                if ((flags & NoteFlags.LaneEnd) != 0 && notes.Count > 0)
+                {
+                    foreach (var child in notes[^1].AllNotes)
+                    {
+                        if (child.IsLane)
+                        {
+                            child.ActivateFlag(NoteFlags.LaneEnd);
+                        }
+                    }
+                }
+
                 flags &= ~NoteFlags.Tremolo;
                 flags &= ~NoteFlags.Trill;
                 flags &= ~NoteFlags.LaneStart;

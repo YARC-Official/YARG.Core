@@ -102,6 +102,17 @@ namespace YARG.Core.Engine.Keys.Engines
                             MissNote(missedNote);
                         }
                     }
+                    else
+                    {
+                        // If the lane forgave the miss, we need to ensure the rest of the chord hits, too
+                        foreach (var missedNote in parentNote.AllNotes)
+                        {
+                            if (missedNote is { WasHit: false, WasMissed: false })
+                            {
+                                HitNote(missedNote);
+                            }
+                        }
+                    }
                 }
             }
             else
@@ -140,8 +151,16 @@ namespace YARG.Core.Engine.Keys.Engines
                                 }
                                 else
                                 {
-                                    YargLogger.LogFormatTrace("Missing note {0} due to chord staggering", (int)note.FiveLaneKeysAction);
-                                    MissNote(note);
+                                    if (HitNoteFromLane(note))
+                                    {
+                                        YargLogger.LogFormatTrace("Forgiving chord staggering for note {0} due to lane phrase", (int)note.FiveLaneKeysAction);
+                                    }
+                                    else
+                                    {
+                                        YargLogger.LogFormatTrace("Missing note {0} due to chord staggering",
+                                            (int) note.FiveLaneKeysAction);
+                                        MissNote(note);
+                                    }
                                 }
                             }
 

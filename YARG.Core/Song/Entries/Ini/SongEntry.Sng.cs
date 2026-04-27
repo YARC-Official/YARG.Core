@@ -194,7 +194,8 @@ namespace YARG.Core.Song
         private StemMixer? CreateAudioMixer(float speed, double volume, in SngFile sngFile, params SongStem[] ignoreStems)
         {
             bool clampStemVolume = _metadata.Source.ToLowerInvariant() == "yarg";
-            var mixer = GlobalAudioHandler.CreateMixer(ToString(), speed, volume, true, clampStemVolume);
+            var mixer = GlobalAudioHandler.CreateMixer(ToString(), speed, volume, clampStemVolume: clampStemVolume,
+                normalize: true);
             if (mixer == null)
             {
                 YargLogger.LogError("Failed to create mixer");

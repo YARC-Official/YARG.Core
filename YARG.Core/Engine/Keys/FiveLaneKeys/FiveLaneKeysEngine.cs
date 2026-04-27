@@ -189,7 +189,7 @@ namespace YARG.Core.Engine.Keys
             }
 
             OnNoteMissed?.Invoke(NoteIndex, note);
-            base.HitNote(note);
+            base.MissNote(note);
         }
 
         protected override void AddScore(GuitarNote note)

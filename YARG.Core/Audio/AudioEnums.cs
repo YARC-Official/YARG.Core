@@ -40,7 +40,8 @@
         CrowdStart3,
         CrowdEnd1,
         CrowdEnd2,
-        Chatter
+        Chatter,
+        Rewind
     }
 
     public enum DrumSfxSample

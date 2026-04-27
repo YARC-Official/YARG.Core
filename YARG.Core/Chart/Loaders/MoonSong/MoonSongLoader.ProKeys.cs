@@ -26,7 +26,8 @@ namespace YARG.Core.Chart
             return new(instrument, difficulties);
         }
 
-        private ProKeysNote CreateProKeysNote(MoonNote moonNote, Dictionary<MoonPhrase.Type, MoonPhrase> currentPhrases)
+        private ProKeysNote CreateProKeysNote(MoonNote moonNote, Dictionary<MoonPhrase.Type, MoonPhrase> currentPhrases,
+            List<ProKeysNote> notes)
         {
             var key = moonNote.proKeysKey;
             var generalFlags = GetGeneralFlags(moonNote, currentPhrases);

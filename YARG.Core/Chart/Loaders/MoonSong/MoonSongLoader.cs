@@ -17,7 +17,7 @@ namespace YARG.Core.Chart
     /// </summary>
     internal partial class MoonSongLoader : ISongLoader
     {
-        private delegate TNote CreateNoteDelegate<TNote>(MoonNote moonNote, CurrentPhrases currentPhrases)
+        private delegate TNote CreateNoteDelegate<TNote>(MoonNote moonNote, CurrentPhrases currentPhrases, List<TNote> notes)
             where TNote : Note<TNote>;
         private delegate void ProcessTextDelegate(MoonText text);
         private delegate Phrase? ValidatePhraseDelegate(Phrase phrase, List<Phrase> phrases);
@@ -193,7 +193,7 @@ namespace YARG.Core.Chart
                     continue;
                 }
 
-                var newNote = createNote(moonNote, currentPhrases);
+                var newNote = createNote(moonNote, currentPhrases, notes);
                 AddNoteToList(notes, newNote);
             }
 
@@ -369,6 +369,13 @@ namespace YARG.Core.Chart
             var currentParent = notes.Count > 0 ? notes[^1] : null;
             // Previous parent note (on a different tick)
             var previousParent = notes.Count > 1 ? notes[^2] : null;
+
+            // If we are not a laned note and the previous note is a laned note without a lane end flag
+            // add the lane end flag to that previous note
+            // if (!note.IsLane && currentParent is { IsLane: true, IsLaneEnd: false })
+            // {
+            //     currentParent.ActivateFlag(NoteFlags.LaneEnd);
+            // }
 
             // Determine if this is part of a chord
             if (currentParent != null)

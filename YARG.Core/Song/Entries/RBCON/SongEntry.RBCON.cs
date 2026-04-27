@@ -30,6 +30,7 @@ namespace YARG.Core.Song
     {
         private const long NOTE_SNAP_THRESHOLD = 10;
         public const int UNENCRYPTED_MOGG = 0xA;
+        private const int YARG_MOGG = 0xF0;
         public const string SONGUPDATES_DTA = "songs_updates.dta";
         private const float DEFAULT_VOCAL_SCROLL_SPEED = 2300f;
 
@@ -156,9 +157,30 @@ namespace YARG.Core.Song
                 StarPowerNote = _settings.OverdiveMidiNote,
                 TuningOffsetCents = _settings.TuningOffsetCents,
                 DrumsType = DrumsType.FourLane,
-                ChordHopoCancellation = true
+                ChordHopoCancellation = true,
+                NoteSnapThreshold = NOTE_SNAP_THRESHOLD
             };
             return SongChart.FromMidi(in parseSettings, midi);
+        }
+
+        internal static ScanResult ValidateMoggHeader(Stream stream)
+        {
+            try
+            {
+                int version = stream.Read<int>(Endianness.Little);
+                return IsSupportedMoggVersion(version)
+                    ? ScanResult.Success
+                    : ScanResult.UnsupportedEncryption;
+            }
+            catch (EndOfStreamException)
+            {
+                return ScanResult.MoggError;
+            }
+        }
+
+        private static bool IsSupportedMoggVersion(int version)
+        {
+            return version is UNENCRYPTED_MOGG or YARG_MOGG;
         }
 
         public override StemMixer? LoadAudio(float speed, double volume, params SongStem[] ignoreStems)
@@ -170,7 +192,7 @@ namespace YARG.Core.Song
             }
 
             int version = stream.Read<int>(Endianness.Little);
-            if (version is not 0x0A and not 0xF0)
+            if (!IsSupportedMoggVersion(version))
             {
                 YargLogger.LogError("Original unencrypted mogg replaced by an encrypted mogg!");
                 stream.Dispose();
@@ -181,7 +203,8 @@ namespace YARG.Core.Song
             stream.Seek(start, SeekOrigin.Begin);
 
             bool clampStemVolume = _metadata.Source.ToLowerInvariant() == "yarg";
-            var mixer = GlobalAudioHandler.CreateMixer(ToString(), speed, volume, clampStemVolume, true);
+            var mixer = GlobalAudioHandler.CreateMixer(ToString(), speed, volume, clampStemVolume: clampStemVolume,
+                normalize: true);
             if (mixer == null)
             {
                 YargLogger.LogError("Mogg failed to load!");

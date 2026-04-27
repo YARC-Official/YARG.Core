@@ -25,7 +25,7 @@ namespace YARG.Core.Audio
         internal StemMixer? LoadCustomFile(string name, Stream stream, float speed, double volume, bool normalize, SongStem stem = SongStem.Song)
         {
             YargLogger.LogDebug("Loading custom audio file");
-            var mixer = CreateMixer(name, speed, volume, false, normalize);
+            var mixer = CreateMixer(name, speed, volume, clampStemVolume: false, normalize: normalize);
             if (mixer == null)
             {
                 return null;

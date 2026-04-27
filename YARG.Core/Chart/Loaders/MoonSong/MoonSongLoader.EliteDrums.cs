@@ -28,7 +28,8 @@ namespace YARG.Core.Chart
             return new(instrument, difficulties);
         }
 
-        private EliteDrumNote CreateEliteDrumNote(MoonNote moonNote, Dictionary<MoonPhrase.Type, MoonPhrase> currentPhrases)
+        private EliteDrumNote CreateEliteDrumNote(MoonNote moonNote, Dictionary<MoonPhrase.Type, MoonPhrase> currentPhrases,
+            List<EliteDrumNote> notes)
         {
             var pad = GetEliteDrumPad(moonNote);
             var noteDynamics = GetEliteDrumNoteDynamics(moonNote);

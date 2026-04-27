@@ -113,6 +113,7 @@ namespace YARG.Core.Audio
             new Sample<SfxSample>(SfxSample.CrowdEnd1, "crowd_end_1", 1.0f, true),
             new Sample<SfxSample>(SfxSample.CrowdEnd2, "crowd_end_2", 1.0f, true),
             new Sample<SfxSample>(SfxSample.Chatter, "chatter", 0.6f),
+            new Sample<SfxSample>(SfxSample.Rewind, "rewind", 1.0f),
         };
 
         public static readonly IList<Sample<DrumSfxSample>> DrumSamples = new[]

@@ -22,7 +22,7 @@ namespace YARG.Core.Chart
         {
             var difficulties = new Dictionary<Difficulty, InstrumentDifficulty<GuitarNote>>()
             {
-                { Difficulty.Beginner, LoadDifficulty(instrument, Difficulty.Beginner, CreateFiveFretBeginnerNote, null, ValidateGuitarPhrase) },
+                { Difficulty.Beginner, LoadDifficulty<GuitarNote>(instrument, Difficulty.Beginner, CreateFiveFretBeginnerNote, null, ValidateGuitarPhrase) },
                 { Difficulty.Easy, LoadDifficulty(instrument, Difficulty.Easy, createNote, null, ValidateGuitarPhrase) },
                 { Difficulty.Medium, LoadDifficulty(instrument, Difficulty.Medium, createNote, null, ValidateGuitarPhrase) },
                 { Difficulty.Hard, LoadDifficulty(instrument, Difficulty.Hard, createNote, null, ValidateGuitarPhrase) },
@@ -34,7 +34,8 @@ namespace YARG.Core.Chart
             return track;
         }
 
-        private GuitarNote CreateFiveFretGuitarNote(MoonNote moonNote, Dictionary<MoonPhrase.Type, MoonPhrase> currentPhrases)
+        private GuitarNote CreateFiveFretGuitarNote(MoonNote moonNote, Dictionary<MoonPhrase.Type, MoonPhrase> currentPhrases,
+            List<GuitarNote> notes)
         {
             var fret = GetFiveFretGuitarFret(moonNote);
             var noteType = GetGuitarNoteType(moonNote);
@@ -45,7 +46,8 @@ namespace YARG.Core.Chart
             return new GuitarNote(fret, noteType, guitarFlags, generalFlags, time, GetLengthInTime(moonNote), moonNote.tick, moonNote.length);
         }
 
-        private GuitarNote CreateFiveFretBeginnerNote(MoonNote moonNote, Dictionary<MoonPhrase.Type, MoonPhrase> currentPhrases)
+        private GuitarNote CreateFiveFretBeginnerNote(MoonNote moonNote, Dictionary<MoonPhrase.Type, MoonPhrase> currentPhrases,
+            List<GuitarNote> notes)
         {
             var fret = FiveFretGuitarFret.Wildcard;
             var noteType = GuitarNoteType.Strum;
@@ -56,7 +58,8 @@ namespace YARG.Core.Chart
             return new GuitarNote(fret, noteType, guitarFlags, generalFlags, time, GetLengthInTime(moonNote), moonNote.tick, moonNote.length);
         }
 
-        private GuitarNote CreateSixFretGuitarNote(MoonNote moonNote, Dictionary<MoonPhrase.Type, MoonPhrase> currentPhrases)
+        private GuitarNote CreateSixFretGuitarNote(MoonNote moonNote, Dictionary<MoonPhrase.Type, MoonPhrase> currentPhrases,
+            List<GuitarNote> notes)
         {
             var fret = GetSixFretGuitarFret(moonNote);
             var noteType = GetGuitarNoteType(moonNote);
