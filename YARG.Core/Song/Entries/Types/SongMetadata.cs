@@ -68,6 +68,7 @@ namespace YARG.Core.Song
             CreditProducedBy = string.Empty,
             CreditPublishedBy = string.Empty,
             CreditWrittenBy = string.Empty,
+            CharterAudio = string.Empty,
             CharterBass = string.Empty,
             CharterDrums = string.Empty,
             CharterEliteDrums = string.Empty,
@@ -143,6 +144,7 @@ namespace YARG.Core.Song
         public string CreditPublishedBy;
         public string CreditWrittenBy;
 
+        public string CharterAudio;
         public string CharterBass;
         public string CharterDrums;
         public string CharterEliteDrums;
@@ -358,6 +360,11 @@ namespace YARG.Core.Song
             if (modifiers.Extract("credit_written_by", out string creditWrittenBy))
             {
                 metadata.CreditWrittenBy = creditWrittenBy;
+            }
+
+            if (modifiers.Extract("charter_audio", out string charterAudio))
+            {
+                metadata.CharterAudio = charterAudio;
             }
 
             if (modifiers.Extract("charter_bass", out string charterBass))

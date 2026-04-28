@@ -141,6 +141,7 @@ namespace YARG.Core.Song
         public string CreditPublishedBy          => _metadata.CreditPublishedBy;
         public string CreditWrittenBy            => _metadata.CreditWrittenBy;
 
+        public string CharterAudio       => _metadata.CharterAudio;
         public string CharterBass       => _metadata.CharterBass;
         public string CharterDrums      => _metadata.CharterDrums;
         public string CharterEliteDrums => _metadata.CharterEliteDrums;
@@ -412,6 +413,7 @@ namespace YARG.Core.Song
             stream.Write(_metadata.CreditPublishedBy);
             stream.Write(_metadata.CreditWrittenBy);
 
+            stream.Write(_metadata.CharterAudio);
             stream.Write(_metadata.CharterBass);
             stream.Write(_metadata.CharterDrums);
             stream.Write(_metadata.CharterEliteDrums);
@@ -499,6 +501,7 @@ namespace YARG.Core.Song
             _metadata.CreditPublishedBy = stream.ReadString();
             _metadata.CreditWrittenBy = stream.ReadString();
 
+            _metadata.CharterAudio = stream.ReadString();
             _metadata.CharterBass = stream.ReadString();
             _metadata.CharterDrums = stream.ReadString();
             _metadata.CharterEliteDrums = stream.ReadString();

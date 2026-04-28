@@ -1,8 +1,8 @@
 using NUnit.Framework;
-using YARG.Core.Audio;
 using YARG.Core.Extensions;
 using YARG.Core.IO;
 using YARG.Core.Song;
+using YARG.Core.Venue;
 
 namespace YARG.Core.UnitTests.Song;
 
@@ -188,6 +188,99 @@ public class RBCONEntryTests
         entry.UpdateInfo(null, updateMidi, new TestRBProUpgrade(upgradeMidi));
 
         Assert.That(entry.GetLastWriteTime(), Is.EqualTo(baseMidi));
+    }
+
+    [Test]
+    public void LoadBackground_PackedCONSupportsVideoNamedAfterCONWithPeriods()
+    {
+        const string conName = "System of a Down - B.Y.O.B";
+        string root = CreateTempDirectory();
+        try
+        {
+            string conPath = Path.Combine(root, conName);
+            File.WriteAllBytes(conPath, []);
+
+            string videoPath = Path.Combine(root, conName + ".mp4");
+            File.WriteAllBytes(videoPath, [0x00]);
+
+            using var background = PackedRBCONEntry.LoadExternalBackground(conPath, "testsong");
+
+            Assert.That(background, Is.Not.Null);
+            Assert.That(background!.Type, Is.EqualTo(BackgroundType.Video));
+        }
+        finally
+        {
+            if (Directory.Exists(root))
+            {
+                Directory.Delete(root, true);
+            }
+        }
+    }
+
+    [Test]
+    public void LoadBackground_PackedCONStillSupportsVideoNamedAfterCONWithoutExtension()
+    {
+        const string conName = "testsong.con";
+        string root = CreateTempDirectory();
+        try
+        {
+            string conPath = Path.Combine(root, conName);
+            File.WriteAllBytes(conPath, []);
+
+            string videoPath = Path.Combine(root, "testsong.mp4");
+            File.WriteAllBytes(videoPath, [0x00]);
+
+            using var background = PackedRBCONEntry.LoadExternalBackground(conPath, "othersong");
+
+            Assert.That(background, Is.Not.Null);
+            Assert.That(background!.Type, Is.EqualTo(BackgroundType.Video));
+        }
+        finally
+        {
+            if (Directory.Exists(root))
+            {
+                Directory.Delete(root, true);
+            }
+        }
+    }
+
+    [Test]
+    public void LoadBackground_UnpackedCONUsesFixedVideoNamesInsideSongDirectory()
+    {
+        string root = CreateTempDirectory();
+        try
+        {
+            var entry = CreateUnpackedEntry(
+                root,
+                "testsong",
+                """
+                (testsong
+                  (name "Test Song")
+                  (song
+                    (name "songs/testsong/testsong")
+                    (pans (0.0))
+                    (vols (0.0))
+                    (cores (0.0))
+                  )
+                )
+                """
+            );
+
+            string videoPath = Path.Combine(root, "testsong", "bg.mp4");
+            File.WriteAllBytes(videoPath, [0x00]);
+
+            using var background = entry.LoadBackground();
+
+            Assert.That(background, Is.Not.Null);
+            Assert.That(background!.Type, Is.EqualTo(BackgroundType.Video));
+        }
+        finally
+        {
+            if (Directory.Exists(root))
+            {
+                Directory.Delete(root, true);
+            }
+        }
     }
 
     private static RBCONEntry CreateUnpackedEntry(string root, string nodeName, string dtaText, int moggVersion = RBCONEntry.UNENCRYPTED_MOGG)
