@@ -1,4 +1,3 @@
-using System.Text;
 using MoonscraperChartEditor.Song;
 using MoonscraperChartEditor.Song.IO;
 using NUnit.Framework;
@@ -9,11 +8,11 @@ namespace YARG.Core.UnitTests.MoonscraperChartParser.IO.Chart;
 
 using static MoonSong;
 using static MoonNote;
+using static ChartText;
+using static YARG.Core.UnitTests.MoonscraperChartParser.MoonNoteAssertions;
 
 public class ChartReaderProcessListsTests
 {
-    private const uint Resolution = 192;
-
     [Test]
     public void ReadFromText_ThrowsWhenSongSectionIsMissing()
     {
@@ -117,7 +116,7 @@ public class ChartReaderProcessListsTests
         {
             Assert.That(chart.events, Is.Empty);
             Assert.That(chart.specialPhrases, Has.One.Matches<MoonPhrase>(phrase =>
-                phrase.tick == 100 && phrase.length == 100 && phrase.type == MoonPhrase.Type.Solo));
+                phrase is { tick: 100, length: 100, type: MoonPhrase.Type.Solo }));
         }
     }
 
@@ -140,9 +139,9 @@ public class ChartReaderProcessListsTests
         {
             Assert.That(phrases, Has.Count.EqualTo(2));
             Assert.That(phrases, Has.One.Matches<MoonPhrase>(phrase =>
-                phrase.tick == 100 && phrase.length == 100 && phrase.type == MoonPhrase.Type.Solo));
+                phrase is { tick: 100, length: 100, type: MoonPhrase.Type.Solo }));
             Assert.That(phrases, Has.One.Matches<MoonPhrase>(phrase =>
-                phrase.tick == 200 && phrase.length == 101 && phrase.type == MoonPhrase.Type.Solo));
+                phrase is { tick: 200, length: 101, type: MoonPhrase.Type.Solo }));
         }
     }
 
@@ -243,41 +242,4 @@ public class ChartReaderProcessListsTests
         }
     }
 
-    private static string Chart(params string[] sections)
-    {
-        return string.Join('\n', sections);
-    }
-
-    private static string SongSection(uint resolution = Resolution)
-    {
-        return Section(ChartIOHelper.SECTION_SONG, $"Resolution = {resolution}");
-    }
-
-    private static string SyncSection()
-    {
-        return Section(ChartIOHelper.SECTION_SYNC_TRACK, "0 = B 120000", "0 = TS 4 2");
-    }
-
-    private static string Section(string name, params string[] lines)
-    {
-        var builder = new StringBuilder();
-        builder.AppendLine($"[{name}]");
-        builder.AppendLine("{");
-        foreach (var line in lines)
-        {
-            builder.AppendLine($"  {line}");
-        }
-        builder.AppendLine("}");
-        return builder.ToString();
-    }
-
-    private static void AssertHasFlag(MoonNote note, Flags flag)
-    {
-        Assert.That((note.flags & flag) != 0, Is.True, $"Expected {note} to have flag {flag}.");
-    }
-
-    private static void AssertDoesNotHaveFlag(MoonNote note, Flags flag)
-    {
-        Assert.That((note.flags & flag) == 0, Is.True, $"Expected {note} not to have flag {flag}.");
-    }
 }

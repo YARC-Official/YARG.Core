@@ -9,6 +9,7 @@ namespace YARG.Core.UnitTests.MoonscraperChartParser.IO.Midi;
 
 using static MoonSong;
 using static MoonNote;
+using static YARG.Core.UnitTests.MoonscraperChartParser.MoonNoteAssertions;
 using MidiTextEvent = Melanchall.DryWetMidi.Core.TextEvent;
 
 public class MidReaderProcessListsTests
@@ -336,16 +337,6 @@ public class MidReaderProcessListsTests
             NoteOnEvent => 2,
             _ => 1,
         };
-    }
-
-    private static void AssertHasFlag(MoonNote note, Flags flag)
-    {
-        Assert.That((note.flags & flag) != 0, Is.True, $"Expected {note} to have flag {flag}.");
-    }
-
-    private static void AssertDoesNotHaveFlag(MoonNote note, Flags flag)
-    {
-        Assert.That((note.flags & flag) == 0, Is.True, $"Expected {note} not to have flag {flag}.");
     }
 
     private static IEnumerable<TimedMidiEvent> FlattenEvents(IEnumerable<object> eventItems)
