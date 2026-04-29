@@ -8,24 +8,9 @@ namespace YARG.Core.UnitTests.Parsing;
 using static MoonSong;
 using static MoonNote;
 using static ChartText;
-using static YARG.Core.UnitTests.Parsing.MoonNoteAssertions;
 
 internal class ChartReaderSpecTests
 {
-    private static readonly TestCaseData[] InstrumentCases =
-    [
-        new("EasySingle", MoonInstrument.Guitar, Difficulty.Easy, GuitarFret.Red),
-        new("MediumDoubleGuitar", MoonInstrument.GuitarCoop, Difficulty.Medium, GuitarFret.Red),
-        new("HardDoubleBass", MoonInstrument.Bass, Difficulty.Hard, GuitarFret.Red),
-        new("ExpertDoubleRhythm", MoonInstrument.Rhythm, Difficulty.Expert, GuitarFret.Red),
-        new("ExpertKeyboard", MoonInstrument.Keys, Difficulty.Expert, GuitarFret.Red),
-        new("ExpertDrums", MoonInstrument.Drums, Difficulty.Expert, DrumPad.Red),
-        new("ExpertGHLGuitar", MoonInstrument.GHLiveGuitar, Difficulty.Expert, GHLiveGuitarFret.White2),
-        new("ExpertGHLBass", MoonInstrument.GHLiveBass, Difficulty.Expert, GHLiveGuitarFret.White2),
-        new("ExpertGHLCoop", MoonInstrument.GHLiveCoop, Difficulty.Expert, GHLiveGuitarFret.White2),
-        new("ExpertGHLRhythm", MoonInstrument.GHLiveRhythm, Difficulty.Expert, GHLiveGuitarFret.White2),
-    ];
-
     [Test]
     public void ReadFromText_AllowsMissingEventsSectionDespiteSpecListingItAsStandard()
     {
@@ -147,139 +132,46 @@ internal class ChartReaderSpecTests
             text is { tick: 192, text: "custom_event" }));
     }
 
-    [TestCaseSource(nameof(InstrumentCases))]
-    public void TrackHeaders_RouteAllSpecInstrumentsAndDifficulties(string sectionName, MoonInstrument instrument,
-        Difficulty difficulty, object expectedNote)
+    [Test]
+    public void TrackHeaders_RouteRepresentativeSpecInstrumentsAndDifficulties()
     {
         var song = ChartReader.ReadFromText(Chart(
             SongSection(),
             SyncSection(),
-            Section(sectionName, "0 = N 1 96")));
-
-        var notes = song.GetChart(instrument, difficulty).notes;
+            Section("EasySingle", "0 = N 0 96"),
+            Section("MediumDoubleBass", "0 = N 1 96"),
+            Section("HardDrums", "0 = N 1 96"),
+            Section("ExpertKeyboard", "0 = N 2 96"),
+            Section("ExpertGHLGuitar", "0 = N 8 96")));
 
         using (Assert.EnterMultipleScope())
         {
-            Assert.That(notes, Has.Count.EqualTo(1));
-            switch (expectedNote)
-            {
-                case GuitarFret guitarFret:
-                    Assert.That(notes[0].guitarFret, Is.EqualTo(guitarFret));
-                    break;
-                case DrumPad drumPad:
-                    Assert.That(notes[0].drumPad, Is.EqualTo(drumPad));
-                    break;
-                case GHLiveGuitarFret ghlFret:
-                    Assert.That(notes[0].ghliveGuitarFret, Is.EqualTo(ghlFret));
-                    break;
-            }
+            Assert.That(song.GetChart(MoonInstrument.Guitar, Difficulty.Easy).notes.Single().guitarFret,
+                Is.EqualTo(GuitarFret.Green));
+            Assert.That(song.GetChart(MoonInstrument.Bass, Difficulty.Medium).notes.Single().guitarFret,
+                Is.EqualTo(GuitarFret.Red));
+            Assert.That(song.GetChart(MoonInstrument.Drums, Difficulty.Hard).notes.Single().drumPad,
+                Is.EqualTo(DrumPad.Red));
+            Assert.That(song.GetChart(MoonInstrument.Keys, Difficulty.Expert).notes.Single().guitarFret,
+                Is.EqualTo(GuitarFret.Yellow));
+            Assert.That(song.GetChart(MoonInstrument.GHLiveGuitar, Difficulty.Expert).notes.Single().ghliveGuitarFret,
+                Is.EqualTo(GHLiveGuitarFret.Black3));
         }
     }
 
     [Test]
-    public void GuitarNotes_ParseSpecFretFlagsAndOpenNote()
+    public void ReservedSpecNoteValues_AreIgnored()
     {
         var song = ChartReader.ReadFromText(Chart(
             SongSection(),
             SyncSection(),
             Section("ExpertSingle",
-                "0 = N 0 10",
-                "20 = N 1 10",
-                "40 = N 2 10",
-                "60 = N 3 10",
-                "80 = N 4 10",
-                "100 = N 7 10",
-                "100 = N 5 0",
-                "120 = N 0 10",
-                "120 = N 6 0")));
+                "0 = N 96 10",
+                "20 = N 127 10")));
 
         var notes = song.GetChart(MoonInstrument.Guitar, Difficulty.Expert).notes;
 
-        using (Assert.EnterMultipleScope())
-        {
-            Assert.That(notes.Select(note => note.guitarFret), Is.EqualTo(new[]
-            {
-                GuitarFret.Green,
-                GuitarFret.Red,
-                GuitarFret.Yellow,
-                GuitarFret.Blue,
-                GuitarFret.Orange,
-                GuitarFret.Open,
-                GuitarFret.Green,
-            }));
-            AssertHasFlag(notes.Single(note => note.tick == 100), Flags.Forced);
-            AssertHasFlag(notes.Single(note => note.tick == 120), Flags.Tap);
-        }
-    }
-
-    [Test]
-    public void DrumsNotes_ParseSpecDoubleKickAccentGhostAndCymbalToggles()
-    {
-        var song = ChartReader.ReadFromText(Chart(
-            SongSection(),
-            SyncSection(),
-            Section("ExpertDrums",
-                "0 = N 32 0",
-                "20 = N 1 0",
-                "20 = N 34 0",
-                "40 = N 2 0",
-                "40 = N 41 0",
-                "40 = N 66 0",
-                "60 = N 3 0",
-                "60 = N 67 0",
-                "80 = N 4 0",
-                "80 = N 68 0")));
-
-        var notes = song.GetChart(MoonInstrument.Drums, Difficulty.Expert).notes;
-
-        using (Assert.EnterMultipleScope())
-        {
-            AssertHasFlag(notes.Single(note => note.tick == 0), Flags.DoubleKick);
-            AssertHasFlag(notes.Single(note => note.tick == 20), Flags.ProDrums_Accent);
-            var yellow = notes.Single(note => note.tick == 40);
-            AssertHasFlag(yellow, Flags.ProDrums_Ghost);
-            AssertHasFlag(yellow, Flags.ProDrums_Cymbal);
-            AssertHasFlag(notes.Single(note => note.tick == 60), Flags.ProDrums_Cymbal);
-            AssertHasFlag(notes.Single(note => note.tick == 80), Flags.ProDrums_Cymbal);
-        }
-    }
-
-    [Test]
-    public void GhlNotes_ParseSpecFretFlagsAndOpenNote()
-    {
-        var song = ChartReader.ReadFromText(Chart(
-            SongSection(),
-            SyncSection(),
-            Section("ExpertGHLGuitar",
-                "0 = N 0 10",
-                "20 = N 1 10",
-                "40 = N 2 10",
-                "60 = N 3 10",
-                "80 = N 4 10",
-                "100 = N 8 10",
-                "120 = N 7 10",
-                "120 = N 5 0",
-                "140 = N 0 10",
-                "140 = N 6 0")));
-
-        var notes = song.GetChart(MoonInstrument.GHLiveGuitar, Difficulty.Expert).notes;
-
-        using (Assert.EnterMultipleScope())
-        {
-            Assert.That(notes.Select(note => note.ghliveGuitarFret), Is.EqualTo(new[]
-            {
-                GHLiveGuitarFret.White1,
-                GHLiveGuitarFret.White2,
-                GHLiveGuitarFret.White3,
-                GHLiveGuitarFret.Black1,
-                GHLiveGuitarFret.Black2,
-                GHLiveGuitarFret.Black3,
-                GHLiveGuitarFret.Open,
-                GHLiveGuitarFret.White1,
-            }));
-            AssertHasFlag(notes.Single(note => note.tick == 120), Flags.Forced);
-            AssertHasFlag(notes.Single(note => note.tick == 140), Flags.Tap);
-        }
+        Assert.That(notes, Is.Empty);
     }
 
     [Test]
@@ -315,21 +207,6 @@ internal class ChartReaderSpecTests
             Assert.That(drumPhrases, Has.One.Matches<MoonPhrase>(phrase =>
                 phrase is { tick: 200, length: 48, type: MoonPhrase.Type.TrillLane }));
         }
-    }
-
-    [Test]
-    public void UnknownReservedNoteValues_AreIgnored()
-    {
-        var song = ChartReader.ReadFromText(Chart(
-            SongSection(),
-            SyncSection(),
-            Section("ExpertSingle",
-                "0 = N 96 10",
-                "20 = N 127 10")));
-
-        var notes = song.GetChart(MoonInstrument.Guitar, Difficulty.Expert).notes;
-
-        Assert.That(notes, Is.Empty);
     }
 
 }

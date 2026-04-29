@@ -5,6 +5,11 @@ using NUnit.Framework.Legacy;
 using YARG.Core.Chart;
 using YARG.Core.Song;
 
+using static MoonSong;
+using static MoonNote;
+using static ChartText;
+using static MoonNoteAssertions;
+
 namespace YARG.Core.UnitTests.Parsing
 {
     /// <summary>
@@ -439,7 +444,7 @@ namespace YARG.Core.UnitTests.Parsing
     }
 
     [Test]
-    public void GuitarProcessList_KeepsBackToBackSolosFromOverlapping()
+    public void GuitarProcessList_SplitsSameTickSoloEndAndStartWithoutOverlap()
     {
         var chartText = Chart(
             SongSection(),
@@ -448,7 +453,7 @@ namespace YARG.Core.UnitTests.Parsing
                 $"100 = E \"{TextEvents.SOLO_START}\"",
                 $"200 = E \"{TextEvents.SOLO_START}\"",
                 $"200 = E \"{TextEvents.SOLO_END}\"",
-                $"300 = E \"{TextEvents.SOLO_END}\""));
+                $"299 = E \"{TextEvents.SOLO_END}\""));
 
         var song = ChartReader.ReadFromText(chartText);
         var phrases = song.GetChart(MoonInstrument.Guitar, Difficulty.Expert).specialPhrases;
@@ -459,7 +464,7 @@ namespace YARG.Core.UnitTests.Parsing
             Assert.That(phrases, Has.One.Matches<MoonPhrase>(phrase =>
                 phrase is { tick: 100, length: 100, type: MoonPhrase.Type.Solo }));
             Assert.That(phrases, Has.One.Matches<MoonPhrase>(phrase =>
-                phrase is { tick: 200, length: 101, type: MoonPhrase.Type.Solo }));
+                phrase is { tick: 200, length: 100, type: MoonPhrase.Type.Solo }));
         }
     }
 
