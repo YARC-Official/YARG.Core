@@ -3,12 +3,12 @@ using MoonscraperChartEditor.Song.IO;
 using NUnit.Framework;
 using YARG.Core.Parsing;
 
-namespace YARG.Core.UnitTests.MoonscraperChartParser.IO.Chart;
+namespace YARG.Core.UnitTests.Parsing;
 
 using static MoonSong;
 using static MoonNote;
 using static ChartText;
-using static YARG.Core.UnitTests.MoonscraperChartParser.MoonNoteAssertions;
+using static YARG.Core.UnitTests.Parsing.MoonNoteAssertions;
 
 internal class ChartReaderSpecTests
 {

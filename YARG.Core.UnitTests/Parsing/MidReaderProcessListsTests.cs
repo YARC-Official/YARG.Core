@@ -5,11 +5,11 @@ using MoonscraperChartEditor.Song.IO;
 using NUnit.Framework;
 using YARG.Core.Chart;
 
-namespace YARG.Core.UnitTests.MoonscraperChartParser.IO.Midi;
+namespace YARG.Core.UnitTests.Parsing;
 
 using static MoonSong;
 using static MoonNote;
-using static YARG.Core.UnitTests.MoonscraperChartParser.MoonNoteAssertions;
+using static YARG.Core.UnitTests.Parsing.MoonNoteAssertions;
 using MidiTextEvent = Melanchall.DryWetMidi.Core.TextEvent;
 
 public class MidReaderProcessListsTests

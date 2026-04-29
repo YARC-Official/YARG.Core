@@ -1,7 +1,7 @@
 using System.Text;
 using MoonscraperChartEditor.Song.IO;
 
-namespace YARG.Core.UnitTests.MoonscraperChartParser.IO.Chart;
+namespace YARG.Core.UnitTests.Parsing;
 
 internal static class ChartText
 {

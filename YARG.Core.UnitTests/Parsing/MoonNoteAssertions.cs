@@ -1,7 +1,7 @@
 using MoonscraperChartEditor.Song;
 using NUnit.Framework;
 
-namespace YARG.Core.UnitTests.MoonscraperChartParser;
+namespace YARG.Core.UnitTests.Parsing;
 
 internal static class MoonNoteAssertions
 {
