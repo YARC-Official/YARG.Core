@@ -38,11 +38,14 @@ namespace YARG.Core.Chart
         }
 
         /// <summary>
-        /// Filters events by enforcing a minimum interval between them,
-        /// and dropping duplicates detected by the given predicate.
+        /// Filters events by enforcing a minimum interval between them.
+        /// Simultaneous events (same time) are always kept to preserve
+        /// intentional duplicate pairs used for blending/transitions.
+        /// Optionally drops duplicates detected by the given predicate.
         /// </summary>
         public static List<T> FilterByInterval<T>(List<T> events, double interval,
-            Func<T, T, bool> isDuplicate) where T : ChartEvent
+            Func<T, T, bool>? isDuplicate = null)
+            where T : ChartEvent
         {
             if (events.Count == 0)
             {
@@ -54,8 +57,9 @@ namespace YARG.Core.Chart
             {
                 var current = events[i];
                 var previous = filtered[^1];
-                var isWithinInterval = current.Time - previous.Time < interval;
-                var shouldSkipDuplicate = isDuplicate(current, previous);
+                var timeDelta = current.Time - previous.Time;
+                var isWithinInterval = timeDelta > 0 && timeDelta < interval;
+                var shouldSkipDuplicate = isDuplicate != null && isDuplicate(current, previous);
                 if (!isWithinInterval && !shouldSkipDuplicate)
                 {
                     filtered.Add(current);
