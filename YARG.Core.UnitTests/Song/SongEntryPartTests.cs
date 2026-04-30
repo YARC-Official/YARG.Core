@@ -131,6 +131,40 @@ public class SongEntryPartTests
     }
 
     [Test]
+    public void HasDifficultyForInstrument_IsUnaffectedByOtherInstruments()
+    {
+        var parts = AvailableParts.Default;
+        parts.FourLaneDrums.ActivateDifficulty(Difficulty.Expert);
+        parts.FourLaneDrums.ActivateDifficulty(Difficulty.Hard);
+        parts.FourLaneDrums.ActivateDifficulty(Difficulty.Medium);
+        parts.FourLaneDrums.ActivateDifficulty(Difficulty.Easy);
+
+        var entry = CreateEntry(parts);
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(entry.HasDifficultyForInstrument(Instrument.FourLaneDrums, DifficultyMask.Expert), Is.True);
+            Assert.That(entry.HasDifficultyForInstrument(Instrument.FourLaneDrums, DifficultyMask.Hard), Is.True);
+            Assert.That(entry.HasDifficultyForInstrument(Instrument.FourLaneDrums, DifficultyMask.Medium), Is.True);
+            Assert.That(entry.HasDifficultyForInstrument(Instrument.FourLaneDrums, DifficultyMask.Easy), Is.True);
+            Assert.That(entry.HasDifficultyForInstrument(Instrument.FourLaneDrums, DifficultyMask.Beginner), Is.True);
+        }
+
+        parts.FiveFretGuitar.ActivateDifficulty(Difficulty.Easy);
+
+        entry = CreateEntry(parts);
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(entry.HasDifficultyForInstrument(Instrument.FourLaneDrums, DifficultyMask.Expert), Is.True);
+            Assert.That(entry.HasDifficultyForInstrument(Instrument.FourLaneDrums, DifficultyMask.Hard), Is.True);
+            Assert.That(entry.HasDifficultyForInstrument(Instrument.FourLaneDrums, DifficultyMask.Medium), Is.True);
+            Assert.That(entry.HasDifficultyForInstrument(Instrument.FourLaneDrums, DifficultyMask.Easy), Is.True);
+            Assert.That(entry.HasDifficultyForInstrument(Instrument.FourLaneDrums, DifficultyMask.Beginner), Is.True);
+        }
+    }
+
+    [Test]
     public void HasEmhxDifficultiesForInstrument_RequiresEasyMediumHardAndExpert()
     {
         var completeParts = AvailableParts.Default;
