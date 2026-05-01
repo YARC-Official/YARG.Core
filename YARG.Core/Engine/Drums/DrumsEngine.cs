@@ -69,7 +69,7 @@ namespace YARG.Core.Engine.Drums
             }
 
             // Cancel overhit if past last note
-            if (NoteIndex >= Chart.Notes.Count - 1)
+            if (NoteIndex > Chart.Notes.Count - 1)
             {
                 return;
             }

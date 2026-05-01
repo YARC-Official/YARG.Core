@@ -23,6 +23,7 @@ namespace YARG.Core.IO
         {
             if (_data.Length == 0)
             {
+                _data.Dispose();
                 YargLogger.LogWarning("Milo file does not contain lipsync data");
                 return new List<VisemeData>();
             }

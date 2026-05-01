@@ -24,6 +24,7 @@ namespace YARG.Core.IO
             // The milo file was not found
             if (_data.Length == 0)
             {
+                _data.Dispose();
                 return events;
             }
 

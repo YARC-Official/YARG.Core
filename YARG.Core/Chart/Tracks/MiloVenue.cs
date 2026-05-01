@@ -41,25 +41,30 @@ namespace YARG.Core.Chart
         public void Load()
         {
             var miloData = _song.LoadMiloData();
+
             if (miloData is { Length: > 0 })
             {
-                var miloReader = new MiloAnimation(miloData);
-                _rawEvents = miloReader.GetMiloAnimation();
+                using (var miloReader = new MiloAnimation(miloData))
+                {
+                    _rawEvents = miloReader.GetMiloAnimation();
+                }
 
-                var lipsyncReader = new MiloLipsync(miloData);
-                _lipsyncData = lipsyncReader.GetLipsyncData();
+                using(var lipsyncReader = new MiloLipsync(miloData))
+                {
+                    _lipsyncData = lipsyncReader.GetLipsyncData();
 
-                // Dispose of the FixedArray and the reader (which has its own FixedArray)
-                miloReader.Dispose();
-                lipsyncReader.Dispose();
-                miloData.Dispose();
+                }
             }
             else
             {
                 // We couldn't load the milo data, so we'll just return
+                // We don't know if miloData didn't load or if it's just zero length
                 miloData?.Dispose();
                 return;
             }
+
+            miloData.Dispose();
+
 
             for (; _rawEventIndex < _rawEvents.Count; _rawEventIndex++)
             {

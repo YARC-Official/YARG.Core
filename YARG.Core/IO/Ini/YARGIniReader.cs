@@ -8,11 +8,10 @@ namespace YARG.Core.IO.Ini
 {
     public static class YARGIniReader
     {
-        public static Dictionary<string, IniModifierCollection> ReadIniFile(string iniPath, Dictionary<string, Dictionary<string, IniModifierOutline>> lookups)
+        public static Dictionary<string, IniModifierCollection> ReadIniFile(FixedArray<byte> bytes, Dictionary<string, Dictionary<string, IniModifierOutline>> lookups)
         {
             try
             {
-                using var bytes = FixedArray.LoadFile(iniPath);
                 if (YARGTextReader.TryUTF8(bytes, out var byteContainer))
                 {
                     return ProcessIni(ref byteContainer, lookups);
@@ -29,6 +28,21 @@ namespace YARG.Core.IO.Ini
                 var intContainer = YARGTextReader.CreateUTF32Container(ints);
                 return ProcessIni(ref intContainer, lookups);
 
+            }
+            catch (Exception ex)
+            {
+                YargLogger.LogException(ex, ex.Message);
+                return new();
+            }
+        }
+
+        public static Dictionary<string, IniModifierCollection> ReadIniFile(string iniPath,
+            Dictionary<string, Dictionary<string, IniModifierOutline>> lookups)
+        {
+            try
+            {
+                using var bytes = FixedArray.LoadFile(iniPath);
+                return ReadIniFile(bytes, lookups);
             }
             catch (Exception ex)
             {

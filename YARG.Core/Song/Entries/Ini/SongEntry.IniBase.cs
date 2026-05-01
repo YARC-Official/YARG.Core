@@ -486,7 +486,7 @@ namespace YARG.Core.Song
                     ulong _ = YARGChartFileReader.Extract<TChar, ulong>(ref container);
                     if (lane <= 4)
                     {
-                        part.Difficulties |= diff_mask;
+                        part.ActivateDifficulty(difficulty);
                     }
                     else if (lane == 5)
                     {
@@ -494,7 +494,7 @@ namespace YARG.Core.Song
                         if (drumsType >= DrumsType.FiveLane)
                         {
                             drumsType = DrumsType.FiveLane;
-                            part.Difficulties |= diff_mask;
+                            part.ActivateDifficulty(difficulty);
                         }
                     }
                     else if (YELLOW_CYMBAL <= lane && lane <= GREEN_CYMBAL)
@@ -508,7 +508,7 @@ namespace YARG.Core.Song
                     {
                         if (difficulty == Difficulty.Expert)
                         {
-                            part.Difficulties |= DifficultyMask.ExpertPlus;
+                            part.ActivateDifficulty(Difficulty.ExpertPlus);
                         }
                     }
 

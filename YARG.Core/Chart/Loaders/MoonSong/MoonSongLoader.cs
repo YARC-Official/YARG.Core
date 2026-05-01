@@ -71,8 +71,10 @@ namespace YARG.Core.Chart
 
         public static MoonSongLoader LoadDotChart(ParseSettings settings, ReadOnlySpan<char> chartText)
         {
+            // Reading from a .chart *file* is handled in LoadSong, and checks the extension
+            // This path reads from data already in-memory, which we know is '.chart', so this is hardcoded
             var song = ChartReader.ReadFromText(ref settings, chartText);
-            return new(song, settings);
+            return new(song, settings)  { _inclusiveSoloBoundary = true };
         }
 
         public List<TextEvent> LoadGlobalEvents()

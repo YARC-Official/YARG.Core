@@ -234,14 +234,15 @@ namespace MoonscraperChartEditor.Song.IO
                         continue;
                     }
 
-                    // .chart handles solo phrases with *inclusive ends*, so we have to add one tick.
+                    // .chart handles solo phrases with *inclusive ends*. This is handled by the
+                    // _inclusiveSoloBoundary flag in MoonSongLoader which makes IsEventInPhrase use <=.
                     // The only exception will be if another solo starts on the same exact tick.
                     //
                     // Comparing to the current tick instead of against uint.MaxValue ensures
                     // that we don't allow overlaps
                     if (nextStartTick != ev.tick)
                     {
-                        chart.Insert(new MoonPhrase(startTick, ev.tick + 1 - startTick, MoonPhrase.Type.Solo));
+                        chart.Insert(new MoonPhrase(startTick, ev.tick - startTick, MoonPhrase.Type.Solo));
                         startTick = uint.MaxValue;
                     }
                     else
