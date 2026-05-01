@@ -444,7 +444,7 @@ namespace YARG.Core.Engine.Guitar.Engines
                     // (can't hold note higher than the highest fret of chord)
 
                     // Button mask subtract the anchor must equal chord mask (all frets of chord held)
-                    return chordMask >= anchorButtons && buttonsMasked - anchorButtons == note.NoteMask;
+                    return IsAnchoringValid(anchorButtons, chordMask) && buttonsMasked - anchorButtons == note.NoteMask;
                 }
 
                 // Anchoring single notes
@@ -452,7 +452,7 @@ namespace YARG.Core.Engine.Guitar.Engines
 
                 // Remove the open mask from note otherwise this will always pass (as its higher than all notes)
                 // This is only used for single notes, open chords are handled above
-                return anchorButtons < (noteMask & unchecked((byte) ~OPEN_MASK));
+                return IsAnchoringValid(anchorButtons, noteMask & unchecked((byte) ~OPEN_MASK));
             }
         }
 
@@ -521,7 +521,7 @@ namespace YARG.Core.Engine.Guitar.Engines
             }
         }
 
-        protected bool CheckForGhostInput(GuitarNote note)
+        protected virtual bool CheckForGhostInput(GuitarNote note)
         {
             // First note cannot be ghosted, nor can a note be ghosted if a button is unpressed (pulloff)
             if (note.PreviousNote is null || !IsFretPress)
@@ -545,6 +545,22 @@ namespace YARG.Core.Engine.Guitar.Engines
             }
 
             return false;
+        }
+
+        /// <summary>
+        /// Checks if anchor buttons are valid for the given target fret value.
+        /// Anchor frets must be strictly lower than the target fret.
+        /// For 5-fret, fret number equals bit position, so direct comparison works.
+        /// </summary>
+        protected virtual bool IsAnchoringValid(int anchorButtons, int targetFretValue)
+        {
+            if (anchorButtons == 0)
+            {
+                return true;
+            }
+
+            // For 5-fret, bit position == fret number, MSB gives highest anchor fret
+            return GetMostSignificantBit(anchorButtons) < targetFretValue;
         }
 
         private void HandleCodaFretChange(double time)
