@@ -14,7 +14,18 @@ internal static class ChartText
 
     public static string SongSection(uint resolution = Resolution)
     {
-        return Section(ChartIOHelper.SECTION_SONG, $"Resolution = {resolution}");
+        return Section(ChartIOHelper.SECTION_SONG,
+            "Name = \"Solo Boundary Test\"",
+            "Artist = \"YARG Test Suite\"",
+            "Charter = \"Claude\"",
+            "Offset = 0",
+            $"Resolution = {resolution}",
+            "Player2 = bass",
+            "Difficulty = 0",
+            "PreviewStart = 0",
+            "PreviewEnd = 0",
+            "Genre = \"test\"",
+            "MediaType = \"test\"");
     }
 
     public static string SyncSection()
