@@ -23,7 +23,7 @@ namespace YARG.Core.UnitTests.Parsing
         /// <summary>
         /// Helper to load chart from text with _inclusiveSoloBoundary set correctly for .chart format
         /// </summary>
-        private static (SongChart songChart, InstrumentTrack<GuitarNote> track) LoadChartForSoloTest(string chartText)
+        private static InstrumentTrack<GuitarNote> LoadFiveFretGuitarTrack(string chartText)
         {
             var settings = new ParseSettings
             {
@@ -37,8 +37,7 @@ namespace YARG.Core.UnitTests.Parsing
             };
 
             var songChart = SongChart.FromDotChart(settings, chartText.AsSpan());
-            var track = songChart.GetFiveFretTrack(Instrument.FiveFretGuitar);
-            return (songChart, track);
+            return songChart.GetFiveFretTrack(Instrument.FiveFretGuitar);
         }
 
         /// <summary>
@@ -75,7 +74,7 @@ namespace YARG.Core.UnitTests.Parsing
                     "1000 = N 3 0",
                     "1200 = N 4 0"));
 
-            var (_, track) = LoadChartForSoloTest(chartText);
+            var track = LoadFiveFretGuitarTrack(chartText);
             var difficulty = track.GetDifficulty(YargDifficulty.Expert);
 
             Console.WriteLine($"Total notes: {difficulty.Notes.Count}");
@@ -119,7 +118,7 @@ namespace YARG.Core.UnitTests.Parsing
                     "1000 = N 0 0",
                     "1001 = N 1 0",
                     "1100 = N 2 0"));
-            var (_, track) = LoadChartForSoloTest(chartText);
+            var track = LoadFiveFretGuitarTrack(chartText);
 
             // Note one tick after solo end - should NOT have solo flag
             var noteAfter = FindNoteAtTick(track, 1001);
@@ -153,7 +152,7 @@ namespace YARG.Core.UnitTests.Parsing
                     "1000 = N 4 0",
                     "1020 = N 0 0",
                     "1020 = N 1 0"));
-            var (_, track) = LoadChartForSoloTest(chartText);
+            var track = LoadFiveFretGuitarTrack(chartText);
 
             // Note before solo - no solo flag
             var noteBefore = FindNoteAtTick(track, 480);
@@ -205,7 +204,7 @@ namespace YARG.Core.UnitTests.Parsing
                     "1000 = N 1 0",
                     "1100 = N 2 0",
                     $"1500 = E \"{TextEvents.SOLO_END}\""));
-            var (_, track) = LoadChartForSoloTest(chartText);
+            var track = LoadFiveFretGuitarTrack(chartText);
 
             // Note in first solo - has solo flag
             var noteFirst = FindNoteAtTick(track, 600);
@@ -235,7 +234,7 @@ namespace YARG.Core.UnitTests.Parsing
                     $"500 = E \"{TextEvents.SOLO_END}\"",
                     "500 = N 0 0",
                     "520 = N 1 0"));
-            var (_, track) = LoadChartForSoloTest(chartText);
+            var track = LoadFiveFretGuitarTrack(chartText);
 
             // Note at same tick as zero-length solo - should have solo flag
             var noteAt = FindNoteAtTick(track, 500);
