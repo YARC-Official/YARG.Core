@@ -421,6 +421,29 @@ namespace YARG.Core.UnitTests.Parsing
         }
 
         [Test]
+        public void GuitarProcessList_ConvertsZeroLengthSoloTextEventsToSoloPhrase()
+        {
+            var chartText = ChartText.Chart(
+                ChartText.SongSection(),
+                ChartText.SyncSection(),
+                ChartText.Section("ExpertSingle",
+                    "480 = E \"test\"",
+                    $"500 = E \"{TextEvents.SOLO_START}\"",
+                    $"500 = E \"{TextEvents.SOLO_END}\""));
+
+            var song = ChartReader.ReadFromText(chartText);
+            var chart = song.GetChart(MoonInstrument.Guitar, MoonDifficulty.Expert);
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(chart.events, Has.One.Matches<MoonText>(text =>
+                    text is { tick: 480, text: "test" }));
+                Assert.That(chart.specialPhrases, Has.One.Matches<MoonPhrase>(phrase =>
+                    phrase is { tick: 500, length: 0, type: MoonPhrase.Type.Solo }));
+            }
+        }
+
+        [Test]
         public void DrumsProcessList_AppliesCymbalAndDynamicsAfterNotesAreParsed()
         {
             var chartText = ChartText.Chart(
