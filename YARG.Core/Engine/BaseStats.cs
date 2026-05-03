@@ -234,7 +234,9 @@ namespace YARG.Core.Engine
             BandMultiplier = stats.BandMultiplier;
 
             NotesHit = stats.NotesHit;
+            LanedNotesHit = stats.LanedNotesHit;
             TotalNotes = stats.TotalNotes;
+            TotalChords = stats.TotalChords;
 
             TotalOffset = stats.TotalOffset;
             AverageOffset = stats.AverageOffset;
@@ -253,6 +255,7 @@ namespace YARG.Core.Engine
 
             SoloBonuses = stats.SoloBonuses;
             MaxSoloBonusPoints = stats.MaxSoloBonusPoints;
+            CodaBonuses = stats.CodaBonuses;
             StarPowerScore = stats.StarPowerScore;
 
             Stars = stats.Stars;
