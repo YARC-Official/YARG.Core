@@ -1,18 +1,20 @@
 ﻿using System;
 using System.Collections.Generic;
+using YARG.Core.Logging;
 
 namespace YARG.Core.Engine
 {
     public partial class EngineManager
     {
+        private const int NUMBER_OF_STAR_SCORE_THRESHOLDS = 6;
         public int   Score { get; set; }
         public int   Combo { get; set; }
         public float Stars { get; private set; }
 
         private int _currentStarIndex;
 
-        public int[] StarScoreThresholds = new int[6];
-        public  int   BandMultiplier => Math.Max(_starpowerCount * 2, 1);
+        public int[] StarScoreThresholds = new int[NUMBER_OF_STAR_SCORE_THRESHOLDS];
+        public int   BandMultiplier => Math.Max(_starpowerCount * 2, 1);
 
         private int          _activeCodaCount;
 
@@ -87,9 +89,19 @@ namespace YARG.Core.Engine
 
         public static int[] GetStarScoreCutoffs(List<int[]> starScoreCutoffsList)
         {
+#if DEBUG
+            foreach (var playerCutoffsList in starScoreCutoffsList)
+            {
+                YargLogger.AssertFormat(
+                    playerCutoffsList.Length == NUMBER_OF_STAR_SCORE_THRESHOLDS,
+                    "Expected player star score cutoffs to contain {0} thresholds, got {1}.",
+                    NUMBER_OF_STAR_SCORE_THRESHOLDS,
+                    playerCutoffsList.Length);
+            }
+#endif
 
-            int[] bandStarScoreCutoffs = new int[6];
-            for (int i = 0; i < 6; i++)
+            int[] bandStarScoreCutoffs = new int[NUMBER_OF_STAR_SCORE_THRESHOLDS];
+            for (int i = 0; i < NUMBER_OF_STAR_SCORE_THRESHOLDS; i++)
             {
                 int totalStarCutoff = 0;
                 foreach (var playerCutoffsList in starScoreCutoffsList)

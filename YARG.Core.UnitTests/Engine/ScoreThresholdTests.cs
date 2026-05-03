@@ -1,6 +1,8 @@
 using NUnit.Framework;
+using Cysharp.Text;
 using YARG.Core.Engine;
 using YARG.Core.Engine.Guitar.Engines;
+using YARG.Core.Logging;
 
 namespace YARG.Core.UnitTests.Engine;
 
@@ -40,6 +42,29 @@ public class ScoreThresholdTests
     }
 
     [Test]
+    public void GetStarScoreCutoffs_ForBand_ShortPlayerCutoffsLogsFailureBeforeIndexingFails()
+    {
+        var listener = new CapturingLogListener();
+        YargLogger.AddLogListener(listener);
+
+        try
+        {
+            Assert.Throws<IndexOutOfRangeException>(() =>
+                EngineManager.GetStarScoreCutoffs([[100, 200, 300, 400, 500]]));
+
+            YargLogger.FlushLogQueue();
+        }
+        finally
+        {
+            YargLogger.RemoveLogListener(listener);
+        }
+
+        Assert.That(listener.Items, Has.Exactly(1).Matches<CapturedLogItem>(item =>
+            item.Level == LogLevel.Failure &&
+            item.Message.Contains("Expected player star score cutoffs to contain")));
+    }
+
+    [Test]
     public void UpdateStars_ReportsProgressTowardNextThreshold()
     {
         var manager = new EngineManager
@@ -65,5 +90,22 @@ public class ScoreThresholdTests
         manager.UpdateStars();
 
         Assert.That(manager.Stars, Is.EqualTo(1.0f).Within(0.0000001));
+    }
+
+    private readonly record struct CapturedLogItem(LogLevel Level, string Message);
+
+    private sealed class CapturingLogListener : BaseYargLogListener
+    {
+        public List<CapturedLogItem> Items { get; } = new();
+
+        public CapturingLogListener()
+            : base(new MessageOnlyYargLogFormatter())
+        {
+        }
+
+        public override void WriteLogItem(ref Utf16ValueStringBuilder output, LogItem item)
+        {
+            Items.Add(new CapturedLogItem(item.Level, output.ToString()));
+        }
     }
 }
