@@ -12,7 +12,7 @@ namespace YARG.Core.Game
 {
     public class YargProfile
     {
-        private const int PROFILE_VERSION = 9;
+        private const int PROFILE_VERSION = 7;
 
         public Guid Id;
         public string Name;
@@ -209,8 +209,6 @@ namespace YARG.Core.Game
             {
                 OpenLaneDisplayType = OpenLaneDisplayType.Never;
             }
-
-            // Removed SixFretSplitLanes (version >=8) - now at version 9
         }
 
         public void AddSingleModifier(Modifier modifier)
