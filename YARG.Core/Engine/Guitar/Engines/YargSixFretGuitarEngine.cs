@@ -41,7 +41,7 @@ namespace YARG.Core.Engine.Guitar.Engines
     /// all corresponding frets can optionally be held before strumming the first note.
     /// </para>
     /// <para>
-    /// <b>Chords:</b> HOPO chords and bar chords (2-note chords in same fret lane)
+    /// <b>Chords:</b> HOPO chords and barres (2-note barres in same fret lane)
     /// are supported. All frets of a HOPO chord must be tapped simultaneously.
     /// </para>
     /// <para>
