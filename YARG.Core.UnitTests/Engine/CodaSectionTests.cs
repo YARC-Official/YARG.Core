@@ -39,9 +39,9 @@ public class CodaSectionTests
     {
         var coda = new CodaSection(scoringZones: 5, startTime: 10.0, endTime: 15.0);
 
-        coda.HitLane(time: 10.0, fret: 2);
-        coda.HitLane(time: 10.75, fret: 2);
-        coda.HitLane(time: 12.25, fret: 2);
+        coda.HitLane(time: 10.0, action: 2);
+        coda.HitLane(time: 10.75, action: 2);
+        coda.HitLane(time: 12.25, action: 2);
 
         using (Assert.EnterMultipleScope())
         {
@@ -55,9 +55,9 @@ public class CodaSectionTests
     {
         var coda = new CodaSection(scoringZones: 1, startTime: 10.0, endTime: 15.0);
 
-        coda.HitLane(time: 10.0, fret: 0);
-        coda.HitLane(time: 10.75, fret: 3);
-        coda.HitLane(time: 12.25, fret: 4);
+        coda.HitLane(time: 10.0, action: 0);
+        coda.HitLane(time: 10.75, action: 3);
+        coda.HitLane(time: 12.25, action: 4);
 
         Assert.That(coda.TotalCodaBonus, Is.EqualTo(1875));
     }
@@ -67,8 +67,8 @@ public class CodaSectionTests
     {
         var coda = new CodaSection(scoringZones: 5, startTime: 10.0, endTime: 15.0);
 
-        coda.HitLane(time: 10.0, fret: 0);
-        coda.HitLane(time: 10.75, fret: 5);
+        coda.HitLane(time: 10.0, action: 0);
+        coda.HitLane(time: 10.75, action: 5);
 
         Assert.That(coda.TotalCodaBonus, Is.EqualTo(225));
     }
@@ -84,8 +84,8 @@ public class CodaSectionTests
             [7] = 1,
         });
 
-        coda.HitLane(time: 10.0, fret: 1);
-        coda.HitLane(time: 10.75, fret: 7);
+        coda.HitLane(time: 10.0, action: 1);
+        coda.HitLane(time: 10.75, action: 7);
 
         using (Assert.EnterMultipleScope())
         {
@@ -99,7 +99,7 @@ public class CodaSectionTests
     {
         var coda = new CodaSection(scoringZones: 5, startTime: 10.0, endTime: 15.0);
 
-        coda.HitLane(time: 10.0, fret: 0);
+        coda.HitLane(time: 10.0, action: 0);
         coda.MissNote();
         coda.Reset(earnedBonus: 123);
 
