@@ -10,9 +10,11 @@ using YARG.Core.IO;
 
 namespace YARG.Core.Game
 {
-    public class YargProfile
+    public partial class YargProfile
     {
-        private const int PROFILE_VERSION = 7;
+        private readonly int PROFILE_VERSION = 8;
+
+        public int Version;
 
         public Guid Id;
         public string Name;
@@ -28,13 +30,16 @@ namespace YARG.Core.Game
 
         public bool RangeEnabled;
 
+        public int FourLaneDrumsHighwayOrderingLength;
+        public DrumsHighwayItem[] FourLaneDrumsHighwayOrdering;
+
+        public int ProDrumsHighwayOrderingLength;
+        public DrumsHighwayItem[] ProDrumsHighwayOrdering;
+
+        public int FiveLaneDrumsHighwayOrderingLength;
+        public DrumsHighwayItem[] FiveLaneDrumsHighwayOrdering;
+
         public bool UseCymbalModels;
-
-        public bool SplitProTomsAndCymbals;
-
-        public bool SwapSnareAndHiHat;
-
-        public bool SwapCrashAndRide;
 
         public OpenLaneDisplayType OpenLaneDisplayType;
 
@@ -122,10 +127,13 @@ namespace YARG.Core.Game
             HighwayLength = 1;
             LeftyFlip = false;
             RangeEnabled = true;
+            FourLaneDrumsHighwayOrderingLength = 4;
+            FourLaneDrumsHighwayOrdering = DEFAULT_FOUR_LANE_ORDERING;
+            ProDrumsHighwayOrderingLength = 4;
+            ProDrumsHighwayOrdering = DEFAULT_FOUR_LANE_ORDERING;
+            FiveLaneDrumsHighwayOrderingLength = 5;
+            FiveLaneDrumsHighwayOrdering = DEFAULT_FIVE_LANE_ORDERING;
             UseCymbalModels = true;
-            SplitProTomsAndCymbals = false;
-            SwapSnareAndHiHat = false;
-            SwapCrashAndRide = false;
             StarPowerActivationType = StarPowerActivationType.RightmostNote;
             OpenLaneDisplayType = OpenLaneDisplayType.Never;
 
@@ -145,7 +153,7 @@ namespace YARG.Core.Game
 
         public YargProfile(ref FixedArrayStream stream)
         {
-            int version = stream.Read<int>(Endianness.Little);
+            Version = stream.Read<int>(Endianness.Little);
 
             Name = stream.ReadString();
 
@@ -155,7 +163,7 @@ namespace YARG.Core.Game
             ColorProfile = stream.ReadGuid();
             CameraPreset = stream.ReadGuid();
 
-            if (version >= 2)
+            if (Version >= 2)
             {
                 HighwayPreset = stream.ReadGuid();
             }
@@ -170,20 +178,56 @@ namespace YARG.Core.Game
             HighwayLength = stream.Read<float>(Endianness.Little);
             LeftyFlip = stream.ReadBoolean();
 
-            if (version >= 3)
+            if (Version >= 3)
             {
                 RangeEnabled = stream.ReadBoolean();
             }
 
-            if (version >= 4)
+            if (Version >= 4)
             {
                 UseCymbalModels = stream.ReadBoolean();
-                SplitProTomsAndCymbals = stream.ReadBoolean();
-                SwapSnareAndHiHat = stream.ReadBoolean();
-                SwapCrashAndRide = stream.ReadBoolean();
+                var splitProTomsAndCymbals = stream.ReadBoolean();
+                var swapSnareAndHiHat = stream.ReadBoolean();
+                var swapCrashAndRide = stream.ReadBoolean();
+
+                if (Version < 8) // Interpret the old split-all and single-swap settings into highway orderings
+                {
+                    FourLaneDrumsHighwayOrderingLength = 4;
+                    FourLaneDrumsHighwayOrdering = DEFAULT_FOUR_LANE_ORDERING;
+
+                    ProDrumsHighwayOrderingLength = splitProTomsAndCymbals ? 7 : 4;
+                    ProDrumsHighwayOrdering = splitProTomsAndCymbals ? new DrumsHighwayItem[]
+                    {
+                        swapSnareAndHiHat ?  DrumsHighwayItem.YellowCymbal : DrumsHighwayItem.Red,
+                        swapSnareAndHiHat ?  DrumsHighwayItem.Red : DrumsHighwayItem.YellowCymbal,
+                        DrumsHighwayItem.YellowDrum,
+                        swapCrashAndRide ? DrumsHighwayItem.GreenCymbal : DrumsHighwayItem.BlueCymbal,
+                        DrumsHighwayItem.BlueDrum,
+                        swapCrashAndRide ? DrumsHighwayItem.BlueCymbal : DrumsHighwayItem.GreenCymbal,
+                        DrumsHighwayItem.GreenDrum,
+                    } : DEFAULT_FOUR_LANE_ORDERING;
+
+                    FiveLaneDrumsHighwayOrderingLength = 5;
+                    FiveLaneDrumsHighwayOrdering = new DrumsHighwayItem[]
+                    {
+                        swapSnareAndHiHat ? DrumsHighwayItem.Yellow : DrumsHighwayItem.Red,
+                        swapSnareAndHiHat ? DrumsHighwayItem.Red : DrumsHighwayItem.Yellow,
+                        DrumsHighwayItem.Blue,
+                        DrumsHighwayItem.Orange,
+                        DrumsHighwayItem.Green
+                    };
+                }
+            } else
+            {
+                FourLaneDrumsHighwayOrderingLength = 4;
+                FourLaneDrumsHighwayOrdering = DEFAULT_FOUR_LANE_ORDERING;
+                ProDrumsHighwayOrderingLength = 4;
+                ProDrumsHighwayOrdering = DEFAULT_FOUR_LANE_ORDERING;
+                FiveLaneDrumsHighwayOrderingLength = 5;
+                FiveLaneDrumsHighwayOrdering = DEFAULT_FIVE_LANE_ORDERING;
             }
 
-            if (version >= 5)
+            if (Version >= 5)
             {
                 StarPowerActivationType = (StarPowerActivationType) stream.ReadByte();
             }
@@ -192,7 +236,7 @@ namespace YARG.Core.Game
                 StarPowerActivationType = StarPowerActivationType.RightmostNote;
             }
 
-            if (version >= 6)
+            if (Version >= 6)
             {
                 GameMode = (GameMode) stream.ReadByte();
             }
@@ -201,13 +245,37 @@ namespace YARG.Core.Game
                 GameMode = CurrentInstrument.ToNativeGameMode();
             }
 
-            if (version >= 7)
+            if (Version >= 7)
             {
                 OpenLaneDisplayType = (OpenLaneDisplayType) stream.ReadByte();
             }
             else
             {
                 OpenLaneDisplayType = OpenLaneDisplayType.Never;
+            }
+
+            if (Version >= 8)
+            {
+                FourLaneDrumsHighwayOrderingLength = stream.ReadByte();
+                FourLaneDrumsHighwayOrdering = new DrumsHighwayItem[FourLaneDrumsHighwayOrderingLength];
+                for (var i = 0; i < FourLaneDrumsHighwayOrderingLength; i++)
+                {
+                    FourLaneDrumsHighwayOrdering[i] = (DrumsHighwayItem)stream.ReadByte();
+                }
+
+                ProDrumsHighwayOrderingLength = stream.ReadByte();
+                ProDrumsHighwayOrdering = new DrumsHighwayItem[ProDrumsHighwayOrderingLength];
+                for (var i = 0; i < ProDrumsHighwayOrderingLength; i++)
+                {
+                    ProDrumsHighwayOrdering[i] = (DrumsHighwayItem) stream.ReadByte();
+                }
+
+                FiveLaneDrumsHighwayOrderingLength = stream.ReadByte();
+                FiveLaneDrumsHighwayOrdering = new DrumsHighwayItem[FiveLaneDrumsHighwayOrderingLength];
+                for (var i = 0; i < FiveLaneDrumsHighwayOrderingLength; i++)
+                {
+                    FiveLaneDrumsHighwayOrdering[i] = (DrumsHighwayItem) stream.ReadByte();
+                }
             }
         }
 
@@ -396,15 +464,48 @@ namespace YARG.Core.Game
             writer.Write(RangeEnabled);
 
             writer.Write(UseCymbalModels);
-            writer.Write(SplitProTomsAndCymbals);
-            writer.Write(SwapSnareAndHiHat);
-            writer.Write(SwapCrashAndRide);
+            writer.Write((byte)0); // Superseded by highway orderings
+            writer.Write((byte)0); // Superseded by highway orderings
+            writer.Write((byte)0); // Superseded by highway orderings
 
             writer.Write((byte) StarPowerActivationType);
 
             writer.Write((byte) GameMode);
 
             writer.Write((byte) OpenLaneDisplayType);
+
+            writer.Write((byte)FourLaneDrumsHighwayOrdering.Length);
+            foreach (var item in FourLaneDrumsHighwayOrdering)
+            {
+                writer.Write((byte) item);
+            }
+
+            writer.Write((byte) ProDrumsHighwayOrdering.Length);
+            foreach (var item in ProDrumsHighwayOrdering)
+            {
+                writer.Write((byte) item);
+            }
+
+            writer.Write((byte) FiveLaneDrumsHighwayOrdering.Length);
+            foreach (var item in FiveLaneDrumsHighwayOrdering)
+            {
+                writer.Write((byte) item);
+            }
         }
+
+        private static DrumsHighwayItem[] DEFAULT_FOUR_LANE_ORDERING = new DrumsHighwayItem[] {
+            DrumsHighwayItem.Red,
+            DrumsHighwayItem.Yellow,
+            DrumsHighwayItem.Blue,
+            DrumsHighwayItem.Green
+        };
+
+        private static DrumsHighwayItem[] DEFAULT_FIVE_LANE_ORDERING = new DrumsHighwayItem[] {
+            DrumsHighwayItem.Red,
+            DrumsHighwayItem.Yellow,
+            DrumsHighwayItem.Blue,
+            DrumsHighwayItem.Orange,
+            DrumsHighwayItem.Green
+        };
     }
 }

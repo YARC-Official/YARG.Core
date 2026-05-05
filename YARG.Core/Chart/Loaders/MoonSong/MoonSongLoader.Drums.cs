@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using MoonscraperChartEditor.Song;
 using MoonscraperChartEditor.Song.IO;
 using YARG.Core.Parsing;
+using static MoonscraperChartEditor.Song.MoonNote;
 
 namespace YARG.Core.Chart
 {
@@ -88,7 +89,10 @@ namespace YARG.Core.Chart
             var drumFlags = GetDrumNoteFlags(moonNote, currentPhrases);
 
             double time = _moonSong.TickToTime(moonNote.tick);
-            return new DrumNote(pad, noteType, drumFlags, generalFlags, time, moonNote.tick);
+
+            bool isDoubleKick = pad is FourLaneDrumPad.Kick && ((moonNote.flags & Flags.InstrumentPlus) != 0);
+
+            return new DrumNote(pad, noteType, drumFlags, generalFlags, time, moonNote.tick, isDoubleKick);
         }
 
         private DrumNote CreateFiveLaneDrumNote(MoonNote moonNote, Dictionary<MoonPhrase.Type, MoonPhrase> currentPhrases, List<DrumNote> notes)
@@ -102,7 +106,10 @@ namespace YARG.Core.Chart
             var drumFlags = GetDrumNoteFlags(moonNote, currentPhrases);
 
             double time = _moonSong.TickToTime(moonNote.tick);
-            return new DrumNote(pad, noteType, drumFlags, generalFlags, time, moonNote.tick);
+
+            bool isDoubleKick = pad is FiveLaneDrumPad.Kick && ((moonNote.flags & Flags.InstrumentPlus) != 0);
+
+            return new DrumNote(pad, noteType, drumFlags, generalFlags, time, moonNote.tick, isDoubleKick);
         }
 
         private DrumNote CreateFourLaneDrumBeginnerNote(MoonNote moonNote, Dictionary<MoonPhrase.Type, MoonPhrase> currentPhrases, List<DrumNote> notes)
@@ -114,7 +121,7 @@ namespace YARG.Core.Chart
             var drumFlags = GetDrumNoteFlags(moonNote, currentPhrases);
 
             double time = _moonSong.TickToTime(moonNote.tick);
-            return new DrumNote(pad, noteType, drumFlags, generalFlags, time, moonNote.tick);
+            return new DrumNote(pad, noteType, drumFlags, generalFlags, time, moonNote.tick, false);
         }
 
         private DrumNote CreateFiveLaneDrumBeginnerNote(MoonNote moonNote, Dictionary<MoonPhrase.Type, MoonPhrase> currentPhrases, List<DrumNote> notes)
@@ -125,7 +132,7 @@ namespace YARG.Core.Chart
             var drumFlags = GetDrumNoteFlags(moonNote, currentPhrases);
 
             double time = _moonSong.TickToTime(moonNote.tick);
-            return new DrumNote(pad, noteType, drumFlags, generalFlags, time, moonNote.tick);
+            return new DrumNote(pad, noteType, drumFlags, generalFlags, time, moonNote.tick, false);
         }
 
         private void HandleTextEvent(MoonText text)

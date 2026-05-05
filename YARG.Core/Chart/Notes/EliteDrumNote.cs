@@ -15,6 +15,7 @@ namespace YARG.Core.Chart
         public bool IsInvisibleTerminator => HatPedalType == EliteDrumsHatPedalType.InvisibleTerminator;
         public bool IsStomp => HatPedalType == EliteDrumsHatPedalType.Stomp;
         public bool IsSplash => HatPedalType == EliteDrumsHatPedalType.Splash;
+        public bool IsDoubleKick;
         public EliteDrumsHatState HatState { get; set; }
         public EliteDrumsHatPedalType HatPedalType { get; set; }
         public bool IsOpen => HatState == EliteDrumsHatState.Open;
@@ -26,13 +27,13 @@ namespace YARG.Core.Chart
         public bool IsStarPowerActivator => (DrumFlags & DrumNoteFlags.StarPowerActivator) != 0;
 
         public EliteDrumNote (EliteDrumPad pad, DrumNoteType dynamics, EliteDrumsHatState hatState, EliteDrumsHatPedalType hatPedalType, bool isFlam, DrumNoteFlags drumFlags,
-            NoteFlags flags, EliteDrumsChannelFlag channelFlag, double time, uint tick)
-            : this((int)pad, dynamics, hatState, hatPedalType, isFlam, drumFlags, flags, channelFlag, time, tick)
+            NoteFlags flags, EliteDrumsChannelFlag channelFlag, double time, uint tick, bool isDoubleKick)
+            : this((int)pad, dynamics, hatState, hatPedalType, isFlam, drumFlags, flags, channelFlag, time, tick, isDoubleKick)
         {
         }
 
         public EliteDrumNote(int pad, DrumNoteType dynamics, EliteDrumsHatState hatState, EliteDrumsHatPedalType hatPedalType, bool isFlam, DrumNoteFlags drumFlags,
-            NoteFlags flags, EliteDrumsChannelFlag channelFlag, double time, uint tick)
+            NoteFlags flags, EliteDrumsChannelFlag channelFlag, double time, uint tick, bool isDoubleKick)
             : base(flags, time, 0, tick, 0)
         {
             Pad = pad;
@@ -43,12 +44,14 @@ namespace YARG.Core.Chart
             DrumFlags = _drumFlags = drumFlags;
             ChannelFlag = channelFlag;
             _padMask = 1 << pad;
+            IsDoubleKick = isDoubleKick;
         }
 
         public EliteDrumNote(EliteDrumNote other) : base(other)
         {
             Pad = other.Pad;
             Dynamics = other.Dynamics;
+            IsDoubleKick = other.IsDoubleKick;
 
             DrumFlags = _drumFlags = other._drumFlags;
 

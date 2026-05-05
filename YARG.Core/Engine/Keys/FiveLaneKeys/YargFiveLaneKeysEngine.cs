@@ -378,6 +378,7 @@ namespace YARG.Core.Engine.Keys.Engines
             // Figure out which keys changed
             var pressed = 1 << KeyHitThisUpdate.Value;
 
+
             // Hit the lane for any that were pressed
             for (int i = 0; i < (int)FiveLaneKeysAction.Wildcard; i++)
             {
