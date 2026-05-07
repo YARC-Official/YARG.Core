@@ -42,29 +42,6 @@ public class ScoreThresholdTests
     }
 
     [Test]
-    public void GetStarScoreCutoffs_ForBand_ShortPlayerCutoffsLogsFailureBeforeIndexingFails()
-    {
-        var listener = new CapturingLogListener();
-        YargLogger.AddLogListener(listener);
-
-        try
-        {
-            Assert.Throws<IndexOutOfRangeException>(() =>
-                EngineManager.GetStarScoreCutoffs([[100, 200, 300, 400, 500]]));
-
-            YargLogger.FlushLogQueue();
-        }
-        finally
-        {
-            YargLogger.RemoveLogListener(listener);
-        }
-
-        Assert.That(listener.Items, Has.Exactly(1).Matches<CapturedLogItem>(item =>
-            item.Level == LogLevel.Failure &&
-            item.Message.Contains("Expected player star score cutoffs to contain")));
-    }
-
-    [Test]
     public void UpdateStars_ReportsProgressTowardNextThreshold()
     {
         var manager = new EngineManager

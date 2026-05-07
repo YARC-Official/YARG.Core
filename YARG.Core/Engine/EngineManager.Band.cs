@@ -89,7 +89,7 @@ namespace YARG.Core.Engine
 
         public static int[] GetStarScoreCutoffs(List<int[]> starScoreCutoffsList)
         {
-#if DEBUG
+#if UNITY_EDITOR || YARG_TEST_BUILD || YARG_NIGHTLY_BUILD
             foreach (var playerCutoffsList in starScoreCutoffsList)
             {
                 YargLogger.AssertFormat(
