@@ -244,7 +244,7 @@ namespace YARG.Core.Game
                     (int)FourLaneDrumsFret.WildcardPad => DefaultWildcardStarpower,
 
                     // Exclusive to split-dedicated kick lanes
-                    (int) FourLaneDrumsFret.DoubleKick => DoubleKickNote,
+                    (int) FourLaneDrumsFret.DoubleKick => DoubleKickStarpower,
 
                     _ => default
                 };
