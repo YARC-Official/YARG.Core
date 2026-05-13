@@ -216,6 +216,11 @@ namespace YARG.Core.Engine
         /// </summary>
         private readonly List<double> OffsetSamples = new();
 
+        /// <summary>
+        /// The player's average multiplier. Calculated by CommittedScore / BaseNoteScore
+        /// </summary>
+        public float AverageMultiplier;
+
         protected BaseStats()
         {
         }
@@ -317,6 +322,7 @@ namespace YARG.Core.Engine
             TotalOffset = 0.0;
             AverageOffset = 0.0;
             OffsetSamples.Clear();
+            AverageMultiplier = 0;
             // Don't reset TotalNotes
             // TotalNotes = 0;
 
