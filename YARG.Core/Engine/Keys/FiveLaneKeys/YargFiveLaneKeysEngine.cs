@@ -403,16 +403,16 @@ namespace YARG.Core.Engine.Keys.Engines
             }
 
             // Mask has green = 1, 5LK actions are green = 0
-            var fret = fiveLaneKeyIndex + 1;
+            var fretMask = 1 << (fiveLaneKeyIndex);
 
             if (MaskIsMultiFret(RequiredLaneNote))
             {
                 // We don't directly check for mask equaling the current input mask because that would allow cheesing
                 // If the current fret satisfies one of the bits in the lane, we check KeyPressTimes to determine whether
                 // the other frets in the lane's mask have been pressed within ChordStaggerWindow
-                if ((fret & RequiredLaneNote) > 0)
+                if ((fretMask & RequiredLaneNote) > 0)
                 {
-                    mask = fret;
+                    mask = fretMask;
 
                     for (int i = 0; i < KeyPressTimes.Length; i++)
                     {
@@ -429,7 +429,7 @@ namespace YARG.Core.Engine.Keys.Engines
             }
             else
             {
-                mask = 1 << fret;
+                mask = fretMask;
             }
 
             return true;
@@ -443,9 +443,9 @@ namespace YARG.Core.Engine.Keys.Engines
             }
 
             // Mask has green = 1, 5LK actions are green = 0
-            var fret = fiveLaneKeyIndex + 1;
+            var fretMask = 1 << (fiveLaneKeyIndex);
 
-            if ((fret & RequiredLaneNote) > 0 || (NextTrillNote != -1 && fret == NextTrillNote))
+            if ((fretMask & RequiredLaneNote) > 0 || (NextTrillNote != -1 && fretMask == NextTrillNote))
             {
                 return true;
             }
