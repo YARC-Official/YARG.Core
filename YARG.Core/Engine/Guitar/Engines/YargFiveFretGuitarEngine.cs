@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using YARG.Core.Chart;
 using YARG.Core.Input;
@@ -371,7 +371,7 @@ namespace YARG.Core.Engine.Guitar.Engines
             // If masked/extended sustain logic didn't work, try original ButtonMask
             return IsNoteHittable(note, EffectiveButtonMask);
 
-            static bool IsNoteHittable(GuitarNote note, ushort buttonsMasked)
+            bool IsNoteHittable(GuitarNote note, ushort buttonsMasked)
             {
                 // Wildcard notes are always hittable regardless of what frets are held
                 if (note.Fret == (int) FiveFretGuitarFret.Wildcard)
@@ -436,25 +436,15 @@ namespace YARG.Core.Engine.Guitar.Engines
 
                     // Anchoring hopo/tap chords
 
-                    // Gets the lowest fret of the chord.
-                    var chordMask = 0;
-                    for (var fret = GuitarAction.GreenFret; fret <= GuitarAction.OrangeFret; fret++)
-                    {
-                        chordMask = 1 << (int) fret;
-
-                        // If the current fret mask is part of the chord, break
-                        if ((chordMask & note.NoteMask) == chordMask)
-                        {
-                            break;
-                        }
-                    }
+                    // Get the lowest fret of the chord.
+                    int chordMask = GetChordLowestFretMask(note);
 
                     // Anchor part:
                     // Lowest fret of chord must be bigger or equal to anchor buttons
                     // (can't hold note higher than the highest fret of chord)
 
                     // Button mask subtract the anchor must equal chord mask (all frets of chord held)
-                    return chordMask >= anchorButtons && buttonsMasked - anchorButtons == note.NoteMask;
+                    return IsAnchoringValid(anchorButtons, chordMask) && buttonsMasked - anchorButtons == note.NoteMask;
                 }
 
                 // Anchoring single notes
@@ -462,7 +452,7 @@ namespace YARG.Core.Engine.Guitar.Engines
 
                 // Remove the open mask from note otherwise this will always pass (as its higher than all notes)
                 // This is only used for single notes, open chords are handled above
-                return anchorButtons < (noteMask & unchecked((byte) ~OPEN_MASK));
+                return IsAnchoringValid(anchorButtons, noteMask & unchecked((byte) ~OPEN_MASK));
             }
         }
 
@@ -531,7 +521,7 @@ namespace YARG.Core.Engine.Guitar.Engines
             }
         }
 
-        protected bool CheckForGhostInput(GuitarNote note)
+        protected virtual bool CheckForGhostInput(GuitarNote note)
         {
             // First note cannot be ghosted, nor can a note be ghosted if a button is unpressed (pulloff)
             if (note.PreviousNote is null || !IsFretPress)
@@ -557,6 +547,22 @@ namespace YARG.Core.Engine.Guitar.Engines
             return false;
         }
 
+        /// <summary>
+        /// Checks if anchor buttons are valid for the given target fret value.
+        /// Anchor frets must be strictly lower than the target fret.
+        /// For 5-fret, fret number equals bit position, so direct comparison works.
+        /// </summary>
+        protected virtual bool IsAnchoringValid(int anchorButtons, int targetFretValue)
+        {
+            if (anchorButtons == 0)
+            {
+                return true;
+            }
+
+            // For 5-fret, bit position == fret number, MSB gives highest anchor fret
+            return GetMostSignificantBit(anchorButtons) < targetFretValue;
+        }
+
         private void HandleCodaFretChange(double time)
         {
             // We shouldn't be called if a coda isn't active, but let's check just in case
@@ -568,7 +574,7 @@ namespace YARG.Core.Engine.Guitar.Engines
             var coda = Codas[CurrentCodaIndex];
 
             // This creates a button mask for each fret, indexed by fret number
-            byte[] fretMask = new byte[5];
+            byte[] fretMask = CreateCodaFretMask();
             byte changed = (byte) 0;
             byte pressed = (byte) 0;
 
@@ -614,10 +620,31 @@ namespace YARG.Core.Engine.Guitar.Engines
                     continue;
                 }
 
-                codaSections.Add(new CodaSection(5, phrase.Time, phrase.TimeEnd));
+                codaSections.Add(new CodaSection(GetCodaFretCount(), phrase.Time, phrase.TimeEnd));
             }
 
             return codaSections;
         }
+
+        protected virtual int GetChordLowestFretMask(GuitarNote note)
+        {
+            var chordMask = 0;
+            for (var fret = GuitarAction.GreenFret; fret <= GuitarAction.OrangeFret; fret++)
+            {
+                chordMask = 1 << (int) fret;
+
+                // If the current fret mask is part of the chord, break
+                if ((chordMask & note.NoteMask) == chordMask)
+                {
+                    break;
+                }
+            }
+
+            return chordMask;
+        }
+
+        protected virtual byte[] CreateCodaFretMask() => new byte[5];
+
+        protected virtual int GetCodaFretCount() => 5;
     }
 }
