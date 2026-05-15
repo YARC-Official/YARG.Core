@@ -20,7 +20,7 @@ namespace YARG.Core.Song
 
         internal override void Serialize(MemoryStream stream, CacheWriteIndices node)
         {
-            stream.WriteByte((byte) _chartFormat);
+            stream.WriteByte((byte) _chartFileTypeIndex);
             stream.Write(_chartLastWrite.ToBinary(), Endianness.Little);
             stream.Write(_iniLastWrite.HasValue);
             if (_iniLastWrite.HasValue)
@@ -202,13 +202,13 @@ namespace YARG.Core.Song
             return files;
         }
 
-        private UnpackedIniEntry(string directory, in DateTime chartLastWrite, in DateTime? iniLastWrite, in ChartFormat format)
-            : base(directory, in chartLastWrite, format)
+        private UnpackedIniEntry(string directory, in DateTime chartLastWrite, in DateTime? iniLastWrite, in ChartFormat format, int chartFileTypeIndex)
+            : base(directory, in chartLastWrite, format, chartFileTypeIndex)
         {
             _iniLastWrite = iniLastWrite;
         }
 
-        public static ScanExpected<UnpackedIniEntry> ProcessNewEntry(string directory, FileInfo chartInfo, ChartFormat format, FileInfo? iniFile, string defaultPlaylist)
+        public static ScanExpected<UnpackedIniEntry> ProcessNewEntry(string directory, FileInfo chartInfo, int chartFileTypeIndex, FileInfo? iniFile, string defaultPlaylist)
         {
             IniModifierCollection iniModifiers;
             DateTime? iniLastWrite = default;
@@ -222,7 +222,8 @@ namespace YARG.Core.Song
                 iniModifiers = new();
             }
 
-            var entry = new UnpackedIniEntry(directory, AbridgedFileInfo.NormalizedLastWrite(chartInfo), in iniLastWrite, format);
+            var format = CHART_FILE_TYPES[chartFileTypeIndex].Format;
+            var entry = new UnpackedIniEntry(directory, AbridgedFileInfo.NormalizedLastWrite(chartInfo), in iniLastWrite, format, chartFileTypeIndex);
             entry._metadata.Playlist = defaultPlaylist;
 
             using var file = FixedArray.LoadFile(chartInfo.FullName);
@@ -234,7 +235,8 @@ namespace YARG.Core.Song
         public static UnpackedIniEntry? TryDeserialize(string baseDirectory, ref FixedArrayStream stream, CacheReadStrings strings)
         {
             string directory = Path.Combine(baseDirectory, stream.ReadString());
-            ref readonly var chart = ref CHART_FILE_TYPES[stream.ReadByte()];
+            int chartFileTypeIndex = stream.ReadByte();
+            ref readonly var chart = ref CHART_FILE_TYPES[chartFileTypeIndex];
             var chartLastWrite = DateTime.FromBinary(stream.Read<long>(Endianness.Little));
             if (!AbridgedFileInfo.Validate(Path.Combine(directory, chart.Filename), chartLastWrite))
             {
@@ -256,7 +258,7 @@ namespace YARG.Core.Song
                 return null;
             }
 
-            var entry = new UnpackedIniEntry(directory, in chartLastWrite, in iniLastWrite, chart.Format);
+            var entry = new UnpackedIniEntry(directory, in chartLastWrite, in iniLastWrite, chart.Format, chartFileTypeIndex);
             entry.Deserialize(ref stream, strings);
             return entry;
         }
@@ -264,10 +266,11 @@ namespace YARG.Core.Song
         public static UnpackedIniEntry ForceDeserialize(string baseDirectory, ref FixedArrayStream stream, CacheReadStrings strings)
         {
             string directory = Path.Combine(baseDirectory, stream.ReadString());
-            ref readonly var chart = ref CHART_FILE_TYPES[stream.ReadByte()];
+            int chartFileTypeIndex = stream.ReadByte();
+            ref readonly var chart = ref CHART_FILE_TYPES[chartFileTypeIndex];
             var chartLastWrite = DateTime.FromBinary(stream.Read<long>(Endianness.Little));
             DateTime? iniLastWrite = stream.ReadBoolean() ? DateTime.FromBinary(stream.Read<long>(Endianness.Little)) : default;
-            var entry = new UnpackedIniEntry(directory, in chartLastWrite, in iniLastWrite, chart.Format);
+            var entry = new UnpackedIniEntry(directory, in chartLastWrite, in iniLastWrite, chart.Format, chartFileTypeIndex);
             entry.Deserialize(ref stream, strings);
             return entry;
         }

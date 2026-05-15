@@ -5,6 +5,7 @@
         Mid, 
         Midi,
         Chart,
-        UltraStar
+        UltraStar,
+        SingStar
     }
 }
