@@ -29,7 +29,7 @@ namespace YARG.Core.Replays
             TotalOverdrivePhrases = stats.TotalStarPowerPhrases;
             NumOverdrivePhrasesHit = TotalOverdrivePhrases - stats.StarPowerPhrasesMissed;
             NumOverdriveActivations = stats.StarPowerActivationCount;
-            AverageMultiplier = 0;
+            AverageMultiplier = stats.AverageMultiplier;
             NumPauses = 0;
             IsReplayPlayer = isReplayPlayer;
         }
