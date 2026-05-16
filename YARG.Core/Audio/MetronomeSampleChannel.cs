@@ -19,7 +19,7 @@ namespace YARG.Core.Audio
             Sample = sample;
             _hiPath = hiPath;
             _loPath = loPath;
-            GlobalAudioHandler.StemSettings[SongStem.Metronome].OnVolumeChange += SetVolume;
+            GlobalAudioHandler.SampleStemSettings[SongStem.Metronome].OnVolumeChange += SetVolume;
         }
 
         public void PlayHi()
@@ -44,7 +44,7 @@ namespace YARG.Core.Audio
             }
         }
 
-        private void SetVolume(double volume)
+        internal void SetVolume(double volume)
         {
             lock (this)
             {
@@ -86,7 +86,7 @@ namespace YARG.Core.Audio
             {
                 if (!_disposed)
                 {
-                    GlobalAudioHandler.StemSettings[SongStem.Metronome].OnVolumeChange -= SetVolume;
+                    GlobalAudioHandler.SampleStemSettings[SongStem.Metronome].OnVolumeChange -= SetVolume;
                     if (disposing)
                     {
                         DisposeManagedResources();
