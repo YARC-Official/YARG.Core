@@ -244,12 +244,13 @@ namespace YARG.Core.Engine.Guitar.Engines
                     if (isFirstNoteInWindow && missed)
                     {
                         // Intercept missed note while lane phrase is active
-                        if (HitNoteFromLane(note))
+                        if (AutohitNoteFromLane(note))
                         {
                             break;
                         }
 
                         MissNote(note);
+
                         YargLogger.LogFormatTrace("Missed note (Index: {0}, Mask: {1}) at {2}", i,
                             note.NoteMask, CurrentTime);
                     }

@@ -142,7 +142,8 @@ namespace YARG.Core.Engine
         protected uint CurrentLaneIndex;
         protected int RequiredLaneNote;
         protected int NextTrillNote;
-        protected double LaneExpireTime;
+
+        protected double LaneAutohitExpireTime;
         public bool IsLaneActive => RequiredLaneNote != -1;
         public bool LanesExist => CurrentLaneIndex <= TotalLanes;
 
@@ -426,7 +427,7 @@ namespace YARG.Core.Engine
             CurrentLaneIndex = 1;
             RequiredLaneNote = -1;
             NextTrillNote = -1;
-            LaneExpireTime = -1;
+            LaneAutohitExpireTime = -1;
 
             IsWaitCountdownActive = false;
             IsStarPowerInputActive = false;

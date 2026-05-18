@@ -94,10 +94,10 @@ namespace YARG.Core.Engine.Drums
                 return;
             }
 
-            // Prevent overstrum too close to the expiration of lane behavior
-            if (!IsLaneActive && CurrentTime - LaneExpireTime < LANE_END_LENIENCY)
+            // Prevent overhit too close to a lane that accepts the overhit
+            if (IsInLeniencyWindow((int)PadHit))
             {
-                YargLogger.LogFormatTrace("Overstrum prevented by lane end leniency at {0}", CurrentTime);
+                YargLogger.LogFormatTrace("Overhit prevented by lane end leniency at {0}", CurrentTime);
                 return;
             }
 

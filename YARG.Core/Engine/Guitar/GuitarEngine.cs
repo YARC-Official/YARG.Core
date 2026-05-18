@@ -139,14 +139,8 @@ namespace YARG.Core.Engine.Guitar
             var laneMask = GetLaneMask();
             if (ActiveLaneIncludesNote(laneMask))
             {
-                UpdateLaneExpireTime();
+                UpdateLaneAutohitExpireTime();
                 return;
-            }
-
-            // Prevent overstrum too close to the expiration of lane behavior
-            if (!IsLaneActive && CurrentTime - LaneExpireTime < LANE_END_LENIENCY)
-            {
-                YargLogger.LogFormatTrace("Overstrum prevented by lane end leniency at {0}", CurrentTime);
             }
 
             // Prevent overstrum during coda
@@ -160,6 +154,15 @@ namespace YARG.Core.Engine.Guitar
             {
                 YargLogger.LogFormatTrace("Overstrum punished during post-BRE coda section at {0}", CurrentTime);
                 Codas[CurrentCodaIndex].Overhit();
+            }
+
+            // Prevent overstrum too close to a lane. Unlike the Keys and Drums engines, use the lenient
+            // version which doesn't enforce the correct fretting; the player has the flexibility to adjust
+            // their fretting hand.
+            if (IsInLeniencyWindow())
+            {
+                YargLogger.LogFormatTrace("Overhit prevented by lane end leniency at {0}", CurrentTime);
+                return;
             }
 
             if (IsLaneActive)
