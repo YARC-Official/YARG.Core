@@ -156,26 +156,10 @@ namespace YARG.Core.Engine.Guitar
                 Codas[CurrentCodaIndex].Overhit();
             }
 
-            // Prevent overstrum too close to the beginning of a lane. Unlike the Keys and Drums engines,
-            // don't enforce the correct fretting; the player has the flexibility to adjust their fretting hand
-            if (
-                !IsLaneActive && // Not in a lane
-                Notes[NoteIndex].IsLaneStart && // The next note is a lane start
-                Notes[NoteIndex].Time - CurrentTime < EngineParameters.HitWindow.LaneProximityProtectionWindow // That lane is starting soon
-            )
-            {
-                YargLogger.LogFormatTrace("Overhit prevented by lane start leniency at {0}", CurrentTime);
-                return;
-            }
-
-            // Prevent overstrum too soon after the end of a lane. Unlike the Keys and Drums engines, don't
-            // enforce the correct fretting; the player has the flexibility to adjust their fretting hand
-            if (
-                !IsLaneActive && // Not in a lane
-                NoteIndex > 0 && // A previous note exists
-                Notes[NoteIndex - 1].IsLaneEnd && // The previous note was a lane end
-                CurrentTime - Notes[NoteIndex - 1].Time < EngineParameters.HitWindow.LaneProximityProtectionWindow // The lane ended recently
-            )
+            // Prevent overstrum too close to a lane. Unlike the Keys and Drums engines, use the lenient
+            // version which doesn't enforce the correct fretting; the player has the flexibility to adjust
+            // their fretting hand.
+            if (IsInLeniencyWindow())
             {
                 YargLogger.LogFormatTrace("Overhit prevented by lane end leniency at {0}", CurrentTime);
                 return;

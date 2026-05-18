@@ -94,26 +94,8 @@ namespace YARG.Core.Engine.Drums
                 return;
             }
 
-            // Prevent overhit too close to the beginning of a lane that accepts the overhit
-            if (
-                !IsLaneActive && // Not in a lane
-                Notes[NoteIndex].IsLaneStart && // The next note is a lane start
-                Notes[NoteIndex].Time - CurrentTime < EngineParameters.HitWindow.LaneProximityProtectionWindow && // That lane is starting soon
-                LaneAboutToStartIncludesNote((int)PadHit, Notes[NoteIndex]) // The overhit matches the lane that's about to begin
-            )
-            {
-                YargLogger.LogFormatTrace("Overhit prevented by lane start leniency at {0}", CurrentTime);
-                return;
-            }
-
-            // Prevent overhit too soon after the end of a lane that accepts the overhit
-            if (
-                !IsLaneActive && // Not in a lane
-                NoteIndex > 0 && // A previous note exists
-                Notes[NoteIndex - 1].IsLaneEnd && // The previous note was a lane end
-                CurrentTime - Notes[NoteIndex - 1].Time < EngineParameters.HitWindow.LaneProximityProtectionWindow && // The lane ended recently
-                LaneThatJustEndedIncludesNote((int)PadHit, Notes[NoteIndex - 1]) // The overhit matches the lane that just ended
-            )
+            // Prevent overhit too close to a lane that accepts the overhit
+            if (IsInLeniencyWindow((int)PadHit))
             {
                 YargLogger.LogFormatTrace("Overhit prevented by lane end leniency at {0}", CurrentTime);
                 return;

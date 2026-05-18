@@ -655,24 +655,80 @@ namespace YARG.Core.Engine
             return false;
         }
 
-        protected bool LaneAboutToStartIncludesNote(int inputNote, TNoteType laneStart)
+        // Lenient version, which only cares about proximity to any lane, not the contents of the lane.
+        // Used by Guitar engines to allow for fretting flexibility during transitions
+        protected bool IsInLeniencyWindow()
         {
-            var inputMask = 1 << inputNote;
+            if (IsLaneActive)
+            {
+                return false;
+            }
 
-            var requiredLaneNote = laneStart.LaneNote;
-            var nextTrillNote = laneStart.IsTremolo ? -1 : laneStart.NextNote!.LaneNote;
+            if (
+                NoteIndex < Notes.Count && // There is a next note
+                Notes[NoteIndex].IsLaneStart && // That note is a lane start
+                Notes[NoteIndex].Time - CurrentTime < EngineParameters.HitWindow.LaneProximityProtectionWindow // That lane is starting soon
+            )
+            {
+                return true;
+            }
 
-            return inputMask == requiredLaneNote || (nextTrillNote != -1 && inputMask == nextTrillNote);
+            return (
+                NoteIndex > 0 && // There is a previous note
+                Notes[NoteIndex - 1].IsLaneEnd && // That note was a lane end
+                CurrentTime - Notes[NoteIndex - 1].Time < EngineParameters.HitWindow.LaneProximityProtectionWindow // That lane ended recently
+            );
         }
 
-        protected bool LaneThatJustEndedIncludesNote(int inputNote, TNoteType laneEnd)
+        // Strict version, which cares whether the input would satisfy the lane that's providing leniency.
+        // Used by Drums and Keys engines to provide forgiveness only for inputs that would satisfy a nearby lane, not for unrelated inputs
+        protected bool IsInLeniencyWindow(int inputNote)
+        {
+            if (IsLaneActive)
+            {
+                return false;
+            }
+
+            if (
+                NoteIndex < Notes.Count && // There is a next note
+                Notes[NoteIndex].IsLaneStart && // That note is a lane start
+                Notes[NoteIndex].Time - CurrentTime < EngineParameters.HitWindow.LaneProximityProtectionWindow && // That lane is starting soon
+                LaneIncludesNote(inputNote, Notes[NoteIndex]) // That lane would accept this input
+            )
+            {
+                return true;
+            }
+
+            return (
+                NoteIndex > 0 && // There is a previous note
+                Notes[NoteIndex - 1].IsLaneEnd && // That note was a lane end
+                CurrentTime - Notes[NoteIndex - 1].Time < EngineParameters.HitWindow.LaneProximityProtectionWindow && // That lane ended recently
+                LaneIncludesNote(inputNote, Notes[NoteIndex - 1]) // That lane would accept this input
+            );
+        }
+
+        protected bool LaneIncludesNote(int inputNote, TNoteType laneNote)
         {
             var inputMask = 1 << inputNote;
 
-            var requiredLaneNote = laneEnd.LaneNote;
-            var nextTrillNote = laneEnd.IsTremolo ? -1 : laneEnd.PreviousNote!.LaneNote;
+            var requiredLaneNote = laneNote.LaneNote;
 
-            return inputMask == requiredLaneNote || (nextTrillNote != -1 && inputMask == nextTrillNote);
+            int otherNoteInTrill;
+
+            if (laneNote.IsTremolo)
+            {
+                otherNoteInTrill = -1;
+            }
+            else if (laneNote.IsLaneEnd)
+            {
+                otherNoteInTrill = laneNote.PreviousNote.LaneNote;
+            }
+            else
+            {
+                otherNoteInTrill = laneNote.NextNote.LaneNote;
+            }
+
+            return inputMask == requiredLaneNote || (otherNoteInTrill != -1 && inputMask == otherNoteInTrill);
         }
 
         protected void UpdateLaneAutohitExpireTime()
