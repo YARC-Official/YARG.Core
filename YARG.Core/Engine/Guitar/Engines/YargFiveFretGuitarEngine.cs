@@ -546,11 +546,14 @@ namespace YARG.Core.Engine.Guitar.Engines
                 return false;
             }
 
-            // Input is a hammer-on if the highest fret held is higher than the highest fret of the previous mask
-            bool isHammerOn = GetMostSignificantBit(EffectiveButtonMask) > GetMostSignificantBit(LastButtonMask);
+            var highestHeldFret = GetMostSignificantBit(EffectiveButtonMask);
 
-            // Input is a hammer-on and the button pressed is not part of the note mask (incorrect fret)
-            if (isHammerOn && (EffectiveButtonMask & note.NoteMask) == 0)
+            // Input is a hammer-on if the highest fret held is higher than the highest fret of the previous mask
+            bool isHammerOn = highestHeldFret > GetMostSignificantBit(LastButtonMask);
+
+            // Input is a hammer-on and the button pressed is neither part of the note mask (incorrect fret) nor forgiven by
+            // a nearby trill lane
+            if (isHammerOn && (EffectiveButtonMask & note.NoteMask) == 0 && !IsGhostInTrillLeniencyWindow(highestHeldFret - 1))
             {
                 return true;
             }
@@ -619,6 +622,33 @@ namespace YARG.Core.Engine.Guitar.Engines
             }
 
             return codaSections;
+        }
+
+        protected bool IsGhostInTrillLeniencyWindow(int inputNote)
+        {
+            if (IsLaneActive)
+            {
+                return false;
+            }
+
+            if (
+                NoteIndex < Notes.Count && // There is a next note
+                Notes[NoteIndex].IsLaneStart && // That note is a lane start
+                Notes[NoteIndex].IsTrill && // That lane is a trill
+                Notes[NoteIndex].Time - CurrentTime < EngineParameters.HitWindow.LaneProximityProtectionWindow && // That trill is starting soon
+                LaneIncludesNote(inputNote, Notes[NoteIndex]) // That lane would accept this input
+            )
+            {
+                return true;
+            }
+
+            return (
+                NoteIndex > 0 && // There is a previous note
+                Notes[NoteIndex - 1].IsLaneEnd && // That note was a lane end
+                Notes[NoteIndex - 1].IsTrill && // That lane was a trill
+                CurrentTime - Notes[NoteIndex - 1].Time < EngineParameters.HitWindow.LaneProximityProtectionWindow && // That trill ended recently
+                LaneIncludesNote(inputNote, Notes[NoteIndex - 1]) // That lane would have accepted this input
+            );
         }
     }
 }

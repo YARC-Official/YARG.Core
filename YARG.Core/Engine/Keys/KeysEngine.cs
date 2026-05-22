@@ -135,7 +135,7 @@ namespace YARG.Core.Engine.Keys
             }
 
             // Prevent overhit too close to a lane that accepts the overhit
-            if (IsInLeniencyWindow(key))
+            if (IsInLaneLeniencyWindow(key))
             {
                 YargLogger.LogFormatTrace("Overhit prevented by lane end leniency at {0}", CurrentTime);
                 return;

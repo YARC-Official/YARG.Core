@@ -159,7 +159,7 @@ namespace YARG.Core.Engine.Guitar
             // Prevent overstrum too close to a lane. Unlike the Keys and Drums engines, use the lenient
             // version which doesn't enforce the correct fretting; the player has the flexibility to adjust
             // their fretting hand.
-            if (IsInLeniencyWindow())
+            if (IsInLaneLeniencyWindow())
             {
                 YargLogger.LogFormatTrace("Overhit prevented by lane end leniency at {0}", CurrentTime);
                 return;

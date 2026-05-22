@@ -657,7 +657,7 @@ namespace YARG.Core.Engine
 
         // Lenient version, which only cares about proximity to any lane, not the contents of the lane.
         // Used by Guitar engines to allow for fretting flexibility during transitions
-        protected bool IsInLeniencyWindow()
+        protected bool IsInLaneLeniencyWindow()
         {
             if (IsLaneActive)
             {
@@ -682,7 +682,7 @@ namespace YARG.Core.Engine
 
         // Strict version, which cares whether the input would satisfy the lane that's providing leniency.
         // Used by Drums and Keys engines to provide forgiveness only for inputs that would satisfy a nearby lane, not for unrelated inputs
-        protected bool IsInLeniencyWindow(int inputNote)
+        protected bool IsInLaneLeniencyWindow(int inputNote)
         {
             if (IsLaneActive)
             {
@@ -707,7 +707,7 @@ namespace YARG.Core.Engine
             );
         }
 
-        private bool LaneIncludesNote(int inputNote, TNoteType laneNote)
+        protected bool LaneIncludesNote(int inputNote, TNoteType laneNote)
         {
             var inputMask = 1 << inputNote;
 
