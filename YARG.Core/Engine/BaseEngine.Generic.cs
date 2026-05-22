@@ -707,7 +707,7 @@ namespace YARG.Core.Engine
             );
         }
 
-        protected bool LaneIncludesNote(int inputNote, TNoteType laneNote)
+        private bool LaneIncludesNote(int inputNote, TNoteType laneNote)
         {
             var inputMask = 1 << inputNote;
 
