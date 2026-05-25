@@ -130,7 +130,15 @@ namespace YARG.Core.Chart
 
         public VocalsPart Clone()
         {
-            return new(this);
+            return new VocalsPart(this);
+        }
+
+        public void TrimToTickRange(uint tickStart, uint tickEnd)
+        {
+            NotePhrases.RemoveAll(n => n.Tick < tickStart || n.Tick >= tickEnd);
+            StaticLyricPhrases.RemoveAll(n => n.Tick < tickStart || n.Tick >= tickEnd);
+            OtherPhrases.RemoveAll(n => n.Tick < tickStart || n.Tick >= tickEnd);
+            TextEvents.RemoveAll(n => n.Tick < tickStart || n.Tick >= tickEnd);
         }
     }
 }
