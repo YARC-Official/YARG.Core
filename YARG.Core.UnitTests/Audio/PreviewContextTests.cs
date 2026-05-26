@@ -182,7 +182,6 @@ public class PreviewContextTests
 
         protected internal override void SetMasterVolume(double volume) { }
 
-        protected override void ToggleBuffer_Internal(bool enable) { }
 
         protected override void SetBufferLength_Internal(int length) { }
     }
@@ -234,7 +233,6 @@ public class PreviewContextTests
 
         protected override bool RemoveChannel_Internal(SongStem stemToRemove) => false;
 
-        protected override void ToggleBuffer_Internal(bool enable) { }
 
         protected override void SetBufferLength_Internal(int length) { }
 

@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using YARG.Core.Logging;
@@ -103,17 +103,6 @@ namespace YARG.Core.Audio
             return true;
         }
 
-        internal void ToggleBuffer(bool enable)
-        {
-            ToggleBuffer_Internal(enable);
-            lock (_activeMixers)
-            {
-                foreach (var mixer in _activeMixers)
-                {
-                    mixer.ToggleBuffer(enable);
-                }
-            }
-        }
 
         internal void SetBufferLength(int length)
         {
@@ -127,7 +116,6 @@ namespace YARG.Core.Audio
             }
         }
 
-        protected abstract void ToggleBuffer_Internal(bool enable);
 
         protected abstract void SetBufferLength_Internal(int length);
 
