@@ -182,13 +182,16 @@ namespace YARG.Core.Chart
             if (notes.Count < 1)
                 return 0;
 
-            // Chart events are sorted
-            var chartEvent = notes[^1];
-            var timeEnd = chartEvent.TimeEnd;
-            //child notes may have later end times
-            foreach (var child in chartEvent.ChildNotes)
+            double timeEnd = 0;
+
+            //child notes or earlier notes may have later end times
+            foreach (var chord in notes)
             {
-                timeEnd = Math.Max(timeEnd, child.TimeEnd);
+                timeEnd = Math.Max(timeEnd, chord.TimeEnd);
+                foreach (var child in chord.ChildNotes)
+                {
+                    timeEnd = Math.Max(timeEnd, child.TimeEnd);
+                }
             }
             return timeEnd;
         }
