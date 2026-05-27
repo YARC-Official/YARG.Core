@@ -259,7 +259,6 @@ namespace YARG.Core.Engine
         private void RunQueuedUpdates(double time)
         {
             GenerateAndSortQueuedUpdates(time);
-            _scheduledUpdates.Sort((x, y) => x.Time.CompareTo(y.Time));
 
             if (_scheduledUpdates.Count > 0)
             {

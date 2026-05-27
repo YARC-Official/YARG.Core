@@ -655,33 +655,9 @@ namespace YARG.Core.Engine
             return false;
         }
 
-        // Lenient version, which only cares about proximity to any lane, not the contents of the lane.
-        // Used by Guitar engines to allow for fretting flexibility during transitions
-        protected bool IsInLaneLeniencyWindow()
-        {
-            if (IsLaneActive)
-            {
-                return false;
-            }
-
-            if (
-                NoteIndex < Notes.Count && // There is a next note
-                Notes[NoteIndex].IsLaneStart && // That note is a lane start
-                Notes[NoteIndex].Time - CurrentTime < EngineParameters.HitWindow.LaneProximityProtectionWindow // That lane is starting soon
-            )
-            {
-                return true;
-            }
-
-            return (
-                NoteIndex > 0 && // There is a previous note
-                Notes[NoteIndex - 1].IsLaneEnd && // That note was a lane end
-                CurrentTime - Notes[NoteIndex - 1].Time < EngineParameters.HitWindow.LaneProximityProtectionWindow // That lane ended recently
-            );
-        }
-
-        // Strict version, which cares whether the input would satisfy the lane that's providing leniency.
-        // Used by Drums and Keys engines to provide forgiveness only for inputs that would satisfy a nearby lane, not for unrelated inputs
+        // This cares whether the input would satisfy the lane that's providing leniency.
+        // Used by Drums and Keys engines to provide forgiveness only for inputs that would satisfy a nearby lane, not for unrelated inputs.
+        // Guitar engine has a parameterless version that doesn't check inputs against adjacent lanes.
         protected bool IsInLaneLeniencyWindow(int inputNote)
         {
             if (IsLaneActive)
