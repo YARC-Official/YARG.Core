@@ -271,29 +271,30 @@ namespace YARG.Core.Engine
 
             while (_scheduledUpdates.Count > 0)
             {
-                double updateTime = _scheduledUpdates[0].Time;
+                var update = _scheduledUpdates[0];
 
                 // Skip updates that are in the past
-                if (updateTime < CurrentTime)
+                if (update.Time < CurrentTime)
                 {
                     YargLogger.FailFormat(
                         "Scheduled update is in the past! Current time: {0}, update time: {1}", CurrentTime,
-                        updateTime);
+                        update.Time);
 
                     _scheduledUpdates.RemoveAt(0);
+                    continue;
                 }
 
                 // There should be no scheduled updates for times beyond the one we want to update to
-                if (updateTime >= time)
+                if (update.Time >= time)
                 {
                     YargLogger.FailFormat("Update time is >= than the given time! Update time: {0} ({1}), given time: {2}",
-                        updateTime, _scheduledUpdates[0].Reason, time);
+                        update.Time, update.Reason, time);
                     break;
                 }
 
-                YargLogger.LogFormatTrace("Running scheduled update at {0} ({1})", updateTime,
-                    item2: _scheduledUpdates[0].Reason);
-                RunEngineLoop(updateTime);
+                YargLogger.LogFormatTrace("Running scheduled update at {0} ({1})", update.Time,
+                    item2: update.Reason);
+                RunEngineLoop(update.Time);
 
                 _scheduledUpdates.RemoveAt(0);
 
@@ -302,15 +303,19 @@ namespace YARG.Core.Engine
                 // (For example: a sustain starting then ending within the range of already existing updates)
                 if (_scheduledUpdates.Count > 0)
                 {
-                    GenerateQueuedUpdates(_scheduledUpdates[0].Time);
+                    GenerateAndSortQueuedUpdates(_scheduledUpdates[0].Time);
                 }
                 else
                 {
-                    GenerateQueuedUpdates(time);
+                    GenerateAndSortQueuedUpdates(time);
                 }
-
-                _scheduledUpdates.Sort((x, y) => x.Time.CompareTo(y.Time));
             }
+        }
+
+        private void GenerateAndSortQueuedUpdates(double nextTime)
+        {
+            GenerateQueuedUpdates(nextTime);
+            _scheduledUpdates.Sort((x, y) => x.Time.CompareTo(y.Time));
         }
 
         protected abstract void UpdateBot(double time);
@@ -318,9 +323,6 @@ namespace YARG.Core.Engine
         protected virtual void GenerateQueuedUpdates(double nextTime)
         {
             YargLogger.LogFormatTrace("Generating queued updates up to {0}", nextTime);
-            var previousTime = CurrentTime;
-
-
         }
 
         protected abstract void UpdateTimeVariables(double time);
