@@ -237,6 +237,7 @@ namespace YARG.Core.Engine
             MaxCombo = stats.MaxCombo;
             ScoreMultiplier = stats.ScoreMultiplier;
             BandMultiplier = stats.BandMultiplier;
+            AverageMultiplier = stats.AverageMultiplier;
 
             NotesHit = stats.NotesHit;
             LanedNotesHit = stats.LanedNotesHit;
@@ -301,6 +302,11 @@ namespace YARG.Core.Engine
 
             SoloBonuses = stream.Read<int>(Endianness.Little);
             StarPowerScore = stream.Read<int>(Endianness.Little);
+
+            if (version >= 16)
+            {
+                AverageMultiplier = stream.Read<float>(Endianness.Little);
+            }
 
             // Deliberately not read so that stars can be re-calculated if thresholds change
             // Stars = reader.ReadInt32();
@@ -374,6 +380,8 @@ namespace YARG.Core.Engine
 
             writer.Write(SoloBonuses);
             writer.Write(StarPowerScore);
+
+            writer.Write(AverageMultiplier);
 
             // Deliberately not written so that stars can be re-calculated with different thresholds
             // writer.Write(Stars);
