@@ -64,8 +64,6 @@ namespace YARG.Core.Chart
                 }
             }
 
-
-
             return flags;
         }
     }
