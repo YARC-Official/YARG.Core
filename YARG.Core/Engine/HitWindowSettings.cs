@@ -45,14 +45,19 @@ namespace YARG.Core.Engine
         public readonly double FrontToBackRatio;
 
         /// <summary>
-        /// The size of the forgiveness window for trill/tremolo/roll lanes
+        /// The size of the autohitting window for trill/tremolo/roll lanes
         /// </summary>
-        public readonly double TremoloWindow;
+        public readonly double LaneAutohitWindow;
+
+        /// <summary>
+        /// The size of the forgiveness window for inputting shortly before or after a lane
+        /// </summary>
+        public readonly double LaneProximityProtectionWindow;
 
         private readonly double _minMaxWindowRatio;
 
         public HitWindowSettings(double maxWindow, double minWindow, double frontToBackRatio, bool isDynamic,
-            double dwSlope, double dwScale, double dwGamma, double tremoloWindow)
+            double dwSlope, double dwScale, double dwGamma, double laneAutohitWindow, double laneProximityProtectionWindow)
         {
             // Swap max and min if necessary to ensure that max is always larger than min
             if (maxWindow < minWindow)
@@ -70,7 +75,8 @@ namespace YARG.Core.Engine
             DynamicWindowScale = Math.Clamp(dwScale, 0.3, 3);
             DynamicWindowGamma = Math.Clamp(dwGamma, 0.1, 10);
 
-            TremoloWindow = tremoloWindow;
+            LaneAutohitWindow = laneAutohitWindow;
+            LaneProximityProtectionWindow = laneProximityProtectionWindow;
 
             _minMaxWindowRatio = MinWindow / MaxWindow;
         }
@@ -90,12 +96,17 @@ namespace YARG.Core.Engine
             if (version is >= 10 and < 12)
             {
                 var tremoloFrontendPercent = stream.Read<double>(Endianness.Little);
-                TremoloWindow = -GetFrontEnd(MaxWindow) * tremoloFrontendPercent;
+                LaneAutohitWindow = -GetFrontEnd(MaxWindow) * tremoloFrontendPercent;
             }
 
             if (version >= 12)
             {
-                TremoloWindow = stream.Read<double>(Endianness.Little);
+                LaneAutohitWindow = stream.Read<double>(Endianness.Little);
+            }
+
+            if (version >= 15)
+            {
+                LaneProximityProtectionWindow = stream.Read<double>(Endianness.Little);
             }
 
             _minMaxWindowRatio = MinWindow / MaxWindow;
@@ -112,7 +123,8 @@ namespace YARG.Core.Engine
             writer.Write(DynamicWindowScale);
             writer.Write(DynamicWindowGamma);
 
-            writer.Write(TremoloWindow);
+            writer.Write(LaneAutohitWindow);
+            writer.Write(LaneProximityProtectionWindow);
         }
 
         /// <summary>

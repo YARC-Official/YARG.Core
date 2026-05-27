@@ -139,14 +139,17 @@ namespace YARG.Core.Engine.Guitar
             var laneMask = GetLaneMask();
             if (ActiveLaneIncludesNote(laneMask))
             {
-                UpdateLaneExpireTime();
+                UpdateLaneAutohitExpireTime();
                 return;
             }
 
-            // Prevent overstrum too close to the expiration of lane behavior
-            if (!IsLaneActive && CurrentTime - LaneExpireTime < LANE_END_LENIENCY)
+            // Prevent overstrum too close to a lane. Unlike the Keys and Drums engines, use the lenient
+            // version which doesn't enforce the correct fretting; the player has the flexibility to adjust
+            // their fretting hand.
+            if (IsInLaneLeniencyWindow())
             {
-                YargLogger.LogFormatTrace("Overstrum prevented by lane end leniency at {0}", CurrentTime);
+                YargLogger.LogFormatTrace("Overhit prevented by lane end leniency at {0}", CurrentTime);
+                return;
             }
 
             // Prevent overstrum during coda
@@ -510,6 +513,30 @@ namespace YARG.Core.Engine.Guitar
             return laneMask;
         }
 
+        // Parameterless version of the same method found in BaseEngine.Generic, which only cares about proximity to any lane, not the
+        // contents of the lane. Used by Guitar engines to allow for fretting flexibility during transitions
+        private bool IsInLaneLeniencyWindow()
+        {
+            if (IsLaneActive)
+            {
+                return false;
+            }
+
+            if (
+                NoteIndex < Notes.Count && // There is a next note
+                Notes[NoteIndex].IsLaneStart && // That note is a lane start
+                Notes[NoteIndex].Time - CurrentTime < EngineParameters.HitWindow.LaneProximityProtectionWindow // That lane is starting soon
+            )
+            {
+                return true;
+            }
+
+            return (
+                NoteIndex > 0 && // There is a previous note
+                Notes[NoteIndex - 1].IsLaneEnd && // That note was a lane end
+                CurrentTime - Notes[NoteIndex - 1].Time < EngineParameters.HitWindow.LaneProximityProtectionWindow // That lane ended recently
+            );
+        }
         protected static bool IsFretInput(GameInput input)
         {
             return input.GetAction<GuitarAction>() switch

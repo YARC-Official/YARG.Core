@@ -117,7 +117,7 @@ namespace YARG.Core.Engine.Drums.Engines
                             foreach (var missedNote in parentNote.AllNotes)
                             {
                                 // Intercept missed note while lane phrase is active and missed note is in forgiveness window
-                                if (HitNoteFromLane(missedNote))
+                                if (AutohitNoteFromLane(missedNote))
                                 {
                                     continue;
                                 }

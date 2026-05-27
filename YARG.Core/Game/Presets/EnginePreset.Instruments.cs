@@ -47,12 +47,16 @@ namespace YARG.Core.Game
 
             [SettingType(SettingType.MillisecondInput)]
             [SettingRange(min: 0f)]
-            public double TremoloWindow = 0.160;
+            public double LaneAutohitWindow = 0.160;
+
+            [SettingType(SettingType.MillisecondInput)]
+            [SettingRange(min: 0f)]
+            public double LaneProximityProtectionWindow = 0.080;
 
             public HitWindowSettings Create()
             {
                 return new HitWindowSettings(MaxWindow, MinWindow, FrontToBackRatio, IsDynamic,
-                    DynamicSlope, DynamicScale, DynamicGamma, TremoloWindow);
+                    DynamicSlope, DynamicScale, DynamicGamma, LaneAutohitWindow, LaneProximityProtectionWindow);
             }
 
             public HitWindowPreset Copy()
@@ -69,7 +73,8 @@ namespace YARG.Core.Game
 
                     FrontToBackRatio = FrontToBackRatio,
 
-                    TremoloWindow = TremoloWindow
+                    LaneAutohitWindow = LaneAutohitWindow,
+                    LaneProximityProtectionWindow = LaneProximityProtectionWindow
                 };
             }
         }
@@ -117,7 +122,7 @@ namespace YARG.Core.Game
                 MinWindow = 0.14,
                 IsDynamic = false,
                 FrontToBackRatio = 1.0,
-                TremoloWindow = 0.160
+                LaneAutohitWindow = 0.160
             };
 
             public FiveFretGuitarPreset Copy()
@@ -176,7 +181,7 @@ namespace YARG.Core.Game
                 MinWindow = 0.14,
                 IsDynamic = false,
                 FrontToBackRatio = 1.0,
-                TremoloWindow = 0.160
+                LaneAutohitWindow = 0.160
             };
 
             public DrumsPreset Copy()
@@ -301,7 +306,7 @@ namespace YARG.Core.Game
                 };
 
                 var hitWindow = new HitWindowSettings(
-                    PercussionHitWindow, PercussionHitWindow, 1, false, 0, 0, 0, 0);
+                    PercussionHitWindow, PercussionHitWindow, 1, false, 0, 0, 0, 0, 0);
 
                 return new VocalsEngineParameters(
                     hitWindow,
@@ -347,7 +352,7 @@ namespace YARG.Core.Game
                 MinWindow = 0.14,
                 IsDynamic = false,
                 FrontToBackRatio = 1.0,
-                TremoloWindow = 0.160
+                LaneAutohitWindow = 0.160
             };
 
             public ProKeysPreset Copy()
