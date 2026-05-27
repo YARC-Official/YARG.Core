@@ -258,9 +258,6 @@ namespace YARG.Core.Engine
 
         private void RunQueuedUpdates(double time)
         {
-            // 'for' is used here to prevent enumeration exceptions,
-            // the list of scheduled updates will be modified by the updates we're running
-
             GenerateAndSortQueuedUpdates(time);
             _scheduledUpdates.Sort((x, y) => x.Time.CompareTo(y.Time));
 
