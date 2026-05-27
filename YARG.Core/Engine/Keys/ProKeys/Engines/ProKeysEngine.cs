@@ -13,6 +13,8 @@ namespace YARG.Core.Engine.Keys
         protected ProKeysNote? FatFingerNote;
         protected int? FatFingerKey;
 
+        protected bool IsGlissandoActive = false;
+
         protected override double[] KeyPressTimes { get; } = new double[(int) ProKeysAction.Key25 + 1];
 
         public EngineTimer GetFatFingerTimer() => FatFingerTimer;
@@ -148,6 +150,16 @@ namespace YARG.Core.Engine.Keys
                 StartSustain(note);
             }
 
+            if (note.IsGlissandoStart)
+            {
+                IsGlissandoActive = true;
+            }
+
+            if (note.IsGlissandoEnd)
+            {
+                IsGlissandoActive = false;
+            }
+
             OnNoteHit?.Invoke(NoteIndex, note);
             base.HitNote(note);
         }
@@ -200,6 +212,16 @@ namespace YARG.Core.Engine.Keys
             else if (note.IsSoloStart)
             {
                 StartSolo();
+            }
+
+            if (note.IsGlissandoStart)
+            {
+                IsGlissandoActive = true;
+            }
+
+            if (note.IsGlissandoEnd)
+            {
+                IsGlissandoActive = false;
             }
 
             // If no notes within a chord were hit, combo is 0
