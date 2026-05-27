@@ -261,7 +261,7 @@ namespace YARG.Core.Engine
             // 'for' is used here to prevent enumeration exceptions,
             // the list of scheduled updates will be modified by the updates we're running
 
-            GenerateQueuedUpdates(time);
+            GenerateAndSortQueuedUpdates(time);
             _scheduledUpdates.Sort((x, y) => x.Time.CompareTo(y.Time));
 
             if (_scheduledUpdates.Count > 0)
