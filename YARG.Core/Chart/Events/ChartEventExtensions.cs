@@ -176,6 +176,23 @@ namespace YARG.Core.Chart
             return chartEvent.TimeEnd;
         }
 
+        public static double GetNoteEndTime<TNote>(this List<TNote> notes)
+            where TNote : Note<TNote>
+        {
+            if (notes.Count < 1)
+                return 0;
+
+            // Chart events are sorted
+            var chartEvent = notes[^1];
+            var timeEnd = chartEvent.TimeEnd;
+            //child notes may have later end times
+            foreach (var child in chartEvent.ChildNotes)
+            {
+                timeEnd = Math.Max(timeEnd, child.TimeEnd);
+            }
+            return timeEnd;
+        }
+
         public static uint GetFirstTick<TEvent>(this List<TEvent> events)
             where TEvent : ChartEvent
         {
