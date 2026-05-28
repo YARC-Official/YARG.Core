@@ -636,7 +636,7 @@ namespace YARG.Core.Engine.Guitar.Engines
                 Notes[NoteIndex].IsLaneStart && // That note is a lane start
                 Notes[NoteIndex].IsTrill && // That lane is a trill
                 Notes[NoteIndex].Time - CurrentTime < EngineParameters.HitWindow.LaneProximityProtectionWindow && // That trill is starting soon
-                LaneIncludesNote(inputNote, Notes[NoteIndex]) // That lane would accept this input
+                LaneIncludesInputMask(inputNote, Notes[NoteIndex]) // That lane would accept this input
             )
             {
                 return true;
@@ -647,7 +647,7 @@ namespace YARG.Core.Engine.Guitar.Engines
                 Notes[NoteIndex - 1].IsLaneEnd && // That note was a lane end
                 Notes[NoteIndex - 1].IsTrill && // That lane was a trill
                 CurrentTime - Notes[NoteIndex - 1].Time < EngineParameters.HitWindow.LaneProximityProtectionWindow && // That trill ended recently
-                LaneIncludesNote(inputNote, Notes[NoteIndex - 1]) // That lane would have accepted this input
+                LaneIncludesInputMask(inputNote, Notes[NoteIndex - 1]) // That lane would have accepted this input
             );
         }
     }

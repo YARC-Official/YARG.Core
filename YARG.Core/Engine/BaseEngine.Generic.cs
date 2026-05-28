@@ -669,7 +669,7 @@ namespace YARG.Core.Engine
                 NoteIndex < Notes.Count && // There is a next note
                 Notes[NoteIndex].IsLaneStart && // That note is a lane start
                 Notes[NoteIndex].Time - CurrentTime < EngineParameters.HitWindow.LaneProximityProtectionWindow && // That lane is starting soon
-                LaneIncludesNote(inputNote, Notes[NoteIndex]) // That lane would accept this input
+                ProximalLaneForgivesInput(inputNote, Notes[NoteIndex]) // That lane forgives this input
             )
             {
                 return true;
@@ -679,32 +679,8 @@ namespace YARG.Core.Engine
                 NoteIndex > 0 && // There is a previous note
                 Notes[NoteIndex - 1].IsLaneEnd && // That note was a lane end
                 CurrentTime - Notes[NoteIndex - 1].Time < EngineParameters.HitWindow.LaneProximityProtectionWindow && // That lane ended recently
-                LaneIncludesNote(inputNote, Notes[NoteIndex - 1]) // That lane would accept this input
+                ProximalLaneForgivesInput(inputNote, Notes[NoteIndex - 1]) // That lane forgives this input
             );
-        }
-
-        protected bool LaneIncludesNote(int inputNote, TNoteType laneNote)
-        {
-            var inputMask = 1 << inputNote;
-
-            var requiredLaneNote = laneNote.LaneNote;
-
-            int otherNoteInTrill;
-
-            if (laneNote.IsTremolo)
-            {
-                otherNoteInTrill = -1;
-            }
-            else if (laneNote.IsLaneEnd)
-            {
-                otherNoteInTrill = laneNote.PreviousNote.LaneNote;
-            }
-            else
-            {
-                otherNoteInTrill = laneNote.NextNote.LaneNote;
-            }
-
-            return inputMask == requiredLaneNote || (otherNoteInTrill != -1 && inputMask == otherNoteInTrill);
         }
 
         protected void UpdateLaneAutohitExpireTime()
@@ -1491,6 +1467,48 @@ namespace YARG.Core.Engine
             }
 
             return msbIndex;
+        }
+
+        protected abstract bool ProximalLaneForgivesInput(int inputNote, TNoteType laneNote);
+
+        protected static bool LaneIncludesInputMask(int inputNote, TNoteType laneNote)
+        {
+            var inputMask = 1 << inputNote;
+            var (requiredLaneNote, otherNoteInTrill) = GetLaneNotes(laneNote);
+
+            if ((inputMask & requiredLaneNote) != 0)
+            {
+                return true;
+            }
+
+            if (otherNoteInTrill != -1 && ((inputMask & otherNoteInTrill) != 0))
+            {
+                return true;
+            }
+
+            return false;
+        }
+
+        protected static (int requiredLaneNote, int otherNoteInTrill) GetLaneNotes(TNoteType laneNote)
+        {
+            var requiredLaneNote = laneNote.LaneNote;
+
+            int otherNoteInTrill;
+
+            if (laneNote.IsTremolo)
+            {
+                otherNoteInTrill = -1;
+            }
+            else if (laneNote.IsLaneEnd)
+            {
+                otherNoteInTrill = laneNote.PreviousNote.LaneNote;
+            }
+            else
+            {
+                otherNoteInTrill = laneNote.NextNote.LaneNote;
+            }
+
+            return (requiredLaneNote, otherNoteInTrill);
         }
     }
 }

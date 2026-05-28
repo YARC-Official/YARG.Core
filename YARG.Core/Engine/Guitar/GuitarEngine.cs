@@ -565,5 +565,11 @@ namespace YARG.Core.Engine.Guitar
                 _ => false,
             };
         }
+
+        protected override bool ProximalLaneForgivesInput(int inputNote, GuitarNote laneNote)
+        {
+            // The guitar engine doesn't require accurate fretting for lane proximity leniency
+            return true;
+        }
     }
 }
