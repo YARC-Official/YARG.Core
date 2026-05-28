@@ -203,7 +203,7 @@ namespace YARG.Core.Engine.Keys
 
         protected override bool ProximalLaneForgivesInput(int inputNote, TNoteType laneNote)
         {
-            return LaneIncludesInputMask(inputNote, laneNote);
+            return LaneIncludesInputNote(inputNote, laneNote);
         }
     }
 }

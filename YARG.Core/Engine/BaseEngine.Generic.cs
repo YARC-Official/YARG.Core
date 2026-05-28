@@ -1471,7 +1471,7 @@ namespace YARG.Core.Engine
 
         protected abstract bool ProximalLaneForgivesInput(int inputNote, TNoteType laneNote);
 
-        protected static bool LaneIncludesInputMask(int inputNote, TNoteType laneNote)
+        protected static bool LaneIncludesInputNote(int inputNote, TNoteType laneNote)
         {
             var inputMask = 1 << inputNote;
             var (requiredLaneNote, otherNoteInTrill) = GetLaneNotes(laneNote);
