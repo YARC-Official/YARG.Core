@@ -150,14 +150,19 @@ namespace YARG.Core.Engine.Keys
                 StartSustain(note);
             }
 
-            if (note.IsGlissandoStart)
+            if (note.IsGlissando)
             {
-                IsGlissandoActive = true;
-            }
+                UpdateLaneAutohitExpireTime();
 
-            if (note.IsGlissandoEnd)
-            {
-                IsGlissandoActive = false;
+                if (note.IsGlissandoStart)
+                {
+                    IsGlissandoActive = true;
+                }
+
+                if (note.IsGlissandoEnd)
+                {
+                    IsGlissandoActive = false;
+                }
             }
 
             OnNoteHit?.Invoke(NoteIndex, note);
@@ -177,6 +182,14 @@ namespace YARG.Core.Engine.Keys
 
             // Can't miss a note during BRE phrase
             if (IsCodaActive && note.IsBigRockEnding)
+            {
+                note.SetHitState(true, false);
+                base.HitNote(note);
+                return;
+            }
+
+            // Autohit glissando notes as long as the player keeps providing inputs
+            if (note.IsGlissando && note.Time < LaneAutohitExpireTime)
             {
                 note.SetHitState(true, false);
                 base.HitNote(note);

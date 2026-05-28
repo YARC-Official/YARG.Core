@@ -131,6 +131,7 @@ namespace YARG.Core.Engine.Keys.Engines
             // Can't overhit during a glissando
             if (IsGlissandoActive)
             {
+                UpdateLaneAutohitExpireTime(); // Lane autohitting applies to glissando notes
                 return;
             }
 
