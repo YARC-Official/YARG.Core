@@ -1,6 +1,7 @@
 ﻿using Melanchall.DryWetMidi.Core;
 using NUnit.Framework;
 using YARG.Core.Chart;
+using YARG.Core.Engine;
 using YARG.Core.Engine.Drums;
 using YARG.Core.Engine.Drums.Engines;
 using YARG.Core.Game;
@@ -203,6 +204,28 @@ public class DrumEngineTester : EngineTester
         }
     }
 
+    [Test]
+    public void MatchingPadBeforeDrumLaneStart_DoesNotOverhit()
+    {
+        var (engine, notes) = CreateLaneProximityEngine(FourLaneDrumPad.YellowDrum);
+
+        HitPad(engine, notes.Notes[0].Time, DrumsAction.RedDrum);
+        HitPad(engine, notes.Notes[1].Time - 0.2, DrumsAction.YellowDrum);
+
+        Assert.That(engine.EngineStats.Overhits, Is.Zero);
+    }
+
+    [Test]
+    public void MismatchedPadBeforeDrumLaneStart_RecordsOverhit()
+    {
+        var (engine, notes) = CreateLaneProximityEngine(FourLaneDrumPad.YellowDrum);
+
+        HitPad(engine, notes.Notes[0].Time, DrumsAction.RedDrum);
+        HitPad(engine, notes.Notes[1].Time - 0.2, DrumsAction.BlueDrum);
+
+        Assert.That(engine.EngineStats.Overhits, Is.EqualTo(1));
+    }
+
     private (YargDrumsEngine Engine, InstrumentDifficulty<DrumNote> Notes) CreateEngine(bool isBot)
     {
         var chartPath = Path.Combine(ChartDirectory!, "drawntotheflame.mid");
@@ -211,6 +234,44 @@ public class DrumEngineTester : EngineTester
         var notes = chart.ProDrums.GetDifficulty(Difficulty.Expert);
         var engine = new YargDrumsEngine(notes, chart.SyncTrack, _engineParams, isBot, false);
         return (engine, notes);
+    }
+
+    private static (YargDrumsEngine Engine, InstrumentDifficulty<DrumNote> Notes) CreateLaneProximityEngine(
+        FourLaneDrumPad lanePad)
+    {
+        var firstNote = new DrumNote(FourLaneDrumPad.RedDrum, DrumNoteType.Neutral, DrumNoteFlags.None,
+            NoteFlags.None, 0.0, 0);
+        var laneStart = new DrumNote(lanePad, DrumNoteType.Neutral, DrumNoteFlags.None,
+            NoteFlags.Tremolo | NoteFlags.LaneStart, 1.0, 480);
+        var laneEnd = new DrumNote(lanePad, DrumNoteType.Neutral, DrumNoteFlags.None,
+            NoteFlags.Tremolo | NoteFlags.LaneEnd, 1.2, 576);
+
+        firstNote.NextNote = laneStart;
+        laneStart.PreviousNote = firstNote;
+        laneStart.NextNote = laneEnd;
+        laneEnd.PreviousNote = laneStart;
+
+        var notes = new InstrumentDifficulty<DrumNote>(Instrument.ProDrums, Difficulty.Expert,
+            [firstNote, laneStart, laneEnd], new(), new());
+        var syncTrack = new SyncTrack(480);
+        syncTrack.Tempos.Add(new TempoChange(120, 0, 0));
+        var engineParams = new DrumsEngineParameters(
+            new HitWindowSettings(0.1, 0.1, 1.0, false, 0, 1.0, 1.0, 0.15, 0.25),
+            4,
+            StarMultiplierThresholds,
+            SoloBonusStarMultiplierThresholds,
+            DrumsEngineParameters.DrumMode.ProFourLane,
+            false,
+            true);
+
+        return (new YargDrumsEngine(notes, syncTrack, engineParams, false, false), notes);
+    }
+
+    private static void HitPad(YargDrumsEngine engine, double time, DrumsAction action)
+    {
+        var input = GameInput.Create(time, action, 1.0f);
+        engine.QueueInput(ref input);
+        engine.Update(time);
     }
 
     private static void RunEngineToEnd(YargDrumsEngine engine, InstrumentDifficulty<DrumNote> notes)
