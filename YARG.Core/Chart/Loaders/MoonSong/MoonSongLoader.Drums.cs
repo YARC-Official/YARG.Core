@@ -78,12 +78,49 @@ namespace YARG.Core.Chart
             return new(instrument, difficulties, GetAnimationTrack(instrument));
         }
 
+        // "Hand chords" are ineligible for drum trills, but chords consisting of one hand gem and a kick are eligible
+        private static bool IsEligibleForDrumTrill(MoonNote moonNote)
+        {
+            var numberOfHandGems = 0;
+            var currentNote = moonNote;
+
+            while (currentNote is not null && currentNote.tick == moonNote.tick)
+            {
+                if (currentNote.drumPad is not DrumPad.Kick)
+                {
+                    numberOfHandGems++;
+                    if (numberOfHandGems > 1)
+                    {
+                        return false;
+                    }
+                }
+                currentNote = currentNote.previous;
+            }
+
+            currentNote = moonNote.next;
+
+            while (currentNote is not null && currentNote.tick == moonNote.tick)
+            {
+                if (currentNote.drumPad is not DrumPad.Kick)
+                {
+                    numberOfHandGems++;
+                    if (numberOfHandGems > 1)
+                    {
+                        return false;
+                    }
+                }
+                currentNote = currentNote.next;
+            }
+
+            return true;
+        }
+
         private DrumNote CreateFourLaneDrumNote(MoonNote moonNote, Dictionary<MoonPhrase.Type, MoonPhrase> currentPhrases, List<DrumNote> notes)
         {
             var pad = GetFourLaneDrumPad(moonNote);
             var noteType = GetDrumNoteType(moonNote);
 
-            var generalFlags = GetGeneralFlags(moonNote, currentPhrases);
+            var generalFlags = GetGeneralFlags(moonNote, currentPhrases, IsEligibleForDrumTrill);
             generalFlags = ModifyDrumLaneFlags(moonNote, currentPhrases, generalFlags, notes);
 
             var drumFlags = GetDrumNoteFlags(moonNote, currentPhrases);
@@ -100,7 +137,7 @@ namespace YARG.Core.Chart
             var pad = GetFiveLaneDrumPad(moonNote);
             var noteType = GetDrumNoteType(moonNote);
 
-            var generalFlags = GetGeneralFlags(moonNote, currentPhrases);
+            var generalFlags = GetGeneralFlags(moonNote, currentPhrases, IsEligibleForDrumTrill);
             generalFlags = ModifyDrumLaneFlags(moonNote, currentPhrases, generalFlags, notes);
 
             var drumFlags = GetDrumNoteFlags(moonNote, currentPhrases);

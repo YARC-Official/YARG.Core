@@ -272,6 +272,18 @@ namespace YARG.Core.Chart
 
         private NoteFlags GetGeneralFlags(MoonNote moonNote, CurrentPhrases currentPhrases)
         {
+            // In most cases, eligibility for trills simply means not being a chord
+            // Drums needs its own check to make exceptions for kicks
+            static bool DefaultIsEligibleForTrill(MoonNote moonNote)
+            {
+                return !moonNote.isChord;
+            }
+
+            return GetGeneralFlags(moonNote, currentPhrases, DefaultIsEligibleForTrill);
+        }
+
+        private NoteFlags GetGeneralFlags(MoonNote moonNote, CurrentPhrases currentPhrases, Func<MoonNote,bool> isEligibleForTrill)
+        {
             var flags = NoteFlags.None;
 
             var previous = moonNote.PreviousSeperateMoonNote;
@@ -312,25 +324,27 @@ namespace YARG.Core.Chart
             // Trill
             if (currentPhrases.TryGetValue(MoonPhrase.Type.TrillLane, out var trill) && IsEventInPhrase(moonNote, trill, inclusiveEnd: true))
             {
-                var trillContainsPrevious = previous is not null && IsEventInPhrase(previous, trill, inclusiveEnd: true);
-                var trillContainsNext = next is not null && IsEventInPhrase(next, trill, inclusiveEnd: true);
+                var isLaneStart = previous is null || !IsEventInPhrase(previous, trill, inclusiveEnd: true);
+                var isLaneEnd = next is null || !IsEventInPhrase(next, trill, inclusiveEnd: true);
 
-                // Chords are not allowed in trills; if this trill contains one, reject it altogether
-                var trillContainsChord = (moonNote.isChord) || (trillContainsPrevious && previous.isChord) || (trillContainsNext && next.isChord);
+                var trillIsValid = (isEligibleForTrill(moonNote)) && // This lane note is eligible
+                    (isLaneStart || isEligibleForTrill(previous)) && // The previous lane note, if any, is also eligible
+                    (isLaneEnd || isEligibleForTrill(next)); // The next lane note, if any, is also eligible
 
-                if (!trillContainsChord)
+                // If we find something ineligible inside the trill, then there's no trill at all
+                if (trillIsValid)
                 {
                     // Sustains are not allowed in lanes, so make sure the note has zero length
                     moonNote.length = 0;
 
                     flags |= NoteFlags.Trill;
 
-                    if (!trillContainsPrevious)
+                    if (isLaneStart)
                     {
                         flags |= NoteFlags.LaneStart;
                     }
 
-                    if (!trillContainsNext)
+                    if (isLaneEnd)
                     {
                         flags |= NoteFlags.LaneEnd;
                     }
