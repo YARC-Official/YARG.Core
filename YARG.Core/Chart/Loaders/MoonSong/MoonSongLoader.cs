@@ -312,19 +312,28 @@ namespace YARG.Core.Chart
             // Trill
             if (currentPhrases.TryGetValue(MoonPhrase.Type.TrillLane, out var trill) && IsEventInPhrase(moonNote, trill, inclusiveEnd: true))
             {
-                // Sustains are not allowed in lanes, so make sure the note has zero length
-                moonNote.length = 0;
+                var trillContainsPrevious = previous is not null && IsEventInPhrase(previous, trill, inclusiveEnd: true);
+                var trillContainsNext = next is not null && IsEventInPhrase(next, trill, inclusiveEnd: true);
 
-                flags |= NoteFlags.Trill;
+                // Chords are not allowed in trills; if this trill contains one, reject it altogether
+                var trillContainsChord = (moonNote.isChord) || (trillContainsPrevious && previous.isChord) || (trillContainsNext && next.isChord);
 
-                if (previous == null || !IsEventInPhrase(previous, trill, inclusiveEnd: true))
+                if (!trillContainsChord)
                 {
-                    flags |= NoteFlags.LaneStart;
-                }
+                    // Sustains are not allowed in lanes, so make sure the note has zero length
+                    moonNote.length = 0;
 
-                if (next == null || !IsEventInPhrase(next, trill, inclusiveEnd: true))
-                {
-                    flags |= NoteFlags.LaneEnd;
+                    flags |= NoteFlags.Trill;
+
+                    if (!trillContainsPrevious)
+                    {
+                        flags |= NoteFlags.LaneStart;
+                    }
+
+                    if (!trillContainsNext)
+                    {
+                        flags |= NoteFlags.LaneEnd;
+                    }
                 }
             }
 
