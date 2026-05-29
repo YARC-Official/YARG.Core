@@ -205,9 +205,9 @@ public class DrumEngineTester : EngineTester
     }
 
     [Test]
-    public void MatchingPadBeforeDrumLaneStart_DoesNotOverhit()
+    public void MatchingPadBeforeSingleDrumLaneStart_DoesNotOverhit()
     {
-        var (engine, notes) = CreateLaneProximityEngine(FourLaneDrumPad.YellowDrum);
+        var (engine, notes) = CreateSingleLaneProximityEngine(FourLaneDrumPad.YellowDrum);
 
         HitPad(engine, notes.Notes[0].Time, DrumsAction.RedDrum);
         HitPad(engine, notes.Notes[1].Time - 0.2, DrumsAction.YellowDrum);
@@ -216,12 +216,45 @@ public class DrumEngineTester : EngineTester
     }
 
     [Test]
-    public void MismatchedPadBeforeDrumLaneStart_RecordsOverhit()
+    public void MismatchedPadBeforeSingleDrumLaneStart_RecordsOverhit()
     {
-        var (engine, notes) = CreateLaneProximityEngine(FourLaneDrumPad.YellowDrum);
+        var (engine, notes) = CreateSingleLaneProximityEngine(FourLaneDrumPad.YellowDrum);
 
         HitPad(engine, notes.Notes[0].Time, DrumsAction.RedDrum);
         HitPad(engine, notes.Notes[1].Time - 0.2, DrumsAction.BlueDrum);
+
+        Assert.That(engine.EngineStats.Overhits, Is.EqualTo(1));
+    }
+
+    [Test]
+    public void MatchingLeftPadBeforeDoubleDrumLaneStart_DoesNotOverhit()
+    {
+        var (engine, notes) = CreateDoubleLaneProximityEngine(FourLaneDrumPad.YellowCymbal, FourLaneDrumPad.GreenCymbal);
+
+        HitPad(engine, notes.Notes[0].Time, DrumsAction.RedDrum);
+        HitPad(engine, notes.Notes[1].Time - 0.2, DrumsAction.YellowCymbal);
+
+        Assert.That(engine.EngineStats.Overhits, Is.Zero);
+    }
+
+    [Test]
+    public void MatchingRightPadBeforeDoubleDrumLaneStart_DoesNotOverhit()
+    {
+        var (engine, notes) = CreateDoubleLaneProximityEngine(FourLaneDrumPad.YellowCymbal, FourLaneDrumPad.GreenCymbal);
+
+        HitPad(engine, notes.Notes[0].Time, DrumsAction.RedDrum);
+        HitPad(engine, notes.Notes[1].Time - 0.2, DrumsAction.GreenCymbal);
+
+        Assert.That(engine.EngineStats.Overhits, Is.Zero);
+    }
+
+    [Test]
+    public void MismatchedPadBeforeDoubleDrumLaneStart_RecordsOverhit()
+    {
+        var (engine, notes) = CreateDoubleLaneProximityEngine(FourLaneDrumPad.YellowCymbal, FourLaneDrumPad.GreenCymbal);
+
+        HitPad(engine, notes.Notes[0].Time, DrumsAction.RedDrum);
+        HitPad(engine, notes.Notes[1].Time - 0.2, DrumsAction.BlueCymbal);
 
         Assert.That(engine.EngineStats.Overhits, Is.EqualTo(1));
     }
@@ -236,7 +269,7 @@ public class DrumEngineTester : EngineTester
         return (engine, notes);
     }
 
-    private static (YargDrumsEngine Engine, InstrumentDifficulty<DrumNote> Notes) CreateLaneProximityEngine(
+    private static (YargDrumsEngine Engine, InstrumentDifficulty<DrumNote> Notes) CreateSingleLaneProximityEngine(
         FourLaneDrumPad lanePad)
     {
         var firstNote = new DrumNote(FourLaneDrumPad.RedDrum, DrumNoteType.Neutral, DrumNoteFlags.None,
@@ -266,6 +299,38 @@ public class DrumEngineTester : EngineTester
 
         return (new YargDrumsEngine(notes, syncTrack, engineParams, false, false), notes);
     }
+
+    private static (YargDrumsEngine Engine, InstrumentDifficulty<DrumNote> Notes) CreateDoubleLaneProximityEngine(
+        FourLaneDrumPad firstPad, FourLaneDrumPad secondPad)
+    {
+        var firstNote = new DrumNote(FourLaneDrumPad.RedDrum, DrumNoteType.Neutral, DrumNoteFlags.None,
+            NoteFlags.None, 0.0, 0);
+        var laneStart = new DrumNote(firstPad, DrumNoteType.Neutral, DrumNoteFlags.None,
+            NoteFlags.Trill | NoteFlags.LaneStart, 1.0, 480);
+        var laneEnd = new DrumNote(secondPad, DrumNoteType.Neutral, DrumNoteFlags.None,
+            NoteFlags.Trill | NoteFlags.LaneEnd, 1.2, 576);
+
+        firstNote.NextNote = laneStart;
+        laneStart.PreviousNote = firstNote;
+        laneStart.NextNote = laneEnd;
+        laneEnd.PreviousNote = laneStart;
+
+        var notes = new InstrumentDifficulty<DrumNote>(Instrument.ProDrums, Difficulty.Expert,
+            [firstNote, laneStart, laneEnd], new(), new());
+        var syncTrack = new SyncTrack(480);
+        syncTrack.Tempos.Add(new TempoChange(120, 0, 0));
+        var engineParams = new DrumsEngineParameters(
+            new HitWindowSettings(0.1, 0.1, 1.0, false, 0, 1.0, 1.0, 0.15, 0.25),
+            4,
+            StarMultiplierThresholds,
+            SoloBonusStarMultiplierThresholds,
+            DrumsEngineParameters.DrumMode.ProFourLane,
+            false,
+            true);
+
+        return (new YargDrumsEngine(notes, syncTrack, engineParams, false, false), notes);
+    }
+
 
     private static void HitPad(YargDrumsEngine engine, double time, DrumsAction action)
     {

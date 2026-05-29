@@ -1,4 +1,4 @@
-using NUnit.Framework;
+﻿using NUnit.Framework;
 using YARG.Core.Chart;
 using YARG.Core.Engine;
 using YARG.Core.Engine.Keys;
@@ -10,9 +10,9 @@ namespace YARG.Core.UnitTests.Engine;
 public class KeysEngineTester : EngineTester
 {
     [Test]
-    public void MatchingKeyBeforeChordLaneStart_DoesNotOverhit()
+    public void MatchingKeyBeforeChordTremoloLaneStart_DoesNotOverhit()
     {
-        var (engine, notes) = CreateLaneProximityEngine();
+        var (engine, notes) = CreateChordTremoloLaneProximityEngine();
 
         PressKey(engine, notes.Notes[0].Time, ProKeysAction.GreenKey);
         ReleaseKey(engine, 0.1, ProKeysAction.GreenKey);
@@ -22,9 +22,9 @@ public class KeysEngineTester : EngineTester
     }
 
     [Test]
-    public void MismatchedKeyBeforeChordLaneStart_RecordsOverhit()
+    public void MismatchedKeyBeforeChordTremoloLaneStart_RecordsOverhit()
     {
-        var (engine, notes) = CreateLaneProximityEngine();
+        var (engine, notes) = CreateChordTremoloLaneProximityEngine();
 
         int? overhitKey = null;
         engine.OnOverhit += key => overhitKey = key;
@@ -40,13 +40,78 @@ public class KeysEngineTester : EngineTester
         }
     }
 
-    private static (YargFiveLaneKeysEngine Engine, InstrumentDifficulty<GuitarNote> Notes) CreateLaneProximityEngine()
+    [Test]
+    public void MatchingTopKeyBeforeTrillLaneStart_DoesNotOverhit()
+    {
+        var (engine, notes) = CreateTrillLaneProximityEngine();
+
+        PressKey(engine, notes.Notes[0].Time, ProKeysAction.GreenKey);
+        ReleaseKey(engine, 0.1, ProKeysAction.GreenKey);
+        PressKey(engine, notes.Notes[1].Time - 0.2, ProKeysAction.OrangeKey);
+
+        Assert.That(engine.EngineStats.Overhits, Is.Zero);
+    }
+
+    [Test]
+    public void MatchingBottomKeyBeforeTrillLaneStart_DoesNotOverhit()
+    {
+        var (engine, notes) = CreateTrillLaneProximityEngine();
+
+        PressKey(engine, notes.Notes[0].Time, ProKeysAction.GreenKey);
+        ReleaseKey(engine, 0.1, ProKeysAction.GreenKey);
+        PressKey(engine, notes.Notes[1].Time - 0.2, ProKeysAction.GreenKey);
+
+        Assert.That(engine.EngineStats.Overhits, Is.Zero);
+    }
+
+    [Test]
+    public void MismatchedKeyBeforeTrillLaneStart_DoesNotOverhit()
+    {
+        var (engine, notes) = CreateTrillLaneProximityEngine();
+
+        int? overhitKey = null;
+        engine.OnOverhit += key => overhitKey = key;
+
+        PressKey(engine, notes.Notes[0].Time, ProKeysAction.GreenKey);
+        ReleaseKey(engine, 0.1, ProKeysAction.GreenKey);
+        PressKey(engine, notes.Notes[1].Time - 0.2, ProKeysAction.YellowKey);
+
+        Assert.That(engine.EngineStats.Overhits, Is.EqualTo(1));
+        Assert.That(overhitKey, Is.EqualTo((int) FiveLaneKeysEngine.FiveLaneKeysAction.YellowKey));
+    }
+
+    private static (YargFiveLaneKeysEngine Engine, InstrumentDifficulty<GuitarNote> Notes) CreateChordTremoloLaneProximityEngine()
     {
         var firstNote = CreateNote(FiveFretGuitarFret.Green, NoteFlags.None, 0.0, 0);
         var laneStart = CreateNote(FiveFretGuitarFret.Green, NoteFlags.Tremolo | NoteFlags.LaneStart, 1.0, 480);
         laneStart.AddChildNote(CreateNote(FiveFretGuitarFret.Red, NoteFlags.Tremolo | NoteFlags.LaneStart, 1.0, 480));
         var laneEnd = CreateNote(FiveFretGuitarFret.Green, NoteFlags.Tremolo | NoteFlags.LaneEnd, 1.2, 576);
         laneEnd.AddChildNote(CreateNote(FiveFretGuitarFret.Red, NoteFlags.Tremolo | NoteFlags.LaneEnd, 1.2, 576));
+
+        LinkNotes(firstNote, laneStart, laneEnd);
+
+        var notes = new InstrumentDifficulty<GuitarNote>(Instrument.Keys, Difficulty.Expert,
+            [firstNote, laneStart, laneEnd], new(), new());
+        var engineParams = new KeysEngineParameters(
+            CreateHitWindowSettings(),
+            4,
+            0,
+            0,
+            StarMultiplierThresholds,
+            SoloBonusStarMultiplierThresholds,
+            0.05,
+            0,
+            false,
+            true);
+
+        return (new YargFiveLaneKeysEngine(notes, CreateSyncTrack(), engineParams, false), notes);
+    }
+
+    private static (YargFiveLaneKeysEngine Engine, InstrumentDifficulty<GuitarNote> Notes) CreateTrillLaneProximityEngine()
+    {
+        var firstNote = CreateNote(FiveFretGuitarFret.Green, NoteFlags.None, 0.0, 0);
+        var laneStart = CreateNote(FiveFretGuitarFret.Green, NoteFlags.Trill | NoteFlags.LaneStart, 1.0, 480);
+        var laneEnd = CreateNote(FiveFretGuitarFret.Orange, NoteFlags.Trill | NoteFlags.LaneEnd, 1.2, 576);
 
         LinkNotes(firstNote, laneStart, laneEnd);
 

@@ -1,4 +1,4 @@
-using NUnit.Framework;
+﻿using NUnit.Framework;
 using YARG.Core.Chart;
 using YARG.Core.Engine;
 using YARG.Core.Engine.Guitar;
@@ -10,7 +10,16 @@ namespace YARG.Core.UnitTests.Engine;
 public class GuitarEngineTester : EngineTester
 {
     [Test]
-    public void IncludedFretBeforeChordTrillStart_IsForgivenByGuitarGhostLeniency()
+    public void TopFretBeforeTrillStart_IsForgivenByGuitarGhostLeniency()
+    {
+        var (engine, notes) = CreateTrillProximityEngine();
+
+        Assert.That(engine.IsGhostInputForgivenByTrill((int) GuitarAction.YellowFret, notes.Notes[1].Time - 0.2, 1),
+            Is.True);
+    }
+
+    [Test]
+    public void BottomFretBeforeTrillStart_IsForgivenByGuitarGhostLeniency()
     {
         var (engine, notes) = CreateTrillProximityEngine();
 
@@ -32,7 +41,6 @@ public class GuitarEngineTester : EngineTester
         var firstNote = CreateNote(FiveFretGuitarFret.Green, NoteFlags.None, 0.0, 0);
         var laneStart = CreateNote(FiveFretGuitarFret.Yellow, NoteFlags.Trill | NoteFlags.LaneStart, 1.0, 480);
         var laneEnd = CreateNote(FiveFretGuitarFret.Red, NoteFlags.Trill | NoteFlags.LaneEnd, 1.2, 576);
-        laneEnd.AddChildNote(CreateNote(FiveFretGuitarFret.Blue, NoteFlags.Trill | NoteFlags.LaneEnd, 1.2, 576));
 
         LinkNotes(firstNote, laneStart, laneEnd);
 
