@@ -274,12 +274,12 @@ namespace YARG.Core.Chart
         {
             // In most cases, eligibility for trills simply means not being a chord
             // Drums needs its own check to make exceptions for kicks
-            static bool DefaultIsEligibleForTrill(MoonNote moonNote)
+            static bool DefaultTrillEligibilityCheck(MoonNote moonNote)
             {
                 return !moonNote.isChord;
             }
 
-            return GetGeneralFlags(moonNote, currentPhrases, DefaultIsEligibleForTrill);
+            return GetGeneralFlags(moonNote, currentPhrases, DefaultTrillEligibilityCheck);
         }
 
         private NoteFlags GetGeneralFlags(MoonNote moonNote, CurrentPhrases currentPhrases, Func<MoonNote,bool> isEligibleForTrill)
