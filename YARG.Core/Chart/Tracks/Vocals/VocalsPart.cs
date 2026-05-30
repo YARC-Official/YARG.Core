@@ -135,10 +135,15 @@ namespace YARG.Core.Chart
 
         public void TrimToTickRange(uint tickStart, uint tickEnd)
         {
-            NotePhrases.RemoveAll(n => n.Tick < tickStart || n.Tick >= tickEnd);
-            StaticLyricPhrases.RemoveAll(n => n.Tick < tickStart || n.Tick >= tickEnd);
-            OtherPhrases.RemoveAll(n => n.Tick < tickStart || n.Tick >= tickEnd);
+            NotePhrases.RemoveAll(n => !OverlapsTickRange(n, tickStart, tickEnd));
+            StaticLyricPhrases.RemoveAll(n => !OverlapsTickRange(n, tickStart, tickEnd));
+            OtherPhrases.RemoveAll(n => !OverlapsTickRange(n, tickStart, tickEnd));
             TextEvents.RemoveAll(n => n.Tick < tickStart || n.Tick >= tickEnd);
+        }
+
+        private static bool OverlapsTickRange(ChartEvent chartEvent, uint tickStart, uint tickEnd)
+        {
+            return chartEvent.TickEnd > tickStart && chartEvent.Tick < tickEnd;
         }
     }
 }
