@@ -27,7 +27,7 @@ namespace YARG.Core.Song
             base.Serialize(stream, indices);
         }
 
-        public override StemMixer? LoadAudio(float speed, double volume, params SongStem[] ignoreStems)
+        public override StemMixer? LoadAudio(float speed, double volume, bool enableCensoring, params SongStem[] ignoreStems)
         {
             using var sngFile = SngFile.TryLoadFromFile(_location, false);
             if (!sngFile.IsLoaded)
@@ -36,10 +36,10 @@ namespace YARG.Core.Song
                 return null;
             }
 
-            return CreateAudioMixer(speed, volume, sngFile, ignoreStems);
+            return CreateAudioMixer(speed, volume, sngFile, enableCensoring, ignoreStems);
         }
 
-        public override StemMixer? LoadPreviewAudio(float speed)
+        public override StemMixer? LoadPreviewAudio(float speed, bool enableCensoring)
         {
             using var sngFile = SngFile.TryLoadFromFile(_location, false);
             if (!sngFile.IsLoaded)
@@ -47,8 +47,7 @@ namespace YARG.Core.Song
                 YargLogger.LogFormatError("Failed to load sng file {0}", _location);
                 return null;
             }
-
-            foreach (var filename in PREVIEW_FILES)
+            foreach (var filename in enableCensoring ? CLEAN_PREVIEW_FILES : PREVIEW_FILES)
             {
                 if (sngFile.TryGetListing(filename, out var listing))
                 {
@@ -65,7 +64,7 @@ namespace YARG.Core.Song
                 }
             }
 
-            return CreateAudioMixer(speed, 0, sngFile, SongStem.Crowd);
+            return CreateAudioMixer(speed, 0, sngFile, enableCensoring, SongStem.Crowd);
         }
 
         public override YARGImage? LoadAlbumData()
@@ -191,8 +190,12 @@ namespace YARG.Core.Song
             return data;
         }
 
-        private StemMixer? CreateAudioMixer(float speed, double volume, in SngFile sngFile, params SongStem[] ignoreStems)
+        private StemMixer? CreateAudioMixer(float speed, double volume, in SngFile sngFile, bool enableCensoring, params SongStem[] ignoreStems)
         {
+            if (enableCensoring)
+            {
+                YargLogger.LogDebug("Censoring enabled, attempting to load clean vocals if available");
+            }
             bool clampStemVolume = _metadata.Source.ToLowerInvariant() == "yarg";
             var mixer = GlobalAudioHandler.CreateMixer(ToString(), speed, volume, clampStemVolume: clampStemVolume,
                 normalize: true);
@@ -202,6 +205,7 @@ namespace YARG.Core.Song
                 return null;
             }
 
+            bool cleanVocalsFound = false;
             foreach (var stem in IniAudio.SupportedStems)
             {
                 var stemEnum = AudioHelpers.SupportedStems[stem];
@@ -209,15 +213,28 @@ namespace YARG.Core.Song
                 {
                     continue;
                 }
-
+                if (!enableCensoring && stem == "vocals_clean")
+                {
+                    // Don't load clean vocals if censoring is disabled
+                    continue;
+                }
                 foreach (var format in IniAudio.SupportedFormats)
                 {
+                    if (cleanVocalsFound && stemEnum == SongStem.Vocals)
+                    {
+                        // Don't load vocals if we already have clean vocals
+                        continue;
+                    }
                     var file = stem + format;
                     if (sngFile.TryGetListing(file, out var listing))
                     {
                         var stream = sngFile.CreateStream(file, in listing);
                         if (mixer.AddChannel(stream, stemEnum))
                         {
+                            if (stem == "vocals_clean")
+                            {
+                                cleanVocalsFound = true;
+                            }
                             // No duplicates
                             break;
                         }

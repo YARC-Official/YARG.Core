@@ -112,8 +112,6 @@ namespace YARG.Core.Song
 
         public int PlaylistTrack => _metadata.PlaylistTrack;
 
-        public SongRating SongRating => _metadata.SongRating;
-
         public string LoadingPhrase => _metadata.LoadingPhrase;
 
         public string LinkBandcamp  => _metadata.LinkBandcamp;
@@ -534,6 +532,15 @@ namespace YARG.Core.Song
             _charter = new SortString(_metadata.Charter);
             _source = new SortString(_metadata.Source);
             _playlist = new SortString(_metadata.Playlist);
+        }
+
+        public SongRating GetSongRating(bool censorshipEnabled)
+        {
+            if (_metadata.CleanVocals && censorshipEnabled && _metadata.SongRating is SongRating.Sensitive_Content or SongRating.Mature)
+            {
+                return SongRating.Supervision_Recommended;
+            }
+            return _metadata.SongRating;
         }
     }
 }

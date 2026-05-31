@@ -64,6 +64,7 @@ namespace YARG.Core.IO.Ini
                 { "credit_produced_by",                   new("credit_produced_by", ModifierType.String) },
                 { "credit_published_by",                  new("credit_published_by", ModifierType.String) },
                 { "credit_written_by",                    new("credit_written_by", ModifierType.String) },
+                { "clean_vocals",                         new("clean_vocals", ModifierType.Bool) },
 
                 { "dance_type",                           new("dance_type", ModifierType.UInt32) },
                 { "delay",                                new("delay", ModifierType.Int64) },

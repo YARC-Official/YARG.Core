@@ -30,7 +30,7 @@ namespace YARG.Core.Song
             base.Serialize(stream, node);
         }
 
-        public override StemMixer? LoadAudio(float speed, double volume, params SongStem[] ignoreStems)
+        public override StemMixer? LoadAudio(float speed, double volume, bool enableCensoring, params SongStem[] ignoreStems)
         {
             bool clampStemVolume = _metadata.Source.ToLowerInvariant() == "yarg";
             var mixer = GlobalAudioHandler.CreateMixer(ToString(), speed, volume, clampStemVolume: clampStemVolume,
@@ -42,12 +42,20 @@ namespace YARG.Core.Song
             }
 
             var subFiles = GetSubFiles();
+            bool cleanVocalsFound = false;
             foreach (var stem in IniAudio.SupportedStems)
             {
                 var stemEnum = AudioHelpers.SupportedStems[stem];
-                if (ignoreStems.Contains(stemEnum))
+                if (ignoreStems.Contains(stemEnum)) continue;
+                if (!enableCensoring && stem == "vocals_clean")
+                {
                     continue;
-
+                }
+                if (cleanVocalsFound && stemEnum == SongStem.Vocals)
+                {
+                    // Don't load vocals if clean vocals were found, since they replace them
+                    continue;
+                }
                 foreach (var format in IniAudio.SupportedFormats)
                 {
                     var stemName = stem + format;
@@ -56,6 +64,10 @@ namespace YARG.Core.Song
                         var stream = new FileStream(file, FileMode.Open, FileAccess.Read, FileShare.Read, 1);
                         if (mixer.AddChannel(stream, stemEnum))
                         {
+                            if (stem == "vocals_clean")
+                            {
+                                cleanVocalsFound = true;
+                            }
                             // No duplicates
                             break;
                         }
@@ -79,9 +91,9 @@ namespace YARG.Core.Song
             return mixer;
         }
 
-        public override StemMixer? LoadPreviewAudio(float speed)
+        public override StemMixer? LoadPreviewAudio(float speed, bool enableCensoring)
         {
-            foreach (var filename in PREVIEW_FILES)
+            foreach (var filename in enableCensoring ? CLEAN_PREVIEW_FILES : PREVIEW_FILES)
             {
                 var audioFile = Path.Combine(_location, filename);
                 if (File.Exists(audioFile))
@@ -89,7 +101,7 @@ namespace YARG.Core.Song
                     return GlobalAudioHandler.LoadCustomFile(audioFile, speed, 0, true, SongStem.Preview);
                 }
             }
-            return LoadAudio(speed, 0, SongStem.Crowd);
+            return LoadAudio(speed, 0, enableCensoring, SongStem.Crowd);
         }
 
         public override YARGImage? LoadAlbumData()

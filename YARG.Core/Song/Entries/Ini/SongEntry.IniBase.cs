@@ -13,7 +13,7 @@ namespace YARG.Core.Song
 {
     public static class IniAudio
     {
-        public static readonly string[] SupportedStems = { "song", "guitar", "bass", "rhythm", "keys", "vocals", "vocals_1", "vocals_2", "drums", "drums_1", "drums_2", "drums_3", "drums_4", "crowd", };
+        public static readonly string[] SupportedStems = { "song", "guitar", "bass", "rhythm", "keys", "vocals_clean", "vocals", "vocals_1", "vocals_2", "vocals_explicit", "drums", "drums_1", "drums_2", "drums_3", "drums_4", "crowd", };
         public static readonly string[] SupportedFormats = { ".opus", ".ogg", ".mp3", ".wav", ".aiff", };
         private static readonly HashSet<string> SupportedAudioFiles = new();
 
@@ -44,7 +44,7 @@ namespace YARG.Core.Song
 
         protected static readonly string[] ALBUMART_FILES;
         protected static readonly string[] PREVIEW_FILES;
-
+        protected static readonly string[] CLEAN_PREVIEW_FILES;
         static IniSubEntry()
         {
             ALBUMART_FILES = new string[IMAGE_EXTENSIONS.Length];
@@ -57,6 +57,12 @@ namespace YARG.Core.Song
             for (int i = 0; i < PREVIEW_FILES.Length; i++)
             {
                 PREVIEW_FILES[i] = "preview" + IniAudio.SupportedFormats[i];
+            }
+
+            CLEAN_PREVIEW_FILES = new string[IniAudio.SupportedFormats.Length];
+            for (int i = 0; i < PREVIEW_FILES.Length; i++)
+            {
+                CLEAN_PREVIEW_FILES[i] = "preview_clean" + IniAudio.SupportedFormats[i];
             }
         }
 
@@ -272,7 +278,7 @@ namespace YARG.Core.Song
 
             if (entry._metadata.SongLength <= 0)
             {
-                using var mixer = entry.LoadAudio(0, 0);
+                using var mixer = entry.LoadAudio(0, 0, false);
                 if (mixer != null)
                 {
                     entry._metadata.SongLength = (long) (mixer.Length * SongMetadata.MILLISECOND_FACTOR);
@@ -583,7 +589,7 @@ namespace YARG.Core.Song
 
             if (entry._metadata.SongLength <= 0)
             {
-                using var mixer = entry.LoadAudio(0, 0);
+                using var mixer = entry.LoadAudio(0, 0, false);
                 if (mixer != null)
                 {
                     entry._metadata.SongLength = (long) (mixer.Length * SongMetadata.MILLISECOND_FACTOR);

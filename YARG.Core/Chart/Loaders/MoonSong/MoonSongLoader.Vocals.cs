@@ -165,6 +165,7 @@ namespace YARG.Core.Chart
 
                     // Handle lyric events
                     var lyricFlags = LyricSymbolFlags.None;
+                    bool isCensorable = false;
                     while (moonTextIndex < moonChart.events.Count)
                     {
                         var moonEvent = moonChart.events[moonTextIndex];
@@ -293,6 +294,11 @@ namespace YARG.Core.Chart
 
             // Handle lyric modifiers
             lyricFlags = LyricSymbols.GetLyricFlags(lyric);
+
+            if (isCensorable)
+            {
+                lyricFlags |= LyricSymbolFlags.Censorable;
+            }
 
             const LyricSymbolFlags noteTypeMask = LyricSymbolFlags.NonPitched | LyricSymbolFlags.PitchSlide;
             if ((lyricFlags & noteTypeMask) == noteTypeMask)

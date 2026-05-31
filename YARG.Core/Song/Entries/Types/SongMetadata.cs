@@ -87,6 +87,7 @@ namespace YARG.Core.Song
             Video = (0, -1),
             VocalScrollSpeedScalingFactor = null,
             VocalGender = VocalGender.Unspecified,
+            CleanVocals = false,
         };
 
         public string Name;
@@ -158,8 +159,9 @@ namespace YARG.Core.Song
         public string CharterVocals;
         public string CharterVenue;
 
-        public float? VocalScrollSpeedScalingFactor;
+        public float?      VocalScrollSpeedScalingFactor;
         public VocalGender VocalGender;
+        public bool        CleanVocals;
 
         public static SongMetadata CreateFromIni(IniModifierCollection modifiers)
         {
@@ -524,6 +526,11 @@ namespace YARG.Core.Song
             if (modifiers.Extract("vocal_gender", out string vocalGender))
             {
                 metadata.VocalGender = Enum.Parse<VocalGender>(vocalGender);
+            }
+
+            if (modifiers.Extract("clean_vocals", out bool cleanVocals))
+            {
+                metadata.CleanVocals = cleanVocals;
             }
         }
     }
