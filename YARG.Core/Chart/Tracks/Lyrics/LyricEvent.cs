@@ -20,6 +20,7 @@ namespace YARG.Core.Chart
         public bool PitchSlide    => (_flags & LyricSymbolFlags.PitchSlide) != 0;
         public bool HarmonyHidden => (_flags & LyricSymbolFlags.HarmonyHidden) != 0;
         public bool StaticShift   => (_flags & LyricSymbolFlags.StaticShift) != 0;
+        public bool  Censorable => (_flags & LyricSymbolFlags.Censorable) != 0;
 
         // Range shifts are handled externally
         // public bool RangeShift => (_flags & LyricFlags.RangeShift) != 0;

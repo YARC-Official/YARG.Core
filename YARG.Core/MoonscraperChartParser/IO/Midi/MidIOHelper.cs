@@ -112,6 +112,7 @@ namespace MoonscraperChartEditor.Song.IO
         public const byte VOCALS_RANGE_END = 84;
         public const byte PERCUSSION_NOTE = 96;
         public const byte NONPLAYED_PERCUSSION_NOTE = 97;
+        public const byte VOCAL_CENSORSHIP = 104;
 
         // Pro Keys notes
         public const byte SOLO_NOTE_PRO_KEYS = 115;
@@ -217,6 +218,7 @@ namespace MoonscraperChartEditor.Song.IO
         public const string CHART_DYNAMICS_TEXT = "ENABLE_CHART_DYNAMICS";
         public const string ENHANCED_OPENS_TEXT = "ENHANCED_OPENS";
         public const string STRICT_HAT_PEDAL_STATE = "STRICT_HAT_PEDAL_STATE";
+        public const string CENSORSHIP_MARKERS_TEXT = "CENSORSHIP_MARKERS";
 
         // Note velocities
         public const byte VELOCITY = 100;             // default note velocity for exporting

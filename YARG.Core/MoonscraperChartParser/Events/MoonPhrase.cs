@@ -33,6 +33,7 @@ namespace MoonscraperChartEditor.Song
             Vocals_PercussionPhrase,
             Vocals_RangeShift,
             Vocals_LyricShift,
+            Vocals_Censorship,
 
             // Pro keys
 

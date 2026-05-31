@@ -26,6 +26,9 @@ namespace YARG.Core.Chart
         RangeShift = 1 << 7,
 
         HyphenateWithNext = 1 << 8,
+
+        // Not technically a symbol, but it makes life easier if it's in here
+        Censorable = 1 << 9,
     }
 
     /// <summary>

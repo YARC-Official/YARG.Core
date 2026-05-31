@@ -46,7 +46,7 @@ namespace YARG.Core.Chart.Loaders.UltraStar
 
         private class UltraStarNote
         {
-            public int    PartIndex     { get; set; } = 0; 
+            public int    PartIndex     { get; set; } = 0;
             public char   Type          { get; set; }
             public uint   StartBeat     { get; set; }
             public uint   DurationBeats { get; set; }
@@ -125,8 +125,8 @@ namespace YARG.Core.Chart.Loaders.UltraStar
             string value = line[(colon + 1)..].Trim().TrimEnd(',');
             _metadata[key] = value;
 
-            if (key.Equals("BPM", StringComparison.OrdinalIgnoreCase)) 
-            { 
+            if (key.Equals("BPM", StringComparison.OrdinalIgnoreCase))
+            {
                 string norm = value.Replace(',', '.');
                 if (double.TryParse(norm, NumberStyles.Float, CultureInfo.InvariantCulture, out double bpm) && bpm > 0)
                 {
@@ -444,7 +444,7 @@ namespace YARG.Core.Chart.Loaders.UltraStar
 
                 // Pitch conversion: UltraStar relative → MIDI absolute
                 // Unpitched (freestyle, pitch=-1): pass -1 to VocalNote
-                float midiPitch = isUnpitched ? -1f : ToMidiPitch(uNote.Pitch); 
+                float midiPitch = isUnpitched ? -1f : ToMidiPitch(uNote.Pitch);
 
                 var childNote = new VocalNote(
                     midiPitch,
@@ -453,14 +453,16 @@ namespace YARG.Core.Chart.Loaders.UltraStar
                     noteTime,
                     noteTimeLen,
                     noteTick,
-                    noteTickLen);
+                    noteTickLen,
+                    false // I don't think UltraStar has lyric censorship
+                    );
 
                 parentNote.AddChildNote(childNote);
 
                 if (!string.IsNullOrWhiteSpace(uNote.Lyric))
                 {
                     var flags = isUnpitched ? LyricSymbolFlags.NonPitched : LyricSymbolFlags.None;
-                    lyrics.Add(new LyricEvent(flags, FormatLyric(uNote.Lyric), noteTime, noteTick)); 
+                    lyrics.Add(new LyricEvent(flags, FormatLyric(uNote.Lyric), noteTime, noteTick));
                 }
             }
 
