@@ -135,5 +135,85 @@ namespace YARG.Core.UnitTests.Parsing
                     $"Lyric phrase {i} does not match!");
             }
         }
+
+        [Test]
+        public void LyricPhrases_ParseIntoSectionsCorrectlyOnSameTickAsPhraseStart()
+        {
+            var song = CreateSong();
+            /*
+                  1354 = E "phrase_start"
+                  1392 = E "lyric shouldBeInPhrase1"
+                  2035 = E "lyric shouldBeInPhrase2"
+                  2035 = E "phrase_start"
+                  2035 = E "lyric shouldAlsoBeInPhrase2
+                  2688 = E "phrase_end"
+             */
+            // Phrase 1
+            song.events.Add(new("phrase_start", 1));
+            song.events.Add(new("lyric shouldBeInPhrase1", 2));
+            // Before the phrase start in the list, but on the same tick, so should still be in the next phrase.
+            song.events.Add(new("lyric shouldBeInPhrase2", 3));
+            // Phrase 2
+            song.events.Add(new("phrase_start", 3));
+            song.events.Add(new("lyric shouldAlsoBeInPhrase2", 3));
+            song.events.Add(new("phrase_end", 4));
+
+            var lyrics = new MoonSongLoader(song, ParseSettings.Default).LoadLyrics();
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(lyrics.Phrases, Has.Count.EqualTo(2));
+
+                Assert.That(lyrics.Phrases[0].Lyrics, Has.Count.EqualTo(1));
+                Assert.That(lyrics.Phrases[0].Lyrics[0].Text, Is.EqualTo("shouldBeInPhrase1"));
+
+                Assert.That(lyrics.Phrases[1].Lyrics, Has.Count.EqualTo(2));
+                Assert.That(lyrics.Phrases[1].Lyrics[0].Text, Is.EqualTo("shouldBeInPhrase2"));
+                Assert.That(lyrics.Phrases[1].Lyrics[1].Text, Is.EqualTo("shouldAlsoBeInPhrase2"));
+            }
+        }
+
+        [Test]
+        public void LyricPhrases_ParseIntoSectionsCorrectlyOnSameTickAsPhraseEnd()
+        {
+            var song = CreateSong();
+            /*
+              1354 = E "phrase_start"
+              1392 = E "lyric phrase1"
+              2035 = E "lyric phrase1Again"
+              2035 = E "phrase_end"
+              2039 = E "lyric ignored"
+              2097 = E "phrase_start"
+              2097 = E "lyric phrase2"
+              2592 = E "lyric phrase2again"
+              2688 = E "phrase_end"
+             */
+
+            // Phrase 1
+            song.events.Add(new("phrase_start", 1));
+            song.events.Add(new("lyric phrase1", 2));
+            song.events.Add(new("lyric phrase1Again", 3));
+            song.events.Add(new("phrase_end", 3));
+            // Event in between phrases, should be ignored
+            song.events.Add(new("lyric ignored", 4));
+            // Phrase 2
+            song.events.Add(new("phrase_start", 5));
+            song.events.Add(new("lyric phrase2", 5));
+            song.events.Add(new("lyric phrase2again", 6));
+            song.events.Add(new("phrase_end", 7));
+
+            var lyrics = new MoonSongLoader(song, ParseSettings.Default).LoadLyrics();
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(lyrics.Phrases, Has.Count.EqualTo(2));
+
+                Assert.That(lyrics.Phrases[0].Lyrics, Has.Count.EqualTo(2));
+                Assert.That(lyrics.Phrases[0].Lyrics[0].Text, Is.EqualTo("phrase1"));
+                Assert.That(lyrics.Phrases[0].Lyrics[1].Text, Is.EqualTo("phrase1Again"));
+
+                Assert.That(lyrics.Phrases[1].Lyrics, Has.Count.EqualTo(2));
+                Assert.That(lyrics.Phrases[1].Lyrics[0].Text, Is.EqualTo("phrase2"));
+                Assert.That(lyrics.Phrases[1].Lyrics[1].Text, Is.EqualTo("phrase2again"));
+            }
+        }
     }
 }

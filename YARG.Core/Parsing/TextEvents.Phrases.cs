@@ -78,7 +78,6 @@ namespace YARG.Core.Parsing
                     ProcessPhraseEvents(converter, ref state);
                     state.currentTick = tick;
                     state.start = state.end = false;
-                    state.pendingEvents.Clear();
                 }
 
                 // Determine what events are present on the current tick
@@ -115,6 +114,23 @@ namespace YARG.Core.Parsing
 
         private static void ProcessPhraseEvents(ITextPhraseConverter converter, ref TextConversionState state)
         {
+            // If this is not a start tick...
+            if (!state.start)
+            {
+                // If we are not in any phrase...
+                if (state.startTick == null)
+                {
+                    // Clear all pending events (they must be between phrases)
+                    state.pendingEvents.Clear();
+                }
+                // If we are in a phrase...
+                else
+                {
+                    // Add the events to the phrase.
+                    FlushPendingEvents(converter, ref state);
+                }
+            }
+
             // Phrase starts or ends on this tick
             if (state.start ^ state.end)
             {
@@ -136,21 +152,18 @@ namespace YARG.Core.Parsing
                 if (state.startTick == null)
                 {
                     // Phrase starts and ends on this tick
-                    // Process pending events first, they are part of this phrase
-                    FlushPendingEvents(converter, ref state);
                     converter.AddPhrase(state.currentTick, state.currentTick);
                 }
                 else
                 {
                     // Phrase ends on this tick and a new one starts
-                    // Process phrase end first, pending events are part of the next phrase
                     converter.AddPhrase(state.startTick.Value, state.currentTick);
                     state.startTick = state.currentTick;
                 }
             }
 
-            // Only dequeue pending events if we're within a phrase
-            if (state.startTick != null)
+            // If a phrase starts here, we still want to flush the events, just after the phrase has begun.
+            if (state.startTick != null && state.start)
                 FlushPendingEvents(converter, ref state);
         }
 
@@ -160,6 +173,7 @@ namespace YARG.Core.Parsing
             {
                 converter.AddPhraseEvent(pending, state.currentTick);
             }
+            state.pendingEvents.Clear();
         }
         #endregion
     }
