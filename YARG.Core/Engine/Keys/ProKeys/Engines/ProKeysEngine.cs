@@ -13,6 +13,8 @@ namespace YARG.Core.Engine.Keys
         protected ProKeysNote? FatFingerNote;
         protected int? FatFingerKey;
 
+        protected bool IsGlissandoActive = false;
+
         protected override double[] KeyPressTimes { get; } = new double[(int) ProKeysAction.Key25 + 1];
 
         public EngineTimer GetFatFingerTimer() => FatFingerTimer;
@@ -148,6 +150,21 @@ namespace YARG.Core.Engine.Keys
                 StartSustain(note);
             }
 
+            if (note.IsGlissando)
+            {
+                UpdateLaneAutohitExpireTime();
+
+                if (note.IsGlissandoStart)
+                {
+                    IsGlissandoActive = true;
+                }
+
+                if (note.IsGlissandoEnd)
+                {
+                    IsGlissandoActive = false;
+                }
+            }
+
             OnNoteHit?.Invoke(NoteIndex, note);
             base.HitNote(note);
         }
@@ -165,6 +182,14 @@ namespace YARG.Core.Engine.Keys
 
             // Can't miss a note during BRE phrase
             if (IsCodaActive && note.IsBigRockEnding)
+            {
+                note.SetHitState(true, false);
+                base.HitNote(note);
+                return;
+            }
+
+            // Autohit glissando notes as long as the player keeps providing inputs
+            if (note.IsGlissando && note.Time < LaneAutohitExpireTime)
             {
                 note.SetHitState(true, false);
                 base.HitNote(note);
@@ -200,6 +225,16 @@ namespace YARG.Core.Engine.Keys
             else if (note.IsSoloStart)
             {
                 StartSolo();
+            }
+
+            if (note.IsGlissandoStart)
+            {
+                IsGlissandoActive = true;
+            }
+
+            if (note.IsGlissandoEnd)
+            {
+                IsGlissandoActive = false;
             }
 
             // If no notes within a chord were hit, combo is 0

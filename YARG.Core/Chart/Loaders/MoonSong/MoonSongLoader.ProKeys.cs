@@ -45,7 +45,23 @@ namespace YARG.Core.Chart
             if (currentPhrases.TryGetValue(MoonPhrase.Type.ProKeys_Glissando, out var glissando) &&
                 IsEventInPhrase(moonNote, glissando, inclusiveEnd: true))
             {
+                // Sustains are not allowed in glissandos, so make sure the note has zero length
+                moonNote.length = 0;
+
                 flags |= ProKeysNoteFlags.Glissando;
+
+                var previous = moonNote.PreviousSeperateMoonNote;
+                var next = moonNote.NextSeperateMoonNote;
+
+                if (previous is null || !IsEventInPhrase(previous, glissando, inclusiveEnd: true))
+                {
+                    flags |= ProKeysNoteFlags.GlissandoStart;
+                }
+
+                if (next is null || !IsEventInPhrase(next, glissando, inclusiveEnd: true))
+                {
+                    flags |= ProKeysNoteFlags.GlissandoEnd;
+                }
             }
 
             return flags;
