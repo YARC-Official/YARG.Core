@@ -558,5 +558,11 @@ namespace YARG.Core.Engine.Drums
         }
 
         protected override bool CanSustainHold(DrumNote note) => throw new InvalidOperationException();
+
+        protected override bool ProximalLaneForgivesInput(int inputNote, DrumNote laneNote)
+        {
+            var (requiredLaneNote, otherNoteInTrill) = GetLaneNotes(laneNote);
+            return inputNote == requiredLaneNote || (otherNoteInTrill != -1 && otherNoteInTrill == inputNote);
+        }
     }
 }
