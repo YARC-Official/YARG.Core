@@ -8,6 +8,7 @@ namespace YARG.Core.Audio
         public static readonly Dictionary<string, SongStem> SupportedStems = new()
         {
             { "song",     SongStem.Song    },
+            { "song_clean",     SongStem.Song    },
             { "guitar",   SongStem.Guitar  },
             { "bass",     SongStem.Bass    },
             { "rhythm",   SongStem.Rhythm  },
@@ -15,17 +16,22 @@ namespace YARG.Core.Audio
             { "vocals",   SongStem.Vocals  },
             { "vocals_1", SongStem.Vocals },
             { "vocals_2", SongStem.Vocals },
-            { "vocals_clean", SongStem.Vocals },
-            { "vocals_explicit", SongStem.Vocals },
+            { "vocals_clean",   SongStem.Vocals  },
+            { "vocals_1_clean", SongStem.Vocals },
+            { "vocals_2_clean", SongStem.Vocals },
+            { "vocals_explicit",   SongStem.Vocals  },
+            { "vocals_1_explicit", SongStem.Vocals },
+            { "vocals_2_explicit", SongStem.Vocals },
             { "drums",    SongStem.Drums   },
             { "drums_1",  SongStem.Drums  },
             { "drums_2",  SongStem.Drums  },
             { "drums_3",  SongStem.Drums  },
             { "drums_4",  SongStem.Drums  },
             { "crowd",    SongStem.Crowd   },
+            { "crowd_clean",    SongStem.Crowd   },
+            { "crowd_explicit",    SongStem.Crowd   },
             // "preview"
         };
-
         public static readonly List<SongStem> PitchBendAllowedStems = new()
         {
             SongStem.Guitar,
