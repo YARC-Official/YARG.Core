@@ -373,6 +373,7 @@ namespace YARG.Core.Song
             stream.Write(_metadata.SongLength, Endianness.Little);
             stream.Write(_metadata.SongOffset, Endianness.Little);
             stream.Write((int)_metadata.SongRating, Endianness.Little);
+            stream.Write(_metadata.CleanVocals);
 
             stream.Write(_metadata.Preview.Start, Endianness.Little);
             stream.Write(_metadata.Preview.End, Endianness.Little);
@@ -461,6 +462,7 @@ namespace YARG.Core.Song
             _metadata.SongLength = stream.Read<long>(Endianness.Little);
             _metadata.SongOffset = stream.Read<long>(Endianness.Little);
             _metadata.SongRating = (SongRating)stream.Read<uint>(Endianness.Little);
+            _metadata.CleanVocals = stream.ReadBoolean();
 
             _metadata.Preview.Start = stream.Read<long>(Endianness.Little);
             _metadata.Preview.End   = stream.Read<long>(Endianness.Little);
