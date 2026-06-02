@@ -13,7 +13,9 @@ namespace YARG.Core.Song
 {
     public static class IniAudio
     {
-        public static readonly string[] SupportedStems = { "song", "guitar", "bass", "rhythm", "keys", "vocals_clean", "vocals", "vocals_1", "vocals_2", "vocals_explicit", "drums", "drums_1", "drums_2", "drums_3", "drums_4", "crowd", };
+        public static readonly string[] SupportedCleanStems = { "song_clean", "vocals_clean", "vocals_1_clean", "vocals_2_clean", "crowd_clean" };
+        public static readonly string[] SupportedExplicitStems = { "vocals_clean", "vocals_1_clean", "vocals_2_clean", "crowd_clean" };
+        public static readonly string[] SupportedStems = { "song", "guitar", "bass", "rhythm", "keys", "vocals", "vocals_1", "vocals_2", "drums", "drums_1", "drums_2", "drums_3", "drums_4", "crowd", };
         public static readonly string[] SupportedFormats = { ".opus", ".ogg", ".mp3", ".wav", ".aiff", };
         private static readonly HashSet<string> SupportedAudioFiles = new();
 

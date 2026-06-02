@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using YARG.Core.Audio;
@@ -192,10 +193,6 @@ namespace YARG.Core.Song
 
         private StemMixer? CreateAudioMixer(float speed, double volume, in SngFile sngFile, bool enableCensoring, params SongStem[] ignoreStems)
         {
-            if (enableCensoring)
-            {
-                YargLogger.LogDebug("Censoring enabled, attempting to load clean vocals if available");
-            }
             bool clampStemVolume = _metadata.Source.ToLowerInvariant() == "yarg";
             var mixer = GlobalAudioHandler.CreateMixer(ToString(), speed, volume, clampStemVolume: clampStemVolume,
                 normalize: true);
@@ -204,43 +201,47 @@ namespace YARG.Core.Song
                 YargLogger.LogError("Failed to create mixer");
                 return null;
             }
+            var addedCleanStems = new HashSet<SongStem>();
+            if (enableCensoring)
+            {
+                foreach (var stem in IniAudio.SupportedCleanStems)
+                {
+                    var stemEnum = AudioHelpers.SupportedStems[stem];
 
-            bool cleanVocalsFound = false;
+                    if (ignoreStems.Contains(stemEnum))
+                    {
+                        continue;
+                    }
+
+                    if (TryLoadStem(stem, stemEnum, sngFile, mixer))
+                    {
+                        addedCleanStems.Add(stemEnum);
+                    }
+                }
+            }
+
             foreach (var stem in IniAudio.SupportedStems)
             {
                 var stemEnum = AudioHelpers.SupportedStems[stem];
-                if (ignoreStems.Contains(stemEnum))
+
+                if (ignoreStems.Contains(stemEnum) || addedCleanStems.Contains(stemEnum))
                 {
                     continue;
                 }
-                if (!enableCensoring && stem == "vocals_clean")
+                TryLoadStem(stem, stemEnum, sngFile, mixer);
+            }
+
+            if (!enableCensoring)
+            {
+                foreach (var stem in IniAudio.SupportedExplicitStems)
                 {
-                    // Don't load clean vocals if censoring is disabled
-                    continue;
-                }
-                foreach (var format in IniAudio.SupportedFormats)
-                {
-                    if (cleanVocalsFound && stemEnum == SongStem.Vocals)
+                    var stemEnum = AudioHelpers.SupportedStems[stem];
+
+                    if (ignoreStems.Contains(stemEnum))
                     {
-                        // Don't load vocals if we already have clean vocals
                         continue;
                     }
-                    var file = stem + format;
-                    if (sngFile.TryGetListing(file, out var listing))
-                    {
-                        var stream = sngFile.CreateStream(file, in listing);
-                        if (mixer.AddChannel(stream, stemEnum))
-                        {
-                            if (stem == "vocals_clean")
-                            {
-                                cleanVocalsFound = true;
-                            }
-                            // No duplicates
-                            break;
-                        }
-                        stream.Dispose();
-                        YargLogger.LogFormatError("Failed to load stem file {0}", file);
-                    }
+                    TryLoadStem(stem, stemEnum, sngFile, mixer);
                 }
             }
 
@@ -256,6 +257,26 @@ namespace YARG.Core.Song
                 YargLogger.LogFormatInfo("Loaded {0} stems", mixer.Channels.Count);
             }
             return mixer;
+        }
+
+        private static bool TryLoadStem(string stem, SongStem stemEnum, SngFile sngFile, StemMixer mixer)
+        {
+            foreach (var format in IniAudio.SupportedFormats)
+            {
+                var file = stem + format;
+                if (sngFile.TryGetListing(file, out var listing))
+                {
+                    var stream = sngFile.CreateStream(file, in listing);
+                    if (mixer.AddChannel(stream, stemEnum))
+                    {
+                        // No duplicates
+                        break;
+                    }
+                    stream.Dispose();
+                }
+            }
+
+            return false;
         }
 
         private SngEntry(uint version, string location, in DateTime lastWrite, ChartFormat format)

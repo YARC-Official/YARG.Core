@@ -40,40 +40,48 @@ namespace YARG.Core.Song
                 YargLogger.LogError("Failed to create mixer!");
                 return null;
             }
-
+            var addedCleanStems = new HashSet<SongStem>();
             var subFiles = GetSubFiles();
-            bool cleanVocalsFound = false;
+            if (enableCensoring)
+            {
+                foreach (var stem in IniAudio.SupportedCleanStems)
+                {
+                    var stemEnum = AudioHelpers.SupportedStems[stem];
+
+                    if (ignoreStems.Contains(stemEnum))
+                    {
+                        continue;
+                    }
+
+                    if (TryLoadStem(stem, stemEnum, subFiles, mixer))
+                    {
+                        addedCleanStems.Add(stemEnum);
+                    }
+                }
+            }
+
             foreach (var stem in IniAudio.SupportedStems)
             {
                 var stemEnum = AudioHelpers.SupportedStems[stem];
-                if (ignoreStems.Contains(stemEnum)) continue;
-                if (!enableCensoring && stem == "vocals_clean")
+
+                if (ignoreStems.Contains(stemEnum) || addedCleanStems.Contains(stemEnum))
                 {
                     continue;
                 }
-                if (cleanVocalsFound && stemEnum == SongStem.Vocals)
+                TryLoadStem(stem, stemEnum, subFiles, mixer);
+            }
+
+            if (!enableCensoring)
+            {
+                foreach (var stem in IniAudio.SupportedExplicitStems)
                 {
-                    // Don't load vocals if clean vocals were found, since they replace them
-                    continue;
-                }
-                foreach (var format in IniAudio.SupportedFormats)
-                {
-                    var stemName = stem + format;
-                    if (subFiles.TryGetValue(stemName, out var file))
+                    var stemEnum = AudioHelpers.SupportedStems[stem];
+
+                    if (ignoreStems.Contains(stemEnum))
                     {
-                        var stream = new FileStream(file, FileMode.Open, FileAccess.Read, FileShare.Read, 1);
-                        if (mixer.AddChannel(stream, stemEnum))
-                        {
-                            if (stem == "vocals_clean")
-                            {
-                                cleanVocalsFound = true;
-                            }
-                            // No duplicates
-                            break;
-                        }
-                        stream.Dispose();
-                        YargLogger.LogFormatError("Failed to load stem file {0}", file);
+                        continue;
                     }
+                    TryLoadStem(stem, stemEnum, subFiles, mixer);
                 }
             }
 
@@ -89,6 +97,27 @@ namespace YARG.Core.Song
                 YargLogger.LogFormatInfo("Loaded {0} stems", mixer.Channels.Count);
             }
             return mixer;
+        }
+
+        private static bool TryLoadStem(string stem, SongStem stemEnum, Dictionary<string, string> fileDictionary, StemMixer mixer)
+        {
+            foreach (var format in IniAudio.SupportedFormats)
+            {
+                var stemName = stem + format;
+                if (fileDictionary.TryGetValue(stemName, out var file))
+                {
+                    var stream = new FileStream(file, FileMode.Open, FileAccess.Read, FileShare.Read, 1);
+                    if (mixer.AddChannel(stream, stemEnum))
+                    {
+                        // No duplicates
+                        return true;
+                    }
+                    stream.Dispose();
+                    YargLogger.LogFormatError("Failed to load stem file {0}", file);
+                }
+            }
+
+            return false;
         }
 
         public override StemMixer? LoadPreviewAudio(float speed, bool enableCensoring)
