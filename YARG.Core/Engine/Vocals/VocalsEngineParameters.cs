@@ -40,11 +40,6 @@ namespace YARG.Core.Engine.Vocals
         /// </summary>
         public readonly int PointsPerPhrase;
 
-        /// <summary>
-        /// Whether the player has vocal censorship enabled (this is a global setting).
-        /// </summary>
-        public readonly bool EnableCensorship;
-
         public VocalsEngineParameters(HitWindowSettings hitWindow, int maxMultiplier, float[] starMultiplierThresholds, float[] soloBonusStarMultiplierThresholds,
             float pitchWindow, float pitchWindowPerfect, double phraseHitPercent, double approximateVocalFps,
             bool singToActivateStarPower, int pointsPerPhrase, bool enableCensorship)
@@ -56,7 +51,6 @@ namespace YARG.Core.Engine.Vocals
             ApproximateVocalFps = approximateVocalFps;
             SingToActivateStarPower = singToActivateStarPower;
             PointsPerPhrase = pointsPerPhrase;
-            EnableCensorship = enableCensorship;
         }
 
         public VocalsEngineParameters(ref FixedArrayStream stream, int version)
@@ -68,7 +62,6 @@ namespace YARG.Core.Engine.Vocals
             ApproximateVocalFps = stream.Read<double>(Endianness.Little);
             SingToActivateStarPower = stream.ReadBoolean();
             PointsPerPhrase = stream.Read<int>(Endianness.Little);
-            EnableCensorship = stream.ReadBoolean();
         }
 
         public override void Serialize(BinaryWriter writer)
@@ -81,7 +74,6 @@ namespace YARG.Core.Engine.Vocals
             writer.Write(ApproximateVocalFps);
             writer.Write(SingToActivateStarPower);
             writer.Write(PointsPerPhrase);
-            writer.Write(EnableCensorship);
         }
     }
 }

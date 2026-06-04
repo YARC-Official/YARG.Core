@@ -73,7 +73,11 @@ namespace YARG.Core.Engine.Vocals
 
         public override ReplayStats ConstructReplayStats(string name, bool isReplayPlayer)
         {
-            return new VocalsReplayStats(name, isReplayPlayer, this);
+            return ConstructReplayStats(name, isReplayPlayer, false);
+        }
+        public ReplayStats ConstructReplayStats(string name, bool isReplayPlayer, bool censorshipEnabled)
+        {
+            return new VocalsReplayStats(name, isReplayPlayer, censorshipEnabled, this);
         }
     }
 }
