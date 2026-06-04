@@ -21,13 +21,32 @@ namespace YARG.Core.Chart
             };
         }
 
+        private static void ApplyCensoringToPart(VocalsTrack vocalsTrack)
+        {
+            foreach (var part in vocalsTrack.Parts)
+            {
+                for (int i = part.NotePhrases.Count - 1; i >= 0; i--)
+                {
+                    var phrase = part.NotePhrases[i];
+                    var staticPhrase = part.StaticLyricPhrases[i];
+                    var removedCount = phrase.PhraseParentNote.ChildNotes.RemoveAll(n => n.IsCensorable);
+                    ApplyCensoringToLyricEvents(phrase.Lyrics);
+                    ApplyCensoringToLyricEvents(staticPhrase.Lyrics);
+                    if (removedCount > 0 && phrase.IsEmpty)
+                    {
+                        part.NotePhrases.RemoveAt(i);
+                        part.StaticLyricPhrases.RemoveAt(i);
+                    }
+                }
+            }
+        }
+
         private VocalsTrack LoadSoloVocals(Instrument instrument)
         {
             var parts = new List<VocalsPart>()
             {
                 LoadVocalsPart(MoonSong.MoonInstrument.Vocals),
             };
-
             var ranges = GetRangeShifts(parts, MoonSong.MoonInstrument.Vocals);
             var anims = GetAnimationTrack(instrument);
             return new VocalsTrack(instrument, parts, ranges, anims);
@@ -66,6 +85,25 @@ namespace YARG.Core.Chart
             // For solo vocals and HARM1, the static lyric phrases are always the same as the scoring phrases. HARM2 and HARM3 derive
             // their static lyric phrases from a different phrase type, so we have to run through again, looking for that type instead
             var staticLyricPhrases = isBacking ? GetVocalsPhrases(moonChart, harmonyPart, true) : notePhrases.Duplicate();
+
+            // Apply censoring postprocessing
+            if (_settings.CensoringEnabled)
+            {
+                for (int i = notePhrases.Count - 1; i >= 0; i--)
+                {
+                    var phrase = notePhrases[i];
+                    var removedCount = phrase.PhraseParentNote.ChildNotes.RemoveAll(n => n.IsCensorable);
+                    ApplyCensoringToLyricEvents(phrase.Lyrics);
+                    if (removedCount > 0 && phrase.IsEmpty)
+                    {
+                        notePhrases.RemoveAt(i);
+                    }
+                }
+                foreach (var phrase in staticLyricPhrases)
+                {
+                    ApplyCensoringToLyricEvents(phrase.Lyrics);
+                }
+            }
 
             var otherPhrases = GetPhrases(moonChart);
             var textEvents = GetTextEvents(moonChart);
