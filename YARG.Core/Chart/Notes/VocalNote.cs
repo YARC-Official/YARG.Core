@@ -1,7 +1,5 @@
 ﻿using System;
 using System.Linq;
-using NUnit.Framework;
-using YARG.Core.Logging;
 
 namespace YARG.Core.Chart
 {

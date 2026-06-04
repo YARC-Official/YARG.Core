@@ -21,32 +21,13 @@ namespace YARG.Core.Chart
             };
         }
 
-        private static void ApplyCensoringToPart(VocalsTrack vocalsTrack)
-        {
-            foreach (var part in vocalsTrack.Parts)
-            {
-                for (int i = part.NotePhrases.Count - 1; i >= 0; i--)
-                {
-                    var phrase = part.NotePhrases[i];
-                    var staticPhrase = part.StaticLyricPhrases[i];
-                    var removedCount = phrase.PhraseParentNote.ChildNotes.RemoveAll(n => n.IsCensorable);
-                    ApplyCensoringToLyricEvents(phrase.Lyrics);
-                    ApplyCensoringToLyricEvents(staticPhrase.Lyrics);
-                    if (removedCount > 0 && phrase.IsEmpty)
-                    {
-                        part.NotePhrases.RemoveAt(i);
-                        part.StaticLyricPhrases.RemoveAt(i);
-                    }
-                }
-            }
-        }
-
         private VocalsTrack LoadSoloVocals(Instrument instrument)
         {
             var parts = new List<VocalsPart>()
             {
                 LoadVocalsPart(MoonSong.MoonInstrument.Vocals),
             };
+
             var ranges = GetRangeShifts(parts, MoonSong.MoonInstrument.Vocals);
             var anims = GetAnimationTrack(instrument);
             return new VocalsTrack(instrument, parts, ranges, anims);
@@ -333,11 +314,6 @@ namespace YARG.Core.Chart
             // Handle lyric modifiers
             lyricFlags = LyricSymbols.GetLyricFlags(lyric);
 
-            if (isCensorable)
-            {
-                lyricFlags |= LyricSymbolFlags.Censorable;
-            }
-
             const LyricSymbolFlags noteTypeMask = LyricSymbolFlags.NonPitched | LyricSymbolFlags.PitchSlide;
             if ((lyricFlags & noteTypeMask) == noteTypeMask)
             {
@@ -354,7 +330,7 @@ namespace YARG.Core.Chart
                 return;
 
             double time = _moonSong.TickToTime(lyricTick);
-            lyrics.Add(new(lyricFlags, strippedLyric, time, lyricTick));
+            lyrics.Add(new(lyricFlags, strippedLyric, time, lyricTick, isCensorable));
         }
 
         private List<VocalsRangeShift> GetRangeShifts(List<VocalsPart> parts, MoonSong.MoonInstrument sourceInstrument)

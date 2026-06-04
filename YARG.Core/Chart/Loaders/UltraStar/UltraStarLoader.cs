@@ -281,7 +281,7 @@ namespace YARG.Core.Chart.Loaders.UltraStar
 
                     var flags = n.IsUnpitched ? LyricSymbolFlags.NonPitched : LyricSymbolFlags.None;
                     events.Add(new LyricEvent(flags, FormatLyric(n.Lyric),
-                        BeatToTime(n.StartBeat), BeatToTick(n.StartBeat)));
+                        BeatToTime(n.StartBeat), BeatToTick(n.StartBeat), false));
                 }
 
                 if (events.Count > 0)
@@ -454,15 +454,14 @@ namespace YARG.Core.Chart.Loaders.UltraStar
                     noteTimeLen,
                     noteTick,
                     noteTickLen,
-                    false // I don't think UltraStar has lyric censorship
-                    );
+                    false);
 
                 parentNote.AddChildNote(childNote);
 
                 if (!string.IsNullOrWhiteSpace(uNote.Lyric))
                 {
                     var flags = isUnpitched ? LyricSymbolFlags.NonPitched : LyricSymbolFlags.None;
-                    lyrics.Add(new LyricEvent(flags, FormatLyric(uNote.Lyric), noteTime, noteTick));
+                    lyrics.Add(new LyricEvent(flags, FormatLyric(uNote.Lyric), noteTime, noteTick, false));
                 }
             }
 

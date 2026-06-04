@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.Linq;
 using MoonscraperChartEditor.Song;
-using YARG.Core.Logging;
 using YARG.Core.Parsing;
 
 namespace YARG.Core.Chart
@@ -65,11 +64,6 @@ namespace YARG.Core.Chart
                 // Handle lyric modifiers
                 var flags = LyricSymbols.GetLyricFlags(lyric);
 
-                if (IsCensorableAtTick(tick))
-                {
-                    flags |= LyricSymbolFlags.Censorable;
-                }
-
                 // Strip special symbols from lyrics
                 string strippedLyric = !lyric.IsEmpty
                     ? LyricSymbols.StripForLyrics(lyric.ToString())
@@ -83,7 +77,7 @@ namespace YARG.Core.Chart
                 }
 
                 double time = _moonSong.TickToTime(tick);
-                _currentLyrics.Add(new(flags, strippedLyric, time, tick));
+                _currentLyrics.Add(new(flags, strippedLyric, time, tick, IsCensorableAtTick(tick)));
             }
         }
         private static void ApplyCensoringToLyricEvents(List<LyricEvent> lyricEvents)
@@ -93,15 +87,12 @@ namespace YARG.Core.Chart
             while (i < lyricEvents.Count)
             {
                 var lyric = lyricEvents[i];
-                if (lyric.Censorable)
+                if (lyric.IsCensorable)
                 {
                     if (firstInWord != null)
                     {
                         // This syllable is part of a censored word — remove it.
                         // If it also joins/hyphens with the next, keep removing.
-                        YargLogger.LogFormatTrace(
-                            "Removing lyric \"{0}\" at tick {1} due to preceding lyric being censored",
-                            lyric.Text, lyric.Tick);
                         lyricEvents.RemoveAt(i);
                         firstInWord.TickLength += lyric.TickLength;
                         firstInWord.TimeLength += lyric.TimeLength;
@@ -112,9 +103,7 @@ namespace YARG.Core.Chart
                     {
                         // First syllable of a censored word — replace with a dash.
                         // If it joins/hyphens with the next, those need to be removed too.
-                        YargLogger.LogFormatTrace(
-                            "Censoring lyric \"{0}\" at tick {1}", lyric.Text, lyric.Tick);
-                        lyricEvents[i] = new LyricEvent(lyric.Flags & ~LyricSymbolFlags.HyphenateWithNext & ~LyricSymbolFlags.JoinWithNext, "-", lyric.Time, lyric.Tick);
+                        lyricEvents[i] = new LyricEvent(lyric.Flags & ~LyricSymbolFlags.HyphenateWithNext & ~LyricSymbolFlags.JoinWithNext, "-", lyric.Time, lyric.Tick, true);
                         firstInWord = lyricEvents[i];
                         i++;
                     }

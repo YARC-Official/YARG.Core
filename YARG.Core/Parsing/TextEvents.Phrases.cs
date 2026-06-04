@@ -10,7 +10,6 @@ namespace YARG.Core.Parsing
 
         void AddPhrase(uint startTick, uint endTick);
         void AddPhraseEvent(string text, uint tick);
-        bool IsCensorableAtTick(uint tick);
     }
 
     public static partial class TextEvents
