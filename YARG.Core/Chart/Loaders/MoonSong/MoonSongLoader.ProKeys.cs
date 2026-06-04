@@ -18,10 +18,10 @@ namespace YARG.Core.Chart
 
             var difficulties = new Dictionary<Difficulty, InstrumentDifficulty<ProKeysNote>>
             {
-                { Difficulty.Easy,   LoadDifficulty(instrument, Difficulty.Easy, createNote) },
-                { Difficulty.Medium, LoadDifficulty(instrument, Difficulty.Medium, createNote) },
-                { Difficulty.Hard,   LoadDifficulty(instrument, Difficulty.Hard, createNote) },
-                { Difficulty.Expert, LoadDifficulty(instrument, Difficulty.Expert, createNote) },
+                { Difficulty.Easy,   LoadDifficulty(instrument, Difficulty.Easy, createNote, finalPassDelegate: ProKeysFinalPass) },
+                { Difficulty.Medium, LoadDifficulty(instrument, Difficulty.Medium, createNote, finalPassDelegate: ProKeysFinalPass) },
+                { Difficulty.Hard,   LoadDifficulty(instrument, Difficulty.Hard, createNote, finalPassDelegate: ProKeysFinalPass) },
+                { Difficulty.Expert, LoadDifficulty(instrument, Difficulty.Expert, createNote, finalPassDelegate: ProKeysFinalPass) },
             };
             return new(instrument, difficulties);
         }
@@ -65,6 +65,112 @@ namespace YARG.Core.Chart
             }
 
             return flags;
+        }
+
+        private static void ProKeysFinalPass(InstrumentDifficulty<ProKeysNote> chart)
+        {
+            var noteIndex = 0;
+
+            // All we're here to do is assemble lane phrases, so if there aren't any notes or phrases, then we have nothing to do
+            if (chart.Phrases.Count == 0 || chart.Notes.Count == 0)
+            {
+                return;
+            }
+
+            foreach (var phrase in chart.Phrases)
+            {
+                // Pro Keys does not support tremolos. Glissando phrases are handled earlier, since they don't require complex adjacent-note validation logic
+                if (phrase.Type is not PhraseType.TrillLane)
+                {
+                    continue;
+                }
+
+                var notesInPhrase = GetNotesInPhrase(phrase, chart.Notes, noteIndex, out noteIndex);
+
+                var laneNotes = GetProKeysTrillNotes(notesInPhrase);
+
+                if (laneNotes.Count > 0)
+                {
+                    // Unlike for guitar, we don't need to iterate through all children here since we're only handling trills. If there were child notes to
+                    // iterate through, then we wouldn't have validated these as trill notes in the first place because trills don't support chords
+                    laneNotes[0].ActivateFlag(NoteFlags.LaneStart);
+                    laneNotes[^1].ActivateFlag(NoteFlags.LaneEnd);
+                }
+            }
+        }
+
+        // Takes all notes that are supposedly inside a Pro Keys trill phrase and validates them
+        // Activates the Trill flag for all notes in the phrase that constitute a valid trill
+        //   -For a well-formed chart, this will be all of them
+        //   -If the chart is malformed, the trill might terminate earlier than the supposed end of the phrase or be invalidated altogether
+        // Returns the list of all marked notes. GuitarFinalPass will assign the LaneStart and LaneEnd flags (shared behavior with tremolos)
+        //
+        // A guitar trill must begin with two different single notes - if they match or either is a chord, the trill is invalid
+        // The third note of the trill must match the first - if not, the trill is invalid
+        // From there, the trill is valid as long as it continues alternating those two notes
+        // If it repeats the same note twice, the trill terminates
+        // If anything other than the two established notes occurs, the trill terminates
+        private static List<ProKeysNote> GetProKeysTrillNotes(List<ProKeysNote> notesInPhrase)
+        {
+            List<ProKeysNote> trillNotes = new();
+
+            if (notesInPhrase.Count < 3)
+            {
+                // Need at least three notes to constitute a trill; this is invalid. Return empty (no trill)
+                return trillNotes;
+            }
+
+            if (notesInPhrase[0].IsChord || notesInPhrase[1].IsChord)
+            {
+                // Trills can't contain chords; this is invalid. Return empty (no trill)
+                return trillNotes;
+            }
+
+            if (notesInPhrase[0].NoteMask == notesInPhrase[1].NoteMask)
+            {
+                // Trills must be two different notes; this is invalid. Return empty (no trill)
+                return trillNotes;
+            }
+
+            if (notesInPhrase[0].NoteMask != notesInPhrase[2].NoteMask)
+            {
+                // The third note must match the first; this is invalid. Return empty (no trill)
+                return trillNotes;
+            }
+
+            // We now know that we have a valid trill, and we've pre-approved the first three notes. Flag them and add them to the list
+            notesInPhrase[0].ActivateFlag(NoteFlags.Trill);
+            notesInPhrase[1].ActivateFlag(NoteFlags.Trill);
+            notesInPhrase[2].ActivateFlag(NoteFlags.Trill);
+            trillNotes.Add(notesInPhrase[0]);
+            trillNotes.Add(notesInPhrase[1]);
+            trillNotes.Add(notesInPhrase[2]);
+
+            // The trill will continue for as long as it keeps alternating these two masks
+            var mask1 = notesInPhrase[0].NoteMask;
+            var mask2 = notesInPhrase[1].NoteMask;
+
+            for (var i = 3; i < notesInPhrase.Count; i++)
+            {
+                var note = notesInPhrase[i];
+                var previousNote = notesInPhrase[i - 1];
+
+                if (
+                    (note.NoteMask == mask1 && previousNote.NoteMask == mask2) ||
+                    (note.NoteMask == mask2 && previousNote.NoteMask == mask1)
+                )
+                {
+                    note.ActivateFlag(NoteFlags.Trill);
+                    trillNotes.Add(note);
+                }
+                else
+                {
+                    // We've stopped properly alternating; terminate the trill
+                    break;
+                }
+            }
+
+            return trillNotes;
         }
     }
 }

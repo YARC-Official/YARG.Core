@@ -22,11 +22,11 @@ namespace YARG.Core.Chart
         {
             var difficulties = new Dictionary<Difficulty, InstrumentDifficulty<GuitarNote>>()
             {
-                { Difficulty.Beginner, LoadDifficulty<GuitarNote>(instrument, Difficulty.Beginner, CreateFiveFretBeginnerNote, null, ValidateGuitarPhrase) },
-                { Difficulty.Easy, LoadDifficulty(instrument, Difficulty.Easy, createNote, null, ValidateGuitarPhrase) },
-                { Difficulty.Medium, LoadDifficulty(instrument, Difficulty.Medium, createNote, null, ValidateGuitarPhrase) },
-                { Difficulty.Hard, LoadDifficulty(instrument, Difficulty.Hard, createNote, null, ValidateGuitarPhrase) },
-                { Difficulty.Expert, LoadDifficulty(instrument, Difficulty.Expert, createNote, null, ValidateGuitarPhrase) },
+                { Difficulty.Beginner, LoadDifficulty<GuitarNote>(instrument, Difficulty.Beginner, CreateFiveFretBeginnerNote, null, ValidateGuitarPhrase, null) }, // No lanes on Beginner, so no final pass
+                { Difficulty.Easy, LoadDifficulty(instrument, Difficulty.Easy, createNote, null, ValidateGuitarPhrase, null) }, // No lanes on Easy, so no final pass
+                { Difficulty.Medium, LoadDifficulty(instrument, Difficulty.Medium, createNote, null, ValidateGuitarPhrase, null) }, // No lanes on Medium, so no final pass
+                { Difficulty.Hard, LoadDifficulty(instrument, Difficulty.Hard, createNote, null, ValidateGuitarPhrase, GuitarFinalPass) },
+                { Difficulty.Expert, LoadDifficulty(instrument, Difficulty.Expert, createNote, null, ValidateGuitarPhrase, GuitarFinalPass) },
             };
 
             var track = new InstrumentTrack<GuitarNote>(instrument, difficulties, GetAnimationTrack(instrument));
@@ -220,6 +220,180 @@ namespace YARG.Core.Chart
             }
 
             return false;
+        }
+
+        private static void GuitarFinalPass(InstrumentDifficulty<GuitarNote> chart)
+        {
+            var noteIndex = 0;
+
+            // All we're here to do is assemble lane phrases, so if there aren't any notes or phrases, then we have nothing to do
+            if (chart.Phrases.Count == 0 || chart.Notes.Count == 0)
+            {
+                return;
+            }
+
+            foreach (var phrase in chart.Phrases)
+            {
+                if (phrase.Type is not (PhraseType.TremoloLane or PhraseType.TrillLane))
+                {
+                    continue;
+                }
+
+                var notesInPhrase = GetNotesInPhrase(phrase, chart.Notes, noteIndex, out noteIndex);
+
+                List<GuitarNote> laneNotes;
+
+                switch (phrase.Type)
+                {
+                    case PhraseType.TremoloLane:
+                        laneNotes = GetGuitarTremoloNotes(notesInPhrase);
+                        break;
+                    case PhraseType.TrillLane:
+                        laneNotes = GetGuitarTrillNotes(notesInPhrase);
+                        break;
+                    default:
+                        throw new ArgumentOutOfRangeException("Unreachable.");
+                }
+
+                if (laneNotes.Count > 0)
+                {
+                    foreach (var startChild in laneNotes[0].AllNotes)
+                    {
+                        startChild.ActivateFlag(NoteFlags.LaneStart);
+                    }
+
+                    foreach (var endChild in laneNotes[^1].AllNotes)
+                    {
+                        endChild.ActivateFlag(NoteFlags.LaneEnd);
+                    }
+                }
+            }
+        }
+
+        // Takes all notes that are supposedly inside a guitar tremolo phrase and validates them.
+        // Activates the Tremolo flag for all notes in the phrase that constitute a valid tremolo
+        //   -For a well-formed chart, this will be all of them
+        //   -If the chart is malformed, the tremolo might terminate earlier than the supposed end of the phrase or be invalidated altogether
+        // Returns the list of all marked notes. GuitarFinalPass will assign the LaneStart and LaneEnd flags (shared behavior with trills)
+        //
+        // A guitar tremolo must consist of exactly one notemask, repeated at least twice
+        // If the tremolo's notemask changes on the second note, it's not a valid tremolo
+        // If the notemask changes later in the tremolo, the tremolo is terminated there
+        private static List<GuitarNote> GetGuitarTremoloNotes(List<GuitarNote> notesInPhrase)
+        {
+            static void AddToTremolo(GuitarNote note, List<GuitarNote> tremolo)
+            {
+                foreach (var child in note.AllNotes)
+                {
+                    child.ActivateFlag(NoteFlags.Tremolo);
+                }
+
+                tremolo.Add(note);
+            }
+
+
+            List<GuitarNote> tremoloNotes = new();
+
+            if (notesInPhrase.Count < 2 || notesInPhrase[0].NoteMask != notesInPhrase[1].NoteMask)
+            {
+                // This tremolo doesn't start with two matching masks, so it's invalid. Return an empty list (no tremolo)
+                return tremoloNotes;
+            }
+
+            // The first two notes are now pre-cleared, so no need to check their masks again
+            AddToTremolo(notesInPhrase[0], tremoloNotes);
+            AddToTremolo(notesInPhrase[1], tremoloNotes);
+
+            // Go through all further notes in the phrase and add them to the tremolo as long as the mask doesn't change
+            
+            for (var i = 2; i < notesInPhrase.Count; i++)
+            {
+                var note = notesInPhrase[i];
+
+                if (notesInPhrase[i].NoteMask != notesInPhrase[0].NoteMask)
+                {
+                    // We found a mask that doesn't fit the tremolo; terminate early
+                    break;
+                }
+
+                AddToTremolo(note, tremoloNotes);
+            }
+
+            return tremoloNotes;
+        }
+
+        // Takes all notes that are supposedly inside a guitar trill phrase and validates them
+        // Activates the Trill flag for all notes in the phrase that constitute a valid trill
+        //   -For a well-formed chart, this will be all of them
+        //   -If the chart is malformed, the trill might terminate earlier than the supposed end of the phrase or be invalidated altogether
+        // Returns the list of all marked notes. GuitarFinalPass will assign the LaneStart and LaneEnd flags (shared behavior with tremolos)
+        //
+        // A guitar trill must begin with two different single notes - if they match or either is a chord, the trill is invalid
+        // The third note of the trill must match the first - if not, the trill is invalid
+        // From there, the trill is valid as long as it continues alternating those two notes
+        // If it repeats the same note twice, the trill terminates
+        // If anything other than the two established notes occurs, the trill terminates
+        private static List<GuitarNote> GetGuitarTrillNotes(List<GuitarNote> notesInPhrase)
+        {
+            List<GuitarNote> trillNotes = new();
+
+            if (notesInPhrase.Count < 3)
+            {
+                // Need at least three notes to constitute a trill; this is invalid. Return empty (no trill)
+                return trillNotes;
+            }
+
+            if (notesInPhrase[0].IsChord || notesInPhrase[1].IsChord)
+            {
+                // Trills can't contain chords; this is invalid. Return empty (no trill)
+                return trillNotes;
+            }
+
+            if (notesInPhrase[0].NoteMask == notesInPhrase[1].NoteMask)
+            {
+                // Trills must be two different notes; this is invalid. Return empty (no trill)
+                return trillNotes;
+            }
+
+            if (notesInPhrase[0].NoteMask != notesInPhrase[2].NoteMask)
+            {
+                // The third note must match the first; this is invalid. Return empty (no trill)
+                return trillNotes;
+            }
+
+            // We now know that we have a valid trill, and we've pre-approved the first three notes. Flag them and add them to the list
+            notesInPhrase[0].ActivateFlag(NoteFlags.Trill);
+            notesInPhrase[1].ActivateFlag(NoteFlags.Trill);
+            notesInPhrase[2].ActivateFlag(NoteFlags.Trill);
+            trillNotes.Add(notesInPhrase[0]);
+            trillNotes.Add(notesInPhrase[1]);
+            trillNotes.Add(notesInPhrase[2]);
+
+            // The trill will continue for as long as it keeps alternating these two masks
+            var mask1 = notesInPhrase[0].NoteMask;
+            var mask2 = notesInPhrase[1].NoteMask;
+
+            for (var i = 3; i < notesInPhrase.Count; i++)
+            {
+                var note = notesInPhrase[i];
+                var previousNote = notesInPhrase[i - 1];
+
+                if (
+                    (note.NoteMask == mask1 && previousNote.NoteMask == mask2) ||
+                    (note.NoteMask == mask2 && previousNote.NoteMask == mask1)
+                )
+                {
+                    note.ActivateFlag(NoteFlags.Trill);
+                    trillNotes.Add(note);
+                }
+                else
+                {
+                    // We've stopped properly alternating; terminate the trill
+                    break;
+                }
+            }
+
+            return trillNotes;
         }
     }
 }
