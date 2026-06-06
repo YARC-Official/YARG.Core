@@ -484,7 +484,7 @@ namespace YARG.Core.Chart
         // Activates the Tremolo flag for all notes in the phrase that constitute a valid tremolo
         //   -For a well-formed chart, this will be all of them
         //   -If the chart is malformed, the tremolo might terminate earlier than the supposed end of the phrase or be invalidated altogether
-        // Returns the list of all marked notes. GuitarFinalPass will assign the LaneStart and LaneEnd flags (shared behavior with trills)
+        // Returns the list of all marked notes. DrumsFinalPass will assign the LaneStart and LaneEnd flags (shared behavior with trills)
         private static List<DrumNote> GetDrumTremoloNotes(List<DrumNote> notesInPhrase, bool fourLane)
         {
             List<DrumNote> tremoloNotes = new();
@@ -557,7 +557,9 @@ namespace YARG.Core.Chart
                 }
             }
 
-            // If there is only one candidate pad, then all we need to do is verify that that pad reoccurs at least once during the lane, and we're all good
+            // If there is only one candidate pad, then all we need to do is verify these two things:
+            //   -The pad reoccurs at least once in the phrase
+            //   -If the pad has a same-color counterpart, that counterpart does not occur earlier than the first reocurrence of the candidate pad
             if (candidatePads.Count == 1)
             {
                 var otherPadOfSameColor = fourLane ? ((FourLaneDrumPad) candidatePads[0]).OtherPadOfSameColor() : null;
@@ -579,9 +581,9 @@ namespace YARG.Core.Chart
                             return candidatePads[0];
                         }
                     }
-
-                    return null; // The pad never reoccurred, so this is not a valid tremolo
                 }
+
+                return null; // The pad never reoccurred, so this is not a valid tremolo
             }
 
             // If there are multiple candidate pads, then we want to give the tremolo to the first one of them to reoccur
@@ -792,13 +794,13 @@ namespace YARG.Core.Chart
             }
 
             // We have two valid trill notes. We just need to make sure that the next non-lone-kick hit matches the first, and we have our pads
-            noteRef = noteRef!.NextNote;
-            while (noteRef is not null)
+            for (var i = 2; i < notesInPhrase.Count; i++)
             {
+                noteRef = notesInPhrase[i];
+
                 if (!noteRef.IsChord && noteRef.Pad == kick)
                 {
-                    // If this is a lone kick, move on
-                    noteRef = noteRef.NextNote;
+                    // This is a lone kick; move on
                     continue;
                 }
 
@@ -812,20 +814,20 @@ namespace YARG.Core.Chart
 
                     if (child.Pad != pad1)
                     {
-                        // We found a non-kick pad that doesn't match the first; not a valid trill
+                        // We found a non-kick pad that doesn't match pad1; not a valid trill
                         return null;
                     }
                 }
 
                 // If we made it here, we know we have a valid third hit
-                //   -If there were another non-kick pad, we would have returned null in the previous if statement
+                //   -If there were a non-kick pad that didn't match pad1, we would have returned null in the previous if statement
                 //   -If there were only a kick pad, we would have continued the while loop in the first if statement
                 //   -Thus, the only possibilities are a lone pad that matches pad1, or that plus a kick
                 return (pad1.Value, pad2.Value);
             }
 
-            // If we're here, we never found a valid third hit (presumably because the phrase was nothing but kicks after the second pad);
-            // not a valid trill
+            // If we're here, we never found a valid third hit (presumably because the phrase was nothing but kicks after the second
+            // pad); // not a valid trill
             return null;
         }
     }

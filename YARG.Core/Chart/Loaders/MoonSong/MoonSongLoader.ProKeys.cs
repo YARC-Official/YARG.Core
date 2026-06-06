@@ -98,7 +98,8 @@ namespace YARG.Core.Chart
                     laneNotes[0].ActivateFlag(NoteFlags.LaneStart);
 
                     // Cut sustains for all but the last note
-                    foreach (var laneNote in laneNotes.GetRange(0, laneNotes.Count - 1)) {
+                    foreach (var laneNote in laneNotes.GetRange(0, laneNotes.Count - 1))
+                    {
                         laneNote.TickLength = 0;
                         laneNote.TimeLength = 0;
                     }
@@ -113,7 +114,7 @@ namespace YARG.Core.Chart
         // Activates the Trill flag for all notes in the phrase that constitute a valid trill
         //   -For a well-formed chart, this will be all of them
         //   -If the chart is malformed, the trill might terminate earlier than the supposed end of the phrase or be invalidated altogether
-        // Returns the list of all marked notes. GuitarFinalPass will assign the LaneStart and LaneEnd flags (shared behavior with tremolos)
+        // Returns the list of all marked notes. ProKeysFinalPass will assign the LaneStart and LaneEnd flags (shared behavior with tremolos)
         //
         // A guitar trill must begin with two different single notes - if they match or either is a chord, the trill is invalid
         // The third note of the trill must match the first - if not, the trill is invalid
@@ -157,18 +158,12 @@ namespace YARG.Core.Chart
             trillNotes.Add(notesInPhrase[2]);
 
             // The trill will continue for as long as it keeps alternating these two masks
-            var mask1 = notesInPhrase[0].NoteMask;
-            var mask2 = notesInPhrase[1].NoteMask;
-
+            var mask = notesInPhrase[0].NoteMask;
+            var otherMask = notesInPhrase[1].NoteMask;
             for (var i = 3; i < notesInPhrase.Count; i++)
             {
                 var note = notesInPhrase[i];
-                var previousNote = notesInPhrase[i - 1];
-
-                if (
-                    (note.NoteMask == mask1 && previousNote.NoteMask == mask2) ||
-                    (note.NoteMask == mask2 && previousNote.NoteMask == mask1)
-                )
+                if (note.NoteMask == otherMask)
                 {
                     note.ActivateFlag(NoteFlags.Trill);
                     trillNotes.Add(note);
@@ -178,6 +173,7 @@ namespace YARG.Core.Chart
                     // We've stopped properly alternating; terminate the trill
                     break;
                 }
+                (mask, otherMask) = (otherMask, mask);
             }
 
             return trillNotes;

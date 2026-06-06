@@ -13,7 +13,7 @@ namespace YARG.Core.Chart
             return instrument.ToNativeGameMode() switch
             {
                 GameMode.FiveFretGuitar => LoadGuitarTrack(instrument, CreateFiveFretGuitarNote),
-                GameMode.SixFretGuitar  => LoadGuitarTrack(instrument, CreateSixFretGuitarNote),
+                GameMode.SixFretGuitar => LoadGuitarTrack(instrument, CreateSixFretGuitarNote),
                 _ => throw new ArgumentException($"Instrument {instrument} is not a guitar instrument!")
             };
         }
@@ -74,11 +74,11 @@ namespace YARG.Core.Chart
         {
             return moonNote.guitarFret switch
             {
-                MoonNote.GuitarFret.Open   => FiveFretGuitarFret.Open,
-                MoonNote.GuitarFret.Green  => FiveFretGuitarFret.Green,
-                MoonNote.GuitarFret.Red    => FiveFretGuitarFret.Red,
+                MoonNote.GuitarFret.Open => FiveFretGuitarFret.Open,
+                MoonNote.GuitarFret.Green => FiveFretGuitarFret.Green,
+                MoonNote.GuitarFret.Red => FiveFretGuitarFret.Red,
                 MoonNote.GuitarFret.Yellow => FiveFretGuitarFret.Yellow,
-                MoonNote.GuitarFret.Blue   => FiveFretGuitarFret.Blue,
+                MoonNote.GuitarFret.Blue => FiveFretGuitarFret.Blue,
                 MoonNote.GuitarFret.Orange => FiveFretGuitarFret.Orange,
                 _ => throw new InvalidOperationException($"Invalid Moonscraper guitar fret {moonNote.guitarFret}!")
             };
@@ -88,7 +88,7 @@ namespace YARG.Core.Chart
         {
             return moonNote.ghliveGuitarFret switch
             {
-                MoonNote.GHLiveGuitarFret.Open   => SixFretGuitarFret.Open,
+                MoonNote.GHLiveGuitarFret.Open => SixFretGuitarFret.Open,
                 MoonNote.GHLiveGuitarFret.Black1 => SixFretGuitarFret.Black1,
                 MoonNote.GHLiveGuitarFret.Black2 => SixFretGuitarFret.Black2,
                 MoonNote.GHLiveGuitarFret.Black3 => SixFretGuitarFret.Black3,
@@ -124,8 +124,8 @@ namespace YARG.Core.Chart
             return type switch
             {
                 MoonNote.MoonNoteType.Strum => GuitarNoteType.Strum,
-                MoonNote.MoonNoteType.Hopo  => GuitarNoteType.Hopo,
-                MoonNote.MoonNoteType.Tap   => GuitarNoteType.Tap,
+                MoonNote.MoonNoteType.Hopo => GuitarNoteType.Hopo,
+                MoonNote.MoonNoteType.Tap => GuitarNoteType.Tap,
                 _ => throw new InvalidOperationException($"Unhandled Moonscraper note type {type}!")
             };
         }
@@ -156,7 +156,7 @@ namespace YARG.Core.Chart
                 uint largestLength = 0;
 
                 // Must find the longest length of previous note (disjoint chords)
-                while(prevNote is not null && prevNote.previous?.tick == prevNote.tick)
+                while (prevNote is not null && prevNote.previous?.tick == prevNote.tick)
                 {
                     largestLength = Math.Max(largestLength, prevNote.length);
                     prevNote = prevNote.previous;
@@ -252,7 +252,7 @@ namespace YARG.Core.Chart
                         laneNotes = GetGuitarTrillNotes(notesInPhrase);
                         break;
                     default:
-                        throw new ArgumentOutOfRangeException("Unreachable.");
+                        throw new ArgumentOutOfRangeException(nameof(phrase.Type), phrase.Type, "Invalid phrase type for Guitar lane");
                 }
 
                 if (laneNotes.Count > 0)
@@ -317,7 +317,7 @@ namespace YARG.Core.Chart
             AddToTremolo(notesInPhrase[1], tremoloNotes);
 
             // Go through all further notes in the phrase and add them to the tremolo as long as the mask doesn't change
-            
+
             for (var i = 2; i < notesInPhrase.Count; i++)
             {
                 var note = notesInPhrase[i];
@@ -382,18 +382,13 @@ namespace YARG.Core.Chart
             trillNotes.Add(notesInPhrase[2]);
 
             // The trill will continue for as long as it keeps alternating these two masks
-            var mask1 = notesInPhrase[0].NoteMask;
-            var mask2 = notesInPhrase[1].NoteMask;
+            var mask = notesInPhrase[0].NoteMask;
+            var otherMask = notesInPhrase[1].NoteMask;
 
             for (var i = 3; i < notesInPhrase.Count; i++)
             {
                 var note = notesInPhrase[i];
-                var previousNote = notesInPhrase[i - 1];
-
-                if (
-                    (note.NoteMask == mask1 && previousNote.NoteMask == mask2) ||
-                    (note.NoteMask == mask2 && previousNote.NoteMask == mask1)
-                )
+                if (note.NoteMask == otherMask)
                 {
                     note.ActivateFlag(NoteFlags.Trill);
                     trillNotes.Add(note);
@@ -403,6 +398,7 @@ namespace YARG.Core.Chart
                     // We've stopped properly alternating; terminate the trill
                     break;
                 }
+                (mask, otherMask) = (otherMask, mask);
             }
 
             return trillNotes;
