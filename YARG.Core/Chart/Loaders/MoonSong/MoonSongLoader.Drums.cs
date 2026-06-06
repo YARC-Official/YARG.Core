@@ -13,9 +13,6 @@ namespace YARG.Core.Chart
     {
         private bool _discoFlip = false;
 
-        private uint _lastLanePhraseTick;
-        private List<int>? _validLaneNotes = null;
-
         // Used to wipe lane markers from Beginner
         private const NoteFlags NO_LANE_FLAGS = ~(NoteFlags.LaneStart | NoteFlags.LaneEnd | NoteFlags.Tremolo | NoteFlags.Trill);
 
