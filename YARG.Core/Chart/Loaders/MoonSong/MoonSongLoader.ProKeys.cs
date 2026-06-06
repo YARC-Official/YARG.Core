@@ -93,7 +93,17 @@ namespace YARG.Core.Chart
                 {
                     // Unlike for guitar, we don't need to iterate through all children here since we're only handling trills. If there were child notes to
                     // iterate through, then we wouldn't have validated these as trill notes in the first place because trills don't support chords
+
+                    // Apply lane start flag
                     laneNotes[0].ActivateFlag(NoteFlags.LaneStart);
+
+                    // Cut sustains for all but the last note
+                    foreach (var laneNote in laneNotes.GetRange(0, laneNotes.Count - 1)) {
+                        laneNote.TickLength = 0;
+                        laneNote.TimeLength = 0;
+                    }
+
+                    // Apply lane end flag
                     laneNotes[^1].ActivateFlag(NoteFlags.LaneEnd);
                 }
             }

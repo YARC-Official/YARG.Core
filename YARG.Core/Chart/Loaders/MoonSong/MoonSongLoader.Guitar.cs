@@ -257,11 +257,23 @@ namespace YARG.Core.Chart
 
                 if (laneNotes.Count > 0)
                 {
+                    // Apply lane start flag to entire starting note
                     foreach (var startChild in laneNotes[0].AllNotes)
                     {
                         startChild.ActivateFlag(NoteFlags.LaneStart);
                     }
 
+                    // Cut sustains for all but the last note
+                    foreach (var laneNote in laneNotes.GetRange(0, laneNotes.Count - 1))
+                    {
+                        foreach (var child in laneNote.AllNotes)
+                        {
+                            child.TickLength = 0;
+                            child.TimeLength = 0;
+                        }
+                    }
+
+                    // Apply lane end flag to entire ending note
                     foreach (var endChild in laneNotes[^1].AllNotes)
                     {
                         endChild.ActivateFlag(NoteFlags.LaneEnd);
