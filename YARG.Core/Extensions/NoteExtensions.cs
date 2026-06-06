@@ -56,5 +56,22 @@ namespace YARG.Core.Extensions
                 _ => throw new ArgumentOutOfRangeException()
             };
         }
+
+        public static FourLaneDrumPad? OtherPadOfSameColor(this FourLaneDrumPad pad)
+        {
+            return pad switch
+            {
+                FourLaneDrumPad.YellowCymbal => FourLaneDrumPad.YellowDrum,
+                FourLaneDrumPad.YellowDrum => FourLaneDrumPad.YellowCymbal,
+
+                FourLaneDrumPad.BlueCymbal => FourLaneDrumPad.BlueDrum,
+                FourLaneDrumPad.BlueDrum => FourLaneDrumPad.BlueCymbal,
+
+                FourLaneDrumPad.GreenCymbal => FourLaneDrumPad.GreenDrum,
+                FourLaneDrumPad.GreenDrum => FourLaneDrumPad.GreenCymbal,
+
+                _ => null
+            };
+        }
     }
 }

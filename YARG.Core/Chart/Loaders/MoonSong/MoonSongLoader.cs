@@ -21,6 +21,7 @@ namespace YARG.Core.Chart
             where TNote : Note<TNote>;
         private delegate void ProcessTextDelegate(MoonText text);
         private delegate Phrase? ValidatePhraseDelegate(Phrase phrase, List<Phrase> phrases);
+        private delegate void FinalPassDelegate<TNote>(InstrumentDifficulty<TNote> chart) where TNote : Note<TNote>;
 
         private MoonSong _moonSong;
         private ParseSettings _settings;
@@ -38,6 +39,13 @@ namespace YARG.Core.Chart
 
         private readonly double _codaTime;
         private readonly List<(uint start,uint end)> _codaTicks;
+
+        private enum LaneParsingState
+        {
+            None,
+            Tremolo,
+            Trill
+        }
 
         public MoonSongLoader(MoonSong song, in ParseSettings settings)
         {
@@ -129,9 +137,13 @@ namespace YARG.Core.Chart
             return _moonSong.syncTrack;
         }
 
-        private InstrumentDifficulty<TNote> LoadDifficulty<TNote>(Instrument instrument, Difficulty difficulty,
-            CreateNoteDelegate<TNote> createNote, ProcessTextDelegate? processText = null,
-            ValidatePhraseDelegate? validatePhrase = null)
+        private InstrumentDifficulty<TNote> LoadDifficulty<TNote>(
+            Instrument instrument,
+            Difficulty difficulty,
+            CreateNoteDelegate<TNote> createNote,
+            ProcessTextDelegate? processText = null,
+            ValidatePhraseDelegate? validatePhrase = null,
+            FinalPassDelegate<TNote>? finalPassDelegate = null)
             where TNote : Note<TNote>
         {
             _currentMode = instrument.ToNativeGameMode();
@@ -146,7 +158,15 @@ namespace YARG.Core.Chart
             var notes = GetNotes(moonChart, difficulty, createNote, processText);
             var phrases = GetPhrases(moonChart, validatePhrase);
             var textEvents = GetTextEvents(moonChart);
-            return new(instrument, difficulty, notes, phrases, textEvents);
+
+            var chart = new InstrumentDifficulty<TNote>(instrument, difficulty, notes, phrases, textEvents);
+
+            if (finalPassDelegate is not null)
+            {
+                finalPassDelegate(chart);
+            }
+
+            return chart;
         }
 
         private List<TNote> GetNotes<TNote>(MoonChart moonChart, Difficulty difficulty,
@@ -321,55 +341,6 @@ namespace YARG.Core.Chart
                 }
             }
 
-            // Trill
-            if (currentPhrases.TryGetValue(MoonPhrase.Type.TrillLane, out var trill) && IsEventInPhrase(moonNote, trill, inclusiveEnd: true))
-            {
-                var isLaneStart = previous is null || !IsEventInPhrase(previous, trill, inclusiveEnd: true);
-                var isLaneEnd = next is null || !IsEventInPhrase(next, trill, inclusiveEnd: true);
-
-                var trillIsValid = (isEligibleForTrill(moonNote)) && // This lane note is eligible
-                    (isLaneStart || isEligibleForTrill(previous)) && // The previous lane note, if any, is also eligible
-                    (isLaneEnd || isEligibleForTrill(next)); // The next lane note, if any, is also eligible
-
-                // If we find something ineligible inside the trill, then there's no trill at all
-                if (trillIsValid)
-                {
-                    // Sustains are not allowed in lanes, so make sure the note has zero length
-                    moonNote.length = 0;
-
-                    flags |= NoteFlags.Trill;
-
-                    if (isLaneStart)
-                    {
-                        flags |= NoteFlags.LaneStart;
-                    }
-
-                    if (isLaneEnd)
-                    {
-                        flags |= NoteFlags.LaneEnd;
-                    }
-                }
-            }
-
-            // Tremolo
-            if (currentPhrases.TryGetValue(MoonPhrase.Type.TremoloLane, out var tremolo) && IsEventInPhrase(moonNote, tremolo, inclusiveEnd: true))
-            {
-                // Sustains are not allowed in lanes, so make sure the note has zero length
-                moonNote.length = 0;
-
-                flags |= NoteFlags.Tremolo;
-
-                if (previous == null || !IsEventInPhrase(previous, tremolo, inclusiveEnd: true))
-                {
-                    flags |= NoteFlags.LaneStart;
-                }
-
-                if (next == null || !IsEventInPhrase(next, tremolo, inclusiveEnd: true))
-                {
-                    flags |= NoteFlags.LaneEnd;
-                }
-            }
-
             // Big Rock Ending
             if (currentPhrases.TryGetValue(MoonPhrase.Type.BigRockEnding, out var bigRockEnding) &&
                 IsEventInPhrase(moonNote, bigRockEnding))
@@ -383,6 +354,8 @@ namespace YARG.Core.Chart
             {
                 flags |= NoteFlags.CodaEnd;
             }
+
+            // Trill and tremolo lanes are handled in the finalPassDelegate, since they're easiest to parse with Notes instead of MoonNotes
 
             return flags;
         }
@@ -578,5 +551,32 @@ namespace YARG.Core.Chart
             Difficulty.ExpertPlus => MoonSong.Difficulty.Expert,
             _ => throw new InvalidOperationException($"Invalid difficulty {difficulty}!")
         };
+
+        private static List<TNote> GetNotesInPhrase<TNote>(Phrase phrase, List<TNote> allNotes, int startingIndex, out int nextIndex) where TNote : Note<TNote>
+        {
+            List<TNote> notesInPhrase = new();
+
+            nextIndex = startingIndex;
+
+            for (var i = startingIndex; i < allNotes.Count; i++)
+            {
+                var note = allNotes[i];
+
+                if (note.Tick < phrase.Tick)
+                {
+                    continue;
+                }
+
+                if (note.Tick > phrase.TickEnd)
+                {
+                    break;
+                }
+
+                nextIndex = i + 1; // This is where the next GetNotesInPhrase call will start iterating from, so we don't waste time rescanning earlier notes again
+                notesInPhrase.Add(note);
+            }
+
+            return notesInPhrase;
+        }
     }
 }
