@@ -135,10 +135,40 @@ namespace YARG.Core.Chart
 
         public void TrimToTickRange(uint tickStart, uint tickEnd)
         {
-            NotePhrases.RemoveAll(n => n.Tick < tickStart || n.Tick >= tickEnd);
-            StaticLyricPhrases.RemoveAll(n => n.Tick < tickStart || n.Tick >= tickEnd);
-            OtherPhrases.RemoveAll(n => n.Tick < tickStart || n.Tick >= tickEnd);
-            TextEvents.RemoveAll(n => n.Tick < tickStart || n.Tick >= tickEnd);
+            NotePhrases.RemoveAll(phrase => !IsVocalPhraseInTickRange(phrase, tickStart, tickEnd));
+            StaticLyricPhrases.RemoveAll(phrase => !IsVocalPhraseInTickRange(phrase, tickStart, tickEnd));
+            OtherPhrases.RemoveAll(phrase => !IsTickInRange(phrase.Tick, tickStart, tickEnd));
+            TextEvents.RemoveAll(text => !IsTickInRange(text.Tick, tickStart, tickEnd));
+        }
+
+        private static bool IsVocalPhraseInTickRange(VocalsPhrase phrase, uint tickStart, uint tickEnd)
+        {
+            if (IsTickInRange(phrase.Tick, tickStart, tickEnd))
+            {
+                return true;
+            }
+
+            if (phrase.PhraseParentNote.ChildNotes.Count == 0 && phrase.Lyrics.Count == 0)
+            {
+                return false;
+            }
+
+            if (phrase.PhraseParentNote.ChildNotes.Any(note => !IsNoteInRange(note, tickStart, tickEnd)))
+            {
+                return false;
+            }
+
+            return phrase.Lyrics.All(lyric => IsTickInRange(lyric.Tick, tickStart, tickEnd));
+        }
+
+        private static bool IsNoteInRange(VocalNote note, uint tickStart, uint tickEnd)
+        {
+            return note.Tick >= tickStart && note.TotalTickEnd <= tickEnd;
+        }
+
+        private static bool IsTickInRange(uint tick, uint tickStart, uint tickEnd)
+        {
+            return tick >= tickStart && tick < tickEnd;
         }
     }
 }

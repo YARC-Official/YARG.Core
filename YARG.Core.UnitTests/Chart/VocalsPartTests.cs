@@ -45,6 +45,48 @@ public class VocalsTrackTests
     }
 
     [Test]
+    public void CloneInTickRangeKeepsVocalPhrasesWithChildEventsAtStart()
+    {
+        var track = new VocalsTrack(Instrument.Vocals, [
+            new VocalsPart(false,
+                [CreateVocalPhraseWithChildEvents(90, 100)],
+                [CreateVocalPhraseWithChildEvents(90, 100)],
+                [],
+                [])
+        ], []);
+
+        var trimmed = track.CloneInTickRange(100, 200).Parts[0];
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(trimmed.NotePhrases.Select(e => e.Tick), Is.EqualTo(new uint[] { 90 }));
+            Assert.That(trimmed.StaticLyricPhrases.Select(e => e.Tick), Is.EqualTo(new uint[] { 90 }));
+            Assert.That(trimmed.NotePhrases[0].PhraseParentNote.ChildNotes.Select(e => e.Tick), Is.EqualTo(new uint[] { 100 }));
+            Assert.That(trimmed.NotePhrases[0].Lyrics.Select(e => e.Tick), Is.EqualTo(new uint[] { 100 }));
+        }
+    }
+
+    [Test]
+    public void CloneInTickRangeExcludesVocalPhrasesWithChildEventsOutsideRange()
+    {
+        var track = new VocalsTrack(Instrument.Vocals, [
+            new VocalsPart(false,
+                [CreateVocalPhraseWithChildEvents(80, 200), CreateVocalPhraseWithChildEvents(70, 90, 100), CreateVocalPhraseWithChildEvents(90, 191)],
+                [CreateVocalPhraseWithChildEvents(80, 200), CreateVocalPhraseWithChildEvents(70, 90, 100), CreateVocalPhraseWithChildEvents(90, 191)],
+                [],
+                [])
+        ], []);
+
+        var trimmed = track.CloneInTickRange(100, 200).Parts[0];
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(trimmed.NotePhrases, Is.Empty);
+            Assert.That(trimmed.StaticLyricPhrases, Is.Empty);
+        }
+    }
+
+    [Test]
     public void CloneInTickRangeDoesNotModifyOriginalPart()
     {
         var track = CreateVocalsTrack();
@@ -89,6 +131,20 @@ public class VocalsTrackTests
             var parentNote = new VocalNote(NoteFlags.None, false, tick / 100.0, 0.1, tick, 10);
             return new VocalsPhrase(tick / 100.0, 0.1, tick, 10, parentNote, []);
         }).ToList();
+    }
+
+    private static VocalsPhrase CreateVocalPhraseWithChildEvents(uint phraseTick, params uint[] childTicks)
+    {
+        var tickLength = childTicks[^1] - phraseTick + 10;
+        var parentNote = new VocalNote(NoteFlags.None, false, phraseTick / 100.0, tickLength / 100.0, phraseTick, tickLength);
+
+        foreach (var childTick in childTicks)
+        {
+            parentNote.AddChildNote(new VocalNote(60, 0, VocalNoteType.Lyric, childTick / 100.0, 0.1, childTick, 10));
+        }
+
+        return new VocalsPhrase(phraseTick / 100.0, tickLength / 100.0, phraseTick, tickLength, parentNote,
+            childTicks.Select(childTick => new LyricEvent(LyricSymbolFlags.None, childTick.ToString(), childTick / 100.0, childTick)).ToList());
     }
 
     private static List<Phrase> CreatePhrases(params uint[] ticks)
