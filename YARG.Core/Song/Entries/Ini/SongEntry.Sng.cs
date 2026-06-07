@@ -270,9 +270,10 @@ namespace YARG.Core.Song
                     if (mixer.AddChannel(stream, stemEnum))
                     {
                         // No duplicates
-                        break;
+                        return true;
                     }
                     stream.Dispose();
+                    YargLogger.LogFormatError("Failed to load stem file {0}", file);
                 }
             }
 

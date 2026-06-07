@@ -187,6 +187,7 @@ namespace YARG.Core.Chart
                     bool isCensorable = false;
                     while (moonTextIndex < moonChart.events.Count)
                     {
+                        isCensorable = false;
                         var moonEvent = moonChart.events[moonTextIndex];
                         if (moonEvent.tick > moonNote.tick)
                             break;
