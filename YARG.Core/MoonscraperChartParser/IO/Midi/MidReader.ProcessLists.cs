@@ -759,7 +759,6 @@ namespace MoonscraperChartEditor.Song.IO
                 return;
             }
 
-            // Switch process map to elite drums strict hat pedal state process map
             processParams.noteProcessMap = VocalsNoteProcessMap_Censorship;
         }
 
