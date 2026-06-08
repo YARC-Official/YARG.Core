@@ -55,7 +55,22 @@ namespace YARG.Core.Chart
             var guitarFlags = GuitarNoteFlags.None;
 
             double time = _moonSong.TickToTime(moonNote.tick);
-            return new GuitarNote(fret, noteType, guitarFlags, generalFlags, time, GetLengthInTime(moonNote), moonNote.tick, moonNote.length);
+
+            uint tickLength;
+
+            // If Easy contains extended sustains, we'll want to clip them so we don't have wildcards on top of wildcard sustains
+            if (moonNote.NextSeperateMoonNote is not null && moonNote.NextSeperateMoonNote.tick < moonNote.tick + moonNote.length)
+            {
+                tickLength = moonNote.NextSeperateMoonNote.tick - moonNote.tick;
+            }
+            else
+            {
+                tickLength = moonNote.length;
+            }
+
+            var timeLength = GetLengthInTime(time, moonNote.tick, tickLength);
+
+            return new GuitarNote(fret, noteType, guitarFlags, generalFlags, time, timeLength, moonNote.tick, tickLength);
         }
 
         private GuitarNote CreateSixFretGuitarNote(MoonNote moonNote, Dictionary<MoonPhrase.Type, MoonPhrase> currentPhrases,
