@@ -20,6 +20,7 @@ namespace YARG.Core.Engine
         protected const int SUSTAIN_BURST_FRACTION = 4;
 
         public delegate void StarPowerStatusEvent(bool active);
+        public delegate void StarPowerGainEvent();
         public delegate void SoloStartEvent(SoloSection soloSection);
         public delegate void SoloEndEvent(SoloSection soloSection);
         public delegate void CodaStartEvent(CodaSection codaSection);
@@ -29,6 +30,7 @@ namespace YARG.Core.Engine
 
         public delegate void UnisonBonusAwardedEvent();
         public StarPowerStatusEvent? OnStarPowerStatus;
+        public StarPowerGainEvent?   OnStarPowerGain;
         public SoloStartEvent?       OnSoloStart;
         public SoloEndEvent?         OnSoloEnd;
         public CodaStartEvent?       OnCodaStart;
@@ -507,6 +509,10 @@ namespace YARG.Core.Engine
         protected void GainStarPower(uint ticks)
         {
             var prevTicks = BaseStats.StarPowerTickAmount;
+            if (!BaseStats.IsStarPowerActive && prevTicks < TicksPerHalfSpBar && prevTicks + ticks >= TicksPerHalfSpBar)
+            {
+                OnStarPowerGain?.Invoke();
+            }
             BaseStats.StarPowerTickAmount += ticks;
 
             // Limit amount of ticks to a full bar.

@@ -884,6 +884,11 @@ namespace YARG.Core.Engine
             {
                 var whammyTicks = CalculateStarPowerGain(CurrentTick, Math.Max(LastTick, FirstWhammyTick), ref WhammyTicksRemainder);
 
+                if (!BaseStats.IsStarPowerActive && BaseStats.StarPowerTickAmount < TicksPerHalfSpBar && BaseStats.StarPowerTickAmount + whammyTicks >= TicksPerHalfSpBar)
+                {
+                    OnStarPowerGain?.Invoke();
+                }
+
                 // Don't cap until drain has been calculated
                 BaseStats.StarPowerTickAmount += whammyTicks;
 
