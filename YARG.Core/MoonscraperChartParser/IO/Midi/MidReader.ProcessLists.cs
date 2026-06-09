@@ -388,9 +388,9 @@ namespace MoonscraperChartEditor.Song.IO
 
             // Get all the difficulties that exist in this chart and add the coda start/end flags to the first/last notes in the
             // coda sections we found above
-            var codaIndex = 0;
             foreach (var diff in EnumExtensions<MoonSong.Difficulty>.Values)
             {
+                var codaIndex = 0;
                 var chart = processParams.song.GetChart(processParams.instrument, diff);
 
                 if (chart.notes.Count == 0)
