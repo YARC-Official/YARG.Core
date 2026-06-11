@@ -886,7 +886,7 @@ namespace YARG.Core.Engine
 
                 if (!BaseStats.IsStarPowerActive && BaseStats.StarPowerTickAmount < TicksPerHalfSpBar && BaseStats.StarPowerTickAmount + whammyTicks >= TicksPerHalfSpBar)
                 {
-                    OnStarPowerGain?.Invoke();
+                    OnStarPowerReady?.Invoke();
                 }
 
                 // Don't cap until drain has been calculated
