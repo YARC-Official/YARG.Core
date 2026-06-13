@@ -120,10 +120,10 @@ namespace YARG.Core.Song
             return null;
         }
 
-        public override BackgroundResult? LoadBackground()
+        public override BackgroundResult? LoadBackground(bool excludeYarground = false)
         {
             var subFiles = GetSubFiles();
-            if (subFiles.TryGetValue("bg.yarground", out var file))
+            if (subFiles.TryGetValue("bg.yarground", out var file) && !excludeYarground)
             {
                 var stream = File.OpenRead(file);
                 return new BackgroundResult(BackgroundType.Yarground, stream);

@@ -98,7 +98,7 @@ namespace YARG.Core.Song
             return null;
         }
 
-        public override BackgroundResult? LoadBackground()
+        public override BackgroundResult? LoadBackground(bool excludeYarground = false)
         {
             using var sngFile = SngFile.TryLoadFromFile(_location, false);
             if (!sngFile.IsLoaded)
@@ -112,7 +112,7 @@ namespace YARG.Core.Song
             }
 
             string file = Path.ChangeExtension(_location, YARGROUND_EXTENSION);
-            if (File.Exists(file))
+            if (File.Exists(file) && !excludeYarground)
             {
                 return new BackgroundResult(BackgroundType.Yarground, File.OpenRead(file));
             }
