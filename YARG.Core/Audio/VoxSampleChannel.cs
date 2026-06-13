@@ -70,6 +70,7 @@ namespace YARG.Core.Audio
             return false;
         }
 
+        public abstract void SetNormalizationMultiplier(float multiplier);
         protected abstract void Play_Internal();
         protected abstract void SetVolume_Internal(double volume);
         protected abstract void SetOutputChannel_Internal(OutputChannel? channel);

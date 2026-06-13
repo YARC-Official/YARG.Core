@@ -14,6 +14,7 @@ namespace YARG.Core.Audio
         protected double _volume;
 
         public readonly DrumSfxSample Sample;
+        public string FilePath => _path;
         protected DrumSampleChannel(DrumSfxSample sample, string path, int playbackCount)
         {
             Sample = sample;
@@ -60,6 +61,7 @@ namespace YARG.Core.Audio
             }
         }
 
+        public abstract void SetNormalizationMultiplier(float multiplier);
         protected abstract void Play_Internal();
         protected abstract void SetVolume_Internal(double volume);
         protected abstract void SetOutputChannel_Internal(OutputChannel? channel);

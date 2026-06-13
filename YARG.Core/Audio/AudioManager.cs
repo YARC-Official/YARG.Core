@@ -20,6 +20,8 @@ namespace YARG.Core.Audio
         protected internal int MinimumBufferLength;
         protected internal int MaximumBufferLength;
 
+        protected internal abstract void ApplySampleNormalization();
+
         protected internal abstract ReadOnlySpan<string> SupportedFormats { get; }
 
         internal StemMixer? LoadCustomFile(string name, Stream stream, float speed, double volume, bool normalize, SongStem stem = SongStem.Song)

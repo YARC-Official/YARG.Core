@@ -13,6 +13,8 @@ namespace YARG.Core.Audio
         protected          double _volume = 1f;
 
         public readonly MetronomeSample Sample;
+        public string HiFilePath => _hiPath;
+        public string LoFilePath => _loPath;
 
         protected MetronomeSampleChannel(MetronomeSample sample, string hiPath, string loPath)
         {
@@ -66,6 +68,7 @@ namespace YARG.Core.Audio
             }
         }
 
+        public abstract void SetNormalizationMultipliers(float hiMultiplier, float loMultiplier);
         protected abstract void PlayHi_Internal();
         protected abstract void PlayLo_Internal();
         protected abstract void SetVolume_Internal(double volume);

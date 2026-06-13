@@ -11,8 +11,10 @@ namespace YARG.Core.Audio
 
         protected readonly string _path;
         protected readonly int _playbackCount;
+        protected double _volumeSetting = 1;
 
         public readonly SfxSample Sample;
+        public string FilePath => _path;
         protected SampleChannel(SfxSample sample, string path, int playbackCount)
         {
             Sample = sample;
@@ -120,6 +122,7 @@ namespace YARG.Core.Audio
         protected abstract void Stop_Internal(double duration);
         protected abstract void Pause_Internal();
         protected abstract void Resume_Internal();
+        public abstract void SetNormalizationMultiplier(float multiplier);
         protected abstract void SetVolume_Internal(double volume);
         protected abstract void SetEndCallback_Internal();
         protected abstract void SetOutputChannel_Internal(OutputChannel? channel);

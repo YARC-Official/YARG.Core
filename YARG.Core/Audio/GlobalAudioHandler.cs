@@ -557,5 +557,17 @@ namespace YARG.Core.Audio
                 _instance.SetOutputDevice(name);
             }
         }
+
+        public static void ApplySampleNormalization()
+        {
+            lock (_instanceLock)
+            {
+                if (_instance == null)
+                {
+                    throw new NotInitializedException();
+                }
+                _instance.ApplySampleNormalization();
+            }
+        }
     }
 }
