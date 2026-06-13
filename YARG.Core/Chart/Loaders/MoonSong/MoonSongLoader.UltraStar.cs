@@ -55,7 +55,7 @@ namespace YARG.Core.Chart
 
                     foreach (var child in parent.ChildNotes)
                     {
-                        if (child.Type != VocalNoteType.Lyric)
+                        if (child.Type != VocalNoteType.Lyric && child.Type != VocalNoteType.Percussion)
                         {
                             continue;
                         }
