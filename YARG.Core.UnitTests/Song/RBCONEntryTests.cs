@@ -203,7 +203,7 @@ public class RBCONEntryTests
             string videoPath = Path.Combine(root, conName + ".mp4");
             File.WriteAllBytes(videoPath, [0x00]);
 
-            using var background = PackedRBCONEntry.LoadExternalBackground(conPath, "testsong");
+            using var background = PackedRBCONEntry.LoadExternalBackground(conPath, "testsong", false);
 
             Assert.That(background, Is.Not.Null);
             Assert.That(background!.Type, Is.EqualTo(BackgroundType.Video));
@@ -230,7 +230,7 @@ public class RBCONEntryTests
             string videoPath = Path.Combine(root, "testsong.mp4");
             File.WriteAllBytes(videoPath, [0x00]);
 
-            using var background = PackedRBCONEntry.LoadExternalBackground(conPath, "othersong");
+            using var background = PackedRBCONEntry.LoadExternalBackground(conPath, "othersong", false);
 
             Assert.That(background, Is.Not.Null);
             Assert.That(background!.Type, Is.EqualTo(BackgroundType.Video));
@@ -444,7 +444,7 @@ public class RBCONEntryTests
 
         public override YARGImage? LoadAlbumData() => null;
 
-        public override BackgroundResult? LoadBackground() => null;
+        public override BackgroundResult? LoadBackground(bool excludeYarground = false) => null;
 
         public override FixedArray<byte>? LoadMiloData() => null;
     }
