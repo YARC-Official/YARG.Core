@@ -374,7 +374,7 @@ namespace MoonscraperChartEditor.Song.IO
             // Find coda starts and ends
             var song = processParams.song;
 
-            if (song.events.All(e => e.text != MidIOHelper.CODA_START))
+            if (song.events.All(e => e.text != MidIOHelper.CODA_START && e.text != MidIOHelper.MIDCODA_START))
             {
                 return;
             }
@@ -443,7 +443,7 @@ namespace MoonscraperChartEditor.Song.IO
         {
             var song = processParams.song;
 
-            if (song.events.All(e => e.text != MidIOHelper.CODA_START))
+            if (song.events.All(e => e.text != MidIOHelper.CODA_START && e.text != MidIOHelper.MIDCODA_START))
             {
                 return;
             }
