@@ -483,28 +483,44 @@ namespace MoonscraperChartEditor.Song.IO
             var codaRanges = new List<(uint start, uint end)>();
             foreach (var ev in song.events)
             {
-                if (ev.text == MidIOHelper.CODA_START)
+                if (ev.text == MidIOHelper.MIDCODA_START)
                 {
                     if (codaRanges.Count > 0 && codaRanges[^1].end == uint.MaxValue)
                     {
-                        YargLogger.LogError("Unbalanced coda/coda_end events, ignoring BREs (missing coda_end)");
+                        YargLogger.LogError("Unbalanced midcoda/midcoda_end events, ignoring BREs (missing midcoda_end)");
+                        codaRanges.Clear();
                         return codaRanges;
                     }
 
                     codaCount++;
                     codaRanges.Add((ev.tick, uint.MaxValue));
                 }
-                else if (ev.text == MidIOHelper.CODA_END)
+                else if (ev.text == MidIOHelper.MIDCODA_END)
                 {
                     if (codaCount != codaRanges.Count)
                     {
-                        YargLogger.LogError("Unbalanced coda/coda_end events, ignoring BREs (missing coda)");
+                        YargLogger.LogError("Unbalanced midcoda/midcoda_end events, ignoring BREs (missing midcoda)");
+                        codaRanges.Clear();
                         return codaRanges;
                     }
 
                     var range = codaRanges[^1];
                     range.end = ev.tick;
                     codaRanges[^1] = range;
+                }
+                else if (ev.text == MidIOHelper.CODA_START)
+                {
+                    // Validate that any previous coda was closed
+                    if (codaRanges.Count > 0 && codaRanges[^1].end == uint.MaxValue)
+                    {
+                        YargLogger.LogError("Unbalanced coda/coda_end events, ignoring middle BREs (missing midcoda_end)");
+                        codaRanges.Clear();
+                    }
+
+                    codaRanges.Add((ev.tick, uint.MaxValue));
+
+                    // Don't accept any more codas after this
+                    break;
                 }
             }
 
