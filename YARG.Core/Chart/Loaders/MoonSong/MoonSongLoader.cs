@@ -552,8 +552,31 @@ namespace YARG.Core.Chart
             _ => throw new InvalidOperationException($"Invalid difficulty {difficulty}!")
         };
 
-        private static List<TNote> GetNotesInPhrase<TNote>(Phrase phrase, List<TNote> allNotes, int startingIndex, out int nextIndex) where TNote : Note<TNote>
+        private static List<TNote> GetNotesInLanePhrase<TNote>(List<Phrase> phrases, int phraseIndex, List<TNote> allNotes, int startingIndex, out int nextIndex) where TNote : Note<TNote>
         {
+            var phrase = phrases[phraseIndex];
+
+            var conterminousNextLaneExists = false;
+            // Find the next lane phrase, if any. If it exists and its start tick is the same as this phrase's end tick, then we'll treat this phrase as
+            // end-tick-exclusive to give the subsequent lane ownership of any note on that tick
+            for (var i = phraseIndex; i < phrases.Count; i++)
+            {
+                var laterPhrase = phrases[i];
+
+                if (laterPhrase.Tick > phrase.TickEnd)
+                {
+                    // We've moved on to phrases that don't abut this one; there is no conterminous next lane
+                    break;
+                }
+
+                if (laterPhrase.Tick == phrase.TickEnd && laterPhrase.Type is PhraseType.TremoloLane or PhraseType.TrillLane)
+                {
+                    conterminousNextLaneExists = true;
+                    break;
+                }
+            }
+
+
             List<TNote> notesInPhrase = new();
 
             nextIndex = startingIndex;
@@ -565,6 +588,12 @@ namespace YARG.Core.Chart
                 if (note.Tick < phrase.Tick)
                 {
                     continue;
+                }
+
+                if (conterminousNextLaneExists && note.Tick == phrase.TickEnd)
+                {
+                    // If there's a conterminous next lane, then this lane phrase excludes its last tick and gives it to that subsequent phrase instead
+                    break;
                 }
 
                 if (note.Tick > phrase.TickEnd)
