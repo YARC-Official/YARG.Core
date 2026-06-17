@@ -2,8 +2,11 @@ using System.Collections.Generic;
 using System.Linq;
 using NUnit.Framework;
 using YARG.Core.Chart;
+using YARG.Core.Engine;
 using YARG.Core.Engine.Drums;
 using YARG.Core.Engine.Drums.Engines;
+using YARG.Core.Engine.Guitar;
+using YARG.Core.Engine.Guitar.Engines;
 using YARG.Core.Game;
 using YARG.Core.Input;
 
@@ -215,6 +218,146 @@ public class BreSoftlockTests : EngineTester
         using (Assert.EnterMultipleScope())
         {
             Assert.That(limbo, Is.Zero, "finale notes were stranded in limbo (engine soft-locked during the BRE)");
+            Assert.That(engine.NoteIndex, Is.EqualTo(notes.Notes.Count),
+                "NoteIndex did not advance through the whole chart");
+        }
+    }
+
+    // ----- Guitar / bass BRE soft-lock -----
+    //
+    // GuitarEngine.HitNote has the same SkipPreviousNotes bypass in its BRE branch as
+    // the drums engine did. Reproducing the strand headlessly needs the exact live
+    // conditions, which a naive synthetic mash misses:
+    //
+    //   * Combo == 0. The guitar skip-ahead path (CheckForNoteHit strum branch) only
+    //     fires for a note *ahead* of NoteIndex when Combo == 0. BRE gems don't build
+    //     combo, so combo has to already be 0 entering the fill — here we leave the
+    //     lead-in note unhit so it is missed and combo stays 0.
+    //   * The gem at NoteIndex must still be in its hit window (not yet auto-resolved)
+    //     when the out-of-order strum lands, otherwise it resolves in order and there
+    //     is no skip. A dense fill plus a fixed window guarantees the overlap.
+    //   * The held fret must match a gem *ahead* of NoteIndex but not the gem at it,
+    //     so the loop skips the current gem (CanNoteBeHit == false) and strum-hits the
+    //     next one. Alternating Green/Red gems give exactly that.
+    //
+    // Without the fix the out-of-order hit leaves the skipped gem unresolved while
+    // NoteIndex advances onto the just-hit gem; the next CheckForNoteHit sees an
+    // already-resolved note at NoteIndex and breaks forever — the soft-lock.
+
+    private const int GUITAR_RES = 480;
+
+    private static GuitarEngineParameters GuitarParams()
+    {
+        // Fixed (non-dynamic), generous window so several densely-packed gems share a
+        // hit window and timing is deterministic. The bug is about note-resolution
+        // order, not window sizing, so a controlled window only removes a confound.
+        var hitWindow = new HitWindowSettings(0.2, 0.2, 1.0, false, 0, 1.0, 1.0, 0.15, 0.25);
+        return new GuitarEngineParameters(hitWindow, 4, 0, 0,
+            StarMultiplierThresholds, SoloBonusStarMultiplierThresholds,
+            hopoLeniency: 0.08, strumLeniency: 0.05, strumLeniencySmall: 0.025,
+            infiniteFrontEnd: false, antiGhosting: true, soloTaps: false,
+            noStarPowerOverlap: false, enableLanes: true);
+    }
+
+    private static GuitarNote GuitarGem(FiveFretGuitarFret fret, NoteFlags flags, double time, uint tick) =>
+        new(fret, GuitarNoteType.Strum, GuitarNoteFlags.None, flags, time, 0, tick, 0);
+
+    // Builds: an unhit lead-in note, a BRE fill of gems alternating Green/Red, then a
+    // short finale ending on a CodaEnd note. Returns the time of the out-of-order
+    // strum (the second gem's time) the test should fire.
+    private static (YargFiveFretGuitarEngine engine, InstrumentDifficulty<GuitarNote> notes,
+        List<GuitarNote> finale, double strumTime) BuildGuitarGemFilledBre()
+    {
+        double TimeOf(uint tick) => tick / (double) GUITAR_RES * 0.5; // 120 bpm
+
+        var notes = new List<GuitarNote>();
+
+        // Lead-in note (NOT part of the BRE). It is never hit, so it is missed and
+        // combo stays 0 — the precondition for the guitar skip-ahead path.
+        notes.Add(GuitarGem(FiveFretGuitarFret.Green, NoteFlags.None, TimeOf(0), 0));
+
+        // BRE fill: gems alternating Green/Red, densely packed.
+        var frets = new[] { FiveFretGuitarFret.Green, FiveFretGuitarFret.Red };
+        uint breStart = 480;
+        uint t = breStart;
+        const uint gemSpacing = 40;  // ~0.042s apart, well inside the 0.1s back end
+        const int gemCount = 12;
+        for (int i = 0; i < gemCount; i++)
+        {
+            notes.Add(GuitarGem(frets[i % frets.Length], NoteFlags.BigRockEnding, TimeOf(t), t));
+            t += gemSpacing;
+        }
+        uint breEnd = t + gemSpacing;
+
+        // Finale after the fill: two normal notes, the last carrying CodaEnd.
+        uint finaleA = breEnd + 240;
+        uint finaleB = finaleA + 240;
+        var fA = GuitarGem(FiveFretGuitarFret.Yellow, NoteFlags.None, TimeOf(finaleA), finaleA);
+        var fB = GuitarGem(FiveFretGuitarFret.Blue, NoteFlags.CodaEnd, TimeOf(finaleB), finaleB);
+        notes.Add(fA);
+        notes.Add(fB);
+
+        for (int i = 1; i < notes.Count; i++)
+        {
+            notes[i].PreviousNote = notes[i - 1];
+            notes[i - 1].NextNote = notes[i];
+        }
+
+        var phrases = new List<Phrase>
+        {
+            new(PhraseType.BigRockEnding, TimeOf(breStart), TimeOf(breEnd) - TimeOf(breStart), breStart, breEnd - breStart),
+        };
+
+        var diff = new InstrumentDifficulty<GuitarNote>(Instrument.FiveFretGuitar, Difficulty.Expert,
+            notes, phrases, new());
+
+        var syncTrack = new SyncTrack(GUITAR_RES);
+        syncTrack.Tempos.Add(new TempoChange(120, 0, 0));
+
+        var engine = new YargFiveFretGuitarEngine(diff, syncTrack, GuitarParams(), isBot: false);
+
+        // The first BRE gem (chart index 1) is Green; the second (index 2) is Red.
+        // Holding Red and strumming at the second gem's time skips the first, unresolved
+        // gem and hits the one ahead of NoteIndex.
+        double strumTime = TimeOf(breStart + gemSpacing);
+        return (engine, diff, new List<GuitarNote> { fA, fB }, strumTime);
+    }
+
+    [Test]
+    public void GuitarBre_OutOfOrderStrumAheadOfIndex_DoesNotSoftlock()
+    {
+        var (engine, notes, finale, strumTime) = BuildGuitarGemFilledBre();
+
+        bool strummed = false;
+        double endTime = notes.Notes[^1].Time + 1.0;
+        for (double time = 0; time <= endTime; time += 0.01)
+        {
+            if (!strummed && time >= strumTime)
+            {
+                strummed = true;
+
+                // Hold Red (matches the 2nd gem, not the 1st) then strum: an
+                // out-of-order hit on a BRE gem ahead of NoteIndex while combo == 0.
+                // Note: guitar fret/strum inputs are *button* inputs — they must be
+                // created with a bool, not a float (a float sets Axis and leaves
+                // Button false, so the input would be a no-op).
+                var fret = GameInput.Create(strumTime, GuitarAction.RedFret, true);
+                engine.QueueInput(ref fret);
+                var strum = GameInput.Create(strumTime, GuitarAction.StrumDown, true);
+                engine.QueueInput(ref strum);
+            }
+
+            engine.Update(time);
+        }
+
+        // The defining symptom of the soft-lock: post-fill notes left in limbo
+        // (neither hit nor missed) because NoteIndex stranded on an already-hit gem.
+        int limbo = finale.Count(f => !f.WasHit && !f.WasMissed);
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(limbo, Is.Zero,
+                "finale notes were stranded in limbo (guitar engine soft-locked during the BRE)");
             Assert.That(engine.NoteIndex, Is.EqualTo(notes.Notes.Count),
                 "NoteIndex did not advance through the whole chart");
         }

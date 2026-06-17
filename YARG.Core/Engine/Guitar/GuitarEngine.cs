@@ -237,9 +237,13 @@ namespace YARG.Core.Engine.Guitar
 
             note.SetHitState(true, true);
 
-            // Cancel the rest of hit logic during BRE phrase
+            // Cancel the rest of hit logic during BRE phrase, but still resolve any
+            // previous notes skipped by an out-of-order BRE hit (mirror of the drums
+            // fix) — otherwise NoteIndex strands on the already-hit note and the engine
+            // soft-locks for the rest of the song.
             if (IsCodaActive && note.IsBigRockEnding)
             {
+                SkipPreviousNotes(note);
                 base.HitNote(note);
                 return;
             }
