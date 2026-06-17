@@ -140,9 +140,14 @@ namespace YARG.Core.Engine.Drums
 
             note.SetHitState(true, false);
 
-            // Cancel the rest of hit logic during BRE phrase
+            // Cancel the rest of hit logic during BRE phrase (no scoring/combo/star power),
+            // but still resolve any previous notes that were skipped. BRE gems can be hit
+            // out of order while mashing; without this the skipped gems stay unresolved and
+            // NoteIndex strands on an already-hit note, soft-locking the engine for the rest
+            // of the song.
             if (IsCodaActive && note.IsBigRockEnding)
             {
+                SkipPreviousNotes(note.ParentOrSelf);
                 base.HitNote(note);
                 return;
             }

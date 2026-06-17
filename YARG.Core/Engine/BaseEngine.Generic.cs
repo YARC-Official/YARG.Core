@@ -496,8 +496,11 @@ namespace YARG.Core.Engine
 
         protected virtual void HitNote(TNoteType note)
         {
-            // If this is the last note in the chart and there was a successful coda, award coda bonus
-            if (CodaHasStarted && note.IsCodaEnd)
+            // The coda ends on the final note of the section. That note may be a chord, but the
+            // CodaEnd marker sits on a single sub-note, so only end the coda once the whole chord
+            // is resolved — otherwise hitting one sub-note (e.g. just the kick) ends the coda early
+            // and banks the bonus without the player completing the final chord.
+            if (CodaHasStarted && ChordHasCodaEnd(note) && note.ParentOrSelf.WasFullyHitOrMissed())
             {
                 EndCoda();
             }
@@ -574,7 +577,8 @@ namespace YARG.Core.Engine
                 Codas[CurrentCodaIndex].MissNote();
             }
 
-            if (CodaHasStarted && note.IsCodaEnd)
+            // Mirror HitNote: end the coda only once the whole final chord is resolved.
+            if (CodaHasStarted && ChordHasCodaEnd(note) && note.ParentOrSelf.WasFullyHitOrMissed())
             {
                 EndCoda();
             }
@@ -1131,6 +1135,21 @@ namespace YARG.Core.Engine
             IsCodaActive = true;
             CodaHasStarted = true;
             OnCodaStart?.Invoke(Codas[CurrentCodaIndex]);
+        }
+
+        // The CodaEnd marker is set on a single note; this reports whether that note's
+        // chord (parent + children) carries it, so the coda ends on the whole final chord.
+        private static bool ChordHasCodaEnd(TNoteType note)
+        {
+            foreach (var chordNote in note.ParentOrSelf.AllNotes)
+            {
+                if (chordNote.IsCodaEnd)
+                {
+                    return true;
+                }
+            }
+
+            return false;
         }
 
         protected void EndCoda()
