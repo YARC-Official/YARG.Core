@@ -10,12 +10,14 @@ namespace YARG.Core.Audio
         private Action<bool>? _onReverbChange;
         private Action<float>? _onWhammyPitchChange;
         private double _volume;
+        private double _volumeMultiplier;
         private bool _reverb;
         private float _whammyPitch;
 
         public StemSettings()
         {
             _volume = 1;
+            _volumeMultiplier = 1;
         }
 
         public event Action<double> OnVolumeChange
@@ -46,7 +48,17 @@ namespace YARG.Core.Audio
             }
         }
 
-        public double TrueVolume => (ApplySettings ? _volume : 1);
+        public double VolumeMultiplier
+        {
+            get => _volumeMultiplier;
+            set
+            {
+                _volumeMultiplier = Math.Clamp(value, 0, 1);
+                _onVolumeChange?.Invoke(TrueVolume);
+            }
+        }
+
+        public double TrueVolume => (ApplySettings ? _volume * _volumeMultiplier : 1);
 
         public bool Reverb
         {
