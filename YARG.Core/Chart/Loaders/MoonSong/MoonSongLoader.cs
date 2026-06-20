@@ -342,8 +342,10 @@ namespace YARG.Core.Chart
             }
 
             // Big Rock Ending
+            // End-inclusive: a note charted on the exact tick where the BRE ends is still
+            // covered by the BRE lanes and must be suppressed, not treated as a normal note.
             if (currentPhrases.TryGetValue(MoonPhrase.Type.BigRockEnding, out var bigRockEnding) &&
-                IsEventInPhrase(moonNote, bigRockEnding))
+                IsEventInPhrase(moonNote, bigRockEnding, inclusiveEnd: true))
             {
                 flags |= NoteFlags.BigRockEnding;
             }
