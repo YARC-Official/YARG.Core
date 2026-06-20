@@ -113,7 +113,7 @@ namespace YARG.Core.Replays
 
         public void Serialize(BinaryWriter writer)
         {
-            writer.Write(ReplayVersion);
+            writer.Write(ReplayIO.REPLAY_VERSIONS.CURRENT);
             writer.Write(EngineVersion);
             ReplayChecksum.Serialize(writer);
 

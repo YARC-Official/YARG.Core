@@ -44,7 +44,7 @@ namespace YARG.Core.Replays
             NumOverdriveActivations = stream.Read<int>(Endianness.Little);
             AverageMultiplier = stream.Read<float>(Endianness.Little);
             NumPauses = stream.Read<int>(Endianness.Little);
-            // Figure out what version this should actually be
+
             if (version >= 14)
             {
                 IsReplayPlayer = stream.ReadBoolean();
