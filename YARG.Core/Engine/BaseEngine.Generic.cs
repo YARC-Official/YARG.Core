@@ -733,6 +733,8 @@ namespace YARG.Core.Engine
             // scoreMultiplier includes combo+star power score
             EngineStats.CommittedScore += scoreMultiplier;
 
+            EngineStats.AverageMultiplier = (float) EngineStats.CommittedScore / BaseNoteScore;
+
             if (EngineStats.IsStarPowerActive)
             {
                 // Amount of points just from Star Power is half of the current multiplier (8x total -> 4x SP points)
