@@ -379,7 +379,7 @@ namespace YARG.Core.Engine
                     YargLogger.LogFormatTrace("Coda {0} activated at time {1}", CurrentCodaIndex, time);
                     StartCoda();
                 }
-                else if (time >= Codas[CurrentCodaIndex].EndTime && IsCodaActive)
+                else if (time > Codas[CurrentCodaIndex].EndTime && IsCodaActive)
                 {
                     YargLogger.LogFormatTrace("Coda {0} deactivated at time {1}", CurrentCodaIndex, time);
                     IsCodaActive = false;
