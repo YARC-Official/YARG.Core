@@ -241,7 +241,10 @@ namespace YARG.Core.Engine.Guitar
             // previous notes skipped by an out-of-order BRE hit (mirror of the drums
             // fix) — otherwise NoteIndex strands on the already-hit note and the engine
             // soft-locks for the rest of the song.
-            if (IsCodaActive && note.IsBigRockEnding)
+            // Key on CodaHasStarted, not IsCodaActive (see DrumsEngine.HitNote): a finale charted
+            // exactly on the BRE-end tick is judged (hit/miss) after the coda's EndTime, where
+            // IsCodaActive is already false.
+            if (CodaHasStarted && note.IsBigRockEnding)
             {
                 SkipPreviousNotes(note);
                 base.HitNote(note);

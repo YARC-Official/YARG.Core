@@ -87,8 +87,10 @@ namespace YARG.Core.Engine.Keys
 
             KeyPressTimes[note.Key] = DEFAULT_PRESS_TIME;
 
-            // Cancel rest of hit logic during BRE phrase
-            if (IsCodaActive && note.IsBigRockEnding)
+            // Cancel rest of hit logic during BRE phrase. Key on CodaHasStarted, not IsCodaActive
+            // (see DrumsEngine.HitNote): an end-tick finale is judged after the coda's EndTime,
+            // where IsCodaActive is already false.
+            if (CodaHasStarted && note.IsBigRockEnding)
             {
                 // Be sure to disable the stagger timer so it doesn't run long
                 ChordStaggerTimer.Disable(CurrentTime, early: true);
@@ -180,10 +182,13 @@ namespace YARG.Core.Engine.Keys
 
             KeyPressTimes[note.Key] = DEFAULT_PRESS_TIME;
 
-            // Can't miss a note during BRE phrase
-            if (IsCodaActive && note.IsBigRockEnding)
+            // Can't miss a note during the coda. Key on CodaHasStarted, not IsCodaActive (see
+            // DrumsEngine.MissNote): the miss is judged at the back-end time, which for an
+            // end-tick finale falls after the coda's EndTime where IsCodaActive is already false.
+            if (CodaHasStarted && note.IsBigRockEnding)
             {
-                note.SetHitState(true, false);
+                // Resolve the whole chord, matching GuitarEngine (see DrumsEngine.MissNote).
+                note.SetHitState(true, true);
                 base.HitNote(note);
                 return;
             }
