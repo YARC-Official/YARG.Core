@@ -52,6 +52,7 @@ namespace YARG.Core.IO.Ini
                 { "credit_album_art_designed_by",         new("credit_album_art_designed_by", ModifierType.String) },
                 { "credit_album_cover",                   new("credit_album_art_designed_by", ModifierType.String) },
                 { "credit_arranged_by",                   new("credit_arranged_by", ModifierType.String) },
+                { "credit_background",                    new("credit_background", ModifierType.String) },
                 { "credit_composed_by",                   new("credit_composed_by", ModifierType.String) },
                 { "credit_courtesy_of",                   new("credit_courtesy_of", ModifierType.String) },
                 { "credit_engineered_by",                 new("credit_engineered_by", ModifierType.String) },

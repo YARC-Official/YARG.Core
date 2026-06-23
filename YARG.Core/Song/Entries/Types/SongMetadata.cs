@@ -143,6 +143,7 @@ namespace YARG.Core.Song
         public string CreditProducedBy;
         public string CreditPublishedBy;
         public string CreditWrittenBy;
+        public string CreditBackground;
 
         public string CharterAudio;
         public string CharterBass;
@@ -305,6 +306,11 @@ namespace YARG.Core.Song
             if (modifiers.Extract("credit_arranged_by", out string creditArrangedBy))
             {
                 metadata.CreditArrangedBy = creditArrangedBy;
+            }
+
+            if (modifiers.Extract("credit_background", out string creditBackground))
+            {
+                metadata.CreditBackground = creditBackground;
             }
 
             if (modifiers.Extract("credit_composed_by", out string creditComposedBy))

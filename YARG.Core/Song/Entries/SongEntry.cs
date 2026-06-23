@@ -127,19 +127,20 @@ namespace YARG.Core.Song
 
         public string Location      => _metadata.Location;
 
-        public string CreditAlbumArtDesignedBy   => _metadata.CreditAlbumArtDesignedBy;
-        public string CreditArrangedBy           => _metadata.CreditArrangedBy;
-        public string CreditComposedBy           => _metadata.CreditComposedBy;
-        public string CreditCourtesyOf           => _metadata.CreditCourtesyOf;
-        public string CreditEngineeredBy         => _metadata.CreditEngineeredBy;
-        public string CreditLicense              => _metadata.CreditLicense;
-        public string CreditMasteredBy           => _metadata.CreditMasteredBy;
-        public string CreditMixedBy              => _metadata.CreditMixedBy;
-        public string CreditOther                => _metadata.CreditOther;
-        public string CreditPerformedBy          => _metadata.CreditPerformedBy;
-        public string CreditProducedBy           => _metadata.CreditProducedBy;
-        public string CreditPublishedBy          => _metadata.CreditPublishedBy;
-        public string CreditWrittenBy            => _metadata.CreditWrittenBy;
+        public string CreditAlbumArtDesignedBy => _metadata.CreditAlbumArtDesignedBy;
+        public string CreditArrangedBy         => _metadata.CreditArrangedBy;
+        public string CreditBackground         => _metadata.CreditBackground;
+        public string CreditComposedBy         => _metadata.CreditComposedBy;
+        public string CreditCourtesyOf         => _metadata.CreditCourtesyOf;
+        public string CreditEngineeredBy       => _metadata.CreditEngineeredBy;
+        public string CreditLicense            => _metadata.CreditLicense;
+        public string CreditMasteredBy         => _metadata.CreditMasteredBy;
+        public string CreditMixedBy            => _metadata.CreditMixedBy;
+        public string CreditOther              => _metadata.CreditOther;
+        public string CreditPerformedBy        => _metadata.CreditPerformedBy;
+        public string CreditProducedBy         => _metadata.CreditProducedBy;
+        public string CreditPublishedBy        => _metadata.CreditPublishedBy;
+        public string CreditWrittenBy          => _metadata.CreditWrittenBy;
 
         public string CharterAudio       => _metadata.CharterAudio;
         public string CharterBass       => _metadata.CharterBass;
