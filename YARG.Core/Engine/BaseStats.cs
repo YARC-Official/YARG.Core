@@ -385,7 +385,7 @@ namespace YARG.Core.Engine
         /// Returns per-note timing offsets used for score-screen timing distribution visualization.
         /// Values are in seconds, where negative is early and positive is late.
         /// </summary>
-        public IReadOnlyList<double> GetOffsetSamples()
+        public virtual IReadOnlyList<double> GetOffsetSamples()
         {
             return OffsetSamples;
         }
