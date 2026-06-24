@@ -14,6 +14,10 @@ namespace YARG.Core.Chart
 
         public List<VocalsPhrase> NotePhrases { get; } = new();
         public List<VocalsPhrase> StaticLyricPhrases { get; } = new();
+        /// <summary>
+        /// This is populated exclusively on HARM2.
+        /// </summary>
+        public List<VocalsPhrase> MergedPhrases { get; } = new();
         public List<Phrase> OtherPhrases { get; } = new();
         public List<TextEvent> TextEvents { get; } = new();
 
@@ -22,18 +26,19 @@ namespace YARG.Core.Chart
         /// </summary>
         public bool IsEmpty => NotePhrases.Count == 0 && OtherPhrases.Count == 0 && TextEvents.Count == 0;
 
-        public VocalsPart(bool isHarmony, List<VocalsPhrase> notePhrases, List<VocalsPhrase> staticLyricPhrases,
+        public VocalsPart(bool isHarmony, List<VocalsPhrase> notePhrases, List<VocalsPhrase> staticLyricPhrases, List<VocalsPhrase> mergedPhrases,
             List<Phrase> otherPhrases, List<TextEvent> text)
         {
             IsHarmony = isHarmony;
             NotePhrases = notePhrases;
             StaticLyricPhrases = staticLyricPhrases;
+            MergedPhrases = mergedPhrases;
             OtherPhrases = otherPhrases;
             TextEvents = text;
         }
 
         public VocalsPart(VocalsPart other)
-            : this(other.IsHarmony, other.NotePhrases.Duplicate(), other.StaticLyricPhrases.Duplicate(),
+            : this(other.IsHarmony, other.NotePhrases.Duplicate(), other.StaticLyricPhrases.Duplicate(), other.MergedPhrases.Duplicate(),
                 other.OtherPhrases.Duplicate(), other.TextEvents.Duplicate())
         {
         }
