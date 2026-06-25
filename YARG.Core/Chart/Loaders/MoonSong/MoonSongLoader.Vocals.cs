@@ -76,7 +76,7 @@ namespace YARG.Core.Chart
                     GetVocalsPhrases(_moonSong.GetChart(MoonSong.MoonInstrument.Harmony3, MoonSong.Difficulty.Expert),
                         2, true);
                 mergedPhrases = MergePhrases(staticLyricPhrases, harm3Phrases);
-                //mergedPhrases = SplitStaticLyricPhrases(mergedPhrases);
+                mergedPhrases = SplitStaticLyricPhrases(mergedPhrases);
             }
 
             if (harmonyPart is 0)
@@ -131,7 +131,7 @@ namespace YARG.Core.Chart
 
             int moonNoteIndex = 0;
             int moonTextIndex = 0;
-            int staticShiftIndex = 0;
+            int staticShiftPhraseIndex = 0;
 
             VocalNote? carriedNote = null;
             VocalNote? previousParentLyric = null;
@@ -198,8 +198,28 @@ namespace YARG.Core.Chart
                         // Ignore empty lyrics
                         if (lyric.IsEmpty)
                             continue;
-                        // This lyric is a static shift if, between it and the next lyric, a Vocals_LyricShift phrase starts.
-                        bool isStaticShift = moonTextIndex != moonChart.events.Count && moonChart.specialPhrases.Exists(p => p.tick >= moonEvent.tick && p.tick < moonChart.events[moonTextIndex].tick && p.type == MoonPhrase.Type.Vocals_LyricShift);
+
+                        while (staticShiftPhraseIndex < moonChart.specialPhrases.Count &&
+                            moonChart.specialPhrases[staticShiftPhraseIndex].tick < moonEvent.tick)
+                        {
+                            staticShiftPhraseIndex++;
+                        }
+                        bool isStaticShift = false;
+                        if (moonTextIndex < moonChart.events.Count)
+                        {
+                            uint nextEventTick = moonChart.events[moonTextIndex].tick;
+                            for (int i = staticShiftPhraseIndex; i < moonChart.specialPhrases.Count; i++)
+                            {
+                                var shiftPhrase = moonChart.specialPhrases[i];
+                                if (shiftPhrase.tick >= nextEventTick)
+                                    break;
+                                if (shiftPhrase.type == MoonPhrase.Type.Vocals_LyricShift)
+                                {
+                                    isStaticShift = true;
+                                    break;
+                                }
+                            }
+                        }
                         ProcessLyric(lyrics, lyric, moonEvent.tick, isStaticShift, out lyricFlags);
                     }
 
