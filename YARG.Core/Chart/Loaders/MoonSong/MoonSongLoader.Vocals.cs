@@ -67,25 +67,6 @@ namespace YARG.Core.Chart
             // their static lyric phrases from a different phrase type, so we have to run through again, looking for that type instead
             var staticLyricPhrases = isBacking ? GetVocalsPhrases(moonChart, harmonyPart, true) : notePhrases.Duplicate();
 
-            // Apply censoring postprocessing
-            if (_settings.CensoringEnabled)
-            {
-                for (int i = notePhrases.Count - 1; i >= 0; i--)
-                {
-                    var phrase = notePhrases[i];
-                    var removedCount = phrase.PhraseParentNote.ChildNotes.RemoveAll(n => n.IsCensorable);
-                    ApplyCensoringToLyricEvents(phrase.Lyrics);
-                    if (removedCount > 0 && phrase.IsEmpty)
-                    {
-                        notePhrases.RemoveAt(i);
-                    }
-                }
-                foreach (var phrase in staticLyricPhrases)
-                {
-                    ApplyCensoringToLyricEvents(phrase.Lyrics);
-                }
-            }
-
             var otherPhrases = GetPhrases(moonChart);
             var textEvents = GetTextEvents(moonChart);
             TrimOrphanPhrases(notePhrases, otherPhrases);
@@ -128,9 +109,11 @@ namespace YARG.Core.Chart
                 { otherLyricPhraseType, null },
             };
 
+            // These have to be handled seperately to the other phrases, as it is both
+            // not mutually exclusive with the other phrases, and can be active for only part of a lyric phrase
             var censorshipPhrases = moonChart.specialPhrases
                 .Where(p => p.type == MoonPhrase.Type.Vocals_Censorship)
-                .ToList();
+                .ToArray();
 
             int moonNoteIndex = 0;
             int moonTextIndex = 0;
@@ -187,7 +170,6 @@ namespace YARG.Core.Chart
                     bool isCensorable = false;
                     while (moonTextIndex < moonChart.events.Count)
                     {
-                        isCensorable = false;
                         var moonEvent = moonChart.events[moonTextIndex];
                         if (moonEvent.tick > moonNote.tick)
                             break;
@@ -205,14 +187,14 @@ namespace YARG.Core.Chart
                             continue;
 
                         // Advance the censorship index past any phrases that have already ended
-                        while (censorshipIndex < censorshipPhrases.Count &&
+                        while (censorshipIndex < censorshipPhrases.Length &&
                             censorshipPhrases[censorshipIndex].tick + censorshipPhrases[censorshipIndex].length <= moonEvent.tick)
                         {
                             censorshipIndex++;
                         }
 
                         // Determine if the current event falls within an active censorship phrase
-                        if (censorshipIndex < censorshipPhrases.Count)
+                        if (censorshipIndex < censorshipPhrases.Length)
                         {
                             var currentCensorship = censorshipPhrases[censorshipIndex];
                             if (moonEvent.tick >= currentCensorship.tick)

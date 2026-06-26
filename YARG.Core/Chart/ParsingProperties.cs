@@ -44,7 +44,6 @@ namespace YARG.Core.Chart
             StarPowerNote = SETTING_DEFAULT,
             NoteSnapThreshold = 0,
             TuningOffsetCents = 0,
-            CensoringEnabled = false,
         };
 
         public static readonly ParseSettings Default_Chart = new()
@@ -56,7 +55,6 @@ namespace YARG.Core.Chart
             StarPowerNote = SETTING_DEFAULT,
             NoteSnapThreshold = 0,
             TuningOffsetCents = 0,
-            CensoringEnabled = false,
         };
 
         public static readonly ParseSettings Default_Midi = new()
@@ -68,7 +66,6 @@ namespace YARG.Core.Chart
             StarPowerNote = 116,
             NoteSnapThreshold = 0,
             TuningOffsetCents = 0,
-            CensoringEnabled = false,
         };
 
         /// <summary>
@@ -130,13 +127,5 @@ namespace YARG.Core.Chart
         /// Defaults to 0. Should never go beyond the [-50,50] range, but can still be honored if it does.
         /// </remarks>
         public int TuningOffsetCents;
-
-        /// <summary>
-        /// Whether to censor lyrics and vocal notes based on censorship phrases in the chart.
-        /// </summary>
-        /// <remarks>
-        /// Defaults to false. If true, any lyric or vocal note that falls within a censorship phrase will be removed.
-        /// </remarks>
-        public bool CensoringEnabled;
     }
 }

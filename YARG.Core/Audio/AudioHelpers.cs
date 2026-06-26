@@ -32,6 +32,7 @@ namespace YARG.Core.Audio
             { "crowd_explicit",    SongStem.Crowd   },
             // "preview"
         };
+
         public static readonly List<SongStem> PitchBendAllowedStems = new()
         {
             SongStem.Guitar,

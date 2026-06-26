@@ -26,7 +26,7 @@ namespace YARG.Core.Chart
         // Range shifts are handled externally
         // public bool RangeShift => (_flags & LyricFlags.RangeShift) != 0;
 
-        public LyricEvent(LyricSymbolFlags flags, string text, double time, uint tick, bool isCensorable)
+        public LyricEvent(LyricSymbolFlags flags, string text, double time, uint tick, bool isCensorable = false)
             : base(time, 0, tick, 0)
         {
             _flags = flags;

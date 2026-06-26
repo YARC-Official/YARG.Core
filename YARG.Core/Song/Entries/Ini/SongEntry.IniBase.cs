@@ -89,7 +89,7 @@ namespace YARG.Core.Song
             stream.Write(_cover);
         }
 
-        public override SongChart? LoadChart(bool enableCensoring)
+        public override SongChart? LoadChart()
         {
             using var data = GetChartData(CHART_FILE_TYPES[(int) _chartFormat].Filename);
 
@@ -105,8 +105,7 @@ namespace YARG.Core.Song
                 StarPowerNote = _settings.OverdiveMidiNote,
                 TuningOffsetCents = _settings.TuningOffsetCents,
                 DrumsType = ParseDrumsType(in _parts),
-                ChordHopoCancellation = _chartFormat != ChartFormat.Chart,
-                CensoringEnabled = enableCensoring,
+                ChordHopoCancellation = _chartFormat != ChartFormat.Chart
             };
 
             if (_chartFormat == ChartFormat.UltraStar)

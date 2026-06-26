@@ -104,7 +104,7 @@ namespace YARG.Core.Song
             WriteAudio(in _panning, stream);
         }
 
-        public override SongChart? LoadChart(bool enableCensoring)
+        public override SongChart? LoadChart()
         {
             MidiFile midi;
             var readingSettings = MidiSettingsLatin1.Instance; // RBCONs are always Latin-1
@@ -158,8 +158,7 @@ namespace YARG.Core.Song
                 TuningOffsetCents = _settings.TuningOffsetCents,
                 DrumsType = DrumsType.FourLane,
                 ChordHopoCancellation = true,
-                NoteSnapThreshold = NOTE_SNAP_THRESHOLD,
-                CensoringEnabled = enableCensoring,
+                NoteSnapThreshold = NOTE_SNAP_THRESHOLD
             };
             return SongChart.FromMidi(in parseSettings, midi);
         }

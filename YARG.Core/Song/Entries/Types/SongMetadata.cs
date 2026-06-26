@@ -159,7 +159,7 @@ namespace YARG.Core.Song
         public string CharterVocals;
         public string CharterVenue;
 
-        public float?      VocalScrollSpeedScalingFactor;
+        public float? VocalScrollSpeedScalingFactor;
         public VocalGender VocalGender;
         public bool        CleanVocals;
 

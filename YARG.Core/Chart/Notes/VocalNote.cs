@@ -101,7 +101,7 @@ namespace YARG.Core.Chart
         /// This constructor should be used for notes only.
         /// </summary>
         public VocalNote(float pitch, int harmonyPart, VocalNoteType type,
-            double time, double timeLength, uint tick, uint tickLength, bool isCensorable)
+            double time, double timeLength, uint tick, uint tickLength, bool isCensorable = false)
             : base(NoteFlags.None, time, timeLength, tick, tickLength)
         {
             Type = type;

@@ -10,8 +10,8 @@ namespace YARG.Core.Replays
 {
     public sealed class VocalsReplayStats : ReplayStats
     {
-        public readonly int  NumPhrases;
-        public readonly int  NumPerfectPhrases;
+        public readonly int NumPhrases;
+        public readonly int NumPerfectPhrases;
 
         public VocalsReplayStats(string name, bool isReplayPlayer, VocalsStats stats)
             : base(name, stats, isReplayPlayer)
