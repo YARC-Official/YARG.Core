@@ -11,8 +11,8 @@ namespace YARG.Core.Chart
         private class LyricConverter : ITextPhraseConverter
         {
             private readonly MoonSong _moonSong;
-            private readonly List<MoonPhrase> _censorPhrases;
-            private int _censorPhraseIndex;
+            private readonly List<MoonNote> _censoredNotes;
+            private int _censorNoteIndex;
 
             public readonly List<LyricsPhrase> Phrases;
             private List<LyricEvent> _currentLyrics;
@@ -25,31 +25,23 @@ namespace YARG.Core.Chart
                 _moonSong = song;
                 Phrases = new();
                 _currentLyrics = new();
-                _censorPhrases = _moonSong.GetChart(MoonSong.MoonInstrument.Vocals, MoonSong.Difficulty.Expert)
-                    .specialPhrases
-                    .Where(x => x.type == MoonPhrase.Type.Vocals_Censorship)
-                    .ToList();
-                _censorPhraseIndex = 0;
+                _censoredNotes = _moonSong.GetChart(MoonSong.MoonInstrument.Vocals, MoonSong.Difficulty.Expert).notes.Where(n => n.flags.HasFlag(MoonNote.Flags.Vocals_Censorship)).ToList();
+                _censorNoteIndex = 0;
             }
 
             private bool IsCensorableAtTick(uint tick)
             {
-                if (_censorPhrases.Count == 0 || _censorPhraseIndex >= _censorPhrases.Count)
+                // Check if the current censor note is before the tick
+                while (_censorNoteIndex < _censoredNotes.Count && _censoredNotes[_censorNoteIndex].tick + _censoredNotes[_censorNoteIndex].length <= tick)
                 {
-                    return false;
+                    _censorNoteIndex++;
                 }
 
-                // Move the index forward if the current phrase has ended
-                while (_censorPhraseIndex < _censorPhrases.Count && _censorPhrases[_censorPhraseIndex].tick + _censorPhrases[_censorPhraseIndex].length <= tick)
+                // Check if the current censor note is at the tick
+                if (_censorNoteIndex < _censoredNotes.Count)
                 {
-                    _censorPhraseIndex++;
-                }
-
-                // Check if the current tick is within any active censorship phrase
-                if (_censorPhraseIndex < _censorPhrases.Count)
-                {
-                    var phrase = _censorPhrases[_censorPhraseIndex];
-                    if (phrase.tick <= tick && phrase.tick + phrase.length > tick)
+                    var censorNote = _censoredNotes[_censorNoteIndex];
+                    if (censorNote.tick == tick)
                     {
                         return true;
                     }

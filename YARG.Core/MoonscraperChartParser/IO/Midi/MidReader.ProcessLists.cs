@@ -1193,7 +1193,7 @@ namespace MoonscraperChartEditor.Song.IO
                 processFnDict.Add(
                     MidIOHelper.VOCAL_CENSORSHIP, (ref EventProcessParams eventProcessParams) =>
                     {
-                        ProcessNoteOnEventAsSpecialPhrase(ref eventProcessParams, MoonPhrase.Type.Vocals_Censorship);
+                        ProcessNoteOnEventAsFlagToggle(ref eventProcessParams, MoonNote.Flags.Vocals_Censorship, -1);
                     }
                 );
             }

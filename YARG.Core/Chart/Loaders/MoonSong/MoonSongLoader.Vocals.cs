@@ -109,15 +109,8 @@ namespace YARG.Core.Chart
                 { otherLyricPhraseType, null },
             };
 
-            // These have to be handled seperately to the other phrases, as it is both
-            // not mutually exclusive with the other phrases, and can be active for only part of a lyric phrase
-            var censorshipPhrases = moonChart.specialPhrases
-                .Where(p => p.type == MoonPhrase.Type.Vocals_Censorship)
-                .ToArray();
-
             int moonNoteIndex = 0;
             int moonTextIndex = 0;
-            int censorshipIndex = 0;
 
             VocalNote? carriedNote = null;
             VocalNote? previousParentLyric = null;
@@ -167,7 +160,6 @@ namespace YARG.Core.Chart
 
                     // Handle lyric events
                     var lyricFlags = LyricSymbolFlags.None;
-                    bool isCensorable = false;
                     while (moonTextIndex < moonChart.events.Count)
                     {
                         var moonEvent = moonChart.events[moonTextIndex];
@@ -186,28 +178,11 @@ namespace YARG.Core.Chart
                         if (lyric.IsEmpty)
                             continue;
 
-                        // Advance the censorship index past any phrases that have already ended
-                        while (censorshipIndex < censorshipPhrases.Length &&
-                            censorshipPhrases[censorshipIndex].tick + censorshipPhrases[censorshipIndex].length <= moonEvent.tick)
-                        {
-                            censorshipIndex++;
-                        }
-
-                        // Determine if the current event falls within an active censorship phrase
-                        if (censorshipIndex < censorshipPhrases.Length)
-                        {
-                            var currentCensorship = censorshipPhrases[censorshipIndex];
-                            if (moonEvent.tick >= currentCensorship.tick)
-                            {
-                                isCensorable = true;
-                            }
-                        }
-
-                        ProcessLyric(lyrics, lyric, moonEvent.tick, isCensorable, out lyricFlags);
+                        ProcessLyric(lyrics, lyric, moonEvent.tick, moonNote.flags.HasFlag(MoonNote.Flags.Vocals_Censorship), out lyricFlags);
                     }
 
                     // Create new note
-                    var note = CreateVocalNote(moonNote, harmonyPart, lyricFlags, isCensorable);
+                    var note = CreateVocalNote(moonNote, harmonyPart, lyricFlags);
                     if ((lyricFlags & LyricSymbolFlags.PitchSlide) != 0)
                     {
                         if (previousNote is not null)
@@ -458,11 +433,11 @@ namespace YARG.Core.Chart
         }
 
 
-        private VocalNote CreateVocalNote(MoonNote moonNote, int harmonyPart, LyricSymbolFlags lyricFlags, bool isCensorable)
+        private VocalNote CreateVocalNote(MoonNote moonNote, int harmonyPart, LyricSymbolFlags lyricFlags)
         {
             var vocalType = GetVocalNoteType(moonNote);
             float pitch = GetVocalNotePitch(moonNote, lyricFlags);
-
+            bool isCensorable = moonNote.flags.HasFlag(MoonNote.Flags.Vocals_Censorship);
             double time = _moonSong.TickToTime(moonNote.tick);
             return new VocalNote(pitch, harmonyPart, vocalType, time, GetLengthInTime(moonNote), moonNote.tick, moonNote.length, isCensorable);
         }
