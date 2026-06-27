@@ -41,7 +41,8 @@ namespace MoonscraperChartEditor.Song.IO
         private static readonly Dictionary<int, EventProcessFn> ProGuitarNoteProcessMap = BuildProGuitarNoteProcessDict();
         private static readonly Dictionary<int, EventProcessFn> DrumsNoteProcessMap = BuildDrumsNoteProcessDict(enableVelocity: false);
         private static readonly Dictionary<int, EventProcessFn> DrumsNoteProcessMap_Velocity = BuildDrumsNoteProcessDict(enableVelocity: true);
-        private static readonly Dictionary<int, EventProcessFn> VocalsNoteProcessMap = BuildVocalsNoteProcessDict();
+        private static readonly Dictionary<int, EventProcessFn> VocalsNoteProcessMap = BuildVocalsNoteProcessDict(enableCensorship: false);
+        private static readonly Dictionary<int, EventProcessFn> VocalsNoteProcessMap_Censorship = BuildVocalsNoteProcessDict(enableCensorship: true);
         private static readonly Dictionary<int, EventProcessFn> ProKeysNoteProcessMap = BuildProKeysNoteProcessDict();
         private static readonly Dictionary<int, EventProcessFn> EliteDrumsNoteProcessMap = BuildEliteDrumsNoteProcessDict(strictHatPedalState: false);
         private static readonly Dictionary<int, EventProcessFn> EliteDrumsNoteProcessMap_Strict = BuildEliteDrumsNoteProcessDict(strictHatPedalState: true);
@@ -126,6 +127,7 @@ namespace MoonscraperChartEditor.Song.IO
 
         private static readonly Dictionary<string, ProcessModificationProcessFn> VocalsTextProcessMap = new()
         {
+            {MidIOHelper.CENSORSHIP_MARKERS_TEXT, SwitchToVocalsCensorshipMarkersProcessMap },
         };
 
         private static readonly Dictionary<string, ProcessModificationProcessFn> ProKeysTextProcessMap = new()
@@ -747,6 +749,19 @@ namespace MoonscraperChartEditor.Song.IO
             // Switch process map to elite drums strict hat pedal state process map
             processParams.noteProcessMap = EliteDrumsNoteProcessMap_Strict;
         }
+
+        private static void SwitchToVocalsCensorshipMarkersProcessMap(ref EventProcessParams processParams)
+        {
+            var gameMode = MoonSong.InstrumentToChartGameMode(processParams.instrument);
+            if (gameMode != MoonChart.GameMode.Vocals)
+            {
+                YargLogger.LogFormatWarning("Attempted to apply vocals censorship state process map to non-vocals instrument: {0}", processParams.instrument);
+                return;
+            }
+
+            processParams.noteProcessMap = VocalsNoteProcessMap_Censorship;
+        }
+
         private static Dictionary<int, EventProcessFn> BuildCommonPhraseProcessMap(CommonPhraseSettings settings)
         {
             var processMap = new Dictionary<int, EventProcessFn>();
@@ -1140,7 +1155,7 @@ namespace MoonscraperChartEditor.Song.IO
             return processFnDict;
         }
 
-        private static Dictionary<int, EventProcessFn> BuildVocalsNoteProcessDict()
+        private static Dictionary<int, EventProcessFn> BuildVocalsNoteProcessDict(bool enableCensorship)
         {
             var processFnDict = new Dictionary<int, EventProcessFn>()
             {
@@ -1171,8 +1186,17 @@ namespace MoonscraperChartEditor.Song.IO
                         ProcessNoteOnEventAsNote(ref newParams, difficulty, 0, MoonNote.Flags.Vocals_Percussion,
                             sustainCutoff: false);
                     };
-                }},
+                }}
             };
+            if (enableCensorship)
+            {
+                processFnDict.Add(
+                    MidIOHelper.VOCAL_CENSORSHIP, (ref EventProcessParams eventProcessParams) =>
+                    {
+                        ProcessNoteOnEventAsFlagToggle(ref eventProcessParams, MoonNote.Flags.Vocals_Censorship, -1);
+                    }
+                );
+            }
 
             for (int i = MidIOHelper.VOCALS_RANGE_START; i <= MidIOHelper.VOCALS_RANGE_END; i++)
             {

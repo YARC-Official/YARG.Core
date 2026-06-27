@@ -23,7 +23,7 @@
                     // Create an unpitched replacement note. Make sure to use the total lengths instead
                     // of the normal lengths.
                     var newNote = new VocalNote(-1f, note.HarmonyPart, note.Type, note.Time,
-                        note.TotalTimeLength, note.Tick, note.TotalTickLength);
+                        note.TotalTimeLength, note.Tick, note.TotalTickLength, note.IsCensorable);
                     newPhraseParent.AddChildNote(newNote);
                 }
 

@@ -112,8 +112,6 @@ namespace YARG.Core.Song
 
         public int PlaylistTrack => _metadata.PlaylistTrack;
 
-        public SongRating SongRating => _metadata.SongRating;
-
         public string LoadingPhrase => _metadata.LoadingPhrase;
 
         public string LinkBandcamp  => _metadata.LinkBandcamp;
@@ -375,6 +373,7 @@ namespace YARG.Core.Song
             stream.Write(_metadata.SongLength, Endianness.Little);
             stream.Write(_metadata.SongOffset, Endianness.Little);
             stream.Write((int)_metadata.SongRating, Endianness.Little);
+            stream.Write(_metadata.CleanVocals);
 
             stream.Write(_metadata.Preview.Start, Endianness.Little);
             stream.Write(_metadata.Preview.End, Endianness.Little);
@@ -463,6 +462,7 @@ namespace YARG.Core.Song
             _metadata.SongLength = stream.Read<long>(Endianness.Little);
             _metadata.SongOffset = stream.Read<long>(Endianness.Little);
             _metadata.SongRating = (SongRating)stream.Read<uint>(Endianness.Little);
+            _metadata.CleanVocals = stream.ReadBoolean();
 
             _metadata.Preview.Start = stream.Read<long>(Endianness.Little);
             _metadata.Preview.End   = stream.Read<long>(Endianness.Little);
@@ -534,6 +534,15 @@ namespace YARG.Core.Song
             _charter = new SortString(_metadata.Charter);
             _source = new SortString(_metadata.Source);
             _playlist = new SortString(_metadata.Playlist);
+        }
+
+        public SongRating GetSongRating(bool censorshipEnabled)
+        {
+            if (_metadata.CleanVocals && censorshipEnabled && _metadata.SongRating is SongRating.Sensitive_Content or SongRating.Mature)
+            {
+                return SongRating.Supervision_Recommended;
+            }
+            return _metadata.SongRating;
         }
     }
 }

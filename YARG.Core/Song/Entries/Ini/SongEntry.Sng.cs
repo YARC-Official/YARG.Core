@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using YARG.Core.Audio;
@@ -27,7 +28,7 @@ namespace YARG.Core.Song
             base.Serialize(stream, indices);
         }
 
-        public override StemMixer? LoadAudio(float speed, double volume, params SongStem[] ignoreStems)
+        public override StemMixer? LoadAudio(float speed, double volume, bool enableCensoring, params SongStem[] ignoreStems)
         {
             using var sngFile = SngFile.TryLoadFromFile(_location, false);
             if (!sngFile.IsLoaded)
@@ -36,10 +37,10 @@ namespace YARG.Core.Song
                 return null;
             }
 
-            return CreateAudioMixer(speed, volume, sngFile, ignoreStems);
+            return CreateAudioMixer(speed, volume, sngFile, enableCensoring, ignoreStems);
         }
 
-        public override StemMixer? LoadPreviewAudio(float speed)
+        public override StemMixer? LoadPreviewAudio(float speed, bool enableCensoring)
         {
             using var sngFile = SngFile.TryLoadFromFile(_location, false);
             if (!sngFile.IsLoaded)
@@ -47,8 +48,7 @@ namespace YARG.Core.Song
                 YargLogger.LogFormatError("Failed to load sng file {0}", _location);
                 return null;
             }
-
-            foreach (var filename in PREVIEW_FILES)
+            foreach (var filename in enableCensoring ? CLEAN_PREVIEW_FILES : PREVIEW_FILES)
             {
                 if (sngFile.TryGetListing(filename, out var listing))
                 {
@@ -65,7 +65,7 @@ namespace YARG.Core.Song
                 }
             }
 
-            return CreateAudioMixer(speed, 0, sngFile, SongStem.Crowd);
+            return CreateAudioMixer(speed, 0, sngFile, enableCensoring, SongStem.Crowd);
         }
 
         public override YARGImage? LoadAlbumData()
@@ -191,7 +191,7 @@ namespace YARG.Core.Song
             return data;
         }
 
-        private StemMixer? CreateAudioMixer(float speed, double volume, in SngFile sngFile, params SongStem[] ignoreStems)
+        private StemMixer? CreateAudioMixer(float speed, double volume, in SngFile sngFile, bool enableCensoring, params SongStem[] ignoreStems)
         {
             bool clampStemVolume = _metadata.Source.ToLowerInvariant() == "yarg";
             var mixer = GlobalAudioHandler.CreateMixer(ToString(), speed, volume, clampStemVolume: clampStemVolume,
@@ -201,29 +201,47 @@ namespace YARG.Core.Song
                 YargLogger.LogError("Failed to create mixer");
                 return null;
             }
+            var addedCleanStems = new HashSet<SongStem>();
+            if (enableCensoring)
+            {
+                foreach (var stem in IniAudio.SupportedCleanStems)
+                {
+                    var stemEnum = AudioHelpers.SupportedStems[stem];
+
+                    if (ignoreStems.Contains(stemEnum))
+                    {
+                        continue;
+                    }
+
+                    if (TryLoadStem(stem, stemEnum, sngFile, mixer))
+                    {
+                        addedCleanStems.Add(stemEnum);
+                    }
+                }
+            }
 
             foreach (var stem in IniAudio.SupportedStems)
             {
                 var stemEnum = AudioHelpers.SupportedStems[stem];
-                if (ignoreStems.Contains(stemEnum))
+
+                if (ignoreStems.Contains(stemEnum) || addedCleanStems.Contains(stemEnum))
                 {
                     continue;
                 }
+                TryLoadStem(stem, stemEnum, sngFile, mixer);
+            }
 
-                foreach (var format in IniAudio.SupportedFormats)
+            if (!enableCensoring)
+            {
+                foreach (var stem in IniAudio.SupportedExplicitStems)
                 {
-                    var file = stem + format;
-                    if (sngFile.TryGetListing(file, out var listing))
+                    var stemEnum = AudioHelpers.SupportedStems[stem];
+
+                    if (ignoreStems.Contains(stemEnum))
                     {
-                        var stream = sngFile.CreateStream(file, in listing);
-                        if (mixer.AddChannel(stream, stemEnum))
-                        {
-                            // No duplicates
-                            break;
-                        }
-                        stream.Dispose();
-                        YargLogger.LogFormatError("Failed to load stem file {0}", file);
+                        continue;
                     }
+                    TryLoadStem(stem, stemEnum, sngFile, mixer);
                 }
             }
 
@@ -239,6 +257,27 @@ namespace YARG.Core.Song
                 YargLogger.LogFormatInfo("Loaded {0} stems", mixer.Channels.Count);
             }
             return mixer;
+        }
+
+        private static bool TryLoadStem(string stem, SongStem stemEnum, SngFile sngFile, StemMixer mixer)
+        {
+            foreach (var format in IniAudio.SupportedFormats)
+            {
+                var file = stem + format;
+                if (sngFile.TryGetListing(file, out var listing))
+                {
+                    var stream = sngFile.CreateStream(file, in listing);
+                    if (mixer.AddChannel(stream, stemEnum))
+                    {
+                        // No duplicates
+                        return true;
+                    }
+                    stream.Dispose();
+                    YargLogger.LogFormatError("Failed to load stem file {0}", file);
+                }
+            }
+
+            return false;
         }
 
         private SngEntry(uint version, string location, in DateTime lastWrite, ChartFormat format)
