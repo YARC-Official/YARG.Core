@@ -5,10 +5,9 @@ namespace YARG.Core.IO.Ini
 {
     public static class SongIniWriter
     {
-        public static void WriteSongOffset(string iniPath, long offset)
+        public static void AddSongOffset(string iniPath, long offset)
         {
             var lines = File.ReadAllLines(iniPath);
-
             bool inSongSection = false;
             bool foundDelay = false;
 
@@ -34,7 +33,10 @@ namespace YARG.Core.IO.Ini
                     if (equalsIndex > 0 &&
                         trimmed[..equalsIndex].Trim().Equals("delay", StringComparison.OrdinalIgnoreCase))
                     {
-                        lines[i] = $"delay = {offset}";
+                        string existingValue = trimmed[(equalsIndex + 1)..].Trim();
+                        long existingDelay = long.TryParse(existingValue, out var parsed) ? parsed : 0;
+
+                        lines[i] = $"delay = {existingDelay + offset}";
                         foundDelay = true;
                         break;
                     }
