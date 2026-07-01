@@ -111,7 +111,6 @@ namespace YARG.Core.Engine.Keys
                 else if (note.IsStarPowerEnd && note.ParentOrSelf.WasFullyHit())
                 {
                     AwardStarPower(note);
-                    EngineStats.StarPowerPhrasesHit++;
                 }
             }
 
@@ -267,8 +266,10 @@ namespace YARG.Core.Engine.Keys
 
         protected override void AddScore(ProKeysNote note)
         {
-            AddScore(POINTS_PER_PRO_KEYS_NOTE);
-            EngineStats.NoteScore += POINTS_PER_PRO_KEYS_NOTE;
+            int scoredNotePoints = ApplyAccuracyScore(note, POINTS_PER_PRO_KEYS_NOTE);
+
+            AddScore(scoredNotePoints);
+            EngineStats.NoteScore += scoredNotePoints;
         }
 
         protected sealed override (int baseScore, int noteScore) CalculateChartScores()
@@ -303,6 +304,29 @@ namespace YARG.Core.Engine.Keys
 
             YargLogger.LogDebug($"[Pro Keys] Base score: {baseScore}, Max Combo: {combo}");
             return ((int) Math.Round(baseScore), (int) Math.Round(noteScore));
+        }
+
+        protected override int CalculateMaxScoreWithoutStarPower()
+        {
+            double maxScore = 0;
+            int combo = 0;
+            foreach (var note in Notes)
+            {
+                if (note.IsBigRockEnding)
+                {
+                    continue;
+                }
+
+                combo++;
+                int multiplier = GetScoreMultiplierForCombo(combo);
+                foreach (var child in note.AllNotes)
+                {
+                    maxScore += multiplier * POINTS_PER_PRO_KEYS_NOTE;
+                    maxScore += multiplier * Math.Ceiling(child.TickLength / TicksPerSustainPoint);
+                }
+            }
+
+            return (int) Math.Round(maxScore) + EngineStats.MaxSoloBonusPoints + CalculateTotalCodaBonus();
         }
 
         protected override bool IsKeyInTime(ProKeysNote note, double frontEnd) => IsKeyInTime(note, note.Key, frontEnd);

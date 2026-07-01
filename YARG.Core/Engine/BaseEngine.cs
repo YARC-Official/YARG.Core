@@ -41,9 +41,11 @@ namespace YARG.Core.Engine
         public UnisonBonusAwardedEvent? OnUnisonBonusAwarded;
         public PlayerRevivedEvent?    OnPlayerRevived;
 
-        public bool CanStarPowerActivate => BaseStats.StarPowerTickAmount >= TicksPerHalfSpBar;
+        public bool CanStarPowerActivate => BaseParameters.StarPowerEnabled &&
+            BaseStats.StarPowerTickAmount >= TicksPerHalfSpBar;
         public int BaseScore { get; protected set; }
         public int BaseNoteScore { get; protected set; }
+        public int MaxScoreWithoutStarPower { get; protected set; }
         public abstract BaseEngineParameters BaseParameters { get; }
         public abstract BaseStats            BaseStats      { get; }
 
@@ -448,7 +450,7 @@ namespace YARG.Core.Engine
 
         protected virtual void UpdateMultiplier()
         {
-            BaseStats.ScoreMultiplier = Math.Min((BaseStats.Combo / 10) + 1, BaseParameters.MaxMultiplier);
+            BaseStats.ScoreMultiplier = GetScoreMultiplierForCombo(BaseStats.Combo);
 
             if (BaseStats.IsStarPowerActive)
             {
@@ -458,6 +460,10 @@ namespace YARG.Core.Engine
             RebaseSustains(CurrentTick);
         }
 
+        protected int GetScoreMultiplierForCombo(int combo)
+        {
+            return Math.Min((combo / 10) + 1, BaseParameters.MaxMultiplier);
+        }
 
         public void UpdateBandMultiplier(int multiplier)
         {
@@ -481,7 +487,7 @@ namespace YARG.Core.Engine
                 return;
             }
 
-            if (BaseStats.IsStarPowerActive)
+            if (!BaseParameters.StarPowerEnabled || BaseStats.IsStarPowerActive)
             {
                 return;
             }
@@ -522,6 +528,11 @@ namespace YARG.Core.Engine
 
         protected void GainStarPower(uint ticks)
         {
+            if (!BaseParameters.StarPowerEnabled)
+            {
+                return;
+            }
+
             var prevTicks = BaseStats.StarPowerTickAmount;
             if (!BaseStats.IsStarPowerActive && prevTicks < TicksPerHalfSpBar && prevTicks + ticks >= TicksPerHalfSpBar)
             {
@@ -637,6 +648,11 @@ namespace YARG.Core.Engine
 
         public void AwardUnisonBonus()
         {
+            if (!BaseParameters.StarPowerEnabled)
+            {
+                return;
+            }
+
             GainStarPower(TicksPerQuarterSpBar);
             OnUnisonBonusAwarded?.Invoke();
         }

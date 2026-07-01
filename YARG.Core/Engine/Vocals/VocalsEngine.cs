@@ -141,7 +141,6 @@ namespace YARG.Core.Engine.Vocals
                 if (note.IsStarPower)
                 {
                     AwardStarPower(note);
-                    EngineStats.StarPowerPhrasesHit++;
                 }
 
                 if (note.IsSoloStart)
@@ -315,8 +314,10 @@ namespace YARG.Core.Engine.Vocals
         {
             if (note.IsPercussion)
             {
-                AddScore(POINTS_PER_PERCUSSION);
-                EngineStats.NoteScore += POINTS_PER_PERCUSSION;
+                int scoredNotePoints = ApplyAccuracyScore(note, POINTS_PER_PERCUSSION);
+
+                AddScore(scoredNotePoints);
+                EngineStats.NoteScore += scoredNotePoints;
             }
             else
             {
@@ -368,6 +369,30 @@ namespace YARG.Core.Engine.Vocals
 
             YargLogger.LogDebug($"[Vocals] Base score: {baseScore}, Max Combo: {combo}");
             return ((int) Math.Round(baseScore), (int) Math.Round(noteScore));
+        }
+
+        protected override int CalculateMaxScoreWithoutStarPower()
+        {
+            double percussionScore = 0;
+            int combo = 0;
+            foreach (var note in Notes)
+            {
+                if (note.ChildNotes.Count == 0)
+                {
+                    continue;
+                }
+
+                int multiplier = Math.Min(combo + 1, BaseParameters.MaxMultiplier);
+                if (note.IsPercussionPhrase)
+                {
+                    percussionScore += POINTS_PER_PERCUSSION * note.ChildNotes.Count * multiplier;
+                    continue;
+                }
+
+                combo++;
+            }
+
+            return base.CalculateMaxScoreWithoutStarPower() + (int) Math.Round(percussionScore);
         }
 
         protected override bool CanSustainHold(VocalNote note) => throw new InvalidOperationException();
