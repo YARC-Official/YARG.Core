@@ -263,7 +263,6 @@ namespace YARG.Core.Engine.Guitar
                 else if (note.IsStarPowerEnd)
                 {
                     AwardStarPower(note);
-                    EngineStats.StarPowerPhrasesHit++;
                 }
             }
 
@@ -373,8 +372,10 @@ namespace YARG.Core.Engine.Guitar
         protected override void AddScore(GuitarNote note)
         {
             int notePoints = POINTS_PER_NOTE * (1 + note.ChildNotes.Count);
-            EngineStats.NoteScore += notePoints;
-            AddScore(notePoints);
+            int scoredNotePoints = ApplyAccuracyScore(note, notePoints);
+
+            EngineStats.NoteScore += scoredNotePoints;
+            AddScore(scoredNotePoints);
         }
 
         protected override void UpdateMultiplier()
@@ -463,10 +464,9 @@ namespace YARG.Core.Engine.Guitar
                         baseScore += multiplier * pointsForDisjoint;
                         noteScore += pointsForDisjoint;
                         // Only increment combo if we haven't already seen a note in that tick
-                        if (!seenNoteTicks.Contains(child.Tick))
+                        if (seenNoteTicks.Add(child.Tick))
                         {
                             combo++;
-                            seenNoteTicks.Add(child.Tick);
                         }
                     }
                 }
@@ -474,6 +474,45 @@ namespace YARG.Core.Engine.Guitar
 
             YargLogger.LogDebug($"[Guitar] Base score: {baseScore}, Max Combo: {combo}");
             return ((int) Math.Round(baseScore), (int) Math.Round(noteScore));
+        }
+
+        protected override int CalculateMaxScoreWithoutStarPower()
+        {
+            double maxScore = 0;
+            int combo = 0;
+            foreach (var note in Notes)
+            {
+                if (note.IsBigRockEnding)
+                {
+                    continue;
+                }
+
+                combo++;
+                int multiplier = GetScoreMultiplierForCombo(combo);
+                double pointsForNote = POINTS_PER_NOTE * (1 + note.ChildNotes.Count);
+                maxScore += multiplier * pointsForNote;
+
+                double pointsForSustain = Math.Ceiling(note.TickLength / TicksPerSustainPoint);
+                maxScore += multiplier * pointsForSustain;
+
+                if (note.IsDisjoint)
+                {
+                    HashSet<uint> seenNoteTicks = new();
+                    foreach (var child in note.ChildNotes)
+                    {
+                        if (seenNoteTicks.Add(child.Tick))
+                        {
+                            combo++;
+                        }
+
+                        int disjointMultiplier = GetScoreMultiplierForCombo(combo);
+                        double pointsForDisjoint = Math.Ceiling(child.TickLength / TicksPerSustainPoint);
+                        maxScore += disjointMultiplier * pointsForDisjoint;
+                    }
+                }
+            }
+
+            return (int) Math.Round(maxScore) + EngineStats.MaxSoloBonusPoints + CalculateTotalCodaBonus();
         }
 
         protected void ToggleFret(int fret, bool active)

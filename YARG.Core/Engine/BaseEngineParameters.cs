@@ -8,6 +8,9 @@ namespace YARG.Core.Engine
 {
     public abstract class BaseEngineParameters
     {
+        public const double DEFAULT_FULL_POINT_HIT_WINDOW = 0.020;
+        public const double DEFAULT_MINIMUM_HIT_SCORE_MULTIPLIER = 0.5;
+
         public readonly HitWindowSettings HitWindow;
 
         public readonly int MaxMultiplier;
@@ -22,10 +25,21 @@ namespace YARG.Core.Engine
 
         public readonly bool EnableLanes;
 
+        public readonly bool StarPowerEnabled;
+
+        public readonly bool NoteScoreScalesWithAccuracy;
+
+        public readonly double FullPointHitWindow;
+
+        public readonly double MinimumHitScoreMultiplier;
+
         public double SongSpeed;
 
         protected BaseEngineParameters(HitWindowSettings hitWindow, int maxMultiplier, double spWhammyBuffer,
-            double sustainDropLeniency, float[] starMultiplierThresholds, float[] soloBonusStarMultiplierThresholds, bool enableLanes)
+            double sustainDropLeniency, float[] starMultiplierThresholds, float[] soloBonusStarMultiplierThresholds, bool enableLanes,
+            bool starPowerEnabled = true, bool noteScoreScalesWithAccuracy = false,
+            double fullPointHitWindow = DEFAULT_FULL_POINT_HIT_WINDOW,
+            double minimumHitScoreMultiplier = DEFAULT_MINIMUM_HIT_SCORE_MULTIPLIER)
         {
             HitWindow = hitWindow;
             StarPowerWhammyBuffer = spWhammyBuffer;
@@ -34,6 +48,10 @@ namespace YARG.Core.Engine
             StarMultiplierThresholds = starMultiplierThresholds;
             SoloBonusStarMultiplierThresholds = soloBonusStarMultiplierThresholds;
             EnableLanes = enableLanes;
+            StarPowerEnabled = starPowerEnabled;
+            NoteScoreScalesWithAccuracy = noteScoreScalesWithAccuracy;
+            FullPointHitWindow = fullPointHitWindow;
+            MinimumHitScoreMultiplier = minimumHitScoreMultiplier;
         }
 
         protected BaseEngineParameters(ref FixedArrayStream stream, int version)
@@ -78,6 +96,21 @@ namespace YARG.Core.Engine
             {
                 EnableLanes = stream.ReadBoolean();
             }
+
+            if (version >= 16)
+            {
+                StarPowerEnabled = stream.ReadBoolean();
+                NoteScoreScalesWithAccuracy = stream.ReadBoolean();
+                FullPointHitWindow = stream.Read<double>(Endianness.Little);
+                MinimumHitScoreMultiplier = stream.Read<double>(Endianness.Little);
+            }
+            else
+            {
+                StarPowerEnabled = true;
+                NoteScoreScalesWithAccuracy = false;
+                FullPointHitWindow = DEFAULT_FULL_POINT_HIT_WINDOW;
+                MinimumHitScoreMultiplier = DEFAULT_MINIMUM_HIT_SCORE_MULTIPLIER;
+            }
         }
 
         public virtual void Serialize(BinaryWriter writer)
@@ -104,6 +137,10 @@ namespace YARG.Core.Engine
 
             writer.Write(SongSpeed);
             writer.Write(EnableLanes);
+            writer.Write(StarPowerEnabled);
+            writer.Write(NoteScoreScalesWithAccuracy);
+            writer.Write(FullPointHitWindow);
+            writer.Write(MinimumHitScoreMultiplier);
         }
 
         public override string ToString()
@@ -115,6 +152,8 @@ namespace YARG.Core.Engine
                 $"Hit window: ({HitWindow.MinWindow}, {HitWindow.MaxWindow})\n" +
                 $"Hit window dynamic: {HitWindow.IsDynamic}\n" +
                 $"Max multiplier: {MaxMultiplier}\n" +
+                $"Star power enabled: {StarPowerEnabled}\n" +
+                $"Note score scales with accuracy: {NoteScoreScalesWithAccuracy}\n" +
                 $"Star thresholds: {thresholds}";
         }
     }

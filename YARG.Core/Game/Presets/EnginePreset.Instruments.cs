@@ -99,6 +99,18 @@ namespace YARG.Core.Game
             [SettingType(SettingType.Toggle)]
             public bool EnableLanes = true;
 
+            [SettingType(SettingType.Ignore)]
+            public bool StarPowerEnabled = true;
+
+            [SettingType(SettingType.Ignore)]
+            public bool NoteScoreScalesWithAccuracy = false;
+
+            [SettingType(SettingType.Ignore)]
+            public double FullPointHitWindow = BaseEngineParameters.DEFAULT_FULL_POINT_HIT_WINDOW;
+
+            [SettingType(SettingType.Ignore)]
+            public double MinimumHitScoreMultiplier = BaseEngineParameters.DEFAULT_MINIMUM_HIT_SCORE_MULTIPLIER;
+
             [SettingType(SettingType.MillisecondInput)]
             [SettingRange(min: 0f)]
             public double HopoLeniency = 0.08;
@@ -138,6 +150,10 @@ namespace YARG.Core.Game
                     SoloTaps = SoloTaps,
                     NoStarPowerOverlap = NoStarPowerOverlap,
                     EnableLanes = EnableLanes,
+                    StarPowerEnabled = StarPowerEnabled,
+                    NoteScoreScalesWithAccuracy = NoteScoreScalesWithAccuracy,
+                    FullPointHitWindow = FullPointHitWindow,
+                    MinimumHitScoreMultiplier = MinimumHitScoreMultiplier,
                 };
             }
 
@@ -158,7 +174,11 @@ namespace YARG.Core.Game
                     AntiGhosting,
                     SoloTaps,
                     NoStarPowerOverlap,
-                    EnableLanes);
+                    EnableLanes,
+                    StarPowerEnabled,
+                    NoteScoreScalesWithAccuracy,
+                    FullPointHitWindow,
+                    MinimumHitScoreMultiplier);
             }
         }
 
@@ -173,6 +193,18 @@ namespace YARG.Core.Game
 
             [SettingType(SettingType.Toggle)]
             public bool EnableLanes = true;
+
+            [SettingType(SettingType.Ignore)]
+            public bool StarPowerEnabled = true;
+
+            [SettingType(SettingType.Ignore)]
+            public bool NoteScoreScalesWithAccuracy = false;
+
+            [SettingType(SettingType.Ignore)]
+            public double FullPointHitWindow = BaseEngineParameters.DEFAULT_FULL_POINT_HIT_WINDOW;
+
+            [SettingType(SettingType.Ignore)]
+            public double MinimumHitScoreMultiplier = BaseEngineParameters.DEFAULT_MINIMUM_HIT_SCORE_MULTIPLIER;
 
             [SettingType(SettingType.Special)]
             public HitWindowPreset HitWindow = new()
@@ -190,6 +222,10 @@ namespace YARG.Core.Game
                 {
                     NoStarPowerOverlap = NoStarPowerOverlap,
                     EnableLanes = EnableLanes,
+                    StarPowerEnabled = StarPowerEnabled,
+                    NoteScoreScalesWithAccuracy = NoteScoreScalesWithAccuracy,
+                    FullPointHitWindow = FullPointHitWindow,
+                    MinimumHitScoreMultiplier = MinimumHitScoreMultiplier,
                     HitWindow = HitWindow.Copy()
                 };
             }
@@ -204,7 +240,11 @@ namespace YARG.Core.Game
                     soloBonusStarMultiplierThresholds,
                     mode,
                     NoStarPowerOverlap,
-                    EnableLanes);
+                    EnableLanes,
+                    StarPowerEnabled,
+                    NoteScoreScalesWithAccuracy,
+                    FullPointHitWindow,
+                    MinimumHitScoreMultiplier);
             }
         }
 
@@ -268,6 +308,18 @@ namespace YARG.Core.Game
             [SettingRange(min: 0f)]
             public double PercussionHitWindow = 0.16;
 
+            [SettingType(SettingType.Ignore)]
+            public bool StarPowerEnabled = true;
+
+            [SettingType(SettingType.Ignore)]
+            public bool NoteScoreScalesWithAccuracy = false;
+
+            [SettingType(SettingType.Ignore)]
+            public double FullPointHitWindow = BaseEngineParameters.DEFAULT_FULL_POINT_HIT_WINDOW;
+
+            [SettingType(SettingType.Ignore)]
+            public double MinimumHitScoreMultiplier = BaseEngineParameters.DEFAULT_MINIMUM_HIT_SCORE_MULTIPLIER;
+
             public VocalsPreset Copy()
             {
                 return new VocalsPreset
@@ -283,6 +335,11 @@ namespace YARG.Core.Game
                     HitPercentM = HitPercentM,
                     HitPercentH = HitPercentH,
                     HitPercentX = HitPercentX,
+                    PercussionHitWindow = PercussionHitWindow,
+                    StarPowerEnabled = StarPowerEnabled,
+                    NoteScoreScalesWithAccuracy = NoteScoreScalesWithAccuracy,
+                    FullPointHitWindow = FullPointHitWindow,
+                    MinimumHitScoreMultiplier = MinimumHitScoreMultiplier,
                 };
             }
 
@@ -313,7 +370,11 @@ namespace YARG.Core.Game
                     hitPercent,
                     updatesPerSecond,
                     singToActivateStarPower,
-                    pointsPerPhrase);
+                    pointsPerPhrase,
+                    StarPowerEnabled,
+                    NoteScoreScalesWithAccuracy,
+                    FullPointHitWindow,
+                    MinimumHitScoreMultiplier);
             }
         }
 
@@ -327,6 +388,18 @@ namespace YARG.Core.Game
 
             [SettingType(SettingType.Toggle)]
             public bool EnableLanes = true;
+
+            [SettingType(SettingType.Ignore)]
+            public bool StarPowerEnabled = true;
+
+            [SettingType(SettingType.Ignore)]
+            public bool NoteScoreScalesWithAccuracy = false;
+
+            [SettingType(SettingType.Ignore)]
+            public double FullPointHitWindow = BaseEngineParameters.DEFAULT_FULL_POINT_HIT_WINDOW;
+
+            [SettingType(SettingType.Ignore)]
+            public double MinimumHitScoreMultiplier = BaseEngineParameters.DEFAULT_MINIMUM_HIT_SCORE_MULTIPLIER;
 
             [SettingType(SettingType.MillisecondInput)]
             [SettingRange(min: 0f)]
@@ -358,6 +431,10 @@ namespace YARG.Core.Game
                     ChordStaggerWindow = ChordStaggerWindow,
                     FatFingerWindow = FatFingerWindow,
                     EnableLanes = EnableLanes,
+                    StarPowerEnabled = StarPowerEnabled,
+                    NoteScoreScalesWithAccuracy = NoteScoreScalesWithAccuracy,
+                    FullPointHitWindow = FullPointHitWindow,
+                    MinimumHitScoreMultiplier = MinimumHitScoreMultiplier,
                     HitWindow = HitWindow.Copy(),
                 };
             }
@@ -375,7 +452,11 @@ namespace YARG.Core.Game
                     ChordStaggerWindow,
                     FatFingerWindow,
                     NoStarPowerOverlap,
-                    EnableLanes);
+                    EnableLanes,
+                    StarPowerEnabled,
+                    NoteScoreScalesWithAccuracy,
+                    FullPointHitWindow,
+                    MinimumHitScoreMultiplier);
             }
         }
     }
