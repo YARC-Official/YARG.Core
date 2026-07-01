@@ -77,7 +77,6 @@ namespace YARG.Core.Engine.Keys
             if (note.IsStarPower && note.IsStarPowerEnd && note.ParentOrSelf.WasFullyHit())
             {
                 AwardStarPower(note);
-                EngineStats.StarPowerPhrasesHit++;
             }
 
             if (note.IsSoloStart)
@@ -199,8 +198,10 @@ namespace YARG.Core.Engine.Keys
 
         protected override void AddScore(GuitarNote note)
         {
-            AddScore(POINTS_PER_NOTE);
-            EngineStats.NoteScore += POINTS_PER_NOTE;
+            int scoredNotePoints = ApplyAccuracyScore(note, POINTS_PER_NOTE);
+
+            AddScore(scoredNotePoints);
+            EngineStats.NoteScore += scoredNotePoints;
         }
 
         protected sealed override (int baseScore, int noteScore) CalculateChartScores()
@@ -242,10 +243,9 @@ namespace YARG.Core.Engine.Keys
                         baseScore += multiplier * pointsForDisjoint;
                         noteScore += pointsForDisjoint;
                         // Only increment combo if we haven't already seen a note in that tick
-                        if (!seenNoteTicks.Contains(child.Tick))
+                        if (seenNoteTicks.Add(child.Tick))
                         {
                             combo++;
-                            seenNoteTicks.Add(child.Tick);
                         }
                     }
                 }
@@ -254,6 +254,29 @@ namespace YARG.Core.Engine.Keys
 
             YargLogger.LogDebug($"[Keys] Base score: {baseScore}, Max Combo: {combo}");
             return ((int) Math.Round(baseScore), (int) Math.Round(noteScore));
+        }
+
+        protected override int CalculateMaxScoreWithoutStarPower()
+        {
+            double maxScore = 0;
+            int combo = 0;
+            foreach (var note in Notes)
+            {
+                if (note.IsBigRockEnding)
+                {
+                    continue;
+                }
+
+                combo++;
+                int multiplier = GetScoreMultiplierForCombo(combo);
+                foreach (var child in note.AllNotes)
+                {
+                    maxScore += multiplier * POINTS_PER_NOTE;
+                    maxScore += multiplier * Math.Ceiling(child.TickLength / TicksPerSustainPoint);
+                }
+            }
+
+            return (int) Math.Round(maxScore) + EngineStats.MaxSoloBonusPoints + CalculateTotalCodaBonus();
         }
 
         // protected override bool IsKeyInTime(GuitarNote note, double frontEnd) => IsKeyInTime(note, (int)note.FiveLaneKeysAction, frontEnd);

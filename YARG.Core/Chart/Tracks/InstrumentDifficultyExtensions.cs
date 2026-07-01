@@ -525,6 +525,8 @@ namespace YARG.Core.Chart
 
         public static void SetDrumActivationFlags(this InstrumentDifficulty<DrumNote> difficulty, StarPowerActivationType activationType)
         {
+            difficulty.ClearDrumActivationFlags();
+
             var notes = difficulty.Notes;
 
             // Use checkpointing to only iterate through the notes once
@@ -571,10 +573,18 @@ namespace YARG.Core.Chart
                     }
                 }
             }
-
-            // return difficulty;
         }
 
+        public static void ClearDrumActivationFlags(this InstrumentDifficulty<DrumNote> difficulty)
+        {
+            foreach (var chord in difficulty.Notes)
+            {
+                foreach (var note in chord.AllNotes)
+                {
+                    note.DeactivateFlag(DrumNoteFlags.StarPowerActivator);
+                }
+            }
+        }
 
         public static void RemoveDynamics(this InstrumentDifficulty<DrumNote> difficulty)
         {

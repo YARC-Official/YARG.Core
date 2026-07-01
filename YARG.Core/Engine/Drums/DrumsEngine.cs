@@ -169,7 +169,6 @@ namespace YARG.Core.Engine.Drums
                 else if (note.IsStarPowerEnd && note.ParentOrSelf.WasFullyHit())
                 {
                     AwardStarPower(note);
-                    EngineStats.StarPowerPhrasesHit++;
                 }
             }
 
@@ -383,8 +382,10 @@ namespace YARG.Core.Engine.Drums
         protected override void AddScore(DrumNote note)
         {
             int pointsPerNote = GetPointsPerNote();
-            AddScore(pointsPerNote);
-            EngineStats.NoteScore += pointsPerNote;
+            int scoredNotePoints = ApplyAccuracyScore(note, pointsPerNote);
+
+            AddScore(scoredNotePoints);
+            EngineStats.NoteScore += scoredNotePoints;
         }
 
         protected sealed override (int baseScore, int noteScore) CalculateChartScores()
@@ -411,6 +412,33 @@ namespace YARG.Core.Engine.Drums
 
             YargLogger.LogDebug($"[Drums] Base score: {baseScore}, Max Combo: {combo}");
             return ((int) Math.Round(baseScore), (int) Math.Round(noteScore));
+        }
+
+        protected override int CalculateMaxScoreWithoutStarPower()
+        {
+            double maxScore = 0;
+            int combo = 0;
+            foreach (var note in Notes)
+            {
+                if (note.IsBigRockEnding)
+                {
+                    continue;
+                }
+
+                foreach (var drumNote in note.AllNotes)
+                {
+                    combo++;
+                    int multiplier = GetScoreMultiplierForCombo(combo);
+                    maxScore += multiplier * GetPointsPerNote();
+
+                    if (drumNote.IsAccent || drumNote.IsGhost)
+                    {
+                        maxScore += multiplier * (POINTS_PER_NOTE / 2);
+                    }
+                }
+            }
+
+            return (int) Math.Round(maxScore) + EngineStats.MaxSoloBonusPoints + CalculateTotalCodaBonus();
         }
 
         protected override List<CodaSection> GetCodaSections()

@@ -66,6 +66,7 @@ namespace YARG.Core.Engine
             StarPowerWhammyTimer = new EngineTimer("Star Power Whammy", engineParameters.StarPowerWhammyBuffer);
 
             EngineStats = new TEngineStats();
+            StarPowerIsAllowed = EngineParameters.StarPowerEnabled;
             Reset();
 
             EngineStats.ScoreMultiplier = 1;
@@ -99,7 +100,9 @@ namespace YARG.Core.Engine
 
             EngineStats.TotalChords = EngineStats.TotalNotes;
 
-            EngineStats.TotalStarPowerPhrases = Chart.Phrases.Count((phrase) => phrase.Type == PhraseType.StarPower);
+            EngineStats.TotalStarPowerPhrases = EngineParameters.StarPowerEnabled
+                ? Chart.Phrases.Count((phrase) => phrase.Type == PhraseType.StarPower)
+                : 0;
 
             TicksPerSustainPoint = SyncTrack.Resolution / (double) POINTS_PER_BEAT;
             SustainBurstThreshold = SyncTrack.Resolution / SUSTAIN_BURST_FRACTION;
@@ -111,6 +114,7 @@ namespace YARG.Core.Engine
             Solos = GetSoloSections();
             Codas = GetCodaSections();
             EngineStats.MaxSoloBonusPoints = CalculateTotalSoloBonus();
+            MaxScoreWithoutStarPower = CalculateMaxScoreWithoutStarPower();
 
             StarScoreThresholds = PopulateStarScoreThresholds(engineParameters.StarMultiplierThresholds, engineParameters.SoloBonusStarMultiplierThresholds, BaseScore, EngineStats.MaxSoloBonusPoints);
         }
@@ -421,6 +425,8 @@ namespace YARG.Core.Engine
 
         public override void AllowStarPower(bool isAllowed)
         {
+            isAllowed &= EngineParameters.StarPowerEnabled;
+
             if (isAllowed == StarPowerIsAllowed)
             {
                 return;
@@ -753,6 +759,39 @@ namespace YARG.Core.Engine
             UpdateStars();
         }
 
+        protected int ApplyAccuracyScore(TNoteType note, int score)
+        {
+            if (!EngineParameters.NoteScoreScalesWithAccuracy)
+            {
+                return score;
+            }
+
+            double hitOffset = CurrentTime - note.Time;
+            double absoluteOffset = Math.Abs(hitOffset);
+            double fullPointRadius = Math.Max(0, EngineParameters.FullPointHitWindow / 2);
+
+            if (absoluteOffset <= fullPointRadius)
+            {
+                return score;
+            }
+
+            double hitWindow = EngineParameters.HitWindow.CalculateHitWindow(GetAverageNoteDistance(note));
+            double barelyHitOffset = hitOffset < 0
+                ? Math.Abs(EngineParameters.HitWindow.GetFrontEnd(hitWindow))
+                : Math.Abs(EngineParameters.HitWindow.GetBackEnd(hitWindow));
+
+            if (barelyHitOffset <= fullPointRadius)
+            {
+                return score;
+            }
+
+            double percent = Math.Clamp((absoluteOffset - fullPointRadius) / (barelyHitOffset - fullPointRadius), 0, 1);
+            double minimumMultiplier = Math.Clamp(EngineParameters.MinimumHitScoreMultiplier, 0, 1);
+            double multiplier = YargMath.LerpD(1, minimumMultiplier, percent);
+
+            return (int) Math.Round(score * multiplier);
+        }
+
         protected virtual void UpdateSustains()
         {
             EngineStats.PendingScore = 0;
@@ -884,6 +923,15 @@ namespace YARG.Core.Engine
 
         protected override void UpdateStarPower()
         {
+            PreviousStarPowerTickPosition = StarPowerTickPosition;
+            StarPowerTickPosition = SyncTrack.QuarterTickToMeasureTick(CurrentTick);
+
+            if (!EngineParameters.StarPowerEnabled)
+            {
+                IsStarPowerInputActive = false;
+                return;
+            }
+
             if (IsStarPowerSustainActive() && StarPowerWhammyTimer.IsActive)
             {
                 var whammyTicks = CalculateStarPowerGain(CurrentTick, Math.Max(LastTick, FirstWhammyTick), ref WhammyTicksRemainder);
@@ -907,9 +955,6 @@ namespace YARG.Core.Engine
                 BaseStats.TotalStarPowerBarsFilled = (double) BaseStats.TotalStarPowerTicks / TicksPerFullSpBar;
                 YargLogger.LogFormatTrace("Gained {0} whammy ticks this update (Total: {1}), {2} sustains active. SP right now: {3}", whammyTicks, EngineStats.StarPowerWhammyTicks, ActiveSustains.Count, BaseStats.StarPowerTickAmount);
             }
-
-            PreviousStarPowerTickPosition = StarPowerTickPosition;
-            StarPowerTickPosition = SyncTrack.QuarterTickToMeasureTick(CurrentTick);
 
             if (BaseStats.IsStarPowerActive)
             {
@@ -1014,7 +1059,7 @@ namespace YARG.Core.Engine
 
         protected virtual void StripStarPower(TNoteType? note)
         {
-            if (note is null || !note.IsStarPower)
+            if (!EngineParameters.StarPowerEnabled || note is null || !note.IsStarPower)
             {
                 return;
             }
@@ -1073,7 +1118,13 @@ namespace YARG.Core.Engine
 
         protected void AwardStarPower(TNoteType note)
         {
+            if (!EngineParameters.StarPowerEnabled || !note.IsStarPower)
+            {
+                return;
+            }
+
             GainStarPower(TicksPerQuarterSpBar);
+            EngineStats.StarPowerPhrasesHit++;
 
             OnStarPowerPhraseHit?.Invoke(note);
         }
@@ -1231,6 +1282,21 @@ namespace YARG.Core.Engine
             foreach (var solo in Solos)
             {
                 score += solo.NoteCount * 100;
+            }
+            return score;
+        }
+
+        protected virtual int CalculateMaxScoreWithoutStarPower()
+        {
+            return BaseScore + EngineStats.MaxSoloBonusPoints + CalculateTotalCodaBonus();
+        }
+
+        protected int CalculateTotalCodaBonus()
+        {
+            int score = 0;
+            foreach (var coda in Codas)
+            {
+                score += coda.MaxBonusScore;
             }
             return score;
         }
