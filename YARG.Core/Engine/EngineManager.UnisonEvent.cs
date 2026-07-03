@@ -381,6 +381,9 @@ namespace YARG.Core.Engine
                     }
                 }
 
+                double maxEndTime = benchmark.TimeEnd;
+                uint maxEndTick = benchmark.TickEnd;
+
                 // Find all phrases in the group that end at roughly the same time as the benchmark
                 finalParticipants.Clear();
                 foreach (var participant in potentialGroup)
@@ -388,13 +391,17 @@ namespace YARG.Core.Engine
                     if (participant.EndTickAlmostEquals(benchmark, tickTolerance))
                     {
                         finalParticipants.Add(participant);
+                        maxEndTick = Math.Max(maxEndTick, participant.TickEnd);
+                        maxEndTime = Math.Max(maxEndTime, participant.TimeEnd);
                     }
                 }
 
                 // If we still have at least two, it's a valid unison.
                 if (finalParticipants.Count >= 2)
                 {
-                    phrases.Add(sourceSection.PhraseRef);
+                    // We create a new phrase with the largest boundaries possible to ensure
+                    // unison phrase times are consistent across all instruments.
+                    phrases.Add(new Phrase(PhraseType.StarPower, benchmark.Time, maxEndTime - benchmark.Time, benchmark.Tick, maxEndTick - benchmark.Tick));
                 }
             }
 
