@@ -88,6 +88,8 @@ namespace YARG.Core.Engine
 
         private List<UnisonEvent> _unisonEvents = new();
 
+        public IReadOnlyList<UnisonEvent> UnisonEvents => _unisonEvents.AsReadOnly();
+
         public struct StarPowerSection : IEquatable<StarPowerSection>
         {
             public double Time;
@@ -383,18 +385,26 @@ namespace YARG.Core.Engine
 
                 // Find all phrases in the group that end at roughly the same time as the benchmark
                 finalParticipants.Clear();
+                double maxEndTime = benchmark.TimeEnd;
+                uint maxEndTick = benchmark.TickEnd;
                 foreach (var participant in potentialGroup)
                 {
                     if (participant.EndTickAlmostEquals(benchmark, tickTolerance))
                     {
                         finalParticipants.Add(participant);
+                        // Do this instead of Math.Max to ensure the time and tick are consistent with each other
+                        if (participant.TickEnd > maxEndTick)
+                        {
+                            maxEndTime = participant.TimeEnd;
+                            maxEndTick = participant.TickEnd;
+                        }
                     }
                 }
 
                 // If we still have at least two, it's a valid unison.
                 if (finalParticipants.Count >= 2)
                 {
-                    phrases.Add(sourceSection.PhraseRef);
+                    phrases.Add(new Phrase(PhraseType.StarPower, benchmark.Time, maxEndTime - benchmark.Time, benchmark.Tick, maxEndTick - benchmark.Tick));
                 }
             }
 
@@ -452,6 +462,7 @@ namespace YARG.Core.Engine
                 engineContainer.SendCommand(EngineCommandType.AwardUnisonBonus);
             }
             unison.Awarded = true;
+            OnUnisonPhraseSuccess?.Invoke();
         }
     }
 }
