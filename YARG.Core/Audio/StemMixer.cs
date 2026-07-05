@@ -175,6 +175,22 @@ namespace YARG.Core.Audio
             }
         }
 
+        /// <summary>
+        /// Latency from a non-flushing audio command (such as speed) to the position reported by <see cref="GetPosition"/>.
+        /// This excludes downstream device/speaker latency.
+        /// </summary>
+        public double GetStreamCommandLatency()
+        {
+            lock (this)
+            {
+                if (_disposed)
+                {
+                    return 0;
+                }
+                return GetStreamCommandLatency_Internal();
+            }
+        }
+
         public double GetStartLatency()
         {
             lock (this)
@@ -387,6 +403,10 @@ namespace YARG.Core.Audio
         protected virtual double GetCommandLatency_Internal()
         {
             return GetEstimatedOutputLatency_Internal();
+        }
+        protected virtual double GetStreamCommandLatency_Internal()
+        {
+            return Math.Max(0, GetCommandLatency_Internal() - GetAudibleSyncLatency_Internal());
         }
         protected virtual double GetStartLatency_Internal()
         {
