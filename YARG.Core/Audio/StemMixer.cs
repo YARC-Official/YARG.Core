@@ -335,6 +335,14 @@ namespace YARG.Core.Audio
             }
         }
 
+        public void StopPlaybackImmediately()
+        {
+            StopPlaybackImmediately_Internal();
+            _isPaused = true;
+        }
+
+        protected virtual void StopPlaybackImmediately_Internal() { }
+
         protected abstract int Play_Internal();
         protected abstract void FadeIn_Internal(double maxVolume, double duration);
         protected abstract void FadeOut_Internal(double duration);
