@@ -139,7 +139,7 @@ namespace YARG.Core.Audio
             }
         }
 
-        public double GetEstimatedOutputLatency()
+        public double GetPlaybackLatency()
         {
             lock (this)
             {
@@ -147,11 +147,11 @@ namespace YARG.Core.Audio
                 {
                     return 0;
                 }
-                return GetEstimatedOutputLatency_Internal();
+                return GetPlaybackLatency_Internal();
             }
         }
 
-        public double GetAudibleSyncLatency()
+        public double GetTempoLatency()
         {
             lock (this)
             {
@@ -159,59 +159,7 @@ namespace YARG.Core.Audio
                 {
                     return 0;
                 }
-                return GetAudibleSyncLatency_Internal();
-            }
-        }
-
-        public double GetCommandLatency()
-        {
-            lock (this)
-            {
-                if (_disposed)
-                {
-                    return 0;
-                }
-                return GetCommandLatency_Internal();
-            }
-        }
-
-        /// <summary>
-        /// Latency from a non-flushing audio command (such as speed) to the position reported by <see cref="GetPosition"/>.
-        /// This excludes downstream device/speaker latency.
-        /// </summary>
-        public double GetStreamCommandLatency()
-        {
-            lock (this)
-            {
-                if (_disposed)
-                {
-                    return 0;
-                }
-                return GetStreamCommandLatency_Internal();
-            }
-        }
-
-        public double GetStartLatency()
-        {
-            lock (this)
-            {
-                if (_disposed)
-                {
-                    return 0;
-                }
-                return GetStartLatency_Internal();
-            }
-        }
-
-        public double GetPausedResumeLatency()
-        {
-            lock (this)
-            {
-                if (_disposed)
-                {
-                    return 0;
-                }
-                return GetPausedResumeLatency_Internal();
+                return GetTempoLatency_Internal();
             }
         }
 
@@ -392,29 +340,13 @@ namespace YARG.Core.Audio
         protected abstract void FadeOut_Internal(double duration);
         protected abstract int Pause_Internal();
         protected abstract double GetPosition_Internal();
-        protected virtual double GetEstimatedOutputLatency_Internal()
-        {
-            return GetAudibleSyncLatency_Internal();
-        }
-        protected virtual double GetAudibleSyncLatency_Internal()
+        protected virtual double GetPlaybackLatency_Internal()
         {
             return 0;
         }
-        protected virtual double GetCommandLatency_Internal()
+        protected virtual double GetTempoLatency_Internal()
         {
-            return GetEstimatedOutputLatency_Internal();
-        }
-        protected virtual double GetStreamCommandLatency_Internal()
-        {
-            return Math.Max(0, GetCommandLatency_Internal() - GetAudibleSyncLatency_Internal());
-        }
-        protected virtual double GetStartLatency_Internal()
-        {
-            return GetAudibleSyncLatency_Internal();
-        }
-        protected virtual double GetPausedResumeLatency_Internal()
-        {
-            return GetStartLatency_Internal();
+            return 0;
         }
         protected virtual double GetSyncPosition_Internal()
         {
