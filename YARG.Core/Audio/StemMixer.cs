@@ -4,6 +4,13 @@ using System.IO;
 
 namespace YARG.Core.Audio
 {
+    public enum PostSeekState
+    {
+        Pause,
+        Play,
+        Preserve,
+    }
+
     public abstract class StemMixer : IDisposable
     {
         public struct StemInfo
@@ -166,12 +173,49 @@ namespace YARG.Core.Audio
 
         public void SetPosition(double position)
         {
+            Seek(position, PostSeekState.Preserve);
+        }
+
+        public int Seek(double position, PostSeekState postSeekState)
+        {
             lock (this)
             {
-                if (!_disposed)
+                if (_disposed)
                 {
-                    SetPosition_Internal(position);
+                    return -1;
                 }
+
+                bool wasPaused = _isPaused;
+
+                int ret = Pause_Internal();
+                if (ret != 0)
+                {
+                    return ret;
+                }
+                _isPaused = true;
+
+                SetPosition_Internal(position);
+
+                bool shouldPlay = postSeekState switch
+                {
+                    PostSeekState.Play => true,
+                    PostSeekState.Pause => false,
+                    PostSeekState.Preserve => !wasPaused,
+                    _ => false,
+                };
+
+                if (!shouldPlay)
+                {
+                    return 0;
+                }
+
+                ret = Play_Internal();
+                if (ret != 0)
+                {
+                    return ret;
+                }
+                _isPaused = false;
+                return 0;
             }
         }
 
