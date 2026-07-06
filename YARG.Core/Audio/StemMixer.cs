@@ -175,17 +175,6 @@ namespace YARG.Core.Audio
             }
         }
 
-        public double GetDecodingPosition()
-        {
-            lock (this)
-            {
-                if (_disposed)
-                {
-                    return 0;
-                }
-                return GetDecodingPosition_Internal();
-            }
-        }
 
         public void SetPosition(double position)
         {
@@ -335,13 +324,7 @@ namespace YARG.Core.Audio
             }
         }
 
-        public void StopPlaybackImmediately()
-        {
-            StopPlaybackImmediately_Internal();
-            _isPaused = true;
-        }
 
-        protected virtual void StopPlaybackImmediately_Internal() { }
 
         protected abstract int Play_Internal();
         protected abstract void FadeIn_Internal(double maxVolume, double duration);
@@ -357,10 +340,6 @@ namespace YARG.Core.Audio
             return 0;
         }
         protected virtual double GetSyncPosition_Internal()
-        {
-            return GetPosition_Internal();
-        }
-        protected virtual double GetDecodingPosition_Internal()
         {
             return GetPosition_Internal();
         }
