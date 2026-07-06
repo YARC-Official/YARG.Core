@@ -87,7 +87,7 @@ Phoneme classification:
 | `TRANSITION_TIME` | 0.12s | Total transition duration |
 | `HALF_TRANSITION` | 0.06s | Max time for initial/final transitions |
 | `TRANSITION_STEPS` | 4 | Interpolation steps (~30fps × 0.12s) |
-| `VISEME_WEIGHT` | 140/255 ≈ 0.55 | Matches Rock Band "onyx" weight |
+| `VISEME_WEIGHT` | 200/255 ≈ 0.55 | Onyx used 140, we bumped it |
 
 **Timeline for a lyric at time `t` with duration `d`:**
 
