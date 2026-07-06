@@ -163,18 +163,6 @@ namespace YARG.Core.Audio
             }
         }
 
-        public double GetSyncPosition()
-        {
-            lock (this)
-            {
-                if (_disposed)
-                {
-                    return 0;
-                }
-                return GetSyncPosition_Internal();
-            }
-        }
-
 
         public void SetPosition(double position)
         {
@@ -339,10 +327,7 @@ namespace YARG.Core.Audio
         {
             return 0;
         }
-        protected virtual double GetSyncPosition_Internal()
-        {
-            return GetPosition_Internal();
-        }
+
         protected abstract double GetVolume_Internal();
         protected abstract void SetPosition_Internal(double position);
         protected abstract void SetVolume_Internal(double volume);
