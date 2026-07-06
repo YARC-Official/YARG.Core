@@ -172,7 +172,7 @@ namespace YARG.Core.Replays.Analyzer
                 engines.Add(engine);
 
                 // TODO: Implement support for custom RockMeterPresets in replays
-                manager.Register(engine, frame.Profile.CurrentInstrument, _chart, RockMeterPreset.Normal);
+                manager.Register(engine, frame.Profile.CurrentInstrument, frame.Profile.CurrentDifficulty, _chart, RockMeterPreset.Normal);
                 engine.SetSpeed(frame.EngineParameters.SongSpeed);
                 engine.Reset();
 
