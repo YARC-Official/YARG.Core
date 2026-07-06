@@ -139,7 +139,7 @@ namespace YARG.Core.Audio
             }
         }
 
-        public double GetPlaybackLatency()
+        public double GetPlaybackStreamLatency()
         {
             lock (this)
             {
@@ -147,11 +147,11 @@ namespace YARG.Core.Audio
                 {
                     return 0;
                 }
-                return GetPlaybackLatency_Internal();
+                return GetPlaybackStreamLatency_Internal();
             }
         }
 
-        public double GetTempoLatency()
+        public double GetTempoStreamLatency()
         {
             lock (this)
             {
@@ -159,7 +159,7 @@ namespace YARG.Core.Audio
                 {
                     return 0;
                 }
-                return GetTempoLatency_Internal();
+                return GetTempoStreamLatency_Internal();
             }
         }
 
@@ -348,11 +348,11 @@ namespace YARG.Core.Audio
         protected abstract void FadeOut_Internal(double duration);
         protected abstract int Pause_Internal();
         protected abstract double GetPosition_Internal();
-        protected virtual double GetPlaybackLatency_Internal()
+        protected virtual double GetPlaybackStreamLatency_Internal()
         {
             return 0;
         }
-        protected virtual double GetTempoLatency_Internal()
+        protected virtual double GetTempoStreamLatency_Internal()
         {
             return 0;
         }
