@@ -183,6 +183,10 @@ namespace YARG.Core.Song
 
         public VocalGender VocalGender => _metadata.VocalGender;
 
+        // Venue hints
+        public string VenueHint  => _metadata.VenueHint;
+        public string VocalCharacterHint => _metadata.VocalCharacterHint;
+
         public int VocalsCount
         {
             get

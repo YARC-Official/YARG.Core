@@ -15,6 +15,8 @@ namespace YARG.Core.Song
 
         public YARGImage? Image => _image;
 
+        public string? VenueHint { get; }
+
         public BackgroundResult(BackgroundType type, Stream stream)
         {
             _image = null;
@@ -26,6 +28,13 @@ namespace YARG.Core.Song
         {
             _image = image;
             Type = BackgroundType.Image;
+            Stream = null;
+        }
+
+        public BackgroundResult(string venueHint)
+        {
+            VenueHint = venueHint;
+            Type = BackgroundType.Yarground;
             Stream = null;
         }
 

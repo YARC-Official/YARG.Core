@@ -171,11 +171,13 @@ namespace YARG.Core.IO.Ini
                 { "unlock_require",                       new("unlock_require", ModifierType.String) },
                 { "unlock_text",                          new("unlock_text", ModifierType.String) },
 
+                { "venue_hint",                           new("venue_name", ModifierType.String) },
                 { "version",                              new("version", ModifierType.UInt32) },
                 { "video",                                new("video", ModifierType.String) },
                 { "video_end_time",                       new("video_end_time", ModifierType.Int64) },
                 { "video_loop",                           new("video_loop", ModifierType.Bool) },
                 { "video_start_time",                     new("video_start_time", ModifierType.Int64) },
+                { "vocal_character_hint",                 new("vocal_character_name", ModifierType.String) },
                 { "vocal_gender",                         new("vocal_gender", ModifierType.UInt32) },
                 { "vocal_scroll_speed",                   new("vocal_scroll_speed", ModifierType.Int16) },
 
