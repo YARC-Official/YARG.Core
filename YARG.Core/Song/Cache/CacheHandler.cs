@@ -177,6 +177,7 @@ namespace YARG.Core.Song.Cache
         private readonly List<IniEntryGroup> iniGroups;
         private readonly List<CONEntryGroup> conEntryGroups = new();
         private readonly List<CONUpdateGroup> updateGroups = new();
+        private readonly Dictionary<string, string> iniUpdateMidiPaths = new();
         private readonly List<PackedCONUpgradeGroup> packedUpgradeGroups = new();
         private readonly List<UnpackedCONUpgradeGroup> unpackedUpgradeGroups = new();
 
@@ -214,6 +215,23 @@ namespace YARG.Core.Song.Cache
                     for (int i = 0; i < conEntryGroups.Count; i++)
                     {
                         conEntryGroups[i].RemoveEntries(mod.Key);
+                    }
+                }
+            }
+        }
+
+        /// <summary>
+        /// Removes all the entries present in all ini groups that have a matching shortname
+        /// </summary>
+        private void RemoveIniEntries(IEnumerable<string> shortnames)
+        {
+            lock (iniGroups)
+            {
+                foreach (var shortname in shortnames)
+                {
+                    foreach (var group in iniGroups)
+                    {
+                        group.RemoveEntries(shortname);
                     }
                 }
             }
@@ -649,12 +667,18 @@ namespace YARG.Core.Song.Cache
                         var dta = new FileInfo(Path.Combine(directory.FullName, RBCONEntry.SONGUPDATES_DTA));
                         if (dta.Exists && CONUpdateGroup.Create(directory.FullName, dta, out var updateGroup))
                         {
-                            lock (updateGroups)
-                            {
-                                updateGroups.Add(updateGroup);
-                            }
-                            // Ensures any con entries pulled from cache are removed for re-evaluation
+                            lock (updateGroups) { updateGroups.Add(updateGroup); }
                             RemoveCONEntries(updateGroup!.Updates);
+                        }
+
+                        // New: plain shortname-keyed lookup, no DTA needed
+                        foreach (var songDir in directory.EnumerateDirectories())
+                        {
+                            string updateMid = Path.Combine(songDir.FullName, songDir.Name + "_update.mid");
+                            if (File.Exists(updateMid))
+                            {
+                                lock (iniUpdateMidiPaths) { iniUpdateMidiPaths[songDir.Name] = updateMid; }
+                            }
                         }
                         return;
                     }
@@ -826,7 +850,7 @@ namespace YARG.Core.Song.Cache
 
                 try
                 {
-                    var entry = UnpackedIniEntry.ProcessNewEntry(collection.Directory, chart, IniSubEntry.CHART_FILE_TYPES[i].Format, hasIni ? ini : null, defaultPlaylist);
+                    var entry = UnpackedIniEntry.ProcessNewEntry(collection.Directory, chart, IniSubEntry.CHART_FILE_TYPES[i].Format, hasIni ? ini : null, defaultPlaylist, iniUpdateMidiPaths);
                     if (entry)
                     {
                         AddEntry(entry.Value);

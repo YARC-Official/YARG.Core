@@ -15,6 +15,9 @@ namespace YARG.Core.Song
     internal sealed class UnpackedIniEntry : IniSubEntry
     {
         private readonly DateTime? _iniLastWrite;
+        private readonly string? _shortname;
+        public string? Shortname => _shortname;
+        private readonly string? _updateMidiPath;
 
         public override EntryType SubType => EntryType.Ini;
 
@@ -27,6 +30,19 @@ namespace YARG.Core.Song
             {
                 stream.Write(_iniLastWrite.Value.ToBinary(), Endianness.Little);
             }
+
+            stream.Write(_shortname != null);
+            if (_shortname != null)
+            {
+                stream.Write(_shortname);
+            }
+
+            stream.Write(_updateMidiPath != null);
+            if (_updateMidiPath != null)
+            {
+                stream.Write(_updateMidiPath);
+            }
+
             base.Serialize(stream, node);
         }
 
@@ -214,13 +230,15 @@ namespace YARG.Core.Song
             return files;
         }
 
-        private UnpackedIniEntry(string directory, in DateTime chartLastWrite, in DateTime? iniLastWrite, in ChartFormat format)
+        private UnpackedIniEntry(string directory, in DateTime chartLastWrite, in DateTime? iniLastWrite, in ChartFormat format, string? shortname, string? updateMidiPath)
             : base(directory, in chartLastWrite, format)
         {
             _iniLastWrite = iniLastWrite;
+            _shortname = shortname;
+            _updateMidiPath = updateMidiPath;
         }
 
-        public static ScanExpected<UnpackedIniEntry> ProcessNewEntry(string directory, FileInfo chartInfo, ChartFormat format, FileInfo? iniFile, string defaultPlaylist)
+        public static ScanExpected<UnpackedIniEntry> ProcessNewEntry(string directory, FileInfo chartInfo, ChartFormat format, FileInfo? iniFile, string defaultPlaylist, IReadOnlyDictionary<string, string> iniUpdateMidiPaths)
         {
             IniModifierCollection iniModifiers;
             DateTime? iniLastWrite = default;
@@ -234,7 +252,14 @@ namespace YARG.Core.Song
                 iniModifiers = new();
             }
 
-            var entry = new UnpackedIniEntry(directory, AbridgedFileInfo.NormalizedLastWrite(chartInfo), in iniLastWrite, format);
+            string? shortname = iniModifiers.Extract("shortname", out string sn) ? sn : null;
+            string? updateMidiPath = null;
+            if (shortname != null)
+            {
+                iniUpdateMidiPaths.TryGetValue(shortname, out updateMidiPath);
+            }
+
+            var entry = new UnpackedIniEntry(directory, AbridgedFileInfo.NormalizedLastWrite(chartInfo), in iniLastWrite, format, shortname, updateMidiPath);
             entry._metadata.Playlist = defaultPlaylist;
 
             using var file = FixedArray.LoadFile(chartInfo.FullName);
@@ -268,7 +293,14 @@ namespace YARG.Core.Song
                 return null;
             }
 
-            var entry = new UnpackedIniEntry(directory, in chartLastWrite, in iniLastWrite, chart.Format);
+            string? shortname = stream.ReadBoolean() ? stream.ReadString() : null;
+            string? updateMidiPath = stream.ReadBoolean() ? stream.ReadString() : null;
+            if (updateMidiPath != null && !File.Exists(updateMidiPath))
+            {
+                return null; // update mid vanished since cache was written — force rescan
+            }
+
+            var entry = new UnpackedIniEntry(directory, in chartLastWrite, in iniLastWrite, chart.Format, shortname, updateMidiPath);
             entry.Deserialize(ref stream, strings);
             return entry;
         }
@@ -279,7 +311,9 @@ namespace YARG.Core.Song
             ref readonly var chart = ref CHART_FILE_TYPES[stream.ReadByte()];
             var chartLastWrite = DateTime.FromBinary(stream.Read<long>(Endianness.Little));
             DateTime? iniLastWrite = stream.ReadBoolean() ? DateTime.FromBinary(stream.Read<long>(Endianness.Little)) : default;
-            var entry = new UnpackedIniEntry(directory, in chartLastWrite, in iniLastWrite, chart.Format);
+            string? shortname = stream.ReadBoolean() ? stream.ReadString() : null;
+            string? updateMidiPath = stream.ReadBoolean() ? stream.ReadString() : null;
+            var entry = new UnpackedIniEntry(directory, in chartLastWrite, in iniLastWrite, chart.Format, shortname, updateMidiPath);
             entry.Deserialize(ref stream, strings);
             return entry;
         }

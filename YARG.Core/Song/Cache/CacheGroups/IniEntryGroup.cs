@@ -17,11 +17,28 @@ namespace YARG.Core.Song.Cache
             _directory = directory;
         }
 
+        private readonly Dictionary<string, UnpackedIniEntry> _byShortname = new();
+
         public void AddEntry(UnpackedIniEntry entry)
         {
             lock (_unpacked)
             {
                 _unpacked.Add(entry);
+                if (entry.Shortname != null)
+                {
+                    _byShortname[entry.Shortname] = entry;
+                }
+            }
+        }
+
+        public void RemoveEntries(string shortname)
+        {
+            lock (_unpacked)
+            {
+                if (_byShortname.Remove(shortname, out var entry))
+                {
+                    _unpacked.Remove(entry);
+                }
             }
         }
 
