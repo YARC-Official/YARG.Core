@@ -174,6 +174,21 @@ namespace YARG.Core.Song
 
         public override FixedArray<byte>? LoadMiloData()
         {
+            using var sng = SngFile.TryLoadFromFile(_location, false);
+            if (sng.IsLoaded)
+            {
+                foreach (var name in sng.Listings.Keys)
+                {
+                    if (name.EndsWith(".milo_xbox") || name.EndsWith(".milo"))
+                    {
+                        if (sng.TryGetListing(name, out var listing))
+                        {
+                            return sng.LoadAllBytes(in listing);
+                        }
+                    }
+                }
+            }
+            
             return null;
         }
 

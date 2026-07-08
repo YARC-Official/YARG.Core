@@ -161,6 +161,18 @@ namespace YARG.Core.Song
         #nullable disable
         public override FixedArray<byte> LoadMiloData()
         {
+            var subFiles = GetSubFiles();
+            foreach (var name in subFiles.Keys)
+            {
+                if (name.EndsWith(".milo_xbox") || name.EndsWith(".milo"))
+                {
+                    if (subFiles.TryGetValue(name, out var file) && File.Exists(file))
+                    {
+                        return FixedArray.LoadFile(file);
+                    }
+                }
+            }
+
             return null;
         }
 
