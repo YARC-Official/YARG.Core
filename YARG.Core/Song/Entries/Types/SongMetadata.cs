@@ -534,7 +534,14 @@ namespace YARG.Core.Song
 
             if (modifiers.Extract("vocal_gender", out string vocalGender))
             {
-                metadata.VocalGender = Enum.Parse<VocalGender>(vocalGender);
+                if (Enum.TryParse<VocalGender>(vocalGender, true, out var genderValue))
+                {
+                    metadata.VocalGender = genderValue;
+                }
+                else
+                {
+                    metadata.VocalGender = VocalGender.Unspecified;
+                }
             }
 
             if (modifiers.Extract("venue_hint", out string venueHint))
