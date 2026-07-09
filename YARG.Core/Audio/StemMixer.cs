@@ -11,6 +11,25 @@ namespace YARG.Core.Audio
         Preserve,
     }
 
+    public readonly struct StemMixerLatency
+    {
+        /// <summary>
+        /// Estimated output latency for the playback stream, in seconds.
+        /// </summary>
+        public readonly double PlaybackStream;
+
+        /// <summary>
+        /// Estimated processing and output latency for the tempo stream, in seconds.
+        /// </summary>
+        public readonly double TempoStream;
+
+        public StemMixerLatency(double playbackStream, double tempoStream)
+        {
+            PlaybackStream = playbackStream;
+            TempoStream = tempoStream;
+        }
+    }
+
     public abstract class StemMixer : IDisposable
     {
         public struct StemInfo
@@ -170,6 +189,17 @@ namespace YARG.Core.Audio
             }
         }
 
+        public StemMixerLatency GetStreamLatency()
+        {
+            lock (this)
+            {
+                if (_disposed)
+                {
+                    return new StemMixerLatency(0, 0);
+                }
+                return GetStreamLatency_Internal();
+            }
+        }
 
         public void SetPosition(double position)
         {
@@ -370,6 +400,10 @@ namespace YARG.Core.Audio
         protected virtual double GetTempoStreamLatency_Internal()
         {
             return 0;
+        }
+        protected virtual StemMixerLatency GetStreamLatency_Internal()
+        {
+            return new StemMixerLatency(GetPlaybackStreamLatency_Internal(), GetTempoStreamLatency_Internal());
         }
 
         protected abstract double GetVolume_Internal();
