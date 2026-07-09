@@ -322,11 +322,42 @@ namespace YARG.Core.Song.Cache
             return mods;
         }
 
+
+        private void PreScanUpdateMidis()
+        {
+            YargLogger.MinimumLogLevel = YARG.Core.Logging.LogLevel.Trace;
+            Parallel.ForEach(iniGroups, group =>
+            {
+                if (!Directory.Exists(group.Directory))
+                {
+                    return;
+                }
+
+                foreach (string updatesDir in Directory.EnumerateDirectories(group.Directory, "songs_updates", SearchOption.AllDirectories))
+                {
+                    YargLogger.LogFormatDebug("Found songs_updates dir: {0}", updatesDir);
+                    var shortnames = new List<string>();
+                    foreach (var songDir in new DirectoryInfo(updatesDir).EnumerateDirectories())
+                    {
+                        string updateMid = Path.Combine(songDir.FullName, songDir.Name + "_update.mid");
+                        if (File.Exists(updateMid))
+                        {
+                            lock (iniUpdateMidiPaths) { iniUpdateMidiPaths[songDir.Name] = updateMid; }
+                            shortnames.Add(songDir.Name);
+                        }
+                    }
+                    RemoveIniEntries(shortnames);
+                }
+            });
+        }
+
         /// <summary>
         /// Performs the traversal of the filesystem in search of new entries to add to a user's library
         /// </summary>
         private void FindNewEntries(bool fullDirectoryPlaylists)
         {
+            PreScanUpdateMidis();
+
             var tracker = new PlaylistTracker(fullDirectoryPlaylists, null);
             Parallel.ForEach(iniGroups, group =>
             {
@@ -671,20 +702,6 @@ namespace YARG.Core.Song.Cache
                             // Ensures any con entries pulled from cache are removed for re-evaluation
                             RemoveCONEntries(updateGroup!.Updates);
                         }
-
-                        // New: plain shortname-keyed lookup, no DTA needed
-                        var newShortnames = new List<string>();
-                        foreach (var songDir in directory.EnumerateDirectories())
-                        {
-                            string updateMid = Path.Combine(songDir.FullName, songDir.Name + "_update.mid");
-                            if (File.Exists(updateMid))
-                            {
-                                lock (iniUpdateMidiPaths) { iniUpdateMidiPaths[songDir.Name] = updateMid; }
-                                newShortnames.Add(songDir.Name);
-                            }
-                        }
-                        RemoveIniEntries(newShortnames);
-
                         return;
                     }
                     // A missing dta file means that we will treat the folder like any other subdirectory.

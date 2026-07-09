@@ -18,6 +18,7 @@ namespace YARG.Core.Song
         private readonly string? _shortname;
         public string? Shortname => _shortname;
         private readonly string? _updateMidiPath;
+        internal override string? UpdateMidiPath => _updateMidiPath;
 
         public override EntryType SubType => EntryType.Ini;
 
@@ -257,6 +258,7 @@ namespace YARG.Core.Song
             if (shortname != null)
             {
                 iniUpdateMidiPaths.TryGetValue(shortname, out updateMidiPath);
+                YargLogger.LogInfo($"Found shortname '{shortname}' -> update mid: {updateMidiPath ?? "none"}");
             }
 
             var entry = new UnpackedIniEntry(directory, AbridgedFileInfo.NormalizedLastWrite(chartInfo), in iniLastWrite, format, shortname, updateMidiPath);
