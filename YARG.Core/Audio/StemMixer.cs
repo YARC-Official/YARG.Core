@@ -215,37 +215,7 @@ namespace YARG.Core.Audio
                     return -1;
                 }
 
-                bool wasPaused = _isPaused;
-
-                int ret = Pause_Internal();
-                if (ret != 0)
-                {
-                    return ret;
-                }
-                _isPaused = true;
-
-                SetPosition_Internal(position);
-
-                bool shouldPlay = postSeekState switch
-                {
-                    PostSeekState.Play => true,
-                    PostSeekState.Pause => false,
-                    PostSeekState.Preserve => !wasPaused,
-                    _ => false,
-                };
-
-                if (!shouldPlay)
-                {
-                    return 0;
-                }
-
-                ret = Play_Internal();
-                if (ret != 0)
-                {
-                    return ret;
-                }
-                _isPaused = false;
-                return 0;
+                return Seek_Internal(position, postSeekState);
             }
         }
 
@@ -387,6 +357,41 @@ namespace YARG.Core.Audio
         }
 
 
+
+        protected virtual int Seek_Internal(double position, PostSeekState postSeekState)
+        {
+            bool wasPaused = _isPaused;
+
+            int ret = Pause_Internal();
+            if (ret != 0)
+            {
+                return ret;
+            }
+            _isPaused = true;
+
+            SetPosition_Internal(position);
+
+            bool shouldPlay = postSeekState switch
+            {
+                PostSeekState.Play => true,
+                PostSeekState.Pause => false,
+                PostSeekState.Preserve => !wasPaused,
+                _ => false,
+            };
+
+            if (!shouldPlay)
+            {
+                return 0;
+            }
+
+            ret = Play_Internal();
+            if (ret != 0)
+            {
+                return ret;
+            }
+            _isPaused = false;
+            return 0;
+        }
 
         protected abstract int Play_Internal();
         protected abstract void FadeIn_Internal(double maxVolume, double duration);
