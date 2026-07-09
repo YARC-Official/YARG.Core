@@ -400,7 +400,7 @@ namespace YARG.Core.Song
 
             if (updateMidi != null)
             {
-                var updateResult = ParseMidi(updateMidi.Value, ref parts, ref drumsType);
+                var updateResult = ParseMidi(updateMidi, ref parts, ref drumsType);
                 if (!updateResult)
                 {
                     return updateResult;
