@@ -4,7 +4,7 @@ namespace YARG.Core.Extensions
 {
     public static class MidiExtensions
     {
-        public static void Merge(this MidiFile targetFile, MidiFile sourceFile)
+        public static void Merge(this MidiFile targetFile, MidiFile sourceFile, bool copyVenue = false)
         {
             // Index 1 to skip the sync track
             for (int sourceIndex = 1; sourceIndex < sourceFile.Chunks.Count; sourceIndex++)
@@ -30,7 +30,12 @@ namespace YARG.Core.Extensions
 
                     if (sourceName == targetTrack.GetTrackName())
                     {
-                        targetFile.Chunks[targetIndex] = sourceTrack;
+                        // Venue requires special handling (venue should really be merged based on the individual events)
+                        if (copyVenue && sourceName == "VENUE")
+                        {
+                            targetFile.Chunks[targetIndex] = sourceTrack;
+                        }
+
                         isExisting = true;
                         break;
                     }
