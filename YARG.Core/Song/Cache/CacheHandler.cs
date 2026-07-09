@@ -221,7 +221,7 @@ namespace YARG.Core.Song.Cache
         }
 
         /// <summary>
-        /// Removes all the entries present in all ini groups that have a matching shortname
+        /// Removes all the entries present in all unpacked ini groups that have a matching shortname
         /// </summary>
         private void RemoveIniEntries(IEnumerable<string> shortnames)
         {
@@ -668,18 +668,23 @@ namespace YARG.Core.Song.Cache
                         if (dta.Exists && CONUpdateGroup.Create(directory.FullName, dta, out var updateGroup))
                         {
                             lock (updateGroups) { updateGroups.Add(updateGroup); }
+                            // Ensures any con entries pulled from cache are removed for re-evaluation
                             RemoveCONEntries(updateGroup!.Updates);
                         }
 
                         // New: plain shortname-keyed lookup, no DTA needed
+                        var newShortnames = new List<string>();
                         foreach (var songDir in directory.EnumerateDirectories())
                         {
                             string updateMid = Path.Combine(songDir.FullName, songDir.Name + "_update.mid");
                             if (File.Exists(updateMid))
                             {
                                 lock (iniUpdateMidiPaths) { iniUpdateMidiPaths[songDir.Name] = updateMid; }
+                                newShortnames.Add(songDir.Name);
                             }
                         }
+                        RemoveIniEntries(newShortnames);
+
                         return;
                     }
                     // A missing dta file means that we will treat the folder like any other subdirectory.
