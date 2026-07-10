@@ -112,7 +112,6 @@ namespace YARG.Core.Song
                 var midi = MidFileLoader.LoadMidiFile(stream);
                 if (UpdateMidiPath != null && File.Exists(UpdateMidiPath))
                 {
-                    YargLogger.LogFormatDebug("Merging update mid at load time: {0}", UpdateMidiPath);
                     var update = MidFileLoader.LoadMidiFile(UpdateMidiPath);
                     midi.Merge(update, false);
                 }
@@ -208,7 +207,6 @@ namespace YARG.Core.Song
             (entry._parsedYear, entry._yearAsNumber) = ParseYear(entry._metadata.Year);
             if (entry.UpdateMidiPath != null)
             {
-                YargLogger.LogFormatDebug("Hashing with update mid: {0}", entry.UpdateMidiPath);
                 using var updateMidi = FixedArray.LoadFile(entry.UpdateMidiPath);
                 using var combined = FixedArray<byte>.Alloc(file.Length + updateMidi.Length);
                 unsafe

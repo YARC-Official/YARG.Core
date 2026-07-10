@@ -335,7 +335,6 @@ namespace YARG.Core.Song.Cache
 
                 foreach (string updatesDir in Directory.EnumerateDirectories(group.Directory, "songs_updates", SearchOption.AllDirectories))
                 {
-                    YargLogger.LogFormatDebug("Found songs_updates dir: {0}", updatesDir);
                     var shortnames = new List<string>();
                     foreach (var songDir in new DirectoryInfo(updatesDir).EnumerateDirectories())
                     {
