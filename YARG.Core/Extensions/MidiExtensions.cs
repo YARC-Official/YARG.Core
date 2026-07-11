@@ -31,7 +31,7 @@ namespace YARG.Core.Extensions
                     if (sourceName == targetTrack.GetTrackName())
                     {
                         // Venue requires special handling (venue should really be merged based on the individual events)
-                        if (copyVenue && sourceName == "VENUE")
+                        if (copyVenue || sourceName != "VENUE")
                         {
                             targetFile.Chunks[targetIndex] = sourceTrack;
                         }
