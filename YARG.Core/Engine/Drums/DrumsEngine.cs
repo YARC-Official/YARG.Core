@@ -28,6 +28,14 @@ namespace YARG.Core.Engine.Drums
 
         protected bool IsMidiDrumsInput;
 
+        protected override int WildcardMask => EngineParameters.Mode switch
+        {
+            DrumsEngineParameters.DrumMode.NonProFourLane or
+            DrumsEngineParameters.DrumMode.ProFourLane => (int) FourLaneDrumPad.Wildcard,
+            DrumsEngineParameters.DrumMode.FiveLane => (int) FiveLaneDrumPad.Wildcard,
+            _ => -1
+        };
+
         protected DrumsEngine(InstrumentDifficulty<DrumNote> chart, SyncTrack syncTrack,
             DrumsEngineParameters engineParameters, bool isBot, bool isMidiDrumsInput)
             : base(chart, syncTrack, engineParameters, true, isBot)
@@ -577,7 +585,9 @@ namespace YARG.Core.Engine.Drums
         protected override bool ProximalLaneForgivesInput(int inputNote, DrumNote laneNote)
         {
             var (requiredLaneNote, otherNoteInTrill) = GetLaneNotes(laneNote);
-            return inputNote == requiredLaneNote || (otherNoteInTrill != -1 && otherNoteInTrill == inputNote);
+            return inputNote == requiredLaneNote ||
+                (otherNoteInTrill != -1 && otherNoteInTrill == inputNote) ||
+                requiredLaneNote == WildcardMask;
         }
     }
 }

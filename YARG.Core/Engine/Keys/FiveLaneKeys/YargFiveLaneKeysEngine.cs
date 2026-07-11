@@ -445,7 +445,7 @@ namespace YARG.Core.Engine.Keys.Engines
             // Mask has green = 1, 5LK actions are green = 0
             var fretMask = 1 << (fiveLaneKeyIndex);
 
-            if ((fretMask & RequiredLaneNote) > 0 || (NextTrillNote != -1 && fretMask == NextTrillNote))
+            if ((fretMask & RequiredLaneNote) > 0 || (NextTrillNote != -1 && fretMask == NextTrillNote) || (RequiredLaneNote == WildcardMask))
             {
                 return true;
             }

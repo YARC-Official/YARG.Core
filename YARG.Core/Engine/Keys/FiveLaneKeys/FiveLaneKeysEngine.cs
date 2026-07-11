@@ -8,6 +8,8 @@ namespace YARG.Core.Engine.Keys
 {
     public abstract class FiveLaneKeysEngine : KeysEngine<GuitarNote>
     {
+        protected override int WildcardMask => 1 << (int) FiveLaneKeysAction.Wildcard;
+
         public enum FiveLaneKeysAction {
             GreenKey = 0,
             RedKey = 1,
