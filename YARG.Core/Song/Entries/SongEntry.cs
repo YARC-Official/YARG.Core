@@ -1,10 +1,7 @@
 ﻿using System;
 using System.IO;
-using YARG.Core.Chart;
 using YARG.Core.Extensions;
 using YARG.Core.IO;
-using YARG.Core.Song.Cache;
-using YARG.Core.Utility;
 
 namespace YARG.Core.Song
 {

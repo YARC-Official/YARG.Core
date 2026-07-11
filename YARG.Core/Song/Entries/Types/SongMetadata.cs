@@ -57,6 +57,7 @@ namespace YARG.Core.Song
             Location = string.Empty,
             CreditAlbumArtDesignedBy = string.Empty,
             CreditArrangedBy = string.Empty,
+            CreditBackground = string.Empty,
             CreditComposedBy = string.Empty,
             CreditCourtesyOf = string.Empty,
             CreditEngineeredBy = string.Empty,
