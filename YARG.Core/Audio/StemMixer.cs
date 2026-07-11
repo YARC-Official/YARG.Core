@@ -142,6 +142,17 @@ namespace YARG.Core.Audio
             }
         }
 
+        /// <summary>
+        /// Gets latency crossed by newly started playback before reaching output, in seconds.
+        /// </summary>
+        public double GetPlaybackStartLatency()
+        {
+            lock (this)
+            {
+                return _disposed ? 0 : GetPlaybackStartLatency_Internal();
+            }
+        }
+
         public double GetVolume()
         {
             lock (this)
@@ -307,6 +318,7 @@ namespace YARG.Core.Audio
         protected abstract int Pause_Internal();
         protected abstract double GetPosition_Internal();
         protected virtual double GetTempoStreamLatency_Internal() => 0;
+        protected virtual double GetPlaybackStartLatency_Internal() => 0;
         protected abstract double GetVolume_Internal();
         protected abstract void SetPosition_Internal(double position);
         protected abstract void SetVolume_Internal(double volume);
