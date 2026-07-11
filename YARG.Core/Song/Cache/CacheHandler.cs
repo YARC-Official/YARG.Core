@@ -368,15 +368,13 @@ namespace YARG.Core.Song.Cache
                     {
                         string shortname = songDir.Name;
                         string updateMid = Path.Combine(songDir.FullName, shortname + "_update.mid");
-                        string updateMogg = Path.Combine(songDir.FullName, shortname + "_update.mogg");
                         string updateImage = Path.Combine(songDir.FullName, "gen", shortname + "_keep.png_xbox");
 
                         bool hasMidi = File.Exists(updateMid);
-                        bool hasMogg = File.Exists(updateMogg);
                         bool hasImage = File.Exists(updateImage);
                         bool hasDta = dtasByShortname.TryGetValue(shortname, out var dta);
 
-                        if (!hasMidi && !hasMogg && !hasImage && !hasDta)
+                        if (!hasMidi && !hasImage && !hasDta)
                         {
                             continue;
                         }
@@ -384,7 +382,6 @@ namespace YARG.Core.Song.Cache
                         var info = new IniUpdateInfo
                         {
                             MidiPath = hasMidi ? updateMid : null,
-                            MoggPath = hasMogg ? updateMogg : null,
                             ImagePath = hasImage ? updateImage : null,
                             Dta = hasDta ? dta : DTAEntry.Empty,
                         };
