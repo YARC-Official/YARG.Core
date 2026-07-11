@@ -51,7 +51,13 @@ namespace YARG.Core.Engine
         /// <summary>
         /// The absolute minimum happiness value for a single player.
         /// </summary>
-        private const float HAPPINESS_MINIMUM               = -3f;
+        private const float HAPPINESS_MINIMUM               = 0f;
+
+        /// <summary>
+        /// The amount per second happiness is lost when a player has failed.
+        /// TODO: It might be better if this were based on the BPM of the song
+        /// </summary>
+        private const float HAPPINESS_FAIL_LOSS             = 0.05f;
 
         public  float Happiness => GetAverageHappiness();
 
@@ -62,12 +68,21 @@ namespace YARG.Core.Engine
 
         private int   _starpowerCount = 0;
 
+        private bool _playerFailed = false;
+
+        private float  _happinessAdjustment = 0f;
+        private double _lastUpdateTime      = 0;
+
         public        bool IsAnyStarpowerActive => _starpowerCount > 0;
 
+        public delegate void PlayerFailed(int engineId);
+        public delegate void PlayerRevived();
         public delegate void SongFailed();
         public delegate void HappinessOverThreshold();
         public delegate void HappinessUnderThreshold();
 
+        public event PlayerFailed? OnPlayerFailed;
+        public event PlayerRevived? OnPlayerRevived;
         public event SongFailed? OnSongFailed;
         public event HappinessOverThreshold? OnHappinessOverThreshold;
         public event HappinessUnderThreshold? OnHappinessUnderThreshold;
@@ -82,8 +97,52 @@ namespace YARG.Core.Engine
             UpdateHappiness();
         }
 
+        public void RevivePlayer()
+        {
+            _playerFailed = false;
+            _happinessAdjustment = 0f;
+            foreach (var engine in _allEngines)
+            {
+                engine.RevivePlayer();
+            }
+
+            OnPlayerRevived?.Invoke();
+        }
+
         private bool UpdateHappiness()
         {
+            double currentTime = _lastUpdateTime;
+            // Get current engine time
+            foreach (var engine in Engines)
+            {
+                if (engine.Engine.CurrentTime > _lastUpdateTime)
+                {
+                    currentTime = engine.Engine.CurrentTime;
+                }
+            }
+
+            var lowestHappiness = GetLowestHappiness();
+
+            if (lowestHappiness is not null && !_playerFailed)
+            {
+                if (lowestHappiness.Happiness <= HAPPINESS_FAIL_THRESHOLD)
+                {
+                    _playerFailed = true;
+                    OnPlayerFailed?.Invoke(lowestHappiness.EngineId);
+                    foreach (var engine in _allEngines)
+                    {
+                        engine.PlayerHasFailed();
+                    }
+                }
+            }
+
+            if (_playerFailed)
+            {
+                _happinessAdjustment += (float) (HAPPINESS_FAIL_LOSS * (currentTime - _lastUpdateTime));
+            }
+
+            _lastUpdateTime = currentTime;
+
             if (Happiness < HAPPINESS_FAIL_THRESHOLD)
             {
                 OnSongFailed?.Invoke();
@@ -106,17 +165,20 @@ namespace YARG.Core.Engine
             return false;
         }
 
-        private float GetLowestHappiniess()
+        private EngineContainer? GetLowestHappiness()
         {
             float happiness = 1.0f;
+            EngineContainer? lowestHappiness = null;
             foreach (var engine in _allEngines)
             {
                 if (engine.Happiness < happiness)
                 {
                     happiness = engine.Happiness;
+                    lowestHappiness = engine;
                 }
             }
-            return happiness;
+
+            return lowestHappiness;
         }
 
         private float GetAverageHappiness()
@@ -127,12 +189,21 @@ namespace YARG.Core.Engine
                 happiness += engine.Happiness;
             }
 
-            return happiness / _allEngines.Count;
+            return (happiness / _allEngines.Count) - _happinessAdjustment;
         }
 
         public partial class EngineContainer
         {
-            public float Happiness { get; private set; } = 0.0f;
+            private const float HAPPINESS_NEAR_FAIL_THRESHOLD = 0.333f;
+            public  float Happiness { get; private set; } = 0.0f;
+            private bool  _nearFail = false;
+
+            // Delegates and events
+            public delegate void HappinessNearFailEvent();
+            public delegate void HappinessOverFailEvent();
+
+            public event HappinessNearFailEvent? OnHappinessNearFail;
+            public event HappinessOverFailEvent? OnHappinessOverFail;
 
             public void ResetHappiness()
             {
@@ -201,11 +272,42 @@ namespace YARG.Core.Engine
 
             private void OnKeysOverhit(int key) => OnOverstrum();
 
+            public void RevivePlayer()
+            {
+                Engine.PlayerHasRevived();
+                Happiness = 0.5f;
+                if (!_nearFail)
+                {
+                    OnHappinessOverFail?.Invoke();
+                }
+            }
+
+            public void PlayerHasFailed()
+            {
+                Engine.PlayerHasFailed();
+                OnHappinessNearFail?.Invoke();
+            }
+
             private void AddHappiness(float delta)
             {
                 Happiness = Math.Clamp(Happiness + delta, HAPPINESS_MINIMUM, 1f);
+                if (Happiness < HAPPINESS_NEAR_FAIL_THRESHOLD && !_nearFail)
+                {
+                    _nearFail = true;
+                    OnHappinessNearFail?.Invoke();
+                }
+                else if (Happiness >= HAPPINESS_NEAR_FAIL_THRESHOLD && _nearFail)
+                {
+                    _nearFail = false;
+                    OnHappinessOverFail?.Invoke();
+                }
 
                 _engineManager.UpdateHappiness();
+            }
+
+            private void OnPlayerRevivedReceived()
+            {
+                _engineManager.RevivePlayer();
             }
 
             private void SubscribeToEngineEvents()
@@ -253,6 +355,8 @@ namespace YARG.Core.Engine
                     vocalsEngine.OnPhraseHit += OnVocalPhraseHit;
                     vocalsEngine.OnStarPowerStatus += OnStarPowerStatus;
                 }
+
+                Engine.OnPlayerRevived += OnPlayerRevivedReceived;
             }
         }
     }
