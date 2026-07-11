@@ -19,6 +19,10 @@ namespace YARG.Core.Song
         public string? Shortname => _shortname;
         private readonly string? _updateMidiPath;
         internal override string? UpdateMidiPath => _updateMidiPath;
+        private readonly string? _updateMoggPath;
+        private readonly string? _updateImagePath;
+        private RBAudio<int> _indices = RBAudio<int>.Empty;
+        private RBAudio<float> _panning = RBAudio<float>.Empty;
 
         public override EntryType SubType => EntryType.Ini;
 
@@ -44,10 +48,77 @@ namespace YARG.Core.Song
                 stream.Write(_updateMidiPath);
             }
 
+            stream.Write(_updateMoggPath != null);
+            if (_updateMoggPath != null)
+            {
+                stream.Write(_updateMoggPath);
+            }
+
+            stream.Write(_updateImagePath != null);
+            if (_updateImagePath != null)
+            {
+                stream.Write(_updateImagePath);
+            }
+
+            RBCONEntry.WriteAudio(in _indices, stream);
+            RBCONEntry.WriteAudio(in _panning, stream);
+
             base.Serialize(stream, node);
         }
 
         public override StemMixer? LoadAudio(float speed, double volume, params SongStem[] ignoreStems)
+        {
+            if (_updateMoggPath != null && File.Exists(_updateMoggPath))
+            {
+                var moggMixer = LoadUpdateMoggAudio(speed, volume, ignoreStems);
+                if (moggMixer != null)
+                {
+                    return moggMixer;
+                }
+                YargLogger.LogFormatError("Update mogg at {0} failed to load, falling back to loose audio files", _updateMoggPath);
+            }
+            return LoadLooseAudio(speed, volume, ignoreStems);
+        }
+
+        private StemMixer? LoadUpdateMoggAudio(float speed, double volume, SongStem[] ignoreStems)
+        {
+            bool clampStemVolume = _metadata.Source.ToLowerInvariant() == "yarg";
+            var mixer = GlobalAudioHandler.CreateMixer(ToString(), speed, volume, clampStemVolume: clampStemVolume,
+                normalize: true);
+            if (mixer == null)
+            {
+                YargLogger.LogError("Failed to create mixer!");
+                return null;
+            }
+
+            var stream = new FileStream(_updateMoggPath!, FileMode.Open, FileAccess.Read, FileShare.Read, 1);
+            int version = stream.Read<int>(Endianness.Little);
+            if (version != RBCONEntry.UNENCRYPTED_MOGG)
+            {
+                YargLogger.LogError("Encrypted update moggs are not supported!");
+                stream.Dispose();
+                mixer.Dispose();
+                return null;
+            }
+
+            int start = stream.Read<int>(Endianness.Little);
+            stream.Seek(start, SeekOrigin.Begin);
+
+            if (!RBCONEntry.AddMoggStems(mixer, stream, in _indices, in _panning, ignoreStems))
+            {
+                stream.Dispose();
+                mixer.Dispose();
+                return null;
+            }
+
+            if (GlobalAudioHandler.LogMixerStatus)
+            {
+                YargLogger.LogFormatInfo("Loaded {0} stems from update mogg", mixer.Channels.Count);
+            }
+            return mixer;
+        }
+
+        private StemMixer? LoadLooseAudio(float speed, double volume, SongStem[] ignoreStems)
         {
             bool clampStemVolume = _metadata.Source.ToLowerInvariant() == "yarg";
             var mixer = GlobalAudioHandler.CreateMixer(ToString(), speed, volume, clampStemVolume: clampStemVolume,
@@ -111,6 +182,16 @@ namespace YARG.Core.Song
 
         public override YARGImage? LoadAlbumData()
         {
+            if (_updateImagePath != null && File.Exists(_updateImagePath))
+            {
+                var updateImage = YARGImage.LoadDXT(_updateImagePath);
+                if (updateImage != null)
+                {
+                    return updateImage;
+                }
+                YargLogger.LogFormatError("Update image at {0} failed to load", _updateImagePath);
+            }
+
             var subFiles = GetSubFiles();
             if (!string.IsNullOrEmpty(_cover) && subFiles.TryGetValue(_cover, out var cover))
             {
@@ -231,15 +312,18 @@ namespace YARG.Core.Song
             return files;
         }
 
-        private UnpackedIniEntry(string directory, in DateTime chartLastWrite, in DateTime? iniLastWrite, in ChartFormat format, string? shortname, string? updateMidiPath)
+        private UnpackedIniEntry(string directory, in DateTime chartLastWrite, in DateTime? iniLastWrite, in ChartFormat format,
+            string? shortname, string? updateMidiPath, string? updateMoggPath, string? updateImagePath)
             : base(directory, in chartLastWrite, format)
         {
             _iniLastWrite = iniLastWrite;
             _shortname = shortname;
             _updateMidiPath = updateMidiPath;
+            _updateMoggPath = updateMoggPath;
+            _updateImagePath = updateImagePath;
         }
 
-        public static ScanExpected<UnpackedIniEntry> ProcessNewEntry(string directory, FileInfo chartInfo, ChartFormat format, FileInfo? iniFile, string defaultPlaylist, IReadOnlyDictionary<string, string> iniUpdateMidiPaths)
+        public static ScanExpected<UnpackedIniEntry> ProcessNewEntry(string directory, FileInfo chartInfo, ChartFormat format, FileInfo? iniFile, string defaultPlaylist, IReadOnlyDictionary<string, IniUpdateInfo> iniUpdateInfos)
         {
             IniModifierCollection iniModifiers;
             DateTime? iniLastWrite = default;
@@ -255,13 +339,24 @@ namespace YARG.Core.Song
 
             string? shortname = iniModifiers.Extract("shortname", out string sn) ? sn : null;
             string? updateMidiPath = null;
-            if (shortname != null)
+            string? updateMoggPath = null;
+            string? updateImagePath = null;
+            var indices = RBAudio<int>.Empty;
+            var panning = RBAudio<float>.Empty;
+            if (shortname != null && iniUpdateInfos.TryGetValue(shortname, out var updateInfo))
             {
-                iniUpdateMidiPaths.TryGetValue(shortname, out updateMidiPath);
-                YargLogger.LogInfo($"Found shortname '{shortname}' -> update mid: {updateMidiPath ?? "none"}");
+                updateMidiPath = updateInfo.MidiPath;
+                updateMoggPath = updateInfo.MoggPath;
+                updateImagePath = updateInfo.ImagePath;
+                RBAudioCalculator.Calculate(in updateInfo.Dta, ref indices, ref panning);
             }
 
-            var entry = new UnpackedIniEntry(directory, AbridgedFileInfo.NormalizedLastWrite(chartInfo), in iniLastWrite, format, shortname, updateMidiPath);
+            var entry = new UnpackedIniEntry(directory, AbridgedFileInfo.NormalizedLastWrite(chartInfo), in iniLastWrite, format,
+                shortname, updateMidiPath, updateMoggPath, updateImagePath)
+            {
+                _indices = indices,
+                _panning = panning,
+            };
             entry._metadata.Playlist = defaultPlaylist;
 
             using var file = FixedArray.LoadFile(chartInfo.FullName);
@@ -302,7 +397,28 @@ namespace YARG.Core.Song
                 return null; // update mid vanished since cache was written — force rescan
             }
 
-            var entry = new UnpackedIniEntry(directory, in chartLastWrite, in iniLastWrite, chart.Format, shortname, updateMidiPath);
+            string? updateMoggPath = stream.ReadBoolean() ? stream.ReadString() : null;
+            if (updateMoggPath != null && !File.Exists(updateMoggPath))
+            {
+                return null; // update mogg vanished since cache was written — force rescan
+            }
+
+            string? updateImagePath = stream.ReadBoolean() ? stream.ReadString() : null;
+            if (updateImagePath != null && !File.Exists(updateImagePath))
+            {
+                return null; // update image vanished since cache was written — force rescan
+            }
+
+            var indices = RBAudio<int>.Empty;
+            var panning = RBAudio<float>.Empty;
+            RBCONEntry.ReadAudio(ref indices, ref stream);
+            RBCONEntry.ReadAudio(ref panning, ref stream);
+
+            var entry = new UnpackedIniEntry(directory, in chartLastWrite, in iniLastWrite, chart.Format, shortname, updateMidiPath, updateMoggPath, updateImagePath)
+            {
+                _indices = indices,
+                _panning = panning,
+            };
             entry.Deserialize(ref stream, strings);
             return entry;
         }
@@ -315,7 +431,19 @@ namespace YARG.Core.Song
             DateTime? iniLastWrite = stream.ReadBoolean() ? DateTime.FromBinary(stream.Read<long>(Endianness.Little)) : default;
             string? shortname = stream.ReadBoolean() ? stream.ReadString() : null;
             string? updateMidiPath = stream.ReadBoolean() ? stream.ReadString() : null;
-            var entry = new UnpackedIniEntry(directory, in chartLastWrite, in iniLastWrite, chart.Format, shortname, updateMidiPath);
+            string? updateMoggPath = stream.ReadBoolean() ? stream.ReadString() : null;
+            string? updateImagePath = stream.ReadBoolean() ? stream.ReadString() : null;
+
+            var indices = RBAudio<int>.Empty;
+            var panning = RBAudio<float>.Empty;
+            RBCONEntry.ReadAudio(ref indices, ref stream);
+            RBCONEntry.ReadAudio(ref panning, ref stream);
+
+            var entry = new UnpackedIniEntry(directory, in chartLastWrite, in iniLastWrite, chart.Format, shortname, updateMidiPath, updateMoggPath, updateImagePath)
+            {
+                _indices = indices,
+                _panning = panning,
+            };
             entry.Deserialize(ref stream, strings);
             return entry;
         }

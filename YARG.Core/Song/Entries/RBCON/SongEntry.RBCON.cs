@@ -212,65 +212,7 @@ namespace YARG.Core.Song
                 return null;
             }
 
-
-            var stemInfos = new List<StemInfo>();
-
-            if (_indices.Drums.Length > 0 && !ignoreStems.Contains(SongStem.Drums))
-            {
-                switch (_indices.Drums.Length)
-                {
-                    //drum (0 1): stereo kit --> (0 1)
-                    case 1:
-                    case 2:
-                        stemInfos.Add(new StemInfo(SongStem.Drums, _indices.Drums, _panning.Drums));
-                        break;
-                    //drum (0 1 2): mono kick, stereo snare/kit --> (0) (1 2)
-                    case 3:
-                        stemInfos.Add(new StemInfo(SongStem.Drums, _indices.Drums[0..1], _panning.Drums[0..2]));
-                        stemInfos.Add(new StemInfo(SongStem.Drums, _indices.Drums[1..3], _panning.Drums[2..6]));
-                        break;
-                    //drum (0 1 2 3): mono kick, mono snare, stereo kit --> (0) (1) (2 3)
-                    case 4:
-                        stemInfos.Add(new StemInfo(SongStem.Drums, _indices.Drums[0..1], _panning.Drums[0..2]));
-                        stemInfos.Add(new StemInfo(SongStem.Drums, _indices.Drums[1..2], _panning.Drums[2..4]));
-                        stemInfos.Add(new StemInfo(SongStem.Drums, _indices.Drums[2..4], _panning.Drums[4..8]));
-                        break;
-                    //drum (0 1 2 3 4): mono kick, stereo snare, stereo kit --> (0) (1 2) (3 4)
-                    case 5:
-                        stemInfos.Add(new StemInfo(SongStem.Drums, _indices.Drums[0..1], _panning.Drums[0..2]));
-                        stemInfos.Add(new StemInfo(SongStem.Drums, _indices.Drums[1..3], _panning.Drums[2..6]));
-                        stemInfos.Add(new StemInfo(SongStem.Drums, _indices.Drums[3..5], _panning.Drums[6..10]));
-                        break;
-                    //drum (0 1 2 3 4 5): stereo kick, stereo snare, stereo kit --> (0 1) (2 3) (4 5)
-                    case 6:
-                        stemInfos.Add(new StemInfo(SongStem.Drums, _indices.Drums[0..2], _panning.Drums[0..4]));
-                        stemInfos.Add(new StemInfo(SongStem.Drums, _indices.Drums[2..4], _panning.Drums[4..8]));
-                        stemInfos.Add(new StemInfo(SongStem.Drums, _indices.Drums[4..6], _panning.Drums[8..12]));
-                        break;
-                }
-            }
-
-            if (_indices.Bass.Length > 0 && !ignoreStems.Contains(SongStem.Bass))
-                stemInfos.Add(new StemInfo(SongStem.Bass, _indices.Bass, _panning.Bass));
-
-            if (_indices.Guitar.Length > 0 && !ignoreStems.Contains(SongStem.Guitar))
-                stemInfos.Add(new StemInfo(SongStem.Guitar, _indices.Guitar, _panning.Guitar));
-
-            if (_indices.Keys.Length > 0 && !ignoreStems.Contains(SongStem.Keys))
-                stemInfos.Add(new StemInfo(SongStem.Keys, _indices.Keys, _panning.Keys));
-
-            if (_indices.Vocals.Length > 0 && !ignoreStems.Contains(SongStem.Vocals))
-                stemInfos.Add(new StemInfo(SongStem.Vocals, _indices.Vocals, _panning.Vocals));
-
-            if (_indices.Track.Length > 0 && !ignoreStems.Contains(SongStem.Song))
-                stemInfos.Add(new StemInfo(SongStem.Song, _indices.Track, _panning.Track));
-
-            if (_indices.Crowd.Length > 0 && !ignoreStems.Contains(SongStem.Crowd))
-                stemInfos.Add(new StemInfo(SongStem.Crowd, _indices.Crowd, _panning.Crowd));
-
-            mixer.AddChannels(stream, stemInfos.ToArray());
-
-            if (mixer.Channels.Count == 0)
+            if (!AddMoggStems(mixer, stream, in _indices, in _panning, ignoreStems))
             {
                 YargLogger.LogError("Failed to add any stems!");
                 stream.Dispose();
@@ -279,6 +221,72 @@ namespace YARG.Core.Song
             }
             YargLogger.LogFormatInfo("Loaded {0} stems", mixer.Channels.Count);
             return mixer;
+        }
+
+        /// <summary>
+        /// Splits an opened, seeked mogg <paramref name="stream"/> into stem channels on <paramref name="mixer"/>
+        /// using the given channel indices/panning. Shared between CON-sourced and update-sourced (ini) moggs.
+        /// </summary>
+        /// <returns>Whether at least one stem was successfully added</returns>
+        internal static bool AddMoggStems(StemMixer mixer, Stream stream, in RBAudio<int> indices, in RBAudio<float> panning, SongStem[] ignoreStems)
+        {
+            var stemInfos = new List<StemInfo>();
+
+            if (indices.Drums.Length > 0 && !ignoreStems.Contains(SongStem.Drums))
+            {
+                switch (indices.Drums.Length)
+                {
+                    //drum (0 1): stereo kit --> (0 1)
+                    case 1:
+                    case 2:
+                        stemInfos.Add(new StemInfo(SongStem.Drums, indices.Drums, panning.Drums));
+                        break;
+                    //drum (0 1 2): mono kick, stereo snare/kit --> (0) (1 2)
+                    case 3:
+                        stemInfos.Add(new StemInfo(SongStem.Drums, indices.Drums[0..1], panning.Drums[0..2]));
+                        stemInfos.Add(new StemInfo(SongStem.Drums, indices.Drums[1..3], panning.Drums[2..6]));
+                        break;
+                    //drum (0 1 2 3): mono kick, mono snare, stereo kit --> (0) (1) (2 3)
+                    case 4:
+                        stemInfos.Add(new StemInfo(SongStem.Drums, indices.Drums[0..1], panning.Drums[0..2]));
+                        stemInfos.Add(new StemInfo(SongStem.Drums, indices.Drums[1..2], panning.Drums[2..4]));
+                        stemInfos.Add(new StemInfo(SongStem.Drums, indices.Drums[2..4], panning.Drums[4..8]));
+                        break;
+                    //drum (0 1 2 3 4): mono kick, stereo snare, stereo kit --> (0) (1 2) (3 4)
+                    case 5:
+                        stemInfos.Add(new StemInfo(SongStem.Drums, indices.Drums[0..1], panning.Drums[0..2]));
+                        stemInfos.Add(new StemInfo(SongStem.Drums, indices.Drums[1..3], panning.Drums[2..6]));
+                        stemInfos.Add(new StemInfo(SongStem.Drums, indices.Drums[3..5], panning.Drums[6..10]));
+                        break;
+                    //drum (0 1 2 3 4 5): stereo kick, stereo snare, stereo kit --> (0 1) (2 3) (4 5)
+                    case 6:
+                        stemInfos.Add(new StemInfo(SongStem.Drums, indices.Drums[0..2], panning.Drums[0..4]));
+                        stemInfos.Add(new StemInfo(SongStem.Drums, indices.Drums[2..4], panning.Drums[4..8]));
+                        stemInfos.Add(new StemInfo(SongStem.Drums, indices.Drums[4..6], panning.Drums[8..12]));
+                        break;
+                }
+            }
+
+            if (indices.Bass.Length > 0 && !ignoreStems.Contains(SongStem.Bass))
+                stemInfos.Add(new StemInfo(SongStem.Bass, indices.Bass, panning.Bass));
+
+            if (indices.Guitar.Length > 0 && !ignoreStems.Contains(SongStem.Guitar))
+                stemInfos.Add(new StemInfo(SongStem.Guitar, indices.Guitar, panning.Guitar));
+
+            if (indices.Keys.Length > 0 && !ignoreStems.Contains(SongStem.Keys))
+                stemInfos.Add(new StemInfo(SongStem.Keys, indices.Keys, panning.Keys));
+
+            if (indices.Vocals.Length > 0 && !ignoreStems.Contains(SongStem.Vocals))
+                stemInfos.Add(new StemInfo(SongStem.Vocals, indices.Vocals, panning.Vocals));
+
+            if (indices.Track.Length > 0 && !ignoreStems.Contains(SongStem.Song))
+                stemInfos.Add(new StemInfo(SongStem.Song, indices.Track, panning.Track));
+
+            if (indices.Crowd.Length > 0 && !ignoreStems.Contains(SongStem.Crowd))
+                stemInfos.Add(new StemInfo(SongStem.Crowd, indices.Crowd, panning.Crowd));
+
+            mixer.AddChannels(stream, stemInfos.ToArray());
+            return mixer.Channels.Count > 0;
         }
 
         public override StemMixer? LoadPreviewAudio(float speed)
@@ -379,11 +387,18 @@ namespace YARG.Core.Song
                     float[] values = new float[2 * indices.Length];
                     for (int i = 0; i < indices.Length; i++)
                     {
-                        float theta = (pans[indices[i]] + 1) * ((float) Math.PI / 4);
-                        float volRatio = (float) Math.Pow(10, volumes[indices[i]] / 20);
+                        int index = indices[i];
+                        if (index < 0 || index >= pans.Length || index >= volumes.Length)
+                        {
+                            YargLogger.LogWarning($"DTA channel index {index} out of range (pans/volumes length {pans.Length}) for {entry._nodeName} — skipping");
+                            continue;
+                        }
+
+                        float theta = (pans[index] + 1) * ((float) Math.PI / 4);
+                        float volRatio = (float) Math.Pow(10, volumes[index] / 20);
                         values[2 * i] = volRatio * (float) Math.Cos(theta);
                         values[2 * i + 1] = volRatio * (float) Math.Sin(theta);
-                        usedIndices[indices[i]] = true;
+                        usedIndices[index] = true;
                     }
                     return values;
                 }
@@ -677,7 +692,7 @@ namespace YARG.Core.Song
             }
         }
 
-        private static void WriteArray<TType>(in TType[] values, MemoryStream stream)
+        internal static void WriteArray<TType>(in TType[] values, MemoryStream stream)
             where TType : unmanaged
         {
             stream.Write(values.Length, Endianness.Little);
@@ -700,7 +715,7 @@ namespace YARG.Core.Song
             }
         }
 
-        private static TType[] ReadArray<TType>(ref FixedArrayStream stream)
+        internal static TType[] ReadArray<TType>(ref FixedArrayStream stream)
             where TType : unmanaged
         {
             int length = stream.Read<int>(Endianness.Little);
@@ -736,7 +751,7 @@ namespace YARG.Core.Song
             return strings;
         }
 
-        private static void ReadAudio<TType>(ref RBAudio<TType> audio, ref FixedArrayStream stream)
+        internal static void ReadAudio<TType>(ref RBAudio<TType> audio, ref FixedArrayStream stream)
             where TType : unmanaged
         {
             audio.Track  = ReadArray<TType>(ref stream);
@@ -748,7 +763,7 @@ namespace YARG.Core.Song
             audio.Crowd  = ReadArray<TType>(ref stream);
         }
 
-        private static void WriteAudio<TType>(in RBAudio<TType> audio, MemoryStream stream)
+        internal static void WriteAudio<TType>(in RBAudio<TType> audio, MemoryStream stream)
             where TType : unmanaged
         {
             WriteArray(in audio.Track, stream);

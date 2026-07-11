@@ -34,7 +34,7 @@ namespace YARG.Core.Song.Cache
         /// Format is YY_MM_DD_RR: Y = year, M = month, D = day, R = revision (reset across dates, only increment
         /// if multiple cache version changes happen in a single day).
         /// </summary>
-        private const int CACHE_VERSION = 26_07_09_00;
+        private const int CACHE_VERSION = 26_07_11_00;
 
         public static ScanProgressTracker Progress => _progress;
         private static ScanProgressTracker _progress;
@@ -177,7 +177,7 @@ namespace YARG.Core.Song.Cache
         private readonly List<IniEntryGroup> iniGroups;
         private readonly List<CONEntryGroup> conEntryGroups = new();
         private readonly List<CONUpdateGroup> updateGroups = new();
-        private readonly Dictionary<string, string> iniUpdateMidiPaths = new();
+        private readonly Dictionary<string, IniUpdateInfo> iniUpdateInfos = new();
         private readonly List<PackedCONUpgradeGroup> packedUpgradeGroups = new();
         private readonly List<UnpackedCONUpgradeGroup> unpackedUpgradeGroups = new();
 
@@ -335,15 +335,62 @@ namespace YARG.Core.Song.Cache
 
                 foreach (string updatesDir in Directory.EnumerateDirectories(group.Directory, "songs_updates", SearchOption.AllDirectories))
                 {
+                    // songs_updates.dta uses the exact same per-shortname node format as CON updates,
+                    // so we can parse it the same way CONUpdateGroup.Create does.
+                    var dtasByShortname = new Dictionary<string, DTAEntry>();
+                    string updatesDtaPath = Path.Combine(updatesDir, RBCONEntry.SONGUPDATES_DTA);
+                    if (File.Exists(updatesDtaPath))
+                    {
+                        try
+                        {
+                            using var data = FixedArray.LoadFile(updatesDtaPath);
+                            var container = YARGDTAReader.Create(data);
+                            while (YARGDTAReader.StartNode(ref container))
+                            {
+                                string name = YARGDTAReader.GetNameOfNode(ref container, true);
+                                if (!dtasByShortname.TryGetValue(name, out var dta))
+                                {
+                                    dta = DTAEntry.Empty;
+                                }
+                                dta.LoadData(name, container);
+                                dtasByShortname[name] = dta;
+                                YARGDTAReader.EndNode(ref container);
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            YargLogger.LogException(ex, $"Failed to parse {updatesDtaPath}");
+                        }
+                    }
+
                     var shortnames = new List<string>();
                     foreach (var songDir in new DirectoryInfo(updatesDir).EnumerateDirectories())
                     {
-                        string updateMid = Path.Combine(songDir.FullName, songDir.Name + "_update.mid");
-                        if (File.Exists(updateMid))
+                        string shortname = songDir.Name;
+                        string updateMid = Path.Combine(songDir.FullName, shortname + "_update.mid");
+                        string updateMogg = Path.Combine(songDir.FullName, shortname + "_update.mogg");
+                        string updateImage = Path.Combine(songDir.FullName, "gen", shortname + "_keep.png_xbox");
+
+                        bool hasMidi = File.Exists(updateMid);
+                        bool hasMogg = File.Exists(updateMogg);
+                        bool hasImage = File.Exists(updateImage);
+                        bool hasDta = dtasByShortname.TryGetValue(shortname, out var dta);
+
+                        if (!hasMidi && !hasMogg && !hasImage && !hasDta)
                         {
-                            lock (iniUpdateMidiPaths) { iniUpdateMidiPaths[songDir.Name] = updateMid; }
-                            shortnames.Add(songDir.Name);
+                            continue;
                         }
+
+                        var info = new IniUpdateInfo
+                        {
+                            MidiPath = hasMidi ? updateMid : null,
+                            MoggPath = hasMogg ? updateMogg : null,
+                            ImagePath = hasImage ? updateImage : null,
+                            Dta = hasDta ? dta : DTAEntry.Empty,
+                        };
+
+                        lock (iniUpdateInfos) { iniUpdateInfos[shortname] = info; }
+                        shortnames.Add(shortname);
                     }
                     RemoveIniEntries(shortnames);
                 }
@@ -871,7 +918,7 @@ namespace YARG.Core.Song.Cache
 
                 try
                 {
-                    var entry = UnpackedIniEntry.ProcessNewEntry(collection.Directory, chart, IniSubEntry.CHART_FILE_TYPES[i].Format, hasIni ? ini : null, defaultPlaylist, iniUpdateMidiPaths);
+                    var entry = UnpackedIniEntry.ProcessNewEntry(collection.Directory, chart, IniSubEntry.CHART_FILE_TYPES[i].Format, hasIni ? ini : null, defaultPlaylist, iniUpdateInfos);
                     if (entry)
                     {
                         AddEntry(entry.Value);
