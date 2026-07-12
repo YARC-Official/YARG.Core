@@ -20,7 +20,7 @@ namespace YARG.Core.Engine
         /// <summary>
         /// The amount of happiness lost if a single note/gem for non-vocal players is completely missed.
         /// Note that this value also controls the amount of happiness lost for overstrums/overhits, but this is further scaled by the
-        /// <see cref="YARG.Core.Game.RockMeterPreset.OverHitDamageMultiplier">OverHitDamageMultiplier</see> value of the current RockMeterPreset.
+        /// <see cref="YARG.Core.Game.RockMeterPreset.OverhitDamageMultiplier">OverhitDamageMultiplier</see> value of the current RockMeterPreset.
         /// </summary>
         private const float HAPPINESS_PER_NOTE_MISS         = 1.0f / 42;
 
@@ -136,9 +136,9 @@ namespace YARG.Core.Engine
             // Get current engine time
             foreach (var engine in Engines)
             {
-                if (engine.Engine.CurrentTime > _lastUpdateTime)
+                if (engine.BaseEngine.CurrentTime > _lastUpdateTime)
                 {
-                    currentTime = engine.Engine.CurrentTime;
+                    currentTime = engine.BaseEngine.CurrentTime;
                 }
             }
 
@@ -210,12 +210,12 @@ namespace YARG.Core.Engine
             return (happiness / _allEngines.Count) - _happinessAdjustment;
         }
 
-        public partial class EngineContainer
+        public abstract partial class EngineContainer
         {
             private const float HAPPINESS_NEAR_FAIL_THRESHOLD = 0.333f;
-            public        float Happiness { get; private set; } = 0.0f;
-            private       bool  _nearFail         = false;
-            private       bool  _thisPlayerFailed = false;
+            public         float Happiness { get; protected set; } = 0.0f;
+            protected      bool  NearFail         = false;
+            protected      bool  ThisPlayerFailed = false;
 
             private bool _noFail;
 
@@ -226,10 +226,16 @@ namespace YARG.Core.Engine
             public event HappinessNearFailEvent? OnHappinessNearFail;
             public event HappinessOverFailEvent? OnHappinessOverFail;
 
+            protected void InvokeHappinessNearFail() => OnHappinessNearFail?.Invoke();
+            protected void InvokeHappinessOverFail() => OnHappinessOverFail?.Invoke();
+
+            public abstract void RevivePlayer();
+            public abstract void PlayerHasFailed(int engineId, bool noFail);
+
             public void SetNoFail(bool noFail)
             {
                 _noFail = noFail;
-                if (noFail && _thisPlayerFailed)
+                if (noFail && ThisPlayerFailed)
                 {
                     RevivePlayer();
                 }
@@ -237,14 +243,14 @@ namespace YARG.Core.Engine
 
             public void ResetHappiness()
             {
-                _thisPlayerFailed = false;
+                ThisPlayerFailed = false;
                 Happiness = RockMeterPreset.StartingHappiness;
             }
 
-            private void OnVocalPhraseHit(double hitPercentAfterParams, bool fullPoints, bool isLastPhrase)
+            protected void OnVocalPhraseHit(double hitPercentAfterParams, bool fullPoints, bool isLastPhrase)
             {
                 hitPercentAfterParams = Math.Clamp(hitPercentAfterParams, 0.0, 1.0);
-                var delta = 0.0f;
+                float delta = 0.0f;
 
                 // If the hit percent is below the midpoint, the player loses happiness based on how far they are from the midpoint
                 if (hitPercentAfterParams < VOCAL_HIT_PERC_MIDPOINT)
@@ -257,7 +263,7 @@ namespace YARG.Core.Engine
                 {
                     delta = HAPPINESS_PER_VOCAL_PHRASE_HIT * RockMeterPreset.VocalsHitRecoveryMultiplier;
                     delta *= YargMath.InverseLerpF(VOCAL_HIT_PERC_MIDPOINT, 1.0f, hitPercentAfterParams);
-                    if (_engineManager.IsAnyStarpowerActive)
+                    if (EngineManager.IsAnyStarpowerActive)
                     {
                         delta *= RockMeterPreset.StarPowerEffectMultiplier;
                     }
@@ -266,7 +272,78 @@ namespace YARG.Core.Engine
                 AddHappiness(delta);
             }
 
-            private void OnNoteHit<TNote>(int index, TNote note) where TNote : Note<TNote>
+            protected void AddHappiness(float delta)
+            {
+                Happiness = Math.Clamp(Happiness + delta, HAPPINESS_MINIMUM, 1f);
+                if (Happiness < HAPPINESS_NEAR_FAIL_THRESHOLD && !NearFail)
+                {
+                    NearFail = true;
+                    if (!_noFail)
+                    {
+                        InvokeHappinessNearFail();
+                    }
+                }
+                else if (Happiness >= HAPPINESS_NEAR_FAIL_THRESHOLD && NearFail)
+                {
+                    NearFail = false;
+                    // This is not gated behind _noFail being false because we want to always allow transitions
+                    // away from fail in case no fail has been turned on
+                    InvokeHappinessOverFail();
+                }
+
+                EngineManager.UpdateHappiness();
+            }
+
+            protected void OnPlayerFailedReceived(int engineId)
+            {
+                PlayerHasFailed(engineId, _noFail);
+            }
+
+            protected void OnPlayerRevivedReceived()
+            {
+                EngineManager.RevivePlayer();
+            }
+        }
+
+        public partial class EngineContainer<TNoteType, TEngineParams, TEngineStats>
+            where TNoteType : Note<TNoteType>
+            where TEngineParams : BaseEngineParameters
+            where TEngineStats : BaseStats, new()
+        {
+
+            public override void RevivePlayer()
+            {
+                if (ThisPlayerFailed)
+                {
+                    Happiness = 0.5f;
+                }
+
+                Engine.PlayerHasRevived();
+
+                if (!NearFail)
+                {
+                    InvokeHappinessOverFail();
+                }
+
+                ThisPlayerFailed = false;
+            }
+
+            public override void PlayerHasFailed(int engineId, bool noFail)
+            {
+                if (noFail)
+                {
+                    return;
+                }
+
+                if (engineId == EngineId)
+                {
+                    ThisPlayerFailed = true;
+                }
+
+                Engine.PlayerHasFailed();
+                InvokeHappinessNearFail();
+            }
+            private void OnNoteHit(int index, TNoteType note)
             {
                 // Ignore any notes that have not been fully hit yet on the assumption that a call
                 // where the note group was fully hit will eventually come if they are all hit
@@ -275,8 +352,8 @@ namespace YARG.Core.Engine
                     return;
                 }
 
-                var delta = HAPPINESS_PER_NOTE_HIT * RockMeterPreset.HitRecoveryMultiplier;
-                if (_engineManager.IsAnyStarpowerActive)
+                float delta = HAPPINESS_PER_NOTE_HIT * RockMeterPreset.HitRecoveryMultiplier;
+                if (EngineManager.IsAnyStarpowerActive)
                 {
                     delta *= RockMeterPreset.StarPowerEffectMultiplier;
                 }
@@ -284,137 +361,58 @@ namespace YARG.Core.Engine
                 AddHappiness(delta);
             }
 
-            private void OnNoteMissed<TNote>(int index, TNote note) where TNote : Note<TNote>
+            private void OnNoteMissed(int index, TNoteType note)
             {
                 if (!note.WasFullyMissed())
                 {
                     return;
                 }
 
-                var delta = -1 * HAPPINESS_PER_NOTE_MISS * RockMeterPreset.MissDamageMultiplier;
+                float delta = -1 * HAPPINESS_PER_NOTE_MISS * RockMeterPreset.MissDamageMultiplier;
                 AddHappiness(delta);
             }
 
             private void OnOverstrum()
             {
-                var delta = -1 * HAPPINESS_PER_NOTE_MISS * RockMeterPreset.OverhitDamageMultiplier;
+                float delta = -1 * HAPPINESS_PER_NOTE_MISS * RockMeterPreset.OverhitDamageMultiplier;
                 AddHappiness(delta);
             }
 
             private void OnKeysOverhit(int key) => OnOverstrum();
 
-            public void RevivePlayer()
-            {
-                if (_thisPlayerFailed)
-                {
-                    Happiness = 0.5f;
-                }
-
-                Engine.PlayerHasRevived();
-
-                if (!_nearFail)
-                {
-                    OnHappinessOverFail?.Invoke();
-                }
-
-                _thisPlayerFailed = false;
-            }
-
-            public void PlayerHasFailed(int engineId)
-            {
-                if (_noFail)
-                {
-                    return;
-                }
-
-                if (engineId == EngineId)
-                {
-                    _thisPlayerFailed = true;
-                }
-
-                Engine.PlayerHasFailed();
-                OnHappinessNearFail?.Invoke();
-            }
-
-            private void AddHappiness(float delta)
-            {
-                Happiness = Math.Clamp(Happiness + delta, HAPPINESS_MINIMUM, 1f);
-                if (Happiness < HAPPINESS_NEAR_FAIL_THRESHOLD && !_nearFail)
-                {
-                    _nearFail = true;
-                    if (!_noFail)
-                    {
-                        OnHappinessNearFail?.Invoke();
-                    }
-                }
-                else if (Happiness >= HAPPINESS_NEAR_FAIL_THRESHOLD && _nearFail)
-                {
-                    _nearFail = false;
-                    // This is not gated behind _noFail being false because we want to always allow transitions
-                    // away from fail in case no fail has been turned on
-                    OnHappinessOverFail?.Invoke();
-                }
-
-                _engineManager.UpdateHappiness();
-            }
-
-            private void OnPlayerFailedReceived(int engineId)
-            {
-                PlayerHasFailed(engineId);
-            }
-
-            private void OnPlayerRevivedReceived()
-            {
-                _engineManager.RevivePlayer();
-            }
-
             private void SubscribeToEvents()
             {
-                // Subscribe to OnNoteHit and OnNoteMissed events
-                if (Engine is BaseEngine<GuitarNote,GuitarEngineParameters,GuitarStats> guitarEngine)
+                // Vocals engine handles hit events differently, so we don't want to subscribe to the note hit/miss events for it
+                if (Engine is not VocalsEngine)
                 {
-                    var engine = (GuitarEngine) guitarEngine;
-                    engine.OnNoteHit += OnNoteHit;
-                    engine.OnNoteMissed += OnNoteMissed;
-                    engine.OnStarPowerStatus += OnStarPowerStatus;
-                    engine.OnOverstrum += OnOverstrum;
+                    Engine.OnNoteHit += OnNoteHit;
+                    Engine.OnNoteMissed += OnNoteMissed;
                 }
 
-                if (Engine is BaseEngine<DrumNote, DrumsEngineParameters, DrumsStats> drumEngine)
+                Engine.OnStarPowerStatus += OnStarPowerStatus;
+
+                // Overhit/Overstrum events are not in BaseEngine,
+                // so we need to check the type of engine and subscribe to the appropriate event
+                switch (Engine)
                 {
-                    var engine = (DrumsEngine) drumEngine;
-                    engine.OnNoteHit += OnNoteHit;
-                    engine.OnNoteMissed += OnNoteMissed;
-                    engine.OnStarPowerStatus += OnStarPowerStatus;
-                    engine.OnOverhit += OnOverstrum;
+                    case GuitarEngine guitarEngine:
+                        guitarEngine.OnOverstrum += OnOverstrum;
+                        break;
+                    case DrumsEngine drumsEngine:
+                        drumsEngine.OnOverhit += OnOverstrum;
+                        break;
+                    case ProKeysEngine proKeysEngine:
+                        proKeysEngine.OnOverhit += OnKeysOverhit;
+                        break;
+                    case FiveLaneKeysEngine fiveLaneKeysEngine:
+                        fiveLaneKeysEngine.OnOverhit += OnKeysOverhit;
+                        break;
+                    case VocalsEngine vocalsEngine:
+                        vocalsEngine.OnPhraseHit += OnVocalPhraseHit;
+                        break;
                 }
 
-                if (Engine is BaseEngine<ProKeysNote, KeysEngineParameters, KeysStats>
-                    proKeysEngine)
-                {
-                    var engine = (ProKeysEngine) proKeysEngine;
-                    engine.OnNoteHit += OnNoteHit;
-                    engine.OnNoteMissed += OnNoteMissed;
-                    engine.OnStarPowerStatus += OnStarPowerStatus;
-                    engine.OnOverhit += OnKeysOverhit;
-                }
-
-                if (Engine is BaseEngine<GuitarNote, KeysEngineParameters, KeysStats> keysEngine)
-                {
-                    var engine = (FiveLaneKeysEngine) keysEngine;
-                    engine.OnNoteHit += OnNoteHit;
-                    engine.OnNoteMissed += OnNoteMissed;
-                    engine.OnStarPowerStatus += OnStarPowerStatus;
-                    engine.OnOverhit += OnKeysOverhit;
-                }
-
-                if (Engine is VocalsEngine vocalsEngine)
-                {
-                    vocalsEngine.OnPhraseHit += OnVocalPhraseHit;
-                    vocalsEngine.OnStarPowerStatus += OnStarPowerStatus;
-                }
-
-                _engineManager.OnPlayerFailed += OnPlayerFailedReceived;
+                EngineManager.OnPlayerFailed += OnPlayerFailedReceived;
                 Engine.OnPlayerRevived += OnPlayerRevivedReceived;
             }
         }
