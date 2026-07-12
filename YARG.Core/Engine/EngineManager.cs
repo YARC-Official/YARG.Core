@@ -45,7 +45,7 @@ namespace YARG.Core.Engine
                 _engineManager = manager;
                 Happiness = rockMeterPreset.StartingHappiness;
 
-                SubscribeToEngineEvents();
+                SubscribeToEvents();
             }
 
             public void SendCommand(EngineCommandType command)
