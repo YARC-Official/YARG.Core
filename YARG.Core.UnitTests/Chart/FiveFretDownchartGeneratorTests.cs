@@ -147,6 +147,31 @@ public class FiveFretDownchartGeneratorTests
         }
     }
 
+    [Test]
+    public void MidiExporter_DrawntotheflameProducesStableGuitarDowncharts()
+    {
+        string projectDirectory = Directory.GetParent(Environment.CurrentDirectory)!
+            .Parent!.Parent!.Parent!.FullName;
+        string midiPath = Path.Combine(projectDirectory, "Engine", "Test Charts", "drawntotheflame.mid");
+        var source = MidiFile.Read(midiPath);
+
+        var result = MidiDownchartExporter.Generate(source, new MidiDownchartExportOptions
+        {
+            ReplaceExisting = true,
+            Instruments = [Instrument.FiveFretGuitar],
+        });
+        var chart = SongChart.FromMidi(ParseSettings.Default_Midi, result.Midi);
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(result.GeneratedDifficultyCount, Is.EqualTo(3));
+            Assert.That(result.SkippedDifficultyCount, Is.Zero);
+            Assert.That(chart.FiveFretGuitar.GetDifficulty(Difficulty.Hard).Notes, Has.Count.EqualTo(965));
+            Assert.That(chart.FiveFretGuitar.GetDifficulty(Difficulty.Medium).Notes, Has.Count.EqualTo(635));
+            Assert.That(chart.FiveFretGuitar.GetDifficulty(Difficulty.Easy).Notes, Has.Count.EqualTo(516));
+        }
+    }
+
     private static InstrumentDifficulty<GuitarNote> MakeExpert(params GuitarNote[] notes)
     {
         for (int i = 0; i < notes.Length; i++)
