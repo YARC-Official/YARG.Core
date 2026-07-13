@@ -14,14 +14,14 @@ namespace YARG.Core.Chart
         public static SongChart FromUltraStarFile(in ParseSettings settings, string filePath)
         {
             var loader = MoonSongLoader.LoadUltraStar(settings, filePath);
-            return new SongChart(loader);
+            return FromLoader(loader, settings);
         }
 
         /// <summary>Loads a SongChart from raw UltraStar .txt bytes.</summary>
         public static SongChart FromUltraStarBytes(in ParseSettings settings, ReadOnlySpan<byte> data)
         {
             var loader = MoonSongLoader.LoadUltraStar(settings, data.ToArray());
-            return new SongChart(loader);
+            return FromLoader(loader, settings);
         }
     }
 }

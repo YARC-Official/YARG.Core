@@ -181,7 +181,6 @@ namespace YARG.Core.Song
                 return resolution.Error;
             }
 
-            AddGeneratedFiveFretDifficulties(ref entry._parts);
             FinalizeDrums(ref entry._parts, drums_type);
             if (!IsValid(in entry._parts))
             {
