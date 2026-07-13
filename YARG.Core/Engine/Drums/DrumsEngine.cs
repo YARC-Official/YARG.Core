@@ -385,16 +385,30 @@ namespace YARG.Core.Engine.Drums
             base.MissNote(note);
         }
 
-        protected int GetPointsPerNote()
+        protected bool NoteIsProNote(DrumNote note)
         {
-            return EngineParameters.Mode == DrumsEngineParameters.DrumMode.ProFourLane
-                ? POINTS_PER_PRO_NOTE
-                : POINTS_PER_NOTE;
+            if (EngineParameters.Mode is DrumsEngineParameters.DrumMode.NonProFourLane
+                or DrumsEngineParameters.DrumMode.FiveLane)
+            {
+                return false;
+            }
+
+            if (EngineParameters.Mode is DrumsEngineParameters.DrumMode.Elite)
+            {
+                return true;
+            }
+            bool isCymbal = note.Pad is (int)FourLaneDrumPad.YellowCymbal or (int)FourLaneDrumPad.BlueCymbal or (int)FourLaneDrumPad.GreenCymbal;
+            return isCymbal;
+        }
+
+        protected int GetPointsForNote(DrumNote note)
+        {
+            return NoteIsProNote(note) ? POINTS_PER_PRO_NOTE : POINTS_PER_NOTE;
         }
 
         protected override void AddScore(DrumNote note)
         {
-            int pointsPerNote = GetPointsPerNote();
+            int pointsPerNote = GetPointsForNote(note);
             AddScore(pointsPerNote);
             EngineStats.NoteScore += pointsPerNote;
         }
@@ -415,9 +429,14 @@ namespace YARG.Core.Engine.Drums
 
                 // Get the current multiplier given the current combo
                 multiplier = Math.Min((combo / 10) + 1, BaseParameters.MaxMultiplier);
-                double scoreForNote = GetPointsPerNote() * (1 + note.ChildNotes.Count);
-                baseScore += multiplier * scoreForNote;
-                noteScore += scoreForNote;
+                // We intentionally do not consider dynamics bonus here.
+                double pointsForNote = 0;
+                foreach (var subNote in note.AllNotes)
+                {
+                    pointsForNote += GetPointsForNote(subNote);
+                }
+                baseScore += multiplier * pointsForNote;
+                noteScore += pointsForNote;
                 combo += 1 + note.ChildNotes.Count;
             }
 

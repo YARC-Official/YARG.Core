@@ -29,6 +29,11 @@ namespace YARG.Core.Engine.Drums
         public int TotalGhosts;
 
         /// <summary>
+        /// Amount of base bonus points earned from hitting ghost notes correctly.
+        /// </summary>
+        public int GhostsBonus;
+
+        /// <summary>
         /// Number of accents the player hit with correct dynamics.
         /// </summary>
         public int AccentsHit;
@@ -39,9 +44,14 @@ namespace YARG.Core.Engine.Drums
         public int TotalAccents;
 
         /// <summary>
-        /// Amount of points earned from hitting notes with correct dynamics.
+        /// Amount of base bonus points earned from hitting ghost notes correctly.
         /// </summary>
-        public int DynamicsBonus;
+        public int AccentsBonus;
+
+        /// <summary>
+        /// Amount of base bonus points earned from hitting notes with correct dynamics.
+        /// </summary>
+        public int DynamicsBonus => AccentsBonus + GhostsBonus;
 
         public DrumsStats()
         {
@@ -59,7 +69,8 @@ namespace YARG.Core.Engine.Drums
             TotalGhosts = stats.TotalGhosts;
             AccentsHit = stats.AccentsHit;
             TotalAccents = stats.TotalAccents;
-            DynamicsBonus = stats.DynamicsBonus;
+            GhostsBonus = stats.GhostsBonus;
+            AccentsBonus = stats.AccentsBonus;
         }
 
         public DrumsStats(ref FixedArrayStream stream, int version)
@@ -70,7 +81,18 @@ namespace YARG.Core.Engine.Drums
             TotalGhosts = stream.Read<int>(Endianness.Little);
             AccentsHit = stream.Read<int>(Endianness.Little);
             TotalAccents = stream.Read<int>(Endianness.Little);
-            DynamicsBonus = stream.Read<int>(Endianness.Little);
+            if (version <= 15)
+            {
+                var dynamicsBonus = stream.Read<int>(Endianness.Little);
+                // We don't know how it was allocated, so split it evenly between the two
+                GhostsBonus = dynamicsBonus / 2;
+                AccentsBonus = dynamicsBonus - GhostsBonus;
+            }
+            else
+            {
+                GhostsBonus = stream.Read<int>(Endianness.Little);
+                AccentsBonus = stream.Read<int>(Endianness.Little);
+            }
         }
 
         public override void Reset()
@@ -86,7 +108,8 @@ namespace YARG.Core.Engine.Drums
             // Don't reset TotalAccents
             // TotalAccents = 0;
 
-            DynamicsBonus = 0;
+            GhostsBonus = 0;
+            AccentsBonus = 0;
         }
 
         public override void Serialize(BinaryWriter writer)
@@ -98,7 +121,8 @@ namespace YARG.Core.Engine.Drums
             writer.Write(TotalGhosts);
             writer.Write(AccentsHit);
             writer.Write(TotalAccents);
-            writer.Write(DynamicsBonus);
+            writer.Write(GhostsBonus);
+            writer.Write(AccentsBonus);
         }
 
         public void RecordOverhit(int? action)

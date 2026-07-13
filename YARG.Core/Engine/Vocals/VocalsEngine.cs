@@ -9,7 +9,8 @@ namespace YARG.Core.Engine.Vocals
     public abstract class VocalsEngine :
         BaseEngine<VocalNote, VocalsEngineParameters, VocalsStats>
     {
-        protected const int POINTS_PER_PERCUSSION = 100;
+        protected int PointsPerPercussion => (int) (100 * EngineParameters.PhraseScoreMultiplier);
+        protected int PointsPerPhrase => (int) (2000 * EngineParameters.PhraseScoreMultiplier);
 
         protected VocalNote? CarriedVocalNote;
 
@@ -51,6 +52,20 @@ namespace YARG.Core.Engine.Vocals
         public double PhraseTicksHit { get; protected set; }
 
         /// <summary>
+        /// The amount of ticks hit in this phrase while star power was active.
+        /// For example, if a phrase had 10 ticks, and you hit half of those in SP, this should be 5.
+        /// This is a decimal since you can get fractions of a point for singing slightly off.
+        /// </summary>
+        public double TicksHitInStarPower { get; protected set; }
+
+        /// <summary>
+        /// The amount of ticks hit in the current phrase, multiplied by <see cref="BaseStats.BandBonusMultiplier">BandBonusMultiplier</see> at the point the tick was hit. <br/>
+        /// For example, if you hit a tick while <see cref="BaseStats.BandBonusMultiplier">BandBonusMultiplier</see> is 2, this would increase by 2. <br/>
+        /// This is a decimal since you can get fractions of a point for singing slightly off.
+        /// </summary>
+        public double BandBonusTicks { get; protected set; }
+
+        /// <summary>
         /// The last tick where there was a successful sing input.
         /// </summary>
         public uint LastSingTick { get; protected set; }
@@ -64,7 +79,12 @@ namespace YARG.Core.Engine.Vocals
                 // Percussion phrases do not count as phrases, they cannot be hit and do not increment combo.
                 if (note.IsPercussionPhrase)
                 {
-                    BaseStats.TotalNotes--;
+                    EngineStats.TotalNotes--;
+                }
+
+                if (note.IsPercussion)
+                {
+                    EngineStats.TotalPercussionNotes++;
                 }
             }
         }
@@ -76,6 +96,8 @@ namespace YARG.Core.Engine.Vocals
 
             PhraseTicksTotal = null;
             PhraseTicksHit = 0;
+            TicksHitInStarPower = 0;
+            BandBonusTicks = 0;
 
             LastSingTick = 0;
 
@@ -133,6 +155,7 @@ namespace YARG.Core.Engine.Vocals
 
             if (note.IsPercussion)
             {
+                EngineStats.PercussionNotesHit++;
                 AddScore(note);
                 OnNoteHit?.Invoke(NoteIndex, note);
             }
@@ -315,20 +338,61 @@ namespace YARG.Core.Engine.Vocals
         {
             if (note.IsPercussion)
             {
-                AddScore(POINTS_PER_PERCUSSION);
-                EngineStats.NoteScore += POINTS_PER_PERCUSSION;
+                EngineStats.NoteScore += PointsPerPercussion;
+                EngineStats.CommittedScore += PointsPerPercussion;
             }
             else
             {
-                AddScore(EngineParameters.PointsPerPhrase);
-                EngineStats.NoteScore += EngineParameters.PointsPerPhrase;
+                AddVocalScore(PointsPerPhrase);
+                EngineStats.NoteScore += PointsPerPhrase;
             }
+        }
+
+        protected void AddVocalScore(int score)
+        {
+            int baseMultiplier = EngineStats.IsStarPowerActive ? EngineStats.ScoreMultiplier / 2 : EngineStats.ScoreMultiplier;
+            int scoreMultiplier = score * baseMultiplier;
+
+            var scoringTicksHit = Math.Min(PhraseTicksHit, PhraseTicksTotal!.Value * EngineParameters.PhraseHitPercent);
+            scoringTicksHit = Math.Round(scoringTicksHit);
+
+            EngineStats.CommittedScore += scoreMultiplier;
+
+            int multiplierBonus = scoreMultiplier - score;
+            EngineStats.MultiplierScore += multiplierBonus;
+
+            if (TicksHitInStarPower > 0)
+            {
+                var percentOfTicksHitInSp = scoringTicksHit > 0 ? TicksHitInStarPower / scoringTicksHit : 0;
+                // SP bonus is equivalent to the base multiplied score scaled by the % of ticks hit
+                int spScore = (int)(scoreMultiplier * percentOfTicksHitInSp);
+
+                EngineStats.StarPowerScore += spScore;
+                EngineStats.CommittedScore += spScore;
+                EngineStats.MultiplierScore += spScore;
+                EngineStats.StarPowerBonusTicks += (uint) Math.Round(TicksHitInStarPower);
+                YargLogger.LogFormatDebug("[Vocals] Star Power ticks: {0}, total ticks hit: {1}, percent of ticks hit in Star Power: {2:P2}, SP Score: {3}", TicksHitInStarPower, scoringTicksHit, percentOfTicksHitInSp, spScore);
+            }
+
+            if (BandBonusTicks > 0)
+            {
+                // BandBonusTicks is already multiplied by BandBonusMultiplier per tick, so
+                // the bonus points scale off the standard scoreMultiplier relative to total phrase ticks
+                var avgBandMultiplier = scoringTicksHit > 0 ? BandBonusTicks / scoringTicksHit : 0;
+                int bandBonus = (int)(scoreMultiplier * avgBandMultiplier);
+
+                EngineStats.BandBonusScore += bandBonus;
+                YargLogger.LogFormatDebug("[Vocals] Band Bonus ticks: {0}, total ticks hit: {1}, ticks multiplier in Band Bonus: {2}, Band Bonus: {3}", BandBonusTicks, scoringTicksHit, avgBandMultiplier, bandBonus);
+            }
+
+
+            UpdateStars();
         }
 
         protected void AddPartialScore(double hitPercent)
         {
-            int score = (int) Math.Round(EngineParameters.PointsPerPhrase * hitPercent);
-            AddScore(score);
+            int score = (int) Math.Round(PointsPerPhrase * hitPercent);
+            AddVocalScore(score);
         }
 
         protected override void UpdateMultiplier()
@@ -357,12 +421,12 @@ namespace YARG.Core.Engine.Vocals
                 if (note.IsPercussionPhrase)
                 {
                     // Intentionally not counting percussion notes for base score so they don't affect star calculations
-                    // baseScore += POINTS_PER_PERCUSSION * note.ChildNotes.Count * multiplier;
-                    // noteScore += POINTS_PER_PERCUSSION * note.ChildNotes.Count;
+                    // baseScore += PointsPerPercussion * note.ChildNotes.Count * multiplier;
+                    // noteScore += PointsPerPercussion * note.ChildNotes.Count;
                     continue;
                 }
-                baseScore += multiplier * EngineParameters.PointsPerPhrase;
-                noteScore += EngineParameters.PointsPerPhrase;
+                baseScore += multiplier * PointsPerPhrase;
+                noteScore += PointsPerPhrase;
                 combo++;
             }
 
