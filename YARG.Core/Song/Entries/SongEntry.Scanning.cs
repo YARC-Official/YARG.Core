@@ -86,7 +86,28 @@ namespace YARG.Core.Song
                     parts.HarmonyVocals.ActivateSubtrack(2);
                 }
             }
+
+            AddGeneratedFiveFretDifficulties(ref parts);
             return midiFile.Resolution;
+        }
+
+        private protected static void AddGeneratedFiveFretDifficulties(ref AvailableParts parts)
+        {
+            AddGeneratedDownchartDifficulties(ref parts.FiveFretGuitar);
+            AddGeneratedDownchartDifficulties(ref parts.FiveFretBass);
+            AddGeneratedDownchartDifficulties(ref parts.FiveFretRhythm);
+            AddGeneratedDownchartDifficulties(ref parts.FiveFretCoopGuitar);
+            AddGeneratedDownchartDifficulties(ref parts.Keys);
+        }
+
+        private static void AddGeneratedDownchartDifficulties(ref PartValues part)
+        {
+            if ((part.Difficulties & DifficultyMask.Expert) == 0)
+            {
+                return;
+            }
+
+            part.Difficulties |= DifficultyMask.Easy | DifficultyMask.Medium | DifficultyMask.Hard;
         }
 
         protected static void FinalizeDrums(ref AvailableParts parts, DrumsType drumsType)
