@@ -58,17 +58,18 @@ public class VocalsStatsTests
     }
 
     [Test]
-    public void Percent_UsesVocalTicks()
+    public void Percent_UsesVocalPhrasesHit()
     {
         var stats = new VocalsStats
         {
             NotesHit = 1,
-            TotalNotes = 1,
             TicksHit = 80,
             TicksMissed = 20,
+            PhrasesHit = 5,
+            TotalNotes = 10,
         };
 
-        Assert.That(stats.Percent, Is.EqualTo(0.8f).Within(0.0000001));
+        Assert.That(stats.Percent, Is.EqualTo(0.5f).Within(0.0000001));
     }
 
     [Test]
