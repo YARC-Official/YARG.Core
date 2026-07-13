@@ -10,8 +10,9 @@ namespace YARG.Core.Chart
         private const double TRANSITION_TIME = 0.12;
         private const double HALF_TRANSITION = TRANSITION_TIME / 2;
         private const int TRANSITION_STEPS = 4; // 30fps * 0.12s = ~4 steps
-        private const float VISEME_WEIGHT = 140f / 255f; // Match onyx weight
-        
+        // private const float VISEME_WEIGHT = 140f / 255f; // Match onyx weight
+        private const float VISEME_WEIGHT = 200f / 255f;
+
         private static IReadOnlyDictionary<string, string[]>? _cmuDict;
 
         public static void Initialize(string dictionaryText)
@@ -24,11 +25,11 @@ namespace YARG.Core.Chart
         {
             var events = new List<LipsyncEvent>();
             var defaultViseme = LipsyncEvent.LipsyncType.Neutral_lo;
-            
+
             var random = new Random();
             var nextBlinkTime = 2.0 + random.NextDouble() * 3.0; // First blink between 2-5s
             var nextExpressionTime = 4.0 + random.NextDouble() * 4.0; // First expression between 4-8s
-            
+
             foreach (var phrase in lyrics.Phrases)
             {
                 if (phrase.Lyrics.Count == 0)
@@ -44,11 +45,11 @@ namespace YARG.Core.Chart
                 for (int i = 0; i < phrase.Lyrics.Count; i++)
                 {
                     var lyric = phrase.Lyrics[i];
-                    
+
                     var text = LyricSymbols.StripForVocals(lyric.Text);
                     if (string.IsNullOrWhiteSpace(text))
                         continue;
-                    
+
                     // Add blinks if enough time has passed
                     while (nextBlinkTime < lyric.Time)
                     {
@@ -56,35 +57,35 @@ namespace YARG.Core.Chart
                         events.Add(new LipsyncEvent(LipsyncEvent.LipsyncType.Blink, 0f, nextBlinkTime + 0.15, 0));
                         nextBlinkTime += 2.0 + random.NextDouble() * 4.0; // Next blink in 2-6s
                     }
-                    
+
                     var syllable = GetSyllableForLyric(text);
-                    
+
                     YargLogger.LogFormatTrace("Lyric '{0}' at tick {1} -> Initial: [{2}], Vowel: {3}, VowelEnd: {4}, Final: [{5}]",
                         (object)text, (object)lyric.Tick,
                         (object)string.Join(", ", syllable.Initial),
                         (object)syllable.VowelMain,
                         (object)(syllable.VowelEnd?.ToString() ?? "none"),
                         (object)string.Join(", ", syllable.Final));
-                    
-                    var endTime = i < phrase.Lyrics.Count - 1 
-                        ? phrase.Lyrics[i + 1].Time 
+
+                    var endTime = i < phrase.Lyrics.Count - 1
+                        ? phrase.Lyrics[i + 1].Time
                         : phrase.Time + phrase.TimeLength;
-                    
+
                     var duration = endTime - lyric.Time;
                     var initialBack = Math.Min(HALF_TRANSITION, duration / 2);
                     var finalFront = Math.Min(HALF_TRANSITION, duration / 2);
-                    
+
                     var startTime = lyric.Time;
                     var eventCountBefore = events.Count;
-                    
+
                     // Transition to initial consonants or vowel
                     if (syllable.Initial.Count > 0)
                     {
-                        AddTransition(events, startTime, initialBack, 
+                        AddTransition(events, startTime, initialBack,
                             defaultViseme, syllable.Initial, lyric.Tick);
                         startTime += initialBack;
                     }
-                    
+
                     // Hold vowel (with diphthong if present)
                     var vowelDuration = duration - initialBack - finalFront;
                     if (syllable.VowelEnd.HasValue)
@@ -98,7 +99,7 @@ namespace YARG.Core.Chart
                         events.Add(new LipsyncEvent(syllable.VowelMain, VISEME_WEIGHT, startTime, lyric.Tick));
                     }
                     startTime += vowelDuration;
-                    
+
                     // Transition through final consonants then close
                     if (syllable.Final.Count > 0)
                     {
@@ -106,7 +107,7 @@ namespace YARG.Core.Chart
                             syllable.VowelEnd ?? syllable.VowelMain, syllable.Final, lyric.Tick);
                         startTime += finalFront;
                     }
-                    
+
                     // Close mouth - reset all visemes used in this syllable
                     var usedVisemes = new HashSet<LipsyncEvent.LipsyncType>();
                     usedVisemes.UnionWith(syllable.Initial);
@@ -114,14 +115,14 @@ namespace YARG.Core.Chart
                     if (syllable.VowelEnd.HasValue)
                         usedVisemes.Add(syllable.VowelEnd.Value);
                     usedVisemes.UnionWith(syllable.Final);
-                    
+
                     foreach (var viseme in usedVisemes)
                     {
                         events.Add(new LipsyncEvent(viseme, 0f, startTime, lyric.Tick));
                     }
-                    
+
                     var eventCount = events.Count - eventCountBefore;
-                    YargLogger.LogFormatTrace("  Generated {0} lipsync events for lyric '{1}'", 
+                    YargLogger.LogFormatTrace("  Generated {0} lipsync events for lyric '{1}'",
                         (object)eventCount, (object)text);
                 }
             }
@@ -139,11 +140,11 @@ namespace YARG.Core.Chart
                 LipsyncEvent.LipsyncType.exp_rocker_teethgrit_happy_01,
                 LipsyncEvent.LipsyncType.exp_dramatic_happy_eyesopen_01,
             };
-            
+
             var expression = expressions[random.Next(expressions.Length)];
             var intensity = 0.3f + (float)random.NextDouble() * 0.4f; // 0.3 to 0.7
             var expressionDuration = Math.Min(duration * 0.6, 1.5); // Max 1.5s or 60% of phrase
-            
+
             events.Add(new LipsyncEvent(expression, intensity, time, 0));
             events.Add(new LipsyncEvent(expression, 0f, time + expressionDuration, 0));
         }
@@ -152,11 +153,11 @@ namespace YARG.Core.Chart
             LipsyncEvent.LipsyncType from, List<LipsyncEvent.LipsyncType> toSequence, uint tick)
         {
             if (toSequence.Count == 0) return;
-            
+
             var segmentDuration = duration / (toSequence.Count + 1);
             var currentTime = startTime;
             var current = from;
-            
+
             foreach (var target in toSequence)
             {
                 AddSmoothTransition(events, currentTime, segmentDuration, current, target, tick);
@@ -173,13 +174,13 @@ namespace YARG.Core.Chart
                 events.Add(new LipsyncEvent(to, VISEME_WEIGHT, startTime, tick));
                 return;
             }
-            
+
             var stepDuration = duration / TRANSITION_STEPS;
             for (int i = 0; i < TRANSITION_STEPS; i++)
             {
                 var t = (float)i / TRANSITION_STEPS;
                 var time = startTime + i * stepDuration;
-                
+
                 // Linear interpolation between visemes
                 events.Add(new LipsyncEvent(from, VISEME_WEIGHT * (1 - t), time, tick));
                 events.Add(new LipsyncEvent(to, VISEME_WEIGHT * t, time, tick));
@@ -192,16 +193,16 @@ namespace YARG.Core.Chart
         {
             var transitionStart = startTime + duration * 0.6; // Start transition 60% through
             var transitionDuration = duration * 0.4;
-            
+
             events.Add(new LipsyncEvent(main, VISEME_WEIGHT, startTime, tick));
-            
+
             var stepDuration = transitionDuration / TRANSITION_STEPS;
             for (int i = 1; i <= TRANSITION_STEPS; i++)
             {
                 var t = (float)i / TRANSITION_STEPS;
                 t = EaseInExpo(t); // Use exponential easing for diphthongs
                 var time = transitionStart + i * stepDuration;
-                
+
                 events.Add(new LipsyncEvent(main, VISEME_WEIGHT * (1 - t), time, tick));
                 events.Add(new LipsyncEvent(end, VISEME_WEIGHT * t, time, tick));
             }
@@ -261,16 +262,16 @@ namespace YARG.Core.Chart
             };
 
             bool foundVowel = false;
-            
+
             YargLogger.LogFormatTrace("  Phonemes: [{0}]", string.Join(", ", phonemes));
-            
+
             foreach (var phoneme in phonemes)
             {
                 var (viseme, isDiphthong, diphthongEnd) = PhonemeToViseme(phoneme);
-                
+
                 if (viseme == LipsyncEvent.LipsyncType.Neutral_lo)
                     continue;
-                
+
                 if (IsVowelPhoneme(phoneme))
                 {
                     if (!foundVowel)
@@ -339,7 +340,7 @@ namespace YARG.Core.Chart
             return _cmuDict.TryGetValue(key, out phonemes);
         }
 
-        private static (LipsyncEvent.LipsyncType viseme, bool isDiphthong, LipsyncEvent.LipsyncType? diphthongEnd) 
+        private static (LipsyncEvent.LipsyncType viseme, bool isDiphthong, LipsyncEvent.LipsyncType? diphthongEnd)
             PhonemeToViseme(string phoneme)
         {
             return phoneme switch
@@ -355,14 +356,14 @@ namespace YARG.Core.Chart
                 "IY" => (LipsyncEvent.LipsyncType.Eat_lo, false, null),
                 "UH" => (LipsyncEvent.LipsyncType.Though_lo, false, null),
                 "UW" => (LipsyncEvent.LipsyncType.Wet_lo, false, null),
-                
+
                 // Diphthongs
                 "AY" => (LipsyncEvent.LipsyncType.Ox_lo, true, LipsyncEvent.LipsyncType.If_lo),
                 "EY" => (LipsyncEvent.LipsyncType.Cage_lo, true, LipsyncEvent.LipsyncType.If_lo),
                 "OW" => (LipsyncEvent.LipsyncType.Oat_lo, true, LipsyncEvent.LipsyncType.Wet_lo),
                 "AW" => (LipsyncEvent.LipsyncType.Ox_lo, true, LipsyncEvent.LipsyncType.Wet_lo),
                 "OY" => (LipsyncEvent.LipsyncType.Oat_lo, true, LipsyncEvent.LipsyncType.If_lo),
-                
+
                 // Consonants
                 "B" or "P" or "M" => (LipsyncEvent.LipsyncType.Bump_lo, false, null),
                 "F" or "V" => (LipsyncEvent.LipsyncType.Fave_lo, false, null),
@@ -373,7 +374,7 @@ namespace YARG.Core.Chart
                 "R" => (LipsyncEvent.LipsyncType.Roar_lo, false, null),
                 "W" => (LipsyncEvent.LipsyncType.Wet_lo, false, null),
                 "Y" => (LipsyncEvent.LipsyncType.Eat_lo, false, null),
-                
+
                 _ => (LipsyncEvent.LipsyncType.Neutral_lo, false, null)
             };
         }

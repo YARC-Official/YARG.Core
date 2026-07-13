@@ -401,6 +401,11 @@ namespace YARG.Core.Engine.Guitar
                 return false;
             }
 
+            if (RequiredLaneNote == WildcardMask)
+            {
+                return true;
+            }
+
             if (MaskIsMultiFret(RequiredLaneNote)) // Active lane is chord tremolo
             {
                 if (mask == RequiredLaneNote)

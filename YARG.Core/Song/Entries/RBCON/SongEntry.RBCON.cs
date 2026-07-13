@@ -134,7 +134,7 @@ namespace YARG.Core.Song
 
                 using var updateMidi = FixedArray.LoadFile(updateFilename);
                 var update = MidiFile.Read(updateMidi.ToReferenceStream(), readingSettings);
-                midi.Merge(update);
+                midi.Merge(update, false);
             }
 
             // Merge upgrade MIDI
@@ -147,7 +147,7 @@ namespace YARG.Core.Song
                 }
 
                 var upgrade = MidiFile.Read(upgradeMidi.ToReferenceStream(), readingSettings);
-                midi.Merge(upgrade);
+                midi.Merge(upgrade, false);
             }
 
             var parseSettings = new ParseSettings()

@@ -186,6 +186,9 @@ public class PreviewContextTests
 
         protected internal override void SetMasterVolume(double volume) { }
 
+        public override void LoadVenueSample(string name, byte[] sampleData, OutputChannel? outputChannel = null) { }
+        public override void ClearVenueSamples() { }
+
 
         protected override void SetBufferLength_Internal(int length) { }
     }

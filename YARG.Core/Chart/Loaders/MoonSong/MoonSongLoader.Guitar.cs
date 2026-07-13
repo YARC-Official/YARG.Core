@@ -22,9 +22,9 @@ namespace YARG.Core.Chart
         {
             var difficulties = new Dictionary<Difficulty, InstrumentDifficulty<GuitarNote>>()
             {
-                { Difficulty.Beginner, LoadDifficulty<GuitarNote>(instrument, Difficulty.Beginner, CreateFiveFretBeginnerNote, null, ValidateGuitarPhrase, null) }, // No lanes on Beginner, so no final pass
-                { Difficulty.Easy, LoadDifficulty(instrument, Difficulty.Easy, createNote, null, ValidateGuitarPhrase, null) }, // No lanes on Easy, so no final pass
-                { Difficulty.Medium, LoadDifficulty(instrument, Difficulty.Medium, createNote, null, ValidateGuitarPhrase, null) }, // No lanes on Medium, so no final pass
+                { Difficulty.Beginner, LoadDifficulty<GuitarNote>(instrument, Difficulty.Beginner, CreateFiveFretBeginnerNote, null, ValidateGuitarPhrase, GuitarFinalPass) },
+                { Difficulty.Easy, LoadDifficulty(instrument, Difficulty.Easy, createNote, null, ValidateGuitarPhrase, GuitarFinalPass) },
+                { Difficulty.Medium, LoadDifficulty(instrument, Difficulty.Medium, createNote, null, ValidateGuitarPhrase, GuitarFinalPass) },
                 { Difficulty.Hard, LoadDifficulty(instrument, Difficulty.Hard, createNote, null, ValidateGuitarPhrase, GuitarFinalPass) },
                 { Difficulty.Expert, LoadDifficulty(instrument, Difficulty.Expert, createNote, null, ValidateGuitarPhrase, GuitarFinalPass) },
             };
@@ -266,7 +266,14 @@ namespace YARG.Core.Chart
                         laneNotes = GetGuitarTremoloNotes(notesInPhrase);
                         break;
                     case PhraseType.TrillLane:
-                        laneNotes = GetGuitarTrillNotes(notesInPhrase);
+                        if (chart.Difficulty is Difficulty.Beginner)
+                        {
+                            laneNotes = GetGuitarTremoloNotes(notesInPhrase);
+                        }
+                        else
+                        {
+                            laneNotes = GetGuitarTrillNotes(notesInPhrase);
+                        }
                         break;
                     default:
                         throw new ArgumentOutOfRangeException(nameof(phrase.Type), phrase.Type, "Invalid phrase type for Guitar lane");

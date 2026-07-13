@@ -55,6 +55,8 @@ namespace YARG.Core.Engine
         public override BaseEngineParameters BaseParameters => EngineParameters;
         public override BaseStats            BaseStats      => EngineStats;
 
+        protected virtual int WildcardMask => -1;
+
         protected BaseEngine(InstrumentDifficulty<TNoteType> chart, SyncTrack syncTrack,
             TEngineParams engineParameters, bool isChordSeparate, bool isBot)
             : base(syncTrack, isChordSeparate, isBot)
@@ -547,6 +549,12 @@ namespace YARG.Core.Engine
         // Intercept a missed note while a lane phrase is active
         protected bool AutohitNoteFromLane(TNoteType note)
         {
+            // If the note was already hit or missed, don't let the caller attempt to autohit it
+            if (note.WasHit || note.WasMissed)
+            {
+                return false;
+            }
+
             if (note.Time > LaneAutohitExpireTime)
             {
                 return false;
@@ -610,7 +618,7 @@ namespace YARG.Core.Engine
                 return;
             }
 
-            if (newNote == RequiredLaneNote)
+            if (newNote == RequiredLaneNote || RequiredLaneNote == WildcardMask)
             {
                 // Required input received, extend the lane expiration time
                 var currentNote = Notes[NoteIndex].ParentOrSelf;
@@ -649,6 +657,11 @@ namespace YARG.Core.Engine
             if (!IsLaneActive)
             {
                 return false;
+            }
+
+            if (RequiredLaneNote == WildcardMask)
+            {
+                return true;
             }
 
             if (inputNote == RequiredLaneNote || (NextTrillNote != -1 && inputNote == NextTrillNote))
@@ -690,7 +703,7 @@ namespace YARG.Core.Engine
         protected void UpdateLaneAutohitExpireTime()
         {
             LaneAutohitExpireTime = CurrentTime + EngineParameters.HitWindow.LaneAutohitWindow;
-            YargLogger.LogFormatDebug("LaneExpireTime extended to {0}. LaneAutohitWindow {1}. Increment {2}.", LaneAutohitExpireTime, EngineParameters.HitWindow.LaneAutohitWindow, LaneAutohitExpireTime - CurrentTime);
+            YargLogger.LogFormatTrace("LaneExpireTime extended to {0}. LaneAutohitWindow {1}. Increment {2}.", LaneAutohitExpireTime, EngineParameters.HitWindow.LaneAutohitWindow, LaneAutohitExpireTime - CurrentTime);
         }
 
         protected bool SkipPreviousNotes(TNoteType current)
@@ -699,20 +712,49 @@ namespace YARG.Core.Engine
             var prevNote = current.PreviousNote;
             while (prevNote is not null && !prevNote.WasFullyHitOrMissed())
             {
-                if (AutohitNoteFromLane(prevNote))
+                bool laneAutoHit = false;
+
+                if (TreatChordAsSeparate)
+                {
+                    foreach (var chordNote in prevNote.ParentOrSelf.AllNotes)
+                    {
+                        if (chordNote.WasHit || chordNote.WasMissed)
+                        {
+                            continue;
+                        }
+
+                        laneAutoHit |= AutohitNoteFromLane(chordNote);
+                    }
+                }
+                else
+                {
+                    laneAutoHit = AutohitNoteFromLane(prevNote);
+                }
+
+                if (laneAutoHit && prevNote.ParentOrSelf.WasFullyHitOrMissed())
                 {
                     // Save this note from being counted as a skip if it satisfies the active lane
+                    prevNote = prevNote.PreviousNote;
                     continue;
                 }
 
                 skipped = true;
-                YargLogger.LogFormatTrace("Missed note (Index: {0}) ({1}) due to note skip at {2}", NoteIndex, prevNote.IsParent ? "Parent" : "Child", CurrentTime);
-                MissNote(prevNote);
+
+                if (!prevNote.WasHit && !prevNote.WasMissed)
+                {
+                    YargLogger.LogFormatTrace("Missed note (Index: {0}) ({1}) due to note skip at {2}", NoteIndex, prevNote.IsParent ? "Parent" : "Child", CurrentTime);
+                    MissNote(prevNote);
+                }
 
                 if (TreatChordAsSeparate)
                 {
                     foreach (var child in prevNote.ChildNotes)
                     {
+                        if (child.WasHit || child.WasMissed)
+                        {
+                            continue;
+                        }
+
                         YargLogger.LogFormatTrace("Missed note (Index: {0}) ({1}) due to note skip at {2}", NoteIndex, child.IsParent ? "Parent" : "Child", CurrentTime);
                         MissNote(child);
                     }
@@ -1495,10 +1537,15 @@ namespace YARG.Core.Engine
 
         protected abstract bool ProximalLaneForgivesInput(int inputNote, TNoteType laneNote);
 
-        protected static bool LaneIncludesInputNote(int inputNote, TNoteType laneNote)
+        protected bool LaneIncludesInputNote(int inputNote, TNoteType laneNote)
         {
             var inputMask = 1 << inputNote;
             var (requiredLaneNote, otherNoteInTrill) = GetLaneNotes(laneNote);
+
+            if (requiredLaneNote == WildcardMask)
+            {
+                return true;
+            }
 
             if ((inputMask & requiredLaneNote) != 0)
             {

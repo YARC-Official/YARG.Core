@@ -802,9 +802,23 @@ namespace MoonscraperChartEditor.Song.IO
                     }
 
                     ProcessNoteOnEventAsSpecialPhrase(ref processParams, phraseType, MoonSong.Difficulty.Expert);
-                    if ((int)noteEvent.Velocity is >= 41 and <= 50)
+
+                    if ((int)noteEvent.Velocity >= 21)
                     {
-                        ProcessNoteOnEventAsSpecialPhrase(ref processParams, phraseType, MoonSong.Difficulty.Hard);
+                        if ((int) noteEvent.Velocity <= 30)
+                        {
+                            ProcessNoteOnEventAsSpecialPhrase(ref processParams, phraseType, MoonSong.Difficulty.Easy);
+                        }
+
+                        if ((int) noteEvent.Velocity <= 40)
+                        {
+                            ProcessNoteOnEventAsSpecialPhrase(ref processParams, phraseType, MoonSong.Difficulty.Medium);
+                        }
+
+                        if ((int) noteEvent.Velocity <= 50)
+                        {
+                            ProcessNoteOnEventAsSpecialPhrase(ref processParams, phraseType, MoonSong.Difficulty.Hard);
+                        }
                     }
                 }
 

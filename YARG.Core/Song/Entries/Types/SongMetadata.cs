@@ -57,6 +57,7 @@ namespace YARG.Core.Song
             Location = string.Empty,
             CreditAlbumArtDesignedBy = string.Empty,
             CreditArrangedBy = string.Empty,
+            CreditBackground = string.Empty,
             CreditComposedBy = string.Empty,
             CreditCourtesyOf = string.Empty,
             CreditEngineeredBy = string.Empty,
@@ -88,6 +89,8 @@ namespace YARG.Core.Song
             VocalScrollSpeedScalingFactor = null,
             VocalGender = VocalGender.Unspecified,
             CleanVocals = false,
+            VenueHint = string.Empty,
+            VocalCharacterHint = string.Empty,
         };
 
         public string Name;
@@ -162,6 +165,10 @@ namespace YARG.Core.Song
         public float? VocalScrollSpeedScalingFactor;
         public VocalGender VocalGender;
         public bool        CleanVocals;
+
+        // Venue hints
+        public string VenueHint;
+        public string VocalCharacterHint;
 
         public static SongMetadata CreateFromIni(IniModifierCollection modifiers)
         {
@@ -517,6 +524,11 @@ namespace YARG.Core.Song
                 metadata.LinkBandcamp = linkBandcamp;
             }
 
+            if (modifiers.Extract("vocal_character_hint", out string vocalCharacterHint))
+            {
+                metadata.VocalCharacterHint = vocalCharacterHint;
+            }
+
             if (modifiers.Extract("vocal_scroll_speed", out short vocalScrollSpeed))
             {
                 // INI vocal scroll speed is interpreted as a percentage
@@ -525,7 +537,19 @@ namespace YARG.Core.Song
 
             if (modifiers.Extract("vocal_gender", out string vocalGender))
             {
-                metadata.VocalGender = Enum.Parse<VocalGender>(vocalGender);
+                if (Enum.TryParse<VocalGender>(vocalGender, true, out var genderValue))
+                {
+                    metadata.VocalGender = genderValue;
+                }
+                else
+                {
+                    metadata.VocalGender = VocalGender.Unspecified;
+                }
+            }
+
+            if (modifiers.Extract("venue_hint", out string venueHint))
+            {
+                metadata.VenueHint = venueHint;
             }
 
             if (modifiers.Extract("clean_vocals", out bool cleanVocals))
