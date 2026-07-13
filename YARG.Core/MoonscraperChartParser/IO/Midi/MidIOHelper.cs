@@ -52,7 +52,8 @@ namespace MoonscraperChartEditor.Song.IO
 
         // Coda text events
         public const string CODA_START = "coda";
-        public const string CODA_END = "coda_end";
+        public const string MIDCODA_START = "midcoda";
+        public const string MIDCODA_END = "midcoda_end";
 
 
         // Matches venue lighting events and groups the text inside (parentheses), not including the parentheses

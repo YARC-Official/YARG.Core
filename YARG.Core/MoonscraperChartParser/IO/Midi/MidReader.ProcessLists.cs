@@ -374,7 +374,7 @@ namespace MoonscraperChartEditor.Song.IO
             // Find coda starts and ends
             var song = processParams.song;
 
-            if (song.events.All(e => e.text != MidIOHelper.CODA_START))
+            if (song.events.All(e => e.text != MidIOHelper.CODA_START && e.text != MidIOHelper.MIDCODA_START))
             {
                 return;
             }
@@ -388,9 +388,9 @@ namespace MoonscraperChartEditor.Song.IO
 
             // Get all the difficulties that exist in this chart and add the coda start/end flags to the first/last notes in the
             // coda sections we found above
-            var codaIndex = 0;
             foreach (var diff in EnumExtensions<MoonSong.Difficulty>.Values)
             {
+                var codaIndex = 0;
                 var chart = processParams.song.GetChart(processParams.instrument, diff);
 
                 if (chart.notes.Count == 0)
@@ -443,7 +443,7 @@ namespace MoonscraperChartEditor.Song.IO
         {
             var song = processParams.song;
 
-            if (song.events.All(e => e.text != MidIOHelper.CODA_START))
+            if (song.events.All(e => e.text != MidIOHelper.CODA_START && e.text != MidIOHelper.MIDCODA_START))
             {
                 return;
             }
@@ -483,28 +483,44 @@ namespace MoonscraperChartEditor.Song.IO
             var codaRanges = new List<(uint start, uint end)>();
             foreach (var ev in song.events)
             {
-                if (ev.text == MidIOHelper.CODA_START)
+                if (ev.text == MidIOHelper.MIDCODA_START)
                 {
                     if (codaRanges.Count > 0 && codaRanges[^1].end == uint.MaxValue)
                     {
-                        YargLogger.LogError("Unbalanced coda/coda_end events, ignoring BREs (missing coda_end)");
+                        YargLogger.LogError("Unbalanced midcoda/midcoda_end events, ignoring BREs (missing midcoda_end)");
+                        codaRanges.Clear();
                         return codaRanges;
                     }
 
                     codaCount++;
                     codaRanges.Add((ev.tick, uint.MaxValue));
                 }
-                else if (ev.text == MidIOHelper.CODA_END)
+                else if (ev.text == MidIOHelper.MIDCODA_END)
                 {
                     if (codaCount != codaRanges.Count)
                     {
-                        YargLogger.LogError("Unbalanced coda/coda_end events, ignoring BREs (missing coda)");
+                        YargLogger.LogError("Unbalanced midcoda/midcoda_end events, ignoring BREs (missing midcoda)");
+                        codaRanges.Clear();
                         return codaRanges;
                     }
 
                     var range = codaRanges[^1];
                     range.end = ev.tick;
                     codaRanges[^1] = range;
+                }
+                else if (ev.text == MidIOHelper.CODA_START)
+                {
+                    // Validate that any previous coda was closed
+                    if (codaRanges.Count > 0 && codaRanges[^1].end == uint.MaxValue)
+                    {
+                        YargLogger.LogError("Unbalanced coda/coda_end events, ignoring middle BREs (missing midcoda_end)");
+                        codaRanges.Clear();
+                    }
+
+                    codaRanges.Add((ev.tick, uint.MaxValue));
+
+                    // Don't accept any more codas after this
+                    break;
                 }
             }
 
@@ -771,9 +787,23 @@ namespace MoonscraperChartEditor.Song.IO
                     }
 
                     ProcessNoteOnEventAsSpecialPhrase(ref processParams, phraseType, MoonSong.Difficulty.Expert);
-                    if ((int)noteEvent.Velocity is >= 41 and <= 50)
+
+                    if ((int)noteEvent.Velocity >= 21)
                     {
-                        ProcessNoteOnEventAsSpecialPhrase(ref processParams, phraseType, MoonSong.Difficulty.Hard);
+                        if ((int) noteEvent.Velocity <= 30)
+                        {
+                            ProcessNoteOnEventAsSpecialPhrase(ref processParams, phraseType, MoonSong.Difficulty.Easy);
+                        }
+
+                        if ((int) noteEvent.Velocity <= 40)
+                        {
+                            ProcessNoteOnEventAsSpecialPhrase(ref processParams, phraseType, MoonSong.Difficulty.Medium);
+                        }
+
+                        if ((int) noteEvent.Velocity <= 50)
+                        {
+                            ProcessNoteOnEventAsSpecialPhrase(ref processParams, phraseType, MoonSong.Difficulty.Hard);
+                        }
                     }
                 }
 

@@ -153,7 +153,7 @@ public class PreviewContextTests
 
         public override YARGImage? LoadAlbumData() => null;
 
-        public override BackgroundResult? LoadBackground() => null;
+        public override BackgroundResult? LoadBackground(bool excludeYarground = false) => null;
 
         public override FixedArray<byte>? LoadMiloData() => null;
     }
@@ -182,7 +182,9 @@ public class PreviewContextTests
 
         protected internal override void SetMasterVolume(double volume) { }
 
-        protected override void ToggleBuffer_Internal(bool enable) { }
+        public override void LoadVenueSample(string name, byte[] sampleData, OutputChannel? outputChannel = null) { }
+        public override void ClearVenueSamples() { }
+
 
         protected override void SetBufferLength_Internal(int length) { }
     }
@@ -234,7 +236,6 @@ public class PreviewContextTests
 
         protected override bool RemoveChannel_Internal(SongStem stemToRemove) => false;
 
-        protected override void ToggleBuffer_Internal(bool enable) { }
 
         protected override void SetBufferLength_Internal(int length) { }
 

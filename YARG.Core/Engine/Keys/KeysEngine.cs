@@ -200,5 +200,10 @@ namespace YARG.Core.Engine.Keys
         }
 
         protected abstract bool IsKeyInTime(TNoteType note, double frontEnd);
+
+        protected override bool ProximalLaneForgivesInput(int inputNote, TNoteType laneNote)
+        {
+            return LaneIncludesInputNote(inputNote, laneNote);
+        }
     }
 }

@@ -94,7 +94,7 @@ namespace YARG.Core.Audio
         {
             new Sample<SfxSample>(SfxSample.NoteMiss, "note_miss", 0.55f),
             new Sample<SfxSample>(SfxSample.StarPowerAward, "starpower_award", 0.5f),
-            new Sample<SfxSample>(SfxSample.StarPowerGain, "starpower_gain", 0.5f),
+            new Sample<SfxSample>(SfxSample.StarPowerReady, "starpower_ready", 0.85f),
             new Sample<SfxSample>(SfxSample.StarPowerDeploy, "starpower_deploy", 0.4f),
             new Sample<SfxSample>(SfxSample.StarPowerDeployCrowd, "overdrive_deploy_crowd", 0.4f),
             new Sample<SfxSample>(SfxSample.StarPowerRelease, "starpower_release", 0.5f),

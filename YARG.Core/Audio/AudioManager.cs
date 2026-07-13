@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using YARG.Core.Logging;
@@ -16,6 +16,7 @@ namespace YARG.Core.Audio
         protected internal DrumSampleChannel[]      DrumSfxSamples   = new DrumSampleChannel[AudioHelpers.DrumSamples.Count];
         protected internal VoxSampleChannel[]       VoxSamples       = new VoxSampleChannel[AudioHelpers.VoxSamples.Count];
         protected internal MetronomeSampleChannel[] MetronomeSamples = new MetronomeSampleChannel[AudioHelpers.MetronomeSamples.Count];
+        protected internal Dictionary<string, VenueSampleChannel>  VenueSamples     = new();
         protected internal int PlaybackLatency;
         protected internal int MinimumBufferLength;
         protected internal int MaximumBufferLength;
@@ -73,6 +74,10 @@ namespace YARG.Core.Audio
 
         protected internal abstract void SetMasterVolume(double volume);
 
+        public abstract void LoadVenueSample(string name, byte[] sampleData, OutputChannel? outputChannel = null);
+
+        public abstract void ClearVenueSamples();
+
         protected internal virtual void SetOutputChannel(OutputChannel channel)
         {
             lock (_activeMixers)
@@ -103,17 +108,6 @@ namespace YARG.Core.Audio
             return true;
         }
 
-        internal void ToggleBuffer(bool enable)
-        {
-            ToggleBuffer_Internal(enable);
-            lock (_activeMixers)
-            {
-                foreach (var mixer in _activeMixers)
-                {
-                    mixer.ToggleBuffer(enable);
-                }
-            }
-        }
 
         internal void SetBufferLength(int length)
         {
@@ -127,7 +121,6 @@ namespace YARG.Core.Audio
             }
         }
 
-        protected abstract void ToggleBuffer_Internal(bool enable);
 
         protected abstract void SetBufferLength_Internal(int length);
 
@@ -215,6 +208,21 @@ namespace YARG.Core.Audio
                     }
 
                     foreach (var sample in DrumSfxSamples)
+                    {
+                        sample?.Dispose();
+                    }
+
+                    foreach (var sample in VoxSamples)
+                    {
+                        sample?.Dispose();
+                    }
+
+                    foreach (var sample in MetronomeSamples)
+                    {
+                        sample?.Dispose();
+                    }
+
+                    foreach (var sample in VenueSamples.Values)
                     {
                         sample?.Dispose();
                     }

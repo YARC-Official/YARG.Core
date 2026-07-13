@@ -52,6 +52,7 @@ namespace YARG.Core.IO.Ini
                 { "credit_album_art_designed_by",         new("credit_album_art_designed_by", ModifierType.String) },
                 { "credit_album_cover",                   new("credit_album_art_designed_by", ModifierType.String) },
                 { "credit_arranged_by",                   new("credit_arranged_by", ModifierType.String) },
+                { "credit_background",                    new("credit_background", ModifierType.String) },
                 { "credit_composed_by",                   new("credit_composed_by", ModifierType.String) },
                 { "credit_courtesy_of",                   new("credit_courtesy_of", ModifierType.String) },
                 { "credit_engineered_by",                 new("credit_engineered_by", ModifierType.String) },
@@ -170,11 +171,13 @@ namespace YARG.Core.IO.Ini
                 { "unlock_require",                       new("unlock_require", ModifierType.String) },
                 { "unlock_text",                          new("unlock_text", ModifierType.String) },
 
+                { "venue_hint",                           new("venue_hint", ModifierType.String) },
                 { "version",                              new("version", ModifierType.UInt32) },
                 { "video",                                new("video", ModifierType.String) },
                 { "video_end_time",                       new("video_end_time", ModifierType.Int64) },
                 { "video_loop",                           new("video_loop", ModifierType.Bool) },
                 { "video_start_time",                     new("video_start_time", ModifierType.Int64) },
+                { "vocal_character_hint",                 new("vocal_character_hint", ModifierType.String) },
                 { "vocal_gender",                         new("vocal_gender", ModifierType.UInt32) },
                 { "vocal_scroll_speed",                   new("vocal_scroll_speed", ModifierType.Int16) },
 

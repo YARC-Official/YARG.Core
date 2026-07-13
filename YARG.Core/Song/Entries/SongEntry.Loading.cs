@@ -15,6 +15,8 @@ namespace YARG.Core.Song
 
         public YARGImage? Image => _image;
 
+        public string? VenueHint { get; }
+
         public BackgroundResult(BackgroundType type, Stream stream)
         {
             _image = null;
@@ -26,6 +28,13 @@ namespace YARG.Core.Song
         {
             _image = image;
             Type = BackgroundType.Image;
+            Stream = null;
+        }
+
+        public BackgroundResult(string venueHint)
+        {
+            VenueHint = venueHint;
+            Type = BackgroundType.Yarground;
             Stream = null;
         }
 
@@ -42,7 +51,7 @@ namespace YARG.Core.Song
         public abstract StemMixer? LoadAudio(float speed, double volume, params SongStem[] ignoreStems);
         public abstract StemMixer? LoadPreviewAudio(float speed);
         public abstract YARGImage? LoadAlbumData();
-        public abstract BackgroundResult? LoadBackground();
+        public abstract BackgroundResult? LoadBackground(bool excludeYarground = false);
         public abstract FixedArray<byte>? LoadMiloData();
     }
 }

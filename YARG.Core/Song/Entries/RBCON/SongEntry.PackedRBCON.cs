@@ -41,17 +41,17 @@ namespace YARG.Core.Song
         }
         #nullable restore
 
-        public override BackgroundResult? LoadBackground()
+        public override BackgroundResult? LoadBackground(bool excludeYarground = false)
         {
             if (_midiListing == null)
             {
                 return null;
             }
 
-            return LoadExternalBackground(_root.FullName, _subName);
+            return LoadExternalBackground(_root.FullName, _subName, excludeYarground);
         }
 
-        internal static BackgroundResult? LoadExternalBackground(string conPath, string subName)
+        internal static BackgroundResult? LoadExternalBackground(string conPath, string subName, bool excludeYarground)
         {
             string actualDirectory = Path.GetDirectoryName(conPath)!;
             string conName = Path.GetFileName(conPath);
@@ -59,7 +59,7 @@ namespace YARG.Core.Song
             foreach (var name in GetPackedConBackgroundNames(subName, conName, conNameWithoutExtension))
             {
                 string specificVenue = Path.Combine(actualDirectory, name + YARGROUND_EXTENSION);
-                if (File.Exists(specificVenue))
+                if (File.Exists(specificVenue) && !excludeYarground)
                 {
                     var stream = File.OpenRead(specificVenue);
                     return new BackgroundResult(BackgroundType.Yarground, stream);
@@ -67,7 +67,7 @@ namespace YARG.Core.Song
             }
 
             var venues = Directory.GetFiles(actualDirectory, YARGROUND_EXTENSION);
-            if (venues.Length > 0)
+            if (venues.Length > 0 && !excludeYarground)
             {
                 var stream = File.OpenRead(venues[BACKROUND_RNG.Next(venues.Length)]);
                 return new BackgroundResult(BackgroundType.Yarground, stream);

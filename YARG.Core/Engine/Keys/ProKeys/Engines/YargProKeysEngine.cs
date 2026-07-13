@@ -126,6 +126,30 @@ namespace YARG.Core.Engine.Keys.Engines
             UpdateSustains();
         }
 
+        protected override void Overhit(int key)
+        {
+            // Can't overhit during a glissando
+            if (IsGlissandoActive)
+            {
+                UpdateLaneAutohitExpireTime(); // Lane autohitting applies to glissando notes
+                return;
+            }
+
+            // Can't overhit within the lane proximity leniency window before the beginning of a glissando
+            if (NoteIndex < Notes.Count && Notes[NoteIndex].IsGlissandoStart && Notes[NoteIndex].Time - CurrentTime < EngineParameters.HitWindow.LaneProximityProtectionWindow)
+            {
+                return;
+            }
+
+            // Can't overhit within the lane proximity leniency window after the end of a glissando
+            if (NoteIndex > 0 && Notes[NoteIndex - 1].IsGlissandoEnd && CurrentTime - Notes[NoteIndex - 1].Time < EngineParameters.HitWindow.LaneProximityProtectionWindow)
+            {
+                return;
+            }
+
+            base.Overhit(key);
+        }
+
         protected override void CheckForNoteHit()
         {
             var parentNote = Notes[NoteIndex];
@@ -316,8 +340,7 @@ namespace YARG.Core.Engine.Keys.Engines
             }
 
             // Glissando hit logic
-            // Forces the first glissando to be hit correctly, then the rest can be hit "loosely"
-            if (note.PreviousNote is not null && note.IsGlissando && note.PreviousNote.IsGlissando)
+            if (note.IsGlissando)
             {
                 var keyDiff = KeyMask ^ PreviousKeyMask;
                 var keysPressed = keyDiff & KeyMask;

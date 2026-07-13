@@ -445,7 +445,7 @@ namespace YARG.Core.Engine.Keys.Engines
             // Mask has green = 1, 5LK actions are green = 0
             var fretMask = 1 << (fiveLaneKeyIndex);
 
-            if ((fretMask & RequiredLaneNote) > 0 || (NextTrillNote != -1 && fretMask == NextTrillNote))
+            if ((fretMask & RequiredLaneNote) > 0 || (NextTrillNote != -1 && fretMask == NextTrillNote) || (RequiredLaneNote == WildcardMask))
             {
                 return true;
             }
@@ -488,17 +488,18 @@ namespace YARG.Core.Engine.Keys.Engines
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static bool IsFiveLaneKeysAction(ProKeysAction action)
         {
-            return (ALLOWED_FIVE_LANE_KEYS_ACTIONS & (1 << (int) action)) != 0;
+            return (ALLOWED_FIVE_LANE_KEYS_ACTIONS & (1L << (int) action)) != 0;
         }
 
-        private const int ALLOWED_FIVE_LANE_KEYS_ACTIONS =
-            1 << (int) ProKeysAction.GreenKey |
-            1 << (int) ProKeysAction.RedKey |
-            1 << (int) ProKeysAction.YellowKey |
-            1 << (int) ProKeysAction.BlueKey |
-            1 << (int) ProKeysAction.OrangeKey |
-            1 << (int) ProKeysAction.OpenNote |
-            1 << (int) ProKeysAction.StarPower |
-            1 << (int) ProKeysAction.TouchEffects;
+        // ProKeysAction.OrangeKey is 32, which causes issues if we use a plain 32-bit int for the mask
+        private const long ALLOWED_FIVE_LANE_KEYS_ACTIONS =
+            1L << (int) ProKeysAction.GreenKey |
+            1L << (int) ProKeysAction.RedKey |
+            1L << (int) ProKeysAction.YellowKey |
+            1L << (int) ProKeysAction.BlueKey |
+            1L << (int) ProKeysAction.OrangeKey |
+            1L << (int) ProKeysAction.OpenNote |
+            1L << (int) ProKeysAction.StarPower |
+            1L << (int) ProKeysAction.TouchEffects;
     }
 }

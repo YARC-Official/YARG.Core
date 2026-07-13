@@ -8,6 +8,8 @@ namespace YARG.Core.Engine.Guitar.Engines
 {
     public class YargFiveFretGuitarEngine : GuitarEngine
     {
+        protected override int WildcardMask => 1 << ((int)FiveFretGuitarFret.Wildcard - 1);
+
         public YargFiveFretGuitarEngine(InstrumentDifficulty<GuitarNote> chart, SyncTrack syncTrack,
             GuitarEngineParameters engineParameters, bool isBot)
             : base(chart, syncTrack, engineParameters, isBot)
@@ -636,7 +638,7 @@ namespace YARG.Core.Engine.Guitar.Engines
                 Notes[NoteIndex].IsLaneStart && // That note is a lane start
                 Notes[NoteIndex].IsTrill && // That lane is a trill
                 Notes[NoteIndex].Time - CurrentTime < EngineParameters.HitWindow.LaneProximityProtectionWindow && // That trill is starting soon
-                LaneIncludesNote(inputNote, Notes[NoteIndex]) // That lane would accept this input
+                LaneIncludesInputNote(inputNote, Notes[NoteIndex]) // That trill includes the fretted note
             )
             {
                 return true;
@@ -647,7 +649,7 @@ namespace YARG.Core.Engine.Guitar.Engines
                 Notes[NoteIndex - 1].IsLaneEnd && // That note was a lane end
                 Notes[NoteIndex - 1].IsTrill && // That lane was a trill
                 CurrentTime - Notes[NoteIndex - 1].Time < EngineParameters.HitWindow.LaneProximityProtectionWindow && // That trill ended recently
-                LaneIncludesNote(inputNote, Notes[NoteIndex - 1]) // That lane would have accepted this input
+                LaneIncludesInputNote(inputNote, Notes[NoteIndex - 1]) // That trill included the fretted note
             );
         }
     }

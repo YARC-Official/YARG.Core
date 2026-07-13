@@ -2,6 +2,8 @@
 using System.Collections.Generic;
 using MoonscraperChartEditor.Song;
 using MoonscraperChartEditor.Song.IO;
+using YARG.Core.Extensions;
+using YARG.Core.Logging;
 using YARG.Core.Parsing;
 using static MoonscraperChartEditor.Song.MoonNote;
 
@@ -10,12 +12,6 @@ namespace YARG.Core.Chart
     internal partial class MoonSongLoader : ISongLoader
     {
         private bool _discoFlip = false;
-
-        private uint _lastLanePhraseTick;
-        private List<int>? _validLaneNotes = null;
-
-        // Used to wipe lane markers from Beginner
-        private const NoteFlags NO_LANE_FLAGS = ~(NoteFlags.LaneStart | NoteFlags.LaneEnd | NoteFlags.Tremolo | NoteFlags.Trill);
 
         public InstrumentTrack<DrumNote> LoadDrumsTrack(Instrument instrument, InstrumentTrack<EliteDrumNote>? eliteDrumsFallback)
         {
@@ -36,12 +32,12 @@ namespace YARG.Core.Chart
 
             var difficulties = new Dictionary<Difficulty, InstrumentDifficulty<DrumNote>>()
             {
-                { Difficulty.Beginner, LoadDifficulty(instrument, Difficulty.Beginner, beginnerNoteDelegate, HandleTextEvent) },
-                { Difficulty.Easy, LoadDifficulty(instrument, Difficulty.Easy, createNote, HandleTextEvent) },
-                { Difficulty.Medium, LoadDifficulty(instrument, Difficulty.Medium, createNote, HandleTextEvent) },
-                { Difficulty.Hard, LoadDifficulty(instrument, Difficulty.Hard, createNote, HandleTextEvent) },
-                { Difficulty.Expert, LoadDifficulty(instrument, Difficulty.Expert, createNote, HandleTextEvent) },
-                { Difficulty.ExpertPlus, LoadDifficulty(instrument, Difficulty.ExpertPlus, createNote, HandleTextEvent) },
+                { Difficulty.Beginner, LoadDifficulty(instrument, Difficulty.Beginner, beginnerNoteDelegate, HandleTextEvent, finalPassDelegate: DrumsFinalPass) },
+                { Difficulty.Easy, LoadDifficulty(instrument, Difficulty.Easy, createNote, HandleTextEvent, finalPassDelegate: DrumsFinalPass) },
+                { Difficulty.Medium, LoadDifficulty(instrument, Difficulty.Medium, createNote, HandleTextEvent, finalPassDelegate: DrumsFinalPass) },
+                { Difficulty.Hard, LoadDifficulty(instrument, Difficulty.Hard, createNote, HandleTextEvent, finalPassDelegate: DrumsFinalPass) },
+                { Difficulty.Expert, LoadDifficulty(instrument, Difficulty.Expert, createNote, HandleTextEvent, finalPassDelegate: DrumsFinalPass) },
+                { Difficulty.ExpertPlus, LoadDifficulty(instrument, Difficulty.ExpertPlus, createNote, HandleTextEvent, finalPassDelegate: DrumsFinalPass) },
             };
 
             foreach (var difficulty in difficulties)
@@ -78,13 +74,49 @@ namespace YARG.Core.Chart
             return new(instrument, difficulties, GetAnimationTrack(instrument));
         }
 
+        // "Hand chords" are ineligible for drum trills, but chords consisting of one hand gem and a kick are eligible
+        private static bool IsEligibleForDrumTrill(MoonNote moonNote)
+        {
+            var numberOfHandGems = 0;
+            var currentNote = moonNote;
+
+            while (currentNote is not null && currentNote.tick == moonNote.tick)
+            {
+                if (currentNote.drumPad is not DrumPad.Kick)
+                {
+                    numberOfHandGems++;
+                    if (numberOfHandGems > 1)
+                    {
+                        return false;
+                    }
+                }
+                currentNote = currentNote.previous;
+            }
+
+            currentNote = moonNote.next;
+
+            while (currentNote is not null && currentNote.tick == moonNote.tick)
+            {
+                if (currentNote.drumPad is not DrumPad.Kick)
+                {
+                    numberOfHandGems++;
+                    if (numberOfHandGems > 1)
+                    {
+                        return false;
+                    }
+                }
+                currentNote = currentNote.next;
+            }
+
+            return true;
+        }
+
         private DrumNote CreateFourLaneDrumNote(MoonNote moonNote, Dictionary<MoonPhrase.Type, MoonPhrase> currentPhrases, List<DrumNote> notes)
         {
             var pad = GetFourLaneDrumPad(moonNote);
             var noteType = GetDrumNoteType(moonNote);
 
-            var generalFlags = GetGeneralFlags(moonNote, currentPhrases);
-            generalFlags = ModifyDrumLaneFlags(moonNote, currentPhrases, generalFlags, notes);
+            var generalFlags = GetGeneralFlags(moonNote, currentPhrases, IsEligibleForDrumTrill);
 
             var drumFlags = GetDrumNoteFlags(moonNote, currentPhrases);
 
@@ -100,8 +132,7 @@ namespace YARG.Core.Chart
             var pad = GetFiveLaneDrumPad(moonNote);
             var noteType = GetDrumNoteType(moonNote);
 
-            var generalFlags = GetGeneralFlags(moonNote, currentPhrases);
-            generalFlags = ModifyDrumLaneFlags(moonNote, currentPhrases, generalFlags, notes);
+            var generalFlags = GetGeneralFlags(moonNote, currentPhrases, IsEligibleForDrumTrill);
 
             var drumFlags = GetDrumNoteFlags(moonNote, currentPhrases);
 
@@ -117,7 +148,15 @@ namespace YARG.Core.Chart
             const FourLaneDrumPad pad = FourLaneDrumPad.Wildcard;
             const DrumNoteType noteType = DrumNoteType.Neutral;
 
-            var generalFlags = GetGeneralFlags(moonNote, currentPhrases) & NO_LANE_FLAGS;
+            var generalFlags = GetGeneralFlags(moonNote, currentPhrases);
+
+            // Beginner is all the same note type, so trills become tremolos
+            if ((generalFlags & NoteFlags.Trill) != 0)
+            {
+                generalFlags &= ~NoteFlags.Trill;
+                generalFlags |= NoteFlags.Tremolo;
+            }
+
             var drumFlags = GetDrumNoteFlags(moonNote, currentPhrases);
 
             double time = _moonSong.TickToTime(moonNote.tick);
@@ -128,7 +167,15 @@ namespace YARG.Core.Chart
         {
             const FiveLaneDrumPad pad = FiveLaneDrumPad.Wildcard;
             const DrumNoteType noteType = DrumNoteType.Neutral;
-            var generalFlags = GetGeneralFlags(moonNote, currentPhrases) & NO_LANE_FLAGS;
+            var generalFlags = GetGeneralFlags(moonNote, currentPhrases);
+
+            // Beginner is all the same note type, so trills become tremolos
+            if ((generalFlags & NoteFlags.Trill) != 0)
+            {
+                generalFlags &= ~NoteFlags.Trill;
+                generalFlags |= NoteFlags.Tremolo;
+            }
+
             var drumFlags = GetDrumNoteFlags(moonNote, currentPhrases);
 
             double time = _moonSong.TickToTime(moonNote.tick);
@@ -400,130 +447,409 @@ namespace YARG.Core.Chart
             return new(instrument, difficulty, notes, phrases, textEvents);
         }
 
-        private NoteFlags ModifyDrumLaneFlags(MoonNote moonNote, Dictionary<MoonPhrase.Type, MoonPhrase> currentPhrases,
-            NoteFlags flags, List<DrumNote> notes)
+        private static void DrumsFinalPass(InstrumentDifficulty<DrumNote> chart)
         {
-            MoonPhrase? lanePhrase = null;
-            bool isTrill = false;
+            var noteIndex = 0;
 
-            if ((flags & NoteFlags.Tremolo) != 0)
+            // All we're here to do is assemble lane phrases, so if there aren't any notes or phrases, then we have nothing to do
+            if (chart.Phrases.Count == 0 || chart.Notes.Count == 0)
             {
-                currentPhrases.TryGetValue(MoonPhrase.Type.TremoloLane, out lanePhrase);
-            }
-            else if ((flags & NoteFlags.Trill) != 0)
-            {
-                currentPhrases.TryGetValue(MoonPhrase.Type.TrillLane, out lanePhrase);
-                isTrill = true;
+                return;
             }
 
-            if (lanePhrase == null)
-            {
-                return flags;
-            }
 
-            if (_validLaneNotes == null || lanePhrase.tick != _lastLanePhraseTick)
+            for (var phraseIndex = 0; phraseIndex < chart.Phrases.Count; phraseIndex++)
             {
-                _lastLanePhraseTick = lanePhrase.tick;
-                _validLaneNotes = GetValidLaneNotes(moonNote, lanePhrase, isTrill);
-            }
+                var phrase = chart.Phrases[phraseIndex];
 
-            if (!_validLaneNotes.Contains(moonNote.rawNote))
-            {
-                // Fix up lane end since we're going to nuke it
-                if ((flags & NoteFlags.LaneEnd) != 0 && notes.Count > 0)
+                if (phrase.Type is not (PhraseType.TremoloLane or PhraseType.TrillLane))
                 {
-                    foreach (var child in notes[^1].AllNotes)
-                    {
-                        if (child.IsLane)
+                    continue;
+                }
+                
+
+                var notesInPhrase = GetNotesInLanePhrase(chart.Phrases, phraseIndex, chart.Notes, noteIndex, out noteIndex);
+
+                var fourLane = chart.Instrument is Instrument.FourLaneDrums or Instrument.ProDrums;
+
+                List<DrumNote> laneNotes;
+
+                switch (phrase.Type)
+                {
+                    case PhraseType.TremoloLane:
+                        laneNotes = GetDrumTremoloNotes(notesInPhrase, fourLane);
+                        break;
+                    case PhraseType.TrillLane:
+                        if (chart.Difficulty is Difficulty.Beginner)
                         {
-                            child.ActivateFlag(NoteFlags.LaneEnd);
+                            laneNotes = GetDrumTremoloNotes(notesInPhrase, fourLane);
+                        }
+                        else
+                        {
+                            laneNotes = GetDrumTrillNotes(notesInPhrase, fourLane);
+                        }
+                        break;
+                    default:
+                        throw new ArgumentOutOfRangeException("Unreachable.");
+                }
+
+                if (laneNotes.Count > 0)
+                {
+                    laneNotes[0].ActivateFlag(NoteFlags.LaneStart);
+                    laneNotes[^1].ActivateFlag(NoteFlags.LaneEnd);
+                }
+            }
+        }
+
+        // Takes all notes that are supposedly inside a drum tremolo phrase and validates them.
+        // Activates the Tremolo flag for all notes in the phrase that constitute a valid tremolo
+        //   -For a well-formed chart, this will be all of them
+        //   -If the chart is malformed, the tremolo might terminate earlier than the supposed end of the phrase or be invalidated altogether
+        // Returns the list of all marked notes. DrumsFinalPass will assign the LaneStart and LaneEnd flags (shared behavior with trills)
+        private static List<DrumNote> GetDrumTremoloNotes(List<DrumNote> notesInPhrase, bool fourLane)
+        {
+            List<DrumNote> tremoloNotes = new();
+
+            // First we need to know which pad is getting the tremolo. If the tremolo turns out to be invalid, this will be null
+            var tremoloPad = GetDrumTremoloPad(notesInPhrase, fourLane);
+
+            if (tremoloPad is not null)
+            {
+                // If this is a 4L format, we'll need to watch out for a same-color counterpart (tom vs. cymbal) and either prematurely terminate
+                // the tremolo or invalidate it altogether
+                int? counterpart = fourLane ? (int?) ((FourLaneDrumPad) tremoloPad).OtherPadOfSameColor() : null;
+
+                for (var i = 0; i < notesInPhrase.Count; i++)
+                {
+                    var note = notesInPhrase[i];
+
+                    foreach (var child in note.AllNotes)
+                    {
+                        if (counterpart is not null && child.Pad == counterpart)
+                        {
+                            // Uh-oh, we hit the tremolo pad's same-color counterpart. Terminate early
+                            return tremoloNotes;
+                        }
+
+                        if (child.Pad == tremoloPad)
+                        {
+                            child.ActivateFlag(NoteFlags.Tremolo);
+                            tremoloNotes.Add(child);
+                        }
+                    }
+                }
+            }
+
+            return tremoloNotes;
+        }
+
+
+        // If a tremolo phrase starts on a single non-kick pad (optionally paired with a kick), then it's a tremolo for that pad as long as that pad reoccurs at least once in the phrase.
+        // It's okay if other notes of different colors happen later in the phrase, whether they're chorded with the laned pad or not
+        // If the other pad of the same color (tom vs. cymbal) occurs, the tremolo is terminated at that point. It's still a valid tremolo up to that point as long as it contains at least 2 valid notes
+        // If the starting note never reoccurs for the duration of the tremolo, the tremolo isn't valid
+        //
+        // If a tremolo phrase starts on a chord (ignoring kicks), it can only be a lane for one pad in the chord
+        // Of the pads in the starting chord, the one that gets laned is whichever one reoccurs first
+        // If multiple pads from the starting chord reoccur simultaneously, that doesn't count; keep looking for the first unambiguous reoccurence
+        // If no starting chord pad ever reoccurs unambiguously in the tremolo, the tremolo isn't valid
+        //
+        // If a tremolo phrase starts on a lone kick, it isn't valid
+        private static int? GetDrumTremoloPad(
+            List<DrumNote> notesInPhrase,
+            bool fourLane // If this is a 4L format, then we need to run some extra checks regarding same-color counterparts
+        )
+        {
+            var kick = fourLane ? (int) FourLaneDrumPad.Kick : (int) FiveLaneDrumPad.Kick;
+
+            // A tremolo must encompass at least two hits to be valid
+            if (notesInPhrase.Count < 2)
+            {
+                return null;
+            }
+
+            // Get a list of pads that this tremolo might be
+            List<int> candidatePads = new();
+            foreach (var child in notesInPhrase[0].AllNotes)
+            {
+                if (child.Pad != kick) // Kicks can't form tremolo lanes
+                {
+                    candidatePads.Add(child.Pad);
+                }
+            }
+
+            // If there is only one candidate pad, then all we need to do is verify these two things:
+            //   -The pad reoccurs at least once in the phrase
+            //   -If the pad has a same-color counterpart, that counterpart does not occur earlier than the first reocurrence of the candidate pad
+            if (candidatePads.Count == 1)
+            {
+                var otherPadOfSameColor = fourLane ? ((FourLaneDrumPad) candidatePads[0]).OtherPadOfSameColor() : null;
+
+                // Check all subsequent notes for a reoccurence of the candidate pad
+                for (var i = 1; i < notesInPhrase.Count; i++)
+                {
+                    foreach (var child in notesInPhrase[i].AllNotes)
+                    {
+                        if (otherPadOfSameColor is not null && (int)otherPadOfSameColor == child.Pad)
+                        {
+                            // The other pad of the same color reoccurred before the candidate did, so this is not a valid tremolo
+                            return null;
+                        }
+
+                        if (candidatePads[0] == child.Pad)
+                        {
+                            // The pad reoccurred, so this is a valid tremolo of that pad
+                            return candidatePads[0];
                         }
                     }
                 }
 
-                flags &= ~NoteFlags.Tremolo;
-                flags &= ~NoteFlags.Trill;
-                flags &= ~NoteFlags.LaneStart;
-                flags &= ~NoteFlags.LaneEnd;
+                return null; // The pad never reoccurred, so this is not a valid tremolo
             }
 
-            return flags;
-
-            static List<int> GetValidLaneNotes(MoonNote moonNote, MoonPhrase lanePhrase, bool isTrill)
+            // If there are multiple candidate pads, then we want to give the tremolo to the first one of them to reoccur
+            // If a pad's same-pad-of-other-color happens before this is determined, that pad is out of the running
+            else if (candidatePads.Count > 1)
             {
-                // Iterate forward every note in this phrase to find the notes that appear the most
-                // Assumes that this will only run when the first note in a phrase is provided
-                Dictionary<int,int> noteTotals = new();
-
-                // Stop searching if the current note value has this much of a lead over the others
-                const int CLINCH_THRESHOLD = 5;
-                int highestTotal = 0;
-
-                for (var noteRef = moonNote; noteRef != null && IsEventInPhrase(noteRef, lanePhrase, inclusiveEnd: true); noteRef = noteRef.next)
+                // Check all subsequent notes for a reoccurence of exactly one candidate pad
+                for (var i = 1; i < notesInPhrase.Count; i++)
                 {
-                    if (noteRef.drumPad == MoonNote.DrumPad.Kick)
+                    List<int> repeatedCandidatePads = new();
+                    foreach (var child in notesInPhrase[i].AllNotes)
                     {
-                        // Don't allow kick lanes
-                        continue;
-                    }
-
-                    int thisNote = noteRef.rawNote;
-
-                    int thisTotal;
-                    if (noteTotals.ContainsKey(thisNote))
-                    {
-                        thisTotal = ++noteTotals[thisNote];
-                    }
-                    else
-                    {
-                        thisTotal = noteTotals[thisNote] = 1;
-                    }
-
-                    if (thisTotal <= highestTotal)
-                    {
-                        continue;
-                    }
-
-                    highestTotal = thisTotal;
-
-                    if (thisTotal >= CLINCH_THRESHOLD)
-                    {
-                        bool stopSearching = true;
-                        foreach(var (otherNote, otherTotal) in noteTotals)
+                        if (candidatePads.Contains(child.Pad))
                         {
-                            if (otherNote == thisNote)
+                            repeatedCandidatePads.Add(child.Pad);
+                        }
+                        else if (fourLane)
+                        {
+                            var otherPadOfSameColor = ((FourLaneDrumPad) child.Pad).OtherPadOfSameColor();
+                            if (otherPadOfSameColor is not null)
                             {
-                                continue;
-                            }
-
-                            if (thisTotal - otherTotal < CLINCH_THRESHOLD)
-                            {
-                                stopSearching = false;
-                                break;
+                                // Remove same-color counterparts from the running
+                                // For example, if Ycym is one of our candidates, but we just found a Ytom, then we know that Ycym isn't
+                                // going to be the lane
+                                candidatePads.Remove((int)otherPadOfSameColor);
                             }
                         }
+                    }
 
-                        if (stopSearching)
+                    if (repeatedCandidatePads.Count == 1)
+                    {
+                        // A candidate pad has reoccurred without any other candidate pads on the same tick; that's the tremolo
+                        return repeatedCandidatePads[0];
+                    }
+                }
+
+                return null; // No single candidate pad ever reoccurred, so this is not a valid tremolo
+            }
+
+            return null; // There were no candidate pads, presumably because this tremolo started on a lone kick. Not a valid tremolo
+        }
+
+
+        // A drum trill must alternate strictly between two single pads of different colors, ignoring kicks. See the comment on GetDrumTrillPads
+        // for more information on what constitutes a valid trill.
+        //
+        // Assuming a trill is valid, then it lasts until the end of the phrase marker, until a non-trill pad (besides kicks) occurs, or
+        // until the trill repeats the same pad twice instead of strictly alternating, whichever comes first.
+        //
+        // Drum trills do not support "gravity blast"-style unlaned notes (besides kicks) in the way that drum tremolos do. Any unlaned non-kick note
+        // terminates the trill immediately, regardless of whether it's chorded with a lane note.
+        private static List<DrumNote> GetDrumTrillNotes(List<DrumNote> notesInPhrase, bool fourLane)
+        {
+            var kick = fourLane ? (int) FourLaneDrumPad.Kick : (int) FiveLaneDrumPad.Kick;
+
+            List<DrumNote> trillNotes = new();
+            var trillPads = GetDrumTrillPads(notesInPhrase, fourLane);
+
+            if (trillPads is not null)
+            {
+                var trillPad1 = trillPads.Value.pad1;
+                var trillPad2 = trillPads.Value.pad2;
+
+                foreach (var note in notesInPhrase)
+                {
+                    foreach (var child in note.AllNotes)
+                    {
+                        if (child.Pad == kick)
                         {
-                            // Safe to say this is the only laned note a tremolo phrase
+                            // Ignore kicks
+                            continue;
+                        }
+
+                        if (child.Pad != trillPad1 && child.Pad != trillPad2)
+                        {
+                            // This is not a valid part of the trill, so we're terminating early
+                            return trillNotes;
+                        }
+
+                        if (trillNotes.Count > 0 && child.Pad == trillNotes[^1].Pad)
+                        {
+                            // Repeating the same trill note twice is invalid, so we're terminating early
+                            return trillNotes;
+                        }
+                    }
+
+                    // We didn't terminate early, so this hit is part of the trill. We're going to add it to the trill notes,
+                    // although there could still be a kick here, so we need to iterate again (over a maximum of 2 notes) to
+                    // avoid flagging it if so
+                    foreach (var child in note.AllNotes)
+                    {
+                        if (child.Pad != kick)
+                        {
+                            child.ActivateFlag(NoteFlags.Trill);
+                            trillNotes.Add(child);
                             break;
                         }
                     }
                 }
+            }
 
-                int validNoteTotal = isTrill ? highestTotal - 2 : highestTotal;
-                List<int> validTremoloNotes = new();
+            return trillNotes;
+        }
 
-                foreach (var (note, total) in noteTotals)
+
+        // A drum trill phrase is defined by exactly two alternating pads. Those pads must be different colors (e.g. no Gtom+Gcym trills)
+        //
+        // The first hit of the trill phrase must be a single pad (optionally paired with a kick, but it cannot be a lone kick)
+        //
+        // The second non-kick hit of the trill phrase must be a different single pad of a different color (it can be paired with
+        // a kick, and there can also be kicks between the first and second trill notes)
+        //
+        // The third non-kick hit of the trill must be the same single pad as the first (again, optionally paired with a kick, and
+        // there can be interposed kicks as well)
+        //
+        // If all of those conditions are not met, then this trill is valid for those pads. Otherwise, the trill is not valid.
+        private static (int pad1, int pad2)? GetDrumTrillPads(List<DrumNote> notesInPhrase, bool fourLane)
+        {
+            var kick = fourLane ? (int) FourLaneDrumPad.Kick : (int) FiveLaneDrumPad.Kick;
+
+            // A tremolo must encompass at least three hits to be legitimate
+            if (notesInPhrase.Count < 3)
+            {
+                return null;
+            }
+
+            int? pad1 = null;
+
+            // The first note of the phrase must have exactly one non-kick gem (optionally paired with a kick)
+            foreach (var child in notesInPhrase[0].AllNotes)
+            {
+                if (child.Pad == kick)
                 {
-                    if (total >= validNoteTotal)
+                    continue;
+                }
+
+                if (pad1 is not null)
+                {
+                    // We already found a non-kick pad, so this is a hand chord; not a valid trill
+                    return null;
+                }
+
+                pad1 = child.Pad;
+            }
+
+            if (pad1 is null)
+            {
+                // We didn't find a valid first pad (presumably because the phrase started on a lone kick), so this is not a valid trill
+                return null;
+            }
+
+            // So far so good; time to find the second pad
+            int? pad2 = null;
+
+            var noteRef = notesInPhrase[1]; // It's probably here, but this might be a lone kick, in which case we need to keep going forward
+
+            // Iterate until we find something other than a lone kick
+            while (noteRef is not null && pad2 is null)
+            {
+                if (noteRef.NextNote is null)
+                {
+                    // We still need a third note for the trill to be legitimate, so if there's no next note, we're already done
+                    return null;
+                }
+
+                if (!noteRef.IsChord && noteRef.Pad == kick)
+                {
+                    // If this is a lone kick, move on
+                    noteRef = noteRef.NextNote;
+                    continue;
+                }
+
+                // We found our first hit that isn't a lone kick; this is where we're going to need to find our second trill pad
+                // If it's not here, this isn't a valid trill
+                foreach (var child in noteRef.AllNotes)
+                {
+                    if (child.Pad == kick)
                     {
-                        validTremoloNotes.Add(note);
+                        continue;
+                    }
+
+                    if (pad2 is not null)
+                    {
+                        // We already found a non-kick pad, so this is a hand chord; not a valid trill
+                        return null;
+                    }
+
+                    if (child.Pad == pad1)
+                    {
+                        // The phrase starts with two of the same pad in a row; not a valid trill
+                        return null;
+                    }
+
+                    if (fourLane && child.Pad == (int?) ((FourLaneDrumPad) pad1).OtherPadOfSameColor())
+                    {
+                        // The phrase starts with a tom and cymbal of the same color back-to-back (in either order); not a valid trill
+                        return null;
+                    }
+
+                    pad2 = child.Pad;
+                }
+            }
+
+            if (pad2 is null)
+            {
+                // We didn't find a valid second pad (presumably because the phrasae was nothing but kicks after the first hit), so this is not a valid trill
+                return null;
+            }
+
+            // We have two valid trill notes. We just need to make sure that the next non-lone-kick hit matches the first, and we have our pads
+            for (var i = 2; i < notesInPhrase.Count; i++)
+            {
+                noteRef = notesInPhrase[i];
+
+                if (!noteRef.IsChord && noteRef.Pad == kick)
+                {
+                    // This is a lone kick; move on
+                    continue;
+                }
+
+                // We found our first hit that isn't a lone kick; this is where we're going to need to find our second trill pad
+                foreach (var child in noteRef.AllNotes)
+                {
+                    if (child.Pad == kick)
+                    {
+                        continue;
+                    }
+
+                    if (child.Pad != pad1)
+                    {
+                        // We found a non-kick pad that doesn't match pad1; not a valid trill
+                        return null;
                     }
                 }
 
-                return validTremoloNotes;
+                // If we made it here, we know we have a valid third hit
+                //   -If there were a non-kick pad that didn't match pad1, we would have returned null in the previous if statement
+                //   -If there were only a kick pad, we would have continued the while loop in the first if statement
+                //   -Thus, the only possibilities are a lone pad that matches pad1, or that plus a kick
+                return (pad1.Value, pad2.Value);
             }
+
+            // If we're here, we never found a valid third hit (presumably because the phrase was nothing but kicks after the second
+            // pad); // not a valid trill
+            return null;
         }
     }
 }

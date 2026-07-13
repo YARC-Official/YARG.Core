@@ -28,11 +28,23 @@ namespace YARG.Core.Engine.Drums
 
         protected bool IsMidiDrumsInput;
 
+        protected override int WildcardMask => _wildcardMask;
+
+        private int _wildcardMask;
+
         protected DrumsEngine(InstrumentDifficulty<DrumNote> chart, SyncTrack syncTrack,
             DrumsEngineParameters engineParameters, bool isBot, bool isMidiDrumsInput)
             : base(chart, syncTrack, engineParameters, true, isBot)
         {
-            foreach(var note in Notes)
+            _wildcardMask = EngineParameters.Mode switch
+            {
+                DrumsEngineParameters.DrumMode.NonProFourLane or
+                DrumsEngineParameters.DrumMode.ProFourLane => (int) FourLaneDrumPad.Wildcard,
+                DrumsEngineParameters.DrumMode.FiveLane => (int) FiveLaneDrumPad.Wildcard,
+                _ => -1
+            };
+
+            foreach (var note in Notes)
             {
                 foreach(var all in note.AllNotes)
                 {
@@ -140,9 +152,18 @@ namespace YARG.Core.Engine.Drums
 
             note.SetHitState(true, false);
 
-            // Cancel the rest of hit logic during BRE phrase
-            if (IsCodaActive && note.IsBigRockEnding)
+            // Cancel the rest of hit logic during BRE phrase (no scoring/combo/star power),
+            // but still resolve any previous notes that were skipped. BRE gems can be hit
+            // out of order while mashing; without this the skipped gems stay unresolved and
+            // NoteIndex strands on an already-hit note, soft-locking the engine for the rest
+            // of the song.
+            // Key on CodaHasStarted, not IsCodaActive: a note is judged at its back-end time,
+            // which can fall after the coda's EndTime (where IsCodaActive is already false) for a
+            // finale charted exactly on the BRE-end tick. Such a note is IsBigRockEnding and is
+            // hidden by the BRE lanes, so it must be suppressed through the whole coda regardless.
+            if (CodaHasStarted && note.IsBigRockEnding)
             {
+                SkipPreviousNotes(note.ParentOrSelf);
                 base.HitNote(note);
                 return;
             }
@@ -311,10 +332,16 @@ namespace YARG.Core.Engine.Drums
                 return;
             }
 
-            // BRE notes can't be missed
-            if (IsCodaActive && note.IsBigRockEnding)
+            // BRE notes can't be missed during the coda. Key on CodaHasStarted (not IsCodaActive):
+            // the miss is judged at the back-end time, which for an end-tick finale falls after the
+            // coda's EndTime where IsCodaActive is already false — so keying on IsCodaActive would
+            // let the hidden finale be normal-missed and forfeit the BRE bonus.
+            if (CodaHasStarted && note.IsBigRockEnding)
             {
-                note.SetHitState(true, false);
+                // Resolve the whole chord (parent + children), matching GuitarEngine: a BRE
+                // finale is often a chord, and auto-resolving children removes any dependence on
+                // each sub-note being individually missed.
+                note.SetHitState(true, true);
                 base.HitNote(note);
                 return;
             }
@@ -558,5 +585,13 @@ namespace YARG.Core.Engine.Drums
         }
 
         protected override bool CanSustainHold(DrumNote note) => throw new InvalidOperationException();
+
+        protected override bool ProximalLaneForgivesInput(int inputNote, DrumNote laneNote)
+        {
+            var (requiredLaneNote, otherNoteInTrill) = GetLaneNotes(laneNote);
+            return inputNote == requiredLaneNote ||
+                (otherNoteInTrill != -1 && otherNoteInTrill == inputNote) ||
+                requiredLaneNote == WildcardMask;
+        }
     }
 }

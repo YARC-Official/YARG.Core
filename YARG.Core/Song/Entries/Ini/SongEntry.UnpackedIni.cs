@@ -120,10 +120,10 @@ namespace YARG.Core.Song
             return null;
         }
 
-        public override BackgroundResult? LoadBackground()
+        public override BackgroundResult? LoadBackground(bool excludeYarground = false)
         {
             var subFiles = GetSubFiles();
-            if (subFiles.TryGetValue("bg.yarground", out var file))
+            if (subFiles.TryGetValue("bg.yarground", out var file) && !excludeYarground)
             {
                 var stream = File.OpenRead(file);
                 return new BackgroundResult(BackgroundType.Yarground, stream);
@@ -161,6 +161,18 @@ namespace YARG.Core.Song
         #nullable disable
         public override FixedArray<byte> LoadMiloData()
         {
+            var subFiles = GetSubFiles();
+            foreach (var name in subFiles.Keys)
+            {
+                if (name.EndsWith(".milo_xbox") || name.EndsWith(".milo"))
+                {
+                    if (subFiles.TryGetValue(name, out var file) && File.Exists(file))
+                    {
+                        return FixedArray.LoadFile(file);
+                    }
+                }
+            }
+
             return null;
         }
 

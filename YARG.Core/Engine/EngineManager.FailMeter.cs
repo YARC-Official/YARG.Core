@@ -51,7 +51,13 @@ namespace YARG.Core.Engine
         /// <summary>
         /// The absolute minimum happiness value for a single player.
         /// </summary>
-        private const float HAPPINESS_MINIMUM               = -3f;
+        private const float HAPPINESS_MINIMUM               = 0f;
+
+        /// <summary>
+        /// The amount per second happiness is lost when a player has failed.
+        /// TODO: It might be better if this were based on the BPM of the song
+        /// </summary>
+        private const float HAPPINESS_FAIL_LOSS             = 0.05f;
 
         public  float Happiness => GetAverageHappiness();
 
@@ -62,29 +68,100 @@ namespace YARG.Core.Engine
 
         private int   _starpowerCount = 0;
 
+        private bool _playerFailed = false;
+
+        private float  _happinessAdjustment = 0f;
+        private double _lastUpdateTime      = 0;
+
+        private bool _noFail;
+
         public        bool IsAnyStarpowerActive => _starpowerCount > 0;
 
+        public delegate void PlayerFailed(int engineId);
+        public delegate void PlayerRevived();
         public delegate void SongFailed();
         public delegate void HappinessOverThreshold();
         public delegate void HappinessUnderThreshold();
 
+        public event PlayerFailed? OnPlayerFailed;
+        public event PlayerRevived? OnPlayerRevived;
         public event SongFailed? OnSongFailed;
         public event HappinessOverThreshold? OnHappinessOverThreshold;
         public event HappinessUnderThreshold? OnHappinessUnderThreshold;
 
-        public void InitializeHappiness()
+        public void InitializeHappiness(bool noFail)
         {
+            _noFail = noFail;
+            _playerFailed = false;
             foreach (var container in _allEngines)
             {
                 container.ResetHappiness();
+                container.SetNoFail(noFail);
             }
 
             UpdateHappiness();
         }
 
+        public void NoFailChanged(bool noFail)
+        {
+            _noFail = noFail;
+            foreach (var container in _allEngines)
+            {
+                container.SetNoFail(noFail);
+            }
+
+            if (noFail && _playerFailed)
+            {
+                _playerFailed = false;
+                _happinessAdjustment = 0f;
+            }
+        }
+
+        // Slight misnomer since all players are revived, not just one
+        public void RevivePlayer()
+        {
+            _playerFailed = false;
+            _happinessAdjustment = 0f;
+            foreach (var engine in _allEngines)
+            {
+                engine.RevivePlayer();
+            }
+
+            OnPlayerRevived?.Invoke();
+        }
+
         private bool UpdateHappiness()
         {
-            if (Happiness < HAPPINESS_FAIL_THRESHOLD)
+            double currentTime = _lastUpdateTime;
+            // Get current engine time
+            foreach (var engine in Engines)
+            {
+                if (engine.Engine.CurrentTime > _lastUpdateTime)
+                {
+                    currentTime = engine.Engine.CurrentTime;
+                }
+            }
+
+            if (!_noFail)
+            {
+                foreach (var engine in Engines)
+                {
+                    if (engine.Happiness <= HAPPINESS_FAIL_THRESHOLD)
+                    {
+                        _playerFailed = true;
+                        OnPlayerFailed?.Invoke(engine.EngineId);
+                    }
+                }
+            }
+
+            if (_playerFailed && !_noFail)
+            {
+                _happinessAdjustment += (float) (HAPPINESS_FAIL_LOSS * (currentTime - _lastUpdateTime));
+            }
+
+            _lastUpdateTime = currentTime;
+
+            if (Happiness <= HAPPINESS_FAIL_THRESHOLD && !_noFail)
             {
                 OnSongFailed?.Invoke();
                 return true;
@@ -106,17 +183,20 @@ namespace YARG.Core.Engine
             return false;
         }
 
-        private float GetLowestHappiniess()
+        public EngineContainer? GetLowestHappiness()
         {
             float happiness = 1.0f;
+            EngineContainer? lowestHappiness = null;
             foreach (var engine in _allEngines)
             {
                 if (engine.Happiness < happiness)
                 {
                     happiness = engine.Happiness;
+                    lowestHappiness = engine;
                 }
             }
-            return happiness;
+
+            return lowestHappiness;
         }
 
         private float GetAverageHappiness()
@@ -127,15 +207,37 @@ namespace YARG.Core.Engine
                 happiness += engine.Happiness;
             }
 
-            return happiness / _allEngines.Count;
+            return (happiness / _allEngines.Count) - _happinessAdjustment;
         }
 
         public partial class EngineContainer
         {
-            public float Happiness { get; private set; } = 0.0f;
+            private const float HAPPINESS_NEAR_FAIL_THRESHOLD = 0.333f;
+            public        float Happiness { get; private set; } = 0.0f;
+            private       bool  _nearFail         = false;
+            private       bool  _thisPlayerFailed = false;
+
+            private bool _noFail;
+
+            // Delegates and events
+            public delegate void HappinessNearFailEvent();
+            public delegate void HappinessOverFailEvent();
+
+            public event HappinessNearFailEvent? OnHappinessNearFail;
+            public event HappinessOverFailEvent? OnHappinessOverFail;
+
+            public void SetNoFail(bool noFail)
+            {
+                _noFail = noFail;
+                if (noFail && _thisPlayerFailed)
+                {
+                    RevivePlayer();
+                }
+            }
 
             public void ResetHappiness()
             {
+                _thisPlayerFailed = false;
                 Happiness = RockMeterPreset.StartingHappiness;
             }
 
@@ -201,14 +303,72 @@ namespace YARG.Core.Engine
 
             private void OnKeysOverhit(int key) => OnOverstrum();
 
+            public void RevivePlayer()
+            {
+                if (_thisPlayerFailed)
+                {
+                    Happiness = 0.5f;
+                }
+
+                Engine.PlayerHasRevived();
+
+                if (!_nearFail)
+                {
+                    OnHappinessOverFail?.Invoke();
+                }
+
+                _thisPlayerFailed = false;
+            }
+
+            public void PlayerHasFailed(int engineId)
+            {
+                if (_noFail)
+                {
+                    return;
+                }
+
+                if (engineId == EngineId)
+                {
+                    _thisPlayerFailed = true;
+                }
+
+                Engine.PlayerHasFailed();
+                OnHappinessNearFail?.Invoke();
+            }
+
             private void AddHappiness(float delta)
             {
                 Happiness = Math.Clamp(Happiness + delta, HAPPINESS_MINIMUM, 1f);
+                if (Happiness < HAPPINESS_NEAR_FAIL_THRESHOLD && !_nearFail)
+                {
+                    _nearFail = true;
+                    if (!_noFail)
+                    {
+                        OnHappinessNearFail?.Invoke();
+                    }
+                }
+                else if (Happiness >= HAPPINESS_NEAR_FAIL_THRESHOLD && _nearFail)
+                {
+                    _nearFail = false;
+                    // This is not gated behind _noFail being false because we want to always allow transitions
+                    // away from fail in case no fail has been turned on
+                    OnHappinessOverFail?.Invoke();
+                }
 
                 _engineManager.UpdateHappiness();
             }
 
-            private void SubscribeToEngineEvents()
+            private void OnPlayerFailedReceived(int engineId)
+            {
+                PlayerHasFailed(engineId);
+            }
+
+            private void OnPlayerRevivedReceived()
+            {
+                _engineManager.RevivePlayer();
+            }
+
+            private void SubscribeToEvents()
             {
                 // Subscribe to OnNoteHit and OnNoteMissed events
                 if (Engine is BaseEngine<GuitarNote,GuitarEngineParameters,GuitarStats> guitarEngine)
@@ -253,6 +413,9 @@ namespace YARG.Core.Engine
                     vocalsEngine.OnPhraseHit += OnVocalPhraseHit;
                     vocalsEngine.OnStarPowerStatus += OnStarPowerStatus;
                 }
+
+                _engineManager.OnPlayerFailed += OnPlayerFailedReceived;
+                Engine.OnPlayerRevived += OnPlayerRevivedReceived;
             }
         }
     }

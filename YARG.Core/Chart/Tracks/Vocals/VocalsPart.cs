@@ -119,7 +119,10 @@ namespace YARG.Core.Chart
 
         public InstrumentDifficulty<VocalNote> CloneAsInstrumentDifficulty()
         {
-            var vocalNotes = NotePhrases.Select(i => i.PhraseParentNote).ToList();
+            // Deep-clone the phrase notes: multiple players can sing the same part, and
+            // each engine mutates hit/miss state on its notes. Sharing instances would
+            // leak one player's hit/miss state into every other engine on this part.
+            var vocalNotes = NotePhrases.Select(i => i.PhraseParentNote.Clone()).ToList();
             var instrument = IsHarmony ? Instrument.Harmony : Instrument.Vocals;
 
             var diff = new InstrumentDifficulty<VocalNote>(instrument, Difficulty.Expert,
@@ -135,10 +138,40 @@ namespace YARG.Core.Chart
 
         public void TrimToTickRange(uint tickStart, uint tickEnd)
         {
-            NotePhrases.RemoveAll(n => n.Tick < tickStart || n.Tick >= tickEnd);
-            StaticLyricPhrases.RemoveAll(n => n.Tick < tickStart || n.Tick >= tickEnd);
-            OtherPhrases.RemoveAll(n => n.Tick < tickStart || n.Tick >= tickEnd);
-            TextEvents.RemoveAll(n => n.Tick < tickStart || n.Tick >= tickEnd);
+            NotePhrases.RemoveAll(phrase => !IsVocalPhraseInTickRange(phrase, tickStart, tickEnd));
+            StaticLyricPhrases.RemoveAll(phrase => !IsVocalPhraseInTickRange(phrase, tickStart, tickEnd));
+            OtherPhrases.RemoveAll(phrase => !IsTickInRange(phrase.Tick, tickStart, tickEnd));
+            TextEvents.RemoveAll(text => !IsTickInRange(text.Tick, tickStart, tickEnd));
+        }
+
+        private static bool IsVocalPhraseInTickRange(VocalsPhrase phrase, uint tickStart, uint tickEnd)
+        {
+            if (IsTickInRange(phrase.Tick, tickStart, tickEnd))
+            {
+                return true;
+            }
+
+            if (phrase.PhraseParentNote.ChildNotes.Count == 0 && phrase.Lyrics.Count == 0)
+            {
+                return false;
+            }
+
+            if (phrase.PhraseParentNote.ChildNotes.Any(note => !IsNoteInRange(note, tickStart, tickEnd)))
+            {
+                return false;
+            }
+
+            return phrase.Lyrics.All(lyric => IsTickInRange(lyric.Tick, tickStart, tickEnd));
+        }
+
+        private static bool IsNoteInRange(VocalNote note, uint tickStart, uint tickEnd)
+        {
+            return note.Tick >= tickStart && note.TotalTickEnd <= tickEnd;
+        }
+
+        private static bool IsTickInRange(uint tick, uint tickStart, uint tickEnd)
+        {
+            return tick >= tickStart && tick < tickEnd;
         }
     }
 }

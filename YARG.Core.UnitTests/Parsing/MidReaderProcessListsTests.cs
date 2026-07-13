@@ -155,8 +155,8 @@ public class MidReaderProcessListsTests
         var red = MidIOHelper.DRUMS_DIFF_START_LOOKUP[Difficulty.Expert] + 1;
         var midi = MakeMidi(
             MakeEventsTrack(
-                Text(50, $"[{MidIOHelper.CODA_START}]"),
-                Text(250, $"[{MidIOHelper.CODA_END}]")),
+                Text(50, $"[{MidIOHelper.MIDCODA_START}]"),
+                Text(250, $"[{MidIOHelper.MIDCODA_END}]")),
             MakeTrack(MidIOHelper.DRUMS_TRACK,
                 Note(40, 45, red),
                 Note(100, 105, red),
@@ -223,10 +223,10 @@ public class MidReaderProcessListsTests
     public void GetCodaRanges_ReturnsBalancedRanges()
     {
         var song = new MoonSong((uint) Resolution);
-        song.InsertText(new MoonText(MidIOHelper.CODA_START, 50));
-        song.InsertText(new MoonText(MidIOHelper.CODA_END, 100));
-        song.InsertText(new MoonText(MidIOHelper.CODA_START, 150));
-        song.InsertText(new MoonText(MidIOHelper.CODA_END, 250));
+        song.InsertText(new MoonText(MidIOHelper.MIDCODA_START, 50));
+        song.InsertText(new MoonText(MidIOHelper.MIDCODA_END, 100));
+        song.InsertText(new MoonText(MidIOHelper.MIDCODA_START, 150));
+        song.InsertText(new MoonText(MidIOHelper.MIDCODA_END, 250));
 
         var ranges = MidReader.GetCodaRanges(song);
 
