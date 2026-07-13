@@ -116,7 +116,9 @@ public class FiveFretDownchartGeneratorTests
     [Test]
     public void SongChartFromMidi_GeneratesMissingDifficulties()
     {
-        var chart = SongChart.FromMidi(ParseSettings.Default_Midi, MakeExpertMidi());
+        var settings = ParseSettings.Default_Midi;
+        settings.DownchartGeneration = DownchartGenerationMode.MissingDifficulties;
+        var chart = SongChart.FromMidi(settings, MakeExpertMidi());
 
         using (Assert.EnterMultipleScope())
         {
@@ -125,6 +127,20 @@ public class FiveFretDownchartGeneratorTests
             Assert.That(chart.FiveFretGuitar.GetDifficulty(Difficulty.Medium).IsGenerated, Is.True);
             Assert.That(chart.FiveFretGuitar.GetDifficulty(Difficulty.Easy).IsGenerated, Is.True);
             Assert.That(chart.FiveFretGuitar.GetDifficulty(Difficulty.Beginner).Notes, Is.Empty);
+        }
+    }
+
+    [Test]
+    public void SongChartFromMidi_DoesNotGenerateDifficultiesByDefault()
+    {
+        var chart = SongChart.FromMidi(ParseSettings.Default_Midi, MakeExpertMidi());
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(chart.FiveFretGuitar.GetDifficulty(Difficulty.Expert).Notes, Is.Not.Empty);
+            Assert.That(chart.FiveFretGuitar.GetDifficulty(Difficulty.Hard).Notes, Is.Empty);
+            Assert.That(chart.FiveFretGuitar.GetDifficulty(Difficulty.Medium).Notes, Is.Empty);
+            Assert.That(chart.FiveFretGuitar.GetDifficulty(Difficulty.Easy).Notes, Is.Empty);
         }
     }
 

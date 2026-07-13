@@ -84,6 +84,7 @@ namespace YARG.Core.Chart.AutoGeneration
                 {
                     if (!options.ReplaceExisting &&
                         instrumentTrack.TryGetDifficulty(target, out var existing) &&
+                        existing.Notes.Count > 0 &&
                         !existing.IsGenerated)
                     {
                         skippedCount++;
