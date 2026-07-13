@@ -260,7 +260,7 @@ namespace YARG.Core.Audio
             {
                 if (_instance == null)
                 {
-                    throw new NotInitializedException();
+                    return;
                 }
                 _instance.SfxSamples[(int) sample]?.Stop(duration);
             }
