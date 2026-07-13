@@ -8,7 +8,12 @@ using YARG.Core.Utility;
 
 namespace YARG.Core.Engine
 {
-    public abstract class BaseEngine<TNoteType, TEngineParams, TEngineStats> : BaseEngine
+    public interface ISongSkippingEngine
+    {
+        void SkipToEnd(double time);
+    }
+
+    public abstract class BaseEngine<TNoteType, TEngineParams, TEngineStats> : BaseEngine, ISongSkippingEngine
         where TNoteType : Note<TNoteType>
         where TEngineParams : BaseEngineParameters
         where TEngineStats : BaseStats, new()
@@ -764,6 +769,29 @@ namespace YARG.Core.Engine
             }
 
             return skipped;
+        }
+
+        public void SkipToEnd(double time)
+        {
+            while (true)
+            {
+                int previousNoteIndex = NoteIndex;
+                Update(time);
+
+                if (NoteIndex >= Notes.Count)
+                {
+                    break;
+                }
+
+                // Most instruments resolve every remaining note in one update. Vocals
+                // resolve one phrase at a time, so continue until they are all resolved.
+                if (NoteIndex == previousNoteIndex)
+                {
+                    YargLogger.LogFormatWarning(
+                        "Could not resolve remaining notes while skipping at note index {0}.", NoteIndex);
+                    break;
+                }
+            }
         }
 
         protected abstract void AddScore(TNoteType note);
