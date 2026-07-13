@@ -157,6 +157,8 @@ namespace YARG.Core.Chart
             // Ensure beatlines are present
             SyncTrack.FinishLoading(GetLastTick());
 
+            // Generate any missing 5 fret charts
+            GenerateFiveFretDowncharts();
             // Use beatlines to place auto-generated drum activation phrases for charts without manually authored phrases
             CreateDrumActivationPhrases();
             // Add range shift phrases, done here since they are parsed from text events

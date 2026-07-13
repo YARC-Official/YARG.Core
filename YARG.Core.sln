@@ -13,6 +13,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ReplayCli", "ReplayCli\Repl
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "YARG.Core.Benchmarks", "YARG.Core.Benchmarks\YARG.Core.Benchmarks.csproj", "{D26697B2-1739-4327-9B34-1501FE0E619F}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AutoDownchartCli", "AutoDownchartCli\AutoDownchartCli.csproj", "{54325EDF-1721-4C6D-851B-C57125098CDF}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -127,6 +129,26 @@ Global
 		{D26697B2-1739-4327-9B34-1501FE0E619F}.Release|x64.Build.0 = Release|Any CPU
 		{D26697B2-1739-4327-9B34-1501FE0E619F}.Release|x86.ActiveCfg = Release|Any CPU
 		{D26697B2-1739-4327-9B34-1501FE0E619F}.Release|x86.Build.0 = Release|Any CPU
+		{54325EDF-1721-4C6D-851B-C57125098CDF}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{54325EDF-1721-4C6D-851B-C57125098CDF}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{54325EDF-1721-4C6D-851B-C57125098CDF}.Debug|ARM.ActiveCfg = Debug|Any CPU
+		{54325EDF-1721-4C6D-851B-C57125098CDF}.Debug|ARM.Build.0 = Debug|Any CPU
+		{54325EDF-1721-4C6D-851B-C57125098CDF}.Debug|ARM64.ActiveCfg = Debug|Any CPU
+		{54325EDF-1721-4C6D-851B-C57125098CDF}.Debug|ARM64.Build.0 = Debug|Any CPU
+		{54325EDF-1721-4C6D-851B-C57125098CDF}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{54325EDF-1721-4C6D-851B-C57125098CDF}.Debug|x64.Build.0 = Debug|Any CPU
+		{54325EDF-1721-4C6D-851B-C57125098CDF}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{54325EDF-1721-4C6D-851B-C57125098CDF}.Debug|x86.Build.0 = Debug|Any CPU
+		{54325EDF-1721-4C6D-851B-C57125098CDF}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{54325EDF-1721-4C6D-851B-C57125098CDF}.Release|Any CPU.Build.0 = Release|Any CPU
+		{54325EDF-1721-4C6D-851B-C57125098CDF}.Release|ARM.ActiveCfg = Release|Any CPU
+		{54325EDF-1721-4C6D-851B-C57125098CDF}.Release|ARM.Build.0 = Release|Any CPU
+		{54325EDF-1721-4C6D-851B-C57125098CDF}.Release|ARM64.ActiveCfg = Release|Any CPU
+		{54325EDF-1721-4C6D-851B-C57125098CDF}.Release|ARM64.Build.0 = Release|Any CPU
+		{54325EDF-1721-4C6D-851B-C57125098CDF}.Release|x64.ActiveCfg = Release|Any CPU
+		{54325EDF-1721-4C6D-851B-C57125098CDF}.Release|x64.Build.0 = Release|Any CPU
+		{54325EDF-1721-4C6D-851B-C57125098CDF}.Release|x86.ActiveCfg = Release|Any CPU
+		{54325EDF-1721-4C6D-851B-C57125098CDF}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

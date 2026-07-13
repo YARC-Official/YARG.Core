@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using YARG.Core.Chart.AutoGeneration;
 using YARG.Core.IO;
 using YARG.Core.Logging;
 using YARG.Core.Parsing;
@@ -13,6 +14,26 @@ namespace YARG.Core.Chart
     /// </summary>
     public partial class SongChart
     {
+        /// <summary>
+        /// Generates a five-fret difficulty from the instrument's Expert chart.
+        /// </summary>
+        public InstrumentDifficulty<GuitarNote> GenerateFiveFretDownchart(
+            Instrument instrument,
+            Difficulty targetDifficulty,
+            double intensity = 1.0)
+        {
+            var expert = GetFiveFretTrack(instrument).GetDifficulty(Difficulty.Expert);
+            return FiveFretDownchartGenerator.Generate(expert, targetDifficulty, SyncTrack, intensity);
+        }
+
+        private void GenerateFiveFretDowncharts()
+        {
+            foreach (var track in FiveFretTracks)
+            {
+                FiveFretDownchartGenerator.GenerateMissing(track, SyncTrack);
+            }
+        }
+
         private void PostProcessSections()
         {
             uint lastTick = GetLastTick();
@@ -528,7 +549,7 @@ namespace YARG.Core.Chart
             miloLipsync.Load();
 
             songChart.LipsyncEvents.AddRange(miloLipsync.LipsyncEvents);
-            
+
             // Generate lipsync from vocals if no lipsync data was found
             if (songChart.LipsyncEvents.Count == 0)
             {

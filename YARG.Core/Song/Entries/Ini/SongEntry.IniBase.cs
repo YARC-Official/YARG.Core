@@ -7,7 +7,6 @@ using YARG.Core.Chart.Loaders.UltraStar;
 using YARG.Core.Extensions;
 using YARG.Core.IO;
 using YARG.Core.IO.Ini;
-using YARG.Core.Logging;
 
 namespace YARG.Core.Song
 {
@@ -182,6 +181,7 @@ namespace YARG.Core.Song
                 return resolution.Error;
             }
 
+            AddGeneratedFiveFretDifficulties(ref entry._parts);
             FinalizeDrums(ref entry._parts, drums_type);
             if (!IsValid(in entry._parts))
             {
