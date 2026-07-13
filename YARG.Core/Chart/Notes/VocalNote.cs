@@ -125,7 +125,7 @@ namespace YARG.Core.Chart
 
             TotalTimeLength = timeLength;
             TotalTickLength = tickLength;
-            IsCensorable = false; // Percussion phrase should never be censored
+            IsCensorable = false; // A phrase itself is not censorable, only its children can be.
         }
 
         public VocalNote(VocalNote other) : base(other)
