@@ -371,7 +371,6 @@ namespace YARG.Core.Engine.Vocals
                 EngineStats.CommittedScore += spScore;
                 EngineStats.MultiplierScore += spScore;
                 EngineStats.StarPowerBonusTicks += (uint) Math.Round(TicksHitInStarPower);
-                YargLogger.LogFormatDebug("[Vocals] Star Power ticks: {0}, total ticks hit: {1}, percent of ticks hit in Star Power: {2:P2}, SP Score: {3}", TicksHitInStarPower, scoringTicksHit, percentOfTicksHitInSp, spScore);
             }
 
             if (BandBonusTicks > 0)
@@ -382,7 +381,6 @@ namespace YARG.Core.Engine.Vocals
                 int bandBonus = (int)(scoreMultiplier * avgBandMultiplier);
 
                 EngineStats.BandBonusScore += bandBonus;
-                YargLogger.LogFormatDebug("[Vocals] Band Bonus ticks: {0}, total ticks hit: {1}, ticks multiplier in Band Bonus: {2}, Band Bonus: {3}", BandBonusTicks, scoringTicksHit, avgBandMultiplier, bandBonus);
             }
 
 
