@@ -4,31 +4,9 @@ using System.IO;
 
 namespace YARG.Core.Audio
 {
-    public readonly struct PlaybackPosition
-    {
-        /// <summary>
-        /// Estimated song position currently reaching the listener.
-        /// </summary>
-        public readonly double Heard;
-
-        /// <summary>
-        /// Delay-free position used to control playback synchronization.
-        /// </summary>
-        public readonly double Control;
-
-        public PlaybackPosition(double heard, double control)
-        {
-            Heard = heard;
-            Control = control;
-        }
-    }
-
     public abstract class OneShotChannel : IDisposable
     {
-        public abstract void Play();
-        public abstract void Schedule(double songTime);
         public abstract void SetVolume(double volume);
-        public abstract void ClearSchedule();
         public abstract void Dispose();
     }
 
@@ -74,9 +52,10 @@ namespace YARG.Core.Audio
         public abstract event Action SongEnd;
 
         /// <summary>
-        /// Creates a one-shot channel from an owned sample stream.
+        /// Creates a one-shot channel from an owned sample stream and its scheduled play times.
         /// </summary>
-        public abstract OneShotChannel CreateOneShotChannel(int sampleStream);
+        public abstract OneShotChannel CreateOneShotChannel(int sampleStream,
+            IReadOnlyList<double> scheduledPlays);
 
         protected StemMixer(string name, AudioManager manager,bool clampStemVolume)
         {
@@ -160,15 +139,18 @@ namespace YARG.Core.Audio
             }
         }
 
-        public PlaybackPosition GetPlaybackPosition()
+        /// <summary>
+        /// Gets delay-free playback position used to control synchronization.
+        /// </summary>
+        public double GetControlPosition()
         {
             lock (this)
             {
                 if (_disposed)
                 {
-                    return default;
+                    return 0;
                 }
-                return GetPlaybackPosition_Internal();
+                return GetControlPosition_Internal();
             }
         }
 
@@ -276,15 +258,12 @@ namespace YARG.Core.Audio
             }
         }
 
-        public void SetSpeed(float speed, bool shiftPitch)
+        /// <summary>
+        /// Sets requested song speed without a temporary synchronization adjustment.
+        /// </summary>
+        public void SetPlaybackSpeed(float songSpeed)
         {
-            lock (this)
-            {
-                if (!_disposed)
-                {
-                    SetSpeed_Internal(speed, shiftPitch);
-                }
-            }
+            SetPlaybackSpeed(songSpeed, 0f, true);
         }
 
         /// <summary>
@@ -383,11 +362,7 @@ namespace YARG.Core.Audio
         protected abstract void FadeOut_Internal(double duration);
         protected abstract int Pause_Internal();
         protected abstract double GetPosition_Internal();
-        protected virtual PlaybackPosition GetPlaybackPosition_Internal()
-        {
-            double position = GetPosition_Internal();
-            return new PlaybackPosition(position, position);
-        }
+        protected virtual double GetControlPosition_Internal() => GetPosition_Internal();
         protected virtual double GetTempoStreamLatency_Internal() => 0;
         protected abstract double GetVolume_Internal();
         protected abstract void SetPosition_Internal(double position);
@@ -395,11 +370,7 @@ namespace YARG.Core.Audio
         protected abstract int  GetSampleData_Internal(float[] buffer);
         protected abstract int  GetFFTData_Internal(float[] buffer, int fftSize, bool complex);
         protected abstract int GetLevel_Internal(float[] level);
-        protected abstract void SetSpeed_Internal(float speed, bool shiftPitch);
-        protected virtual void SetPlaybackSpeed_Internal(float songSpeed, float syncAdjustment, bool shiftPitch)
-        {
-            SetSpeed_Internal(songSpeed + syncAdjustment, shiftPitch);
-        }
+        protected abstract void SetPlaybackSpeed_Internal(float songSpeed, float syncAdjustment, bool shiftPitch);
         protected virtual void SetOutputLatency_Internal(double latency) { }
         protected abstract bool AddChannels_Internal(Stream stream, params StemInfo[] stemInfos);
         protected abstract bool RemoveChannel_Internal(SongStem stemToRemove);
