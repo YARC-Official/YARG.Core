@@ -415,6 +415,19 @@ namespace YARG.Core.Audio
             }
         }
 
+        public static int CreateMetronomeStream(MetronomeSample sample, MetronomePitch pitch)
+        {
+            lock (_instanceLock)
+            {
+                if (_instance == null)
+                {
+                    throw new NotInitializedException();
+                }
+
+                return _instance.MetronomeSamples[(int) sample]?.CreateStream(pitch) ?? 0;
+            }
+        }
+
         public static StemMixer? LoadCustomFile(string name, Stream stream, float speed, double volume, bool normalize = false, SongStem stem = SongStem.Song)
         {
             lock (_instanceLock)

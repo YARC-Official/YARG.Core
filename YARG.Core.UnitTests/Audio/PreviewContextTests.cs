@@ -205,6 +205,17 @@ public class PreviewContextTests
             remove => _songEnd -= value;
         }
 
+        public override OneShotChannel CreateOneShotChannel(int sampleStream) => new EmptyOneShotChannel();
+
+        private sealed class EmptyOneShotChannel : OneShotChannel
+        {
+            public override void Play() { }
+            public override void Schedule(double songTime) { }
+            public override void SetVolume(double volume) { }
+            public override void ClearSchedule() { }
+            public override void Dispose() { }
+        }
+
         protected override int Play_Internal() => 0;
 
         protected override void FadeIn_Internal(double maxVolume, double duration) { }
