@@ -376,6 +376,7 @@ namespace YARG.Core.Song
             {
                 IniDtaMetadataApplier.Apply(dta.Value, ref entry._metadata);
                 (entry._parsedYear, entry._yearAsNumber) = ParseYear(entry._metadata.Year);
+                entry.SetSortStrings();
             }
 
             return entry;
