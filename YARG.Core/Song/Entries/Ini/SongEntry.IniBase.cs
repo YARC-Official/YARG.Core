@@ -788,7 +788,7 @@ namespace YARG.Core.Song
             }
         }
 
-        private static (string Parsed, int AsNumber) ParseYear(string str)
+        protected static (string Parsed, int AsNumber) ParseYear(string str)
         {
             const int MINIMUM_YEAR_DIGITS = 4;
             for (int start = 0; start <= str.Length - MINIMUM_YEAR_DIGITS; ++start)

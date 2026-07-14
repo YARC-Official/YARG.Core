@@ -178,6 +178,7 @@ namespace YARG.Core.Song.Cache
         private readonly List<CONEntryGroup> conEntryGroups = new();
         private readonly List<CONUpdateGroup> updateGroups = new();
         private readonly Dictionary<string, IniUpdateInfo> iniUpdateInfos = new();
+        private readonly List<FixedArray<byte>> iniUpdateDtaBuffers = new();
         private readonly List<PackedCONUpgradeGroup> packedUpgradeGroups = new();
         private readonly List<UnpackedCONUpgradeGroup> unpackedUpgradeGroups = new();
 
@@ -343,7 +344,8 @@ namespace YARG.Core.Song.Cache
                     {
                         try
                         {
-                            using var data = FixedArray.LoadFile(updatesDtaPath);
+                            var data = FixedArray.LoadFile(updatesDtaPath);
+                            lock (iniUpdateDtaBuffers) { iniUpdateDtaBuffers.Add(data); }
                             var container = YARGDTAReader.Create(data);
                             while (YARGDTAReader.StartNode(ref container))
                             {
@@ -597,6 +599,10 @@ namespace YARG.Core.Song.Cache
             foreach (var group in packedUpgradeGroups)
             {
                 group.Dispose();
+            }
+            foreach (var buffer in iniUpdateDtaBuffers)
+            {
+                buffer.Dispose();
             }
         }
 
