@@ -366,11 +366,17 @@ namespace YARG.Core.Song.Cache
                     }
 
                     var shortnames = new List<string>();
+                    var candidates = new HashSet<string>(dtasByShortname.Keys);
                     foreach (var songDir in new DirectoryInfo(updatesDir).EnumerateDirectories())
                     {
-                        string shortname = songDir.Name;
-                        string updateMid = Path.Combine(songDir.FullName, shortname + "_update.mid");
-                        string updateImage = Path.Combine(songDir.FullName, "gen", shortname + "_keep.png_xbox");
+                        candidates.Add(songDir.Name);
+                    }
+
+                    foreach (string shortname in candidates)
+                    {
+                        string songDirPath = Path.Combine(updatesDir, shortname);
+                        string updateMid = Path.Combine(songDirPath, shortname + "_update.mid");
+                        string updateImage = Path.Combine(songDirPath, "gen", shortname + "_keep.png_xbox");
 
                         bool hasMidi = File.Exists(updateMid);
                         bool hasImage = File.Exists(updateImage);
