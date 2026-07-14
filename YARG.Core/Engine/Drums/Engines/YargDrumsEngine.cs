@@ -150,7 +150,7 @@ namespace YARG.Core.Engine.Drums.Engines
                             int velocityBonus = 0;
                             if (note.IsAccent)
                             {
-                                int accentBonus = GetPointsForNote(note) / 2; // 4x normal note => 100 points (or 120 for cymbal)
+                                int accentBonus = 25; // 4x normal note => 100 points
                                 EngineStats.AccentsBonus += accentBonus;
                                 EngineStats.AccentsHit++;
                                 velocityBonus = accentBonus;
@@ -159,7 +159,7 @@ namespace YARG.Core.Engine.Drums.Engines
                             else if (note.IsGhost)
                             {
                                 // There are generally a lot more ghost notes in a chart than accents, so it is worth much less
-                                const int ghostBonus = 2;// 4x normal note => 8 points
+                                const int ghostBonus = 10;// 4x normal note => 8 points
                                 EngineStats.GhostsBonus += ghostBonus;
                                 EngineStats.GhostsHit++;
                                 velocityBonus = ghostBonus;
