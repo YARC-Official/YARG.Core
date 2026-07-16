@@ -109,7 +109,7 @@ public class FiveFretDownchartGeneratorTests
             () => FiveFretDownchartGenerator.Generate(source, Difficulty.Beginner, sync),
             Throws.TypeOf<ArgumentOutOfRangeException>());
         Assert.That(
-            () => FiveFretDownchartGenerator.Generate(source, Difficulty.Easy, sync, 1.1),
+            () => FiveFretDownchartGenerator.Generate(source, Difficulty.Easy, sync, 2.1),
             Throws.TypeOf<ArgumentOutOfRangeException>());
     }
 
@@ -182,9 +182,9 @@ public class FiveFretDownchartGeneratorTests
         {
             Assert.That(result.GeneratedDifficultyCount, Is.EqualTo(3));
             Assert.That(result.SkippedDifficultyCount, Is.Zero);
-            Assert.That(chart.FiveFretGuitar.GetDifficulty(Difficulty.Hard).Notes, Has.Count.EqualTo(965));
-            Assert.That(chart.FiveFretGuitar.GetDifficulty(Difficulty.Medium).Notes, Has.Count.EqualTo(635));
-            Assert.That(chart.FiveFretGuitar.GetDifficulty(Difficulty.Easy).Notes, Has.Count.EqualTo(516));
+            Assert.That(chart.FiveFretGuitar.GetDifficulty(Difficulty.Hard).Notes, Has.Count.EqualTo(1167));
+            Assert.That(chart.FiveFretGuitar.GetDifficulty(Difficulty.Medium).Notes, Has.Count.EqualTo(976));
+            Assert.That(chart.FiveFretGuitar.GetDifficulty(Difficulty.Easy).Notes, Has.Count.EqualTo(519));
         }
     }
 

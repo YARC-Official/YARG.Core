@@ -17,7 +17,7 @@ namespace YARG.Core.Chart.AutoGeneration
             InstrumentDifficulty<GuitarNote> source,
             Difficulty targetDifficulty,
             SyncTrack syncTrack,
-            double intensity = 1.0)
+            double intensity = 1.2)
         {
             ValidateArguments(source, targetDifficulty, intensity);
 
@@ -29,7 +29,7 @@ namespace YARG.Core.Chart.AutoGeneration
         public static IReadOnlyDictionary<Difficulty, InstrumentDifficulty<GuitarNote>> GenerateAll(
             InstrumentDifficulty<GuitarNote> source,
             SyncTrack syncTrack,
-            double intensity = 1.0)
+            double intensity = 1.2)
         {
             ValidateArguments(source, Difficulty.Hard, intensity);
 
@@ -65,7 +65,7 @@ namespace YARG.Core.Chart.AutoGeneration
                     ReduceChords(chords, Difficulty.Expert);
                     ReduceChords(chords, Difficulty.Hard);
                     ReduceRange(chords, Difficulty.Medium, false);
-                    ReduceChart(chords, Math.Max(1, minimumPassingIntensity * intensity * 0.7));
+                    ReduceChart(chords, Math.Max(1, minimumPassingIntensity * intensity * 0.6));
                     break;
                 case Difficulty.Easy:
                     ReduceChords(chords, Difficulty.Expert);
@@ -73,7 +73,7 @@ namespace YARG.Core.Chart.AutoGeneration
                     ReduceRange(chords, Difficulty.Medium, true);
                     ReduceChords(chords, Difficulty.Medium);
                     ReduceRange(chords, Difficulty.Easy, false);
-                    ReduceChart(chords, Math.Max(1, minimumPassingIntensity * intensity * 0.4));
+                    ReduceChart(chords, Math.Max(1, minimumPassingIntensity * intensity * 0.3));
                     break;
             }
 
@@ -93,7 +93,7 @@ namespace YARG.Core.Chart.AutoGeneration
         public static int GenerateMissing(
             InstrumentTrack<GuitarNote> track,
             SyncTrack syncTrack,
-            double intensity = 1.0)
+            double intensity = 1.2)
         {
             ValidateInstrument(track.Instrument);
             ValidateIntensity(intensity);
@@ -188,9 +188,9 @@ namespace YARG.Core.Chart.AutoGeneration
 
         private static void ValidateIntensity(double intensity)
         {
-            if (double.IsNaN(intensity) || double.IsInfinity(intensity) || intensity < 0 || intensity > 1)
+            if (double.IsNaN(intensity) || double.IsInfinity(intensity) || intensity < 0 || intensity > 2)
             {
-                throw new ArgumentOutOfRangeException(nameof(intensity), "Intensity must be between 0 and 1.");
+                throw new ArgumentOutOfRangeException(nameof(intensity), "Intensity must be between 0 and 2.");
             }
         }
 
