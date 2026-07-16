@@ -107,7 +107,7 @@ namespace YARG.Core.Engine.Drums
             }
 
             // Prevent overhit too close to a lane that accepts the overhit
-            if (IsInLaneLeniencyWindow((int)PadHit))
+            if (PadHit.HasValue && IsInLaneLeniencyWindow((int)PadHit))
             {
                 YargLogger.LogFormatTrace("Overhit prevented by lane end leniency at {0}", CurrentTime);
                 return;

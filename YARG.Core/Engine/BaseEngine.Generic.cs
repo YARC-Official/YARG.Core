@@ -1036,8 +1036,8 @@ namespace YARG.Core.Engine
         protected void UpdateStars()
         {
             // Update which star we're on
-            while (CurrentStarIndex < StarScoreThresholds.Length &&
-                EngineStats.TotalScore > StarScoreThresholds[CurrentStarIndex])
+            while (CurrentStarIndex < StarScoreThresholds!.Length &&
+                EngineStats.TotalScore > StarScoreThresholds![CurrentStarIndex])
             {
                 CurrentStarIndex++;
             }
@@ -1572,11 +1572,11 @@ namespace YARG.Core.Engine
             }
             else if (laneNote.IsLaneEnd)
             {
-                otherNoteInTrill = laneNote.PreviousNote.LaneNote;
+                otherNoteInTrill = laneNote.PreviousNote!.LaneNote;
             }
             else
             {
-                otherNoteInTrill = laneNote.NextNote.LaneNote;
+                otherNoteInTrill = laneNote.NextNote!.LaneNote;
             }
 
             return (requiredLaneNote, otherNoteInTrill);
