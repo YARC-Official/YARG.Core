@@ -65,7 +65,7 @@ namespace YARG.Core.Chart.AutoGeneration
                     ReduceChords(chords, Difficulty.Expert);
                     ReduceChords(chords, Difficulty.Hard);
                     ReduceRange(chords, Difficulty.Medium, false);
-                    ReduceChart(chords, Math.Max(1, minimumPassingIntensity * intensity * 0.6));
+                    ReduceChart(chords, Math.Max(1, minimumPassingIntensity * intensity * 0.7));
                     break;
                 case Difficulty.Easy:
                     ReduceChords(chords, Difficulty.Expert);
@@ -73,7 +73,7 @@ namespace YARG.Core.Chart.AutoGeneration
                     ReduceRange(chords, Difficulty.Medium, true);
                     ReduceChords(chords, Difficulty.Medium);
                     ReduceRange(chords, Difficulty.Easy, false);
-                    ReduceChart(chords, Math.Max(1, minimumPassingIntensity * intensity * 0.3));
+                    ReduceChart(chords, Math.Max(1, minimumPassingIntensity * intensity * 0.4));
                     break;
             }
 
