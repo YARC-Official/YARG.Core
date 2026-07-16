@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -105,6 +105,11 @@ namespace YARG.Core.Song
         }
 
         public override SongChart? LoadChart()
+        {
+            return LoadChart(DownchartGenerationMode.Disabled);
+        }
+
+        public override SongChart? LoadChart(DownchartGenerationMode downchartGeneration)
         {
             MidiFile midi;
             var readingSettings = MidiSettingsLatin1.Instance; // RBCONs are always Latin-1
