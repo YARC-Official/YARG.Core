@@ -31,8 +31,8 @@ internal static class Program
 
         var intensityOption = new Option<double>("--intensity")
         {
-            Description = "Reduction intensity (0.0-1.0, default: 1.0)",
-            DefaultValueFactory = _ => 1.0,
+            Description = "Reduction intensity (0.0-2.0, default: 1.2)",
+            DefaultValueFactory = _ => 1.2,
         };
 
         var instrumentOption = new Option<string?>("--instrument", "-i")
@@ -70,9 +70,9 @@ internal static class Program
         {
             double intensity = result.GetValue(intensityOption);
             if (double.IsNaN(intensity) || double.IsInfinity(intensity) ||
-                intensity < 0 || intensity > 1)
+                intensity < 0 || intensity > 2)
             {
-                result.AddError("Intensity must be a number between 0 and 1.");
+                result.AddError("Intensity must be a number between 0 and 2.");
             }
 
             if (result.GetValue(inPlaceOption) && result.GetValue(outputOption) is not null)
@@ -285,7 +285,7 @@ internal static class Program
     {
         public string InputPath { get; init; } = "";
         public string? OutputPath { get; init; }
-        public double Intensity { get; init; } = 1.0;
+        public double Intensity { get; init; } = 1.2;
         public bool ReplaceExisting { get; init; }
         public bool InPlace { get; init; }
         public bool Overwrite { get; init; }

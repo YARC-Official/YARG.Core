@@ -10,7 +10,7 @@ namespace YARG.Core.Chart.AutoGeneration
 {
     public sealed class MidiDownchartExportOptions
     {
-        public double Intensity { get; set; } = 1.0;
+        public double Intensity { get; set; } = 1.2;
         public bool ReplaceExisting { get; set; }
         public IReadOnlyCollection<Instrument>? Instruments { get; set; }
     }
@@ -111,9 +111,9 @@ namespace YARG.Core.Chart.AutoGeneration
         {
             if (double.IsNaN(options.Intensity) ||
                 double.IsInfinity(options.Intensity) ||
-                options.Intensity < 0 || options.Intensity > 1)
+                options.Intensity < 0 || options.Intensity > 2)
             {
-                throw new ArgumentOutOfRangeException(nameof(options.Intensity), "Intensity must be between 0 and 1.");
+                throw new ArgumentOutOfRangeException(nameof(options.Intensity), "Intensity must be between 0 and 2.");
             }
 
             if (options.Instruments == null)

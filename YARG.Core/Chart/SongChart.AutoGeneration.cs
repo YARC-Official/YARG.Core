@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using YARG.Core.Chart.AutoGeneration;
@@ -20,7 +20,7 @@ namespace YARG.Core.Chart
         public InstrumentDifficulty<GuitarNote> GenerateFiveFretDownchart(
             Instrument instrument,
             Difficulty targetDifficulty,
-            double intensity = 1.0)
+            double intensity = 1.2)
         {
             var expert = GetFiveFretTrack(instrument).GetDifficulty(Difficulty.Expert);
             return FiveFretDownchartGenerator.Generate(expert, targetDifficulty, SyncTrack, intensity);

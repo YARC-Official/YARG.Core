@@ -1,4 +1,4 @@
-﻿using MoonscraperChartEditor.Song.IO;
+using MoonscraperChartEditor.Song.IO;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -81,6 +81,11 @@ namespace YARG.Core.Song
         }
 
         public override SongChart? LoadChart()
+        {
+            return LoadChart(DownchartGenerationMode.Disabled);
+        }
+
+        public override SongChart? LoadChart(DownchartGenerationMode downchartGeneration)
         {
             using var data = GetChartData(CHART_FILE_TYPES[(int) _chartFormat].Filename);
 
