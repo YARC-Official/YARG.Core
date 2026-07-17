@@ -1,10 +1,44 @@
 using NUnit.Framework;
 using YARG.Core.Engine.Keys;
 
+// pattern: Functional Core
+
 namespace YARG.Core.UnitTests.Engine;
 
 public class ProKeysUtilitiesTests
 {
+    [TestCase(false, 0, 0)]
+    [TestCase(true, 0, 1)]
+    [TestCase(false, 1, 2)]
+    [TestCase(true, 1, 3)]
+    [TestCase(false, 2, 4)]
+    [TestCase(false, 3, 5)]
+    [TestCase(true, 2, 6)]
+    [TestCase(false, 4, 7)]
+    [TestCase(true, 3, 8)]
+    [TestCase(false, 5, 9)]
+    [TestCase(true, 4, 10)]
+    [TestCase(false, 6, 11)]
+    [TestCase(false, 7, 12)]
+    [TestCase(true, 5, 13)]
+    [TestCase(false, 8, 14)]
+    [TestCase(true, 6, 15)]
+    [TestCase(false, 9, 16)]
+    public void GetKeyIndexForColor_UsesTheLowCWindow(bool black, int colorIndex, int expected)
+    {
+        Assert.That(ProKeysUtilities.GetKeyIndexForColor(black, colorIndex), Is.EqualTo(expected));
+    }
+
+    [TestCase(false, -1)]
+    [TestCase(false, ProKeysUtilities.WHITE_KEY_COUNT)]
+    [TestCase(true, -1)]
+    [TestCase(true, ProKeysUtilities.BLACK_KEY_COUNT)]
+    public void GetKeyIndexForColor_RejectsInvalidColorIndex(bool black, int colorIndex)
+    {
+        Assert.That(() => ProKeysUtilities.GetKeyIndexForColor(black, colorIndex),
+            Throws.TypeOf<ArgumentOutOfRangeException>());
+    }
+
     [TestCase(ProKeysUtilities.LOW_C, false)]
     [TestCase(ProKeysUtilities.LOW_C_SHARP, true)]
     [TestCase(ProKeysUtilities.LOW_D, false)]

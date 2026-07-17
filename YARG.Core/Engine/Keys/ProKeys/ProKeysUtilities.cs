@@ -1,5 +1,7 @@
 ﻿using System;
 
+// pattern: Functional Core
+
 namespace YARG.Core.Engine.Keys
 {
     public static class ProKeysUtilities
@@ -33,6 +35,50 @@ namespace YARG.Core.Engine.Keys
         public static bool IsWhiteKey(int noteIndex)
         {
             return !IsBlackKey(noteIndex);
+        }
+
+        public const int WHITE_KEY_COUNT = 10;
+        public const int BLACK_KEY_COUNT = 7;
+
+        /// <summary>
+        /// Returns a key index from the 17-key window starting at low C for the
+        /// requested key color and zero-based color index.
+        /// </summary>
+        public static int GetKeyIndexForColor(bool black, int colorIndex)
+        {
+            int colorCount = black ? BLACK_KEY_COUNT : WHITE_KEY_COUNT;
+            if (colorIndex < 0 || colorIndex >= colorCount)
+            {
+                throw new ArgumentOutOfRangeException(nameof(colorIndex), colorIndex,
+                    "The color index must be within the low-C key window.");
+            }
+
+            return black
+                ? colorIndex switch
+                {
+                    0 => 1,
+                    1 => 3,
+                    2 => 6,
+                    3 => 8,
+                    4 => 10,
+                    5 => 13,
+                    6 => 15,
+                    _ => throw new ArgumentOutOfRangeException(nameof(colorIndex), colorIndex, null)
+                }
+                : colorIndex switch
+                {
+                    0 => 0,
+                    1 => 2,
+                    2 => 4,
+                    3 => 5,
+                    4 => 7,
+                    5 => 9,
+                    6 => 11,
+                    7 => 12,
+                    8 => 14,
+                    9 => 16,
+                    _ => throw new ArgumentOutOfRangeException(nameof(colorIndex), colorIndex, null)
+                };
         }
 
         /// <return>

@@ -2,6 +2,7 @@
 using System.IO;
 using YARG.Core.Chart;
 using YARG.Core.Extensions;
+using YARG.Core.Game.Settings;
 using YARG.Core.Utility;
 
 namespace YARG.Core.Game
@@ -232,6 +233,20 @@ namespace YARG.Core.Game
 
             #endregion
 
+            #region Note Appearance
+
+            /// <summary>
+            /// Emission intensity for the center strip of ghost/grace notes, as a
+            /// percentage (0–100). At 0 the strip appears dark (no emission
+            /// glow); at 100 it has full emission. Internally normalized to
+            /// 0.0–1.0 when applied as a material emission multiplier.
+            /// </summary>
+            [SettingType(SettingType.Slider)]
+            [SettingRange(0f, 100f)]
+            public float GhostStripEmission = 0f;
+
+            #endregion
+
             #region Metal
 
             public Color Metal          = DefaultMetal;
@@ -312,6 +327,8 @@ namespace YARG.Core.Game
                 writer.Write(DoubleKickNote);
                 writer.Write(DoubleKickStarpower);
                 writer.Write(DoubleKickActivationNote);
+
+                writer.Write(GhostStripEmission);
             }
 
             public void Deserialize(BinaryReader reader, int version = 0)
@@ -368,6 +385,11 @@ namespace YARG.Core.Game
                 DoubleKickNote = reader.ReadColor();
                 DoubleKickStarpower = reader.ReadColor();
                 DoubleKickActivationNote = reader.ReadColor();
+
+                if (version >= 2)
+                {
+                    GhostStripEmission = reader.ReadSingle();
+                }
             }
 
             #endregion
