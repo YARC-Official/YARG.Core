@@ -45,7 +45,7 @@ namespace YARG.Core.Audio
         }
 
         /// <summary>
-        /// Creates a one-shot decode stream backed by the already loaded sample.
+        /// Creates a one-shot decode stream for the selected sample.
         /// The caller takes ownership of the returned stream.
         /// </summary>
         public int CreateStream(MetronomePitch pitch)
