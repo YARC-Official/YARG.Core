@@ -256,7 +256,7 @@ namespace YARG.Core.Chart
                     continue;
                 }
 
-                var notesInPhrase = GetNotesInLanePhrase(chart.Phrases, phraseIndex, chart.Notes, noteIndex, out noteIndex);
+                var notesInPhrase = GetNotesInLanePhrase(chart.Phrases, phraseIndex, chart.Notes, noteIndex, out noteIndex, false);
 
                 List<GuitarNote> laneNotes;
 

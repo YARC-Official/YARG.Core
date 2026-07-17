@@ -1044,6 +1044,9 @@ namespace MoonscraperChartEditor.Song.IO
                 { MidIOHelper.DRUM_FILL_NOTE_4, (ref EventProcessParams eventProcessParams) => {
                     ProcessNoteOnEventAsSpecialPhrase(ref eventProcessParams, MoonPhrase.Type.ProDrums_Activation);
                 }},
+                { MidIOHelper.DRUMS_KICK_LANE_NOTE, (ref EventProcessParams eventProcessParams) => {
+                    ProcessNoteOnEventAsSpecialPhrase(ref eventProcessParams, MoonPhrase.Type.ProDrums_KickLane);
+                }},
             };
 
             var DrumPadToMidiKey = new Dictionary<MoonNote.DrumPad, int>()

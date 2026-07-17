@@ -512,7 +512,7 @@ namespace YARG.Core.Engine
                 AdvanceToNextNote(note);
             }
 
-            if ((!LanesExist && !note.IsLaneEnd) || !note.IsLane || !BaseParameters.EnableLanes)
+            if (!note.IsLane || !BaseParameters.EnableLanes)
             {
                 return;
             }
@@ -1325,17 +1325,6 @@ namespace YARG.Core.Engine
         {
             NoteIndex++;
             ReRunHitLogic = true;
-
-            if (!LanesExist)
-            {
-                return;
-            }
-
-            if (note.IsLaneEnd)
-            {
-                // Update the result of LanesExist
-                CurrentLaneIndex++;
-            }
         }
 
         public double GetAverageNoteDistance(TNoteType note)
@@ -1434,8 +1423,8 @@ namespace YARG.Core.Engine
 
                 switch (thisPhrase.Type)
                 {
-                    case PhraseType.TremoloLane:
-                    case PhraseType.TrillLane:
+                    case PhraseType.TremoloLane
+                    or PhraseType.TrillLane:
                         TotalLanes++;
                         break;
                 }
