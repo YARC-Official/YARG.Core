@@ -11,6 +11,20 @@ namespace YARG.Core.Game
     {
         public class FiveFretGuitarColors : IFretColorProvider, IBinarySerializable
         {
+            #region Note Appearance
+
+            /// <summary>
+            /// Emission intensity for the center strip of tap notes, as a
+            /// percentage (0–100). At 0 the strip appears dark (no emission
+            /// glow); at 100 it has full emission. Internally normalized to
+            /// 0.0–1.0 when applied as a material emission multiplier.
+            /// </summary>
+            [SettingType(SettingType.Slider)]
+            [SettingRange(0f, 100f)]
+            public float TapStripEmission = 0f;
+
+            #endregion
+
             #region Frets
 
             public Color OpenFret   = DefaultPurple;
@@ -125,6 +139,14 @@ namespace YARG.Core.Game
             public Color BlueNoteStarPower     = DefaultStarpower;
             public Color OrangeNoteStarPower   = DefaultStarpower;
 
+            // Open HOPO notes have EmissionAddition: 1 on their model material,
+            // which washes any color to white. The dedicated field lets users
+            // control this independently; ResetEmissionAddition in NoteGroup
+            // nullifies the addition so the color is visible. Default is white
+            // to match the existing appearance.
+            public Color OpenHopoNote          = DefaultStarpower;
+            public Color OpenHopoNoteStarPower = DefaultStarpower;
+
             /// <summary>
             /// Gets the Star Power note color for a specific note index.
             /// 1 = green, 5 = orange.
@@ -208,6 +230,10 @@ namespace YARG.Core.Game
                 writer.Write(YellowNoteStarPower);
                 writer.Write(BlueNoteStarPower);
                 writer.Write(OrangeNoteStarPower);
+
+                writer.Write(TapStripEmission);
+                writer.Write(OpenHopoNote);
+                writer.Write(OpenHopoNoteStarPower);
             }
 
             public void Deserialize(BinaryReader reader, int version = 0)
@@ -246,6 +272,13 @@ namespace YARG.Core.Game
                 YellowNoteStarPower = reader.ReadColor();
                 BlueNoteStarPower = reader.ReadColor();
                 OrangeNoteStarPower = reader.ReadColor();
+
+                if (version >= 2)
+                {
+                    TapStripEmission = reader.ReadSingle();
+                    OpenHopoNote = reader.ReadColor();
+                    OpenHopoNoteStarPower = reader.ReadColor();
+                }
             }
 
             #endregion
