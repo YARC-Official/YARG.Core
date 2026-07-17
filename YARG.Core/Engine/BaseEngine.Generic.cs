@@ -611,7 +611,7 @@ namespace YARG.Core.Engine
             }
         }
 
-        protected void SubmitLaneNote(int newNote)
+        protected virtual void SubmitLaneNote(int newNote)
         {
             if (!IsLaneActive || NoteIndex >= Notes.Count)
             {
@@ -675,7 +675,7 @@ namespace YARG.Core.Engine
         // This cares whether the input would satisfy the lane that's providing leniency.
         // Used by Drums and Keys engines to provide forgiveness only for inputs that would satisfy a nearby lane, not for unrelated inputs.
         // Guitar engine has a parameterless version that doesn't check inputs against adjacent lanes.
-        protected bool IsInLaneLeniencyWindow(int inputNote)
+        protected virtual bool IsInLaneLeniencyWindow(int inputNote)
         {
             if (IsLaneActive)
             {
