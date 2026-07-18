@@ -18,10 +18,7 @@ namespace YARG.Core.Song
     /// </summary>
     internal static class MoggAudioLoader
     {
-        public const int UNENCRYPTED_MOGG = 0xA;
-        private const int YARG_MOGG = 0xF0;
-
-        public static bool IsSupportedVersion(int version) => version is UNENCRYPTED_MOGG or YARG_MOGG;
+        public static bool IsSupportedVersion(int version) => version is RBCONEntry.UNENCRYPTED_MOGG or RBCONEntry.YARG_MOGG;
 
         /// <summary>
         /// Reads the mogg header, builds the mixer, and wires up one channel group
@@ -116,7 +113,10 @@ namespace YARG.Core.Song
                 return null;
             }
 
-            YargLogger.LogFormatInfo("Loaded {0} stems", mixer.Channels.Count);
+            if (GlobalAudioHandler.LogMixerStatus)
+            {
+                YargLogger.LogFormatInfo("Loaded {0} stems", mixer.Channels.Count);
+            }
             return mixer;
         }
 
@@ -148,31 +148,7 @@ namespace YARG.Core.Song
                     return false;
                 }
 
-                indices = dta.Indices.Value;
-                var pans = dta.Pans;
-                var volumes = dta.Volumes;
-
-                float[] CalculateStemValues(int[] idx)
-                {
-                    var values = new float[2 * idx.Length];
-                    for (int i = 0; i < idx.Length; i++)
-                    {
-                        float theta = (pans[idx[i]] + 1) * (MathF.PI / 4);
-                        float volRatio = MathF.Pow(10, volumes[idx[i]] / 20);
-                        values[2 * i] = volRatio * MathF.Cos(theta);
-                        values[2 * i + 1] = volRatio * MathF.Sin(theta);
-                    }
-                    return values;
-                }
-
-                if (indices.Drums.Length  > 0) panning.Drums  = CalculateStemValues(indices.Drums);
-                if (indices.Bass.Length   > 0) panning.Bass   = CalculateStemValues(indices.Bass);
-                if (indices.Guitar.Length > 0) panning.Guitar = CalculateStemValues(indices.Guitar);
-                if (indices.Keys.Length   > 0) panning.Keys   = CalculateStemValues(indices.Keys);
-                if (indices.Vocals.Length > 0) panning.Vocals = CalculateStemValues(indices.Vocals);
-                if (indices.Track.Length  > 0) panning.Track  = CalculateStemValues(indices.Track);
-                if (indices.Crowd.Length  > 0) panning.Crowd  = CalculateStemValues(indices.Crowd);
-
+                RBAudioCalculator.Calculate(in dta, ref indices, ref panning);
                 return true;
             }
             catch (Exception e)
