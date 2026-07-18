@@ -82,40 +82,10 @@ namespace YARG.Core.Song
 
         private StemMixer? LoadUpdateMoggAudio(float speed, double volume, SongStem[] ignoreStems)
         {
-            bool clampStemVolume = _metadata.Source.ToLowerInvariant() == "yarg";
-            var mixer = GlobalAudioHandler.CreateMixer(ToString(), speed, volume, clampStemVolume: clampStemVolume,
-                normalize: true);
-            if (mixer == null)
-            {
-                YargLogger.LogError("Failed to create mixer!");
-                return null;
-            }
-
             var stream = new FileStream(_updateMoggPath!, FileMode.Open, FileAccess.Read, FileShare.Read, 1);
-            int version = stream.Read<int>(Endianness.Little);
-            if (version != RBCONEntry.UNENCRYPTED_MOGG)
-            {
-                YargLogger.LogError("Encrypted update moggs are not supported!");
-                stream.Dispose();
-                mixer.Dispose();
-                return null;
-            }
-
-            int start = stream.Read<int>(Endianness.Little);
-            stream.Seek(start, SeekOrigin.Begin);
-
-            if (!IniMoggStemSplitter.AddMoggStems(mixer, stream, in _indices, in _panning, ignoreStems))
-            {
-                stream.Dispose();
-                mixer.Dispose();
-                return null;
-            }
-
-            if (GlobalAudioHandler.LogMixerStatus)
-            {
-                YargLogger.LogFormatInfo("Loaded {0} stems from update mogg", mixer.Channels.Count);
-            }
-            return mixer;
+            bool clampStemVolume = _metadata.Source.ToLowerInvariant() == "yarg";
+            return MoggAudioLoader.BuildMixer(stream, ToString(), speed, volume, clampStemVolume,
+                in _indices, in _panning, ignoreStems);
         }
 
         private StemMixer? LoadLooseAudio(float speed, double volume, SongStem[] ignoreStems)
