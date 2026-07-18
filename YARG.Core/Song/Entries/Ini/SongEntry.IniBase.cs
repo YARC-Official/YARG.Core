@@ -28,7 +28,7 @@ namespace YARG.Core.Song
 
         public static bool IsAudioFile(string file)
         {
-            return SupportedAudioFiles.Contains(file);
+            return SupportedAudioFiles.Contains(file) || file.EndsWith(".mogg");
         }
     }
 
