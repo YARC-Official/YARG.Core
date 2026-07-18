@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -191,94 +191,9 @@ namespace YARG.Core.Song
                 return null;
             }
 
-            int version = stream.Read<int>(Endianness.Little);
-            if (!IsSupportedMoggVersion(version))
-            {
-                YargLogger.LogError("Original unencrypted mogg replaced by an encrypted mogg!");
-                stream.Dispose();
-                return null;
-            }
-
-            int start = stream.Read<int>(Endianness.Little);
-            stream.Seek(start, SeekOrigin.Begin);
-
             bool clampStemVolume = _metadata.Source.ToLowerInvariant() == "yarg";
-            var mixer = GlobalAudioHandler.CreateMixer(ToString(), speed, volume, clampStemVolume: clampStemVolume,
-                normalize: true);
-            if (mixer == null)
-            {
-                YargLogger.LogError("Mogg failed to load!");
-                stream.Dispose();
-                return null;
-            }
-
-
-            var stemInfos = new List<StemInfo>();
-
-            if (_indices.Drums.Length > 0 && !ignoreStems.Contains(SongStem.Drums))
-            {
-                switch (_indices.Drums.Length)
-                {
-                    //drum (0 1): stereo kit --> (0 1)
-                    case 1:
-                    case 2:
-                        stemInfos.Add(new StemInfo(SongStem.Drums, _indices.Drums, _panning.Drums));
-                        break;
-                    //drum (0 1 2): mono kick, stereo snare/kit --> (0) (1 2)
-                    case 3:
-                        stemInfos.Add(new StemInfo(SongStem.Drums, _indices.Drums[0..1], _panning.Drums[0..2]));
-                        stemInfos.Add(new StemInfo(SongStem.Drums, _indices.Drums[1..3], _panning.Drums[2..6]));
-                        break;
-                    //drum (0 1 2 3): mono kick, mono snare, stereo kit --> (0) (1) (2 3)
-                    case 4:
-                        stemInfos.Add(new StemInfo(SongStem.Drums, _indices.Drums[0..1], _panning.Drums[0..2]));
-                        stemInfos.Add(new StemInfo(SongStem.Drums, _indices.Drums[1..2], _panning.Drums[2..4]));
-                        stemInfos.Add(new StemInfo(SongStem.Drums, _indices.Drums[2..4], _panning.Drums[4..8]));
-                        break;
-                    //drum (0 1 2 3 4): mono kick, stereo snare, stereo kit --> (0) (1 2) (3 4)
-                    case 5:
-                        stemInfos.Add(new StemInfo(SongStem.Drums, _indices.Drums[0..1], _panning.Drums[0..2]));
-                        stemInfos.Add(new StemInfo(SongStem.Drums, _indices.Drums[1..3], _panning.Drums[2..6]));
-                        stemInfos.Add(new StemInfo(SongStem.Drums, _indices.Drums[3..5], _panning.Drums[6..10]));
-                        break;
-                    //drum (0 1 2 3 4 5): stereo kick, stereo snare, stereo kit --> (0 1) (2 3) (4 5)
-                    case 6:
-                        stemInfos.Add(new StemInfo(SongStem.Drums, _indices.Drums[0..2], _panning.Drums[0..4]));
-                        stemInfos.Add(new StemInfo(SongStem.Drums, _indices.Drums[2..4], _panning.Drums[4..8]));
-                        stemInfos.Add(new StemInfo(SongStem.Drums, _indices.Drums[4..6], _panning.Drums[8..12]));
-                        break;
-                }
-            }
-
-            if (_indices.Bass.Length > 0 && !ignoreStems.Contains(SongStem.Bass))
-                stemInfos.Add(new StemInfo(SongStem.Bass, _indices.Bass, _panning.Bass));
-
-            if (_indices.Guitar.Length > 0 && !ignoreStems.Contains(SongStem.Guitar))
-                stemInfos.Add(new StemInfo(SongStem.Guitar, _indices.Guitar, _panning.Guitar));
-
-            if (_indices.Keys.Length > 0 && !ignoreStems.Contains(SongStem.Keys))
-                stemInfos.Add(new StemInfo(SongStem.Keys, _indices.Keys, _panning.Keys));
-
-            if (_indices.Vocals.Length > 0 && !ignoreStems.Contains(SongStem.Vocals))
-                stemInfos.Add(new StemInfo(SongStem.Vocals, _indices.Vocals, _panning.Vocals));
-
-            if (_indices.Track.Length > 0 && !ignoreStems.Contains(SongStem.Song))
-                stemInfos.Add(new StemInfo(SongStem.Song, _indices.Track, _panning.Track));
-
-            if (_indices.Crowd.Length > 0 && !ignoreStems.Contains(SongStem.Crowd))
-                stemInfos.Add(new StemInfo(SongStem.Crowd, _indices.Crowd, _panning.Crowd));
-
-            mixer.AddChannels(stream, stemInfos.ToArray());
-
-            if (mixer.Channels.Count == 0)
-            {
-                YargLogger.LogError("Failed to add any stems!");
-                stream.Dispose();
-                mixer.Dispose();
-                return null;
-            }
-            YargLogger.LogFormatInfo("Loaded {0} stems", mixer.Channels.Count);
-            return mixer;
+            return MoggAudioLoader.BuildMixer(stream, ToString(), speed, volume, clampStemVolume,
+                in _indices, in _panning, ignoreStems);
         }
 
         public override StemMixer? LoadPreviewAudio(float speed)
