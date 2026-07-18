@@ -140,6 +140,15 @@ namespace YARG.Core.Song
         public override YARGImage? LoadAlbumData()
         {
             var subFiles = GetSubFiles();
+
+            // Prefer a raw DXT texture extracted straight from a CON pack over a
+            // re-encoded/converted image, when both are available.
+            var dxtImage = TryLoadDXTAlbumArt(subFiles);
+            if (dxtImage != null)
+            {
+                return dxtImage;
+            }
+
             if (!string.IsNullOrEmpty(_cover) && subFiles.TryGetValue(_cover, out var cover))
             {
                 var image = YARGImage.Load(cover);
@@ -160,6 +169,27 @@ namespace YARG.Core.Song
                         return image;
                     }
                     YargLogger.LogFormatError("Image at {0} failed to load", file);
+                }
+            }
+            return null;
+        }
+
+        /// <summary>
+        /// Looks for a raw ".png_xbox" or ".png_ps3" texture in the song folder.
+        /// Both formats are self-describing (dimensions/DXT variant live in the
+        /// file's own header), so unlike the mogg case, no sidecar is needed.
+        /// </summary>
+        private static YARGImage? TryLoadDXTAlbumArt(Dictionary<string, string> subFiles)
+        {
+            foreach (var name in subFiles.Keys)
+            {
+                if (name.EndsWith(".png_xbox"))
+                {
+                    return YARGImage.LoadDXT(subFiles[name]);
+                }
+                if (name.EndsWith(".png_ps3"))
+                {
+                    return YARGImage.LoadPS3DXT(subFiles[name]);
                 }
             }
             return null;
