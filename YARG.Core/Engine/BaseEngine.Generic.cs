@@ -507,6 +507,11 @@ namespace YARG.Core.Engine
                 EndCoda();
             }
 
+            if (note.IsSolo)
+            {
+                HandleSoloNote(note);
+            }
+
             if (note.ParentOrSelf.WasFullyHitOrMissed())
             {
                 AdvanceToNextNote(note);
@@ -589,6 +594,11 @@ namespace YARG.Core.Engine
             if (CodaHasStarted && ChordHasCodaEnd(note) && note.ParentOrSelf.WasFullyHitOrMissed())
             {
                 EndCoda();
+            }
+
+            if (note.IsSolo)
+            {
+                HandleSoloNote(note);
             }
 
             if (note.ParentOrSelf.WasFullyHitOrMissed())
@@ -795,6 +805,29 @@ namespace YARG.Core.Engine
             }
 
             UpdateStars();
+        }
+
+        protected void HandleSoloNote(TNoteType note)
+        {
+            if (!note.IsSolo)
+            {
+                return;
+            }
+
+            if (note.IsSoloStart)
+            {
+                StartSolo();
+            }
+
+            if (note.WasHit)
+            {
+                Solos[CurrentSoloIndex].NotesHit++;
+            }
+
+            if (note.IsSoloEnd && note.ParentOrSelf.WasFullyHitOrMissed())
+            {
+                EndSolo();
+            }
         }
 
         protected virtual void UpdateSustains()
