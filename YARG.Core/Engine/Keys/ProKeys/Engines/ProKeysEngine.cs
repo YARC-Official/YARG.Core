@@ -208,8 +208,13 @@ namespace YARG.Core.Engine.Keys
                 StripStarPower(note);
             }
 
-            if (note is { IsSoloStart: true, IsSoloEnd: true } && note.ParentOrSelf.WasFullyHitOrMissed())
+            if (note is { IsSoloStart: true, IsSoloEnd: true })
             {
+                if (!note.ParentOrSelf.WasFullyHitOrMissed())
+                {
+                    // If the note hasn't been fully hit or missed, just eat the event until it is
+                    return;
+                }
                 // While a solo is active, end the current solo and immediately start the next.
                 if (IsSoloActive)
                 {
