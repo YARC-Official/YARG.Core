@@ -15,11 +15,11 @@ namespace YARG.Core.Audio
             { "vocals",   SongStem.Vocals  },
             { "vocals_1", SongStem.Vocals },
             { "vocals_2", SongStem.Vocals },
-            { "drums",    SongStem.Drums   },
-            { "drums_1",  SongStem.Drums  },
-            { "drums_2",  SongStem.Drums  },
-            { "drums_3",  SongStem.Drums  },
-            { "drums_4",  SongStem.Drums  },
+            { "drums",    SongStem.DrumsElse },
+            { "drums_1",  SongStem.DrumsElse },
+            { "drums_2",  SongStem.DrumsElse },
+            { "drums_3",  SongStem.DrumsElse },
+            { "drums_4",  SongStem.DrumsElse },
             { "crowd",    SongStem.Crowd   },
             // "preview"
         };
@@ -43,11 +43,11 @@ namespace YARG.Core.Audio
                 "vocals"   => SongStem.Vocals,
                 "vocals_1" => SongStem.Vocals,
                 "vocals_2" => SongStem.Vocals,
-                "drums"    => SongStem.Drums,
-                "drums_1"  => SongStem.Drums,
-                "drums_2"  => SongStem.Drums,
-                "drums_3"  => SongStem.Drums,
-                "drums_4"  => SongStem.Drums,
+                "drums"    => SongStem.DrumsElse,
+                "drums_1"  => SongStem.DrumsElse,
+                "drums_2"  => SongStem.DrumsElse,
+                "drums_3"  => SongStem.DrumsElse,
+                "drums_4"  => SongStem.DrumsElse,
                 "crowd"    => SongStem.Crowd,
                 // "preview" => SongStem.Preview,
                 _ => SongStem.Song,
@@ -78,7 +78,7 @@ namespace YARG.Core.Audio
 
                 Instrument.ProDrums or
                 Instrument.FourLaneDrums or
-                Instrument.FiveLaneDrums => SongStem.Drums,
+                Instrument.FiveLaneDrums => SongStem.DrumsElse,
 
                 Instrument.Vocals or
                 Instrument.Harmony => SongStem.Vocals,
