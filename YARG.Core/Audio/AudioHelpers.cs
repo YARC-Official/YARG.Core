@@ -54,12 +54,12 @@ namespace YARG.Core.Audio
             };
         }
 
-        private static readonly ISet<SongStem> GuitarStems  = new HashSet<SongStem> { SongStem.Guitar };
-        private static readonly ISet<SongStem> BassStems    = new HashSet<SongStem> { SongStem.Bass };
-        private static readonly ISet<SongStem> RhythmStems  = new HashSet<SongStem> { SongStem.Rhythm };
-        private static readonly ISet<SongStem> KeysStems    = new HashSet<SongStem> { SongStem.Keys };
-        private static readonly ISet<SongStem> DrumsStems   = new HashSet<SongStem> { SongStem.Drums1, SongStem.Drums2, SongStem.Drums3 };
-        private static readonly ISet<SongStem> VocalsStems  = new HashSet<SongStem> { SongStem.Vocals };
+        private static readonly HashSet<SongStem> GuitarStems  = new() { SongStem.Guitar };
+        private static readonly HashSet<SongStem> BassStems    = new() { SongStem.Bass };
+        private static readonly HashSet<SongStem> RhythmStems  = new() { SongStem.Rhythm };
+        private static readonly HashSet<SongStem> KeysStems    = new() { SongStem.Keys };
+        private static readonly HashSet<SongStem> DrumsStems   = new() { SongStem.Drums1, SongStem.Drums2, SongStem.Drums3 };
+        private static readonly HashSet<SongStem> VocalsStems  = new() { SongStem.Vocals };
 
         public static IEnumerable<SongStem> ToSongStems(this Instrument instrument)
         {
