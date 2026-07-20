@@ -194,22 +194,28 @@ namespace YARG.Core.Chart
                 FourLaneDrumPad.YellowDrum => _discoFlip ? DrumStem.Snare : DrumStem.Else,
                 _                          => DrumStem.Else,
             };
-            return _mixConfig switch
-            {
-                DrumsMixConfiguration.StereoKit               => DrumStem.Else,
-                DrumsMixConfiguration.MonoKick_StereoKit      => stem == DrumStem.Snare ? DrumStem.Else : stem,
-                _                                             => stem,
-            };
+            return ApplyMixConfig(stem);
         }
 
         private DrumStem GetStem(FiveLaneDrumPad pad)
         {
-            return pad switch
+            var stem = pad switch
             {
                 FiveLaneDrumPad.Kick   => DrumStem.Kick,
                 FiveLaneDrumPad.Red    => _discoFlip ? DrumStem.Else : DrumStem.Snare,
                 FiveLaneDrumPad.Yellow => _discoFlip ? DrumStem.Snare : DrumStem.Else,
                 _                      => DrumStem.Else,
+            };
+            return ApplyMixConfig(stem);
+        }
+
+        private DrumStem ApplyMixConfig(DrumStem stem)
+        {
+            return _mixConfig switch
+            {
+                DrumsMixConfiguration.StereoKit          => DrumStem.Else,
+                DrumsMixConfiguration.MonoKick_StereoKit => stem == DrumStem.Snare ? DrumStem.Else : stem,
+                _                                        => stem,
             };
         }
 
