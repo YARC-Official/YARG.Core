@@ -777,36 +777,6 @@ namespace MoonscraperChartEditor.Song.IO
 
             if (settings.lanePhrases)
             {
-                static void ProcessLanePhrase(ref EventProcessParams processParams, MoonPhrase.Type phraseType)
-                {
-                    if (processParams.timedEvent.midiEvent is not NoteEvent noteEvent)
-                    {
-                        YargLogger.FailFormat("Wrong note event type! Expected: {0}, Actual: {1}",
-                            typeof(NoteEvent), processParams.timedEvent.midiEvent.GetType());
-                        return;
-                    }
-
-                    ProcessNoteOnEventAsSpecialPhrase(ref processParams, phraseType, MoonSong.Difficulty.Expert);
-
-                    if ((int)noteEvent.Velocity >= 21)
-                    {
-                        if ((int) noteEvent.Velocity <= 30)
-                        {
-                            ProcessNoteOnEventAsSpecialPhrase(ref processParams, phraseType, MoonSong.Difficulty.Easy);
-                        }
-
-                        if ((int) noteEvent.Velocity <= 40)
-                        {
-                            ProcessNoteOnEventAsSpecialPhrase(ref processParams, phraseType, MoonSong.Difficulty.Medium);
-                        }
-
-                        if ((int) noteEvent.Velocity <= 50)
-                        {
-                            ProcessNoteOnEventAsSpecialPhrase(ref processParams, phraseType, MoonSong.Difficulty.Hard);
-                        }
-                    }
-                }
-
                 processMap.Add(MidIOHelper.TREMOLO_LANE_NOTE, (ref EventProcessParams eventProcessParams) => {
                     ProcessLanePhrase(ref eventProcessParams, MoonPhrase.Type.TremoloLane);
                 });
@@ -1045,7 +1015,7 @@ namespace MoonscraperChartEditor.Song.IO
                     ProcessNoteOnEventAsSpecialPhrase(ref eventProcessParams, MoonPhrase.Type.ProDrums_Activation);
                 }},
                 { MidIOHelper.DRUMS_KICK_LANE_NOTE, (ref EventProcessParams eventProcessParams) => {
-                    ProcessNoteOnEventAsSpecialPhrase(ref eventProcessParams, MoonPhrase.Type.ProDrums_KickLane);
+                    ProcessLanePhrase(ref eventProcessParams, MoonPhrase.Type.ProDrums_KickLane);
                 }},
             };
 
@@ -1439,5 +1409,36 @@ namespace MoonscraperChartEditor.Song.IO
 
             return processFnDict;
         }
+
+        private static void ProcessLanePhrase(ref EventProcessParams processParams, MoonPhrase.Type phraseType)
+        {
+            if (processParams.timedEvent.midiEvent is not NoteEvent noteEvent)
+            {
+                YargLogger.FailFormat("Wrong note event type! Expected: {0}, Actual: {1}",
+                    typeof(NoteEvent), processParams.timedEvent.midiEvent.GetType());
+                return;
+            }
+
+            ProcessNoteOnEventAsSpecialPhrase(ref processParams, phraseType, MoonSong.Difficulty.Expert);
+
+            if ((int) noteEvent.Velocity >= 21)
+            {
+                if ((int) noteEvent.Velocity <= 30)
+                {
+                    ProcessNoteOnEventAsSpecialPhrase(ref processParams, phraseType, MoonSong.Difficulty.Easy);
+                }
+
+                if ((int) noteEvent.Velocity <= 40)
+                {
+                    ProcessNoteOnEventAsSpecialPhrase(ref processParams, phraseType, MoonSong.Difficulty.Medium);
+                }
+
+                if ((int) noteEvent.Velocity <= 50)
+                {
+                    ProcessNoteOnEventAsSpecialPhrase(ref processParams, phraseType, MoonSong.Difficulty.Hard);
+                }
+            }
+        }
+
     }
 }
