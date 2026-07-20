@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 
 namespace YARG.Core.Audio
@@ -98,7 +98,7 @@ namespace YARG.Core.Audio
             new Sample<SfxSample>(SfxSample.StarPowerDeploy, "starpower_deploy", 0.4f),
             new Sample<SfxSample>(SfxSample.StarPowerDeployCrowd, "overdrive_deploy_crowd", 0.4f),
             new Sample<SfxSample>(SfxSample.StarPowerRelease, "starpower_release", 0.5f),
-            new Sample<SfxSample>(SfxSample.Clap, "clap", 0.16f),
+            new Sample<SfxSample>(SfxSample.Clap, "clap", 0.35f),
             new Sample<SfxSample>(SfxSample.StarGain, "star"),
             new Sample<SfxSample>(SfxSample.StarGold, "star_gold"),
             new Sample<SfxSample>(SfxSample.Overstrum1, "overstrum_1", 0.4f),
