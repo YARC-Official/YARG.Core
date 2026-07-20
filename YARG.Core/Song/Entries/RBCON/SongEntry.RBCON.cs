@@ -227,7 +227,7 @@ namespace YARG.Core.Song
                     //drum (0 1 2): mono kick, stereo snare/kit --> (0) (1 2)
                     case 3:
                         stemInfos.Add(new StemInfo(SongStem.Drums1, _indices.Drums[0..1], _panning.Drums[0..2]));
-                        stemInfos.Add(new StemInfo(SongStem.Drums3, _indices.Drums[1..3], _panning.Drums[2..6]));
+                        stemInfos.Add(new StemInfo(SongStem.Drums2, _indices.Drums[1..3], _panning.Drums[2..6]));
                         break;
                     //drum (0 1 2 3): mono kick, mono snare, stereo kit --> (0) (1) (2 3)
                     case 4:
