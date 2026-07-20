@@ -53,6 +53,13 @@ namespace YARG.Core.Chart.Loaders.UltraStar
             public int    Pitch         { get; set; }
             public string Lyric         { get; set; } = string.Empty;
 
+            /// <summary>
+            /// When true, a hyphen ('-') should be appended to this note's lyric
+            /// and JoinWithNext flag set on its LyricEvent. Set when the NEXT note
+            /// in the phrase has a '~' (melisma continuation) prefix.
+            /// </summary>
+            public bool MelismaJoin { get; set; }
+
             public bool IsGolden    => Type == '*' || Type == 'G';
             public bool IsUnpitched => Type == 'F' || Type == 'R' || Type == 'G';
             public bool IsRest      => Type == '-';
@@ -187,10 +194,28 @@ namespace YARG.Core.Chart.Loaders.UltraStar
             if (lyric.StartsWith("~"))
             {
                 lyric = lyric.Substring(1);
-                if (lyric.Length > 0)
+                bool hasText = lyric.Length > 0;
+                if (hasText)
                     lyric += "+";
                 else
                     lyric = "+";
+
+                // Only mark the previous note with MelismaJoin when the '~'
+                // carries actual text (e.g. ~ght.). A bare '~' is a silent
+                // continuation hold and should NOT add a hyphen to the
+                // previous note's lyric.
+                if (hasText)
+                {
+                    var partNotes = _partNotes[_currentPart];
+                    for (int i = partNotes.Count - 1; i >= 0; i--)
+                    {
+                        if (!partNotes[i].IsRest)
+                        {
+                            partNotes[i].MelismaJoin = true;
+                            break;
+                        }
+                    }
+                }
             }
 
             _partNotes[_currentPart].Add(new UltraStarNote
@@ -289,6 +314,14 @@ namespace YARG.Core.Chart.Loaders.UltraStar
                         ? FormatLyric(n.Lyric) + LyricSymbols.NONPITCHED_SYMBOL
                         : FormatLyric(n.Lyric);
                     var flags = n.IsUnpitched ? LyricSymbolFlags.NonPitched : LyricSymbolFlags.None;
+
+                    // Melisma: append '-' and set JoinWithNext when next note has '~' prefix
+                    if (n.MelismaJoin)
+                    {
+                        lyric += LyricSymbols.LYRIC_JOIN_SYMBOL;
+                        flags |= LyricSymbolFlags.JoinWithNext;
+                    }
+
                     events.Add(new LyricEvent(flags, lyric,
                         BeatToTime(n.StartBeat), BeatToTick(n.StartBeat)));
                 }
@@ -473,6 +506,14 @@ namespace YARG.Core.Chart.Loaders.UltraStar
                         ? FormatLyric(uNote.Lyric) + LyricSymbols.NONPITCHED_SYMBOL
                         : FormatLyric(uNote.Lyric);
                     var flags = isUnpitched ? LyricSymbolFlags.NonPitched : LyricSymbolFlags.None;
+
+                    // Melisma: append '-' and set JoinWithNext when next note has '~' prefix
+                    if (uNote.MelismaJoin)
+                    {
+                        lyric += LyricSymbols.LYRIC_JOIN_SYMBOL;
+                        flags |= LyricSymbolFlags.JoinWithNext;
+                    }
+
                     lyrics.Add(new LyricEvent(flags, lyric, noteTime, noteTick));
                 }
             }
