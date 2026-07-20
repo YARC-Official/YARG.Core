@@ -237,6 +237,7 @@ namespace YARG.Core.Chart
                 return;
 
             _discoFlip = setting == DrumsMixSetting.DiscoFlip;
+            _mixConfig = config;
         }
 
         // Left as an example of how to use phrase validation/replacement despite being no longer required
