@@ -138,7 +138,7 @@ namespace YARG.Core.Song
                     return false;
                 }
 
-                string name = YARGDTAReader.GetNameOfNode(ref container, false);
+                string name = YARGDTAReader.GetNameOfNode(ref container, true);
                 var dta = DTAEntry.Create(name, container);
                 YARGDTAReader.EndNode(ref container);
 
