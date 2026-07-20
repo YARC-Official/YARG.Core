@@ -12,10 +12,13 @@ namespace YARG.Core.Chart
     internal partial class MoonSongLoader : ISongLoader
     {
         private bool _discoFlip = false;
+        private DrumsMixConfiguration _mixConfig = DrumsMixConfiguration.StereoKickSnareKit;
 
         public InstrumentTrack<DrumNote> LoadDrumsTrack(Instrument instrument, InstrumentTrack<EliteDrumNote>? eliteDrumsFallback)
         {
             _discoFlip = false;
+            // by default, assume that all stems are supported, since we gracefully degrade if the stems are missing
+            _mixConfig = DrumsMixConfiguration.StereoKickSnareKit;
             return instrument.ToNativeGameMode() switch
             {
                 GameMode.FourLaneDrums => LoadDrumsTrack(instrument, CreateFourLaneDrumNote, eliteDrumsFallback),
@@ -184,12 +187,18 @@ namespace YARG.Core.Chart
 
         private DrumStem GetStem(FourLaneDrumPad pad)
         {
-            return pad switch
+            var stem = pad switch
             {
                 FourLaneDrumPad.Kick       => DrumStem.Kick,
                 FourLaneDrumPad.RedDrum    => _discoFlip ? DrumStem.Else : DrumStem.Snare,
                 FourLaneDrumPad.YellowDrum => _discoFlip ? DrumStem.Snare : DrumStem.Else,
                 _                          => DrumStem.Else,
+            };
+            return _mixConfig switch
+            {
+                DrumsMixConfiguration.StereoKit               => DrumStem.Else,
+                DrumsMixConfiguration.MonoKick_StereoKit      => stem == DrumStem.Snare ? DrumStem.Else : stem,
+                _                                             => stem,
             };
         }
 
@@ -488,7 +497,6 @@ namespace YARG.Core.Chart
                 {
                     continue;
                 }
-
 
                 var notesInPhrase = GetNotesInLanePhrase(chart.Phrases, phraseIndex, chart.Notes, noteIndex, out noteIndex);
 
