@@ -15,7 +15,7 @@ namespace YARG.Core.Audio
             { "vocals",   SongStem.Vocals  },
             { "vocals_1", SongStem.Vocals },
             { "vocals_2", SongStem.Vocals },
-            { "drums",    SongStem.Drums3 },
+            { "drums",    SongStem.Drums1 },
             { "drums_1",  SongStem.Drums1 },
             { "drums_2",  SongStem.Drums2 },
             { "drums_3",  SongStem.Drums3 },
