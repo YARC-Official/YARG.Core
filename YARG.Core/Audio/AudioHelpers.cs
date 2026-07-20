@@ -15,11 +15,11 @@ namespace YARG.Core.Audio
             { "vocals",   SongStem.Vocals  },
             { "vocals_1", SongStem.Vocals },
             { "vocals_2", SongStem.Vocals },
-            { "drums",    SongStem.DrumsElse },
-            { "drums_1",  SongStem.DrumsKick },
-            { "drums_2",  SongStem.DrumsSnare },
-            { "drums_3",  SongStem.DrumsElse },
-            { "drums_4",  SongStem.DrumsElse },
+            { "drums",    SongStem.Drums3 },
+            { "drums_1",  SongStem.Drums1 },
+            { "drums_2",  SongStem.Drums2 },
+            { "drums_3",  SongStem.Drums3 },
+            { "drums_4",  SongStem.Drums3 },
             { "crowd",    SongStem.Crowd   },
             // "preview"
         };
@@ -43,11 +43,11 @@ namespace YARG.Core.Audio
                 "vocals"   => SongStem.Vocals,
                 "vocals_1" => SongStem.Vocals,
                 "vocals_2" => SongStem.Vocals,
-                "drums"    => SongStem.DrumsElse,
-                "drums_1"  => SongStem.DrumsKick,
-                "drums_2"  => SongStem.DrumsSnare,
-                "drums_3"  => SongStem.DrumsElse,
-                "drums_4"  => SongStem.DrumsElse,
+                "drums"    => SongStem.Drums3,
+                "drums_1"  => SongStem.Drums1,
+                "drums_2"  => SongStem.Drums2,
+                "drums_3"  => SongStem.Drums3,
+                "drums_4"  => SongStem.Drums3,
                 "crowd"    => SongStem.Crowd,
                 // "preview" => SongStem.Preview,
                 _ => SongStem.Song,
@@ -58,7 +58,7 @@ namespace YARG.Core.Audio
         private static readonly ISet<SongStem> BassStems    = new HashSet<SongStem> { SongStem.Bass };
         private static readonly  ISet<SongStem> RhythmStems = new HashSet<SongStem> { SongStem.Rhythm };
         private static readonly ISet<SongStem> KeysStems    = new HashSet<SongStem> { SongStem.Keys };
-        private static readonly ISet<SongStem> DrumsStems   = new HashSet<SongStem> { SongStem.DrumsKick, SongStem.DrumsSnare, SongStem.DrumsElse };
+        private static readonly ISet<SongStem> DrumsStems   = new HashSet<SongStem> { SongStem.Drums1, SongStem.Drums2, SongStem.Drums3 };
         private static readonly ISet<SongStem> VocalsStems  = new HashSet<SongStem> { SongStem.Vocals };
 
         public static IEnumerable<SongStem> ToSongStems(this Instrument instrument)
