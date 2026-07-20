@@ -211,13 +211,13 @@ namespace YARG.Core.Audio
             // Samples taken from https://www.reddit.com/r/audioengineering/comments/kg8gth/free_click_track_sound_archive/
             // Normalised with `ffmpeg -i <original> -filter:a "loudnorm=I=-11:LRA=7:TP=-1, volume=29dB" -c:a libvorbis <final>`
             new Sample<MetronomeSample>(MetronomeSample.None, "", ""),
-            new Sample<MetronomeSample>(MetronomeSample.Castanet, "castanet_hi", 0.25f, alternateFile: "castanet_lo"),
-            new Sample<MetronomeSample>(MetronomeSample.Clap, "clap_hi", 0.25f, alternateFile: "clap_lo"),
-            new Sample<MetronomeSample>(MetronomeSample.Party, "party_hi", 0.25f, alternateFile: "party_lo"),
-            new Sample<MetronomeSample>(MetronomeSample.Quartz, "quartz_hi", 0.25f, alternateFile: "quartz_lo"),
-            new Sample<MetronomeSample>(MetronomeSample.Sine, "sine_hi", 0.25f, alternateFile: "sine_lo"),
-            new Sample<MetronomeSample>(MetronomeSample.Square, "square_hi", 0.25f, alternateFile: "square_lo"),
-            new Sample<MetronomeSample>(MetronomeSample.Trashcan, "trashcan_hi", 0.25f, alternateFile: "trashcan_lo"),
+            new Sample<MetronomeSample>(MetronomeSample.Castanet, "castanet_hi", 0.10f, alternateFile: "castanet_lo"),
+            new Sample<MetronomeSample>(MetronomeSample.Clap, "clap_hi", 0.10f, alternateFile: "clap_lo"),
+            new Sample<MetronomeSample>(MetronomeSample.Party, "party_hi", 0.10f, alternateFile: "party_lo"),
+            new Sample<MetronomeSample>(MetronomeSample.Quartz, "quartz_hi", 0.10f, alternateFile: "quartz_lo"),
+            new Sample<MetronomeSample>(MetronomeSample.Sine, "sine_hi", 0.10f, alternateFile: "sine_lo"),
+            new Sample<MetronomeSample>(MetronomeSample.Square, "square_hi", 0.10f, alternateFile: "square_lo"),
+            new Sample<MetronomeSample>(MetronomeSample.Trashcan, "trashcan_hi", 0.10f, alternateFile: "trashcan_lo"),
         };
 
         public class Sample<T>
