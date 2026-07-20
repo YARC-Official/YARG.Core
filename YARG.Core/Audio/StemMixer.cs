@@ -6,6 +6,7 @@ namespace YARG.Core.Audio
 {
     public abstract class OneShotChannel : IDisposable
     {
+        public abstract void SetEnabled(bool enabled);
         public abstract void SetVolume(double volume);
         public abstract void Dispose();
     }
@@ -55,7 +56,7 @@ namespace YARG.Core.Audio
         /// Creates a one-shot channel from an owned sample stream and its scheduled play times.
         /// </summary>
         public abstract OneShotChannel CreateOneShotChannel(int sampleStream,
-            IReadOnlyList<double> scheduledPlays);
+            IReadOnlyList<double> scheduledPlays, double outputLeadTime = 0);
 
         protected StemMixer(string name, AudioManager manager,bool clampStemVolume)
         {
