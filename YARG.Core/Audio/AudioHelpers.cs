@@ -16,8 +16,8 @@ namespace YARG.Core.Audio
             { "vocals_1", SongStem.Vocals },
             { "vocals_2", SongStem.Vocals },
             { "drums",    SongStem.DrumsElse },
-            { "drums_1",  SongStem.DrumsElse },
-            { "drums_2",  SongStem.DrumsElse },
+            { "drums_1",  SongStem.DrumsKick },
+            { "drums_2",  SongStem.DrumsSnare },
             { "drums_3",  SongStem.DrumsElse },
             { "drums_4",  SongStem.DrumsElse },
             { "crowd",    SongStem.Crowd   },
@@ -44,8 +44,8 @@ namespace YARG.Core.Audio
                 "vocals_1" => SongStem.Vocals,
                 "vocals_2" => SongStem.Vocals,
                 "drums"    => SongStem.DrumsElse,
-                "drums_1"  => SongStem.DrumsElse,
-                "drums_2"  => SongStem.DrumsElse,
+                "drums_1"  => SongStem.DrumsKick,
+                "drums_2"  => SongStem.DrumsSnare,
                 "drums_3"  => SongStem.DrumsElse,
                 "drums_4"  => SongStem.DrumsElse,
                 "crowd"    => SongStem.Crowd,
@@ -54,34 +54,41 @@ namespace YARG.Core.Audio
             };
         }
 
-        public static SongStem ToSongStem(this Instrument instrument)
+        private static readonly ISet<SongStem> GuitarStems  = new HashSet<SongStem> { SongStem.Guitar };
+        private static readonly ISet<SongStem> BassStems    = new HashSet<SongStem> { SongStem.Bass };
+        private static readonly  ISet<SongStem> RhythmStems = new HashSet<SongStem> { SongStem.Rhythm };
+        private static readonly ISet<SongStem> KeysStems    = new HashSet<SongStem> { SongStem.Keys };
+        private static readonly ISet<SongStem> DrumsStems   = new HashSet<SongStem> { SongStem.DrumsKick, SongStem.DrumsSnare, SongStem.DrumsElse };
+        private static readonly ISet<SongStem> VocalsStems  = new HashSet<SongStem> { SongStem.Vocals };
+
+        public static IEnumerable<SongStem> ToSongStems(this Instrument instrument)
         {
             return instrument switch
             {
                 Instrument.FiveFretGuitar or
                 Instrument.SixFretGuitar or
                 Instrument.ProGuitar_17Fret or
-                Instrument.ProGuitar_22Fret => SongStem.Guitar,
+                Instrument.ProGuitar_22Fret => GuitarStems,
 
                 Instrument.FiveFretBass or
                 Instrument.SixFretBass or
                 Instrument.ProBass_17Fret or
-                Instrument.ProBass_22Fret => SongStem.Bass,
+                Instrument.ProBass_22Fret => BassStems,
 
                 Instrument.FiveFretRhythm or
                 Instrument.SixFretRhythm or
                 Instrument.FiveFretCoopGuitar or
-                Instrument.SixFretCoopGuitar => SongStem.Rhythm,
+                Instrument.SixFretCoopGuitar => RhythmStems,
 
                 Instrument.Keys or
-                Instrument.ProKeys => SongStem.Keys,
+                Instrument.ProKeys => KeysStems,
 
                 Instrument.ProDrums or
                 Instrument.FourLaneDrums or
-                Instrument.FiveLaneDrums => SongStem.DrumsElse,
+                Instrument.FiveLaneDrums => DrumsStems,
 
                 Instrument.Vocals or
-                Instrument.Harmony => SongStem.Vocals,
+                Instrument.Harmony => VocalsStems,
 
                 _ => throw new Exception("Unreachable.")
             };
