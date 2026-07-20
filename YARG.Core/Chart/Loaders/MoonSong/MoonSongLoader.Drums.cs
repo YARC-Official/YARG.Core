@@ -124,7 +124,7 @@ namespace YARG.Core.Chart
 
             bool isDoubleKick = pad is FourLaneDrumPad.Kick && ((moonNote.flags & Flags.InstrumentPlus) != 0);
 
-            return new DrumNote(pad, noteType, drumFlags, generalFlags, time, moonNote.tick, isDoubleKick);
+            return new DrumNote(pad, noteType, drumFlags, generalFlags, time, moonNote.tick, isDoubleKick, GetStem(pad));
         }
 
         private DrumNote CreateFiveLaneDrumNote(MoonNote moonNote, Dictionary<MoonPhrase.Type, MoonPhrase> currentPhrases, List<DrumNote> notes)
@@ -140,7 +140,7 @@ namespace YARG.Core.Chart
 
             bool isDoubleKick = pad is FiveLaneDrumPad.Kick && ((moonNote.flags & Flags.InstrumentPlus) != 0);
 
-            return new DrumNote(pad, noteType, drumFlags, generalFlags, time, moonNote.tick, isDoubleKick);
+            return new DrumNote(pad, noteType, drumFlags, generalFlags, time, moonNote.tick, isDoubleKick, GetStem(pad));
         }
 
         private DrumNote CreateFourLaneDrumBeginnerNote(MoonNote moonNote, Dictionary<MoonPhrase.Type, MoonPhrase> currentPhrases, List<DrumNote> notes)
@@ -160,7 +160,7 @@ namespace YARG.Core.Chart
             var drumFlags = GetDrumNoteFlags(moonNote, currentPhrases);
 
             double time = _moonSong.TickToTime(moonNote.tick);
-            return new DrumNote(pad, noteType, drumFlags, generalFlags, time, moonNote.tick, false);
+            return new DrumNote(pad, noteType, drumFlags, generalFlags, time, moonNote.tick, false, GetStem(pad));
         }
 
         private DrumNote CreateFiveLaneDrumBeginnerNote(MoonNote moonNote, Dictionary<MoonPhrase.Type, MoonPhrase> currentPhrases, List<DrumNote> notes)
@@ -179,7 +179,29 @@ namespace YARG.Core.Chart
             var drumFlags = GetDrumNoteFlags(moonNote, currentPhrases);
 
             double time = _moonSong.TickToTime(moonNote.tick);
-            return new DrumNote(pad, noteType, drumFlags, generalFlags, time, moonNote.tick, false);
+            return new DrumNote(pad, noteType, drumFlags, generalFlags, time, moonNote.tick, false, GetStem(pad));
+        }
+
+        private DrumStem GetStem(FourLaneDrumPad pad)
+        {
+            return pad switch
+            {
+                FourLaneDrumPad.Kick       => DrumStem.Kick,
+                FourLaneDrumPad.RedDrum    => _discoFlip ? DrumStem.Else : DrumStem.Snare,
+                FourLaneDrumPad.YellowDrum => _discoFlip ? DrumStem.Snare : DrumStem.Else,
+                _                          => DrumStem.Else,
+            };
+        }
+
+        private DrumStem GetStem(FiveLaneDrumPad pad)
+        {
+            return pad switch
+            {
+                FiveLaneDrumPad.Kick   => DrumStem.Kick,
+                FiveLaneDrumPad.Red    => _discoFlip ? DrumStem.Else : DrumStem.Snare,
+                FiveLaneDrumPad.Yellow => _discoFlip ? DrumStem.Snare : DrumStem.Else,
+                _                      => DrumStem.Else,
+            };
         }
 
         private void HandleTextEvent(MoonText text)
@@ -466,7 +488,7 @@ namespace YARG.Core.Chart
                 {
                     continue;
                 }
-                
+
 
                 var notesInPhrase = GetNotesInLanePhrase(chart.Phrases, phraseIndex, chart.Notes, noteIndex, out noteIndex);
 
