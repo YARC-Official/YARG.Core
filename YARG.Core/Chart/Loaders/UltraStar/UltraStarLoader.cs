@@ -53,6 +53,13 @@ namespace YARG.Core.Chart.Loaders.UltraStar
             public int    Pitch         { get; set; }
             public string Lyric         { get; set; } = string.Empty;
 
+            /// <summary>
+            /// When true, a hyphen ('-') should be appended to this note's lyric
+            /// and JoinWithNext flag set on its LyricEvent. Set when the NEXT note
+            /// in the phrase has a '~' (melisma continuation) prefix.
+            /// </summary>
+            public bool MelismaJoin { get; set; }
+
             public bool IsGolden    => Type == '*' || Type == 'G';
             public bool IsUnpitched => Type == 'F' || Type == 'R' || Type == 'G';
             public bool IsRest      => Type == '-';
@@ -187,10 +194,28 @@ namespace YARG.Core.Chart.Loaders.UltraStar
             if (lyric.StartsWith("~"))
             {
                 lyric = lyric.Substring(1);
-                if (lyric.Length > 0)
+                bool hasText = lyric.Length > 0;
+                if (hasText)
                     lyric += "+";
                 else
                     lyric = "+";
+
+                // Only mark the previous note with MelismaJoin when the '~'
+                // carries actual text (e.g. ~ght.). A bare '~' is a silent
+                // continuation hold and should NOT add a hyphen to the
+                // previous note's lyric.
+                if (hasText)
+                {
+                    var partNotes = _partNotes[_currentPart];
+                    for (int i = partNotes.Count - 1; i >= 0; i--)
+                    {
+                        if (!partNotes[i].IsRest)
+                        {
+                            partNotes[i].MelismaJoin = true;
+                            break;
+                        }
+                    }
+                }
             }
 
             _partNotes[_currentPart].Add(new UltraStarNote
@@ -210,8 +235,8 @@ namespace YARG.Core.Chart.Loaders.UltraStar
 
         private uint BeatToTick(uint beat)
         {
-            uint ticksPerUSBeat = _ticksPerBeat / 4;
-            uint gapTicks = (uint) (_gapMs / 1000.0 * _bpm / 60.0 * _ticksPerBeat);
+            uint ticksPerUSBeat = _ticksPerBeat / 8;
+            uint gapTicks = (uint) (_gapMs / 1000.0 * _bpm);
             return gapTicks + (beat * ticksPerUSBeat);
         }
         private double BeatToTime(uint beat) => beat * 60.0 / _bpm;
@@ -242,8 +267,13 @@ namespace YARG.Core.Chart.Loaders.UltraStar
                 return _syncTrack;
             }
 
+            // UltraStar BPM is typically 2x the real musical BPM.
+            // Halve it for the SyncTrack so beatlines and crowd clapping
+            // fire at the correct rate. Note timing via BeatToTime/BeatToTick
+            // still uses the original _bpm and remains correct because
+            // UltraStar beat positions are also in "double time".
             _syncTrack = new SyncTrack(120,
-                new List<TempoChange> { new(_bpm, -_gapMs / 1000.0, 0u) },
+                new List<TempoChange> { new(_bpm / 2.0, -_gapMs / 1000.0, 0u) },
                 new List<TimeSignatureChange> { new(4, 4, -_gapMs / 1000.0, 0u, 0u, 0u, 0u, 0.0) },
                 new List<Beatline>());
             return _syncTrack;
@@ -279,8 +309,20 @@ namespace YARG.Core.Chart.Loaders.UltraStar
                         continue;
                     }
 
+                    // Freestyle notes get "#" appended (like SingStar)
+                    string lyric = n.IsUnpitched
+                        ? FormatLyric(n.Lyric) + LyricSymbols.NONPITCHED_SYMBOL
+                        : FormatLyric(n.Lyric);
                     var flags = n.IsUnpitched ? LyricSymbolFlags.NonPitched : LyricSymbolFlags.None;
-                    events.Add(new LyricEvent(flags, FormatLyric(n.Lyric),
+
+                    // Melisma: append '-' and set JoinWithNext when next note has '~' prefix
+                    if (n.MelismaJoin)
+                    {
+                        lyric += LyricSymbols.LYRIC_JOIN_SYMBOL;
+                        flags |= LyricSymbolFlags.JoinWithNext;
+                    }
+
+                    events.Add(new LyricEvent(flags, lyric,
                         BeatToTime(n.StartBeat), BeatToTick(n.StartBeat)));
                 }
 
@@ -434,7 +476,7 @@ namespace YARG.Core.Chart.Loaders.UltraStar
 
             foreach (var uNote in phraseNotes)
             {
-                uint ticksPerUsBeat = _ticksPerBeat / 4;
+                uint ticksPerUsBeat = _ticksPerBeat / 8;
                 uint noteTick = BeatToTick(uNote.StartBeat);
                 uint noteTickLen = uNote.DurationBeats * ticksPerUsBeat;
                 double noteTime = BeatToTime(uNote.StartBeat);
@@ -443,8 +485,8 @@ namespace YARG.Core.Chart.Loaders.UltraStar
                 bool isUnpitched = uNote.IsUnpitched;
 
                 // Pitch conversion: UltraStar relative → MIDI absolute
-                // Unpitched (freestyle, pitch=-1): pass -1 to VocalNote
-                float midiPitch = isUnpitched ? -1f : ToMidiPitch(uNote.Pitch);
+                // Freestyle/rap notes keep their real pitch (like SingStar)
+                float midiPitch = ToMidiPitch(uNote.Pitch);
 
                 var childNote = new VocalNote(
                     midiPitch,
@@ -459,8 +501,20 @@ namespace YARG.Core.Chart.Loaders.UltraStar
 
                 if (!string.IsNullOrWhiteSpace(uNote.Lyric))
                 {
+                    // Freestyle notes get "#" appended (like SingStar)
+                    string lyric = isUnpitched
+                        ? FormatLyric(uNote.Lyric) + LyricSymbols.NONPITCHED_SYMBOL
+                        : FormatLyric(uNote.Lyric);
                     var flags = isUnpitched ? LyricSymbolFlags.NonPitched : LyricSymbolFlags.None;
-                    lyrics.Add(new LyricEvent(flags, FormatLyric(uNote.Lyric), noteTime, noteTick));
+
+                    // Melisma: append '-' and set JoinWithNext when next note has '~' prefix
+                    if (uNote.MelismaJoin)
+                    {
+                        lyric += LyricSymbols.LYRIC_JOIN_SYMBOL;
+                        flags |= LyricSymbolFlags.JoinWithNext;
+                    }
+
+                    lyrics.Add(new LyricEvent(flags, lyric, noteTime, noteTick));
                 }
             }
 

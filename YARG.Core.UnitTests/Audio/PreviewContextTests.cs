@@ -209,6 +209,16 @@ public class PreviewContextTests
             remove => _songEnd -= value;
         }
 
+        public override OneShotChannel CreateOneShotChannel(int sampleStream,
+            IReadOnlyList<double> scheduledPlays, double outputLeadTime = 0) => new EmptyOneShotChannel();
+
+        private sealed class EmptyOneShotChannel : OneShotChannel
+        {
+            public override void SetEnabled(bool enabled) { }
+            public override void SetVolume(double volume) { }
+            public override void Dispose() { }
+        }
+
         protected override int Play_Internal() => 0;
 
         protected override void FadeIn_Internal(double maxVolume, double duration) { }
@@ -234,7 +244,7 @@ public class PreviewContextTests
 
         protected override int GetLevel_Internal(float[] level) => 0;
 
-        protected override void SetSpeed_Internal(float speed, bool shiftPitch) { }
+        protected override void SetPlaybackSpeed_Internal(float songSpeed, float syncAdjustment, bool shiftPitch) { }
 
         protected override bool AddChannels_Internal(Stream stream, params StemInfo[] stemInfos) => false;
 

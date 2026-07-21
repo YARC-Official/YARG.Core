@@ -32,6 +32,8 @@
         Start = 9,
         /// <summary>Select action button.</summary>
         Select = 10,
+        /// <summary>Focus the search field.</summary>
+        Search = 11,
     }
 
     /// <summary>

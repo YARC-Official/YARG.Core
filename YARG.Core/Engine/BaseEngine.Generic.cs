@@ -507,6 +507,11 @@ namespace YARG.Core.Engine
                 EndCoda();
             }
 
+            if (note.IsSolo)
+            {
+                HandleSoloNote(note);
+            }
+
             if (note.ParentOrSelf.WasFullyHitOrMissed())
             {
                 AdvanceToNextNote(note);
@@ -589,6 +594,11 @@ namespace YARG.Core.Engine
             if (CodaHasStarted && ChordHasCodaEnd(note) && note.ParentOrSelf.WasFullyHitOrMissed())
             {
                 EndCoda();
+            }
+
+            if (note.IsSolo)
+            {
+                HandleSoloNote(note);
             }
 
             if (note.ParentOrSelf.WasFullyHitOrMissed())
@@ -775,6 +785,8 @@ namespace YARG.Core.Engine
             // scoreMultiplier includes combo+star power score
             EngineStats.CommittedScore += scoreMultiplier;
 
+            EngineStats.AverageMultiplier = (float) EngineStats.CommittedScore / BaseNoteScore;
+
             if (EngineStats.IsStarPowerActive)
             {
                 // Amount of points just from Star Power is half of the current multiplier (8x total -> 4x SP points)
@@ -793,6 +805,29 @@ namespace YARG.Core.Engine
             }
 
             UpdateStars();
+        }
+
+        protected void HandleSoloNote(TNoteType note)
+        {
+            if (!note.IsSolo)
+            {
+                return;
+            }
+
+            if (note.IsSoloStart)
+            {
+                StartSolo();
+            }
+
+            if (note.WasHit)
+            {
+                Solos[CurrentSoloIndex].NotesHit++;
+            }
+
+            if (note.IsSoloEnd && note.ParentOrSelf.WasFullyHitOrMissed())
+            {
+                EndSolo();
+            }
         }
 
         protected virtual void UpdateSustains()

@@ -254,13 +254,26 @@ namespace YARG.Core.Audio
             }
         }
 
-        public static void StopSoundEffect(SfxSample sample, double duration = 0)
+        public static int CreateSoundEffectStream(SfxSample sample)
         {
             lock (_instanceLock)
             {
                 if (_instance == null)
                 {
                     throw new NotInitializedException();
+                }
+
+                return _instance.SfxSamples[(int) sample]?.CreateStream() ?? 0;
+            }
+        }
+
+        public static void StopSoundEffect(SfxSample sample, double duration = 0)
+        {
+            lock (_instanceLock)
+            {
+                if (_instance == null)
+                {
+                    return;
                 }
                 _instance.SfxSamples[(int) sample]?.Stop(duration);
             }
@@ -412,6 +425,19 @@ namespace YARG.Core.Audio
                 }
 
                 _instance.MetronomeSamples[(int) sample]?.PlayLo();
+            }
+        }
+
+        public static int CreateMetronomeStream(MetronomeSample sample, MetronomePitch pitch)
+        {
+            lock (_instanceLock)
+            {
+                if (_instance == null)
+                {
+                    throw new NotInitializedException();
+                }
+
+                return _instance.MetronomeSamples[(int) sample]?.CreateStream(pitch) ?? 0;
             }
         }
 
