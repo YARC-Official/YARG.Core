@@ -184,14 +184,16 @@ namespace YARG.Core.Chart
 
         private DrumStem GetStem(FourLaneDrumPad pad)
         {
+            var swapRedYellow = _discoFlip && _currentInstrument is Instrument.FourLaneDrums;
             return pad switch
             {
-                FourLaneDrumPad.Kick        => DrumStem.Kick,
-                FourLaneDrumPad.RedDrum     => _discoFlip ? DrumStem.Else : DrumStem.Snare,
-                FourLaneDrumPad.YellowDrum  => _discoFlip ? DrumStem.Snare : DrumStem.Toms,
-                FourLaneDrumPad.BlueDrum    => DrumStem.Toms,
-                FourLaneDrumPad.GreenDrum   => DrumStem.Toms,
-                _                           => DrumStem.Else,
+                FourLaneDrumPad.Kick         => DrumStem.Kick,
+                FourLaneDrumPad.RedDrum      => swapRedYellow ? DrumStem.Else : DrumStem.Snare,
+                FourLaneDrumPad.YellowDrum   => swapRedYellow ? DrumStem.Snare : DrumStem.Toms,
+                FourLaneDrumPad.YellowCymbal => swapRedYellow ? DrumStem.Snare : DrumStem.Else,
+                FourLaneDrumPad.BlueDrum     => DrumStem.Toms,
+                FourLaneDrumPad.GreenDrum    => DrumStem.Toms,
+                _                            => DrumStem.Else,
             };
         }
 
@@ -200,8 +202,7 @@ namespace YARG.Core.Chart
             return pad switch
             {
                 FiveLaneDrumPad.Kick   => DrumStem.Kick,
-                FiveLaneDrumPad.Red    => _discoFlip ? DrumStem.Else : DrumStem.Snare,
-                FiveLaneDrumPad.Yellow => _discoFlip ? DrumStem.Snare : DrumStem.Else,
+                FiveLaneDrumPad.Red    => DrumStem.Snare,
                 FiveLaneDrumPad.Blue   => DrumStem.Toms,
                 FiveLaneDrumPad.Green  => DrumStem.Toms,
                 _                      => DrumStem.Else,
