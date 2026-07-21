@@ -240,7 +240,7 @@ public class PreviewContextTests
 
         protected override int GetLevel_Internal(float[] level) => 0;
 
-        protected override void SetSpeed_Internal(float speed, bool shiftPitch) { }
+        protected override void SetPlaybackSpeed_Internal(float songSpeed, float syncAdjustment, bool shiftPitch) { }
 
         protected override bool AddChannels_Internal(Stream stream, params StemInfo[] stemInfos) => false;
 
