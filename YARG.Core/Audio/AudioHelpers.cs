@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 
 namespace YARG.Core.Audio
@@ -98,7 +98,7 @@ namespace YARG.Core.Audio
             new Sample<SfxSample>(SfxSample.StarPowerDeploy, "starpower_deploy", 0.4f),
             new Sample<SfxSample>(SfxSample.StarPowerDeployCrowd, "overdrive_deploy_crowd", 0.4f),
             new Sample<SfxSample>(SfxSample.StarPowerRelease, "starpower_release", 0.5f),
-            new Sample<SfxSample>(SfxSample.Clap, "clap", 0.16f),
+            new Sample<SfxSample>(SfxSample.Clap, "clap", 0.35f),
             new Sample<SfxSample>(SfxSample.StarGain, "star"),
             new Sample<SfxSample>(SfxSample.StarGold, "star_gold"),
             new Sample<SfxSample>(SfxSample.Overstrum1, "overstrum_1", 0.4f),
@@ -211,13 +211,13 @@ namespace YARG.Core.Audio
             // Samples taken from https://www.reddit.com/r/audioengineering/comments/kg8gth/free_click_track_sound_archive/
             // Normalised with `ffmpeg -i <original> -filter:a "loudnorm=I=-11:LRA=7:TP=-1, volume=29dB" -c:a libvorbis <final>`
             new Sample<MetronomeSample>(MetronomeSample.None, "", ""),
-            new Sample<MetronomeSample>(MetronomeSample.Castanet, "castanet_hi", "castanet_lo"),
-            new Sample<MetronomeSample>(MetronomeSample.Clap, "clap_hi", "clap_lo"),
-            new Sample<MetronomeSample>(MetronomeSample.Party, "party_hi", "party_lo"),
-            new Sample<MetronomeSample>(MetronomeSample.Quartz, "quartz_hi", "quartz_lo"),
-            new Sample<MetronomeSample>(MetronomeSample.Sine, "sine_hi", "sine_lo"),
-            new Sample<MetronomeSample>(MetronomeSample.Square, "square_hi", "square_lo"),
-            new Sample<MetronomeSample>(MetronomeSample.Trashcan, "trashcan_hi", "trashcan_lo"),
+            new Sample<MetronomeSample>(MetronomeSample.Castanet, "castanet_hi", 0.10f, alternateFile: "castanet_lo"),
+            new Sample<MetronomeSample>(MetronomeSample.Clap, "clap_hi", 0.10f, alternateFile: "clap_lo"),
+            new Sample<MetronomeSample>(MetronomeSample.Party, "party_hi", 0.10f, alternateFile: "party_lo"),
+            new Sample<MetronomeSample>(MetronomeSample.Quartz, "quartz_hi", 0.10f, alternateFile: "quartz_lo"),
+            new Sample<MetronomeSample>(MetronomeSample.Sine, "sine_hi", 0.10f, alternateFile: "sine_lo"),
+            new Sample<MetronomeSample>(MetronomeSample.Square, "square_hi", 0.10f, alternateFile: "square_lo"),
+            new Sample<MetronomeSample>(MetronomeSample.Trashcan, "trashcan_hi", 0.10f, alternateFile: "trashcan_lo"),
         };
 
         public class Sample<T>
