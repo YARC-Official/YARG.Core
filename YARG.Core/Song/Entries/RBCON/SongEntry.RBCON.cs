@@ -798,7 +798,7 @@ namespace YARG.Core.Song
                 if (dta.Source == "beatles")
                 {
                     entry._metadata.Artist = "The Beatles";
-                    entry._rbMetadata.VocalGender = VocalGender.Male;
+                    entry._rbMetadata.RbVocalGender = RbVocalGender.Male;
                 }
             }
             if (dta.SongLength != null)           { entry._metadata.SongLength    = dta.SongLength.Value; }
