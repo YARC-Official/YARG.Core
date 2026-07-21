@@ -170,9 +170,7 @@ namespace YARG.Core.Replays.Analyzer
             {
                 var engine = CreateEngine(frame.Profile, frame.EngineParameters);
                 engines.Add(engine);
-
-                // TODO: Implement support for custom RockMeterPresets in replays
-                manager.Register(engine, frame.Profile.CurrentInstrument, frame.Profile.CurrentDifficulty, _chart, RockMeterPreset.Normal);
+                RegisterEngine(frame.Profile, engine, manager, frame.EngineParameters, frame);
                 engine.SetSpeed(frame.EngineParameters.SongSpeed);
                 engine.Reset();
 
@@ -221,6 +219,63 @@ namespace YARG.Core.Replays.Analyzer
                 });
             }
             return results;
+        }
+
+        private void RegisterEngine(YargProfile profile, BaseEngine engine, EngineManager manager, BaseEngineParameters parameters, ReplayFrame frame)
+        {
+            switch (frame.Profile.GameMode)
+            {
+                case GameMode.FiveFretGuitar:
+                {
+                    var notes = _chart.GetFiveFretTrack(frame.Profile.CurrentInstrument)
+                        .GetDifficulty(frame.Profile.CurrentDifficulty).Clone();
+                    profile.ApplyModifiers(notes, _chart.SyncTrack);
+                    // TODO: Implement support for custom RockMeterPresets in replays
+                    manager.Register((GuitarEngine)engine, notes, _chart, RockMeterPreset.Normal);
+                    break;
+                }
+                case GameMode.FourLaneDrums:
+                case GameMode.FiveLaneDrums:
+                case GameMode.EliteDrums:
+                {
+                    var notes = _chart.GetDrumsTrack(profile.CurrentInstrument)
+                        .GetDifficulty(profile.CurrentDifficulty).Clone();
+                    profile.ApplyModifiers(notes, _chart.SyncTrack);
+                    // TODO: Implement support for custom RockMeterPresets in replays
+                    manager.Register((DrumsEngine)engine, notes, _chart, RockMeterPreset.Normal);
+                    break;
+                }
+                case GameMode.ProKeys:
+                {
+                    if (profile.CurrentInstrument is Instrument.ProKeys) // Pro Keys
+                    {
+                        // Reset the notes
+                        var notes = _chart.ProKeys.GetDifficulty(profile.CurrentDifficulty).Clone();
+                        profile.ApplyModifiers(notes, _chart.SyncTrack);
+                        // TODO: Implement support for custom RockMeterPresets in replays
+                        manager.Register((ProKeysEngine)engine, notes, _chart, RockMeterPreset.Normal);
+                        break;
+                    }
+
+                    // Five-Lane Keys
+                    var fiveLaneNotes = _chart.GetFiveFretTrack(profile.CurrentInstrument)
+                        .GetDifficulty(profile.CurrentDifficulty).Clone();
+                    profile.ApplyModifiers(fiveLaneNotes, _chart.SyncTrack);
+                    manager.Register((FiveLaneKeysEngine)engine, fiveLaneNotes, _chart, RockMeterPreset.Normal);
+                    break;
+                }
+                case GameMode.Vocals:
+                {
+                    // Get the notes
+                    var notes = _chart.GetVocalsTrack(profile.CurrentInstrument)
+                        .Parts[profile.HarmonyIndex].Clone();
+                    profile.ApplyVocalModifiers(notes);
+                    manager.Register((VocalsEngine)engine, notes.CloneAsInstrumentDifficulty(), _chart, RockMeterPreset.Normal);
+                    break;
+                }
+                default:
+                    throw new InvalidOperationException("Game mode not configured!");
+            }
         }
 
         private BaseEngine CreateEngine(YargProfile profile, BaseEngineParameters parameters)
