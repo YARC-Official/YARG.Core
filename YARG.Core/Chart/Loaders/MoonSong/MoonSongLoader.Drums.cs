@@ -12,13 +12,10 @@ namespace YARG.Core.Chart
     internal partial class MoonSongLoader : ISongLoader
     {
         private bool _discoFlip = false;
-        private DrumsMixConfiguration _mixConfig = DrumsMixConfiguration.StereoKickSnareTomCymbal;
 
         public InstrumentTrack<DrumNote> LoadDrumsTrack(Instrument instrument, InstrumentTrack<EliteDrumNote>? eliteDrumsFallback)
         {
             _discoFlip = false;
-            // by default, assume that all stems are supported, since we gracefully degrade if the stems are missing
-            _mixConfig = DrumsMixConfiguration.StereoKickSnareTomCymbal;
             return instrument.ToNativeGameMode() switch
             {
                 GameMode.FourLaneDrums => LoadDrumsTrack(instrument, CreateFourLaneDrumNote, eliteDrumsFallback),
@@ -187,20 +184,20 @@ namespace YARG.Core.Chart
 
         private DrumStem GetStem(FourLaneDrumPad pad)
         {
-            var stem = pad switch
+            return pad switch
             {
-                FourLaneDrumPad.Kick                                  => DrumStem.Kick,
-                FourLaneDrumPad.RedDrum                               => _discoFlip ? DrumStem.Else : DrumStem.Snare,
-                FourLaneDrumPad.YellowDrum                            => _discoFlip ? DrumStem.Snare : DrumStem.Toms,
-                FourLaneDrumPad.BlueDrum or FourLaneDrumPad.GreenDrum => DrumStem.Toms,
-                _                                                     => DrumStem.Else,
+                FourLaneDrumPad.Kick        => DrumStem.Kick,
+                FourLaneDrumPad.RedDrum     => _discoFlip ? DrumStem.Else : DrumStem.Snare,
+                FourLaneDrumPad.YellowDrum  => _discoFlip ? DrumStem.Snare : DrumStem.Toms,
+                FourLaneDrumPad.BlueDrum    => DrumStem.Toms,
+                FourLaneDrumPad.GreenDrum   => DrumStem.Toms,
+                _                           => DrumStem.Else,
             };
-            return ApplyMixConfig(stem);
         }
 
         private DrumStem GetStem(FiveLaneDrumPad pad)
         {
-            var stem = pad switch
+            return pad switch
             {
                 FiveLaneDrumPad.Kick   => DrumStem.Kick,
                 FiveLaneDrumPad.Red    => _discoFlip ? DrumStem.Else : DrumStem.Snare,
@@ -208,18 +205,6 @@ namespace YARG.Core.Chart
                 FiveLaneDrumPad.Blue   => DrumStem.Toms,
                 FiveLaneDrumPad.Green  => DrumStem.Toms,
                 _                      => DrumStem.Else,
-            };
-            return ApplyMixConfig(stem);
-        }
-
-        private DrumStem ApplyMixConfig(DrumStem stem)
-        {
-            return _mixConfig switch
-            {
-                DrumsMixConfiguration.StereoKit                => DrumStem.Else,
-                DrumsMixConfiguration.MonoKick_StereoKit       => stem == DrumStem.Snare ? DrumStem.Else : stem,
-                DrumsMixConfiguration.StereoKickSnareTomCymbal => stem,
-                _                                              => stem == DrumStem.Toms ? DrumStem.Else : stem,
             };
         }
 
@@ -241,7 +226,6 @@ namespace YARG.Core.Chart
                 return;
 
             _discoFlip = setting == DrumsMixSetting.DiscoFlip;
-            _mixConfig = config;
         }
 
         // Left as an example of how to use phrase validation/replacement despite being no longer required
