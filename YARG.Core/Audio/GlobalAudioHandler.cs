@@ -39,6 +39,7 @@ namespace YARG.Core.Audio
                 { SongStem.Drums1,      new StemSettings() },
                 { SongStem.Drums2,      new StemSettings() },
                 { SongStem.Drums3,      new StemSettings() },
+                { SongStem.Drums4,      new StemSettings() },
                 { SongStem.Crowd,       new StemSettings() },
                 { SongStem.Sfx,         new StemSettings() },
                 { SongStem.DrumSfx,     new StemSettings() },

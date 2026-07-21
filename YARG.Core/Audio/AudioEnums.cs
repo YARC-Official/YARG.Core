@@ -14,6 +14,7 @@
         Drums1,
         Drums2,
         Drums3,
+        Drums4,
         Crowd,
         Preview,
         VoxSample,

@@ -215,14 +215,14 @@ namespace YARG.Core.Song
 
             var stemInfos = new List<StemInfo>();
 
-            if (_indices.Drums.Length > 0 && !ignoreStems.Contains(SongStem.Drums3))
+            if (_indices.Drums.Length > 0 && !ignoreStems.Contains(SongStem.Drums1))
             {
                 switch (_indices.Drums.Length)
                 {
                     //drum (0 1): stereo kit --> (0 1)
                     case 1:
                     case 2:
-                        stemInfos.Add(new StemInfo(SongStem.Drums3, _indices.Drums, _panning.Drums));
+                        stemInfos.Add(new StemInfo(SongStem.Drums1, _indices.Drums, _panning.Drums));
                         break;
                     //drum (0 1 2): mono kick, stereo snare/kit --> (0) (1 2)
                     case 3:

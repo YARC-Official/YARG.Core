@@ -147,6 +147,7 @@ namespace YARG.Core.Chart
     {
         Kick,
         Snare,
+        Toms,
         Else,
     }
 }

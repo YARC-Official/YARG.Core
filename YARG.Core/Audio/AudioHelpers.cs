@@ -19,7 +19,7 @@ namespace YARG.Core.Audio
             { "drums_1",  SongStem.Drums1 },
             { "drums_2",  SongStem.Drums2 },
             { "drums_3",  SongStem.Drums3 },
-            { "drums_4",  SongStem.Drums3 },
+            { "drums_4",  SongStem.Drums4 },
             { "crowd",    SongStem.Crowd   },
             // "preview"
         };
@@ -43,11 +43,11 @@ namespace YARG.Core.Audio
                 "vocals"   => SongStem.Vocals,
                 "vocals_1" => SongStem.Vocals,
                 "vocals_2" => SongStem.Vocals,
-                "drums"    => SongStem.Drums3,
+                "drums"    => SongStem.Drums1,
                 "drums_1"  => SongStem.Drums1,
                 "drums_2"  => SongStem.Drums2,
                 "drums_3"  => SongStem.Drums3,
-                "drums_4"  => SongStem.Drums3,
+                "drums_4"  => SongStem.Drums4,
                 "crowd"    => SongStem.Crowd,
                 // "preview" => SongStem.Preview,
                 _ => SongStem.Song,
@@ -58,7 +58,7 @@ namespace YARG.Core.Audio
         private static readonly HashSet<SongStem> BassStems    = new() { SongStem.Bass };
         private static readonly HashSet<SongStem> RhythmStems  = new() { SongStem.Rhythm };
         private static readonly HashSet<SongStem> KeysStems    = new() { SongStem.Keys };
-        private static readonly HashSet<SongStem> DrumsStems   = new() { SongStem.Drums1, SongStem.Drums2, SongStem.Drums3 };
+        private static readonly HashSet<SongStem> DrumsStems   = new() { SongStem.Drums1, SongStem.Drums2, SongStem.Drums3, SongStem.Drums4 };
         private static readonly HashSet<SongStem> VocalsStems  = new() { SongStem.Vocals };
 
         public static IEnumerable<SongStem> ToSongStems(this Instrument instrument)
