@@ -252,16 +252,6 @@ namespace YARG.Core.Audio
             }
         }
 
-        internal void ToggleBuffer(bool enable)
-        {
-            lock (this)
-            {
-                if (!_disposed)
-                {
-                    ToggleBuffer_Internal(enable);
-                }
-            }
-        }
 
         internal void SetBufferLength(int length)
         {
@@ -310,7 +300,6 @@ namespace YARG.Core.Audio
         protected abstract void SetSpeed_Internal(float speed, bool shiftPitch);
         protected abstract bool AddChannels_Internal(Stream stream, params StemInfo[] stemInfos);
         protected abstract bool RemoveChannel_Internal(SongStem stemToRemove);
-        protected abstract void ToggleBuffer_Internal(bool enable);
         protected abstract void SetBufferLength_Internal(int length);
         protected abstract void SetOutputChannel_Internal(OutputChannel? channel);
         protected abstract void SetOutputDevice_Internal(OutputDevice device);

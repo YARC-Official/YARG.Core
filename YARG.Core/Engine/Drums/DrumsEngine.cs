@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using YARG.Core.Chart;
 using YARG.Core.Input;
 using YARG.Core.Logging;
@@ -10,7 +11,7 @@ namespace YARG.Core.Engine.Drums
     {
         public delegate void OverhitEvent();
 
-        public delegate void PadHitEvent(DrumsAction action, bool noteWasHit, bool wereBonusPointsAwarded, DrumNoteType type, float velocity);
+        public delegate void PadHitEvent(DrumsAction action, bool noteWasHit, bool wereBonusPointsAwarded, bool wasOverhitInLane, DrumNoteType type, float velocity);
 
         public OverhitEvent? OnOverhit;
         public PadHitEvent?  OnPadHit;
@@ -27,11 +28,23 @@ namespace YARG.Core.Engine.Drums
 
         protected bool IsMidiDrumsInput;
 
+        protected override int WildcardMask => _wildcardMask;
+
+        private int _wildcardMask;
+
         protected DrumsEngine(InstrumentDifficulty<DrumNote> chart, SyncTrack syncTrack,
             DrumsEngineParameters engineParameters, bool isBot, bool isMidiDrumsInput)
             : base(chart, syncTrack, engineParameters, true, isBot)
         {
-            foreach(var note in Notes)
+            _wildcardMask = EngineParameters.Mode switch
+            {
+                DrumsEngineParameters.DrumMode.NonProFourLane or
+                DrumsEngineParameters.DrumMode.ProFourLane => (int) FourLaneDrumPad.Wildcard,
+                DrumsEngineParameters.DrumMode.FiveLane => (int) FiveLaneDrumPad.Wildcard,
+                _ => -1
+            };
+
+            foreach (var note in Notes)
             {
                 foreach(var all in note.AllNotes)
                 {
@@ -68,7 +81,7 @@ namespace YARG.Core.Engine.Drums
             }
 
             // Cancel overhit if past last note
-            if (NoteIndex >= Chart.Notes.Count - 1)
+            if (NoteIndex > Chart.Notes.Count - 1)
             {
                 return;
             }
@@ -81,10 +94,29 @@ namespace YARG.Core.Engine.Drums
                 return;
             }
 
+            // Cancel overhit during coda
+            if (IsCodaActive)
+            {
+                return;
+            }
+
             if (PadHit != null && ActiveLaneIncludesNote((int) PadHit))
             {
                 // Do not count this as an overhit if the last pad hit was part of an active lane
                 return;
+            }
+
+            // Prevent overhit too close to a lane that accepts the overhit
+            if (IsInLaneLeniencyWindow((int)PadHit))
+            {
+                YargLogger.LogFormatTrace("Overhit prevented by lane end leniency at {0}", CurrentTime);
+                return;
+            }
+
+            // Fail coda in post-BRE coda section
+            if (CodaHasStarted)
+            {
+                Codas[CurrentCodaIndex].Overhit();
             }
 
             if (NoteIndex < Notes.Count)
@@ -119,6 +151,22 @@ namespace YARG.Core.Engine.Drums
             }
 
             note.SetHitState(true, false);
+
+            // Cancel the rest of hit logic during BRE phrase (no scoring/combo/star power),
+            // but still resolve any previous notes that were skipped. BRE gems can be hit
+            // out of order while mashing; without this the skipped gems stay unresolved and
+            // NoteIndex strands on an already-hit note, soft-locking the engine for the rest
+            // of the song.
+            // Key on CodaHasStarted, not IsCodaActive: a note is judged at its back-end time,
+            // which can fall after the coda's EndTime (where IsCodaActive is already false) for a
+            // finale charted exactly on the BRE-end tick. Such a note is IsBigRockEnding and is
+            // hidden by the BRE lanes, so it must be suppressed through the whole coda regardless.
+            if (CodaHasStarted && note.IsBigRockEnding)
+            {
+                SkipPreviousNotes(note.ParentOrSelf);
+                base.HitNote(note);
+                return;
+            }
 
             // Detect if the last note(s) were skipped
             bool skipped = SkipPreviousNotes(note.ParentOrSelf);
@@ -284,6 +332,20 @@ namespace YARG.Core.Engine.Drums
                 return;
             }
 
+            // BRE notes can't be missed during the coda. Key on CodaHasStarted (not IsCodaActive):
+            // the miss is judged at the back-end time, which for an end-tick finale falls after the
+            // coda's EndTime where IsCodaActive is already false — so keying on IsCodaActive would
+            // let the hidden finale be normal-missed and forfeit the BRE bonus.
+            if (CodaHasStarted && note.IsBigRockEnding)
+            {
+                // Resolve the whole chord (parent + children), matching GuitarEngine: a BRE
+                // finale is often a chord, and auto-resolving children removes any dependence on
+                // each sub-note being individually missed.
+                note.SetHitState(true, true);
+                base.HitNote(note);
+                return;
+            }
+
             note.SetMissState(true, false);
 
             if (note.IsStarPower)
@@ -337,26 +399,45 @@ namespace YARG.Core.Engine.Drums
             EngineStats.NoteScore += pointsPerNote;
         }
 
-        protected sealed override int CalculateBaseScore()
+        protected sealed override (int baseScore, int noteScore) CalculateChartScores()
         {
-            double score = 0;
+            double baseScore = 0;
+            double noteScore = 0;
             int combo = 0;
             int multiplier;
-            double weight;
             foreach (var note in Notes)
             {
+                // Exclude BRE notes from base score calculation since they can't be scored
+                if (note.IsBigRockEnding)
+                {
+                    continue;
+                }
+
                 // Get the current multiplier given the current combo
                 multiplier = Math.Min((combo / 10) + 1, BaseParameters.MaxMultiplier);
-
-                // invert it to calculate leniency
-                weight = 1.0 * multiplier / BaseParameters.MaxMultiplier;
-
-                score += weight * (GetPointsPerNote() * (1 + note.ChildNotes.Count));
+                double scoreForNote = GetPointsPerNote() * (1 + note.ChildNotes.Count);
+                baseScore += multiplier * scoreForNote;
+                noteScore += scoreForNote;
                 combo += 1 + note.ChildNotes.Count;
             }
 
-            YargLogger.LogDebug($"[Drums] Base score: {score}, Max Combo: {combo}");
-            return (int) Math.Round(score);
+            YargLogger.LogDebug($"[Drums] Base score: {baseScore}, Max Combo: {combo}");
+            return ((int) Math.Round(baseScore), (int) Math.Round(noteScore));
+        }
+
+        protected override List<CodaSection> GetCodaSections()
+        {
+            var codaSections = new List<CodaSection>();
+
+            foreach (var phrase in Chart.Phrases)
+            {
+                if (phrase.Type == PhraseType.BigRockEnding)
+                {
+                    codaSections.Add(new CodaSection(1, phrase.Time, phrase.TimeEnd));
+                }
+            }
+
+            return codaSections;
         }
 
         protected static bool IsTomInput(GameInput input)
@@ -410,6 +491,8 @@ namespace YARG.Core.Engine.Drums
                     DrumsAction.BlueCymbal   => (int) FourLaneDrumPad.BlueDrum,
                     DrumsAction.GreenCymbal  => (int) FourLaneDrumPad.GreenDrum,
 
+                    DrumsAction.WildcardPad => (int) FourLaneDrumPad.Wildcard,
+
                     _ => -1
                 },
                 DrumsEngineParameters.DrumMode.ProFourLane => action switch
@@ -425,6 +508,8 @@ namespace YARG.Core.Engine.Drums
                     DrumsAction.BlueCymbal   => (int) FourLaneDrumPad.BlueCymbal,
                     DrumsAction.GreenCymbal  => (int) FourLaneDrumPad.GreenCymbal,
 
+                    DrumsAction.WildcardPad => (int) FourLaneDrumPad.Wildcard,
+
                     _ => -1
                 },
                 DrumsEngineParameters.DrumMode.FiveLane => action switch
@@ -437,6 +522,8 @@ namespace YARG.Core.Engine.Drums
 
                     DrumsAction.YellowCymbal => (int) FiveLaneDrumPad.Yellow,
                     DrumsAction.OrangeCymbal => (int) FiveLaneDrumPad.Orange,
+
+                    DrumsAction.WildcardPad => (int) FiveLaneDrumPad.Wildcard,
 
                     _ => -1
                 },
@@ -457,6 +544,8 @@ namespace YARG.Core.Engine.Drums
                     (int) FourLaneDrumPad.BlueDrum   => DrumsAction.BlueDrum,
                     (int) FourLaneDrumPad.GreenDrum  => DrumsAction.GreenDrum,
 
+                    (int) FourLaneDrumPad.Wildcard => DrumsAction.WildcardPad,
+
                     _ => throw new Exception("Unreachable.")
                 },
                 DrumsEngineParameters.DrumMode.ProFourLane => pad switch
@@ -472,6 +561,8 @@ namespace YARG.Core.Engine.Drums
                     (int) FourLaneDrumPad.BlueCymbal   => DrumsAction.BlueCymbal,
                     (int) FourLaneDrumPad.GreenCymbal  => DrumsAction.GreenCymbal,
 
+                    (int) FourLaneDrumPad.Wildcard => DrumsAction.WildcardPad,
+
                     _ => throw new Exception("Unreachable.")
                 },
                 DrumsEngineParameters.DrumMode.FiveLane => pad switch
@@ -485,6 +576,8 @@ namespace YARG.Core.Engine.Drums
                     (int) FiveLaneDrumPad.Yellow => DrumsAction.YellowCymbal,
                     (int) FiveLaneDrumPad.Orange => DrumsAction.OrangeCymbal,
 
+                    (int) FiveLaneDrumPad.Wildcard => DrumsAction.WildcardPad,
+
                     _ => throw new Exception("Unreachable.")
                 },
                 _ => throw new Exception("Unreachable.")
@@ -492,5 +585,13 @@ namespace YARG.Core.Engine.Drums
         }
 
         protected override bool CanSustainHold(DrumNote note) => throw new InvalidOperationException();
+
+        protected override bool ProximalLaneForgivesInput(int inputNote, DrumNote laneNote)
+        {
+            var (requiredLaneNote, otherNoteInTrill) = GetLaneNotes(laneNote);
+            return inputNote == requiredLaneNote ||
+                (otherNoteInTrill != -1 && otherNoteInTrill == inputNote) ||
+                requiredLaneNote == WildcardMask;
+        }
     }
 }

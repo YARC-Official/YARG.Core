@@ -134,6 +134,27 @@ namespace YARG.Core.Engine.Keys
                 return;
             }
 
+            // Prevent overhit too close to a lane that accepts the overhit
+            if (IsInLaneLeniencyWindow(key))
+            {
+                YargLogger.LogFormatTrace("Overhit prevented by lane end leniency at {0}", CurrentTime);
+                return;
+            }
+
+            // Prevent overhit during coda
+            if (IsCodaActive)
+            {
+                YargLogger.LogFormatTrace("Overhit prevented during coda at time: {0}, tick: {1}", CurrentTime, CurrentTick);
+                return;
+            }
+
+            // Punish overhit during post-BRE coda section
+            if (CodaHasStarted)
+            {
+                Codas[CurrentCodaIndex].Overhit();
+                return;
+            }
+
             YargLogger.LogFormatTrace("Overhit at {0}", CurrentTime);
 
             // Break all active sustains
@@ -179,5 +200,10 @@ namespace YARG.Core.Engine.Keys
         }
 
         protected abstract bool IsKeyInTime(TNoteType note, double frontEnd);
+
+        protected override bool ProximalLaneForgivesInput(int inputNote, TNoteType laneNote)
+        {
+            return LaneIncludesInputNote(inputNote, laneNote);
+        }
     }
 }

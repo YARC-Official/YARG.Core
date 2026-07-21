@@ -13,6 +13,8 @@ namespace YARG.Core.Engine.Keys
         protected ProKeysNote? FatFingerNote;
         protected int? FatFingerKey;
 
+        protected bool IsGlissandoActive = false;
+
         protected override double[] KeyPressTimes { get; } = new double[(int) ProKeysAction.Key25 + 1];
 
         public EngineTimer GetFatFingerTimer() => FatFingerTimer;
@@ -85,6 +87,18 @@ namespace YARG.Core.Engine.Keys
 
             KeyPressTimes[note.Key] = DEFAULT_PRESS_TIME;
 
+            // Cancel rest of hit logic during BRE phrase. Key on CodaHasStarted, not IsCodaActive
+            // (see DrumsEngine.HitNote): an end-tick finale is judged after the coda's EndTime,
+            // where IsCodaActive is already false.
+            if (CodaHasStarted && note.IsBigRockEnding)
+            {
+                // Be sure to disable the stagger timer so it doesn't run long
+                ChordStaggerTimer.Disable(CurrentTime, early: true);
+
+                base.HitNote(note);
+                return;
+            }
+
             // Detect if the last note(s) were skipped
             // bool skipped = SkipPreviousNotes(note);
 
@@ -138,6 +152,21 @@ namespace YARG.Core.Engine.Keys
                 StartSustain(note);
             }
 
+            if (note.IsGlissando)
+            {
+                UpdateLaneAutohitExpireTime();
+
+                if (note.IsGlissandoStart)
+                {
+                    IsGlissandoActive = true;
+                }
+
+                if (note.IsGlissandoEnd)
+                {
+                    IsGlissandoActive = false;
+                }
+            }
+
             OnNoteHit?.Invoke(NoteIndex, note);
             base.HitNote(note);
         }
@@ -151,9 +180,28 @@ namespace YARG.Core.Engine.Keys
                 return;
             }
 
-            note.SetMissState(true, false);
-
             KeyPressTimes[note.Key] = DEFAULT_PRESS_TIME;
+
+            // Can't miss a note during the coda. Key on CodaHasStarted, not IsCodaActive (see
+            // DrumsEngine.MissNote): the miss is judged at the back-end time, which for an
+            // end-tick finale falls after the coda's EndTime where IsCodaActive is already false.
+            if (CodaHasStarted && note.IsBigRockEnding)
+            {
+                // Resolve the whole chord, matching GuitarEngine (see DrumsEngine.MissNote).
+                note.SetHitState(true, true);
+                base.HitNote(note);
+                return;
+            }
+
+            // Autohit glissando notes as long as the player keeps providing inputs
+            if (note.IsGlissando && note.Time < LaneAutohitExpireTime)
+            {
+                note.SetHitState(true, false);
+                base.HitNote(note);
+                return;
+            }
+
+            note.SetMissState(true, false);
 
             if (note.IsStarPower)
             {
@@ -184,6 +232,16 @@ namespace YARG.Core.Engine.Keys
                 StartSolo();
             }
 
+            if (note.IsGlissandoStart)
+            {
+                IsGlissandoActive = true;
+            }
+
+            if (note.IsGlissandoEnd)
+            {
+                IsGlissandoActive = false;
+            }
+
             // If no notes within a chord were hit, combo is 0
             if (note.ParentOrSelf.WasFullyMissed())
             {
@@ -198,6 +256,11 @@ namespace YARG.Core.Engine.Keys
 
             UpdateMultiplier();
 
+            if (CodaHasStarted)
+            {
+                Codas[CurrentCodaIndex].MissNote();
+            }
+
             OnNoteMissed?.Invoke(NoteIndex, note);
             base.HitNote(note);
         }
@@ -208,32 +271,38 @@ namespace YARG.Core.Engine.Keys
             EngineStats.NoteScore += POINTS_PER_PRO_KEYS_NOTE;
         }
 
-        protected sealed override int CalculateBaseScore()
+        protected sealed override (int baseScore, int noteScore) CalculateChartScores()
         {
-            double score = 0;
+            double baseScore = 0;
+            double noteScore = 0;
             int combo = 0;
             int multiplier;
-            double weight;
             foreach (var note in Notes)
             {
+                // Exclude BRE notes from base score calculation since they can't be scored
+                if (note.IsBigRockEnding)
+                {
+                    continue;
+                }
+
                 // Get the current multiplier given the current combo
                 multiplier = Math.Min((combo / 10) + 1, BaseParameters.MaxMultiplier);
-
-                // invert it to calculate leniency
-                weight = 1.0 * multiplier / BaseParameters.MaxMultiplier;
-                score += weight * (POINTS_PER_PRO_KEYS_NOTE * (1 + note.ChildNotes.Count));
-
+                double pointsForNote = POINTS_PER_PRO_KEYS_NOTE * (1 + note.ChildNotes.Count);
+                baseScore += multiplier * pointsForNote;
+                noteScore += pointsForNote;
                 foreach (var child in note.AllNotes)
                 {
-                    score += weight * (int) Math.Ceiling(child.TickLength / TicksPerSustainPoint);
+                    int pointsForSustain = (int) Math.Ceiling(child.TickLength / TicksPerSustainPoint);
+                    baseScore += multiplier * pointsForSustain;
+                    noteScore += pointsForSustain;
                 }
 
                 // Pro Keys combo increments per chord, not per note.
                 combo++;
             }
 
-            YargLogger.LogDebug($"[Pro Keys] Base score: {score}, Max Combo: {combo}");
-            return (int) Math.Round(score);
+            YargLogger.LogDebug($"[Pro Keys] Base score: {baseScore}, Max Combo: {combo}");
+            return ((int) Math.Round(baseScore), (int) Math.Round(noteScore));
         }
 
         protected override bool IsKeyInTime(ProKeysNote note, double frontEnd) => IsKeyInTime(note, note.Key, frontEnd);

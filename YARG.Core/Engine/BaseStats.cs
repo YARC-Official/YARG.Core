@@ -29,9 +29,9 @@ namespace YARG.Core.Engine
         /// Total score across all score values.
         /// </summary>
         /// <remarks>
-        /// Calculated from <see cref="CommittedScore"/>, <see cref="PendingScore"/> and <see cref="SoloBonuses"/>.
+        /// Calculated from <see cref="CommittedScore"/>, <see cref="PendingScore"/>, <see cref="SoloBonuses"/>, and <see cref="CodaBonuses"/>.
         /// </remarks>
-        public int TotalScore => CommittedScore + PendingScore + SoloBonuses;
+        public int TotalScore => CommittedScore + PendingScore + SoloBonuses + CodaBonuses;
 
         /// <summary>
         /// Total score earned from hitting notes.
@@ -52,15 +52,6 @@ namespace YARG.Core.Engine
         /// Total score earned from band bonuses, typically from Star Power/Overdrive activations from other players.
         /// </summary>
         public int BandBonusScore;
-
-        /// <summary>
-        /// The score used to calculate star progress.
-        /// </summary>
-        /// <remarks>
-        /// Calculated from <see cref="CommittedScore"/> and <see cref="PendingScore"/>.
-        /// <see cref="SoloBonuses"/> is not included in star progress.
-        /// </remarks>
-        public int StarScore => CommittedScore + PendingScore;
 
         /// <summary>
         /// The player's current combo (such as 500 note streak)
@@ -186,6 +177,16 @@ namespace YARG.Core.Engine
         public int SoloBonuses;
 
         /// <summary>
+        /// Total number of bonus points available from solos. Should not be modified.
+        /// </summary>
+        public int MaxSoloBonusPoints;
+
+        /// <summary>
+        /// Amount of points earned from coda bonuses.
+        /// </summary>
+        public int CodaBonuses;
+
+        /// <summary>
         /// Amount of points earned from Star Power.
         /// </summary>
         public int StarPowerScore;
@@ -233,7 +234,9 @@ namespace YARG.Core.Engine
             BandMultiplier = stats.BandMultiplier;
 
             NotesHit = stats.NotesHit;
+            LanedNotesHit = stats.LanedNotesHit;
             TotalNotes = stats.TotalNotes;
+            TotalChords = stats.TotalChords;
 
             TotalOffset = stats.TotalOffset;
             AverageOffset = stats.AverageOffset;
@@ -251,6 +254,8 @@ namespace YARG.Core.Engine
             TotalStarPowerPhrases = stats.TotalStarPowerPhrases;
 
             SoloBonuses = stats.SoloBonuses;
+            MaxSoloBonusPoints = stats.MaxSoloBonusPoints;
+            CodaBonuses = stats.CodaBonuses;
             StarPowerScore = stats.StarPowerScore;
 
             Stars = stats.Stars;
@@ -327,6 +332,8 @@ namespace YARG.Core.Engine
             // TotalStarPowerPhrases = 0;
 
             SoloBonuses = 0;
+            CodaBonuses = 0;
+            // TotalSoloBonusPoints = 0;
             StarPowerScore = 0;
 
             Stars = 0;
@@ -366,7 +373,7 @@ namespace YARG.Core.Engine
             // writer.Write(Stars);
         }
 
-        public abstract ReplayStats ConstructReplayStats(string name);
+        public abstract ReplayStats ConstructReplayStats(string name, bool isReplayPlayer);
 
         public double GetAverageOffset()
         {
@@ -378,7 +385,7 @@ namespace YARG.Core.Engine
         /// Returns per-note timing offsets used for score-screen timing distribution visualization.
         /// Values are in seconds, where negative is early and positive is late.
         /// </summary>
-        public IReadOnlyList<double> GetOffsetSamples()
+        public virtual IReadOnlyList<double> GetOffsetSamples()
         {
             return OffsetSamples;
         }

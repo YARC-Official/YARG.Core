@@ -16,13 +16,14 @@
         Preview,
         VoxSample,
         Metronome,
+        VenueSample,
     }
 
     public enum SfxSample
     {
         NoteMiss,
         StarPowerAward,
-        StarPowerGain,
+        StarPowerReady,
         StarPowerDeploy,
         StarPowerDeployCrowd,
         StarPowerRelease,
@@ -40,7 +41,8 @@
         CrowdStart3,
         CrowdEnd1,
         CrowdEnd2,
-        Chatter
+        Chatter,
+        Rewind
     }
 
     public enum DrumSfxSample

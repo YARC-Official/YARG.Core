@@ -128,6 +128,21 @@ namespace YARG.Core.Chart
             return totalLastTick;
         }
 
+        public VocalsTrack CloneInTickRange(uint tickStart, uint tickEnd)
+        {
+            var clone = Clone();
+
+            foreach (var part in clone.Parts)
+            {
+                part.TrimToTickRange(tickStart, tickEnd);
+            }
+
+            uint rangesStart = clone.RangeShifts.LowerBoundElement(tickStart)?.Tick ?? tickStart;
+            clone.RangeShifts.RemoveAll(n => n.Tick < rangesStart || n.Tick >= tickEnd);
+
+            return clone;
+        }
+
         public VocalsTrack Clone()
         {
             return new(this);

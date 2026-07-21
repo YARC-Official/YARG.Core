@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using YARG.Core.Chart;
+using YARG.Core.Engine.Drums;
 using YARG.Core.Game;
 
 namespace YARG.Core.Engine
@@ -21,28 +22,30 @@ namespace YARG.Core.Engine
             public  int             EngineId         { get; }
             public  BaseEngine      Engine           { get; }
             public  Instrument      Instrument       { get; }
+            public  Difficulty      Difficulty       { get; }
             public  int             HarmonyIndex     { get; }
             private SongChart       SongChart        { get; }
-            public  List<Phrase>    UnisonPhrases    { get; }
+            public  List<UnisonPhrase>    UnisonPhrases    { get; }
             public  RockMeterPreset RockMeterPreset  { get; }
 
             private List<EngineCommand> _sentCommands = new();
             private int                 _commandCount => _sentCommands.Count;
             private EngineManager       _engineManager;
 
-            public EngineContainer(BaseEngine engine, Instrument instrument, int harmonyIndex, SongChart songChart, int engineId, EngineManager manager, RockMeterPreset rockMeterPreset)
+            public EngineContainer(BaseEngine engine, Instrument instrument, Difficulty difficulty, int harmonyIndex, SongChart songChart, int engineId, EngineManager manager, RockMeterPreset rockMeterPreset)
             {
                 EngineId = engineId;
                 Engine = engine;
                 Instrument = instrument;
+                Difficulty = difficulty;
                 HarmonyIndex = harmonyIndex;
                 SongChart = songChart;
-                UnisonPhrases = GetUnisonPhrases(Instrument, SongChart);
+                UnisonPhrases = GetUnisonPhrases(Instrument, Difficulty, SongChart, Engine is DrumsEngine);
                 RockMeterPreset = rockMeterPreset;
                 _engineManager = manager;
                 Happiness = rockMeterPreset.StartingHappiness;
 
-                SubscribeToEngineEvents();
+                SubscribeToEvents();
             }
 
             public void SendCommand(EngineCommandType command)
@@ -77,13 +80,13 @@ namespace YARG.Core.Engine
             }
         }
 
-        public EngineContainer Register<TEngineType>(TEngineType engine, Instrument instrument, SongChart chart, RockMeterPreset rockMeterPreset)
+        public EngineContainer Register<TEngineType>(TEngineType engine, Instrument instrument, Difficulty difficulty, SongChart chart, RockMeterPreset rockMeterPreset)
             where TEngineType : BaseEngine
         {
-            return Register(engine, instrument, 0, chart, rockMeterPreset);
+            return Register(engine, instrument, difficulty, 0, chart, rockMeterPreset);
         }
 
-        public EngineContainer Register<TEngineType>(TEngineType engine, Instrument instrument, int harmonyIndex, SongChart chart, RockMeterPreset rockMeterPreset)
+        public EngineContainer Register<TEngineType>(TEngineType engine, Instrument instrument, Difficulty difficulty, int harmonyIndex, SongChart chart, RockMeterPreset rockMeterPreset)
             where TEngineType : BaseEngine
         {
             if (_chart == null)
@@ -98,13 +101,15 @@ namespace YARG.Core.Engine
                 }
             }
 
-            var engineContainer = new EngineContainer(engine, instrument, harmonyIndex, chart, _nextEngineIndex++, this, rockMeterPreset);
+            var engineContainer = new EngineContainer(engine, instrument, difficulty, harmonyIndex, chart, _nextEngineIndex++, this, rockMeterPreset);
 
             // _previousHappiness = rockMeterPreset.StartingHappiness;
 
             _allEngines.Add(engineContainer);
             _allEnginesById.Add(engineContainer.EngineId, engineContainer);
-            AddPlayerToUnisons(engineContainer);
+            AddPlayerToUnisons(engineContainer, chart);
+            engine.OnCodaStart += CodaStartHandler;
+            engine.OnCodaEnd += CodaEndHandler;
 
             return engineContainer;
         }
@@ -125,6 +130,34 @@ namespace YARG.Core.Engine
         {
             _starpowerCount = Math.Clamp(count, 0, int.MaxValue);
             UpdateBandMultiplier();
+
+            if (_playerFailed && count > 0)
+            {
+                RevivePlayer();
+            }
+        }
+
+        public void Reset()
+        {
+            _activeCodaCount = 0;
+            _currentStarIndex = 0;
+            _previousHappiness = 100f;
+            _starpowerCount = 0;
+            // These values are derived from others, so there's no reason to reset them
+            // Score = 0; derived from all players' Score + BandBonusScore
+            // Stars = 0; derived from Score
+
+            // Combo is calculated a bit differently, so we still reset it even though it's dependent on player combo
+            Combo = 0;
+            foreach (var engineContainer in _allEngines)
+            {
+                engineContainer.ResetHappiness();
+            }
+
+            foreach (var unisonEvent in _unisonEvents)
+            {
+                unisonEvent.Reset();
+            }
         }
 
         public void UpdateEngines(double time)
@@ -144,6 +177,13 @@ namespace YARG.Core.Engine
         {
             public EngineCommandType CommandType;
             public double            Time;
+        }
+
+        public void Unregister(EngineContainer engineContainer)
+        {
+            RemovePlayerFromUnisons(engineContainer);
+            _allEngines.Remove(engineContainer);
+            _allEnginesById.Remove(engineContainer.EngineId);
         }
     }
 }

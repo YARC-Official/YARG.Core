@@ -34,7 +34,7 @@ namespace YARG.Core.Song.Cache
         /// Format is YY_MM_DD_RR: Y = year, M = month, D = day, R = revision (reset across dates, only increment
         /// if multiple cache version changes happen in a single day).
         /// </summary>
-        private const int CACHE_VERSION = 26_02_11_00;
+        private const int CACHE_VERSION = 26_07_09_00;
 
         public static ScanProgressTracker Progress => _progress;
         private static ScanProgressTracker _progress;
@@ -330,9 +330,13 @@ namespace YARG.Core.Song.Cache
                             try
                             {
                                 using var stream = new FileStream(moggPath, FileMode.Open, FileAccess.Read, FileShare.Read, 1);
-                                if (stream.Read<int>(Endianness.Little) != RBCONEntry.UNENCRYPTED_MOGG)
+                                var moggResult = RBCONEntry.ValidateMoggHeader(stream);
+                                if (moggResult != ScanResult.Success)
                                 {
-                                    AddToBadSongs(group.Root.FullName + " - " + node.Key, ScanResult.MoggError_Update);
+                                    AddToBadSongs(group.Root.FullName + " - " + node.Key,
+                                        moggResult == ScanResult.UnsupportedEncryption
+                                            ? moggResult
+                                            : ScanResult.MoggError_Update);
                                     return;
                                 }
                             }
@@ -552,6 +556,9 @@ namespace YARG.Core.Song.Cache
                     case ScanResult.MissingCONMidi:
                         writer.WriteLine("Midi file queried for found missing");
                         break;
+                    case ScanResult.EdatMidiEncrypted:
+                        writer.WriteLine(".mid.edat file found to be encrypted");
+                        break;
                     case ScanResult.PossibleCorruption:
                         writer.WriteLine("Possible corruption of a queried midi file");
                         break;
@@ -598,7 +605,7 @@ namespace YARG.Core.Song.Cache
             // supplying directories as the actual playlist (null -> empty -> directory)
             private readonly string? _playlist;
 
-            public string Playlist => !string.IsNullOrEmpty(_playlist) ? _playlist : "Unknown Playlist";
+            public string Playlist => !string.IsNullOrEmpty(_playlist) ? _playlist! : "Unknown Playlist";
 
             public PlaylistTracker(bool fullDirectoryFlag, string? playlist)
             {
@@ -658,7 +665,7 @@ namespace YARG.Core.Song.Cache
                         var dta = new FileInfo(Path.Combine(directory.FullName, CONEntryGroup.SONGS_DTA));
                         if (dta.Exists)
                         {
-                            if (UnpackedCONEntryGroup.Create(directory.FullName, dta, tracker.Playlist, out var entryGroup))
+                            if (UnpackedConsolePackageEntryGroup.Create(directory.FullName, dta, tracker.Playlist, out var entryGroup))
                             {
                                 lock (conEntryGroups)
                                 {
@@ -797,8 +804,9 @@ namespace YARG.Core.Song.Cache
         /// <returns>Whether files pertaining to an unpacked ini entry were discovered</returns>
         private bool ScanIniEntry(in FileCollection collection, IniEntryGroup group, string defaultPlaylist)
         {
-            int i = collection.FindFile("song.ini", out var ini) ? 0 : 2;
-            while (i < 3)
+            bool hasIni = collection.FindFile("song.ini", out var ini);
+            int i = hasIni ? 0 : 3;
+            while (i < 4)
             {
                 if (!collection.FindFile(IniSubEntry.CHART_FILE_TYPES[i].Filename, out var chart))
                 {
@@ -818,7 +826,7 @@ namespace YARG.Core.Song.Cache
 
                 try
                 {
-                    var entry = UnpackedIniEntry.ProcessNewEntry(collection.Directory, chart, IniSubEntry.CHART_FILE_TYPES[i].Format, ini, defaultPlaylist);
+                    var entry = UnpackedIniEntry.ProcessNewEntry(collection.Directory, chart, IniSubEntry.CHART_FILE_TYPES[i].Format, hasIni ? ini : null, defaultPlaylist);
                     if (entry)
                     {
                         AddEntry(entry.Value);
@@ -914,7 +922,7 @@ namespace YARG.Core.Song.Cache
         /// </summary>
         /// <param name="cacheLocation">File location for the cache</param>
         /// <param name="fullDirectoryPlaylists">Toggle for the display style of directory-based playlists</param>
-        /// <returns>A FixedArray instance pointing to a buffer of the cache file's data, or <see cref="FixedArray&lt;&rt;"/>.Null if invalid</returns>
+        /// <returns>A FixedArray instance pointing to a buffer of the cache file's data, or <see cref="FixedArray&lt;&gt;"/>.Null if invalid</returns>
         private static FixedArray<byte>? LoadCacheToMemory(string cacheLocation, bool fullDirectoryPlaylists)
         {
             FileInfo info = new(cacheLocation);
@@ -1417,7 +1425,7 @@ namespace YARG.Core.Song.Cache
                 if (dtaInfo.Exists)
                 {
                     FindOrMarkDirectory(location);
-                    if (UnpackedCONEntryGroup.Create(location, dtaInfo, defaultPlaylist, out var unpacked))
+                    if (UnpackedConsolePackageEntryGroup.Create(location, dtaInfo, defaultPlaylist, out var unpacked))
                     {
                         lock (conEntryGroups)
                         {
@@ -1460,8 +1468,8 @@ namespace YARG.Core.Song.Cache
         {
             var root = new AbridgedFileInfo(ref stream);
             List<CONFileListing>? listings = null;
-            bool packed = stream.ReadBoolean();
-            if (packed)
+            var type = (CONEntryGroup.CONEntryType) stream.Read<int>(Endianness.Little);
+            if (type == CONEntryGroup.CONEntryType.PackedCONEntry)
             {
                 listings = GetCacheCONListings(root.FullName);
             }
@@ -1472,9 +1480,13 @@ namespace YARG.Core.Song.Cache
                 {
                     string name = node.Slice.ReadString();
                     int index = node.Slice.ReadByte();
-                    RBCONEntry entry = packed
-                            ? PackedRBCONEntry.ForceDeserialize(listings, in root, name, ref node.Slice, strings)
-                            : UnpackedRBCONEntry.ForceDeserialize(in root, name, ref node.Slice, strings);
+                    RBCONEntry entry = type switch
+                    {
+                        CONEntryGroup.CONEntryType.PackedCONEntry   => PackedRBCONEntry.ForceDeserialize(listings, in root, name, ref node.Slice, strings),
+                        CONEntryGroup.CONEntryType.UnpackedCONEntry => UnpackedRBCONEntry.ForceDeserialize(in root, name, ref node.Slice, strings),
+                        CONEntryGroup.CONEntryType.UnpackedPKGEntry => UnpackedRBPKGEntry.ForceDeserialize(in root, name, ref node.Slice, strings),
+                        _ => throw new InvalidOperationException($"Invalid CON entry type {type} in cache!")
+                    };
 
                     if (cacheCONModifications.TryGetValue(name, out var mods))
                     {

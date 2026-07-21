@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 using YARG.Core.Chart;
 using YARG.Core.Input;
@@ -45,7 +46,10 @@ namespace YARG.Core.Engine.Keys.Engines
                     KeyHitThisUpdate = fiveLaneKeyIndex;
                     _keyPressedTimes[fiveLaneKeyIndex].NoteIndex = NoteIndex;
                     _keyPressedTimes[fiveLaneKeyIndex].Time = gameInput.Time;
-                    SubmitLaneNote(fiveLaneKeyIndex);
+                    if (GetLaneMask(fiveLaneKeyIndex, out var mask))
+                    {
+                        SubmitLaneNote(mask);
+                    }
                 }
                 else
                 {
@@ -64,6 +68,12 @@ namespace YARG.Core.Engine.Keys.Engines
         {
             // Update bot (will return if not enabled)
             UpdateBot(time);
+
+            // This is here after UpdateBot gets called so that the bot gets coda keypress logic
+            if (IsCodaActive)
+            {
+                HandleCodaFretChange(time);
+            }
 
             // Only check note logic if note index is within bounds
             if (NoteIndex < Notes.Count)
@@ -86,13 +96,24 @@ namespace YARG.Core.Engine.Keys.Engines
                 if (missed)
                 {
                     // Intercept missed note while lane phrase is active
-                    if (!HitNoteFromLane(parentNote))
+                    if (!AutohitNoteFromLane(parentNote))
                     {
                         // If one of the notes in the chord was missed out the back end,
                         // that means all of them would miss.
                         foreach (var missedNote in parentNote.AllNotes)
                         {
                             MissNote(missedNote);
+                        }
+                    }
+                    else
+                    {
+                        // If the lane forgave the miss, we need to ensure the rest of the chord hits, too
+                        foreach (var missedNote in parentNote.AllNotes)
+                        {
+                            if (missedNote is { WasHit: false, WasMissed: false })
+                            {
+                                HitNote(missedNote);
+                            }
                         }
                     }
                 }
@@ -133,8 +154,16 @@ namespace YARG.Core.Engine.Keys.Engines
                                 }
                                 else
                                 {
-                                    YargLogger.LogFormatTrace("Missing note {0} due to chord staggering", (int)note.FiveLaneKeysAction);
-                                    MissNote(note);
+                                    if (AutohitNoteFromLane(note))
+                                    {
+                                        YargLogger.LogFormatTrace("Forgiving chord staggering for note {0} due to lane phrase", (int)note.FiveLaneKeysAction);
+                                    }
+                                    else
+                                    {
+                                        YargLogger.LogFormatTrace("Missing note {0} due to chord staggering",
+                                            (int) note.FiveLaneKeysAction);
+                                        MissNote(note);
+                                    }
                                 }
                             }
 
@@ -192,6 +221,13 @@ namespace YARG.Core.Engine.Keys.Engines
         {
             double hitWindow = EngineParameters.HitWindow.CalculateHitWindow(GetAverageNoteDistance(note));
             double frontEnd = EngineParameters.HitWindow.GetFrontEnd(hitWindow);
+
+            // TODO: This is probably note correct for chords, but we shouldn't have chords in easy anyway
+            //  this will need to be fixed if we allow wildcard notes in other difficulties
+            if (note.Fret == (int) FiveFretGuitarFret.Wildcard && IsKeyInTime(note, frontEnd))
+            {
+                return true;
+            }
 
             if ((KeyMask & note.NoteMask) == note.NoteMask)
             {
@@ -328,8 +364,110 @@ namespace YARG.Core.Engine.Keys.Engines
                 var action = FiveLaneKeysActionToProKeysAction(chordNote.FiveLaneKeysAction);
 
                 MutateStateWithInput(new GameInput(note.Time, (int)action, true));
+                HandleCodaFretChange(time);
                 CheckForNoteHit();
             }
+        }
+
+        private void HandleCodaFretChange(double time)
+        {
+            if (!IsCodaActive || !KeyHitThisUpdate.HasValue)
+            {
+                return;
+            }
+
+            var coda = Codas[CurrentCodaIndex];
+
+            // Figure out which keys changed
+            var pressed = 1 << KeyHitThisUpdate.Value;
+
+
+            // Hit the lane for any that were pressed
+            for (int i = 0; i < (int)FiveLaneKeysAction.Wildcard; i++)
+            {
+                int button = 1 << i;
+                if ((pressed & button) != 0)
+                {
+                    coda.HitLane(time, i);
+                }
+            }
+        }
+
+        protected bool GetLaneMask(int fiveLaneKeyIndex, out int mask)
+        {
+            mask = 0;
+
+            if (!IsLaneActive)
+            {
+                return false;
+            }
+
+            // Mask has green = 1, 5LK actions are green = 0
+            var fretMask = 1 << (fiveLaneKeyIndex);
+
+            if (MaskIsMultiFret(RequiredLaneNote))
+            {
+                // We don't directly check for mask equaling the current input mask because that would allow cheesing
+                // If the current fret satisfies one of the bits in the lane, we check KeyPressTimes to determine whether
+                // the other frets in the lane's mask have been pressed within ChordStaggerWindow
+                if ((fretMask & RequiredLaneNote) > 0)
+                {
+                    mask = fretMask;
+
+                    for (int i = 0; i < KeyPressTimes.Length; i++)
+                    {
+                        // + 1 is for mask/index/action offset
+                        var keyMask = 1 << i + 1;
+                        var pressedTime = KeyPressTimes[i];
+                        if ((keyMask & RequiredLaneNote) > 0 &&
+                            pressedTime >= CurrentTime - EngineParameters.ChordStaggerWindow)
+                        {
+                            mask |= keyMask;
+                        }
+                    }
+                }
+            }
+            else
+            {
+                mask = fretMask;
+            }
+
+            return true;
+        }
+
+        protected override bool ActiveLaneIncludesNote(int fiveLaneKeyIndex)
+        {
+            if (!IsLaneActive)
+            {
+                return false;
+            }
+
+            // Mask has green = 1, 5LK actions are green = 0
+            var fretMask = 1 << (fiveLaneKeyIndex);
+
+            if ((fretMask & RequiredLaneNote) > 0 || (NextTrillNote != -1 && fretMask == NextTrillNote) || (RequiredLaneNote == WildcardMask))
+            {
+                return true;
+            }
+
+            return false;
+        }
+
+        protected override List<CodaSection> GetCodaSections()
+        {
+            var codaSections = new List<CodaSection>();
+
+            foreach (var phrase in Chart.Phrases)
+            {
+                if (phrase.Type != PhraseType.BigRockEnding)
+                {
+                    continue;
+                }
+
+                codaSections.Add(new CodaSection(6, phrase.Time, phrase.TimeEnd));
+            }
+
+            return codaSections;
         }
 
         private static ProKeysAction FiveLaneKeysActionToProKeysAction(FiveLaneKeysAction fiveLaneKeysAction)
@@ -342,6 +480,7 @@ namespace YARG.Core.Engine.Keys.Engines
                 FiveLaneKeysAction.YellowKey => ProKeysAction.YellowKey,
                 FiveLaneKeysAction.BlueKey => ProKeysAction.BlueKey,
                 FiveLaneKeysAction.OrangeKey => ProKeysAction.OrangeKey,
+                FiveLaneKeysAction.Wildcard => ProKeysAction.OpenNote, // Doesn't actually matter what action we use here
                 _ => throw new Exception("Unhandled.")
             };
         }
@@ -349,17 +488,18 @@ namespace YARG.Core.Engine.Keys.Engines
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static bool IsFiveLaneKeysAction(ProKeysAction action)
         {
-            return (ALLOWED_FIVE_LANE_KEYS_ACTIONS & (1 << (int) action)) != 0;
+            return (ALLOWED_FIVE_LANE_KEYS_ACTIONS & (1L << (int) action)) != 0;
         }
 
-        private const int ALLOWED_FIVE_LANE_KEYS_ACTIONS =
-            1 << (int) ProKeysAction.GreenKey |
-            1 << (int) ProKeysAction.RedKey |
-            1 << (int) ProKeysAction.YellowKey |
-            1 << (int) ProKeysAction.BlueKey |
-            1 << (int) ProKeysAction.OrangeKey |
-            1 << (int) ProKeysAction.OpenNote |
-            1 << (int) ProKeysAction.StarPower |
-            1 << (int) ProKeysAction.TouchEffects;
+        // ProKeysAction.OrangeKey is 32, which causes issues if we use a plain 32-bit int for the mask
+        private const long ALLOWED_FIVE_LANE_KEYS_ACTIONS =
+            1L << (int) ProKeysAction.GreenKey |
+            1L << (int) ProKeysAction.RedKey |
+            1L << (int) ProKeysAction.YellowKey |
+            1L << (int) ProKeysAction.BlueKey |
+            1L << (int) ProKeysAction.OrangeKey |
+            1L << (int) ProKeysAction.OpenNote |
+            1L << (int) ProKeysAction.StarPower |
+            1L << (int) ProKeysAction.TouchEffects;
     }
 }

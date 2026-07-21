@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using YARG.Core.Chart;
 using YARG.Core.Input;
 using YARG.Core.Logging;
@@ -62,6 +63,12 @@ namespace YARG.Core.Engine.Keys.Engines
             // Update bot (will return if not enabled)
             UpdateBot(time);
 
+            // This is here after UpdateBot gets called so that the bot gets coda keypress logic
+            if (IsCodaActive)
+            {
+                HandleCodaFretChange(time);
+            }
+
             if (FatFingerTimer.IsActive)
             {
                 // Fat Fingered key was released before the timer expired
@@ -119,6 +126,30 @@ namespace YARG.Core.Engine.Keys.Engines
             UpdateSustains();
         }
 
+        protected override void Overhit(int key)
+        {
+            // Can't overhit during a glissando
+            if (IsGlissandoActive)
+            {
+                UpdateLaneAutohitExpireTime(); // Lane autohitting applies to glissando notes
+                return;
+            }
+
+            // Can't overhit within the lane proximity leniency window before the beginning of a glissando
+            if (NoteIndex < Notes.Count && Notes[NoteIndex].IsGlissandoStart && Notes[NoteIndex].Time - CurrentTime < EngineParameters.HitWindow.LaneProximityProtectionWindow)
+            {
+                return;
+            }
+
+            // Can't overhit within the lane proximity leniency window after the end of a glissando
+            if (NoteIndex > 0 && Notes[NoteIndex - 1].IsGlissandoEnd && CurrentTime - Notes[NoteIndex - 1].Time < EngineParameters.HitWindow.LaneProximityProtectionWindow)
+            {
+                return;
+            }
+
+            base.Overhit(key);
+        }
+
         protected override void CheckForNoteHit()
         {
             var parentNote = Notes[NoteIndex];
@@ -129,7 +160,7 @@ namespace YARG.Core.Engine.Keys.Engines
                 if (missed)
                 {
                     // Intercept missed note while lane phrase is active
-                    if (!HitNoteFromLane(parentNote))
+                    if (!AutohitNoteFromLane(parentNote))
                     {
                         // If one of the notes in the chord was missed out the back end,
                         // that means all of them would miss.
@@ -309,8 +340,7 @@ namespace YARG.Core.Engine.Keys.Engines
             }
 
             // Glissando hit logic
-            // Forces the first glissando to be hit correctly, then the rest can be hit "loosely"
-            if (note.PreviousNote is not null && note.IsGlissando && note.PreviousNote.IsGlissando)
+            if (note.IsGlissando)
             {
                 var keyDiff = KeyMask ^ PreviousKeyMask;
                 var keysPressed = keyDiff & KeyMask;
@@ -455,8 +485,51 @@ namespace YARG.Core.Engine.Keys.Engines
             foreach (var chordNote in note.AllNotes)
             {
                 MutateStateWithInput(new GameInput(note.Time, chordNote.Key, true));
+                // We have to call HandleCodaFretChange here because KeyHitThisUpdate gets cleared by CheckForNoteHit
+                HandleCodaFretChange(time);
                 CheckForNoteHit();
             }
+        }
+
+        private void HandleCodaFretChange(double time)
+        {
+            if (!IsCodaActive || !KeyHitThisUpdate.HasValue)
+            {
+                return;
+            }
+
+            var coda = Codas[CurrentCodaIndex];
+
+            var pressed = 1 << KeyHitThisUpdate.Value;
+
+            // Hit the lane for any that were pressed
+            for (int i = 0; i < 25; i++)
+            {
+                int button = 1 << i;
+                if ((pressed & button) != 0)
+                {
+                    coda.HitLane(time, i);
+                }
+            }
+        }
+
+        protected override List<CodaSection> GetCodaSections()
+        {
+            var codaSections = new List<CodaSection>();
+
+            foreach (var phrase in Chart.Phrases)
+            {
+                if (phrase.Type != PhraseType.BigRockEnding)
+                {
+                    continue;
+                }
+
+                // We might only need 3 scoring zones in practice, depending on the range, but the engine can't
+                // know about the range shifts so we have to just allocate the max
+                codaSections.Add(new CodaSection(4, phrase.Time, phrase.TimeEnd));
+            }
+
+            return codaSections;
         }
     }
 }

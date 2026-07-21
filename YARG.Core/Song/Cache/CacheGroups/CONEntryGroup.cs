@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.IO;
@@ -11,13 +11,22 @@ namespace YARG.Core.Song.Cache
     {
         public const string SONGS_DTA = "songs.dta";
 
-        private readonly Dictionary<string, List<(int Index, RBCONEntry Entry)>> _entries;
-        private readonly string _defaultPlaylist;
-        protected readonly AbridgedFileInfo _root;
-        protected readonly Dictionary<string, List<YARGTextContainer<byte>>> _nodes;
-        protected FixedArray<byte> _data;
+        private readonly            Dictionary<string, List<(int Index, RBCONEntry Entry)>> _entries;
+        private readonly            string                                                  _defaultPlaylist;
+        protected readonly          AbridgedFileInfo                                        _root;
+        protected internal readonly Dictionary<string, List<YARGTextContainer<byte>>>       _nodes;
+        protected internal          FixedArray<byte>?                                       _data;
 
-        protected abstract bool Tag { get; }
+        public enum CONEntryType : int
+        {
+            PackedCONEntry = 0,
+            UnpackedCONEntry = 1,
+            UnpackedPKGEntry = 2,
+        }
+        /// <summary>
+        /// Determines the type of a CON entry group.
+        /// </summary>
+        protected abstract CONEntryType Tag { get; }
 
         public AbridgedFileInfo Root => _root;
         public string DefaultPlaylist => _defaultPlaylist;
@@ -77,7 +86,7 @@ namespace YARG.Core.Song.Cache
         public void Serialize(MemoryStream groupStream, Dictionary<SongEntry, CacheWriteIndices> indices)
         {
             _root.Serialize(groupStream);
-            groupStream.Write(Tag);
+            groupStream.Write(Tag.Convert(), Endianness.Little);
 
             int count = 0;
             foreach (var list in _entries)
@@ -105,7 +114,7 @@ namespace YARG.Core.Song.Cache
 
         public virtual void Dispose()
         {
-            _data.Dispose();
+            _data?.Dispose();
         }
 
         public Dictionary<string, List<YARGTextContainer<byte>>>.Enumerator GetEnumerator()

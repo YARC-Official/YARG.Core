@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.IO;
 using YARG.Core.Extensions;
 using YARG.Core.IO;
@@ -56,6 +57,11 @@ namespace YARG.Core.Engine.Vocals
             HasCarryNote = false;
         }
 
+        public override IReadOnlyList<double> GetOffsetSamples()
+        {
+            return Array.Empty<double>();
+        }
+
         public override void Serialize(BinaryWriter writer)
         {
             base.Serialize(writer);
@@ -65,9 +71,9 @@ namespace YARG.Core.Engine.Vocals
             writer.Write(HasCarryNote);
         }
 
-        public override ReplayStats ConstructReplayStats(string name)
+        public override ReplayStats ConstructReplayStats(string name, bool isReplayPlayer)
         {
-            return new VocalsReplayStats(name, this);
+            return new VocalsReplayStats(name, isReplayPlayer, this);
         }
     }
 }

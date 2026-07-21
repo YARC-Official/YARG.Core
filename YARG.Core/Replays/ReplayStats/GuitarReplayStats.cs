@@ -17,8 +17,8 @@ namespace YARG.Core.Replays
         public readonly int GhostInputs;
         public readonly int SoloBonuses;
 
-        public GuitarReplayStats(string name, GuitarStats stats)
-            : base(name, stats)
+        public GuitarReplayStats(string name, bool isReplayPlayer, GuitarStats stats)
+            : base(name, stats, isReplayPlayer)
         {
             TotalNotes = stats.TotalNotes;
             NumNotesHit = stats.NotesHit;

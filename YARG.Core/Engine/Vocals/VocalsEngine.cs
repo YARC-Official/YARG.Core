@@ -59,6 +59,14 @@ namespace YARG.Core.Engine.Vocals
             VocalsEngineParameters engineParameters, bool isBot)
             : base(chart, syncTrack, engineParameters, false, isBot)
         {
+            foreach (var note in Notes)
+            {
+                // Percussion phrases do not count as phrases, they cannot be hit and do not increment combo.
+                if (note.IsPercussionPhrase)
+                {
+                    BaseStats.TotalNotes--;
+                }
+            }
         }
 
         public override void Reset(bool keepCurrentButtons = false)
@@ -163,10 +171,11 @@ namespace YARG.Core.Engine.Vocals
                     UpdateMultiplier();
                 }
 
-                // No matter what, we still wanna count this as a phrase hit though
-                EngineStats.IncrementNotesHit(note, CurrentTime);
-
-                OnNoteHit?.Invoke(NoteIndex, note);
+                if (!note.IsPercussionPhrase)
+                {
+                    EngineStats.IncrementNotesHit(note, CurrentTime);
+                    OnNoteHit?.Invoke(NoteIndex, note);
+                }
 
                 // I want to call base.HitNote here, but I have no idea how vocals handles hit state so I'm scared to
                 NoteIndex++;
@@ -257,12 +266,19 @@ namespace YARG.Core.Engine.Vocals
                 return CarriedVocalNote;
             }
 
-            return phrase
-                .ChildNotes
-                .FirstOrDefault(phraseNote =>
-                    !phraseNote.IsPercussion &&
+            var childNotes = phrase.ChildNotes;
+            for (int i = 0; i < childNotes.Count; i++)
+            {
+                var phraseNote = childNotes[i];
+                if (!phraseNote.IsPercussion &&
                     tick >= phraseNote.Tick &&
-                    tick <= phraseNote.TotalTickEnd);
+                    tick <= phraseNote.TotalTickEnd)
+                {
+                    return phraseNote;
+                }
+            }
+
+            return null;
         }
 
         protected static VocalNote? GetNextPercussionNote(VocalNote phrase, uint tick)
@@ -325,25 +341,33 @@ namespace YARG.Core.Engine.Vocals
             }
         }
 
-        protected sealed override int CalculateBaseScore()
+        protected sealed override (int baseScore, int noteScore) CalculateChartScores()
         {
-            double score = 0;
+            double baseScore = 0;
+            double noteScore = 0;
             int combo = 0;
             int multiplier;
-            double weight;
-            foreach (var note in Notes.Where(note => note.ChildNotes.Any()))
+            foreach (var note in Notes)
             {
-                // Get the current multiplier given the current combo
+                if (note.ChildNotes.Count == 0)
+                {
+                    continue;
+                };
                 multiplier = Math.Min(combo + 1, BaseParameters.MaxMultiplier);
-
-                // invert it to calculate leniency
-                weight = 1.0 * multiplier / BaseParameters.MaxMultiplier;
-                score += weight * EngineParameters.PointsPerPhrase;
+                if (note.IsPercussionPhrase)
+                {
+                    // Intentionally not counting percussion notes for base score so they don't affect star calculations
+                    // baseScore += POINTS_PER_PERCUSSION * note.ChildNotes.Count * multiplier;
+                    // noteScore += POINTS_PER_PERCUSSION * note.ChildNotes.Count;
+                    continue;
+                }
+                baseScore += multiplier * EngineParameters.PointsPerPhrase;
+                noteScore += EngineParameters.PointsPerPhrase;
                 combo++;
             }
 
-            YargLogger.LogDebug($"[Vocals] Base score: {score}, Max Combo: {combo}");
-            return (int) Math.Round(score);
+            YargLogger.LogDebug($"[Vocals] Base score: {baseScore}, Max Combo: {combo}");
+            return ((int) Math.Round(baseScore), (int) Math.Round(noteScore));
         }
 
         protected override bool CanSustainHold(VocalNote note) => throw new InvalidOperationException();

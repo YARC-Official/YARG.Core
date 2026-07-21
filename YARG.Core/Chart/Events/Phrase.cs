@@ -19,7 +19,8 @@ namespace YARG.Core.Chart
 
         // Other events
         Solo, // Also for visuals
-        BigRockEnding,
+        BigRockEnding, // The part where we show BRE graphics and can't hit or miss notes
+        Coda, // The entirety of the coda section, including the final notes; should contain a BigRockEnding phrase
 
         // Pro-keys range shifts
         ProKeys_RangeShift0,

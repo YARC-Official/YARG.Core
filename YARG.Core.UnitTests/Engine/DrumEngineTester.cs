@@ -5,46 +5,23 @@ using YARG.Core.Engine;
 using YARG.Core.Engine.Drums;
 using YARG.Core.Engine.Drums.Engines;
 using YARG.Core.Game;
+using YARG.Core.Input;
 
 namespace YARG.Core.UnitTests.Engine;
 
-public class DrumEngineTester
+public class DrumEngineTester : EngineTester
 {
-    public static float[] StarMultiplierThresholds { get; } =
-    {
-        0.21f, 0.46f, 0.77f, 1.85f, 3.08f, 4.29f
-    };
+    // This should probably be in some parent class of the tester, but right now there's only drums tests so it's fine
 
     private readonly DrumsEngineParameters _engineParams =
-        EnginePreset.Default.Drums.Create(StarMultiplierThresholds, DrumsEngineParameters.DrumMode.ProFourLane);
-
-    private string? _chartsDirectory;
-
-    [SetUp]
-    public void Setup()
-    {
-        string workingDirectory = Environment.CurrentDirectory;
-
-        string projectDirectory = Directory.GetParent(workingDirectory)!.Parent!.Parent!.Parent!.FullName;
-
-        _chartsDirectory = Path.Combine(projectDirectory, "Engine", "Test Charts");
-    }
+        EnginePreset.Default.Drums.Create(StarMultiplierThresholds, SoloBonusStarMultiplierThresholds, DrumsEngineParameters.DrumMode.ProFourLane);
 
     [Test]
     public void DrumSoloThatEndsInChord_ShouldWorkCorrectly()
     {
-        var chartPath = Path.Combine(_chartsDirectory!, "drawntotheflame.mid");
-        var midi = MidiFile.Read(chartPath);
-        var chart = SongChart.FromMidi(in ParseSettings.Default_Midi, midi);
-        var notes = chart.ProDrums.GetDifficulty(Difficulty.Expert);
+        var (engine, notes) = CreateEngine(isBot: true);
 
-        var engine = new YargDrumsEngine(notes, chart.SyncTrack, _engineParams, true, false);
-        var endTime = notes.GetEndTime();
-        var timeStep = 0.01;
-        for (double i = 0; i < endTime; i += timeStep)
-        {
-            engine.Update(i);
-        }
+        RunEngineToEnd(engine, notes);
 
         Assert.That(engine.EngineStats.SoloBonuses, Is.EqualTo(3900));
     }
@@ -52,21 +29,408 @@ public class DrumEngineTester
     [Test]
     public void DrumTrackWithKickDrumRemoved_ShouldWorkCorrectly()
     {
-        var chartPath = Path.Combine(_chartsDirectory!, "drawntotheflame.mid");
+        var (engine, notes) = CreateEngine(isBot: true);
+
+        notes.RemoveKickDrumNotes();
+        RunEngineToEnd(engine, notes);
+
+        Assert.That(engine.EngineStats.NotesHit, Is.EqualTo(notes.GetTotalNoteCount()));
+    }
+
+    [Test]
+    public void BotRun_HitsAllNotesWithoutOverhitsAndEndsFullCombo()
+    {
+        var (engine, notes) = CreateEngine(isBot: true);
+
+        RunEngineToEnd(engine, notes);
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(engine.EngineStats.NotesHit, Is.EqualTo(notes.GetTotalNoteCount()));
+            Assert.That(engine.EngineStats.Overhits, Is.Zero);
+            Assert.That(engine.EngineStats.IsFullCombo, Is.True);
+            Assert.That(engine.EngineStats.Percent, Is.EqualTo(1f));
+        }
+    }
+
+    [Test]
+    public void Reset_ClearsRuntimeDrumStatsButPreservesChartTotals()
+    {
+        var (engine, notes) = CreateEngine(isBot: true);
+
+        RunEngineToEnd(engine, notes);
+
+        int totalNotes = engine.EngineStats.TotalNotes;
+        int totalAccents = engine.EngineStats.TotalAccents;
+        int totalGhosts = engine.EngineStats.TotalGhosts;
+
+        engine.Reset();
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(engine.EngineStats.NotesHit, Is.Zero);
+            Assert.That(engine.EngineStats.Combo, Is.Zero);
+            Assert.That(engine.EngineStats.Overhits, Is.Zero);
+            Assert.That(engine.EngineStats.DynamicsBonus, Is.Zero);
+            Assert.That(engine.EngineStats.TotalNotes, Is.EqualTo(totalNotes));
+            Assert.That(engine.EngineStats.TotalAccents, Is.EqualTo(totalAccents));
+            Assert.That(engine.EngineStats.TotalGhosts, Is.EqualTo(totalGhosts));
+        }
+    }
+
+    [Test]
+    public void Overhit_DoesNothingBeforeFirstNote()
+    {
+        var (engine, _) = CreateEngine(isBot: false);
+
+        engine.Overhit();
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(engine.EngineStats.Overhits, Is.Zero);
+            Assert.That(engine.EngineStats.Combo, Is.Zero);
+        }
+    }
+
+    [Test]
+    public void Overhit_DoesNothingAfterLastNote()
+    {
+        var (engine, notes) = CreateEngine(isBot: true);
+
+        RunEngineToEnd(engine, notes);
+        engine.Overhit();
+
+        Assert.That(engine.EngineStats.Overhits, Is.Zero);
+    }
+
+    [Test]
+    public void MatchingInput_HitsIsolatedNeutralNote_AndRaisesSuccessfulPadHitEvent()
+    {
+        var (engine, notes) = CreateEngine(isBot: false);
+        (double frontEnd, double backEnd) = engine.CalculateHitWindow();
+        var minimumGap = backEnd - frontEnd + 0.05;
+        (int targetIndex, var target) = FindIsolatedNote(notes, minimumGap, 1,
+            note => note is { IsChord: false, Type: DrumNoteType.Neutral });
+
+        AdvanceToBeforeNote(engine, notes, targetIndex, frontEnd);
+
+        int padHitCalls = 0;
+        DrumsAction? reportedAction = null;
+        bool? noteWasHit = null;
+        bool? bonusAwarded = null;
+        bool? wasOverhitInLane = null;
+        DrumNoteType? reportedType = null;
+        float? reportedVelocity = null;
+        engine.OnPadHit += (action, wasHit, wereBonusPointsAwarded, laneOverhit, type, velocity) =>
+        {
+            padHitCalls++;
+            reportedAction = action;
+            noteWasHit = wasHit;
+            bonusAwarded = wereBonusPointsAwarded;
+            wasOverhitInLane = laneOverhit;
+            reportedType = type;
+            reportedVelocity = velocity;
+        };
+
+        var action = GetActionForPad(target.Pad);
+        var input = GameInput.Create(target.Time, action, 0.9f);
+        engine.QueueInput(ref input);
+        engine.Update(target.Time);
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(target.WasHit, Is.True);
+            Assert.That(engine.EngineStats.NotesHit, Is.EqualTo(1));
+            Assert.That(engine.EngineStats.Overhits, Is.Zero);
+            Assert.That(padHitCalls, Is.EqualTo(1));
+            Assert.That(reportedAction, Is.EqualTo(action));
+            Assert.That(noteWasHit, Is.True);
+            Assert.That(bonusAwarded, Is.False);
+            Assert.That(wasOverhitInLane, Is.False);
+            Assert.That(reportedType, Is.EqualTo(DrumNoteType.Neutral));
+            Assert.That(reportedVelocity, Is.EqualTo(0.9f));
+        }
+    }
+
+    [Test]
+    public void MismatchedInput_OnLaterIsolatedNote_RecordsOverhitAndRaisesEvents()
+    {
+        var (engine, notes) = CreateEngine(isBot: false);
+        (double frontEnd, double backEnd) = engine.CalculateHitWindow();
+        var minimumGap = backEnd - frontEnd + 0.05;
+        (int targetIndex, var target) = FindIsolatedNote(notes, minimumGap, 1,
+            note => note is { IsChord: false, Type: DrumNoteType.Neutral });
+
+        AdvanceToBeforeNote(engine, notes, targetIndex, frontEnd);
+
+        int overhitCalls = 0;
+        int padHitCalls = 0;
+        DrumsAction? reportedAction = null;
+        bool? noteWasHit = null;
+        bool? bonusAwarded = null;
+        bool? wasOverhitInLane = null;
+        DrumNoteType? reportedType = null;
+        float? reportedVelocity = null;
+        engine.OnOverhit += () => overhitCalls++;
+        engine.OnPadHit += (action, wasHit, wereBonusPointsAwarded, laneOverhit, type, velocity) =>
+        {
+            padHitCalls++;
+            reportedAction = action;
+            noteWasHit = wasHit;
+            bonusAwarded = wereBonusPointsAwarded;
+            wasOverhitInLane = laneOverhit;
+            reportedType = type;
+            reportedVelocity = velocity;
+        };
+
+        var wrongAction = GetMismatchedAction(target);
+        var input = GameInput.Create(target.Time, wrongAction, 0.8f);
+        engine.QueueInput(ref input);
+        engine.Update(target.Time);
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(target.WasHit, Is.False);
+            Assert.That(engine.EngineStats.Overhits, Is.EqualTo(1));
+            Assert.That(engine.EngineStats.OverhitsByAction[(int) wrongAction], Is.EqualTo(1));
+            Assert.That(overhitCalls, Is.EqualTo(1));
+            Assert.That(padHitCalls, Is.EqualTo(1));
+            Assert.That(reportedAction, Is.EqualTo(wrongAction));
+            Assert.That(noteWasHit, Is.False);
+            Assert.That(bonusAwarded, Is.False);
+            Assert.That(wasOverhitInLane, Is.False);
+            Assert.That(reportedType, Is.EqualTo(DrumNoteType.Neutral));
+            Assert.That(reportedVelocity, Is.EqualTo(0.8f));
+        }
+    }
+
+    [Test]
+    public void MatchingPadBeforeSingleDrumLaneStart_DoesNotOverhit()
+    {
+        var (engine, notes) = CreateSingleLaneProximityEngine(FourLaneDrumPad.YellowDrum);
+
+        HitPad(engine, notes.Notes[0].Time, DrumsAction.RedDrum);
+        HitPad(engine, notes.Notes[1].Time - 0.2, DrumsAction.YellowDrum);
+
+        Assert.That(engine.EngineStats.Overhits, Is.Zero);
+    }
+
+    [Test]
+    public void MismatchedPadBeforeSingleDrumLaneStart_RecordsOverhit()
+    {
+        var (engine, notes) = CreateSingleLaneProximityEngine(FourLaneDrumPad.YellowDrum);
+
+        HitPad(engine, notes.Notes[0].Time, DrumsAction.RedDrum);
+        HitPad(engine, notes.Notes[1].Time - 0.2, DrumsAction.BlueDrum);
+
+        Assert.That(engine.EngineStats.Overhits, Is.EqualTo(1));
+    }
+
+    [Test]
+    public void MatchingLeftPadBeforeDoubleDrumLaneStart_DoesNotOverhit()
+    {
+        var (engine, notes) = CreateDoubleLaneProximityEngine(FourLaneDrumPad.YellowCymbal, FourLaneDrumPad.GreenCymbal);
+
+        HitPad(engine, notes.Notes[0].Time, DrumsAction.RedDrum);
+        HitPad(engine, notes.Notes[1].Time - 0.2, DrumsAction.YellowCymbal);
+
+        Assert.That(engine.EngineStats.Overhits, Is.Zero);
+    }
+
+    [Test]
+    public void MatchingRightPadBeforeDoubleDrumLaneStart_DoesNotOverhit()
+    {
+        var (engine, notes) = CreateDoubleLaneProximityEngine(FourLaneDrumPad.YellowCymbal, FourLaneDrumPad.GreenCymbal);
+
+        HitPad(engine, notes.Notes[0].Time, DrumsAction.RedDrum);
+        HitPad(engine, notes.Notes[1].Time - 0.2, DrumsAction.GreenCymbal);
+
+        Assert.That(engine.EngineStats.Overhits, Is.Zero);
+    }
+
+    [Test]
+    public void MismatchedPadBeforeDoubleDrumLaneStart_RecordsOverhit()
+    {
+        var (engine, notes) = CreateDoubleLaneProximityEngine(FourLaneDrumPad.YellowCymbal, FourLaneDrumPad.GreenCymbal);
+
+        HitPad(engine, notes.Notes[0].Time, DrumsAction.RedDrum);
+        HitPad(engine, notes.Notes[1].Time - 0.2, DrumsAction.BlueCymbal);
+
+        Assert.That(engine.EngineStats.Overhits, Is.EqualTo(1));
+    }
+
+    private (YargDrumsEngine Engine, InstrumentDifficulty<DrumNote> Notes) CreateEngine(bool isBot)
+    {
+        var chartPath = Path.Combine(ChartDirectory!, "drawntotheflame.mid");
         var midi = MidiFile.Read(chartPath);
         var chart = SongChart.FromMidi(in ParseSettings.Default_Midi, midi);
         var notes = chart.ProDrums.GetDifficulty(Difficulty.Expert);
+        var engine = new YargDrumsEngine(notes, chart.SyncTrack, _engineParams, isBot, false);
+        return (engine, notes);
+    }
 
-        notes.RemoveKickDrumNotes();
+    private static (YargDrumsEngine Engine, InstrumentDifficulty<DrumNote> Notes) CreateSingleLaneProximityEngine(
+        FourLaneDrumPad lanePad)
+    {
+        var firstNote = new DrumNote(FourLaneDrumPad.RedDrum, DrumNoteType.Neutral, DrumNoteFlags.None,
+            NoteFlags.None, 0.0, 0);
+        var laneStart = new DrumNote(lanePad, DrumNoteType.Neutral, DrumNoteFlags.None,
+            NoteFlags.Tremolo | NoteFlags.LaneStart, 1.0, 480);
+        var laneEnd = new DrumNote(lanePad, DrumNoteType.Neutral, DrumNoteFlags.None,
+            NoteFlags.Tremolo | NoteFlags.LaneEnd, 1.2, 576);
 
-        var engine = new YargDrumsEngine(notes, chart.SyncTrack, _engineParams, true, false);
+        firstNote.NextNote = laneStart;
+        laneStart.PreviousNote = firstNote;
+        laneStart.NextNote = laneEnd;
+        laneEnd.PreviousNote = laneStart;
+
+        var notes = new InstrumentDifficulty<DrumNote>(Instrument.ProDrums, Difficulty.Expert,
+            [firstNote, laneStart, laneEnd], new(), new());
+        var syncTrack = new SyncTrack(480);
+        syncTrack.Tempos.Add(new TempoChange(120, 0, 0));
+        var engineParams = new DrumsEngineParameters(
+            new HitWindowSettings(0.1, 0.1, 1.0, false, 0, 1.0, 1.0, 0.15, 0.25),
+            4,
+            StarMultiplierThresholds,
+            SoloBonusStarMultiplierThresholds,
+            DrumsEngineParameters.DrumMode.ProFourLane,
+            false,
+            true);
+
+        return (new YargDrumsEngine(notes, syncTrack, engineParams, false, false), notes);
+    }
+
+    private static (YargDrumsEngine Engine, InstrumentDifficulty<DrumNote> Notes) CreateDoubleLaneProximityEngine(
+        FourLaneDrumPad firstPad, FourLaneDrumPad secondPad)
+    {
+        var firstNote = new DrumNote(FourLaneDrumPad.RedDrum, DrumNoteType.Neutral, DrumNoteFlags.None,
+            NoteFlags.None, 0.0, 0);
+        var laneStart = new DrumNote(firstPad, DrumNoteType.Neutral, DrumNoteFlags.None,
+            NoteFlags.Trill | NoteFlags.LaneStart, 1.0, 480);
+        var laneEnd = new DrumNote(secondPad, DrumNoteType.Neutral, DrumNoteFlags.None,
+            NoteFlags.Trill | NoteFlags.LaneEnd, 1.2, 576);
+
+        firstNote.NextNote = laneStart;
+        laneStart.PreviousNote = firstNote;
+        laneStart.NextNote = laneEnd;
+        laneEnd.PreviousNote = laneStart;
+
+        var notes = new InstrumentDifficulty<DrumNote>(Instrument.ProDrums, Difficulty.Expert,
+            [firstNote, laneStart, laneEnd], new(), new());
+        var syncTrack = new SyncTrack(480);
+        syncTrack.Tempos.Add(new TempoChange(120, 0, 0));
+        var engineParams = new DrumsEngineParameters(
+            new HitWindowSettings(0.1, 0.1, 1.0, false, 0, 1.0, 1.0, 0.15, 0.25),
+            4,
+            StarMultiplierThresholds,
+            SoloBonusStarMultiplierThresholds,
+            DrumsEngineParameters.DrumMode.ProFourLane,
+            false,
+            true);
+
+        return (new YargDrumsEngine(notes, syncTrack, engineParams, false, false), notes);
+    }
+
+
+    private static void HitPad(YargDrumsEngine engine, double time, DrumsAction action)
+    {
+        var input = GameInput.Create(time, action, 1.0f);
+        engine.QueueInput(ref input);
+        engine.Update(time);
+    }
+
+    private static void RunEngineToEnd(YargDrumsEngine engine, InstrumentDifficulty<DrumNote> notes)
+    {
         var endTime = notes.GetEndTime();
-        var timeStep = 0.01;
-        for (double i = 0; i < endTime; i += timeStep)
+        const double TIME_STEP = 0.01;
+        for (double i = 0; i < endTime; i += TIME_STEP)
         {
             engine.Update(i);
         }
+    }
 
-        Assert.That(engine.EngineStats.NotesHit, Is.EqualTo(notes.GetTotalNoteCount()));
+    private static void AdvanceToBeforeNote(YargDrumsEngine engine, InstrumentDifficulty<DrumNote> notes,
+        int targetIndex, double frontEnd)
+    {
+        if (targetIndex <= 0)
+        {
+            return;
+        }
+
+        double updateTime = Math.Max(0, notes.Notes[targetIndex].Time + frontEnd - 0.01);
+        engine.Update(updateTime);
+    }
+
+    private static (int Index, DrumNote Note) FindIsolatedNote(InstrumentDifficulty<DrumNote> notes,
+        double minimumGap, int startIndex, Predicate<DrumNote> predicate)
+    {
+        for (int i = startIndex; i < notes.Notes.Count; i++)
+        {
+            var note = notes.Notes[i];
+            if (!predicate(note))
+            {
+                continue;
+            }
+
+            double previousGap = note.Time - notes.Notes[i - 1].Time;
+            double nextGap = i == notes.Notes.Count - 1 ? double.MaxValue : notes.Notes[i + 1].Time - note.Time;
+
+            if (previousGap > minimumGap && nextGap > minimumGap)
+            {
+                return (i, note);
+            }
+        }
+
+        Assert.Fail("Could not find an isolated drum note in the test chart.");
+        return default;
+    }
+
+    private static DrumsAction GetActionForPad(int pad)
+    {
+        return (FourLaneDrumPad) pad switch
+        {
+            FourLaneDrumPad.Kick => DrumsAction.Kick,
+            FourLaneDrumPad.RedDrum => DrumsAction.RedDrum,
+            FourLaneDrumPad.YellowDrum => DrumsAction.YellowDrum,
+            FourLaneDrumPad.BlueDrum => DrumsAction.BlueDrum,
+            FourLaneDrumPad.GreenDrum => DrumsAction.GreenDrum,
+            FourLaneDrumPad.YellowCymbal => DrumsAction.YellowCymbal,
+            FourLaneDrumPad.BlueCymbal => DrumsAction.BlueCymbal,
+            FourLaneDrumPad.GreenCymbal => DrumsAction.GreenCymbal,
+            FourLaneDrumPad.Wildcard => DrumsAction.WildcardPad,
+            _ => throw new ArgumentOutOfRangeException(nameof(pad), pad, null)
+        };
+    }
+
+    private static DrumsAction GetMismatchedAction(DrumNote target)
+    {
+        var usedActions = new HashSet<DrumsAction>();
+        foreach (var note in target.AllNotes)
+        {
+            usedActions.Add(GetActionForPad(note.Pad));
+        }
+
+        DrumsAction[] candidateActions =
+        {
+            DrumsAction.Kick,
+            DrumsAction.RedDrum,
+            DrumsAction.YellowDrum,
+            DrumsAction.BlueDrum,
+            DrumsAction.GreenDrum,
+            DrumsAction.YellowCymbal,
+            DrumsAction.BlueCymbal,
+            DrumsAction.GreenCymbal,
+        };
+
+        foreach (var action in candidateActions)
+        {
+            if (!usedActions.Contains(action))
+            {
+                return action;
+            }
+        }
+
+        Assert.Fail("Could not find a mismatched drum action for the target note.");
+        return default;
     }
 }

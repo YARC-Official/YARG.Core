@@ -13,7 +13,28 @@ namespace YARG.Core.Game
                 AntiGhosting = false,
                 InfiniteFrontEnd = true,
                 StrumLeniency = 0.06,
-                StrumLeniencySmall = 0.03
+                StrumLeniencySmall = 0.03,
+                HitWindow =
+                {
+                    LaneAutohitWindow = 0.200,
+                    LaneProximityProtectionWindow = 0.100
+                }
+            },
+            Drums =
+            {
+                HitWindow =
+                {
+                    LaneAutohitWindow = 0.200,
+                    LaneProximityProtectionWindow = 0.100
+                }
+            },
+            ProKeys =
+            {
+                HitWindow =
+                {
+                    LaneAutohitWindow = 0.200,
+                    LaneProximityProtectionWindow = 0.100
+                }
             },
             Vocals =
             {
@@ -35,7 +56,8 @@ namespace YARG.Core.Game
                     DynamicScale = 1,
                     DynamicSlope = 0.93,
                     DynamicGamma = 1.5,
-                    TremoloFrontEndPercent = 1.0
+                    LaneAutohitWindow = 0.160,
+                    LaneProximityProtectionWindow = 0.080
                 }
             },
             Drums =
@@ -48,7 +70,8 @@ namespace YARG.Core.Game
                     DynamicScale = 1,
                     DynamicSlope = 0.60615,
                     DynamicGamma = 2,
-                    TremoloFrontEndPercent = 1.0
+                    LaneAutohitWindow = 0.160,
+                    LaneProximityProtectionWindow = 0.080
                 }
             },
             Vocals =

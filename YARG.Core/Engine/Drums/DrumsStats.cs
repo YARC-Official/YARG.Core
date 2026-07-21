@@ -113,9 +113,9 @@ namespace YARG.Core.Engine.Drums
             OverhitsByAction[action.Value] = OverhitsByAction.GetValueOrDefault(action.Value) + 1;
         }
 
-        public override ReplayStats ConstructReplayStats(string name)
+        public override ReplayStats ConstructReplayStats(string name, bool isReplayPlayer)
         {
-            return new DrumsReplayStats(name, this);
+            return new DrumsReplayStats(name, isReplayPlayer, this);
         }
     }
 }

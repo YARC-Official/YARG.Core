@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Runtime.CompilerServices;
 
 namespace YARG.Core.Chart
@@ -6,7 +6,6 @@ namespace YARG.Core.Chart
     public class TempoChange : SyncEvent, IEquatable<TempoChange>, ICloneable<TempoChange>
     {
         private const double SECONDS_PER_MINUTE = 60;
-
         public double BeatsPerMinute { get; }
         public double SecondsPerBeat => SECONDS_PER_MINUTE / BeatsPerMinute;
         public long MilliSecondsPerBeat => BpmToMicroSeconds(BeatsPerMinute) / 1000;

@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using YARG.Core.Extensions;
@@ -11,14 +11,14 @@ namespace YARG.Core.Song.Cache
     {
         private readonly Dictionary<string, (YARGTextContainer<byte> Container, PackedRBProUpgrade Upgrade)> _upgrades = new();
         private AbridgedFileInfo _root;
-        private FixedArray<byte> _data;
+        private FixedArray<byte>? _data;
 
         public AbridgedFileInfo Root => _root;
         public Dictionary<string, (YARGTextContainer<byte> Container, PackedRBProUpgrade Upgrade)> Upgrades => _upgrades;
 
         public void Dispose()
         {
-            _data.Dispose();
+            _data?.Dispose();
         }
 
         private PackedCONUpgradeGroup() { }
@@ -26,7 +26,7 @@ namespace YARG.Core.Song.Cache
         public static bool Create(Stream stream, List<CONFileListing> listings, in AbridgedFileInfo root, out PackedCONUpgradeGroup group)
         {
             const string UPGRADES_PATH = PackedRBProUpgrade.UPGRADES_DIRECTORY + RBProUpgrade.UPGRADES_DTA;
-            group = null;
+            group = null!;
             if (listings.FindListing(UPGRADES_PATH, out var listing))
             {
                 group = new PackedCONUpgradeGroup()
@@ -74,14 +74,14 @@ namespace YARG.Core.Song.Cache
     {
         private readonly Dictionary<string, (YARGTextContainer<byte> Container, UnpackedRBProUpgrade Upgrade)> _upgrades = new();
         private AbridgedFileInfo _root;
-        private FixedArray<byte> _data;
+        private FixedArray<byte>? _data;
 
         public AbridgedFileInfo Root => _root;
         public Dictionary<string, (YARGTextContainer<byte> Container, UnpackedRBProUpgrade Upgrade)> Upgrades => _upgrades;
 
         public void Dispose()
         {
-            _data.Dispose();
+            _data?.Dispose();
         }
 
         private UnpackedCONUpgradeGroup() { }

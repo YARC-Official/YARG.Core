@@ -43,6 +43,7 @@ namespace YARG.Core.Chart
             FiveFretGuitarFret.Blue => FiveLaneKeysAction.BlueKey,
             FiveFretGuitarFret.Orange => FiveLaneKeysAction.OrangeKey,
             FiveFretGuitarFret.Open => FiveLaneKeysAction.OpenNote,
+            FiveFretGuitarFret.Wildcard => FiveLaneKeysAction.Wildcard,
             _ => throw new Exception("Unhandled.")
         };
         public override int LaneNote => NoteMask;
@@ -119,7 +120,9 @@ namespace YARG.Core.Chart
         Yellow,
         Blue,
         Orange,
+        // 6 intentionally left blank for symmetry with 6F
         Open = 7,
+        Wildcard = 8,
     }
 
     public enum SixFretGuitarFret
@@ -131,6 +134,7 @@ namespace YARG.Core.Chart
         White2,
         White3,
         Open,
+        Wildcard,
     }
 
     public enum GuitarNoteType

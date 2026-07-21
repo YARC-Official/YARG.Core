@@ -77,7 +77,6 @@ namespace YARG.Core.Replays.Analyzer
             AppendStatDifference("CommittedScore", originalStats.CommittedScore, resultStats.CommittedScore);
             AppendStatDifference("PendingScore", originalStats.PendingScore, resultStats.PendingScore);
             AppendStatDifference("TotalScore", originalStats.TotalScore, resultStats.TotalScore);
-            AppendStatDifference("StarScore", originalStats.StarScore, resultStats.StarScore);
             AppendStatDifference("Combo", originalStats.Combo, resultStats.Combo);
             AppendStatDifference("MaxCombo", originalStats.MaxCombo, resultStats.MaxCombo);
             AppendStatDifference("ScoreMultiplier", originalStats.ScoreMultiplier, resultStats.ScoreMultiplier);
@@ -173,7 +172,7 @@ namespace YARG.Core.Replays.Analyzer
                 engines.Add(engine);
 
                 // TODO: Implement support for custom RockMeterPresets in replays
-                manager.Register(engine, frame.Profile.CurrentInstrument, _chart, RockMeterPreset.Normal);
+                manager.Register(engine, frame.Profile.CurrentInstrument, frame.Profile.CurrentDifficulty, _chart, RockMeterPreset.Normal);
                 engine.SetSpeed(frame.EngineParameters.SongSpeed);
                 engine.Reset();
 

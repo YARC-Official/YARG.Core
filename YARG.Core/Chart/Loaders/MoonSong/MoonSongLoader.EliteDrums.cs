@@ -28,7 +28,8 @@ namespace YARG.Core.Chart
             return new(instrument, difficulties);
         }
 
-        private EliteDrumNote CreateEliteDrumNote(MoonNote moonNote, Dictionary<MoonPhrase.Type, MoonPhrase> currentPhrases)
+        private EliteDrumNote CreateEliteDrumNote(MoonNote moonNote, Dictionary<MoonPhrase.Type, MoonPhrase> currentPhrases,
+            List<EliteDrumNote> notes)
         {
             var pad = GetEliteDrumPad(moonNote);
             var noteDynamics = GetEliteDrumNoteDynamics(moonNote);
@@ -39,8 +40,10 @@ namespace YARG.Core.Chart
             var generalFlags = GetGeneralFlags(moonNote, currentPhrases);
             var channelFlag = GetEliteDrumsChannelFlag(moonNote);
 
+            var isDoubleKick = moonNote.eliteDrumPad is MoonNote.EliteDrumPad.Kick && ((moonNote.flags & MoonNote.Flags.InstrumentPlus) != 0);
+
             double time = _moonSong.TickToTime(moonNote.tick);
-            return new(pad, noteDynamics, hatState, hatPedalType, isFlam, drumFlags, generalFlags, channelFlag, time, moonNote.tick);
+            return new(pad, noteDynamics, hatState, hatPedalType, isFlam, drumFlags, generalFlags, channelFlag, time, moonNote.tick, isDoubleKick);
         }
 
         private void HandleEliteDrumsTextEvent(MoonText text)

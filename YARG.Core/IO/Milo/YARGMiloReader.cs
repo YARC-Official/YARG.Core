@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Buffers;
 using System.Collections.Generic;
 using System.IO;
@@ -24,9 +24,9 @@ namespace YARG.Core.IO
             using var decompressed = Decompress(milo);
             using var stream = decompressed.ToReferenceStream();
             // Get the directory structure
-            var directory = ParseMiloDirectory(new BinaryReader(stream));
+            var directory = ParseMiloDirectory(stream);
 
-            var fileSpan = FindFile(directory, Encoding.UTF8.GetBytes(filename), decompressed.ReadOnlySpan);
+            var fileSpan = FindFile(directory, filename, decompressed.ReadOnlySpan);
 
             // Copy the span to a new FixedArray
             var fixedArray = FixedArray<byte>.Alloc(fileSpan.Length);
@@ -42,16 +42,16 @@ namespace YARG.Core.IO
         /// <param name="data">The decompressed milo data</param>
         /// <returns>ReadOnlySpan&lt;byte&gt; containing the file data</returns>
         /// <remarks>WARNING: The returned Span is backed by a FixedArray. Copy the data if you need it to live for long.</remarks>
-        private static ReadOnlySpan<byte> FindFile(MiloDirectory directory, ReadOnlySpan<byte> filename, ReadOnlySpan<byte> data)
+        private static ReadOnlySpan<byte> FindFile(MiloDirectory directory, string filename, ReadOnlySpan<byte> data)
         {
             for (var i = 0; i < directory.EntryNames.Count; i++)
             {
                 var entry = directory.EntryNames[i];
-                if (filename.SequenceEqual(entry.value))
+                if (filename.Equals(entry.value))
                 {
                     if (i >= directory.Files.Count)
                     {
-                        YargLogger.LogFormatWarning("Inconsistent milo directory when searching for: {0}", Encoding.UTF8.GetString(filename));
+                        YargLogger.LogFormatWarning("Inconsistent milo directory when searching for: {0}", filename);
                         return ReadOnlySpan<byte>.Empty;
                     }
                     var file = directory.Files[i];
@@ -108,7 +108,6 @@ namespace YARG.Core.IO
             {
                 var blockSize = reader.ReadUInt32();
                 var compressed = false;
-                FileType blockType;
                 switch (type)
                 {
                     case FileType.MILO_A:
@@ -126,7 +125,7 @@ namespace YARG.Core.IO
                         break;
                 }
 
-                blockInfo[i] = new BlockInfo {Compressed = compressed, Size = blockSize };
+                blockInfo[i] = new BlockInfo {Compressed = compressed, Size = blockSize, Type = type };
             }
 
             // Seek to data_offset
@@ -156,41 +155,39 @@ namespace YARG.Core.IO
             return fixedArray;
         }
 
-        private static MiloDirectory ParseMiloDirectory(BinaryReader reader)
+        private static MiloDirectory ParseMiloDirectory(UnmanagedMemoryStream stream)
         {
-            var baseStream = (UnmanagedMemoryStream) reader.BaseStream;
-
             // Create the directory object
             var directory = new MiloDirectory
             {
-                Version = reader.ReadUInt32BE(),
-                Type = reader.ReadStringBE(),
-                Name = reader.ReadStringBE(),
-                MiloU1 = reader.ReadUInt32BE(),
-                MiloU2 = reader.ReadUInt32BE(),
+                Version = stream.Read<uint>(Endianness.Big),
+                Type = stream.ReadString(Endianness.Big),
+                Name = stream.ReadString(Endianness.Big),
+                MiloU1 = stream.Read<uint>(Endianness.Big),
+                MiloU2 = stream.Read<uint>(Endianness.Big),
             };
 
             // Deal with EntryNames
 
-            var entryCount = reader.ReadUInt32BE();
+            var entryCount = stream.Read<uint>(Endianness.Big);
             var expectedMatrixCount = 7;
 
-            directory.EntryNames = new List<(byte[] name, byte[] value)>((int) entryCount);
+            directory.EntryNames = new List<(string name, string value)>((int) entryCount);
             for (var i = 0; i < entryCount; i++)
             {
-                var name = reader.ReadStringBE();
-                var value = reader.ReadStringBE();
+                var name = stream.ReadString(Endianness.Big);
+                var value = stream.ReadString(Endianness.Big);
                 directory.EntryNames.Add((name, value));
             }
 
             // Read a bit more
-            directory.MiloU3 = reader.ReadUInt32BE();
+            directory.MiloU3 = stream.Read<uint>(Endianness.Big);
 
             // If the next uint is expectedMatrixCount, assume no optional fields and rewind
-            var nextUint = reader.ReadUInt32BE();
+            var nextUint = stream.Read<uint>(Endianness.Big);
             if (nextUint == expectedMatrixCount)
             {
-                reader.BaseStream.Seek(-4, SeekOrigin.Current);
+                stream.Seek(-4, SeekOrigin.Current);
                 // Be explicit so the code is easier to understand later
                 directory.MiloU4 = null;
                 directory.SubName = null;
@@ -199,24 +196,24 @@ namespace YARG.Core.IO
             {
                 // Otherwise, read the optional fields
                 directory.MiloU4 = nextUint;
-                directory.SubName = reader.ReadStringBE();
+                directory.SubName = stream.ReadString(Endianness.Big);
             }
 
-            nextUint = reader.ReadUInt32BE();
+            nextUint = stream.Read<uint>(Endianness.Big);
             if (nextUint == expectedMatrixCount)
             {
-                reader.BaseStream.Seek(-4, SeekOrigin.Current);
+                stream.Seek(-4, SeekOrigin.Current);
                 directory.MiloU5 = null;
                 directory.MiloU6 = null;
             }
             else
             {
                 directory.MiloU5 = nextUint;
-                directory.MiloU6 = reader.ReadUInt32BE();
+                directory.MiloU6 = stream.Read<uint>(Endianness.Big);
             }
 
             // Now that we're done with the optional stuff, read the matrix and move the hell on to greener pastures
-            var matrixCount = reader.ReadUInt32BE();
+            var matrixCount = stream.Read<uint>(Endianness.Big);
             directory.MiloMatrices = new List<List<float>>((int) matrixCount);
 
             for (var i = 0; i < matrixCount; i++)
@@ -224,37 +221,37 @@ namespace YARG.Core.IO
                 var currentMatrix = new List<float>(12);
                 for (var j = 0; j < 12; j++)
                 {
-                    currentMatrix.Add(reader.ReadSingleBE());
+                    currentMatrix.Add(stream.Read<float>(Endianness.Big));
                 }
                 directory.MiloMatrices.Add(currentMatrix);
             }
 
-            directory.MiloU7 = reader.ReadUInt32BE();
-            directory.MiloU8 = reader.ReadByte();
-            directory.MiloU9 = reader.ReadUInt32BE();
+            directory.MiloU7 = stream.Read<uint>(Endianness.Big);
+            directory.MiloU8 = stream.Read<byte>(Endianness.Little); // Store as read, may need to be changed later
+            directory.MiloU9 = stream.Read<uint>(Endianness.Big);
 
-            var parentCount = reader.ReadUInt32BE();
+            var parentCount = stream.Read<uint>(Endianness.Big);
 
-            directory.MiloParents = new List<byte[]>((int) parentCount);
+            directory.MiloParents = new List<string>((int) parentCount);
             for (var i = 0; i < parentCount; i++)
             {
-                directory.MiloParents.Add(reader.ReadStringBE());
+                directory.MiloParents.Add(stream.ReadString(Endianness.Big));
             }
 
-            directory.MiloU10 = reader.ReadByte();
+            directory.MiloU10 = stream.Read<byte>(Endianness.Little); // Store as read, may need to be changed later
 
-            var childCount = reader.ReadUInt32BE();
-            directory.MiloChildren = new List<byte[]>((int) childCount);
+            var childCount = stream.Read<uint>(Endianness.Big);
+            directory.MiloChildren = new List<string>((int) childCount);
             for (var i = 0; i < childCount; i++)
             {
-                directory.MiloChildren.Add(reader.ReadStringBE());
+                directory.MiloChildren.Add(stream.ReadString(Endianness.Big));
             }
 
-            var flagByte = reader.ReadByte();
-            reader.BaseStream.Seek(-1, SeekOrigin.Current);
+            var flagByte = stream.Read<byte>(Endianness.Little); // Store as read, may need to be changed later
+            stream.Seek(-1, SeekOrigin.Current);
             if (flagByte == 1)
             {
-                directory.MiloU11 = reader.ReadUInt16BE();
+                directory.MiloU11 = stream.Read<ushort>(Endianness.Big);
             }
             else
             {
@@ -266,14 +263,14 @@ namespace YARG.Core.IO
             for (var i = 0; i < childCount; i++)
             {
                 // Recursive call to parse each subdirectory
-                directory.SubDirectories.Add(ParseMiloDirectory(reader));
+                directory.SubDirectories.Add(ParseMiloDirectory(stream));
             }
 
             // Define the barrier that terminates the next few data blocks
             byte[] magicBarrier = { 0xAD, 0xDE, 0xAD, 0xDE };
 
             // Read the unknown bytes block
-            directory.UnknownBytes = reader.ReadUntilBarrier(magicBarrier).ToArray();
+            directory.UnknownBytes = stream.ReadUntilBarrier(magicBarrier).ToArray();
 
             // Read the embedded files, each terminated by the barrier
             directory.Files = new List<(int offset, int length)>((int)entryCount);
@@ -281,8 +278,8 @@ namespace YARG.Core.IO
             {
                 try
                 {
-                    var fileSpan = reader.ReadUntilBarrier(magicBarrier);
-                    long currentPos = baseStream.Position - fileSpan.Length - magicBarrier.Length;
+                    var fileSpan = stream.ReadUntilBarrier(magicBarrier);
+                    long currentPos = stream.Position - fileSpan.Length - magicBarrier.Length;
                     YargLogger.Assert(currentPos >= 0, "File offset is negative");
                     directory.Files.Add(((int) currentPos, fileSpan.Length));
                 }
@@ -338,42 +335,43 @@ namespace YARG.Core.IO
             return decompressed.ToArray();
         }
 
+        // I do not like the = null! syntax, but we don't have required yet
         private class MiloDirectory
         {
             // Probably only ever 25 or 28 (pre-RB3, RB3+)
             public uint   Version;
-            public byte[] Type;
-            public byte[] Name;
+            public string Type = null!;
+            public string Name = null!;
             // Count of strings in this part
             public uint MiloU1;
             // Count of names + total length
             public uint                              MiloU2;
-            public List<(byte[] name, byte[] value)> EntryNames;
+            public List<(string name, string value)> EntryNames = null!;
             // Unknown
             public uint MiloU3;
             // Seems to be 2 for TBRB
             public uint?   MiloU4;
-            public byte[]? SubName;
+            public string? SubName;
             // ???
             public uint? MiloU5;
             // ???
             public uint?             MiloU6;
-            public List<List<float>> MiloMatrices;
+            public List<List<float>> MiloMatrices = null!;
             // Almost always 0
             public uint MiloU7;
             // Always 1
             public byte MiloU8;
             // Always 0
             public uint         MiloU9;
-            public List<byte[]> MiloParents;
+            public List<string> MiloParents = null!;
             // 0 in parent directory, usually 1 in subdirectory, but not always?
             public byte         MiloU10;
-            public List<byte[]> MiloChildren;
+            public List<string> MiloChildren = null!;
             // In v25 always nothing, v28 is always 256 in root, nothing in subdirectories
             public ushort?                      MiloU11;
-            public List<MiloDirectory>          SubDirectories;
-            public byte[]                       UnknownBytes;
-            public List<(int offset, int length)> Files;
+            public List<MiloDirectory>          SubDirectories = null!;
+            public byte[]                       UnknownBytes = null!;
+            public List<(int offset, int length)> Files = null!;
         }
 
         struct BlockInfo

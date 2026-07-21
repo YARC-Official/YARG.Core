@@ -178,7 +178,7 @@ namespace YARG.Core.Chart
         {
             /*
              TODO Add same child note checking like the other instruments
-             (but I have no idea how vocals works) - Riley
+             (but I have no idea how vocals works) - Riley 
             */
 
             if (IsLyricPhrase)
@@ -197,7 +197,11 @@ namespace YARG.Core.Chart
             }
             else
             {
-                if (note.Tick <= Tick || note.ChildNotes.Count > 0) return;
+                // Use strict less-than (<) instead of less-than-or-equal (<=) to allow notes
+                // that start on the same tick as the parent phrase. This is necessary for formats
+                // like UltraStar where the first note of a phrase can share the same start tick
+                // as the phrase itself. The original <= would silently discard such notes.
+                if (note.Tick < Tick || note.ChildNotes.Count > 0) return;
 
                 _childNotes.Add(note);
 

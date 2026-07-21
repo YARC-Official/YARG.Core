@@ -15,10 +15,10 @@ namespace YARG.Core.Engine.Guitar
         public readonly bool NoStarPowerOverlap;
 
         public GuitarEngineParameters(HitWindowSettings hitWindow, int maxMultiplier, double spWhammyBuffer,
-            double sustainDropLeniency, float[] starMultiplierThresholds, double hopoLeniency, double strumLeniency,
+            double sustainDropLeniency, float[] starMultiplierThresholds, float[] soloBonusStarMultiplierThresholds, double hopoLeniency, double strumLeniency,
             double strumLeniencySmall, bool infiniteFrontEnd, bool antiGhosting, bool soloTaps, bool noStarPowerOverlap,
             bool enableLanes)
-            : base(hitWindow, maxMultiplier, spWhammyBuffer, sustainDropLeniency, starMultiplierThresholds, enableLanes)
+            : base(hitWindow, maxMultiplier, spWhammyBuffer, sustainDropLeniency, starMultiplierThresholds, soloBonusStarMultiplierThresholds, enableLanes)
         {
             HopoLeniency = hopoLeniency;
 

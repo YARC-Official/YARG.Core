@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using YARG.Core.Chart;
 using YARG.Core.Input;
 using YARG.Core.Logging;
@@ -7,6 +8,8 @@ namespace YARG.Core.Engine.Guitar.Engines
 {
     public class YargFiveFretGuitarEngine : GuitarEngine
     {
+        protected override int WildcardMask => 1 << ((int)FiveFretGuitarFret.Wildcard - 1);
+
         public YargFiveFretGuitarEngine(InstrumentDifficulty<GuitarNote> chart, SyncTrack syncTrack,
             GuitarEngineParameters engineParameters, bool isBot)
             : base(chart, syncTrack, engineParameters, isBot)
@@ -33,6 +36,11 @@ namespace YARG.Core.Engine.Guitar.Engines
             EffectiveButtonMask = (byte) note.NoteMask;
 
             YargLogger.LogFormatTrace("[Bot] Set button mask to: {0}", EffectiveButtonMask);
+
+            if (IsCodaActive)
+            {
+                HandleCodaFretChange(time);
+            }
 
             HasTapped = EffectiveButtonMask != LastButtonMask;
             IsFretPress = true;
@@ -172,6 +180,11 @@ namespace YARG.Core.Engine.Guitar.Engines
             // Update bot (will return if not enabled)
             UpdateBot(time);
 
+            if (IsCodaActive)
+            {
+                HandleCodaFretChange(time);
+            }
+
             // Quit early if there are no notes left
             if (NoteIndex >= Notes.Count)
             {
@@ -202,7 +215,7 @@ namespace YARG.Core.Engine.Guitar.Engines
                 WasNoteGhosted = EngineParameters.AntiGhosting && (ghosted || WasNoteGhosted);
 
                 // Add ghost inputs to stats regardless of the setting for anti ghosting
-                if (ghosted)
+                if (ghosted && !IsCodaActive)
                 {
                     EngineStats.GhostInputs++;
                 }
@@ -233,12 +246,13 @@ namespace YARG.Core.Engine.Guitar.Engines
                     if (isFirstNoteInWindow && missed)
                     {
                         // Intercept missed note while lane phrase is active
-                        if (HitNoteFromLane(note))
+                        if (AutohitNoteFromLane(note))
                         {
                             break;
                         }
-                        
+
                         MissNote(note);
+
                         YargLogger.LogFormatTrace("Missed note (Index: {0}, Mask: {1}) at {2}", i,
                             note.NoteMask, CurrentTime);
                     }
@@ -362,6 +376,12 @@ namespace YARG.Core.Engine.Guitar.Engines
 
             static bool IsNoteHittable(GuitarNote note, ushort buttonsMasked)
             {
+                // Wildcard notes are always hittable regardless of what frets are held
+                if (note.Fret == (int) FiveFretGuitarFret.Wildcard)
+                {
+                    return true;
+                }
+
                 // Only used for sustain logic
                 bool useDisjointSustainMask = note is { IsDisjoint: true, WasHit: true };
 
@@ -528,16 +548,109 @@ namespace YARG.Core.Engine.Guitar.Engines
                 return false;
             }
 
-            // Input is a hammer-on if the highest fret held is higher than the highest fret of the previous mask
-            bool isHammerOn = GetMostSignificantBit(EffectiveButtonMask) > GetMostSignificantBit(LastButtonMask);
+            var highestHeldFret = GetMostSignificantBit(EffectiveButtonMask);
 
-            // Input is a hammer-on and the button pressed is not part of the note mask (incorrect fret)
-            if (isHammerOn && (EffectiveButtonMask & note.NoteMask) == 0)
+            // Input is a hammer-on if the highest fret held is higher than the highest fret of the previous mask
+            bool isHammerOn = highestHeldFret > GetMostSignificantBit(LastButtonMask);
+
+            // Input is a hammer-on and the button pressed is neither part of the note mask (incorrect fret) nor forgiven by
+            // a nearby trill lane
+            if (isHammerOn && (EffectiveButtonMask & note.NoteMask) == 0 && !IsGhostInTrillLeniencyWindow(highestHeldFret - 1))
             {
                 return true;
             }
 
             return false;
+        }
+
+        private void HandleCodaFretChange(double time)
+        {
+            // We shouldn't be called if a coda isn't active, but let's check just in case
+            if (!IsCodaActive)
+            {
+                return;
+            }
+
+            var coda = Codas[CurrentCodaIndex];
+
+            // This creates a button mask for each fret, indexed by fret number
+            byte[] fretMask = new byte[5];
+            byte changed = (byte) 0;
+            byte pressed = (byte) 0;
+
+            for (int i = 0; i < fretMask.Length; i++)
+            {
+                fretMask[i] = (byte) (1 << i);
+            }
+
+            // If there was a strum, hit held frets
+            if (HasStrummed && !IsBot)
+            {
+                pressed = EffectiveButtonMask;
+            }
+            else if (IsBot || !StandardButtonHeld)
+            {
+                // If there was a fret press this update, we have to tell the CodaSection about it
+                if (IsFretPress)
+                {
+                    // Figure out which button was pressed
+                    changed = (byte) (EffectiveButtonMask ^ LastButtonMask);
+                    pressed = (byte) (changed & EffectiveButtonMask);
+                }
+            }
+
+            // Hit the corresponding coda lanes
+            for (int i = 0; i < fretMask.Length; i++)
+            {
+                if ((fretMask[i] & pressed) > 0)
+                {
+                    coda.HitLane(time, i);
+                }
+            }
+        }
+
+        protected override List<CodaSection> GetCodaSections()
+        {
+            var codaSections = new List<CodaSection>();
+
+            foreach (var phrase in Chart.Phrases)
+            {
+                if (phrase.Type != PhraseType.BigRockEnding)
+                {
+                    continue;
+                }
+
+                codaSections.Add(new CodaSection(5, phrase.Time, phrase.TimeEnd));
+            }
+
+            return codaSections;
+        }
+
+        protected bool IsGhostInTrillLeniencyWindow(int inputNote)
+        {
+            if (IsLaneActive)
+            {
+                return false;
+            }
+
+            if (
+                NoteIndex < Notes.Count && // There is a next note
+                Notes[NoteIndex].IsLaneStart && // That note is a lane start
+                Notes[NoteIndex].IsTrill && // That lane is a trill
+                Notes[NoteIndex].Time - CurrentTime < EngineParameters.HitWindow.LaneProximityProtectionWindow && // That trill is starting soon
+                LaneIncludesInputNote(inputNote, Notes[NoteIndex]) // That trill includes the fretted note
+            )
+            {
+                return true;
+            }
+
+            return (
+                NoteIndex > 0 && // There is a previous note
+                Notes[NoteIndex - 1].IsLaneEnd && // That note was a lane end
+                Notes[NoteIndex - 1].IsTrill && // That lane was a trill
+                CurrentTime - Notes[NoteIndex - 1].Time < EngineParameters.HitWindow.LaneProximityProtectionWindow && // That trill ended recently
+                LaneIncludesInputNote(inputNote, Notes[NoteIndex - 1]) // That trill included the fretted note
+            );
         }
     }
 }

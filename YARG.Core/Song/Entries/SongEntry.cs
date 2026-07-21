@@ -1,10 +1,7 @@
 ﻿using System;
 using System.IO;
-using YARG.Core.Chart;
 using YARG.Core.Extensions;
 using YARG.Core.IO;
-using YARG.Core.Song.Cache;
-using YARG.Core.Utility;
 
 namespace YARG.Core.Song
 {
@@ -98,6 +95,8 @@ namespace YARG.Core.Song
         public SortString Source => _source;
         public SortString Playlist => _playlist;
 
+        public string CoveredBy => _metadata.CoveredBy;
+
         public string UnmodifiedYear => _metadata.Year;
         public string ParsedYear => _parsedYear;
         public int YearAsNumber => _yearAsNumber;
@@ -125,20 +124,22 @@ namespace YARG.Core.Song
 
         public string Location      => _metadata.Location;
 
-        public string CreditAlbumArtDesignedBy   => _metadata.CreditAlbumArtDesignedBy;
-        public string CreditArrangedBy           => _metadata.CreditArrangedBy;
-        public string CreditComposedBy           => _metadata.CreditComposedBy;
-        public string CreditCourtesyOf           => _metadata.CreditCourtesyOf;
-        public string CreditEngineeredBy         => _metadata.CreditEngineeredBy;
-        public string CreditLicense              => _metadata.CreditLicense;
-        public string CreditMasteredBy           => _metadata.CreditMasteredBy;
-        public string CreditMixedBy              => _metadata.CreditMixedBy;
-        public string CreditOther                => _metadata.CreditOther;
-        public string CreditPerformedBy          => _metadata.CreditPerformedBy;
-        public string CreditProducedBy           => _metadata.CreditProducedBy;
-        public string CreditPublishedBy          => _metadata.CreditPublishedBy;
-        public string CreditWrittenBy            => _metadata.CreditWrittenBy;
+        public string CreditAlbumArtDesignedBy => _metadata.CreditAlbumArtDesignedBy;
+        public string CreditArrangedBy         => _metadata.CreditArrangedBy;
+        public string CreditBackground         => _metadata.CreditBackground;
+        public string CreditComposedBy         => _metadata.CreditComposedBy;
+        public string CreditCourtesyOf         => _metadata.CreditCourtesyOf;
+        public string CreditEngineeredBy       => _metadata.CreditEngineeredBy;
+        public string CreditLicense            => _metadata.CreditLicense;
+        public string CreditMasteredBy         => _metadata.CreditMasteredBy;
+        public string CreditMixedBy            => _metadata.CreditMixedBy;
+        public string CreditOther              => _metadata.CreditOther;
+        public string CreditPerformedBy        => _metadata.CreditPerformedBy;
+        public string CreditProducedBy         => _metadata.CreditProducedBy;
+        public string CreditPublishedBy        => _metadata.CreditPublishedBy;
+        public string CreditWrittenBy          => _metadata.CreditWrittenBy;
 
+        public string CharterAudio       => _metadata.CharterAudio;
         public string CharterBass       => _metadata.CharterBass;
         public string CharterDrums      => _metadata.CharterDrums;
         public string CharterEliteDrums => _metadata.CharterEliteDrums;
@@ -178,6 +179,10 @@ namespace YARG.Core.Song
         public float? VocalScrollSpeedScalingFactor => _metadata.VocalScrollSpeedScalingFactor;
 
         public VocalGender VocalGender => _metadata.VocalGender;
+
+        // Venue hints
+        public string VenueHint  => _metadata.VenueHint;
+        public string VocalCharacterHint => _metadata.VocalCharacterHint;
 
         public int VocalsCount
         {
@@ -378,6 +383,10 @@ namespace YARG.Core.Song
             stream.Write(_metadata.Video.Start, Endianness.Little);
             stream.Write(_metadata.Video.End, Endianness.Little);
 
+            stream.Write(_metadata.VenueHint);
+            stream.Write(_metadata.VocalCharacterHint);
+
+            stream.Write(_metadata.CoveredBy);
             stream.Write(_metadata.LoadingPhrase);
             stream.Write(_metadata.YearSecondary);
 
@@ -397,6 +406,7 @@ namespace YARG.Core.Song
 
             stream.Write(_metadata.CreditAlbumArtDesignedBy);
             stream.Write(_metadata.CreditArrangedBy);
+            stream.Write(_metadata.CreditBackground);
             stream.Write(_metadata.CreditComposedBy);
             stream.Write(_metadata.CreditCourtesyOf);
             stream.Write(_metadata.CreditEngineeredBy);
@@ -409,6 +419,7 @@ namespace YARG.Core.Song
             stream.Write(_metadata.CreditPublishedBy);
             stream.Write(_metadata.CreditWrittenBy);
 
+            stream.Write(_metadata.CharterAudio);
             stream.Write(_metadata.CharterBass);
             stream.Write(_metadata.CharterDrums);
             stream.Write(_metadata.CharterEliteDrums);
@@ -464,6 +475,10 @@ namespace YARG.Core.Song
             _metadata.Video.Start = stream.Read<long>(Endianness.Little);
             _metadata.Video.End = stream.Read<long>(Endianness.Little);
 
+            _metadata.VenueHint = stream.ReadString();
+            _metadata.VocalCharacterHint = stream.ReadString();
+
+            _metadata.CoveredBy = stream.ReadString();
             _metadata.LoadingPhrase = stream.ReadString();
             _metadata.YearSecondary = stream.ReadString();
 
@@ -483,6 +498,7 @@ namespace YARG.Core.Song
 
             _metadata.CreditAlbumArtDesignedBy = stream.ReadString();
             _metadata.CreditArrangedBy = stream.ReadString();
+            _metadata.CreditBackground = stream.ReadString();
             _metadata.CreditComposedBy = stream.ReadString();
             _metadata.CreditCourtesyOf = stream.ReadString();
             _metadata.CreditEngineeredBy = stream.ReadString();
@@ -495,6 +511,7 @@ namespace YARG.Core.Song
             _metadata.CreditPublishedBy = stream.ReadString();
             _metadata.CreditWrittenBy = stream.ReadString();
 
+            _metadata.CharterAudio = stream.ReadString();
             _metadata.CharterBass = stream.ReadString();
             _metadata.CharterDrums = stream.ReadString();
             _metadata.CharterEliteDrums = stream.ReadString();

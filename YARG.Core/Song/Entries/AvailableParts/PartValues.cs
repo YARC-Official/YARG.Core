@@ -51,7 +51,9 @@ namespace YARG.Core.Song
 
         public void ActivateDifficulty(Difficulty difficulty)
         {
-            Difficulties |= (DifficultyMask) (1 << (int)difficulty);
+            var mask = (DifficultyMask) (1 << (int)difficulty);
+            // also activate beginner if easy is in mask
+            Difficulties |= mask | (DifficultyMask) ((byte) (mask & DifficultyMask.Easy) >> 1);
         }
 
         public readonly bool IsActive() { return SubTracks > 0; }

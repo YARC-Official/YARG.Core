@@ -1,9 +1,10 @@
-﻿using Microsoft.Win32.SafeHandles;
+using Microsoft.Win32.SafeHandles;
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.IO.MemoryMappedFiles;
 using System.Text;
+using YARG.Core.Extensions;
 using YARG.Core.IO;
 using YARG.Core.Logging;
 
@@ -14,7 +15,7 @@ namespace YARG.Core.Song.Cache
         private readonly List<CONFileListing> _listings;
         private FileStream _stream = null!;
 
-        protected override bool Tag => true;
+        protected override CONEntryType Tag => CONEntryType.PackedCONEntry;
 
         private PackedCONEntryGroup(List<CONFileListing> listings, in AbridgedFileInfo root, string defaultPlaylist)
             : base(root, defaultPlaylist)
@@ -48,10 +49,10 @@ namespace YARG.Core.Song.Cache
             }
         }
 
-        public static bool Create(Stream stream, List<CONFileListing> listings, in AbridgedFileInfo root, string defaultPlaylist, out PackedCONEntryGroup group)
+        public static bool Create(Stream stream, List<CONFileListing> listings, in AbridgedFileInfo root, string defaultPlaylist, out PackedCONEntryGroup? group)
         {
             const string SONGS_PATH = "songs/songs.dta";
-            group = null;
+            group = null!;
             if (listings.FindListing(SONGS_PATH, out var listing))
             {
                 group = new PackedCONEntryGroup(listings, in root, defaultPlaylist);

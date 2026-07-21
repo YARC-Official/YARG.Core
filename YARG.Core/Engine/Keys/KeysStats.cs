@@ -51,9 +51,9 @@ namespace YARG.Core.Engine.Keys
             writer.Write(FatFingersIgnored);
         }
 
-        public override ReplayStats ConstructReplayStats(string name)
+        public override ReplayStats ConstructReplayStats(string name, bool isReplayPlayer)
         {
-            return new ProKeysReplayStats(name, this);
+            return new ProKeysReplayStats(name, isReplayPlayer, this);
         }
     }
 }

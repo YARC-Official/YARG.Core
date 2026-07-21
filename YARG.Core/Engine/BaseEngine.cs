@@ -20,23 +20,30 @@ namespace YARG.Core.Engine
         protected const int SUSTAIN_BURST_FRACTION = 4;
 
         public delegate void StarPowerStatusEvent(bool active);
+        public delegate void StarPowerReadyEvent();
         public delegate void SoloStartEvent(SoloSection soloSection);
         public delegate void SoloEndEvent(SoloSection soloSection);
+        public delegate void CodaStartEvent(CodaSection codaSection);
+        public delegate void CodaEndEvent(CodaSection codaSection);
         public delegate void ComboResetEvent();
         public delegate void ComboIncrementEvent(int amount);
+        public delegate void PlayerRevivedEvent();
 
         public delegate void UnisonBonusAwardedEvent();
         public StarPowerStatusEvent? OnStarPowerStatus;
+        public StarPowerReadyEvent?   OnStarPowerReady;
         public SoloStartEvent?       OnSoloStart;
         public SoloEndEvent?         OnSoloEnd;
+        public CodaStartEvent?       OnCodaStart;
+        public CodaEndEvent?         OnCodaEnd;
         public ComboResetEvent?      OnComboReset;
         public ComboIncrementEvent?  OnComboIncrement;
         public UnisonBonusAwardedEvent? OnUnisonBonusAwarded;
+        public PlayerRevivedEvent?    OnPlayerRevived;
 
         public bool CanStarPowerActivate => BaseStats.StarPowerTickAmount >= TicksPerHalfSpBar;
-
         public int BaseScore { get; protected set; }
-
+        public int BaseNoteScore { get; protected set; }
         public abstract BaseEngineParameters BaseParameters { get; }
         public abstract BaseStats            BaseStats      { get; }
 
@@ -49,8 +56,8 @@ namespace YARG.Core.Engine
         public readonly uint TicksPerFullSpBar;
 
         protected List<SoloSection> Solos = new();
-
         protected List<WaitCountdown> WaitCountdowns = new();
+        protected List<CodaSection> Codas = new();
 
         protected readonly Queue<GameInput> InputQueue = new();
 
@@ -70,11 +77,31 @@ namespace YARG.Core.Engine
         public int CurrentSoloIndex { get; protected set; }
         public int CurrentStarIndex { get; protected set; }
         public int CurrentWaitCountdownIndex { get; protected set; }
+        public int CurrentCodaIndex { get; protected set; }
 
         public bool IsSoloActive { get; protected set; }
+        // Whether engine should be using coda behavior for overhit/miss/hit
+        public bool IsCodaActive { get; protected set; }
+        // Whether we are in a coda section, regardless of whether coda behavior is active
+        public bool CodaHasStarted { get; protected set; }
 
         public bool IsWaitCountdownActive { get; protected set; }
         public bool IsStarPowerInputActive { get; protected set; }
+
+        public int CurrentCodaBonus
+        {
+            get
+            {
+                if (Codas.Count == 0 || CurrentCodaIndex >= Codas.Count)
+                {
+                    return 0;
+                }
+
+                return Codas[CurrentCodaIndex].TotalCodaBonus;
+            }
+        }
+
+        public bool CodaSuccess => Codas.Count == 0 || (Codas.Count > 0 && CurrentCodaIndex < Codas.Count && Codas[CurrentCodaIndex].Success);
 
         protected EngineTimer StarPowerWhammyTimer;
 
@@ -101,6 +128,8 @@ namespace YARG.Core.Engine
 
         public double BaseTimeInStarPower { get; protected set; }
 
+        public          int[]  StarScoreThresholds { get; protected set;  }
+
         public readonly struct EngineFrameUpdate
         {
             public EngineFrameUpdate(double time, string reason)
@@ -117,7 +146,8 @@ namespace YARG.Core.Engine
         protected uint CurrentLaneIndex;
         protected int RequiredLaneNote;
         protected int NextTrillNote;
-        protected double LaneExpireTime;
+
+        protected double LaneAutohitExpireTime;
         public bool IsLaneActive => RequiredLaneNote != -1;
         public bool LanesExist => CurrentLaneIndex <= TotalLanes;
 
@@ -143,6 +173,10 @@ namespace YARG.Core.Engine
             TreatChordAsSeparate = isChordSeparate;
             IsBot = isBot;
         }
+
+        protected bool InhibitCoda = false;
+
+        protected bool PlayerNeedsRevive = false;
 
         public EngineTimer GetStarPowerWhammyTimer() => StarPowerWhammyTimer;
 
@@ -230,11 +264,7 @@ namespace YARG.Core.Engine
 
         private void RunQueuedUpdates(double time)
         {
-            // 'for' is used here to prevent enumeration exceptions,
-            // the list of scheduled updates will be modified by the updates we're running
-
-            GenerateQueuedUpdates(time);
-            _scheduledUpdates.Sort((x, y) => x.Time.CompareTo(y.Time));
+            GenerateAndSortQueuedUpdates(time);
 
             if (_scheduledUpdates.Count > 0)
             {
@@ -243,29 +273,30 @@ namespace YARG.Core.Engine
 
             while (_scheduledUpdates.Count > 0)
             {
-                double updateTime = _scheduledUpdates[0].Time;
+                var update = _scheduledUpdates[0];
 
                 // Skip updates that are in the past
-                if (updateTime < CurrentTime)
+                if (update.Time < CurrentTime)
                 {
                     YargLogger.FailFormat(
                         "Scheduled update is in the past! Current time: {0}, update time: {1}", CurrentTime,
-                        updateTime);
+                        update.Time);
 
                     _scheduledUpdates.RemoveAt(0);
+                    continue;
                 }
 
                 // There should be no scheduled updates for times beyond the one we want to update to
-                if (updateTime >= time)
+                if (update.Time >= time)
                 {
                     YargLogger.FailFormat("Update time is >= than the given time! Update time: {0} ({1}), given time: {2}",
-                        updateTime, _scheduledUpdates[0].Reason, time);
+                        update.Time, update.Reason, time);
                     break;
                 }
 
-                YargLogger.LogFormatTrace("Running scheduled update at {0} ({1})", updateTime,
-                    item2: _scheduledUpdates[0].Reason);
-                RunEngineLoop(updateTime);
+                YargLogger.LogFormatTrace("Running scheduled update at {0} ({1})", update.Time,
+                    item2: update.Reason);
+                RunEngineLoop(update.Time);
 
                 _scheduledUpdates.RemoveAt(0);
 
@@ -274,15 +305,19 @@ namespace YARG.Core.Engine
                 // (For example: a sustain starting then ending within the range of already existing updates)
                 if (_scheduledUpdates.Count > 0)
                 {
-                    GenerateQueuedUpdates(_scheduledUpdates[0].Time);
+                    GenerateAndSortQueuedUpdates(_scheduledUpdates[0].Time);
                 }
                 else
                 {
-                    GenerateQueuedUpdates(time);
+                    GenerateAndSortQueuedUpdates(time);
                 }
-
-                _scheduledUpdates.Sort((x, y) => x.Time.CompareTo(y.Time));
             }
+        }
+
+        private void GenerateAndSortQueuedUpdates(double nextTime)
+        {
+            GenerateQueuedUpdates(nextTime);
+            _scheduledUpdates.Sort((x, y) => x.Time.CompareTo(y.Time));
         }
 
         protected abstract void UpdateBot(double time);
@@ -290,9 +325,6 @@ namespace YARG.Core.Engine
         protected virtual void GenerateQueuedUpdates(double nextTime)
         {
             YargLogger.LogFormatTrace("Generating queued updates up to {0}", nextTime);
-            var previousTime = CurrentTime;
-
-
         }
 
         protected abstract void UpdateTimeVariables(double time);
@@ -389,14 +421,17 @@ namespace YARG.Core.Engine
             CurrentSoloIndex = 0;
             CurrentStarIndex = 0;
             CurrentWaitCountdownIndex = 0;
+            CurrentCodaIndex = 0;
 
             IsSoloActive = false;
+            IsCodaActive = false;
+            CodaHasStarted = false;
 
             TotalLanes = 0;
             CurrentLaneIndex = 1;
             RequiredLaneNote = -1;
             NextTrillNote = -1;
-            LaneExpireTime = -1;
+            LaneAutohitExpireTime = -1;
 
             IsWaitCountdownActive = false;
             IsStarPowerInputActive = false;
@@ -423,7 +458,7 @@ namespace YARG.Core.Engine
             RebaseSustains(CurrentTick);
         }
 
-        
+
         public void UpdateBandMultiplier(int multiplier)
         {
             BaseStats.BandMultiplier = multiplier;
@@ -436,6 +471,16 @@ namespace YARG.Core.Engine
 
         protected void ActivateStarPower()
         {
+            // I don't think RB quite did it this way, but we'll let players burn half a bar to revive bandmates
+            // even if they are already in SP, so long as they have enough
+            if (PlayerNeedsRevive && BaseStats.StarPowerTickAmount >= TicksPerFullSpBar / 2)
+            {
+                // Dock starpower and send revive event
+                BaseStats.StarPowerTickAmount -= TicksPerFullSpBar / 2;
+                OnPlayerRevived?.Invoke();
+                return;
+            }
+
             if (BaseStats.IsStarPowerActive)
             {
                 return;
@@ -478,6 +523,10 @@ namespace YARG.Core.Engine
         protected void GainStarPower(uint ticks)
         {
             var prevTicks = BaseStats.StarPowerTickAmount;
+            if (!BaseStats.IsStarPowerActive && prevTicks < TicksPerHalfSpBar && prevTicks + ticks >= TicksPerHalfSpBar)
+            {
+                OnStarPowerReady?.Invoke();
+            }
             BaseStats.StarPowerTickAmount += ticks;
 
             // Limit amount of ticks to a full bar.
@@ -590,6 +639,27 @@ namespace YARG.Core.Engine
         {
             GainStarPower(TicksPerQuarterSpBar);
             OnUnisonBonusAwarded?.Invoke();
+        }
+
+        public void AwardCodaBonus(bool success)
+        {
+            if (success)
+            {
+                BaseStats.CodaBonuses += CurrentCodaBonus;
+            }
+
+            CurrentCodaIndex++;
+            InhibitCoda = false;
+        }
+
+        public void PlayerHasFailed()
+        {
+            PlayerNeedsRevive = true;
+        }
+
+        public void PlayerHasRevived()
+        {
+            PlayerNeedsRevive = false;
         }
     }
 }

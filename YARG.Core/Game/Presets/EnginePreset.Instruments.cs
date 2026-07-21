@@ -45,14 +45,18 @@ namespace YARG.Core.Game
             [SettingRange(0f, 2f)]
             public double FrontToBackRatio = 1.0;
 
-            [SettingType(SettingType.Slider)]
-            [SettingRange(0f, 3f)]
-            public double TremoloFrontEndPercent = 1.5;
+            [SettingType(SettingType.MillisecondInput)]
+            [SettingRange(min: 0f)]
+            public double LaneAutohitWindow = 0.160;
+
+            [SettingType(SettingType.MillisecondInput)]
+            [SettingRange(min: 0f)]
+            public double LaneProximityProtectionWindow = 0.080;
 
             public HitWindowSettings Create()
             {
                 return new HitWindowSettings(MaxWindow, MinWindow, FrontToBackRatio, IsDynamic,
-                    DynamicSlope, DynamicScale, DynamicGamma, TremoloFrontEndPercent);
+                    DynamicSlope, DynamicScale, DynamicGamma, LaneAutohitWindow, LaneProximityProtectionWindow);
             }
 
             public HitWindowPreset Copy()
@@ -69,7 +73,8 @@ namespace YARG.Core.Game
 
                     FrontToBackRatio = FrontToBackRatio,
 
-                    TremoloFrontEndPercent = TremoloFrontEndPercent
+                    LaneAutohitWindow = LaneAutohitWindow,
+                    LaneProximityProtectionWindow = LaneProximityProtectionWindow
                 };
             }
         }
@@ -117,7 +122,7 @@ namespace YARG.Core.Game
                 MinWindow = 0.14,
                 IsDynamic = false,
                 FrontToBackRatio = 1.0,
-                TremoloFrontEndPercent = 1.5
+                LaneAutohitWindow = 0.160
             };
 
             public FiveFretGuitarPreset Copy()
@@ -136,7 +141,7 @@ namespace YARG.Core.Game
                 };
             }
 
-            public GuitarEngineParameters Create(float[] starMultiplierThresholds, bool isBass)
+            public GuitarEngineParameters Create(float[] starMultiplierThresholds, float[] soloBonusStarMultiplierThresholds, bool isBass)
             {
                 var hitWindow = HitWindow.Create();
                 return new GuitarEngineParameters(
@@ -145,6 +150,7 @@ namespace YARG.Core.Game
                     DEFAULT_WHAMMY_BUFFER,
                     SustainDropLeniency,
                     starMultiplierThresholds,
+                    soloBonusStarMultiplierThresholds,
                     HopoLeniency,
                     StrumLeniency,
                     StrumLeniencySmall,
@@ -175,7 +181,7 @@ namespace YARG.Core.Game
                 MinWindow = 0.14,
                 IsDynamic = false,
                 FrontToBackRatio = 1.0,
-                TremoloFrontEndPercent = 1.9
+                LaneAutohitWindow = 0.160
             };
 
             public DrumsPreset Copy()
@@ -188,13 +194,14 @@ namespace YARG.Core.Game
                 };
             }
 
-            public DrumsEngineParameters Create(float[] starMultiplierThresholds, DrumsEngineParameters.DrumMode mode)
+            public DrumsEngineParameters Create(float[] starMultiplierThresholds, float[] soloBonusStarMultiplierThresholds, DrumsEngineParameters.DrumMode mode)
             {
                 var hitWindow = HitWindow.Create();
                 return new DrumsEngineParameters(
                     hitWindow,
                     DEFAULT_MAX_MULTIPLIER,
                     starMultiplierThresholds,
+                    soloBonusStarMultiplierThresholds,
                     mode,
                     NoStarPowerOverlap,
                     EnableLanes);
@@ -207,6 +214,7 @@ namespace YARG.Core.Game
         public class VocalsPreset
         {
             // Pitch window is in semitones (max. difference between correct pitch and sung pitch).
+            public float PitchWindowB = 6f; // Beginner can hit if any recognizable noise is being made
 
             [SettingType(SettingType.Slider)]
             [SettingRange(0f, 3f)]
@@ -235,6 +243,8 @@ namespace YARG.Core.Game
             // These percentages may seem low, but accounting for delay,
             // plosives not being detected, etc., it's pretty good.
 
+            public float HitPercentB = 0.225f;
+
             [SettingType(SettingType.Slider)]
             [SettingRange(0f, 1f)]
             public float HitPercentE = 0.325f;
@@ -262,11 +272,13 @@ namespace YARG.Core.Game
             {
                 return new VocalsPreset
                 {
+                    PitchWindowB = PitchWindowB,
                     PitchWindowE = PitchWindowE,
                     PitchWindowM = PitchWindowM,
                     PitchWindowH = PitchWindowH,
                     PitchWindowX = PitchWindowX,
                     PerfectPitchPercent = PerfectPitchPercent,
+                    HitPercentB = HitPercentB,
                     HitPercentE = HitPercentE,
                     HitPercentM = HitPercentM,
                     HitPercentH = HitPercentH,
@@ -274,12 +286,13 @@ namespace YARG.Core.Game
                 };
             }
 
-            public VocalsEngineParameters Create(float[] starMultiplierThresholds, Difficulty difficulty,
+            public VocalsEngineParameters Create(float[] starMultiplierThresholds, float[] soloBonusStarMultiplierThresholds, Difficulty difficulty,
                 float updatesPerSecond, bool singToActivateStarPower)
             {
                 // Hit window is in semitones (max. difference between correct pitch and sung pitch).
                 var (pitchWindow, hitPercent, pointsPerPhrase) = difficulty switch
                 {
+                    Difficulty.Beginner => (PitchWindowB, HitPercentB, 200),
                     Difficulty.Easy   => (PitchWindowE, HitPercentE, 400),
                     Difficulty.Medium => (PitchWindowM, HitPercentM, 800),
                     Difficulty.Hard   => (PitchWindowH, HitPercentH, 1600),
@@ -288,12 +301,13 @@ namespace YARG.Core.Game
                 };
 
                 var hitWindow = new HitWindowSettings(
-                    PercussionHitWindow, PercussionHitWindow, 1, false, 0, 0, 0, 0);
+                    PercussionHitWindow, PercussionHitWindow, 1, false, 0, 0, 0, 0, 0);
 
                 return new VocalsEngineParameters(
                     hitWindow,
                     DEFAULT_MAX_MULTIPLIER,
                     starMultiplierThresholds,
+                    soloBonusStarMultiplierThresholds,
                     pitchWindow,
                     pitchWindow * PerfectPitchPercent,
                     hitPercent,
@@ -333,7 +347,7 @@ namespace YARG.Core.Game
                 MinWindow = 0.14,
                 IsDynamic = false,
                 FrontToBackRatio = 1.0,
-                TremoloFrontEndPercent = 1.5
+                LaneAutohitWindow = 0.160
             };
 
             public ProKeysPreset Copy()
@@ -348,7 +362,7 @@ namespace YARG.Core.Game
                 };
             }
 
-            public KeysEngineParameters Create(float[] starMultiplierThresholds, bool isBass)
+            public KeysEngineParameters Create(float[] starMultiplierThresholds, float[] soloBonusStarMultiplierThresholds, bool isBass)
             {
                 var hitWindow = HitWindow.Create();
                 return new KeysEngineParameters(
@@ -357,6 +371,7 @@ namespace YARG.Core.Game
                     DEFAULT_WHAMMY_BUFFER,
                     SustainDropLeniency,
                     starMultiplierThresholds,
+                    soloBonusStarMultiplierThresholds,
                     ChordStaggerWindow,
                     FatFingerWindow,
                     NoStarPowerOverlap,

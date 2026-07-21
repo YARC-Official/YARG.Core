@@ -8,7 +8,8 @@ namespace YARG.Core.Song.Cache
 {
     internal class UnpackedCONEntryGroup : CONEntryGroup
     {
-        protected override bool Tag => false;
+        protected override CONEntryType Tag => CONEntryType.UnpackedCONEntry;
+
         private UnpackedCONEntryGroup(in AbridgedFileInfo root, string defaultPlaylist)
             : base(root, defaultPlaylist) { }
 
@@ -26,7 +27,7 @@ namespace YARG.Core.Song.Cache
             }
         }
 
-        public static bool Create(string directory, FileInfo dtaInfo, string defaultPlaylist, out UnpackedCONEntryGroup group)
+        public static bool Create(string directory, FileInfo dtaInfo, string defaultPlaylist, out CONEntryGroup group)
         {
             var dtaLastWrite = AbridgedFileInfo.NormalizedLastWrite(dtaInfo);
             var root = new AbridgedFileInfo(directory, dtaLastWrite);
