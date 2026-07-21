@@ -205,6 +205,8 @@ namespace YARG.Core.Chart
                 FiveLaneDrumPad.Kick   => DrumStem.Kick,
                 FiveLaneDrumPad.Red    => _discoFlip ? DrumStem.Else : DrumStem.Snare,
                 FiveLaneDrumPad.Yellow => _discoFlip ? DrumStem.Snare : DrumStem.Else,
+                FiveLaneDrumPad.Blue   => DrumStem.Toms,
+                FiveLaneDrumPad.Green  => DrumStem.Toms,
                 _                      => DrumStem.Else,
             };
             return ApplyMixConfig(stem);
