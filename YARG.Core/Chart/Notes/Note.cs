@@ -104,8 +104,8 @@ namespace YARG.Core.Chart
 
         // IsLane, IsLaneStart, and IsLaneEnd only reflect regular trill and tremolo lanes
         // For note types that support other independent lane types (e.g. kick lanes on drums), override
-        // this field to account for those types when you batch all lane types together (e.g. when collecting
-        // gameplay stats)
+        // this field to account for those types when you want to batch all lane types together (e.g.
+        // when tracking LanedNotesHit in gameplay stats)
         public virtual bool IsAnyLane => IsLane;
 
         public bool IsBigRockEnding => (Flags & NoteFlags.BigRockEnding) != 0;
