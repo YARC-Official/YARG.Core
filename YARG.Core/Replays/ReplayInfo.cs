@@ -29,10 +29,11 @@ namespace YARG.Core.Replays
         public readonly HashWrapper SongChecksum;
 
         public readonly PauseInfo[] Pauses;
+        public readonly bool CensorshipEnabled;
 
         public readonly ReplayStats[] Stats;
 
-        public ReplayInfo(string path, string replayName, int replayVersion, int engineVerion, in HashWrapper replayChecksum, string song, string artist, string charter, in HashWrapper songChecksum, in DateTime date, float speed, double length, int score, StarAmount stars, PauseInfo[] pauses, ReplayStats[] stats)
+        public ReplayInfo(string path, string replayName, int replayVersion, int engineVerion, in HashWrapper replayChecksum, string song, string artist, string charter, in HashWrapper songChecksum, in DateTime date, float speed, double length, int score, StarAmount stars, PauseInfo[] pauses, bool censorshipEnabled, ReplayStats[] stats)
         {
             FilePath = path;
             ReplayName = replayName;
@@ -52,6 +53,7 @@ namespace YARG.Core.Replays
             BandStars = stars;
 
             Pauses = pauses;
+            CensorshipEnabled = censorshipEnabled;
 
             Stats = stats;
         }
@@ -93,6 +95,11 @@ namespace YARG.Core.Replays
                 Pauses = Array.Empty<PauseInfo>();
             }
 
+            if (ReplayVersion > 15)
+            {
+                CensorshipEnabled = stream.ReadBoolean();
+            }
+
             int statCount = stream.Read<int>(Endianness.Little);
             Stats = new ReplayStats[statCount];
             for (int i = 0; i < statCount; i++)
@@ -128,6 +135,7 @@ namespace YARG.Core.Replays
             writer.Write((byte) BandStars);
 
             writer.Write(Pauses.Length);
+            writer.Write(CensorshipEnabled);
             foreach (var pause in Pauses)
             {
                 pause.Serialize(writer);

@@ -204,7 +204,7 @@ namespace YARG.Core.Chart
             {
                 var other = lyrics[^1];
                 string text = addHyphen ? $"{other.Text}-" : other.Text;
-                lyrics[^1] = new(other.Flags | LyricSymbolFlags.JoinWithNext, text, other.Time, other.Tick);
+                lyrics[^1] = new(other.Flags | LyricSymbolFlags.JoinWithNext, text, other.Time, other.Tick, other.IsCensorable);
                 lyric = "+";
             }
         }

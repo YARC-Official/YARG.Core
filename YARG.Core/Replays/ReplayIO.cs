@@ -215,7 +215,7 @@ namespace YARG.Core.Replays
             }
         }
 
-        public static (bool Success, ReplayInfo Info) TrySerialize(string directory, SongEntry song, float speed, double length, int score, StarAmount stars, PauseInfo[] pauses, ReplayStats[] stats, ReplayData data)
+        public static (bool Success, ReplayInfo Info) TrySerialize(string directory, SongEntry song, float speed, double length, int score, StarAmount stars, PauseInfo[] pauses, bool censorshipEnabled,ReplayStats[] stats, ReplayData data)
         {
             try
             {
@@ -227,7 +227,7 @@ namespace YARG.Core.Replays
                 var replayName = ReplayInfo.ConstructReplayName(song.Name, song.Artist, song.Charter, in date);
 
                 var path = Path.Combine(directory, replayName + ".replay");
-                var info = new ReplayInfo(path, replayName, REPLAY_VERSIONS.CURRENT, ENGINE_VERSION, in replayChecksum, song.Name, song.Artist, song.Charter, song.Hash, in date, speed, length, score, stars, pauses, stats);
+                var info = new ReplayInfo(path, replayName, REPLAY_VERSIONS.CURRENT, ENGINE_VERSION, in replayChecksum, song.Name, song.Artist, song.Charter, song.Hash, in date, speed, length, score, stars, pauses, censorshipEnabled, stats);
 
                 // Write all the data for the header hash
                 using var headerStream = new MemoryStream();
@@ -285,7 +285,7 @@ namespace YARG.Core.Replays
             var songChecksum = HashWrapper.Deserialize(ref memStream);
 
             var replayName = ReplayInfo.ConstructReplayName(song, artist, charter, in date);
-            var info = new ReplayInfo(path, replayName, replayVersion, engineVersion, in replayChecksum, song, artist, charter, in songChecksum, in date, DEFAULT_SPEED, length, score, stars, Array.Empty<PauseInfo>(), Array.Empty<ReplayStats>());
+            var info = new ReplayInfo(path, replayName, replayVersion, engineVersion, in replayChecksum, song, artist, charter, in songChecksum, in date, DEFAULT_SPEED, length, score, stars, Array.Empty<PauseInfo>(), false, Array.Empty<ReplayStats>());
             return (ReplayReadResult.MetadataOnly, info);
         }
     }
