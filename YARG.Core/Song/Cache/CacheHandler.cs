@@ -326,7 +326,6 @@ namespace YARG.Core.Song.Cache
 
         private void PreScanUpdateMidis()
         {
-            YargLogger.MinimumLogLevel = YARG.Core.Logging.LogLevel.Trace;
             Parallel.ForEach(iniGroups, group =>
             {
                 if (!Directory.Exists(group.Directory))
