@@ -11,11 +11,11 @@ namespace YARG.Core.Chart
 {
     internal partial class MoonSongLoader : ISongLoader
     {
-        private DrumsMixSetting _discoFlip = DrumsMixSetting.None;
+        private DrumsMixSetting _mixSetting = DrumsMixSetting.None;
 
         public InstrumentTrack<DrumNote> LoadDrumsTrack(Instrument instrument, InstrumentTrack<EliteDrumNote>? eliteDrumsFallback)
         {
-            _discoFlip = DrumsMixSetting.None;
+            _mixSetting = DrumsMixSetting.None;
             return instrument.ToNativeGameMode() switch
             {
                 GameMode.FourLaneDrums => LoadDrumsTrack(instrument, CreateFourLaneDrumNote, eliteDrumsFallback),
@@ -211,12 +211,12 @@ namespace YARG.Core.Chart
 
         private bool IsDiscoLaneFlipEnabled()
         {
-            return _discoFlip == DrumsMixSetting.DiscoFlip && _currentInstrument == Instrument.FourLaneDrums;
+            return _mixSetting == DrumsMixSetting.DiscoFlip && _currentInstrument == Instrument.FourLaneDrums;
         }
 
         private bool IsDiscoStemFlipEnabled()
         {
-            return _discoFlip == DrumsMixSetting.DiscoNoFlip || IsDiscoLaneFlipEnabled();
+            return _mixSetting == DrumsMixSetting.DiscoNoFlip || IsDiscoLaneFlipEnabled();
         }
 
         private void HandleTextEvent(MoonText text)
@@ -236,7 +236,7 @@ namespace YARG.Core.Chart
             if (difficulty != currentDiff)
                 return;
 
-            _discoFlip = setting;
+            _mixSetting = setting;
         }
 
         // Left as an example of how to use phrase validation/replacement despite being no longer required
