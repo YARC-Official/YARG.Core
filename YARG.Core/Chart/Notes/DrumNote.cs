@@ -15,10 +15,12 @@ namespace YARG.Core.Chart
 
         private int _padMask;
 
-        // Base class IsLane fields reflect only hand lanes
+        // Base class IsLane fields reflect only hand lanes (regular trills and tremolos)
         public bool IsKickLane => (DrumFlags & DrumNoteFlags.KickLane) != 0;
         public bool IsKickLaneStart => (DrumFlags & DrumNoteFlags.KickLaneStart) != 0;
         public bool IsKickLaneEnd => (DrumFlags & DrumNoteFlags.KickLaneEnd) != 0;
+
+        public override bool IsAnyLane => IsLane || IsKickLane;
 
         public bool IsNeutral => Type == DrumNoteType.Neutral;
         public bool IsAccent  => Type == DrumNoteType.Accent;
