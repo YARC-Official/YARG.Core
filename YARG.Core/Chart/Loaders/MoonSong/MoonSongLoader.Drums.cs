@@ -450,6 +450,7 @@ namespace YARG.Core.Chart
         private static void DrumsFinalPass(InstrumentDifficulty<DrumNote> chart)
         {
             var noteIndex = 0;
+            var beginner = chart.Difficulty is Difficulty.Beginner;
 
             // All we're here to do is assemble lane phrases, so if there aren't any notes or phrases, then we have nothing to do
             if (chart.Phrases.Count == 0 || chart.Notes.Count == 0)
@@ -473,26 +474,27 @@ namespace YARG.Core.Chart
 
                 List<DrumNote> laneNotes;
 
-                switch (phrase.Type)
+                if (beginner)
                 {
-                    case PhraseType.TremoloLane:
-                        laneNotes = GetDrumTremoloNotes(notesInPhrase, fourLane);
-                        break;
-                    case PhraseType.TrillLane:
-                        if (chart.Difficulty is Difficulty.Beginner)
-                        {
+                    // Everything is a tremolo in Beginner, because it's all wildcards
+                    laneNotes = GetDrumTremoloNotes(notesInPhrase, fourLane);
+                }
+                else
+                {
+                    switch (phrase.Type)
+                    {
+                        case PhraseType.TremoloLane:
                             laneNotes = GetDrumTremoloNotes(notesInPhrase, fourLane);
-                        }
-                        else
-                        {
+                            break;
+                        case PhraseType.TrillLane:
                             laneNotes = GetDrumTrillNotes(notesInPhrase, fourLane);
-                        }
-                        break;
-                    case PhraseType.KickLane:
-                        laneNotes = GetKickLaneNotes(notesInPhrase, fourLane);
-                        break;
-                    default:
-                        throw new ArgumentOutOfRangeException("Unreachable.");
+                            break;
+                        case PhraseType.KickLane:
+                            laneNotes = GetKickLaneNotes(notesInPhrase, fourLane);
+                            break;
+                        default:
+                            throw new ArgumentOutOfRangeException("Unreachable.");
+                    }
                 }
 
                 if (laneNotes.Count > 0)
@@ -506,6 +508,56 @@ namespace YARG.Core.Chart
                     {
                         laneNotes[0].ActivateFlag(NoteFlags.LaneStart);
                         laneNotes[^1].ActivateFlag(NoteFlags.LaneEnd);
+                    }
+                }
+            }
+
+            if (chart.Difficulty is Difficulty.Beginner)
+            {
+                // Convert KickLaneStart and KickLaneEnd to (wildcard) LaneStart and LaneEnd, and remove redundant
+                // start/end flags that result from overlapping lanes
+
+                var inRegularLane = false;
+                var inKickLane = false;
+
+                foreach (var note in chart.Notes)
+                {
+                    if (note.IsLaneStart)
+                    {
+                        inRegularLane = true;
+                        if (inKickLane)
+                        {
+                            note.ClearFlag(NoteFlags.LaneStart);
+                        }
+                        
+                    }
+                    if (note.IsKickLaneStart)
+                    {
+                        inKickLane = true;
+                        note.ClearFlag(DrumNoteFlags.KickLaneStart);
+                        if (!inRegularLane)
+                        {
+                            note.ActivateFlag(NoteFlags.LaneStart);
+                        }
+                    }
+
+                    if (note.IsLaneEnd)
+                    {
+                        inRegularLane = false;
+                        if (inKickLane)
+                        {
+                            note.ClearFlag(NoteFlags.LaneEnd);
+                        }
+                    }
+
+                    if (note.IsKickLaneEnd)
+                    {
+                        inKickLane = false;
+                        note.ClearFlag(DrumNoteFlags.KickLaneEnd);
+                        if (!inRegularLane)
+                        {
+                            note.ActivateFlag(NoteFlags.LaneEnd);
+                        }
                     }
                 }
             }

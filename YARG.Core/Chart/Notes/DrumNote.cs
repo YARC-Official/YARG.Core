@@ -89,6 +89,12 @@ namespace YARG.Core.Chart
             DrumFlags |= drumNoteFlag;
         }
 
+        public void ClearFlag(DrumNoteFlags drumNoteFlag)
+        {
+            _drumFlags &= ~drumNoteFlag;
+            DrumFlags &= ~drumNoteFlag;
+        }
+
         protected override void CopyFlags(DrumNote other)
         {
             _drumFlags = other._drumFlags;

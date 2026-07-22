@@ -311,6 +311,12 @@ namespace YARG.Core.Chart
             Flags |= noteFlag;
         }
 
+        public void ClearFlag(NoteFlags noteFlag)
+        {
+            _flags &= ~noteFlag;
+            Flags &= ~noteFlag;
+        }
+
         public void ResetFlags()
         {
             Flags = _flags;
