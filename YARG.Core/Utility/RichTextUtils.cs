@@ -89,8 +89,8 @@ namespace YARG.Core.Utility
         AllTags = ~0UL,
 
         /// <summary>Tags which are acceptable for general purposes.</summary>
-        GoodTags = Alpha | Color | Bold | Italics | Lowercase | Uppercase |
-            SmallCaps | Strikethrough | Underline | Subscript | Superscript,
+        GoodTags = Alpha | Color | Bold | Italics | Lowercase | Uppercase | SmallCaps |
+            Strikethrough | Underline | Subscript | Superscript | LineBreak,
 
         /// <summary>Tags which are not desirable for general purposes.</summary>
         BadTags = ~GoodTags,
