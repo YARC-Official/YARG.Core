@@ -11,11 +11,11 @@ namespace YARG.Core.Chart
 {
     internal partial class MoonSongLoader : ISongLoader
     {
-        private bool _discoFlip = false;
+        private DrumsMixSetting _discoFlip = DrumsMixSetting.None;
 
         public InstrumentTrack<DrumNote> LoadDrumsTrack(Instrument instrument, InstrumentTrack<EliteDrumNote>? eliteDrumsFallback)
         {
-            _discoFlip = false;
+            _discoFlip = DrumsMixSetting.None;
             return instrument.ToNativeGameMode() switch
             {
                 GameMode.FourLaneDrums => LoadDrumsTrack(instrument, CreateFourLaneDrumNote, eliteDrumsFallback),
@@ -184,13 +184,13 @@ namespace YARG.Core.Chart
 
         private DrumStem GetStem(FourLaneDrumPad pad)
         {
-            var swapRedYellow = _discoFlip && _currentInstrument is Instrument.FourLaneDrums;
+            var swapRedYellow = IsDiscoStemFlipEnabled();
             return pad switch
             {
                 FourLaneDrumPad.Kick         => DrumStem.Kick,
                 FourLaneDrumPad.RedDrum      => swapRedYellow ? DrumStem.Else : DrumStem.Snare,
                 FourLaneDrumPad.YellowDrum   => swapRedYellow ? DrumStem.Snare : DrumStem.Toms,
-                FourLaneDrumPad.YellowCymbal => swapRedYellow ? DrumStem.Snare : DrumStem.Else,
+                FourLaneDrumPad.YellowCymbal => DrumStem.Else,
                 FourLaneDrumPad.BlueDrum     => DrumStem.Toms,
                 FourLaneDrumPad.GreenDrum    => DrumStem.Toms,
                 _                            => DrumStem.Else,
@@ -207,6 +207,16 @@ namespace YARG.Core.Chart
                 FiveLaneDrumPad.Green  => DrumStem.Toms,
                 _                      => DrumStem.Else,
             };
+        }
+
+        private bool IsDiscoLaneFlipEnabled()
+        {
+            return _discoFlip == DrumsMixSetting.DiscoFlip && _currentInstrument == Instrument.FourLaneDrums;
+        }
+
+        private bool IsDiscoStemFlipEnabled()
+        {
+            return _discoFlip == DrumsMixSetting.DiscoNoFlip || IsDiscoLaneFlipEnabled();
         }
 
         private void HandleTextEvent(MoonText text)
@@ -226,7 +236,7 @@ namespace YARG.Core.Chart
             if (difficulty != currentDiff)
                 return;
 
-            _discoFlip = setting == DrumsMixSetting.DiscoFlip;
+            _discoFlip = setting;
         }
 
         // Left as an example of how to use phrase validation/replacement despite being no longer required
@@ -395,7 +405,7 @@ namespace YARG.Core.Chart
                 var flags = moonNote.flags;
 
                 // Disco flip
-                if (_discoFlip)
+                if (IsDiscoLaneFlipEnabled())
                 {
                     if (pad == FourLaneDrumPad.RedDrum)
                     {
