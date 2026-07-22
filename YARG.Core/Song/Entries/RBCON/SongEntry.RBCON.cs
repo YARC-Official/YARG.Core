@@ -30,7 +30,7 @@ namespace YARG.Core.Song
     {
         private const long NOTE_SNAP_THRESHOLD = 10;
         public const int UNENCRYPTED_MOGG = 0xA;
-        private const int YARG_MOGG = 0xF0;
+        internal const int YARG_MOGG = 0xF0;
         public const string SONGUPDATES_DTA = "songs_updates.dta";
         private const float DEFAULT_VOCAL_SCROLL_SPEED = 2300f;
 
