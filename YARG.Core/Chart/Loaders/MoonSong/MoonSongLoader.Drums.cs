@@ -209,14 +209,14 @@ namespace YARG.Core.Chart
             };
         }
 
-        private bool IsDiscoLaneFlipEnabled()
-        {
-            return _mixSetting == DrumsMixSetting.DiscoFlip && _currentInstrument == Instrument.FourLaneDrums;
-        }
-
         private bool IsDiscoStemFlipEnabled()
         {
-            return _mixSetting == DrumsMixSetting.DiscoNoFlip || IsDiscoLaneFlipEnabled();
+            if (_mixSetting == DrumsMixSetting.DiscoNoFlip)
+            {
+                return true;
+            }
+
+            return _currentInstrument == Instrument.FourLaneDrums && _mixSetting == DrumsMixSetting.DiscoFlip;
         }
 
         private void HandleTextEvent(MoonText text)
@@ -405,7 +405,7 @@ namespace YARG.Core.Chart
                 var flags = moonNote.flags;
 
                 // Disco flip
-                if (IsDiscoLaneFlipEnabled())
+                if (_mixSetting == DrumsMixSetting.DiscoFlip)
                 {
                     if (pad == FourLaneDrumPad.RedDrum)
                     {
