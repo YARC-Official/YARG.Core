@@ -687,7 +687,15 @@ namespace YARG.Core.Engine.Drums
 
         private void UpdateKickLaneAutohitExpireTime()
         {
-            KickLaneAutohitExpireTime = CurrentTime + EngineParameters.HitWindow.LaneAutohitWindow;
+            if (Chart.Difficulty is Difficulty.ExpertPlus)
+            {
+                KickLaneAutohitExpireTime = CurrentTime + EngineParameters.HitWindow.LaneAutohitWindow;
+            }
+            else
+            {
+                // When the player has only one pedal, halve the expected input speed for kick lanes
+                KickLaneAutohitExpireTime = CurrentTime + (EngineParameters.HitWindow.LaneAutohitWindow * 2);
+            }
             YargLogger.LogFormatTrace("KickLaneExpireTime extended to {0}. LaneAutohitWindow {1}. Increment {2}.", KickLaneAutohitExpireTime, EngineParameters.HitWindow.LaneAutohitWindow, KickLaneAutohitExpireTime - CurrentTime);
         }
     }
