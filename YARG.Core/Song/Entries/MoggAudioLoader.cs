@@ -119,43 +119,5 @@ namespace YARG.Core.Song
             }
             return mixer;
         }
-
-        /// <summary>
-        /// Parses a single-song .dta fragment (just the `song` block - tracks/pan/vol)
-        /// into channel indices and computed L/R pan gains, using the same math RBCON
-        /// uses. Intended for a small sidecar file that rides next to an ini song's
-        /// raw .mogg, e.g. "song.mogg.dta".
-        /// </summary>
-        public static bool TryParseChannelMap(FixedArray<byte> dtaBytes, out RBAudio<int> indices, out RBAudio<float> panning)
-        {
-            indices = RBAudio<int>.Empty;
-            panning = RBAudio<float>.Empty;
-            try
-            {
-                var container = YARGDTAReader.Create(dtaBytes);
-                if (!YARGDTAReader.StartNode(ref container))
-                {
-                    return false;
-                }
-
-                string name = YARGDTAReader.GetNameOfNode(ref container, false);
-                var dta = DTAEntry.Create(name, container);
-                YARGDTAReader.EndNode(ref container);
-
-                if (dta.Indices == null || dta.Pans == null || dta.Volumes == null)
-                {
-                    YargLogger.LogError("Mogg channel-map sidecar is missing tracks/pan/vol!");
-                    return false;
-                }
-
-                RBAudioCalculator.Calculate(in dta, ref indices, ref panning);
-                return true;
-            }
-            catch (Exception e)
-            {
-                YargLogger.LogException(e);
-                return false;
-            }
-        }
     }
 }
