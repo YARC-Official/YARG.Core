@@ -12,6 +12,7 @@ namespace YARG.Core.Chart
         public bool IsDoubleKick { get; }
 
         public DrumNoteType Type { get; set; }
+        public DrumStem Stem { get; }
 
         private int _padMask;
 
@@ -33,23 +34,24 @@ namespace YARG.Core.Chart
         public override int LaneNote => Pad;
 
         public DrumNote(FourLaneDrumPad pad, DrumNoteType noteType, DrumNoteFlags drumFlags,
-            NoteFlags flags, double time, uint tick, bool isDoubleKick = false)
-            : this((int)pad, noteType, drumFlags, flags, time, tick, isDoubleKick)
+            NoteFlags flags, double time, uint tick, bool isDoubleKick = false, DrumStem drumStem = DrumStem.Else)
+            : this((int)pad, noteType, drumFlags, flags, time, tick, isDoubleKick, drumStem)
         {
         }
 
         public DrumNote(FiveLaneDrumPad pad, DrumNoteType noteType, DrumNoteFlags drumFlags,
-            NoteFlags flags, double time, uint tick, bool isDoubleKick = false)
-            : this((int)pad, noteType, drumFlags, flags, time, tick, isDoubleKick)
+            NoteFlags flags, double time, uint tick, bool isDoubleKick = false, DrumStem drumStem = DrumStem.Else)
+            : this((int)pad, noteType, drumFlags, flags, time, tick, isDoubleKick, drumStem)
         {
         }
 
-        public DrumNote(int pad, DrumNoteType noteType, DrumNoteFlags drumFlags, NoteFlags flags, double time, uint tick, bool isDoubleKick = false)
+        public DrumNote(int pad, DrumNoteType noteType, DrumNoteFlags drumFlags, NoteFlags flags, double time, uint tick, bool isDoubleKick = false, DrumStem drumStem = DrumStem.Else)
             : base(flags, time, 0, tick, 0)
         {
             Pad = pad;
             Type = noteType;
             IsDoubleKick = isDoubleKick;
+            Stem = drumStem;
 
             DrumFlags = _drumFlags = drumFlags;
 
@@ -61,6 +63,7 @@ namespace YARG.Core.Chart
             Pad = other.Pad;
             Type = other.Type;
             IsDoubleKick = other.IsDoubleKick;
+            Stem = other.Stem;
 
             DrumFlags = _drumFlags = other._drumFlags;
 
@@ -154,5 +157,13 @@ namespace YARG.Core.Chart
         KickLane = 1 << 1,
         KickLaneStart = 1 << 2,
         KickLaneEnd = 1 << 3,
+    }
+
+    public enum DrumStem
+    {
+        Kick,
+        Snare,
+        Toms,
+        Else,
     }
 }
