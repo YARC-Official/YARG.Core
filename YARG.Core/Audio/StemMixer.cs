@@ -4,6 +4,20 @@ using System.IO;
 
 namespace YARG.Core.Audio
 {
+    /// <summary>
+    /// Audio-backend-agnostic interface for a DSP processor that can be attached to
+    /// the mixer's output stream. Implementations receive the mixed audio buffer on
+    /// the audio thread and may read or modify it.
+    /// </summary>
+    public interface IMixerDspProcessor
+    {
+        /// <summary>
+        /// Called on the audio thread for each output buffer.
+        /// <paramref name="songTimeEnd"/> is the song position at the end of the buffer.
+        /// </summary>
+        void ProcessAudio(Span<float> buffer, int frames, int channels, int sampleRate, double songTimeEnd);
+    }
+
     public abstract class OneShotChannel : IDisposable
     {
         public abstract void SetEnabled(bool enabled);
@@ -59,21 +73,11 @@ namespace YARG.Core.Audio
             IReadOnlyList<double> scheduledPlays, double outputLeadTime = 0);
 
         /// <summary>
-        /// Returns the native handle of the final output mixer stream.
-        /// This is the stream that is sent to the audio device; DSP effects attached
-        /// here will process all mixed audio output.
+        /// Attaches a DSP processor to the mixer's output stream.
+        /// The processor will be called on the audio thread for each output buffer.
+        /// Returns a handle that removes the processor when disposed.
         /// </summary>
-        public abstract int GetOutputMixerHandle();
-
-        /// <summary>
-        /// Returns a delegate that queries the current song position directly from the
-        /// underlying BASS stream position. Unlike <see cref="SongRunner.SongTime"/>,
-        /// calling this delegate from within a BASS DSP callback returns the position
-        /// of the audio buffer currently being rendered (ahead of the audible position
-        /// by the output-device latency), which is what DSP effects need for sample-accurate
-        /// synchronisation with the mixed stems.
-        /// </summary>
-        public abstract Func<double> GetSongPositionDelegate();
+        public abstract IDisposable AttachOutputDsp(IMixerDspProcessor processor, int priority = 0);
 
         protected StemMixer(string name, AudioManager manager,bool clampStemVolume)
         {
