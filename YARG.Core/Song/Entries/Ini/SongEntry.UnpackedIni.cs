@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using YARG.Core.Song.Cache;
@@ -32,7 +32,17 @@ namespace YARG.Core.Song
 
         public override StemMixer? LoadAudio(float speed, double volume, params SongStem[] ignoreStems)
         {
+            var subFiles = GetSubFiles();
             bool clampStemVolume = _metadata.Source.ToLowerInvariant() == "yarg";
+
+            // Prefer a raw multi-channel .mogg (+ its channel-map sidecar) over split
+            // stem files, when both are present.
+            var moggMixer = TryLoadMoggAudio(subFiles, speed, volume, clampStemVolume, ignoreStems);
+            if (moggMixer != null)
+            {
+                return moggMixer;
+            }
+
             var mixer = GlobalAudioHandler.CreateMixer(ToString(), speed, volume, clampStemVolume: clampStemVolume,
                 normalize: true);
             if (mixer == null)
@@ -41,7 +51,6 @@ namespace YARG.Core.Song
                 return null;
             }
 
-            var subFiles = GetSubFiles();
             foreach (var stem in IniAudio.SupportedStems)
             {
                 var stemEnum = AudioHelpers.SupportedStems[stem];
@@ -79,6 +88,42 @@ namespace YARG.Core.Song
             return mixer;
         }
 
+        /// <summary>
+        /// Looks for a "*.mogg" + "*.mogg.dta" pair in the song folder and, if found,
+        /// builds a mixer directly from the raw multi-channel mogg instead of split
+        /// stem files. Returns null (without logging as an error) if no mogg pair is
+        /// present, so the caller can fall back to split stems.
+        /// </summary>
+        private StemMixer? TryLoadMoggAudio(Dictionary<string, string> subFiles, float speed, double volume,
+            bool clampStemVolume, SongStem[] ignoreStems)
+        {
+            foreach (var name in subFiles.Keys)
+            {
+                if (!name.EndsWith(".mogg"))
+                {
+                    continue;
+                }
+
+                if (!subFiles.TryGetValue(name + ".dta", out var dtaPath))
+                {
+                    YargLogger.LogFormatWarning("Found {0} but no matching {0}.dta channel map - falling back to split stems", name);
+                    return null;
+                }
+
+                using var dtaBytes = FixedArray.LoadFile(dtaPath);
+                if (!MoggAudioLoader.TryParseChannelMap(dtaBytes, out var indices, out var panning))
+                {
+                    return null;
+                }
+
+                var moggPath = subFiles[name];
+                var stream = new FileStream(moggPath, FileMode.Open, FileAccess.Read, FileShare.Read, 1);
+                return MoggAudioLoader.BuildMixer(stream, ToString(), speed, volume, clampStemVolume,
+                    in indices, in panning, ignoreStems);
+            }
+            return null;
+        }
+
         public override StemMixer? LoadPreviewAudio(float speed)
         {
             foreach (var filename in PREVIEW_FILES)
@@ -95,6 +140,15 @@ namespace YARG.Core.Song
         public override YARGImage? LoadAlbumData()
         {
             var subFiles = GetSubFiles();
+
+            // Prefer a raw DXT texture extracted straight from a CON pack over a
+            // re-encoded/converted image, when both are available.
+            var dxtImage = TryLoadDXTAlbumArt(subFiles);
+            if (dxtImage != null)
+            {
+                return dxtImage;
+            }
+
             if (!string.IsNullOrEmpty(_cover) && subFiles.TryGetValue(_cover, out var cover))
             {
                 var image = YARGImage.Load(cover);
@@ -115,6 +169,27 @@ namespace YARG.Core.Song
                         return image;
                     }
                     YargLogger.LogFormatError("Image at {0} failed to load", file);
+                }
+            }
+            return null;
+        }
+
+        /// <summary>
+        /// Looks for a raw ".png_xbox" or ".png_ps3" texture in the song folder.
+        /// Both formats are self-describing (dimensions/DXT variant live in the
+        /// file's own header), so unlike the mogg case, no sidecar is needed.
+        /// </summary>
+        private static YARGImage? TryLoadDXTAlbumArt(Dictionary<string, string> subFiles)
+        {
+            foreach (var name in subFiles.Keys)
+            {
+                if (name.EndsWith(".png_xbox"))
+                {
+                    return YARGImage.LoadDXT(subFiles[name]);
+                }
+                if (name.EndsWith(".png_ps3"))
+                {
+                    return YARGImage.LoadPS3DXT(subFiles[name]);
                 }
             }
             return null;
