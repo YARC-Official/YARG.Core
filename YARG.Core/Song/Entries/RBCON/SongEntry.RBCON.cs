@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -163,7 +163,8 @@ namespace YARG.Core.Song
                 TuningOffsetCents = _settings.TuningOffsetCents,
                 DrumsType = DrumsType.FourLane,
                 ChordHopoCancellation = true,
-                NoteSnapThreshold = NOTE_SNAP_THRESHOLD
+                NoteSnapThreshold = NOTE_SNAP_THRESHOLD,
+                DownchartGeneration = downchartGeneration,
             };
             return SongChart.FromMidi(in parseSettings, midi);
         }

@@ -1,4 +1,4 @@
-using MoonscraperChartEditor.Song.IO;
+﻿using MoonscraperChartEditor.Song.IO;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -101,7 +101,8 @@ namespace YARG.Core.Song
                 StarPowerNote = _settings.OverdiveMidiNote,
                 TuningOffsetCents = _settings.TuningOffsetCents,
                 DrumsType = ParseDrumsType(in _parts),
-                ChordHopoCancellation = _chartFormat != ChartFormat.Chart
+                ChordHopoCancellation = _chartFormat != ChartFormat.Chart,
+                DownchartGeneration = downchartGeneration,
             };
 
             if (_chartFormat == ChartFormat.UltraStar)
