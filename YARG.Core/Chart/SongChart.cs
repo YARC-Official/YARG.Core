@@ -231,19 +231,30 @@ namespace YARG.Core.Chart
         public static SongChart FromFile(in ParseSettings settings, string filePath)
         {
             var loader = MoonSongLoader.LoadSong(settings, filePath);
-            return new(loader);
+            return FromLoader(loader, settings);
         }
 
         public static SongChart FromMidi(in ParseSettings settings, MidiFile midi)
         {
             var loader = MoonSongLoader.LoadMidi(settings, midi);
-            return new(loader);
+            return FromLoader(loader, settings);
         }
 
         public static SongChart FromDotChart(in ParseSettings settings, ReadOnlySpan<char> chartText)
         {
             var loader = MoonSongLoader.LoadDotChart(settings, chartText);
-            return new(loader);
+            return FromLoader(loader, settings);
+        }
+
+        private static SongChart FromLoader(ISongLoader loader, in ParseSettings settings)
+        {
+            var chart = new SongChart(loader);
+            if (settings.DownchartGeneration == DownchartGenerationMode.MissingDifficulties)
+            {
+                chart.GenerateFiveFretDowncharts();
+            }
+
+            return chart;
         }
 
         public InstrumentTrack<GuitarNote> GetFiveFretTrack(Instrument instrument)

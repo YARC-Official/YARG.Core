@@ -7,7 +7,6 @@ using YARG.Core.Chart.Loaders.UltraStar;
 using YARG.Core.Extensions;
 using YARG.Core.IO;
 using YARG.Core.IO.Ini;
-using YARG.Core.Logging;
 
 namespace YARG.Core.Song
 {
@@ -83,6 +82,11 @@ namespace YARG.Core.Song
 
         public override SongChart? LoadChart()
         {
+            return LoadChart(DownchartGenerationMode.Disabled);
+        }
+
+        public override SongChart? LoadChart(DownchartGenerationMode downchartGeneration)
+        {
             using var data = GetChartData(CHART_FILE_TYPES[(int) _chartFormat].Filename);
 
             if (data == null)
@@ -97,7 +101,8 @@ namespace YARG.Core.Song
                 StarPowerNote = _settings.OverdiveMidiNote,
                 TuningOffsetCents = _settings.TuningOffsetCents,
                 DrumsType = ParseDrumsType(in _parts),
-                ChordHopoCancellation = _chartFormat != ChartFormat.Chart
+                ChordHopoCancellation = _chartFormat != ChartFormat.Chart,
+                DownchartGeneration = downchartGeneration,
             };
 
             if (_chartFormat == ChartFormat.UltraStar)
