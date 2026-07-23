@@ -232,7 +232,28 @@ namespace YARG.Core.Song.Cache
                 {
                     foreach (var group in iniGroups)
                     {
-                        group.RemoveEntries(shortname);
+                        var removed = group.RemoveEntries(shortname);
+                        foreach (var entry in removed)
+                        {
+                            lock (preScannedPaths)
+                            {
+                                preScannedPaths.Remove(entry.ActualLocation);
+                            }
+                            lock (cache.Entries)
+                            {
+                                if (cache.Entries.TryGetValue(entry.Hash, out var list))
+                                {
+                                    lock (list)
+                                    {
+                                        list.Remove(entry);
+                                        if (list.Count == 0)
+                                        {
+                                            cache.Entries.Remove(entry.Hash);
+                                        }
+                                    }
+                                }
+                            }
+                        }
                     }
                 }
             }
