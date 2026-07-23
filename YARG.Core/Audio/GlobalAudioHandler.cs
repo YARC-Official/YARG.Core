@@ -318,6 +318,8 @@ namespace YARG.Core.Audio
 
             lock (_instanceLock)
             {
+                if (_instance == null) { throw new NotInitializedException(); }
+
                 foreach (var sample in _instance.VenueSamples.Values)
                 {
                     sample.Pause();
@@ -337,6 +339,8 @@ namespace YARG.Core.Audio
 
             lock (_instanceLock)
             {
+                if (_instance == null) { throw new NotInitializedException(); }
+
                 foreach (var sample in _instance.VenueSamples.Values)
                 {
                     sample.Resume();
