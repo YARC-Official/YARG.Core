@@ -58,6 +58,23 @@ namespace YARG.Core.Audio
         public abstract OneShotChannel CreateOneShotChannel(int sampleStream,
             IReadOnlyList<double> scheduledPlays, double outputLeadTime = 0);
 
+        /// <summary>
+        /// Returns the native handle of the final output mixer stream.
+        /// This is the stream that is sent to the audio device; DSP effects attached
+        /// here will process all mixed audio output.
+        /// </summary>
+        public abstract int GetOutputMixerHandle();
+
+        /// <summary>
+        /// Returns a delegate that queries the current song position directly from the
+        /// underlying BASS stream position. Unlike <see cref="SongRunner.SongTime"/>,
+        /// calling this delegate from within a BASS DSP callback returns the position
+        /// of the audio buffer currently being rendered (ahead of the audible position
+        /// by the output-device latency), which is what DSP effects need for sample-accurate
+        /// synchronisation with the mixed stems.
+        /// </summary>
+        public abstract Func<double> GetSongPositionDelegate();
+
         protected StemMixer(string name, AudioManager manager,bool clampStemVolume)
         {
             Name = name;
