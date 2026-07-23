@@ -72,6 +72,7 @@ namespace YARG.Core.Song
         public override DateTime GetLastWriteTime() { return _chartLastWrite; }
 
         protected abstract FixedArray<byte>? GetChartData(string filename);
+        internal virtual string? UpdateMidiPath => null;
 
         internal override void Serialize(MemoryStream stream, CacheWriteIndices indices)
         {
@@ -108,7 +109,13 @@ namespace YARG.Core.Song
             using var stream = data.ToReferenceStream();
             if (_chartFormat == ChartFormat.Mid || _chartFormat == ChartFormat.Midi)
             {
-                return SongChart.FromMidi(in parseSettings, MidFileLoader.LoadMidiFile(stream));
+                var midi = MidFileLoader.LoadMidiFile(stream);
+                if (UpdateMidiPath != null && File.Exists(UpdateMidiPath))
+                {
+                    var update = MidFileLoader.LoadMidiFile(UpdateMidiPath);
+                    midi.Merge(update, false);
+                }
+                return SongChart.FromMidi(in parseSettings, midi);
             }
 
             using var reader = new StreamReader(stream);
@@ -174,7 +181,8 @@ namespace YARG.Core.Song
             }
             else // if (chartType == ChartType.Mid || chartType == ChartType.Midi) // Uncomment for any future file type
             {
-                resolution = ParseDotMidi(file, modifiers, ref entry._parts, ref drums_type);
+                using var updateMidi = entry.UpdateMidiPath != null ? FixedArray.LoadFile(entry.UpdateMidiPath) : default(FixedArray<byte>?);
+                resolution = ParseDotMidi(file, modifiers, ref entry._parts, ref drums_type, updateMidi);
             }
 
             if (!resolution)
@@ -197,7 +205,21 @@ namespace YARG.Core.Song
             SetIntensities(modifiers, ref entry._parts);
 
             (entry._parsedYear, entry._yearAsNumber) = ParseYear(entry._metadata.Year);
-            entry._hash = HashWrapper.Hash(file.ReadOnlySpan);
+            if (entry.UpdateMidiPath != null)
+            {
+                using var updateMidi = FixedArray.LoadFile(entry.UpdateMidiPath);
+                using var combined = FixedArray<byte>.Alloc(file.Length + updateMidi.Length);
+                unsafe
+                {
+                    System.Runtime.CompilerServices.Unsafe.CopyBlock(combined.Ptr, file.Ptr, (uint) file.Length);
+                    System.Runtime.CompilerServices.Unsafe.CopyBlock(combined.Ptr + file.Length, updateMidi.Ptr, (uint) updateMidi.Length);
+                }
+                entry._hash = HashWrapper.Hash(combined.ReadOnlySpan);
+            }
+            else
+            {
+                entry._hash = HashWrapper.Hash(file.ReadOnlySpan);
+            }
             entry.SetSortStrings();
 
             if (modifiers.Extract("tuning_offset_cents", out short tuningOffsetCents))
@@ -368,14 +390,23 @@ namespace YARG.Core.Song
             return resolution;
         }
 
-        private static ScanExpected<long> ParseDotMidi(FixedArray<byte> file, IniModifierCollection modifiers, ref AvailableParts parts, ref DrumsType drumsType)
+        private static ScanExpected<long> ParseDotMidi(FixedArray<byte> file, IniModifierCollection modifiers, ref AvailableParts parts, ref DrumsType drumsType, FixedArray<byte>? updateMidi)
         {
             if (drumsType != DrumsType.FiveLane && (!modifiers.Extract("pro_drums", out bool proDrums) || proDrums))
             {
-                // .mid's default state when the value isn't provided is ProDrums, differing with .chart
                 drumsType |= DrumsType.ProDrums;
                 drumsType &= ~DrumsType.FourLane;
             }
+
+            if (updateMidi != null)
+            {
+                var updateResult = ParseMidi(updateMidi, ref parts, ref drumsType);
+                if (!updateResult)
+                {
+                    return updateResult;
+                }
+            }
+
             return ParseMidi(file, ref parts, ref drumsType);
         }
 
@@ -757,7 +788,7 @@ namespace YARG.Core.Song
             }
         }
 
-        private static (string Parsed, int AsNumber) ParseYear(string str)
+        protected static (string Parsed, int AsNumber) ParseYear(string str)
         {
             const int MINIMUM_YEAR_DIGITS = 4;
             for (int start = 0; start <= str.Length - MINIMUM_YEAR_DIGITS; ++start)

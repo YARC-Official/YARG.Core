@@ -15,6 +15,14 @@ namespace YARG.Core.Song
     internal sealed class UnpackedIniEntry : IniSubEntry
     {
         private readonly DateTime? _iniLastWrite;
+        private readonly string? _shortname;
+        public string? Shortname => _shortname;
+        private readonly string? _updateMidiPath;
+        internal override string? UpdateMidiPath => _updateMidiPath;
+        private readonly string? _updateMoggPath;
+        private readonly string? _updateImagePath;
+        private RBAudio<int> _indices = RBAudio<int>.Empty;
+        private RBAudio<float> _panning = RBAudio<float>.Empty;
 
         public override EntryType SubType => EntryType.Ini;
 
@@ -27,10 +35,60 @@ namespace YARG.Core.Song
             {
                 stream.Write(_iniLastWrite.Value.ToBinary(), Endianness.Little);
             }
+
+            stream.Write(_shortname != null);
+            if (_shortname != null)
+            {
+                stream.Write(_shortname);
+            }
+
+            stream.Write(_updateMidiPath != null);
+            if (_updateMidiPath != null)
+            {
+                stream.Write(_updateMidiPath);
+            }
+
+            stream.Write(_updateMoggPath != null);
+            if (_updateMoggPath != null)
+            {
+                stream.Write(_updateMoggPath);
+            }
+
+            stream.Write(_updateImagePath != null);
+            if (_updateImagePath != null)
+            {
+                stream.Write(_updateImagePath);
+            }
+
+            IniAudioSerializer.WriteAudio(in _indices, stream);
+            IniAudioSerializer.WriteAudio(in _panning, stream);
+
             base.Serialize(stream, node);
         }
 
         public override StemMixer? LoadAudio(float speed, double volume, params SongStem[] ignoreStems)
+        {
+            if (_updateMoggPath != null && File.Exists(_updateMoggPath))
+            {
+                var moggMixer = LoadUpdateMoggAudio(speed, volume, ignoreStems);
+                if (moggMixer != null)
+                {
+                    return moggMixer;
+                }
+                YargLogger.LogFormatError("Update mogg at {0} failed to load, falling back to loose audio files", _updateMoggPath);
+            }
+            return LoadLooseAudio(speed, volume, ignoreStems);
+        }
+
+        private StemMixer? LoadUpdateMoggAudio(float speed, double volume, SongStem[] ignoreStems)
+        {
+            var stream = new FileStream(_updateMoggPath!, FileMode.Open, FileAccess.Read, FileShare.Read, 1);
+            bool clampStemVolume = _metadata.Source.ToLowerInvariant() == "yarg";
+            return MoggAudioLoader.BuildMixer(stream, ToString(), speed, volume, clampStemVolume,
+                in _indices, in _panning, ignoreStems);
+        }
+
+        private StemMixer? LoadLooseAudio(float speed, double volume, SongStem[] ignoreStems)
         {
             bool clampStemVolume = _metadata.Source.ToLowerInvariant() == "yarg";
             var mixer = GlobalAudioHandler.CreateMixer(ToString(), speed, volume, clampStemVolume: clampStemVolume,
@@ -94,6 +152,16 @@ namespace YARG.Core.Song
 
         public override YARGImage? LoadAlbumData()
         {
+            if (_updateImagePath != null && File.Exists(_updateImagePath))
+            {
+                var updateImage = YARGImage.LoadDXT(_updateImagePath);
+                if (updateImage != null)
+                {
+                    return updateImage;
+                }
+                YargLogger.LogFormatError("Update image at {0} failed to load", _updateImagePath);
+            }
+
             var subFiles = GetSubFiles();
             if (!string.IsNullOrEmpty(_cover) && subFiles.TryGetValue(_cover, out var cover))
             {
@@ -214,13 +282,18 @@ namespace YARG.Core.Song
             return files;
         }
 
-        private UnpackedIniEntry(string directory, in DateTime chartLastWrite, in DateTime? iniLastWrite, in ChartFormat format)
+        private UnpackedIniEntry(string directory, in DateTime chartLastWrite, in DateTime? iniLastWrite, in ChartFormat format,
+            string? shortname, string? updateMidiPath, string? updateMoggPath, string? updateImagePath)
             : base(directory, in chartLastWrite, format)
         {
             _iniLastWrite = iniLastWrite;
+            _shortname = shortname;
+            _updateMidiPath = updateMidiPath;
+            _updateMoggPath = updateMoggPath;
+            _updateImagePath = updateImagePath;
         }
 
-        public static ScanExpected<UnpackedIniEntry> ProcessNewEntry(string directory, FileInfo chartInfo, ChartFormat format, FileInfo? iniFile, string defaultPlaylist)
+        public static ScanExpected<UnpackedIniEntry> ProcessNewEntry(string directory, FileInfo chartInfo, ChartFormat format, FileInfo? iniFile, string defaultPlaylist, IReadOnlyDictionary<string, IniUpdateInfo> iniUpdateInfos)
         {
             IniModifierCollection iniModifiers;
             DateTime? iniLastWrite = default;
@@ -234,13 +307,49 @@ namespace YARG.Core.Song
                 iniModifiers = new();
             }
 
-            var entry = new UnpackedIniEntry(directory, AbridgedFileInfo.NormalizedLastWrite(chartInfo), in iniLastWrite, format);
+            string? shortname = iniModifiers.Extract("shortname", out string sn) ? sn : null;
+            string? updateMidiPath = null;
+            string? updateMoggPath = null;
+            string? updateImagePath = null;
+            var indices = RBAudio<int>.Empty;
+            var panning = RBAudio<float>.Empty;
+            DTAEntry? dta = null;
+            if (shortname != null && iniUpdateInfos.TryGetValue(shortname, out var updateInfo))
+            {
+                updateMidiPath = updateInfo.MidiPath;
+                updateMoggPath = updateInfo.MoggPath;
+                updateImagePath = updateInfo.ImagePath;
+                RBAudioCalculator.Calculate(in updateInfo.Dta, ref indices, ref panning);
+                dta = updateInfo.Dta;
+            }
+
+            var entry = new UnpackedIniEntry(directory, AbridgedFileInfo.NormalizedLastWrite(chartInfo), in iniLastWrite, format,
+                shortname, updateMidiPath, updateMoggPath, updateImagePath)
+            {
+                _indices = indices,
+                _panning = panning,
+            };
             entry._metadata.Playlist = defaultPlaylist;
 
             using var file = FixedArray.LoadFile(chartInfo.FullName);
 
             var result = ScanChart(entry, file, iniModifiers);
-            return result == ScanResult.Success ? entry : new ScanUnexpected(result);
+            if (result != ScanResult.Success)
+            {
+                return new ScanUnexpected(result);
+            }
+
+            // Metadata declared in songs_updates.dta takes priority over the ini file, same as it
+            // would for a CON-pack user, so this only runs after ScanChart has already filled
+            // _metadata from the ini.
+            if (dta != null)
+            {
+                IniDtaMetadataApplier.Apply(dta.Value, ref entry._metadata);
+                (entry._parsedYear, entry._yearAsNumber) = ParseYear(entry._metadata.Year);
+                entry.SetSortStrings();
+            }
+
+            return entry;
         }
 
         public static UnpackedIniEntry? TryDeserialize(string baseDirectory, ref FixedArrayStream stream, CacheReadStrings strings)
@@ -268,7 +377,35 @@ namespace YARG.Core.Song
                 return null;
             }
 
-            var entry = new UnpackedIniEntry(directory, in chartLastWrite, in iniLastWrite, chart.Format);
+            string? shortname = stream.ReadBoolean() ? stream.ReadString() : null;
+            string? updateMidiPath = stream.ReadBoolean() ? stream.ReadString() : null;
+            if (updateMidiPath != null && !File.Exists(updateMidiPath))
+            {
+                return null; // update mid vanished since cache was written — force rescan
+            }
+
+            string? updateMoggPath = stream.ReadBoolean() ? stream.ReadString() : null;
+            if (updateMoggPath != null && !File.Exists(updateMoggPath))
+            {
+                return null; // update mogg vanished since cache was written — force rescan
+            }
+
+            string? updateImagePath = stream.ReadBoolean() ? stream.ReadString() : null;
+            if (updateImagePath != null && !File.Exists(updateImagePath))
+            {
+                return null; // update image vanished since cache was written — force rescan
+            }
+
+            var indices = RBAudio<int>.Empty;
+            var panning = RBAudio<float>.Empty;
+            IniAudioSerializer.ReadAudio(ref indices, ref stream);
+            IniAudioSerializer.ReadAudio(ref panning, ref stream);
+
+            var entry = new UnpackedIniEntry(directory, in chartLastWrite, in iniLastWrite, chart.Format, shortname, updateMidiPath, updateMoggPath, updateImagePath)
+            {
+                _indices = indices,
+                _panning = panning,
+            };
             entry.Deserialize(ref stream, strings);
             return entry;
         }
@@ -279,7 +416,21 @@ namespace YARG.Core.Song
             ref readonly var chart = ref CHART_FILE_TYPES[stream.ReadByte()];
             var chartLastWrite = DateTime.FromBinary(stream.Read<long>(Endianness.Little));
             DateTime? iniLastWrite = stream.ReadBoolean() ? DateTime.FromBinary(stream.Read<long>(Endianness.Little)) : default;
-            var entry = new UnpackedIniEntry(directory, in chartLastWrite, in iniLastWrite, chart.Format);
+            string? shortname = stream.ReadBoolean() ? stream.ReadString() : null;
+            string? updateMidiPath = stream.ReadBoolean() ? stream.ReadString() : null;
+            string? updateMoggPath = stream.ReadBoolean() ? stream.ReadString() : null;
+            string? updateImagePath = stream.ReadBoolean() ? stream.ReadString() : null;
+
+            var indices = RBAudio<int>.Empty;
+            var panning = RBAudio<float>.Empty;
+            IniAudioSerializer.ReadAudio(ref indices, ref stream);
+            IniAudioSerializer.ReadAudio(ref panning, ref stream);
+
+            var entry = new UnpackedIniEntry(directory, in chartLastWrite, in iniLastWrite, chart.Format, shortname, updateMidiPath, updateMoggPath, updateImagePath)
+            {
+                _indices = indices,
+                _panning = panning,
+            };
             entry.Deserialize(ref stream, strings);
             return entry;
         }

@@ -150,6 +150,7 @@ namespace YARG.Core.IO.Ini
 
                 //{ "scores",                               new("scores", ModifierType.String) },
                 //{ "scores_ext",                           new("scores_ext", ModifierType.String) },
+                { "shortname",                            new("shortname", ModifierType.String) },
                 { "song_length",                          new("song_length", ModifierType.Int64) },
                 { "star_power_note",                      new("multiplier_note", ModifierType.Int32) },
                 { "sub_genre",                            new("sub_genre", ModifierType.String) },

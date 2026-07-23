@@ -177,6 +177,8 @@ namespace YARG.Core.Song.Cache
         private readonly List<IniEntryGroup> iniGroups;
         private readonly List<CONEntryGroup> conEntryGroups = new();
         private readonly List<CONUpdateGroup> updateGroups = new();
+        private readonly Dictionary<string, IniUpdateInfo> iniUpdateInfos = new();
+        private readonly List<FixedArray<byte>> iniUpdateDtaBuffers = new();
         private readonly List<PackedCONUpgradeGroup> packedUpgradeGroups = new();
         private readonly List<UnpackedCONUpgradeGroup> unpackedUpgradeGroups = new();
 
@@ -214,6 +216,44 @@ namespace YARG.Core.Song.Cache
                     for (int i = 0; i < conEntryGroups.Count; i++)
                     {
                         conEntryGroups[i].RemoveEntries(mod.Key);
+                    }
+                }
+            }
+        }
+
+        /// <summary>
+        /// Removes all the entries present in all unpacked ini groups that have a matching shortname
+        /// </summary>
+        private void RemoveIniEntries(IEnumerable<string> shortnames)
+        {
+            lock (iniGroups)
+            {
+                foreach (var shortname in shortnames)
+                {
+                    foreach (var group in iniGroups)
+                    {
+                        var removed = group.RemoveEntries(shortname);
+                        foreach (var entry in removed)
+                        {
+                            lock (preScannedPaths)
+                            {
+                                preScannedPaths.Remove(entry.ActualLocation);
+                            }
+                            lock (cache.Entries)
+                            {
+                                if (cache.Entries.TryGetValue(entry.Hash, out var list))
+                                {
+                                    lock (list)
+                                    {
+                                        list.Remove(entry);
+                                        if (list.Count == 0)
+                                        {
+                                            cache.Entries.Remove(entry.Hash);
+                                        }
+                                    }
+                                }
+                            }
+                        }
                     }
                 }
             }
@@ -304,11 +344,91 @@ namespace YARG.Core.Song.Cache
             return mods;
         }
 
+
+        private void PreScanUpdateMidis()
+        {
+            Parallel.ForEach(iniGroups, group =>
+            {
+                if (!Directory.Exists(group.Directory))
+                {
+                    return;
+                }
+
+                foreach (string updatesDir in Directory.EnumerateDirectories(group.Directory, "songs_updates", SearchOption.AllDirectories))
+                {
+                    // songs_updates.dta uses the exact same per-shortname node format as CON updates,
+                    // so we can parse it the same way CONUpdateGroup.Create does.
+                    var dtasByShortname = new Dictionary<string, DTAEntry>();
+                    string updatesDtaPath = Path.Combine(updatesDir, RBCONEntry.SONGUPDATES_DTA);
+                    if (File.Exists(updatesDtaPath))
+                    {
+                        try
+                        {
+                            var data = FixedArray.LoadFile(updatesDtaPath);
+                            lock (iniUpdateDtaBuffers) { iniUpdateDtaBuffers.Add(data); }
+                            var container = YARGDTAReader.Create(data);
+                            while (YARGDTAReader.StartNode(ref container))
+                            {
+                                string name = YARGDTAReader.GetNameOfNode(ref container, true);
+                                if (!dtasByShortname.TryGetValue(name, out var dta))
+                                {
+                                    dta = DTAEntry.Empty;
+                                }
+                                dta.LoadData(name, container);
+                                dtasByShortname[name] = dta;
+                                YARGDTAReader.EndNode(ref container);
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            YargLogger.LogException(ex, $"Failed to parse {updatesDtaPath}");
+                        }
+                    }
+
+                    var shortnames = new List<string>();
+                    var candidates = new HashSet<string>(dtasByShortname.Keys);
+                    foreach (var songDir in new DirectoryInfo(updatesDir).EnumerateDirectories())
+                    {
+                        candidates.Add(songDir.Name);
+                    }
+
+                    foreach (string shortname in candidates)
+                    {
+                        string songDirPath = Path.Combine(updatesDir, shortname);
+                        string updateMid = Path.Combine(songDirPath, shortname + "_update.mid");
+                        string updateImage = Path.Combine(songDirPath, "gen", shortname + "_keep.png_xbox");
+
+                        bool hasMidi = File.Exists(updateMid);
+                        bool hasImage = File.Exists(updateImage);
+                        bool hasDta = dtasByShortname.TryGetValue(shortname, out var dta);
+
+                        if (!hasMidi && !hasImage && !hasDta)
+                        {
+                            continue;
+                        }
+
+                        var info = new IniUpdateInfo
+                        {
+                            MidiPath = hasMidi ? updateMid : null,
+                            ImagePath = hasImage ? updateImage : null,
+                            Dta = hasDta ? dta : DTAEntry.Empty,
+                        };
+
+                        lock (iniUpdateInfos) { iniUpdateInfos[shortname] = info; }
+                        shortnames.Add(shortname);
+                    }
+                    RemoveIniEntries(shortnames);
+                }
+            });
+        }
+
         /// <summary>
         /// Performs the traversal of the filesystem in search of new entries to add to a user's library
         /// </summary>
         private void FindNewEntries(bool fullDirectoryPlaylists)
         {
+            PreScanUpdateMidis();
+
             var tracker = new PlaylistTracker(fullDirectoryPlaylists, null);
             Parallel.ForEach(iniGroups, group =>
             {
@@ -506,6 +626,10 @@ namespace YARG.Core.Song.Cache
             {
                 group.Dispose();
             }
+            foreach (var buffer in iniUpdateDtaBuffers)
+            {
+                buffer.Dispose();
+            }
         }
 
         /// <summary>
@@ -649,10 +773,7 @@ namespace YARG.Core.Song.Cache
                         var dta = new FileInfo(Path.Combine(directory.FullName, RBCONEntry.SONGUPDATES_DTA));
                         if (dta.Exists && CONUpdateGroup.Create(directory.FullName, dta, out var updateGroup))
                         {
-                            lock (updateGroups)
-                            {
-                                updateGroups.Add(updateGroup);
-                            }
+                            lock (updateGroups) { updateGroups.Add(updateGroup); }
                             // Ensures any con entries pulled from cache are removed for re-evaluation
                             RemoveCONEntries(updateGroup!.Updates);
                         }
@@ -826,7 +947,7 @@ namespace YARG.Core.Song.Cache
 
                 try
                 {
-                    var entry = UnpackedIniEntry.ProcessNewEntry(collection.Directory, chart, IniSubEntry.CHART_FILE_TYPES[i].Format, hasIni ? ini : null, defaultPlaylist);
+                    var entry = UnpackedIniEntry.ProcessNewEntry(collection.Directory, chart, IniSubEntry.CHART_FILE_TYPES[i].Format, hasIni ? ini : null, defaultPlaylist, iniUpdateInfos);
                     if (entry)
                     {
                         AddEntry(entry.Value);
