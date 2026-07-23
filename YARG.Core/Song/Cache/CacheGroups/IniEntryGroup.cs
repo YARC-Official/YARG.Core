@@ -9,7 +9,6 @@ namespace YARG.Core.Song.Cache
         private readonly string _directory;
         private readonly List<UnpackedIniEntry> _unpacked = new();
         private readonly List<SngEntry> _packed = new();
-        private readonly Dictionary<string, UnpackedIniEntry> _byShortname = new();
 
         public string Directory => _directory;
 
@@ -23,24 +22,27 @@ namespace YARG.Core.Song.Cache
             lock (_unpacked)
             {
                 _unpacked.Add(entry);
-                if (entry.Shortname != null)
-                {
-                    _byShortname[entry.Shortname] = entry;
-                }
             }
         }
 
         /// <summary>
         /// Removes all the entries present in all unpacked ini groups that have a matching shortname
         /// </summary>
-        public void RemoveEntries(string shortname)
+        public List<UnpackedIniEntry> RemoveEntries(string shortname)
         {
             lock (_unpacked)
             {
-                if (_byShortname.Remove(shortname, out var entry))
+                var removed = new List<UnpackedIniEntry>();
+                _unpacked.RemoveAll(entry =>
                 {
-                    _unpacked.Remove(entry);
-                }
+                    if (entry.Shortname == shortname)
+                    {
+                        removed.Add(entry);
+                        return true;
+                    }
+                    return false;
+                });
+                return removed;
             }
         }
 
