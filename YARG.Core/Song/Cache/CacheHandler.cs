@@ -805,50 +805,49 @@ namespace YARG.Core.Song.Cache
         private bool ScanIniEntry(in FileCollection collection, IniEntryGroup group, string defaultPlaylist)
         {
             bool hasIni = collection.FindFile("song.ini", out var ini);
-            int i = hasIni ? 0 : 3;
-            while (i < 4)
-            {
-                if (!collection.FindFile(IniSubEntry.CHART_FILE_TYPES[i].Filename, out var chart))
-                {
-                    ++i;
-                    continue;
-                }
 
-                // Can't play a song without any audio can you?
-                //
-                // Note though that this is purely a pre-add check.
-                // We will not invalidate an entry from cache if the user removes the audio after the fact.
+            for (int i = 0; i < IniSubEntry.CHART_FILE_TYPES.Length; i++)
+            {
+                var fileType = IniSubEntry.CHART_FILE_TYPES[i];
+
+                if (!collection.FindFile(fileType.Filename, out var chart))
+                    continue;
+
                 if (!collection.ContainsAudio())
                 {
                     AddToBadSongs(chart.FullName, ScanResult.NoAudio);
-                    break;
+                    return false;
                 }
 
                 try
                 {
-                    var entry = UnpackedIniEntry.ProcessNewEntry(collection.Directory, chart, IniSubEntry.CHART_FILE_TYPES[i].Format, hasIni ? ini : null, defaultPlaylist);
+                    var entry = UnpackedIniEntry.ProcessNewEntry(
+                        collection.Directory,
+                        chart,
+                        i,
+                        hasIni ? ini : null,
+                        defaultPlaylist);
+
                     if (entry)
                     {
                         AddEntry(entry.Value);
                         group.AddEntry(entry.Value);
+                        return true;
                     }
                     else
                     {
                         AddToBadSongs(chart.FullName, entry.Error);
+                        continue;
                     }
-                }
-                catch (PathTooLongException)
-                {
-                    YargLogger.LogFormatError("Path {0} is too long for the file system!", chart);
-                    AddToBadSongs(chart.FullName, ScanResult.PathTooLong);
                 }
                 catch (Exception e)
                 {
                     YargLogger.LogException(e, $"Error while scanning chart file {chart}!");
                     AddToBadSongs(collection.Directory, ScanResult.IniEntryCorruption);
+                    continue;
                 }
-                return true;
             }
+
             return false;
         }
 
@@ -877,7 +876,7 @@ namespace YARG.Core.Song.Cache
 
                 try
                 {
-                    var entry = SngEntry.ProcessNewEntry(in sngFile, in chart, info, IniSubEntry.CHART_FILE_TYPES[i].Format, defaultPlaylist);
+                    var entry = SngEntry.ProcessNewEntry(in sngFile, in chart, info, i, defaultPlaylist);
                     if (entry.HasValue)
                     {
                         AddEntry(entry.Value);
