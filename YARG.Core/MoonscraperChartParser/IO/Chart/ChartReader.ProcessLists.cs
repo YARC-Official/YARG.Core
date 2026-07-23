@@ -136,6 +136,9 @@ namespace MoonscraperChartEditor.Song.IO
             { ChartIOHelper.PHRASE_TRILL_LANE, (ref NoteProcessParams noteProcessParams) => {
                 ProcessNoteOnEventAsSpecialPhrase(ref noteProcessParams, MoonPhrase.Type.TrillLane);
             }},
+            { ChartIOHelper.PHRASE_KICK_LANE, (ref NoteProcessParams noteProcessParams) => {
+                ProcessNoteOnEventAsSpecialPhrase(ref noteProcessParams, MoonPhrase.Type.ProDrums_KickLane);
+            }},
         };
 
         private static readonly Dictionary<int, NoteEventProcessFn> GhlChartSpecialPhraseNumberToProcessFnMap = new()

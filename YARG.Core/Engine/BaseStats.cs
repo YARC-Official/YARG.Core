@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.IO;
 using YARG.Core.Chart;
 using YARG.Core.Extensions;
@@ -408,7 +408,7 @@ namespace YARG.Core.Engine
         {
             NotesHit++;
 
-            if (!note.IsLane)
+            if (!note.IsAnyLane)
             {
                 double offset = current_time - note.Time;
                 TotalOffset += offset;
