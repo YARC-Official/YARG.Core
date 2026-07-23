@@ -799,6 +799,7 @@ namespace YARG.Core.Song
                 {
                     entry._metadata.Artist = "The Beatles";
                     entry._rbMetadata.RbVocalGender = RbVocalGender.Male;
+                    entry._metadata.VocalGender = VocalGender.Male;
                 }
             }
             if (dta.SongLength != null)           { entry._metadata.SongLength    = dta.SongLength.Value; }
@@ -863,7 +864,11 @@ namespace YARG.Core.Song
             if (dta.Intensities.LeadVocals >= 0)     { entry._rbIntensities.LeadVocals     = dta.Intensities.LeadVocals; }
             if (dta.Intensities.HarmonyVocals >= 0)  { entry._rbIntensities.HarmonyVocals  = dta.Intensities.HarmonyVocals; }
 
-            entry._metadata.VocalGender = DTAEntry.ConvertVocalGender(dta.VocalGender);
+            // This if ensures that updates that don't have a specified vocal gender don't overwrite the existing value
+            if (dta.VocalGender != null)
+            {
+                entry._metadata.VocalGender = DTAEntry.ConvertVocalGender(dta.VocalGender);
+            }
         }
 
         private static int GetIntensity(int rank, int[] values)
