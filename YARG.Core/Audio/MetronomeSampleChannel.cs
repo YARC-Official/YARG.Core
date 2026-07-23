@@ -44,6 +44,18 @@ namespace YARG.Core.Audio
             }
         }
 
+        /// <summary>
+        /// Creates a one-shot decode stream for the selected sample.
+        /// The caller takes ownership of the returned stream.
+        /// </summary>
+        public int CreateStream(MetronomePitch pitch)
+        {
+            lock (this)
+            {
+                return _disposed ? 0 : CreateStream_Internal(pitch);
+            }
+        }
+
         private void SetVolume(double volume)
         {
             lock (this)
@@ -68,6 +80,7 @@ namespace YARG.Core.Audio
 
         protected abstract void PlayHi_Internal();
         protected abstract void PlayLo_Internal();
+        protected abstract int CreateStream_Internal(MetronomePitch pitch);
         protected abstract void SetVolume_Internal(double volume);
 
         protected abstract void SetOutputChannel_Internal(OutputChannel? channel);

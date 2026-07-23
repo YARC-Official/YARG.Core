@@ -385,6 +385,7 @@ namespace YARG.Core.Song
 
             stream.Write(_metadata.VenueHint);
             stream.Write(_metadata.VocalCharacterHint);
+            stream.Write((int) _metadata.VocalGender, Endianness.Little);
 
             stream.Write(_metadata.CoveredBy);
             stream.Write(_metadata.LoadingPhrase);
@@ -477,6 +478,7 @@ namespace YARG.Core.Song
 
             _metadata.VenueHint = stream.ReadString();
             _metadata.VocalCharacterHint = stream.ReadString();
+            _metadata.VocalGender = (VocalGender) stream.Read<int>(Endianness.Little);
 
             _metadata.CoveredBy = stream.ReadString();
             _metadata.LoadingPhrase = stream.ReadString();

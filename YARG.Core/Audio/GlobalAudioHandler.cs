@@ -36,7 +36,10 @@ namespace YARG.Core.Audio
                 { SongStem.Rhythm,      new StemSettings() },
                 { SongStem.Keys,        new StemSettings() },
                 { SongStem.Vocals,      new StemSettings() },
-                { SongStem.Drums,       new StemSettings() },
+                { SongStem.Drums1,      new StemSettings() },
+                { SongStem.Drums2,      new StemSettings() },
+                { SongStem.Drums3,      new StemSettings() },
+                { SongStem.Drums4,      new StemSettings() },
                 { SongStem.Crowd,       new StemSettings() },
                 { SongStem.Sfx,         new StemSettings() },
                 { SongStem.DrumSfx,     new StemSettings() },
@@ -254,6 +257,19 @@ namespace YARG.Core.Audio
             }
         }
 
+        public static int CreateSoundEffectStream(SfxSample sample)
+        {
+            lock (_instanceLock)
+            {
+                if (_instance == null)
+                {
+                    throw new NotInitializedException();
+                }
+
+                return _instance.SfxSamples[(int) sample]?.CreateStream() ?? 0;
+            }
+        }
+
         public static void StopSoundEffect(SfxSample sample, double duration = 0)
         {
             lock (_instanceLock)
@@ -412,6 +428,19 @@ namespace YARG.Core.Audio
                 }
 
                 _instance.MetronomeSamples[(int) sample]?.PlayLo();
+            }
+        }
+
+        public static int CreateMetronomeStream(MetronomeSample sample, MetronomePitch pitch)
+        {
+            lock (_instanceLock)
+            {
+                if (_instance == null)
+                {
+                    throw new NotInitializedException();
+                }
+
+                return _instance.MetronomeSamples[(int) sample]?.CreateStream(pitch) ?? 0;
             }
         }
 
