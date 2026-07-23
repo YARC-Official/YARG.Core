@@ -179,7 +179,7 @@ namespace YARG.Core.IO.Ini
                 { "video_loop",                           new("video_loop", ModifierType.Bool) },
                 { "video_start_time",                     new("video_start_time", ModifierType.Int64) },
                 { "vocal_character_hint",                 new("vocal_character_hint", ModifierType.String) },
-                { "vocal_gender",                         new("vocal_gender", ModifierType.UInt32) },
+                { "vocal_gender",                         new("vocal_gender", ModifierType.String) },
                 { "vocal_scroll_speed",                   new("vocal_scroll_speed", ModifierType.Int16) },
 
                 { "year",                                 new("year", ModifierType.String) },

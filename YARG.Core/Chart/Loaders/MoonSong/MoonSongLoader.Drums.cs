@@ -11,14 +11,11 @@ namespace YARG.Core.Chart
 {
     internal partial class MoonSongLoader : ISongLoader
     {
-        private bool _discoFlip = false;
-
-        // Used to wipe lane markers from Beginner
-        private const NoteFlags NO_LANE_FLAGS = ~(NoteFlags.LaneStart | NoteFlags.LaneEnd | NoteFlags.Tremolo | NoteFlags.Trill);
+        private DrumsMixSetting _mixSetting = DrumsMixSetting.None;
 
         public InstrumentTrack<DrumNote> LoadDrumsTrack(Instrument instrument, InstrumentTrack<EliteDrumNote>? eliteDrumsFallback)
         {
-            _discoFlip = false;
+            _mixSetting = DrumsMixSetting.None;
             return instrument.ToNativeGameMode() switch
             {
                 GameMode.FourLaneDrums => LoadDrumsTrack(instrument, CreateFourLaneDrumNote, eliteDrumsFallback),
@@ -35,9 +32,9 @@ namespace YARG.Core.Chart
 
             var difficulties = new Dictionary<Difficulty, InstrumentDifficulty<DrumNote>>()
             {
-                { Difficulty.Beginner, LoadDifficulty(instrument, Difficulty.Beginner, beginnerNoteDelegate, HandleTextEvent) }, // No lanes on Beginner, so no final pass
-                { Difficulty.Easy, LoadDifficulty(instrument, Difficulty.Easy, createNote, HandleTextEvent, finalPassDelegate: DrumsFinalPass) }, // Drum lanes on Easy are possible in .chart, so we do need the final pass
-                { Difficulty.Medium, LoadDifficulty(instrument, Difficulty.Medium, createNote, HandleTextEvent, finalPassDelegate: DrumsFinalPass) }, // Drum lanes on Medium are possible in .chart, so we do need the final pass
+                { Difficulty.Beginner, LoadDifficulty(instrument, Difficulty.Beginner, beginnerNoteDelegate, HandleTextEvent, finalPassDelegate: DrumsFinalPass) },
+                { Difficulty.Easy, LoadDifficulty(instrument, Difficulty.Easy, createNote, HandleTextEvent, finalPassDelegate: DrumsFinalPass) },
+                { Difficulty.Medium, LoadDifficulty(instrument, Difficulty.Medium, createNote, HandleTextEvent, finalPassDelegate: DrumsFinalPass) },
                 { Difficulty.Hard, LoadDifficulty(instrument, Difficulty.Hard, createNote, HandleTextEvent, finalPassDelegate: DrumsFinalPass) },
                 { Difficulty.Expert, LoadDifficulty(instrument, Difficulty.Expert, createNote, HandleTextEvent, finalPassDelegate: DrumsFinalPass) },
                 { Difficulty.ExpertPlus, LoadDifficulty(instrument, Difficulty.ExpertPlus, createNote, HandleTextEvent, finalPassDelegate: DrumsFinalPass) },
@@ -127,7 +124,7 @@ namespace YARG.Core.Chart
 
             bool isDoubleKick = pad is FourLaneDrumPad.Kick && ((moonNote.flags & Flags.InstrumentPlus) != 0);
 
-            return new DrumNote(pad, noteType, drumFlags, generalFlags, time, moonNote.tick, isDoubleKick);
+            return new DrumNote(pad, noteType, drumFlags, generalFlags, time, moonNote.tick, isDoubleKick, GetStem(pad));
         }
 
         private DrumNote CreateFiveLaneDrumNote(MoonNote moonNote, Dictionary<MoonPhrase.Type, MoonPhrase> currentPhrases, List<DrumNote> notes)
@@ -143,7 +140,7 @@ namespace YARG.Core.Chart
 
             bool isDoubleKick = pad is FiveLaneDrumPad.Kick && ((moonNote.flags & Flags.InstrumentPlus) != 0);
 
-            return new DrumNote(pad, noteType, drumFlags, generalFlags, time, moonNote.tick, isDoubleKick);
+            return new DrumNote(pad, noteType, drumFlags, generalFlags, time, moonNote.tick, isDoubleKick, GetStem(pad));
         }
 
         private DrumNote CreateFourLaneDrumBeginnerNote(MoonNote moonNote, Dictionary<MoonPhrase.Type, MoonPhrase> currentPhrases, List<DrumNote> notes)
@@ -151,22 +148,75 @@ namespace YARG.Core.Chart
             const FourLaneDrumPad pad = FourLaneDrumPad.Wildcard;
             const DrumNoteType noteType = DrumNoteType.Neutral;
 
-            var generalFlags = GetGeneralFlags(moonNote, currentPhrases) & NO_LANE_FLAGS;
+            var generalFlags = GetGeneralFlags(moonNote, currentPhrases);
+
+            // Beginner is all the same note type, so trills become tremolos
+            if ((generalFlags & NoteFlags.Trill) != 0)
+            {
+                generalFlags &= ~NoteFlags.Trill;
+                generalFlags |= NoteFlags.Tremolo;
+            }
+
             var drumFlags = GetDrumNoteFlags(moonNote, currentPhrases);
 
             double time = _moonSong.TickToTime(moonNote.tick);
-            return new DrumNote(pad, noteType, drumFlags, generalFlags, time, moonNote.tick, false);
+            return new DrumNote(pad, noteType, drumFlags, generalFlags, time, moonNote.tick, false, GetStem(pad));
         }
 
         private DrumNote CreateFiveLaneDrumBeginnerNote(MoonNote moonNote, Dictionary<MoonPhrase.Type, MoonPhrase> currentPhrases, List<DrumNote> notes)
         {
             const FiveLaneDrumPad pad = FiveLaneDrumPad.Wildcard;
             const DrumNoteType noteType = DrumNoteType.Neutral;
-            var generalFlags = GetGeneralFlags(moonNote, currentPhrases) & NO_LANE_FLAGS;
+            var generalFlags = GetGeneralFlags(moonNote, currentPhrases);
+
+            // Beginner is all the same note type, so trills become tremolos
+            if ((generalFlags & NoteFlags.Trill) != 0)
+            {
+                generalFlags &= ~NoteFlags.Trill;
+                generalFlags |= NoteFlags.Tremolo;
+            }
+
             var drumFlags = GetDrumNoteFlags(moonNote, currentPhrases);
 
             double time = _moonSong.TickToTime(moonNote.tick);
-            return new DrumNote(pad, noteType, drumFlags, generalFlags, time, moonNote.tick, false);
+            return new DrumNote(pad, noteType, drumFlags, generalFlags, time, moonNote.tick, false, GetStem(pad));
+        }
+
+        private DrumStem GetStem(FourLaneDrumPad pad)
+        {
+            var swapRedYellow = IsDiscoStemFlipEnabled();
+            return pad switch
+            {
+                FourLaneDrumPad.Kick         => DrumStem.Kick,
+                FourLaneDrumPad.RedDrum      => swapRedYellow ? DrumStem.Else : DrumStem.Snare,
+                FourLaneDrumPad.YellowDrum   => swapRedYellow ? DrumStem.Snare : DrumStem.Toms,
+                FourLaneDrumPad.YellowCymbal => DrumStem.Else,
+                FourLaneDrumPad.BlueDrum     => DrumStem.Toms,
+                FourLaneDrumPad.GreenDrum    => DrumStem.Toms,
+                _                            => DrumStem.Else,
+            };
+        }
+
+        private DrumStem GetStem(FiveLaneDrumPad pad)
+        {
+            return pad switch
+            {
+                FiveLaneDrumPad.Kick   => DrumStem.Kick,
+                FiveLaneDrumPad.Red    => DrumStem.Snare,
+                FiveLaneDrumPad.Blue   => DrumStem.Toms,
+                FiveLaneDrumPad.Green  => DrumStem.Toms,
+                _                      => DrumStem.Else,
+            };
+        }
+
+        private bool IsDiscoStemFlipEnabled()
+        {
+            if (_mixSetting == DrumsMixSetting.DiscoNoFlip)
+            {
+                return true;
+            }
+
+            return _currentInstrument == Instrument.FourLaneDrums && _mixSetting == DrumsMixSetting.DiscoFlip;
         }
 
         private void HandleTextEvent(MoonText text)
@@ -186,7 +236,7 @@ namespace YARG.Core.Chart
             if (difficulty != currentDiff)
                 return;
 
-            _discoFlip = setting == DrumsMixSetting.DiscoFlip;
+            _mixSetting = setting;
         }
 
         // Left as an example of how to use phrase validation/replacement despite being no longer required
@@ -355,7 +405,7 @@ namespace YARG.Core.Chart
                 var flags = moonNote.flags;
 
                 // Disco flip
-                if (_discoFlip)
+                if (_mixSetting == DrumsMixSetting.DiscoFlip)
                 {
                     if (pad == FourLaneDrumPad.RedDrum)
                     {
@@ -453,7 +503,6 @@ namespace YARG.Core.Chart
                 {
                     continue;
                 }
-                
 
                 var notesInPhrase = GetNotesInLanePhrase(chart.Phrases, phraseIndex, chart.Notes, noteIndex, out noteIndex);
 
@@ -467,7 +516,14 @@ namespace YARG.Core.Chart
                         laneNotes = GetDrumTremoloNotes(notesInPhrase, fourLane);
                         break;
                     case PhraseType.TrillLane:
-                        laneNotes = GetDrumTrillNotes(notesInPhrase, fourLane);
+                        if (chart.Difficulty is Difficulty.Beginner)
+                        {
+                            laneNotes = GetDrumTremoloNotes(notesInPhrase, fourLane);
+                        }
+                        else
+                        {
+                            laneNotes = GetDrumTrillNotes(notesInPhrase, fourLane);
+                        }
                         break;
                     default:
                         throw new ArgumentOutOfRangeException("Unreachable.");

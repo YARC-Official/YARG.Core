@@ -17,38 +17,63 @@ namespace YARG.Core.Engine
 
         private SongChart?               _chart;
 
-        public partial class EngineContainer
+        public abstract partial class EngineContainer
         {
-            public  int             EngineId         { get; }
-            public  BaseEngine      Engine           { get; }
-            public  Instrument      Instrument       { get; }
-            public  Difficulty      Difficulty       { get; }
-            public  int             HarmonyIndex     { get; }
-            private SongChart       SongChart        { get; }
-            public  List<UnisonPhrase>    UnisonPhrases    { get; }
-            public  RockMeterPreset RockMeterPreset  { get; }
+            public    int                 EngineId        { get; }
+            public    int                 HarmonyIndex    { get; }
+            public    List<UnisonPhrase>  UnisonPhrases   { get; }
+            public    RockMeterPreset     RockMeterPreset { get; }
+            protected List<EngineCommand> SentCommands = new();
+            private   int                 CommandCount => SentCommands.Count;
+            protected EngineManager       EngineManager;
 
-            private List<EngineCommand> _sentCommands = new();
-            private int                 _commandCount => _sentCommands.Count;
-            private EngineManager       _engineManager;
-
-            public EngineContainer(BaseEngine engine, Instrument instrument, Difficulty difficulty, int harmonyIndex, SongChart songChart, int engineId, EngineManager manager, RockMeterPreset rockMeterPreset)
+            protected void OnStarPowerStatus(bool active)
             {
-                EngineId = engineId;
-                Engine = engine;
-                Instrument = instrument;
-                Difficulty = difficulty;
-                HarmonyIndex = harmonyIndex;
-                SongChart = songChart;
-                UnisonPhrases = GetUnisonPhrases(Instrument, Difficulty, SongChart, Engine is DrumsEngine);
-                RockMeterPreset = rockMeterPreset;
-                _engineManager = manager;
-                Happiness = rockMeterPreset.StartingHappiness;
-
-                SubscribeToEngineEvents();
+                int count = EngineManager._starpowerCount;
+                count += active ? 1 : -1;
+                EngineManager.UpdateStarPowerCount(count);
             }
 
-            public void SendCommand(EngineCommandType command)
+            public abstract void SendCommand(EngineCommandType command);
+            public abstract void UpdateEngine(double time);
+            public abstract BaseEngine BaseEngine { get; }
+            public abstract Instrument Instrument { get; }
+            public abstract Difficulty Difficulty { get; }
+            public abstract void SubscribeToStarPowerPhraseHit();
+            public abstract void UnsubscribeToStarPowerPhraseHit();
+
+            protected EngineContainer(int engineId, int harmonyIndex, EngineManager manager,
+                RockMeterPreset rockMeterPreset, List<UnisonPhrase> unisonPhrases)
+            {
+                EngineId = engineId;
+                HarmonyIndex = harmonyIndex;
+                EngineManager = manager;
+                RockMeterPreset = rockMeterPreset;
+                UnisonPhrases = unisonPhrases;
+            }
+        }
+
+        public partial class EngineContainer<TNoteType, TEngineParams, TEngineStats> : EngineContainer
+            where TNoteType : Note<TNoteType>
+            where TEngineParams : BaseEngineParameters
+            where TEngineStats : BaseStats, new()
+        {
+            public BaseEngine<TNoteType, TEngineParams, TEngineStats> Engine               { get; }
+            public InstrumentDifficulty<TNoteType>                    InstrumentDifficulty { get; }
+
+            public EngineContainer(BaseEngine<TNoteType, TEngineParams, TEngineStats> engine,
+                InstrumentDifficulty<TNoteType> instrumentDifficulty, int harmonyIndex, SongChart songChart,
+                int engineId, EngineManager manager, RockMeterPreset rockMeterPreset)
+                : base(engineId, harmonyIndex, manager, rockMeterPreset,
+                    GetUnisonPhrases(instrumentDifficulty, songChart, engine is DrumsEngine))
+            {
+                Engine = engine;
+                InstrumentDifficulty = instrumentDifficulty;
+
+                SubscribeToEvents();
+            }
+
+            public override void SendCommand(EngineCommandType command)
             {
                 // TODO: This will require rethinking when there are more commands, but for now this should work?
                 if (command == EngineCommandType.AwardUnisonBonus)
@@ -59,35 +84,55 @@ namespace YARG.Core.Engine
                 {
                     return;
                 }
-                _sentCommands.Add(new EngineCommand { CommandType = command, Time = Engine.CurrentTime });
+
+                SentCommands.Add(new EngineCommand
+                {
+                    CommandType = command,
+                    Time = Engine.CurrentTime,
+                });
             }
 
-            public void OnStarPowerPhraseHit<TNote>(TNote note) where TNote : Note<TNote>
+            public void OnStarPowerPhraseHit(TNoteType note)
             {
-                _engineManager.OnStarPowerPhraseHit(this, note.Time);
+                EngineManager.OnStarPowerPhraseHit(this, note.Time);
             }
 
-            public void UpdateEngine(double time)
+            public override void UpdateEngine(double time)
             {
                 Engine.Update(time);
             }
 
-            private void OnStarPowerStatus(bool active)
+            public override BaseEngine BaseEngine => Engine;
+            public override Instrument Instrument => InstrumentDifficulty.Instrument;
+
+            public override Difficulty Difficulty => InstrumentDifficulty.Difficulty;
+
+            public override void SubscribeToStarPowerPhraseHit()
             {
-                var count = _engineManager._starpowerCount;
-                count += active ? 1 : -1;
-                _engineManager.UpdateStarPowerCount(count);
+                Engine.OnStarPowerPhraseHit += OnStarPowerPhraseHit;
+            }
+
+            public override void UnsubscribeToStarPowerPhraseHit()
+            {
+                Engine.OnStarPowerPhraseHit -= OnStarPowerPhraseHit;
             }
         }
 
-        public EngineContainer Register<TEngineType>(TEngineType engine, Instrument instrument, Difficulty difficulty, SongChart chart, RockMeterPreset rockMeterPreset)
-            where TEngineType : BaseEngine
-        {
-            return Register(engine, instrument, difficulty, 0, chart, rockMeterPreset);
-        }
+        public EngineContainer Register<TNoteType, TEngineParams, TEngineStats>(
+            BaseEngine<TNoteType, TEngineParams, TEngineStats> engine,
+            InstrumentDifficulty<TNoteType> instrumentDifficulty, SongChart chart, RockMeterPreset rockMeterPreset)
+            where TNoteType : Note<TNoteType>
+            where TEngineParams : BaseEngineParameters
+            where TEngineStats : BaseStats, new() =>
+            Register(engine, instrumentDifficulty, 0, chart, rockMeterPreset);
 
-        public EngineContainer Register<TEngineType>(TEngineType engine, Instrument instrument, Difficulty difficulty, int harmonyIndex, SongChart chart, RockMeterPreset rockMeterPreset)
-            where TEngineType : BaseEngine
+        public EngineContainer Register<TNoteType, TEngineParams, TEngineStats>(
+            BaseEngine<TNoteType, TEngineParams, TEngineStats> engine,
+            InstrumentDifficulty<TNoteType> instrumentDifficulty, int harmonyIndex, SongChart chart,
+            RockMeterPreset rockMeterPreset)
+            where TNoteType : Note<TNoteType>
+            where TEngineParams : BaseEngineParameters
+            where TEngineStats : BaseStats, new()
         {
             if (_chart == null)
             {
@@ -101,7 +146,8 @@ namespace YARG.Core.Engine
                 }
             }
 
-            var engineContainer = new EngineContainer(engine, instrument, difficulty, harmonyIndex, chart, _nextEngineIndex++, this, rockMeterPreset);
+            var engineContainer = new EngineContainer<TNoteType, TEngineParams, TEngineStats>(engine,
+                instrumentDifficulty, harmonyIndex, chart, _nextEngineIndex++, this, rockMeterPreset);
 
             // _previousHappiness = rockMeterPreset.StartingHappiness;
 
@@ -118,7 +164,7 @@ namespace YARG.Core.Engine
         {
             foreach (var engine in _allEngines)
             {
-                if (engine.Engine == target)
+                if (engine.BaseEngine == target)
                 {
                     return engine;
                 }
@@ -173,7 +219,7 @@ namespace YARG.Core.Engine
             AwardUnisonBonus,
         }
 
-        private struct EngineCommand
+        public struct EngineCommand
         {
             public EngineCommandType CommandType;
             public double            Time;

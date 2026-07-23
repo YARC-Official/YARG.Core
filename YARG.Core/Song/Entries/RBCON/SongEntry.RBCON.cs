@@ -215,37 +215,37 @@ namespace YARG.Core.Song
 
             var stemInfos = new List<StemInfo>();
 
-            if (_indices.Drums.Length > 0 && !ignoreStems.Contains(SongStem.Drums))
+            if (_indices.Drums.Length > 0 && !ignoreStems.Contains(SongStem.Drums1))
             {
                 switch (_indices.Drums.Length)
                 {
                     //drum (0 1): stereo kit --> (0 1)
                     case 1:
                     case 2:
-                        stemInfos.Add(new StemInfo(SongStem.Drums, _indices.Drums, _panning.Drums));
+                        stemInfos.Add(new StemInfo(SongStem.Drums1, _indices.Drums, _panning.Drums));
                         break;
                     //drum (0 1 2): mono kick, stereo snare/kit --> (0) (1 2)
                     case 3:
-                        stemInfos.Add(new StemInfo(SongStem.Drums, _indices.Drums[0..1], _panning.Drums[0..2]));
-                        stemInfos.Add(new StemInfo(SongStem.Drums, _indices.Drums[1..3], _panning.Drums[2..6]));
+                        stemInfos.Add(new StemInfo(SongStem.Drums1, _indices.Drums[0..1], _panning.Drums[0..2]));
+                        stemInfos.Add(new StemInfo(SongStem.Drums2, _indices.Drums[1..3], _panning.Drums[2..6]));
                         break;
                     //drum (0 1 2 3): mono kick, mono snare, stereo kit --> (0) (1) (2 3)
                     case 4:
-                        stemInfos.Add(new StemInfo(SongStem.Drums, _indices.Drums[0..1], _panning.Drums[0..2]));
-                        stemInfos.Add(new StemInfo(SongStem.Drums, _indices.Drums[1..2], _panning.Drums[2..4]));
-                        stemInfos.Add(new StemInfo(SongStem.Drums, _indices.Drums[2..4], _panning.Drums[4..8]));
+                        stemInfos.Add(new StemInfo(SongStem.Drums1, _indices.Drums[0..1], _panning.Drums[0..2]));
+                        stemInfos.Add(new StemInfo(SongStem.Drums2, _indices.Drums[1..2], _panning.Drums[2..4]));
+                        stemInfos.Add(new StemInfo(SongStem.Drums3, _indices.Drums[2..4], _panning.Drums[4..8]));
                         break;
                     //drum (0 1 2 3 4): mono kick, stereo snare, stereo kit --> (0) (1 2) (3 4)
                     case 5:
-                        stemInfos.Add(new StemInfo(SongStem.Drums, _indices.Drums[0..1], _panning.Drums[0..2]));
-                        stemInfos.Add(new StemInfo(SongStem.Drums, _indices.Drums[1..3], _panning.Drums[2..6]));
-                        stemInfos.Add(new StemInfo(SongStem.Drums, _indices.Drums[3..5], _panning.Drums[6..10]));
+                        stemInfos.Add(new StemInfo(SongStem.Drums1, _indices.Drums[0..1], _panning.Drums[0..2]));
+                        stemInfos.Add(new StemInfo(SongStem.Drums2, _indices.Drums[1..3], _panning.Drums[2..6]));
+                        stemInfos.Add(new StemInfo(SongStem.Drums3, _indices.Drums[3..5], _panning.Drums[6..10]));
                         break;
                     //drum (0 1 2 3 4 5): stereo kick, stereo snare, stereo kit --> (0 1) (2 3) (4 5)
                     case 6:
-                        stemInfos.Add(new StemInfo(SongStem.Drums, _indices.Drums[0..2], _panning.Drums[0..4]));
-                        stemInfos.Add(new StemInfo(SongStem.Drums, _indices.Drums[2..4], _panning.Drums[4..8]));
-                        stemInfos.Add(new StemInfo(SongStem.Drums, _indices.Drums[4..6], _panning.Drums[8..12]));
+                        stemInfos.Add(new StemInfo(SongStem.Drums1, _indices.Drums[0..2], _panning.Drums[0..4]));
+                        stemInfos.Add(new StemInfo(SongStem.Drums2, _indices.Drums[2..4], _panning.Drums[4..8]));
+                        stemInfos.Add(new StemInfo(SongStem.Drums3, _indices.Drums[4..6], _panning.Drums[8..12]));
                         break;
                 }
             }
@@ -733,6 +733,13 @@ namespace YARG.Core.Song
                 {
                     entry._metadata.Source = dta.Source;
                 }
+
+                if (dta.Source == "beatles")
+                {
+                    entry._metadata.Artist = "The Beatles";
+                    entry._rbMetadata.RbVocalGender = RbVocalGender.Male;
+                    entry._metadata.VocalGender = VocalGender.Male;
+                }
             }
             if (dta.SongLength != null)           { entry._metadata.SongLength    = dta.SongLength.Value; }
             if (dta.IsMaster != null)             { entry._metadata.IsMaster      = dta.IsMaster.Value; }
@@ -796,7 +803,11 @@ namespace YARG.Core.Song
             if (dta.Intensities.LeadVocals >= 0)     { entry._rbIntensities.LeadVocals     = dta.Intensities.LeadVocals; }
             if (dta.Intensities.HarmonyVocals >= 0)  { entry._rbIntensities.HarmonyVocals  = dta.Intensities.HarmonyVocals; }
 
-            entry._metadata.VocalGender = DTAEntry.ConvertVocalGender(dta.VocalGender);
+            // This if ensures that updates that don't have a specified vocal gender don't overwrite the existing value
+            if (dta.VocalGender != null)
+            {
+                entry._metadata.VocalGender = DTAEntry.ConvertVocalGender(dta.VocalGender);
+            }
         }
 
         private static int GetIntensity(int rank, int[] values)

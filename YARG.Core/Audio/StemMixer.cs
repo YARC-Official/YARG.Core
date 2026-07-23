@@ -4,6 +4,13 @@ using System.IO;
 
 namespace YARG.Core.Audio
 {
+    public abstract class OneShotChannel : IDisposable
+    {
+        public abstract void SetEnabled(bool enabled);
+        public abstract void SetVolume(double volume);
+        public abstract void Dispose();
+    }
+
     public abstract class StemMixer : IDisposable
     {
         public struct StemInfo
@@ -44,6 +51,12 @@ namespace YARG.Core.Audio
         public bool IsPaused => _isPaused;
 
         public abstract event Action SongEnd;
+
+        /// <summary>
+        /// Creates a one-shot channel from an owned sample stream and its scheduled play times.
+        /// </summary>
+        public abstract OneShotChannel CreateOneShotChannel(int sampleStream,
+            IReadOnlyList<double> scheduledPlays, double outputLeadTime = 0);
 
         protected StemMixer(string name, AudioManager manager,bool clampStemVolume)
         {
@@ -127,6 +140,36 @@ namespace YARG.Core.Audio
             }
         }
 
+        /// <summary>
+        /// Gets delay-free playback position used to control synchronization.
+        /// </summary>
+        public double GetControlPosition()
+        {
+            lock (this)
+            {
+                if (_disposed)
+                {
+                    return 0;
+                }
+                return GetControlPosition_Internal();
+            }
+        }
+
+        /// <summary>
+        /// Gets estimated processing and output latency for the tempo stream, in seconds.
+        /// </summary>
+        public double GetTempoStreamLatency()
+        {
+            lock (this)
+            {
+                if (_disposed)
+                {
+                    return 0;
+                }
+                return GetTempoStreamLatency_Internal();
+            }
+        }
+
         public double GetVolume()
         {
             lock (this)
@@ -138,6 +181,10 @@ namespace YARG.Core.Audio
                 return GetVolume_Internal();
             }
         }
+        /// <summary>
+        /// Sets logical song position for subsequent playback. Mixer implementations may seek or
+        /// schedule their channels internally so playback aligns with this position.
+        /// </summary>
         public void SetPosition(double position)
         {
             lock (this)
@@ -212,13 +259,38 @@ namespace YARG.Core.Audio
             }
         }
 
-        public void SetSpeed(float speed, bool shiftPitch)
+        /// <summary>
+        /// Sets requested song speed without a temporary synchronization adjustment.
+        /// </summary>
+        public void SetPlaybackSpeed(float songSpeed)
+        {
+            SetPlaybackSpeed(songSpeed, 0f, true);
+        }
+
+        /// <summary>
+        /// Sets requested song speed and temporary synchronization adjustment as one atomic command.
+        /// </summary>
+        public void SetPlaybackSpeed(float songSpeed, float syncAdjustment, bool shiftPitch)
         {
             lock (this)
             {
                 if (!_disposed)
                 {
-                    SetSpeed_Internal(speed, shiftPitch);
+                    SetPlaybackSpeed_Internal(songSpeed, syncAdjustment, shiftPitch);
+                }
+            }
+        }
+
+        /// <summary>
+        /// Sets empirically calibrated latency between mixer output and heard audio.
+        /// </summary>
+        public void SetOutputLatency(double latency)
+        {
+            lock (this)
+            {
+                if (!_disposed)
+                {
+                    SetOutputLatency_Internal(latency);
                 }
             }
         }
@@ -291,13 +363,16 @@ namespace YARG.Core.Audio
         protected abstract void FadeOut_Internal(double duration);
         protected abstract int Pause_Internal();
         protected abstract double GetPosition_Internal();
+        protected virtual double GetControlPosition_Internal() => GetPosition_Internal();
+        protected virtual double GetTempoStreamLatency_Internal() => 0;
         protected abstract double GetVolume_Internal();
         protected abstract void SetPosition_Internal(double position);
         protected abstract void SetVolume_Internal(double volume);
         protected abstract int  GetSampleData_Internal(float[] buffer);
         protected abstract int  GetFFTData_Internal(float[] buffer, int fftSize, bool complex);
         protected abstract int GetLevel_Internal(float[] level);
-        protected abstract void SetSpeed_Internal(float speed, bool shiftPitch);
+        protected abstract void SetPlaybackSpeed_Internal(float songSpeed, float syncAdjustment, bool shiftPitch);
+        protected virtual void SetOutputLatency_Internal(double latency) { }
         protected abstract bool AddChannels_Internal(Stream stream, params StemInfo[] stemInfos);
         protected abstract bool RemoveChannel_Internal(SongStem stemToRemove);
         protected abstract void SetBufferLength_Internal(int length);

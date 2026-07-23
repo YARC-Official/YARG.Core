@@ -1,4 +1,6 @@
-﻿using NUnit.Framework;
+﻿using System.Text;
+using NUnit.Framework;
+using YARG.Core.Chart;
 
 namespace YARG.Core.UnitTests.Parsing
 {
@@ -175,6 +177,64 @@ namespace YARG.Core.UnitTests.Parsing
             Assert.That(track.Parts[1].NotePhrases[0].IsStarPower, Is.False);
             Assert.That(track.Parts[1].NotePhrases[1].IsStarPower, Is.False);
             Assert.That(track.Parts[1].NotePhrases[2].IsStarPower, Is.False);
+        }
+
+        [Test]
+        public void DuetSoloVocalsOnlyShowsFirstPart()
+        {
+            // Bug fix: when duet, solo Vocals chart should only contain P1
+            var content = Us(
+                "#BPM:120",
+                "#PARTS:2",
+                "P1",
+                ": 0 4 0 Hello",
+                ": 5 4 0 World",
+                "P2",
+                ": 0 4 2 Hi",
+                ": 5 4 2 There"
+            );
+            var settings = ParseSettings.Default;
+            var songChart = SongChart.FromUltraStarBytes(settings, Encoding.UTF8.GetBytes(content));
+
+            // Solo Vocals should only have P1 notes (Hello, World)
+            var vocalsTrack = songChart.Vocals;
+            Assert.That(vocalsTrack.Parts, Has.Count.EqualTo(1));
+
+            var lyrics = new List<string>();
+            foreach (var phrase in vocalsTrack.Parts[0].NotePhrases)
+            {
+                foreach (var lyric in phrase.Lyrics)
+                {
+                    lyrics.Add(lyric.Text);
+                }
+            }
+
+            Assert.That(lyrics, Contains.Item("Hello"));
+            Assert.That(lyrics, Contains.Item("World"));
+            Assert.That(lyrics, Does.Not.Contain("Hi"));
+            Assert.That(lyrics, Does.Not.Contain("There"));
+        }
+
+        [Test]
+        public void DuetHarmonyHasBothParts()
+        {
+            // Both parts should still be available in Harmony tracks
+            var content = Us(
+                "#BPM:120",
+                "#PARTS:2",
+                "P1",
+                ": 0 4 0 Hello",
+                "P2",
+                ": 0 4 2 Hi"
+            );
+            var settings = ParseSettings.Default;
+            var songChart = SongChart.FromUltraStarBytes(settings, Encoding.UTF8.GetBytes(content));
+
+            // Harmony track loads 3 parts from MoonSong (HARM1, HARM2, HARM3)
+            // For UltraStar duet, HARM3 is empty
+            var harmonyTrack = songChart.Harmony;
+            Assert.That(harmonyTrack.Parts[0].NotePhrases, Has.Count.EqualTo(1));
+            Assert.That(harmonyTrack.Parts[1].NotePhrases, Has.Count.EqualTo(1));
         }
     }
 }
