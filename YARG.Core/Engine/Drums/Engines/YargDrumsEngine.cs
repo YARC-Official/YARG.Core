@@ -147,19 +147,26 @@ namespace YARG.Core.Engine.Drums.Engines
 
                         if (awardVelocityBonus)
                         {
-                            const int velocityBonus = POINTS_PER_NOTE / 2;
-                            AddScore(velocityBonus);
-                            EngineStats.DynamicsBonus += velocityBonus;
-                            YargLogger.LogFormatTrace("Velocity bonus of {0} points was awarded to a note at tick {1}.", velocityBonus, note.Tick);
-
-                            if(note.IsAccent)
+                            int velocityBonus = 0;
+                            if (note.IsAccent)
                             {
+                                int accentBonus = 25; // 4x normal note => 100 points
+                                EngineStats.AccentsBonus += accentBonus;
                                 EngineStats.AccentsHit++;
+                                velocityBonus = accentBonus;
+                                YargLogger.LogFormatTrace("Velocity bonus of {0} points was awarded to an accent note at tick {1}.", accentBonus, note.Tick);
                             }
-                            else if(note.IsGhost)
+                            else if (note.IsGhost)
                             {
+                                // There are generally a lot more ghost notes in a chart than accents, so it is worth much less
+                                const int ghostBonus = 10;// 4x normal note => 8 points
+                                EngineStats.GhostsBonus += ghostBonus;
                                 EngineStats.GhostsHit++;
+                                velocityBonus = ghostBonus;
+                                YargLogger.LogFormatTrace("Velocity bonus of {0} points was awarded to a ghost note at tick {1}.", ghostBonus, note.Tick);
+
                             }
+                            AddScore(velocityBonus);
                         }
 
                         ResetPadState();

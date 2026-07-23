@@ -98,24 +98,27 @@ namespace YARG.Core.Engine.Vocals.Engines
                     percentHit = 1.0;
                 }
 
+                var ticksHit = (uint) Math.Round(PhraseTicksHit);
+
+                EngineStats.TicksHit += ticksHit;
+                EngineStats.TicksMissed += PhraseTicksTotal.Value - ticksHit;
+
                 bool hit = percentHit >= EngineParameters.PhraseHitPercent;
                 if (hit)
                 {
-                    EngineStats.TicksHit += PhraseTicksTotal.Value;
+                    EngineStats.PhrasesHit++;
                     HitNote(phrase);
                 }
                 else
                 {
-                    var ticksHit = (uint) Math.Round(PhraseTicksHit);
-
-                    EngineStats.TicksHit += ticksHit;
-                    EngineStats.TicksMissed += PhraseTicksTotal.Value - ticksHit;
-
+                    EngineStats.PhrasesHit += YargMath.InverseLerpD(0.0, EngineParameters.PhraseHitPercent, percentHit);
                     MissNote(phrase, percentHit);
                 }
 
                 PhraseTicksHit = 0;
                 PhraseTicksTotal = null;
+                TicksHitInStarPower = 0;
+                BandBonusTicks = 0;
 
                 if (hasNotes)
                 {
@@ -175,8 +178,25 @@ namespace YARG.Core.Engine.Vocals.Engines
                     lastSingTick);
 
                 var ticksSinceLast = CurrentTick - lastTick;
-                PhraseTicksHit += ticksSinceLast * hitPercent;
+                var ticksHit = ticksSinceLast * hitPercent;
 
+                uint maxScoringTicks = (uint) Math.Round(PhraseTicksTotal!.Value * EngineParameters.PhraseHitPercent);
+                if (PhraseTicksHit < maxScoringTicks)
+                {
+                    // Cap at maxScoringTicks
+                    var ticksToAward = Math.Min(ticksHit, maxScoringTicks - PhraseTicksHit);
+                    if (EngineStats.IsStarPowerActive)
+                    {
+                        TicksHitInStarPower += ticksToAward;
+                    }
+
+                    if (EngineStats.BandBonusMultiplier > 0)
+                    {
+                        BandBonusTicks += ticksToAward * EngineStats.BandBonusMultiplier;
+                    }
+                }
+
+                PhraseTicksHit += ticksHit;
                 OnHit?.Invoke(true);
             }
             else

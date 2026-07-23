@@ -36,13 +36,14 @@ namespace YARG.Core.Engine.Vocals
         public readonly bool SingToActivateStarPower;
 
         /// <summary>
-        /// Base score awarded per complete vocal phrase.
+        /// What fraction of the full points for a phrase or percussion note should be awarded.
+        /// Used to scale points for difficulties other than Expert.
         /// </summary>
-        public readonly int PointsPerPhrase;
+        public readonly double PhraseScoreMultiplier;
 
         public VocalsEngineParameters(HitWindowSettings hitWindow, int maxMultiplier, float[] starMultiplierThresholds, float[] soloBonusStarMultiplierThresholds,
             float pitchWindow, float pitchWindowPerfect, double phraseHitPercent, double approximateVocalFps,
-            bool singToActivateStarPower, int pointsPerPhrase)
+            bool singToActivateStarPower, double phraseScoreMultiplier)
             : base(hitWindow, maxMultiplier, 0, 0, starMultiplierThresholds, soloBonusStarMultiplierThresholds, enableLanes: false)
         {
             PitchWindow = pitchWindow;
@@ -50,7 +51,7 @@ namespace YARG.Core.Engine.Vocals
             PhraseHitPercent = phraseHitPercent;
             ApproximateVocalFps = approximateVocalFps;
             SingToActivateStarPower = singToActivateStarPower;
-            PointsPerPhrase = pointsPerPhrase;
+            PhraseScoreMultiplier = phraseScoreMultiplier;
         }
 
         public VocalsEngineParameters(ref FixedArrayStream stream, int version)
@@ -61,7 +62,15 @@ namespace YARG.Core.Engine.Vocals
             PhraseHitPercent = stream.Read<double>(Endianness.Little);
             ApproximateVocalFps = stream.Read<double>(Endianness.Little);
             SingToActivateStarPower = stream.ReadBoolean();
-            PointsPerPhrase = stream.Read<int>(Endianness.Little);
+            if (version <= 15)
+            {
+                var pointsPerPhrase = stream.Read<int>(Endianness.Little);
+                PhraseScoreMultiplier = pointsPerPhrase / 2000.0;
+            }
+            else
+            {
+                PhraseScoreMultiplier = stream.Read<double>(Endianness.Little);
+            }
         }
 
         public override void Serialize(BinaryWriter writer)
@@ -73,7 +82,7 @@ namespace YARG.Core.Engine.Vocals
             writer.Write(PhraseHitPercent);
             writer.Write(ApproximateVocalFps);
             writer.Write(SingToActivateStarPower);
-            writer.Write(PointsPerPhrase);
+            writer.Write(PhraseScoreMultiplier);
         }
     }
 }
