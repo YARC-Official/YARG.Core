@@ -556,6 +556,19 @@ namespace YARG.Core.Audio
             }
         }
 
+        public static void SetSingleMixer(bool enabled)
+        {
+            lock (_instanceLock)
+            {
+                if (_instance == null)
+                {
+                    throw new NotInitializedException();
+                }
+
+                _instance.SetSingleMixer(enabled);
+            }
+        }
+
         public static List<(int id, string name)> GetAllOutputDevices()
         {
             lock (_instanceLock)
