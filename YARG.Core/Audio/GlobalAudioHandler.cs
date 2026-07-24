@@ -188,6 +188,21 @@ namespace YARG.Core.Audio
             }
         }
 
+        public static double PlaybackStartDelay
+        {
+            get
+            {
+                lock (_instanceLock)
+                {
+                    if (_instance == null)
+                    {
+                        throw new NotInitializedException();
+                    }
+                    return _instance.PlaybackStartDelay;
+                }
+            }
+        }
+
         public static int MinimumBufferLength
         {
             get
@@ -593,6 +608,30 @@ namespace YARG.Core.Audio
             }
         }
 
+        public static OutputBufferInfo? GetOutputBufferInfo()
+        {
+            lock (_instanceLock)
+            {
+                if (_instance == null)
+                {
+                    throw new NotInitializedException();
+                }
+                return _instance.GetOutputBufferInfo();
+            }
+        }
+
+        public static bool OpenOutputControlPanel()
+        {
+            lock (_instanceLock)
+            {
+                if (_instance == null)
+                {
+                    throw new NotInitializedException();
+                }
+                return _instance.OpenOutputControlPanel();
+            }
+        }
+
         public static OutputDevice? GetOutputDevice(string name)
         {
             lock (_instanceLock)
@@ -672,7 +711,7 @@ namespace YARG.Core.Audio
             }
         }
 
-        public static void SetOutputDevice(string name)
+        public static bool SetOutputDevice(string name)
         {
             lock (_instanceLock)
             {
@@ -680,7 +719,19 @@ namespace YARG.Core.Audio
                 {
                     throw new NotInitializedException();
                 }
-                _instance.SetOutputDevice(name);
+                return _instance.SetOutputDevice(name);
+            }
+        }
+
+        public static bool ReinitializeOutput(int bufferLength)
+        {
+            lock (_instanceLock)
+            {
+                if (_instance == null)
+                {
+                    throw new NotInitializedException();
+                }
+                return _instance.ReinitializeOutput(bufferLength);
             }
         }
     }

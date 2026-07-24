@@ -5,6 +5,22 @@ using YARG.Core.Logging;
 
 namespace YARG.Core.Audio
 {
+    public readonly struct OutputBufferInfo
+    {
+        public int[] SupportedLengths { get; }
+        public int PreferredLength { get; }
+        public int SampleRate { get; }
+        public bool IsDriverControlled { get; }
+
+        public OutputBufferInfo(int[] supportedLengths, int preferredLength, int sampleRate, bool isDriverControlled)
+        {
+            SupportedLengths = supportedLengths;
+            PreferredLength = preferredLength;
+            SampleRate = sampleRate;
+            IsDriverControlled = isDriverControlled;
+        }
+    }
+
     public abstract class AudioManager
     {
         private static float _globalSpeed = 1f;
@@ -19,6 +35,7 @@ namespace YARG.Core.Audio
         protected internal MetronomeSampleChannel[] MetronomeSamples = new MetronomeSampleChannel[AudioHelpers.MetronomeSamples.Count];
         protected internal Dictionary<string, VenueSampleChannel>  VenueSamples     = new();
         protected internal int PlaybackLatency;
+        protected internal virtual double PlaybackStartDelay => PlaybackLatency / 1000.0;
         protected internal int MinimumBufferLength;
         protected internal int MaximumBufferLength;
 
@@ -84,6 +101,10 @@ namespace YARG.Core.Audio
 
         protected internal abstract int GetOutputChannelCount();
 
+        protected internal virtual OutputBufferInfo? GetOutputBufferInfo() => null;
+
+        protected internal virtual bool OpenOutputControlPanel() => false;
+
         protected internal abstract OutputDevice? GetOutputDevice(string name);
 
         protected internal abstract void SetMasterVolume(double volume);
@@ -121,6 +142,8 @@ namespace YARG.Core.Audio
 
             return true;
         }
+
+        protected internal virtual bool ReinitializeOutput(int bufferLength) => false;
 
         protected internal virtual void SetSingleMixer(bool enabled) { }
 
