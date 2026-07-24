@@ -135,6 +135,17 @@ namespace YARG.Core.Audio
             }
         }
 
+        protected void MoveActiveMixersTo(OutputDevice device)
+        {
+            lock (_activeMixers)
+            {
+                foreach (StemMixer mixer in _activeMixers)
+                {
+                    mixer.SetOutputDevice(device);
+                }
+            }
+        }
+
 
         internal void SetBufferLength(int length)
         {
