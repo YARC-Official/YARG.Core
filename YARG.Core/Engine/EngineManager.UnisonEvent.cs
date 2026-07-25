@@ -166,6 +166,11 @@ namespace YARG.Core.Engine
 
         private void AddPlayerToUnisons(EngineContainer engineContainer, SongChart chart)
         {
+            if (!engineContainer.BaseEngine.BaseParameters.StarPowerEnabled)
+            {
+                return;
+            }
+
             // Vocals don't participate in unisons, so don't add them to the list
             if (engineContainer is EngineContainer<VocalNote, VocalsEngineParameters, VocalsStats>)
             {
