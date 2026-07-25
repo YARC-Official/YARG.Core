@@ -84,6 +84,59 @@ namespace YARG.Core.Game
             }
         };
 
+        public static EnginePreset Tournament = new("Tournament", true)
+        {
+            FiveFretGuitar =
+            {
+                StarPowerEnabled = false,
+                NoteScoreScalesWithAccuracy = true,
+                StrumLeniency = 0.04,
+                StrumLeniencySmall = 0.02,
+                HitWindow =
+                {
+                    MaxWindow = 0.12,
+                    MinWindow = 0.04,
+                    IsDynamic = true,
+                    DynamicScale = 1,
+                    DynamicSlope = 0.93,
+                    DynamicGamma = 1.5,
+                    LaneAutohitWindow = 0.160,
+                    LaneProximityProtectionWindow = 0.080
+                }
+            },
+            Drums =
+            {
+                StarPowerEnabled = false,
+                NoteScoreScalesWithAccuracy = true,
+                HitWindow =
+                {
+                    MaxWindow = 0.13,
+                    MinWindow = 0.05,
+                    IsDynamic = true,
+                    DynamicScale = 1,
+                    DynamicSlope = 0.60615,
+                    DynamicGamma = 2,
+                    LaneAutohitWindow = 0.160,
+                    LaneProximityProtectionWindow = 0.080
+                }
+            },
+            Vocals =
+            {
+                StarPowerEnabled = false,
+                NoteScoreScalesWithAccuracy = true,
+                PitchWindowE = 1.4f,
+                PitchWindowM = 1.1f,
+                PitchWindowH = 0.8f,
+                PitchWindowX = 0.6f,
+                PerfectPitchPercent = 0.55f
+            },
+            ProKeys =
+            {
+                StarPowerEnabled = false,
+                NoteScoreScalesWithAccuracy = true
+            }
+        };
+
         public static EnginePreset SoloTaps = new("Solo Taps", true)
         {
             FiveFretGuitar =
@@ -97,6 +150,7 @@ namespace YARG.Core.Game
             Default,
             Casual,
             Precision,
+            Tournament,
             SoloTaps
         };
     }
