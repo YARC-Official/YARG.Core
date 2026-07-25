@@ -185,6 +185,8 @@ namespace YARG.Core.Replays.Analyzer
                 }
             }
 
+            manager.InitializeHappiness(_replayData.NoFail);
+
             // Seems like a sensible default?
             _fps = _fps > 0 ? _fps : 60;
             int[] currentInput = new int[engines.Count];
@@ -223,6 +225,8 @@ namespace YARG.Core.Replays.Analyzer
 
         private void RegisterEngine(YargProfile profile, BaseEngine engine, EngineManager manager, BaseEngineParameters parameters, ReplayFrame frame)
         {
+            var rockMeterPreset = _replayData.GetRockMeterPreset(frame.Profile.RockMeterPreset)
+                ?? RockMeterPreset.Normal;
             switch (frame.Profile.GameMode)
             {
                 case GameMode.FiveFretGuitar:
@@ -231,7 +235,7 @@ namespace YARG.Core.Replays.Analyzer
                         .GetDifficulty(frame.Profile.CurrentDifficulty).Clone();
                     profile.ApplyModifiers(notes, _chart.SyncTrack);
                     // TODO: Implement support for custom RockMeterPresets in replays
-                    manager.Register((GuitarEngine)engine, notes, _chart, RockMeterPreset.Normal);
+                    manager.Register((GuitarEngine)engine, notes, _chart, rockMeterPreset);
                     break;
                 }
                 case GameMode.FourLaneDrums:
@@ -242,7 +246,7 @@ namespace YARG.Core.Replays.Analyzer
                         .GetDifficulty(profile.CurrentDifficulty).Clone();
                     profile.ApplyModifiers(notes, _chart.SyncTrack);
                     // TODO: Implement support for custom RockMeterPresets in replays
-                    manager.Register((DrumsEngine)engine, notes, _chart, RockMeterPreset.Normal);
+                    manager.Register((DrumsEngine)engine, notes, _chart, rockMeterPreset);
                     break;
                 }
                 case GameMode.ProKeys:
@@ -253,7 +257,7 @@ namespace YARG.Core.Replays.Analyzer
                         var notes = _chart.ProKeys.GetDifficulty(profile.CurrentDifficulty).Clone();
                         profile.ApplyModifiers(notes, _chart.SyncTrack);
                         // TODO: Implement support for custom RockMeterPresets in replays
-                        manager.Register((ProKeysEngine)engine, notes, _chart, RockMeterPreset.Normal);
+                        manager.Register((ProKeysEngine)engine, notes, _chart, rockMeterPreset);
                         break;
                     }
 
@@ -261,7 +265,7 @@ namespace YARG.Core.Replays.Analyzer
                     var fiveLaneNotes = _chart.GetFiveFretTrack(profile.CurrentInstrument)
                         .GetDifficulty(profile.CurrentDifficulty).Clone();
                     profile.ApplyModifiers(fiveLaneNotes, _chart.SyncTrack);
-                    manager.Register((FiveLaneKeysEngine)engine, fiveLaneNotes, _chart, RockMeterPreset.Normal);
+                    manager.Register((FiveLaneKeysEngine)engine, fiveLaneNotes, _chart, rockMeterPreset);
                     break;
                 }
                 case GameMode.Vocals:
@@ -270,7 +274,7 @@ namespace YARG.Core.Replays.Analyzer
                     var notes = _chart.GetVocalsTrack(profile.CurrentInstrument)
                         .Parts[profile.HarmonyIndex].Clone();
                     profile.ApplyVocalModifiers(notes);
-                    manager.Register((VocalsEngine)engine, notes.CloneAsInstrumentDifficulty(), _chart, RockMeterPreset.Normal);
+                    manager.Register((VocalsEngine)engine, notes.CloneAsInstrumentDifficulty(), _chart, rockMeterPreset);
                     break;
                 }
                 default:
@@ -480,6 +484,7 @@ namespace YARG.Core.Replays.Analyzer
             FormatStat("Activation count", original.StarPowerActivationCount, result.StarPowerActivationCount);
             // FormatStat("Total bars filled", original.TotalStarPowerBarsFilled, result.TotalStarPowerBarsFilled);
             FormatStat("Ended with SP active", original.IsStarPowerActive, result.IsStarPowerActive);
+            FormatStat("Times SP used to revive", original.StarPowerRevives, result.StarPowerRevives);
 
             builder.AppendLine();
 

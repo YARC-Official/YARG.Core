@@ -12,7 +12,7 @@ namespace YARG.Core.Game
 {
     public partial class YargProfile
     {
-        private readonly int PROFILE_VERSION = 8;
+        private readonly int PROFILE_VERSION = 9;
 
         public int Version;
 
@@ -306,6 +306,11 @@ namespace YARG.Core.Game
                     FiveLaneDrumsHighwayOrdering[i] = (DrumsHighwayItem) stream.ReadByte();
                 }
             }
+
+            if (Version >= 9)
+            {
+                RockMeterPreset = stream.ReadGuid();
+            }
         }
 
         public void AddSingleModifier(Modifier modifier)
@@ -524,6 +529,8 @@ namespace YARG.Core.Game
             {
                 writer.Write((byte) item);
             }
+
+            writer.Write(RockMeterPreset);
         }
 
         private static DrumsHighwayItem[] DEFAULT_FOUR_LANE_ORDERING = new DrumsHighwayItem[] {

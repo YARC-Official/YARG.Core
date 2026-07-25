@@ -398,6 +398,7 @@ public partial class Cli
         PrintStatDifference("StarPowerPhrasesMissed", originalStats.StarPowerPhrasesMissed,   resultStats.StarPowerPhrasesMissed);
         PrintStatDifference("SoloBonuses",            originalStats.SoloBonuses,              resultStats.SoloBonuses);
         PrintStatDifference("StarPowerScore",         originalStats.StarPowerScore,           resultStats.StarPowerScore);
+        PrintStatDifference("StarPowerRevives",       originalStats.StarPowerRevives,         resultStats.StarPowerRevives);
         // PrintStatDifference("Stars",                  originalStats.Stars,                  resultStats.Stars);
 
         Console.WriteLine();
