@@ -411,6 +411,8 @@ namespace YARG.Core.Chart
                 staticPhrases.AddRange(SplitPhraseByIndices(phrase, GetSplitIndices(phrase).ToArray()));
             }
 
+            staticPhrases.RemoveAll(phrase => phrase.Lyrics.Count == 0);
+
             return staticPhrases;
         }
 
@@ -569,8 +571,9 @@ namespace YARG.Core.Chart
                 if (splitIndex < splitIndices.Length && characterCount >= splitIndices[splitIndex] &&
                     !lyric.JoinOrHyphenateWithNext)
                 {
-                    var endTime = lyric.TimeEnd;
-                    var endTick = lyric.TickEnd;
+                    var nextLyric = phrase.Lyrics[i + 1];
+                    var endTime = nextLyric.Time;
+                    var endTick = nextLyric.Tick;
                     splitPhrases.Add(CreateSubPhrase(phrase, startTime, startTick,
                         endTime, endTick, lastSplitLyricIndex, i - lastSplitLyricIndex + 1, true));
                     startTime = endTime;
