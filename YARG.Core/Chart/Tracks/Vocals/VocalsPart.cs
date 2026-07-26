@@ -15,9 +15,13 @@ namespace YARG.Core.Chart
         public List<VocalsPhrase> NotePhrases { get; } = new();
         public List<VocalsPhrase> StaticLyricPhrases { get; } = new();
         /// <summary>
-        /// This is populated exclusively on HARM2.
+        /// This is a list of static lyric phrases merged together from HARM2 and HARM3 phrases,
+        /// for the two-lane harmonies display.
         /// </summary>
-        public List<VocalsPhrase> MergedPhrases { get; } = new();
+        /// <remarks>
+        /// This is populated exclusively on HARM2.
+        /// </remarks>
+        public List<VocalsPhrase> MergedStaticLyricPhrases { get; } = new();
         public List<Phrase> OtherPhrases { get; } = new();
         public List<TextEvent> TextEvents { get; } = new();
 
@@ -32,13 +36,13 @@ namespace YARG.Core.Chart
             IsHarmony = isHarmony;
             NotePhrases = notePhrases;
             StaticLyricPhrases = staticLyricPhrases;
-            MergedPhrases = mergedPhrases;
+            MergedStaticLyricPhrases = mergedPhrases;
             OtherPhrases = otherPhrases;
             TextEvents = text;
         }
 
         public VocalsPart(VocalsPart other)
-            : this(other.IsHarmony, other.NotePhrases.Duplicate(), other.StaticLyricPhrases.Duplicate(), other.MergedPhrases.Duplicate(),
+            : this(other.IsHarmony, other.NotePhrases.Duplicate(), other.StaticLyricPhrases.Duplicate(), other.MergedStaticLyricPhrases.Duplicate(),
                 other.OtherPhrases.Duplicate(), other.TextEvents.Duplicate())
         {
         }
@@ -145,7 +149,7 @@ namespace YARG.Core.Chart
         {
             NotePhrases.RemoveAll(phrase => !IsVocalPhraseInTickRange(phrase, tickStart, tickEnd));
             StaticLyricPhrases.RemoveAll(phrase => !IsVocalPhraseInTickRange(phrase, tickStart, tickEnd));
-            MergedPhrases.RemoveAll(phrase => !IsVocalPhraseInTickRange(phrase, tickStart, tickEnd));
+            MergedStaticLyricPhrases.RemoveAll(phrase => !IsVocalPhraseInTickRange(phrase, tickStart, tickEnd));
             OtherPhrases.RemoveAll(phrase => !IsTickInRange(phrase.Tick, tickStart, tickEnd));
             TextEvents.RemoveAll(text => !IsTickInRange(text.Tick, tickStart, tickEnd));
         }
