@@ -145,6 +145,7 @@ namespace YARG.Core.Chart
         {
             NotePhrases.RemoveAll(phrase => !IsVocalPhraseInTickRange(phrase, tickStart, tickEnd));
             StaticLyricPhrases.RemoveAll(phrase => !IsVocalPhraseInTickRange(phrase, tickStart, tickEnd));
+            MergedPhrases.RemoveAll(phrase => !IsVocalPhraseInTickRange(phrase, tickStart, tickEnd));
             OtherPhrases.RemoveAll(phrase => !IsTickInRange(phrase.Tick, tickStart, tickEnd));
             TextEvents.RemoveAll(text => !IsTickInRange(text.Tick, tickStart, tickEnd));
         }
