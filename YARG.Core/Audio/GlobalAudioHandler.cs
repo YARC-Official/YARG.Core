@@ -14,13 +14,13 @@ namespace YARG.Core.Audio
 
     public static class GlobalAudioHandler
     {
-        public const int WHAMMY_FFT_DEFAULT = 2048;
+        public const int WHAMMY_FFT_DEFAULT        = 2048;
         public const int WHAMMY_OVERSAMPLE_DEFAULT = 8;
         public static readonly int MAX_THREADS = Environment.ProcessorCount switch
         {
             >= 16 => 16,
-            >= 6 => Environment.ProcessorCount / 2,
-            _ => 2
+            >= 6  => Environment.ProcessorCount / 2,
+            _     => 2
         };
 
         internal static readonly Dictionary<SongStem, StemSettings> StemSettings;
@@ -230,6 +230,25 @@ namespace YARG.Core.Audio
                     }
                     return _instance.MaximumBufferLength;
                 }
+            }
+        }
+
+        public static double MaximumOutputCallbackTimeMilliseconds
+        {
+            get
+            {
+                lock (_instanceLock)
+                {
+                    return _instance?.MaximumOutputCallbackTimeMilliseconds ?? 0;
+                }
+            }
+        }
+
+        public static void ResetMaximumOutputCallbackTime()
+        {
+            lock (_instanceLock)
+            {
+                _instance?.ResetMaximumOutputCallbackTime();
             }
         }
 

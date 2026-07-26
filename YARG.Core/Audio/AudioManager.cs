@@ -36,6 +36,7 @@ namespace YARG.Core.Audio
         protected internal Dictionary<string, VenueSampleChannel>  VenueSamples     = new();
         protected internal int PlaybackLatency;
         protected internal virtual double PlaybackStartDelay => PlaybackLatency / 1000.0;
+        protected internal virtual double MaximumOutputCallbackTimeMilliseconds => 0;
         protected internal int MinimumBufferLength;
         protected internal int MaximumBufferLength;
 
@@ -144,6 +145,8 @@ namespace YARG.Core.Audio
         }
 
         protected internal virtual bool ReinitializeOutput(int bufferLength) => false;
+
+        protected internal virtual void ResetMaximumOutputCallbackTime() { }
 
         protected internal virtual void SetSingleMixer(bool enabled) { }
 
