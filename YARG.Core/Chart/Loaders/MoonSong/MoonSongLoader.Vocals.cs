@@ -70,25 +70,26 @@ namespace YARG.Core.Chart
             var textEvents = GetTextEvents(moonChart);
             List<VocalsPhrase> mergedPhrases = new();
             TrimOrphanPhrases(notePhrases, otherPhrases);
+            var staticShiftPhrases = moonChart.specialPhrases.Where(p => p.type == MoonPhrase.Type.Vocals_LyricShift).ToList();
             if (harmonyPart is 1)
             {
                 var harm3Phrases =
                     GetVocalsPhrases(_moonSong.GetChart(MoonSong.MoonInstrument.Harmony3, MoonSong.Difficulty.Expert),
                         2, true);
                 mergedPhrases = MergePhrases(staticLyricPhrases, harm3Phrases);
-                mergedPhrases = SplitStaticLyricPhrases(mergedPhrases);
+                SplitStaticLyricPhrases(ref mergedPhrases, staticShiftPhrases);
             }
 
             if (harmonyPart is 0)
             {
-                staticLyricPhrases = SplitStaticLyricPhrases(staticLyricPhrases);
+                SplitStaticLyricPhrases(ref staticLyricPhrases, staticShiftPhrases);
             }
 
             foreach (var p in staticLyricPhrases)
             {
                 var txt = string.Join("", p.Lyrics.Select(l => l.JoinOrHyphenateWithNext ? l.Text : l.Text + " "));
-                YargLogger.LogFormatDebug("Merged phrase: {0} (tick {1}, length {2}, JoinWithNext: {3})",
-                    txt, p.Tick, p.TickLength, p.JoinWithNext);
+                YargLogger.LogFormatDebug("Merged phrase: {0} (tick {1}, length {2})",
+                    txt, p.Tick, p.TickLength);
             }
             return new(isHarmony, notePhrases, staticLyricPhrases, mergedPhrases, otherPhrases, textEvents);
         }
@@ -131,7 +132,6 @@ namespace YARG.Core.Chart
 
             int moonNoteIndex = 0;
             int moonTextIndex = 0;
-            int staticShiftPhraseIndex = 0;
 
             VocalNote? carriedNote = null;
             VocalNote? previousParentLyric = null;
@@ -199,28 +199,7 @@ namespace YARG.Core.Chart
                         if (lyric.IsEmpty)
                             continue;
 
-                        while (staticShiftPhraseIndex < moonChart.specialPhrases.Count &&
-                            moonChart.specialPhrases[staticShiftPhraseIndex].tick < moonEvent.tick)
-                        {
-                            staticShiftPhraseIndex++;
-                        }
-                        bool isStaticShift = false;
-                        if (moonTextIndex < moonChart.events.Count)
-                        {
-                            uint nextEventTick = moonChart.events[moonTextIndex].tick;
-                            for (int i = staticShiftPhraseIndex; i < moonChart.specialPhrases.Count; i++)
-                            {
-                                var shiftPhrase = moonChart.specialPhrases[i];
-                                if (shiftPhrase.tick >= nextEventTick)
-                                    break;
-                                if (shiftPhrase.type == MoonPhrase.Type.Vocals_LyricShift)
-                                {
-                                    isStaticShift = true;
-                                    break;
-                                }
-                            }
-                        }
-                        ProcessLyric(lyrics, lyric, moonEvent.tick, isStaticShift, out lyricFlags);
+                        ProcessLyric(lyrics, lyric, moonEvent.tick, out lyricFlags);
                     }
 
                     // Create new note
@@ -288,6 +267,34 @@ namespace YARG.Core.Chart
             return phrases;
         }
 
+        /// <summary>
+        /// Attempts to provide lengths for lyrics events in a phrase by associating them with vocal notes.
+        /// </summary>
+        /// <param name="phrase">The phrase containing the lyrics and vocal notes.</param>
+        /// <remarks>
+        /// This is a hack. This should really be done in the actual creation of the lyric events, but it proves difficult there
+        /// due to vocal slides.
+        /// </remarks>
+        private static void FixLyricLengths(VocalsPhrase phrase)
+        {
+            for (var i = 0; i < phrase.Lyrics.Count; i++)
+            {
+                var lyric = phrase.Lyrics[i];
+                var note = GetProbableNoteForLyric(lyric, phrase.PhraseParentNote.ChildNotes);
+                if (note != null)
+                {
+                    lyric.TimeLength = note.TotalTimeEnd - note.Time;
+                    lyric.TickLength = note.TotalTickEnd - note.Tick;
+                }
+                else
+                {
+                    YargLogger.LogFormatWarning(
+                        "Could not find a note for lyric '{0}' at tick {1} in phrase at tick {2}",
+                        lyric.Text, lyric.Tick, phrase.Tick);
+                }
+            }
+        }
+
         private static VocalsPhrase MergePhrasePair(VocalsPhrase mainPhrase, VocalsPhrase otherPhrase)
         {
             var mergedLyrics = new List<LyricEvent>();
@@ -333,43 +340,20 @@ namespace YARG.Core.Chart
 
             mainPhrase.PhraseParentNote.AddChildNote(otherPhrase.PhraseParentNote.Clone());
 
-            // var startTime = Math.Min(mainPhrase.Time, otherPhrase.Time);
-            // var startTick = Math.Min(mainPhrase.Tick, otherPhrase.Tick);
-            // return new VocalsPhrase(
-            //     startTime,
-            //     Math.Max(mainPhrase.TimeEnd, otherPhrase.TimeEnd) - startTime,
-            //     startTick,
-            //     Math.Max(mainPhrase.TickLength, otherPhrase.TickLength),
-            //     mainPhrase.PhraseParentNote.Clone(),
-            //     mergedLyrics,
-            //     false // It should not have been split yet
-            // );
             return new VocalsPhrase(
                 mainPhrase.Time,
                 mainPhrase.TimeLength,
                 mainPhrase.Tick,
                 mainPhrase.TickLength,
                 mainPhrase.PhraseParentNote.Clone(),
-                mergedLyrics,
-                false // It should not have been split yet
+                mergedLyrics
             );
-        }
-
-        private static void LogPhrase(VocalsPhrase phrase, string message)
-        {
-            YargLogger.LogFormatDebug<string, uint, int, string>("{0} phrase at tick {1} with {2} lyrics: {3}",
-                message, phrase.Tick, phrase.Lyrics.Count,
-                string.Join(", ", phrase.Lyrics.Select(l => $"'{l.Text}'")));
         }
 
         private static List<VocalsPhrase> MergePhrases(List<VocalsPhrase> mainPhrases, List<VocalsPhrase> otherPhrases)
         {
             var result = new List<VocalsPhrase>();
             var otherIdx = 0;
-            // YargLogger.LogDebug("Main Phrases:");
-            // mainPhrases.ForEach(p => LogPhrase(p, "Main"));
-            // YargLogger.LogDebug("OtherPhrases:");
-            // otherPhrases.ForEach(p => LogPhrase(p, "Other"));
 
             foreach (var mainPhrase in mainPhrases)
             {
@@ -393,141 +377,207 @@ namespace YARG.Core.Chart
             // Emit any remaining other-only phrases
             while (otherIdx < otherPhrases.Count)
             {
-                YargLogger.LogFormatDebug("Emitting remaining other-only phrase at tick {0}",
-                    otherPhrases[otherIdx].Tick);
                 result.Add(otherPhrases[otherIdx++]);
             }
-
-            // result.ForEach(phrase => LogPhrase(phrase, "Result"));
 
             return result;
         }
 
-        private static List<VocalsPhrase> SplitStaticLyricPhrases(List<VocalsPhrase> phrases)
+        private void SplitStaticLyricPhrases(ref List<VocalsPhrase> phrases, List<MoonPhrase> staticShiftPhrases)
         {
-            List<VocalsPhrase> staticPhrases = new();
+            // Pre-allocate to avoid resizing overhead
+            var finalPhrases = new List<VocalsPhrase>(phrases.Count * 2);
+            int currentShiftIndex = 0;
+
             foreach (var phrase in phrases)
             {
-                staticPhrases.AddRange(SplitPhraseByIndices(phrase, GetSplitIndices(phrase).ToArray()));
+                // Try splitting by static shift first
+                if (TrySplitByStaticShift(phrase, staticShiftPhrases, ref currentShiftIndex, out var staticSplits))
+                {
+                    // If the phrase was split, bypass auto-splitting entirely
+                    finalPhrases.AddRange(staticSplits);
+                    continue;
+                }
+
+                var timeSplits = SplitPhraseByTime(phrase);
+
+                foreach (var timeSplitPhrase in timeSplits)
+                {
+                    finalPhrases.AddRange(SplitPhraseByCharacterCount(timeSplitPhrase));
+                }
             }
 
-            staticPhrases.RemoveAll(phrase => phrase.Lyrics.Count == 0);
-
-            return staticPhrases;
+            phrases = finalPhrases;
+            phrases.RemoveAll(phrase => phrase.Lyrics.Count == 0);
         }
 
-        private static void FixLyricLengths(VocalsPhrase phrase)
+        private bool TrySplitByStaticShift(VocalsPhrase phrase, List<MoonPhrase> staticShiftPhrases,
+            ref int currentShiftIndex, out List<VocalsPhrase> splitPhrases)
         {
-            for (var i = 0; i < phrase.Lyrics.Count; i++)
+            splitPhrases = new();
+
+            if (staticShiftPhrases.Count == 0 || currentShiftIndex >= staticShiftPhrases.Count)
+            {
+                splitPhrases.Add(phrase);
+                return false;
+            }
+
+            var shift = staticShiftPhrases[currentShiftIndex].tick;
+
+            // Fast-forward shift index if it's strictly before this phrase
+            while (shift < phrase.Tick)
+            {
+                currentShiftIndex++;
+                if (currentShiftIndex >= staticShiftPhrases.Count)
+                {
+                    splitPhrases.Add(phrase);
+                    return false;
+                }
+
+                shift = staticShiftPhrases[currentShiftIndex].tick;
+            }
+
+            // If the next shift is at or after the phrase ends, it doesn't affect this phrase
+            if (shift >= phrase.TickEnd)
+            {
+                splitPhrases.Add(phrase);
+                return false;
+            }
+
+            // A static shift falls inside the phrase; perform the split
+            var lastTick = phrase.Tick;
+            var lastTime = phrase.Time;
+
+            while (currentShiftIndex < staticShiftPhrases.Count)
+            {
+                shift = staticShiftPhrases[currentShiftIndex].tick;
+                if (shift >= phrase.TickEnd) break;
+
+                splitPhrases.Add(CreateSubPhrase(phrase, lastTime, lastTick, _moonSong.TickToTime(shift), shift));
+
+                // Advance trackers to the current shift tick
+                lastTick = shift;
+                lastTime = _moonSong.TickToTime(shift);
+
+                currentShiftIndex++;
+            }
+
+            // Add the remainder of the phrase
+            splitPhrases.Add(CreateSubPhrase(phrase, lastTime, lastTick, phrase.TimeEnd, phrase.TickEnd));
+
+            return true;
+        }
+
+        private static List<VocalsPhrase> SplitPhraseByTime(VocalsPhrase phrase)
+        {
+            var resultPhrases = new List<VocalsPhrase>();
+
+            if (phrase.Lyrics.Count == 0)
+            {
+                resultPhrases.Add(phrase);
+                return resultPhrases;
+            }
+
+            var sliceStartTime = phrase.Time;
+            var sliceStartTick = phrase.Tick;
+            LyricEvent previousLyric = phrase.Lyrics[0];
+
+            foreach (var lyric in phrase.Lyrics)
+            {
+                if (lyric.Time - previousLyric.TimeEnd > 0.6f && !previousLyric.JoinOrHyphenateWithNext)
+                {
+                    resultPhrases.Add(CreateSubPhrase(phrase, sliceStartTime, sliceStartTick, lyric.Time, lyric.Tick));
+                    sliceStartTime = lyric.Time;
+                    sliceStartTick = lyric.Tick;
+                }
+
+                previousLyric = lyric;
+            }
+
+            resultPhrases.Add(CreateSubPhrase(phrase, sliceStartTime, sliceStartTick, phrase.TimeEnd, phrase.TickEnd));
+
+            // Optimization: avoid returning a new VocalsPhrase object if no split actually occurred
+            if (resultPhrases.Count == 1)
+            {
+                resultPhrases[0] = phrase;
+            }
+
+            return resultPhrases;
+        }
+
+        private static List<VocalsPhrase> SplitPhraseByCharacterCount(VocalsPhrase phrase, int maxCharCap = 50)
+        {
+            if (phrase.Lyrics.Count == 0)
+            {
+                return new List<VocalsPhrase> { phrase };
+            }
+
+            int totalCharacters = 0;
+            foreach (var lyric in phrase.Lyrics)
+            {
+                totalCharacters += lyric.Text?.Length ?? 0;
+            }
+
+            if (totalCharacters <= maxCharCap)
+            {
+                return new List<VocalsPhrase> { phrase };
+            }
+
+            // Determine target size for balanced chunks
+            int numChunks = (int)Math.Ceiling(totalCharacters / (maxCharCap / 2.0));
+            int targetChunkSize = (int)Math.Ceiling((double)totalCharacters / numChunks);
+
+            var resultPhrases = new List<VocalsPhrase>();
+            int currentChunkLength = 0;
+
+            var sliceStartTime = phrase.Time;
+            var sliceStartTick = phrase.Tick;
+
+            for (int i = 0; i < phrase.Lyrics.Count; i++)
             {
                 var lyric = phrase.Lyrics[i];
-                var note = GetProbableNoteForLyric(lyric, phrase.PhraseParentNote.ChildNotes);
-                if (note != null)
+                currentChunkLength += lyric.Text?.Length ?? 0;
+
+                bool isLastLyric = (i == phrase.Lyrics.Count - 1);
+                bool canSplitHere = !lyric.JoinOrHyphenateWithNext;
+
+                if (!isLastLyric && canSplitHere && currentChunkLength >= targetChunkSize)
                 {
-                    lyric.TimeLength = note.TotalTimeEnd - note.Time;
-                    lyric.TickLength = note.TotalTickEnd - note.Tick;
-                }
-                else
-                {
-                    YargLogger.LogFormatWarning(
-                        "Could not find a note for lyric '{0}' at tick {1} in phrase at tick {2}",
-                        lyric.Text, lyric.Tick, phrase.Tick);
+                    // Split after current lyric: next chunk starts at the next lyric's timestamp
+                    var nextLyric = phrase.Lyrics[i + 1];
+
+                    resultPhrases.Add(CreateSubPhrase(
+                        phrase,
+                        sliceStartTime,
+                        sliceStartTick,
+                        nextLyric.Time,
+                        nextLyric.Tick
+                    ));
+
+                    sliceStartTime = nextLyric.Time;
+                    sliceStartTick = nextLyric.Tick;
+                    currentChunkLength = 0;
                 }
             }
+
+            // Add remaining tail chunk up to phrase end
+            resultPhrases.Add(CreateSubPhrase(
+                phrase,
+                sliceStartTime,
+                sliceStartTick,
+                phrase.TimeEnd,
+                phrase.TickEnd
+            ));
+
+            return resultPhrases;
         }
 
-        private static IEnumerable<int> GetSplitIndices(VocalsPhrase phrase)
-        {
-            var staticShifts = new List<int>();
-            var timeShifts = new List<int>();
-            var characterCounter = 0;
-            for (var i = 0; i < phrase.Lyrics.Count - 1; i++)
-            {
-                var lyric = phrase.Lyrics[i];
-                var nextLyric = phrase.Lyrics[i + 1];
-                characterCounter += lyric.Text.Length;
-
-                if (lyric.StaticShift)
-                {
-                    YargLogger.LogFormatDebug(
-                        "Lyric '{0}' at tick {1} has a static shift, splitting phrase at character index {2}",
-                        lyric.Text, lyric.Tick, characterCounter);
-                    staticShifts.Add(characterCounter);
-                }
-                else if (staticShifts.Count == 0 && (nextLyric.Time - lyric.TimeEnd) > 0.6f &&
-                    !lyric.JoinOrHyphenateWithNext)
-                {
-                    YargLogger.LogFormatDebug(
-                        "Lyric '{0}' at tick {1} has a time gap of {2} seconds to next lyric, splitting phrase at character index {3}",
-                        lyric.Text, lyric.Tick, nextLyric.Time - lyric.TimeEnd, characterCounter);
-                    timeShifts.Add(characterCounter);
-                }
-
-            }
-
-            // If we find any StaticShift flags, disable auto-splitting entirely and exit early.
-            if (staticShifts.Count > 0)
-            {
-                return staticShifts;
-            }
-
-            // Use a HashSet to guarantee we never place two indices on the exact same character boundary.
-            var finalIndices = new HashSet<int>(timeShifts);
-
-            const int MIN_CHARS_FOR_SPLIT = 30;
-            const int MIN_CHARS_PER_SECTION = 20;
-
-            var tentativeIndices = new List<int>();
-            var previousIndex = 0;
-
-            // Anchor points include existing time shifts and the end of the evaluated phrase.
-            var anchorPoints = timeShifts.ToList();
-            anchorPoints.Add(characterCounter);
-
-            foreach (var index in anchorPoints)
-            {
-                var gap = index - previousIndex;
-                if (gap > MIN_CHARS_FOR_SPLIT)
-                {
-                    int numExtraIndices = (gap / MIN_CHARS_PER_SECTION) - 1;
-                    for (var i = 1; i <= numExtraIndices; i++)
-                    {
-                        // Insert the indexes proportionally through the section.
-                        tentativeIndices.Add(previousIndex + (gap * i) / (numExtraIndices + 1));
-                    }
-                }
-
-                previousIndex = index;
-            }
-
-            // --- PASS 3: Snap tentative auto-splits to valid lyric boundaries ---
-            if (tentativeIndices.Count > 0)
-            {
-                var currentIndex = 0;
-                characterCounter = 0;
-
-                for (var i = 0; i < phrase.Lyrics.Count - 1 && currentIndex < tentativeIndices.Count; i++)
-                {
-                    var lyric = phrase.Lyrics[i];
-                    var currentSlice = tentativeIndices[currentIndex];
-                    characterCounter += lyric.Text.Length;
-
-                    if (!lyric.JoinOrHyphenateWithNext && characterCounter >= currentSlice)
-                    {
-                        // The HashSet ensures that if this snaps to an existing timeShift boundary, it won't duplicate.
-                        finalIndices.Add(characterCounter);
-                        currentIndex++;
-                    }
-                }
-            }
-
-            // Convert to a sorted list for the final return.
-            var sortedResult = finalIndices.ToList();
-            sortedResult.Sort();
-
-            return sortedResult;
-        }
-
+        /// <summary>
+        /// Finds the vocal note that is probably the note associated with this lyric, based on the smallest time difference.
+        /// </summary>
+        /// <param name="lyric">The lyric to match against.</param>
+        /// <param name="notes">The list of vocal notes in the phrase.</param>
+        /// <returns>The found vocal note, or null if no notes were provided</returns>
         private static VocalNote? GetProbableNoteForLyric(LyricEvent lyric, List<VocalNote> notes)
         {
             // Get the note with the smallest time difference from the lyric
@@ -547,54 +597,48 @@ namespace YARG.Core.Chart
             return probableNote;
         }
 
-        private static List<VocalsPhrase> SplitPhraseByIndices(VocalsPhrase phrase, int[] splitIndices)
+        /// <summary>
+        /// Take a source phrase, and return a section of that phrase between startTick and endTick, end-exclusive.
+        /// This includes only the lyrics that fall within the specified tick range.
+        /// </summary>
+        /// <param name="source">The phrase to be split.</param>
+        /// <param name="startTime">Start time of the new phrase.</param>
+        /// <param name="startTick">Start tick of the new phrase.</param>
+        /// <param name="endTime">End time of the new phrase.</param>
+        /// <param name="endTick">End tick of the new phrase.</param>
+        /// <returns>A section of the input phrase between startTick and endTick, end-exclusive.</returns>
+        private static VocalsPhrase CreateSubPhrase(VocalsPhrase source, double startTime, uint startTick,
+            double endTime, uint endTick)
         {
-            List<VocalsPhrase> splitPhrases = new();
-            var splitIndex = 0;
-            var lastSplitLyricIndex = 0;
-            var startTime = phrase.Time;
-            var startTick = phrase.Tick;
-            var characterCount = 0;
-
-            for (var i = 0; i < phrase.Lyrics.Count; i++)
+            int startIndex = -1;
+            int count = 0;
+            for (int i = 0; i < source.Lyrics.Count; i++)
             {
-                var lyric = phrase.Lyrics[i];
-                characterCount += lyric.Text.Length;
-
-                if (i == phrase.Lyrics.Count - 1)
+                var lyric = source.Lyrics[i];
+                if (lyric.Tick >= startTick && lyric.Tick < endTick)
                 {
-                    splitPhrases.Add(CreateSubPhrase(phrase, startTime, startTick,
-                        phrase.TimeEnd, phrase.TickEnd, lastSplitLyricIndex, i - lastSplitLyricIndex + 1, false));
-                    break;
+                    if (startIndex == -1)
+                    {
+                        startIndex = i;
+                    }
+                    count++;
                 }
-
-                if (splitIndex < splitIndices.Length && characterCount >= splitIndices[splitIndex] &&
-                    !lyric.JoinOrHyphenateWithNext)
+                else if (lyric.Tick >= endTick)
                 {
-                    var nextLyric = phrase.Lyrics[i + 1];
-                    var endTime = nextLyric.Time;
-                    var endTick = nextLyric.Tick;
-                    splitPhrases.Add(CreateSubPhrase(phrase, startTime, startTick,
-                        endTime, endTick, lastSplitLyricIndex, i - lastSplitLyricIndex + 1, true));
-                    startTime = endTime;
-                    startTick = endTick;
-                    lastSplitLyricIndex = i + 1;
-                    splitIndex++;
+                    break;
                 }
             }
 
-            return splitPhrases;
-        }
+            if (startIndex == -1)
+            {
+                YargLogger.LogFormatWarning("No lyrics found in split of phrase at tick {0} between ticks {1} and {2}.", source.Tick, startTick, endTick);
+            }
 
-        private static VocalsPhrase CreateSubPhrase(VocalsPhrase source, double startTime, uint startTick,
-            double endTime, uint endTick, int lyricStart, int lyricCount, bool joinWithNext)
-        {
             return new VocalsPhrase(
                 startTime, endTime - startTime,
                 startTick, endTick - startTick,
                 source.PhraseParentNote,
-                source.Lyrics.GetRange(lyricStart, lyricCount),
-                joinWithNext);
+                startIndex == -1 ? new List<LyricEvent>() : source.Lyrics.GetRange(startIndex, count));
         }
 
         private void TrimOrphanPhrases(List<VocalsPhrase> vocalPhrases, List<Phrase> otherPhrases)
@@ -620,18 +664,12 @@ namespace YARG.Core.Chart
             }
         }
 
-        private void ProcessLyric(List<LyricEvent> lyrics, ReadOnlySpan<char> lyric, uint lyricTick, bool isStaticShift,
-            out LyricSymbolFlags lyricFlags)
+        private void ProcessLyric(List<LyricEvent> lyrics, ReadOnlySpan<char> lyric, uint lyricTick, out LyricSymbolFlags lyricFlags)
         {
             LyricSymbols.DeferredLyricJoinWorkaround(lyrics, ref lyric, addHyphen: true);
 
             // Handle lyric modifiers
             lyricFlags = LyricSymbols.GetLyricFlags(lyric);
-
-            if (isStaticShift)
-            {
-                lyricFlags |= LyricSymbolFlags.StaticShift;
-            }
 
             const LyricSymbolFlags noteTypeMask = LyricSymbolFlags.NonPitched | LyricSymbolFlags.PitchSlide;
             if ((lyricFlags & noteTypeMask) == noteTypeMask)

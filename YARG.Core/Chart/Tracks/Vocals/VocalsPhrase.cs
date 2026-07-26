@@ -19,8 +19,6 @@ namespace YARG.Core.Chart
 
         public bool IsEmpty => PhraseParentNote.IsEmptyPhrase;
 
-        public bool JoinWithNext { get; }
-
         public VocalsPhrase(double time, double timeLength, uint tick, uint tickLength,
             VocalNote phraseParentNote, List<LyricEvent> lyrics)
             : base(time, timeLength, tick, tickLength)
@@ -35,19 +33,11 @@ namespace YARG.Core.Chart
             Lyrics = lyrics;
         }
 
-        public VocalsPhrase(double time, double timeLength, uint tick, uint tickLength,
-            VocalNote phraseParentNote, List<LyricEvent> lyrics, bool joinWithNext)
-            : this(time, timeLength, tick, tickLength, phraseParentNote, lyrics)
-        {
-            JoinWithNext = joinWithNext;
-        }
-
         public VocalsPhrase(VocalsPhrase other)
             : base(other)
         {
             PhraseParentNote = other.PhraseParentNote.Clone();
             Lyrics = other.Lyrics.Duplicate();
-            JoinWithNext = other.JoinWithNext;
         }
 
         public VocalsPhrase Clone()
