@@ -315,20 +315,29 @@ namespace YARG.Core.Chart
                     mergedLyrics.Add(otherPhrase.Lyrics[mergedLyricIdx++]);
                 }
 
-                // Add the main lyric
-                mergedLyrics.Add(mainLyric);
-
                 // If there's a simultaneous syllable in the merged part...
                 if (mergedLyricIdx < otherPhrase.Lyrics.Count &&
                     otherPhrase.Lyrics[mergedLyricIdx].Tick == mainLyric.Tick)
                 {
                     var simultaneousMergedLyric = otherPhrase.Lyrics[mergedLyricIdx++];
-                    // ...and its text isn't an exact match to the main syllable...
-                    if (!string.Equals(simultaneousMergedLyric.Text, mainLyric.Text, StringComparison.OrdinalIgnoreCase))
+                    // ...and their texts match...
+                    if (string.Equals(simultaneousMergedLyric.Text, mainLyric.Text, StringComparison.OrdinalIgnoreCase))
+                    {
+                        // ...add the longer of the two lyrics
+                        mergedLyrics.Add(simultaneousMergedLyric.TimeLength > mainLyric.TimeLength ? simultaneousMergedLyric : mainLyric);
+                    }
+                    // ...otherwise, if its text isn't an exact match to the main syllable...
+                    else
                     {
                         // ...add it immediately after the main syllable
+                        mergedLyrics.Add(mainLyric);
                         mergedLyrics.Add(simultaneousMergedLyric);
                     }
+                }
+                else
+                {
+                    // ...if there is not a simultaneous syllable, add the main lyric
+                    mergedLyrics.Add(mainLyric);
                 }
             }
 
