@@ -268,13 +268,34 @@ namespace YARG.Core.Chart
         }
 
         /// <summary>
+        /// Finds the vocal note that is probably the note associated with this lyric, based on the smallest time difference.
+        /// </summary>
+        /// <param name="lyric">The lyric to match against.</param>
+        /// <param name="notes">The list of vocal notes in the phrase.</param>
+        /// <returns>The found vocal note, or null if no notes were provided</returns>
+        private static VocalNote? GetProbableNoteForLyric(LyricEvent lyric, List<VocalNote> notes)
+        {
+            // Get the note with the smallest time difference from the lyric
+            var smallestTimeDelta = double.MaxValue;
+            VocalNote? probableNote = null;
+
+            foreach (var note in notes)
+            {
+                var timeDelta = Math.Abs(lyric.Time - note.Time);
+                if (timeDelta < smallestTimeDelta)
+                {
+                    smallestTimeDelta = timeDelta;
+                    probableNote = note;
+                }
+            }
+
+            return probableNote;
+        }
+
+        /// <summary>
         /// Attempts to provide lengths for lyrics events in a phrase by associating them with vocal notes.
         /// </summary>
         /// <param name="phrase">The phrase containing the lyrics and vocal notes.</param>
-        /// <remarks>
-        /// This is a hack. This should really be done in the actual creation of the lyric events, but it proves difficult there
-        /// due to vocal slides.
-        /// </remarks>
         private static void FixLyricLengths(VocalsPhrase phrase)
         {
             for (var i = 0; i < phrase.Lyrics.Count; i++)
@@ -394,16 +415,32 @@ namespace YARG.Core.Chart
 
         private void SplitStaticLyricPhrases(ref List<VocalsPhrase> phrases, List<MoonPhrase> staticShiftPhrases)
         {
-            // Pre-allocate to avoid resizing overhead
+            var staticShifts = new List<uint>(staticShiftPhrases.Count);
+            foreach (var p in staticShiftPhrases)
+            {
+                staticShifts.Add(p.tick);
+            }
+
+            foreach (var phrase in phrases)
+            {
+                foreach (var lyric in phrase.Lyrics)
+                {
+                    if ((lyric.Flags & LyricSymbolFlags.StaticShift) != 0)
+                    {
+                        staticShifts.Add(lyric.TickEnd);
+                    }
+                }
+            }
+
+            staticShifts.Sort();
+
             var finalPhrases = new List<VocalsPhrase>(phrases.Count * 2);
             int currentShiftIndex = 0;
 
             foreach (var phrase in phrases)
             {
-                // Try splitting by static shift first
-                if (TrySplitByStaticShift(phrase, staticShiftPhrases, ref currentShiftIndex, out var staticSplits))
+                if (TrySplitByStaticShift(phrase, staticShifts, ref currentShiftIndex, out var staticSplits))
                 {
-                    // If the phrase was split, bypass auto-splitting entirely
                     finalPhrases.AddRange(staticSplits);
                     continue;
                 }
@@ -416,100 +453,104 @@ namespace YARG.Core.Chart
                 }
             }
 
+            finalPhrases.RemoveAll(phrase => phrase.Lyrics.Count == 0);
             phrases = finalPhrases;
-            phrases.RemoveAll(phrase => phrase.Lyrics.Count == 0);
         }
 
-        private bool TrySplitByStaticShift(VocalsPhrase phrase, List<MoonPhrase> staticShiftPhrases,
+        private bool TrySplitByStaticShift(VocalsPhrase phrase, List<uint> staticShifts,
             ref int currentShiftIndex, out List<VocalsPhrase> splitPhrases)
         {
-            splitPhrases = new();
+            splitPhrases = null!;
 
-            if (staticShiftPhrases.Count == 0 || currentShiftIndex >= staticShiftPhrases.Count)
+            if (staticShifts.Count == 0 || currentShiftIndex >= staticShifts.Count)
             {
-                splitPhrases.Add(phrase);
                 return false;
             }
 
-            var shift = staticShiftPhrases[currentShiftIndex].tick;
+            var shift = staticShifts[currentShiftIndex];
 
-            // Fast-forward shift index if it's strictly before this phrase
             while (shift < phrase.Tick)
             {
                 currentShiftIndex++;
-                if (currentShiftIndex >= staticShiftPhrases.Count)
+                if (currentShiftIndex >= staticShifts.Count)
                 {
-                    splitPhrases.Add(phrase);
                     return false;
                 }
 
-                shift = staticShiftPhrases[currentShiftIndex].tick;
+                shift = staticShifts[currentShiftIndex];
             }
 
-            // If the next shift is at or after the phrase ends, it doesn't affect this phrase
             if (shift >= phrase.TickEnd)
             {
-                splitPhrases.Add(phrase);
                 return false;
             }
 
-            // A static shift falls inside the phrase; perform the split
+            splitPhrases = new List<VocalsPhrase>();
             var lastTick = phrase.Tick;
             var lastTime = phrase.Time;
 
-            while (currentShiftIndex < staticShiftPhrases.Count)
+            while (currentShiftIndex < staticShifts.Count)
             {
-                shift = staticShiftPhrases[currentShiftIndex].tick;
+                shift = staticShifts[currentShiftIndex];
                 if (shift >= phrase.TickEnd) break;
 
-                splitPhrases.Add(CreateSubPhrase(phrase, lastTime, lastTick, _moonSong.TickToTime(shift), shift));
+                splitPhrases.Add(CreateSubPhraseByTick(phrase, lastTime, lastTick, _moonSong.TickToTime(shift), shift));
 
-                // Advance trackers to the current shift tick
                 lastTick = shift;
                 lastTime = _moonSong.TickToTime(shift);
-
                 currentShiftIndex++;
             }
 
-            // Add the remainder of the phrase
-            splitPhrases.Add(CreateSubPhrase(phrase, lastTime, lastTick, phrase.TimeEnd, phrase.TickEnd));
-
+            splitPhrases.Add(CreateSubPhraseByTick(phrase, lastTime, lastTick, phrase.TimeEnd, phrase.TickEnd));
             return true;
         }
 
         private static List<VocalsPhrase> SplitPhraseByTime(VocalsPhrase phrase)
         {
-            var resultPhrases = new List<VocalsPhrase>();
-
             if (phrase.Lyrics.Count == 0)
             {
-                resultPhrases.Add(phrase);
-                return resultPhrases;
+                // Fix: Truly avoid list allocation if no work is needed
+                return new List<VocalsPhrase>
+                {
+                    phrase
+                };
             }
 
+            var resultPhrases = new List<VocalsPhrase>();
             var sliceStartTime = phrase.Time;
             var sliceStartTick = phrase.Tick;
-            LyricEvent previousLyric = phrase.Lyrics[0];
+            int sliceStartIndex = 0;
 
-            foreach (var lyric in phrase.Lyrics)
+            LyricEvent previousLyric = phrase.Lyrics[0];
+            for (int i = 1; i < phrase.Lyrics.Count; i++)
             {
-                if (lyric.Time - previousLyric.TimeEnd > 0.6f && !previousLyric.JoinOrHyphenateWithNext)
+                var lyric = phrase.Lyrics[i];
+
+                if (lyric.Time - previousLyric.TimeEnd > 0.6f && !previousLyric.JoinOrHyphenateWithNext && (i - sliceStartIndex) >= 3)
                 {
-                    resultPhrases.Add(CreateSubPhrase(phrase, sliceStartTime, sliceStartTick, lyric.Time, lyric.Tick));
+                    int count = i - sliceStartIndex;
+                    resultPhrases.Add(CreateSubPhraseByIndex(phrase, sliceStartIndex, count, sliceStartTime,
+                        sliceStartTick, lyric.Time, lyric.Tick));
+
                     sliceStartTime = lyric.Time;
                     sliceStartTick = lyric.Tick;
+                    sliceStartIndex = i;
                 }
 
                 previousLyric = lyric;
             }
 
-            resultPhrases.Add(CreateSubPhrase(phrase, sliceStartTime, sliceStartTick, phrase.TimeEnd, phrase.TickEnd));
-
-            // Optimization: avoid returning a new VocalsPhrase object if no split actually occurred
-            if (resultPhrases.Count == 1)
+            if (sliceStartIndex == 0)
             {
-                resultPhrases[0] = phrase;
+                return new List<VocalsPhrase>
+                {
+                    phrase
+                };
             }
+
+            int finalCount = phrase.Lyrics.Count - sliceStartIndex;
+            resultPhrases.Add(CreateSubPhraseByIndex(phrase, sliceStartIndex, finalCount, sliceStartTime,
+                sliceStartTick, phrase.TimeEnd, phrase.TickEnd));
 
             return resultPhrases;
         }
@@ -518,7 +559,10 @@ namespace YARG.Core.Chart
         {
             if (phrase.Lyrics.Count == 0)
             {
-                return new List<VocalsPhrase> { phrase };
+                return new List<VocalsPhrase>
+                {
+                    phrase
+                };
             }
 
             int totalCharacters = 0;
@@ -529,18 +573,21 @@ namespace YARG.Core.Chart
 
             if (totalCharacters <= maxCharCap)
             {
-                return new List<VocalsPhrase> { phrase };
+                return new List<VocalsPhrase>
+                {
+                    phrase
+                };
             }
 
-            // Determine target size for balanced chunks
-            int numChunks = (int)Math.Ceiling(totalCharacters / (maxCharCap / 2.0));
-            int targetChunkSize = (int)Math.Ceiling((double)totalCharacters / numChunks);
+            int numChunks = (int) Math.Ceiling(totalCharacters / (maxCharCap * 0.75));
+            int targetChunkSize = (int) Math.Ceiling((double) totalCharacters / numChunks);
 
             var resultPhrases = new List<VocalsPhrase>();
             int currentChunkLength = 0;
 
             var sliceStartTime = phrase.Time;
             var sliceStartTick = phrase.Tick;
+            int sliceStartIndex = 0;
 
             for (int i = 0; i < phrase.Lyrics.Count; i++)
             {
@@ -552,71 +599,27 @@ namespace YARG.Core.Chart
 
                 if (!isLastLyric && canSplitHere && currentChunkLength >= targetChunkSize)
                 {
-                    // Split after current lyric: next chunk starts at the next lyric's timestamp
                     var nextLyric = phrase.Lyrics[i + 1];
+                    int count = (i + 1) - sliceStartIndex;
 
-                    resultPhrases.Add(CreateSubPhrase(
-                        phrase,
-                        sliceStartTime,
-                        sliceStartTick,
-                        nextLyric.Time,
-                        nextLyric.Tick
-                    ));
+                    resultPhrases.Add(CreateSubPhraseByIndex(phrase, sliceStartIndex, count, sliceStartTime,
+                        sliceStartTick, nextLyric.Time, nextLyric.Tick));
 
                     sliceStartTime = nextLyric.Time;
                     sliceStartTick = nextLyric.Tick;
+                    sliceStartIndex = i + 1;
                     currentChunkLength = 0;
                 }
             }
 
-            // Add remaining tail chunk up to phrase end
-            resultPhrases.Add(CreateSubPhrase(
-                phrase,
-                sliceStartTime,
-                sliceStartTick,
-                phrase.TimeEnd,
-                phrase.TickEnd
-            ));
+            int finalCount = phrase.Lyrics.Count - sliceStartIndex;
+            resultPhrases.Add(CreateSubPhraseByIndex(phrase, sliceStartIndex, finalCount, sliceStartTime,
+                sliceStartTick, phrase.TimeEnd, phrase.TickEnd));
 
             return resultPhrases;
         }
 
-        /// <summary>
-        /// Finds the vocal note that is probably the note associated with this lyric, based on the smallest time difference.
-        /// </summary>
-        /// <param name="lyric">The lyric to match against.</param>
-        /// <param name="notes">The list of vocal notes in the phrase.</param>
-        /// <returns>The found vocal note, or null if no notes were provided</returns>
-        private static VocalNote? GetProbableNoteForLyric(LyricEvent lyric, List<VocalNote> notes)
-        {
-            // Get the note with the smallest time difference from the lyric
-            var smallestTimeDelta = double.MaxValue;
-            VocalNote? probableNote = null;
-
-            foreach (var note in notes)
-            {
-                var timeDelta = Math.Abs(lyric.Time - note.Time);
-                if (timeDelta < smallestTimeDelta)
-                {
-                    smallestTimeDelta = timeDelta;
-                    probableNote = note;
-                }
-            }
-
-            return probableNote;
-        }
-
-        /// <summary>
-        /// Take a source phrase, and return a section of that phrase between startTick and endTick, end-exclusive.
-        /// This includes only the lyrics that fall within the specified tick range.
-        /// </summary>
-        /// <param name="source">The phrase to be split.</param>
-        /// <param name="startTime">Start time of the new phrase.</param>
-        /// <param name="startTick">Start tick of the new phrase.</param>
-        /// <param name="endTime">End time of the new phrase.</param>
-        /// <param name="endTick">End tick of the new phrase.</param>
-        /// <returns>A section of the input phrase between startTick and endTick, end-exclusive.</returns>
-        private static VocalsPhrase CreateSubPhrase(VocalsPhrase source, double startTime, uint startTick,
+        private static VocalsPhrase CreateSubPhraseByTick(VocalsPhrase source, double startTime, uint startTick,
             double endTime, uint endTick)
         {
             int startIndex = -1;
@@ -626,10 +629,7 @@ namespace YARG.Core.Chart
                 var lyric = source.Lyrics[i];
                 if (lyric.Tick >= startTick && lyric.Tick < endTick)
                 {
-                    if (startIndex == -1)
-                    {
-                        startIndex = i;
-                    }
+                    if (startIndex == -1) startIndex = i;
                     count++;
                 }
                 else if (lyric.Tick >= endTick)
@@ -640,14 +640,23 @@ namespace YARG.Core.Chart
 
             if (startIndex == -1)
             {
-                YargLogger.LogFormatWarning("No lyrics found in split of phrase at tick {0} between ticks {1} and {2}.", source.Tick, startTick, endTick);
+                YargLogger.LogFormatWarning("No lyrics found in split of phrase at tick {0} between ticks {1} and {2}.",
+                    source.Tick, startTick, endTick);
             }
 
+            return CreateSubPhraseByIndex(source, Math.Max(0, startIndex), count, startTime, startTick, endTime,
+                endTick);
+        }
+
+        private static VocalsPhrase CreateSubPhraseByIndex(VocalsPhrase source, int startIndex, int count,
+            double startTime, uint startTick, double endTime, uint endTick)
+        {
+            var lyricsSubset = count == 0 ? new List<LyricEvent>() : source.Lyrics.GetRange(startIndex, count);
             return new VocalsPhrase(
                 startTime, endTime - startTime,
                 startTick, endTick - startTick,
                 source.PhraseParentNote,
-                startIndex == -1 ? new List<LyricEvent>() : source.Lyrics.GetRange(startIndex, count));
+                lyricsSubset);
         }
 
         private void TrimOrphanPhrases(List<VocalsPhrase> vocalPhrases, List<Phrase> otherPhrases)
