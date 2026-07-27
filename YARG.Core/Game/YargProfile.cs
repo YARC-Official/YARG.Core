@@ -1,4 +1,5 @@
-﻿using System;
+#nullable disable
+using System;
 using System.IO;
 using Newtonsoft.Json;
 using YARG.Core.Chart;
@@ -31,13 +32,13 @@ namespace YARG.Core.Game
         public bool RangeEnabled;
 
         public int FourLaneDrumsHighwayOrderingLength;
-        public DrumsHighwayItem[]? FourLaneDrumsHighwayOrdering;
+        public DrumsHighwayItem[] FourLaneDrumsHighwayOrdering;
 
         public int ProDrumsHighwayOrderingLength;
-        public DrumsHighwayItem[]? ProDrumsHighwayOrdering;
+        public DrumsHighwayItem[] ProDrumsHighwayOrdering;
 
         public int FiveLaneDrumsHighwayOrderingLength;
-        public DrumsHighwayItem[]? FiveLaneDrumsHighwayOrdering;
+        public DrumsHighwayItem[] FiveLaneDrumsHighwayOrdering;
 
         public bool UseCymbalModels;
 
@@ -474,31 +475,22 @@ namespace YARG.Core.Game
 
             writer.Write((byte) OpenLaneDisplayType);
 
-            if (FourLaneDrumsHighwayOrdering != null)
+            writer.Write((byte) FourLaneDrumsHighwayOrdering.Length);
+            foreach (var item in FourLaneDrumsHighwayOrdering)
             {
-                writer.Write((byte) FourLaneDrumsHighwayOrdering!.Length);
-                foreach (var item in FourLaneDrumsHighwayOrdering!)
-                {
-                    writer.Write((byte) item);
-                }
+                writer.Write((byte) item);
             }
 
-            if (ProDrumsHighwayOrdering != null)
+            writer.Write((byte) ProDrumsHighwayOrdering.Length);
+            foreach (var item in ProDrumsHighwayOrdering)
             {
-                writer.Write((byte) ProDrumsHighwayOrdering!.Length);
-                foreach (var item in ProDrumsHighwayOrdering!)
-                {
-                    writer.Write((byte) item);
-                }
+                writer.Write((byte) item);
             }
 
-            if (FiveLaneDrumsHighwayOrdering != null)
+            writer.Write((byte) FiveLaneDrumsHighwayOrdering.Length);
+            foreach (var item in FiveLaneDrumsHighwayOrdering)
             {
-                writer.Write((byte) FiveLaneDrumsHighwayOrdering!.Length);
-                foreach (var item in FiveLaneDrumsHighwayOrdering!)
-                {
-                    writer.Write((byte) item);
-                }
+                writer.Write((byte) item);
             }
         }
 
