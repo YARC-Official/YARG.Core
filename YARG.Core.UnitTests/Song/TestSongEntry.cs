@@ -133,7 +133,7 @@ internal sealed class TestSongEntry : SongEntry
 
     public override YARGImage? LoadAlbumData() => null;
 
-    public override BackgroundResult? LoadBackground() => null;
+    public override BackgroundResult? LoadBackground(bool excludeYarground) => null;
 
     public override FixedArray<byte>? LoadMiloData() => null;
 }

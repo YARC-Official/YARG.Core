@@ -72,7 +72,8 @@ namespace YARG.Core.Engine
             // Resize the array if necessary
             if (Count == _items.Length)
             {
-                var newItems = new ActiveSustain<TNoteType>[_items.Length * 2];
+                int newCapacity = _items.Length == 0 ? 1 : _items.Length * 2;
+                var newItems = new ActiveSustain<TNoteType>[newCapacity];
                 _items.CopyTo(newItems, 0);
                 _items = newItems;
             }

@@ -13,8 +13,8 @@ namespace YARG.Core.Replays
         public readonly int Overhits;
         public readonly int SoloBonuses;
 
-        public ProKeysReplayStats(string name, KeysStats stats)
-            : base(name, stats)
+        public ProKeysReplayStats(string name, bool isReplayPlayer, KeysStats stats)
+            : base(name, stats, isReplayPlayer)
         {
             TotalNotes = stats.TotalNotes;
             NumNotesHit = stats.NotesHit;

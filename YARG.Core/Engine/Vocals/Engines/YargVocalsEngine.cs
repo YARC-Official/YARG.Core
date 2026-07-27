@@ -272,5 +272,7 @@ namespace YARG.Core.Engine.Vocals.Engines
         }
 
         protected override bool CanNoteBeHit(VocalNote note) => throw new NotImplementedException();
+
+        protected override bool ProximalLaneForgivesInput(int inputNote, VocalNote laneNote) => throw new NotImplementedException();
     }
 }

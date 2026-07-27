@@ -16,21 +16,24 @@ namespace YARG.Core.Game
                 StrumLeniencySmall = 0.03,
                 HitWindow =
                 {
-                    TremoloWindow = 0.200
+                    LaneAutohitWindow = 0.200,
+                    LaneProximityProtectionWindow = 0.100
                 }
             },
             Drums =
             {
                 HitWindow =
                 {
-                    TremoloWindow = 0.200
+                    LaneAutohitWindow = 0.200,
+                    LaneProximityProtectionWindow = 0.100
                 }
             },
             ProKeys =
             {
                 HitWindow =
                 {
-                    TremoloWindow = 0.200
+                    LaneAutohitWindow = 0.200,
+                    LaneProximityProtectionWindow = 0.100
                 }
             },
             Vocals =
@@ -53,7 +56,8 @@ namespace YARG.Core.Game
                     DynamicScale = 1,
                     DynamicSlope = 0.93,
                     DynamicGamma = 1.5,
-                    TremoloWindow = 0.160
+                    LaneAutohitWindow = 0.160,
+                    LaneProximityProtectionWindow = 0.080
                 }
             },
             Drums =
@@ -66,7 +70,8 @@ namespace YARG.Core.Game
                     DynamicScale = 1,
                     DynamicSlope = 0.60615,
                     DynamicGamma = 2,
-                    TremoloWindow = 0.160
+                    LaneAutohitWindow = 0.160,
+                    LaneProximityProtectionWindow = 0.080
                 }
             },
             Vocals =

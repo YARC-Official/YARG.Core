@@ -12,15 +12,14 @@ namespace YARG.Core.Replays
     public abstract class ReplayStats
     {
         public readonly string PlayerName;
-        public readonly int Score;
-        public readonly float Stars;
-        public readonly int TotalOverdrivePhrases;
-        public readonly int NumOverdrivePhrasesHit;
-        public readonly int NumOverdriveActivations;
-        public readonly float AverageMultiplier;
-        public readonly int NumPauses;
+        public readonly int    Score;
+        public readonly float  Stars;
+        public readonly int    TotalOverdrivePhrases;
+        public readonly int    NumOverdrivePhrasesHit;
+        public readonly int    NumOverdriveActivations;
+        public readonly bool   IsReplayPlayer;
 
-        protected ReplayStats(string name, BaseStats stats)
+        protected ReplayStats(string name, BaseStats stats, bool isReplayPlayer)
         {
             PlayerName = name;
             Score = stats.TotalScore;
@@ -28,8 +27,7 @@ namespace YARG.Core.Replays
             TotalOverdrivePhrases = stats.TotalStarPowerPhrases;
             NumOverdrivePhrasesHit = TotalOverdrivePhrases - stats.StarPowerPhrasesMissed;
             NumOverdriveActivations = stats.StarPowerActivationCount;
-            AverageMultiplier = 0;
-            NumPauses = 0;
+            IsReplayPlayer = isReplayPlayer;
         }
 
         protected ReplayStats(ref FixedArrayStream stream, int version)
@@ -40,8 +38,23 @@ namespace YARG.Core.Replays
             TotalOverdrivePhrases = stream.Read<int>(Endianness.Little);
             NumOverdrivePhrasesHit = stream.Read<int>(Endianness.Little);
             NumOverdriveActivations = stream.Read<int>(Endianness.Little);
-            AverageMultiplier = stream.Read<float>(Endianness.Little);
-            NumPauses = stream.Read<int>(Endianness.Little);
+            if (version <= 15)
+            {
+                 // Average Multiplier
+                 stream.Read<float>(Endianness.Little);
+                 // NumPauses
+                 stream.Read<int>(Endianness.Little);
+            }
+            // Figure out what version this should actually be
+            if (version >= 14)
+            {
+                IsReplayPlayer = stream.ReadBoolean();
+            }
+            else
+            {
+                // Possibly a lie, but we were already lying by omission
+                IsReplayPlayer = false;
+            }
         }
 
         public virtual void Serialize(BinaryWriter writer)
@@ -52,8 +65,7 @@ namespace YARG.Core.Replays
             writer.Write(TotalOverdrivePhrases);
             writer.Write(NumOverdrivePhrasesHit);
             writer.Write(NumOverdriveActivations);
-            writer.Write(AverageMultiplier);
-            writer.Write(NumPauses);
+            writer.Write(IsReplayPlayer);
         }
     }
 }

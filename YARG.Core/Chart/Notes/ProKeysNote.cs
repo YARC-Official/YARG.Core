@@ -13,6 +13,8 @@ namespace YARG.Core.Chart
         public int NoteMask     { get; private set; }
 
         public bool IsGlissando => (ProKeysFlags & ProKeysNoteFlags.Glissando) != 0;
+        public bool IsGlissandoStart => (ProKeysFlags & ProKeysNoteFlags.GlissandoStart) != 0;
+        public bool IsGlissandoEnd => (ProKeysFlags & ProKeysNoteFlags.GlissandoEnd) != 0;
 
         public bool IsSustain => TickLength > 0;
 
@@ -77,5 +79,7 @@ namespace YARG.Core.Chart
         None = 0,
 
         Glissando = 1 << 0,
+        GlissandoStart = 1 << 1,
+        GlissandoEnd = 1 << 2,
     }
 }

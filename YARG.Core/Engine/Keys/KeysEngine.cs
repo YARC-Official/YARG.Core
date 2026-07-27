@@ -134,6 +134,13 @@ namespace YARG.Core.Engine.Keys
                 return;
             }
 
+            // Prevent overhit too close to a lane that accepts the overhit
+            if (IsInLaneLeniencyWindow(key))
+            {
+                YargLogger.LogFormatTrace("Overhit prevented by lane end leniency at {0}", CurrentTime);
+                return;
+            }
+
             // Prevent overhit during coda
             if (IsCodaActive)
             {
@@ -193,5 +200,10 @@ namespace YARG.Core.Engine.Keys
         }
 
         protected abstract bool IsKeyInTime(TNoteType note, double frontEnd);
+
+        protected override bool ProximalLaneForgivesInput(int inputNote, TNoteType laneNote)
+        {
+            return LaneIncludesInputNote(inputNote, laneNote);
+        }
     }
 }

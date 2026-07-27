@@ -83,7 +83,7 @@ namespace YARG.Core.Engine
             }
 
             // Remap values that don't correspond to a lane
-            if (scoringZoneIndex > ScoringZones)
+            if (scoringZoneIndex >= ScoringZones)
             {
                 scoringZoneIndex %= ScoringZones;
             }

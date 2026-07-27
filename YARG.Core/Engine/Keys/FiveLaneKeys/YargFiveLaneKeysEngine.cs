@@ -46,7 +46,10 @@ namespace YARG.Core.Engine.Keys.Engines
                     KeyHitThisUpdate = fiveLaneKeyIndex;
                     _keyPressedTimes[fiveLaneKeyIndex].NoteIndex = NoteIndex;
                     _keyPressedTimes[fiveLaneKeyIndex].Time = gameInput.Time;
-                    SubmitLaneNote(fiveLaneKeyIndex);
+                    if (GetLaneMask(fiveLaneKeyIndex, out var mask))
+                    {
+                        SubmitLaneNote(mask);
+                    }
                 }
                 else
                 {
@@ -93,7 +96,7 @@ namespace YARG.Core.Engine.Keys.Engines
                 if (missed)
                 {
                     // Intercept missed note while lane phrase is active
-                    if (!HitNoteFromLane(parentNote))
+                    if (!AutohitNoteFromLane(parentNote))
                     {
                         // If one of the notes in the chord was missed out the back end,
                         // that means all of them would miss.
@@ -151,7 +154,7 @@ namespace YARG.Core.Engine.Keys.Engines
                                 }
                                 else
                                 {
-                                    if (HitNoteFromLane(note))
+                                    if (AutohitNoteFromLane(note))
                                     {
                                         YargLogger.LogFormatTrace("Forgiving chord staggering for note {0} due to lane phrase", (int)note.FiveLaneKeysAction);
                                     }
@@ -390,6 +393,66 @@ namespace YARG.Core.Engine.Keys.Engines
             }
         }
 
+        protected bool GetLaneMask(int fiveLaneKeyIndex, out int mask)
+        {
+            mask = 0;
+
+            if (!IsLaneActive)
+            {
+                return false;
+            }
+
+            // Mask has green = 1, 5LK actions are green = 0
+            var fretMask = 1 << (fiveLaneKeyIndex);
+
+            if (MaskIsMultiFret(RequiredLaneNote))
+            {
+                // We don't directly check for mask equaling the current input mask because that would allow cheesing
+                // If the current fret satisfies one of the bits in the lane, we check KeyPressTimes to determine whether
+                // the other frets in the lane's mask have been pressed within ChordStaggerWindow
+                if ((fretMask & RequiredLaneNote) > 0)
+                {
+                    mask = fretMask;
+
+                    for (int i = 0; i < KeyPressTimes.Length; i++)
+                    {
+                        // + 1 is for mask/index/action offset
+                        var keyMask = 1 << i + 1;
+                        var pressedTime = KeyPressTimes[i];
+                        if ((keyMask & RequiredLaneNote) > 0 &&
+                            pressedTime >= CurrentTime - EngineParameters.ChordStaggerWindow)
+                        {
+                            mask |= keyMask;
+                        }
+                    }
+                }
+            }
+            else
+            {
+                mask = fretMask;
+            }
+
+            return true;
+        }
+
+        protected override bool ActiveLaneIncludesNote(int fiveLaneKeyIndex)
+        {
+            if (!IsLaneActive)
+            {
+                return false;
+            }
+
+            // Mask has green = 1, 5LK actions are green = 0
+            var fretMask = 1 << (fiveLaneKeyIndex);
+
+            if ((fretMask & RequiredLaneNote) > 0 || (NextTrillNote != -1 && fretMask == NextTrillNote) || (RequiredLaneNote == WildcardMask))
+            {
+                return true;
+            }
+
+            return false;
+        }
+
         protected override List<CodaSection> GetCodaSections()
         {
             var codaSections = new List<CodaSection>();
@@ -425,17 +488,18 @@ namespace YARG.Core.Engine.Keys.Engines
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static bool IsFiveLaneKeysAction(ProKeysAction action)
         {
-            return (ALLOWED_FIVE_LANE_KEYS_ACTIONS & (1 << (int) action)) != 0;
+            return (ALLOWED_FIVE_LANE_KEYS_ACTIONS & (1L << (int) action)) != 0;
         }
 
-        private const int ALLOWED_FIVE_LANE_KEYS_ACTIONS =
-            1 << (int) ProKeysAction.GreenKey |
-            1 << (int) ProKeysAction.RedKey |
-            1 << (int) ProKeysAction.YellowKey |
-            1 << (int) ProKeysAction.BlueKey |
-            1 << (int) ProKeysAction.OrangeKey |
-            1 << (int) ProKeysAction.OpenNote |
-            1 << (int) ProKeysAction.StarPower |
-            1 << (int) ProKeysAction.TouchEffects;
+        // ProKeysAction.OrangeKey is 32, which causes issues if we use a plain 32-bit int for the mask
+        private const long ALLOWED_FIVE_LANE_KEYS_ACTIONS =
+            1L << (int) ProKeysAction.GreenKey |
+            1L << (int) ProKeysAction.RedKey |
+            1L << (int) ProKeysAction.YellowKey |
+            1L << (int) ProKeysAction.BlueKey |
+            1L << (int) ProKeysAction.OrangeKey |
+            1L << (int) ProKeysAction.OpenNote |
+            1L << (int) ProKeysAction.StarPower |
+            1L << (int) ProKeysAction.TouchEffects;
     }
 }

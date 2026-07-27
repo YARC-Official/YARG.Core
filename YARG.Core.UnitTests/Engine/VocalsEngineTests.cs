@@ -1,4 +1,4 @@
-using NUnit.Framework;
+﻿using NUnit.Framework;
 using YARG.Core.Chart;
 using YARG.Core.Engine;
 using YARG.Core.Engine.Vocals;
@@ -19,7 +19,7 @@ public sealed class VocalsEngineTests
     };
 
     private static readonly VocalsEngineParameters EngineParameters = new(
-        new HitWindowSettings(0.1, 0.1, 1.0, false, 0, 1, 1, 0),
+        new HitWindowSettings(0.1, 0.1, 1.0, false, 0, 1, 1, 0, 0),
         4,
         StarMultiplierThresholds,
         SoloBonusStarMultiplierThresholds,

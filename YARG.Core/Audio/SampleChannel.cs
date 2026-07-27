@@ -33,6 +33,17 @@ namespace YARG.Core.Audio
             }
         }
 
+        /// <summary>
+        /// Creates an owned decode stream for sample-accurate playback in a song mixer.
+        /// </summary>
+        internal int CreateStream()
+        {
+            lock (this)
+            {
+                return _disposed ? 0 : CreateStream_Internal();
+            }
+        }
+
         // TODO: Implement properly (fade out when duration approaches if sample is still playing)
         public void PlayForTime(double duration)
         {
@@ -117,6 +128,7 @@ namespace YARG.Core.Audio
         }
 
         protected abstract void Play_Internal(double duration);
+        protected abstract int CreateStream_Internal();
         protected abstract void Stop_Internal(double duration);
         protected abstract void Pause_Internal();
         protected abstract void Resume_Internal();

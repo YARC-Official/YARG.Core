@@ -11,18 +11,22 @@
         Rhythm,
         Keys,
         Vocals,
-        Drums,
+        Drums1,
+        Drums2,
+        Drums3,
+        Drums4,
         Crowd,
         Preview,
         VoxSample,
         Metronome,
+        VenueSample,
     }
 
     public enum SfxSample
     {
         NoteMiss,
         StarPowerAward,
-        StarPowerGain,
+        StarPowerReady,
         StarPowerDeploy,
         StarPowerDeployCrowd,
         StarPowerRelease,

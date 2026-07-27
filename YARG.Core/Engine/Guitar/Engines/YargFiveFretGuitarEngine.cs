@@ -8,6 +8,8 @@ namespace YARG.Core.Engine.Guitar.Engines
 {
     public class YargFiveFretGuitarEngine : GuitarEngine
     {
+        protected override int WildcardMask => 1 << ((int)FiveFretGuitarFret.Wildcard - 1);
+
         public YargFiveFretGuitarEngine(InstrumentDifficulty<GuitarNote> chart, SyncTrack syncTrack,
             GuitarEngineParameters engineParameters, bool isBot)
             : base(chart, syncTrack, engineParameters, isBot)
@@ -244,12 +246,13 @@ namespace YARG.Core.Engine.Guitar.Engines
                     if (isFirstNoteInWindow && missed)
                     {
                         // Intercept missed note while lane phrase is active
-                        if (HitNoteFromLane(note))
+                        if (AutohitNoteFromLane(note))
                         {
                             break;
                         }
 
                         MissNote(note);
+
                         YargLogger.LogFormatTrace("Missed note (Index: {0}, Mask: {1}) at {2}", i,
                             note.NoteMask, CurrentTime);
                     }
@@ -535,11 +538,14 @@ namespace YARG.Core.Engine.Guitar.Engines
                 return false;
             }
 
-            // Input is a hammer-on if the highest fret held is higher than the highest fret of the previous mask
-            bool isHammerOn = GetMostSignificantBit(EffectiveButtonMask) > GetMostSignificantBit(LastButtonMask);
+            var highestHeldFret = GetMostSignificantBit(EffectiveButtonMask);
 
-            // Input is a hammer-on and the button pressed is not part of the note mask (incorrect fret)
-            if (isHammerOn && (EffectiveButtonMask & note.NoteMask) == 0)
+            // Input is a hammer-on if the highest fret held is higher than the highest fret of the previous mask
+            bool isHammerOn = highestHeldFret > GetMostSignificantBit(LastButtonMask);
+
+            // Input is a hammer-on and the button pressed is neither part of the note mask (incorrect fret) nor forgiven by
+            // a nearby trill lane
+            if (isHammerOn && (EffectiveButtonMask & note.NoteMask) == 0 && !IsGhostInTrillLeniencyWindow(highestHeldFret - 1))
             {
                 return true;
             }
@@ -646,5 +652,33 @@ namespace YARG.Core.Engine.Guitar.Engines
         protected virtual byte[] CreateCodaFretMask() => new byte[5];
 
         protected virtual int GetCodaFretCount() => 5;
+
+        protected bool IsGhostInTrillLeniencyWindow(int inputNote)
+        {
+            if (IsLaneActive)
+            {
+                return false;
+            }
+
+            if (
+                NoteIndex < Notes.Count && // There is a next note
+                Notes[NoteIndex].IsLaneStart && // That note is a lane start
+                Notes[NoteIndex].IsTrill && // That lane is a trill
+                Notes[NoteIndex].Time - CurrentTime < EngineParameters.HitWindow.LaneProximityProtectionWindow && // That trill is starting soon
+                LaneIncludesInputNote(inputNote, Notes[NoteIndex]) // That trill includes the fretted note
+            )
+            {
+                return true;
+            }
+
+            return (
+                NoteIndex > 0 && // There is a previous note
+                Notes[NoteIndex - 1].IsLaneEnd && // That note was a lane end
+                Notes[NoteIndex - 1].IsTrill && // That lane was a trill
+                CurrentTime - Notes[NoteIndex - 1].Time < EngineParameters.HitWindow.LaneProximityProtectionWindow && // That trill ended recently
+                LaneIncludesInputNote(inputNote, Notes[NoteIndex - 1]) // That trill included the fretted note
+            );
+        }
+
     }
 }

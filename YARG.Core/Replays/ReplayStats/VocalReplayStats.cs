@@ -13,8 +13,8 @@ namespace YARG.Core.Replays
         public readonly int NumPhrases;
         public readonly int NumPerfectPhrases;
 
-        public VocalsReplayStats(string name, VocalsStats stats)
-            : base(name, stats)
+        public VocalsReplayStats(string name, bool isReplayPlayer, VocalsStats stats)
+            : base(name, stats, isReplayPlayer)
         {
             NumPhrases = 0;
             NumPerfectPhrases = 0;

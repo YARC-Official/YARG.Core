@@ -7,6 +7,21 @@ namespace YARG.Core.UnitTests.Engine;
 public class SustainListTests
 {
     [Test]
+    public void Add_DefaultConstructedListGrowsFromZeroCapacity()
+    {
+        var list = new SustainList<GuitarNote>();
+        var sustain = new ActiveSustain<GuitarNote>(CreateNote(time: 1.0, tick: 100, tickLength: 120));
+
+        list.Add(sustain);
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(list, Has.Count.EqualTo(1));
+            Assert.That(list[0].Note.Tick, Is.EqualTo(100));
+        }
+    }
+
+    [Test]
     public void Add_ResizesListAndPreservesInsertionOrder()
     {
         var list = new SustainList<GuitarNote>(1);

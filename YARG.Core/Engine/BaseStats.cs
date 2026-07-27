@@ -172,6 +172,11 @@ namespace YARG.Core.Engine
         public int StarPowerPhrasesMissed => TotalStarPowerPhrases - StarPowerPhrasesHit;
 
         /// <summary>
+        /// Number of times Star Power was used to revive a bandmate.
+        /// </summary>
+        public int StarPowerRevives;
+
+        /// <summary>
         /// Amount of points earned from solo bonuses.
         /// </summary>
         public int SoloBonuses;
@@ -216,6 +221,11 @@ namespace YARG.Core.Engine
         /// </summary>
         private readonly List<double> OffsetSamples = new();
 
+        /// <summary>
+        /// The player's average multiplier. Calculated by CommittedScore / BaseNoteScore
+        /// </summary>
+        public float AverageMultiplier;
+
         protected BaseStats()
         {
         }
@@ -232,9 +242,12 @@ namespace YARG.Core.Engine
             MaxCombo = stats.MaxCombo;
             ScoreMultiplier = stats.ScoreMultiplier;
             BandMultiplier = stats.BandMultiplier;
+            AverageMultiplier = stats.AverageMultiplier;
 
             NotesHit = stats.NotesHit;
+            LanedNotesHit = stats.LanedNotesHit;
             TotalNotes = stats.TotalNotes;
+            TotalChords = stats.TotalChords;
 
             TotalOffset = stats.TotalOffset;
             AverageOffset = stats.AverageOffset;
@@ -253,6 +266,7 @@ namespace YARG.Core.Engine
 
             SoloBonuses = stats.SoloBonuses;
             MaxSoloBonusPoints = stats.MaxSoloBonusPoints;
+            CodaBonuses = stats.CodaBonuses;
             StarPowerScore = stats.StarPowerScore;
 
             Stars = stats.Stars;
@@ -291,8 +305,18 @@ namespace YARG.Core.Engine
             StarPowerPhrasesHit = stream.Read<int>(Endianness.Little);
             TotalStarPowerPhrases = stream.Read<int>(Endianness.Little);
 
+            if (version >= 17)
+            {
+                StarPowerRevives = stream.Read<int>(Endianness.Little);
+            }
+
             SoloBonuses = stream.Read<int>(Endianness.Little);
             StarPowerScore = stream.Read<int>(Endianness.Little);
+
+            if (version >= 16)
+            {
+                AverageMultiplier = stream.Read<float>(Endianness.Little);
+            }
 
             // Deliberately not read so that stars can be re-calculated if thresholds change
             // Stars = reader.ReadInt32();
@@ -314,6 +338,7 @@ namespace YARG.Core.Engine
             TotalOffset = 0.0;
             AverageOffset = 0.0;
             OffsetSamples.Clear();
+            AverageMultiplier = 0;
             // Don't reset TotalNotes
             // TotalNotes = 0;
 
@@ -327,6 +352,7 @@ namespace YARG.Core.Engine
 
             StarPowerPhrasesHit = 0;
             // TotalStarPowerPhrases = 0;
+            StarPowerRevives = 0;
 
             SoloBonuses = 0;
             CodaBonuses = 0;
@@ -362,15 +388,18 @@ namespace YARG.Core.Engine
 
             writer.Write(StarPowerPhrasesHit);
             writer.Write(TotalStarPowerPhrases);
+            writer.Write(StarPowerRevives);
 
             writer.Write(SoloBonuses);
             writer.Write(StarPowerScore);
+
+            writer.Write(AverageMultiplier);
 
             // Deliberately not written so that stars can be re-calculated with different thresholds
             // writer.Write(Stars);
         }
 
-        public abstract ReplayStats ConstructReplayStats(string name);
+        public abstract ReplayStats ConstructReplayStats(string name, bool isReplayPlayer);
 
         public double GetAverageOffset()
         {
@@ -382,7 +411,7 @@ namespace YARG.Core.Engine
         /// Returns per-note timing offsets used for score-screen timing distribution visualization.
         /// Values are in seconds, where negative is early and positive is late.
         /// </summary>
-        public IReadOnlyList<double> GetOffsetSamples()
+        public virtual IReadOnlyList<double> GetOffsetSamples()
         {
             return OffsetSamples;
         }

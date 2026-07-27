@@ -1,4 +1,5 @@
 ﻿using NUnit.Framework;
+using YARG.Core.Chart;
 
 namespace YARG.Core.UnitTests.Parsing;
 
@@ -27,7 +28,8 @@ internal class UltraStarLoaderTests_Basic : UltraStarLoaderTests
         ));
 
         var syncTrack = loader.LoadSyncTrack();
-        Assert.That(syncTrack.Tempos[0].BeatsPerMinute, Is.EqualTo(140f));
+        // UltraStar BPM is halved for SyncTrack (beatlines/crowd clapping)
+        Assert.That(syncTrack.Tempos[0].BeatsPerMinute, Is.EqualTo(70f));
     }
 
     [Test]
@@ -39,7 +41,8 @@ internal class UltraStarLoaderTests_Basic : UltraStarLoaderTests
         ));
 
         var syncTrack = loader.LoadSyncTrack();
-        Assert.That(syncTrack.Tempos[0].BeatsPerMinute, Is.EqualTo(120.5f));
+        // UltraStar BPM is halved for SyncTrack
+        Assert.That(syncTrack.Tempos[0].BeatsPerMinute, Is.EqualTo(60.25f));
     }
 
     [Test]
@@ -156,14 +159,69 @@ internal class UltraStarLoaderTests_Basic : UltraStarLoaderTests
     {
         var loader = LoadUltraStar(Us(
             "#BPM:120",
-            "F 0 4 -1 Scream"
+            "F 0 4 3 Scream"
         ));
 
         var track = loader.LoadVocalsTrack(Instrument.Vocals);
         var note = track.Parts[0].NotePhrases[0].PhraseParentNote.ChildNotes[0];
 
-        // Freestyle should be unpitched (-1)
-        Assert.That(note.IsNonPitched, Is.True);
+        // Freestyle now keeps real MIDI pitch (like SingStar): 3 + 60 = 63
+        Assert.That(note.IsNonPitched, Is.False);
+        Assert.That(note.Pitch, Is.EqualTo(63f));
+    }
+
+    [Test]
+    public void FreestyleNoteIsNotPercussion()
+    {
+        // Bug fix: freestyle (F) notes must be VocalNoteType.Lyric, not Percussion
+        var loader = LoadUltraStar(Us(
+            "#BPM:120",
+            "F 0 4 3 Scream"
+        ));
+
+        var track = loader.LoadVocalsTrack(Instrument.Vocals);
+        var note = track.Parts[0].NotePhrases[0].PhraseParentNote.ChildNotes[0];
+
+        Assert.That(note.Type, Is.EqualTo(VocalNoteType.Lyric));
+        Assert.That(note.IsPercussion, Is.False);
+        // Freestyle keeps real MIDI pitch (like SingStar)
+        Assert.That(note.Pitch, Is.EqualTo(63f));
+    }
+
+    [Test]
+    public void RapNoteIsNotPercussion()
+    {
+        // Bug fix: rap (R) notes must be VocalNoteType.Lyric, not Percussion
+        var loader = LoadUltraStar(Us(
+            "#BPM:120",
+            "R 0 4 5 RapBar"
+        ));
+
+        var track = loader.LoadVocalsTrack(Instrument.Vocals);
+        var note = track.Parts[0].NotePhrases[0].PhraseParentNote.ChildNotes[0];
+
+        Assert.That(note.Type, Is.EqualTo(VocalNoteType.Lyric));
+        Assert.That(note.IsPercussion, Is.False);
+        // Rap keeps real MIDI pitch (like SingStar): 5 + 60 = 65
+        Assert.That(note.Pitch, Is.EqualTo(65f));
+    }
+
+    [Test]
+    public void GoldenFreestyleIsNotPercussion()
+    {
+        // Bug fix: golden freestyle (G) notes must be VocalNoteType.Lyric, not Percussion
+        var loader = LoadUltraStar(Us(
+            "#BPM:120",
+            "G 0 4 7 GoldenScream"
+        ));
+
+        var track = loader.LoadVocalsTrack(Instrument.Vocals);
+        var note = track.Parts[0].NotePhrases[0].PhraseParentNote.ChildNotes[0];
+
+        Assert.That(note.Type, Is.EqualTo(VocalNoteType.Lyric));
+        Assert.That(note.IsPercussion, Is.False);
+        // Golden freestyle keeps real MIDI pitch (like SingStar): 7 + 60 = 67
+        Assert.That(note.Pitch, Is.EqualTo(67f));
     }
 
     [Test]

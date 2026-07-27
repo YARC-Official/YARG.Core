@@ -59,6 +59,14 @@ namespace YARG.Core.Engine.Vocals
             VocalsEngineParameters engineParameters, bool isBot)
             : base(chart, syncTrack, engineParameters, false, isBot)
         {
+            foreach (var note in Notes)
+            {
+                // Percussion phrases do not count as phrases, they cannot be hit and do not increment combo.
+                if (note.IsPercussionPhrase)
+                {
+                    BaseStats.TotalNotes--;
+                }
+            }
         }
 
         public override void Reset(bool keepCurrentButtons = false)
@@ -136,20 +144,7 @@ namespace YARG.Core.Engine.Vocals
                     EngineStats.StarPowerPhrasesHit++;
                 }
 
-                if (note.IsSoloStart)
-                {
-                    StartSolo();
-                }
-
-                if (IsSoloActive)
-                {
-                    Solos[CurrentSoloIndex].NotesHit++;
-                }
-
-                if (note.IsSoloEnd)
-                {
-                    EndSolo();
-                }
+                HandleSoloNote(note);
 
                 // If there aren't any ticks in the phrase, then don't add
                 // any score or update the multiplier.
@@ -163,10 +158,11 @@ namespace YARG.Core.Engine.Vocals
                     UpdateMultiplier();
                 }
 
-                // No matter what, we still wanna count this as a phrase hit though
-                EngineStats.IncrementNotesHit(note, CurrentTime);
-
-                OnNoteHit?.Invoke(NoteIndex, note);
+                if (!note.IsPercussionPhrase)
+                {
+                    EngineStats.IncrementNotesHit(note, CurrentTime);
+                    OnNoteHit?.Invoke(NoteIndex, note);
+                }
 
                 // I want to call base.HitNote here, but I have no idea how vocals handles hit state so I'm scared to
                 NoteIndex++;
@@ -195,14 +191,7 @@ namespace YARG.Core.Engine.Vocals
                 StripStarPower(note);
             }
 
-            if (note.IsSoloEnd)
-            {
-                EndSolo();
-            }
-            if (note.IsSoloStart)
-            {
-                StartSolo();
-            }
+            HandleSoloNote(note);
 
             ResetCombo();
 

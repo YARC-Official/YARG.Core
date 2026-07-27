@@ -1,9 +1,14 @@
 using MoonscraperChartEditor.Song;
 using MoonscraperChartEditor.Song.IO;
 using NUnit.Framework;
-using NUnit.Framework.Legacy;
 using YARG.Core.Chart;
-using YARG.Core.Song;
+using YARG.Core.Parsing;
+
+using static MoonscraperChartEditor.Song.MoonNote;
+using static YARG.Core.UnitTests.Parsing.MoonNoteAssertions;
+using MoonDifficulty = MoonscraperChartEditor.Song.MoonSong.Difficulty;
+using MoonInstrument = MoonscraperChartEditor.Song.MoonSong.MoonInstrument;
+using YargDifficulty = YARG.Core.Difficulty;
 
 namespace YARG.Core.UnitTests.Parsing
 {
@@ -15,13 +20,10 @@ namespace YARG.Core.UnitTests.Parsing
     [TestFixture]
     public class ChartReaderProcessListsTests
     {
-        private const uint RESOLUTION = 192;
-        private const float TEMPO = 120f;
-
         /// <summary>
         /// Helper to load chart from text with _inclusiveSoloBoundary set correctly for .chart format
         /// </summary>
-        private static (SongChart songChart, InstrumentTrack<GuitarNote> track) LoadChartForSoloTest(string chartText)
+        private static InstrumentTrack<GuitarNote> LoadFiveFretGuitarTrack(string chartText)
         {
             var settings = new ParseSettings
             {
@@ -35,8 +37,7 @@ namespace YARG.Core.UnitTests.Parsing
             };
 
             var songChart = SongChart.FromDotChart(settings, chartText.AsSpan());
-            var track = songChart.GetFiveFretTrack(Instrument.FiveFretGuitar);
-            return (songChart, track);
+            return songChart.GetFiveFretTrack(Instrument.FiveFretGuitar);
         }
 
         /// <summary>
@@ -55,60 +56,26 @@ namespace YARG.Core.UnitTests.Parsing
             Assert.That(note.IsSolo, Is.False, message);
         }
 
-        /// <summary>
-        /// Standard chart header for test charts
-        /// </summary>
-        private static string StandardChartHeader()
-        {
-            return @"
-[Song]
-{
-  Name = ""Solo Boundary Test""
-  Artist = ""YARG Test Suite""
-  Charter = ""Claude""
-  Offset = 0
-  Resolution = 192
-  Player2 = bass
-  Difficulty = 0
-  PreviewStart = 0
-  PreviewEnd = 0
-  Genre = ""test""
-  MediaType = ""test""
-}
-
-[SyncTrack]
-{
-  0 = TS 4
-  0 = B 120000
-}
-
-[Events]
-{
-}
-";
-        }
-
         [Test]
         public void SoloBoundaries_NoteAtSoloEndTick_HasSoloFlag()
         {
             // Solo from tick 500 to 1000 (inclusive end)
             // Note at tick 1000 should have Solo flag
             // IMPORTANT: In .chart format, all entries must be in tick-ascending order
-            var chartText = StandardChartHeader() + @"
-[ExpertSingle]
-{
-  400 = N 0 0
-  500 = E ""solo""
-  600 = N 1 0
-  800 = N 2 0
-  1000 = E ""soloend""
-  1000 = N 3 0
-  1200 = N 4 0
-}
-";
+            var chartText = ChartText.Chart(
+                ChartText.SongSection(),
+                ChartText.SyncSection(),
+                ChartText.Section("ExpertSingle",
+                    "400 = N 0 0",
+                    $"500 = E \"{TextEvents.SOLO_START}\"",
+                    "600 = N 1 0",
+                    "800 = N 2 0",
+                    $"1000 = E \"{TextEvents.SOLO_END}\"",
+                    "1000 = N 3 0",
+                    "1200 = N 4 0"));
 
-            var (_, track) = LoadChartForSoloTest(chartText);
-            var difficulty = track.GetDifficulty(Difficulty.Expert);
+            var track = LoadFiveFretGuitarTrack(chartText);
+            var difficulty = track.GetDifficulty(YargDifficulty.Expert);
 
             Console.WriteLine($"Total notes: {difficulty.Notes.Count}");
             foreach (var note in difficulty.Notes)
@@ -142,30 +109,16 @@ namespace YARG.Core.UnitTests.Parsing
             // Solo from tick 500 to 1000 (inclusive end)
             // Note at tick 1001 should NOT have Solo flag
             // IMPORTANT: All entries must be in tick-ascending order
-            var chartText = StandardChartHeader() + @"
-[ExpertSingle]
-{
-  500 = E ""solo""
-  1000 = E ""soloend""
-  1000 = N 0 0
-  1001 = N 1 0
-  1100 = N 2 0
-}
-";
-            var (_, track) = LoadChartForSoloTest(chartText);
-            var difficulty = track.GetDifficulty(Difficulty.Expert);
-
-            // Debug: check phrases
-            Console.WriteLine($"Phrases: {difficulty.Phrases.Count}");
-            foreach (var phrase in difficulty.Phrases)
-            {
-                Console.WriteLine($"  Phrase: {phrase.Type} at {phrase.Tick} length {phrase.TickLength}");
-            }
-
-            // Note at exact solo end tick - has solo flag
-            var noteAtEnd = FindNoteAtTick(track, 1000);
-            Console.WriteLine($"Note at 1000: IsSolo={noteAtEnd.IsSolo}");
-            AssertHasSolo(noteAtEnd, "Note at exact solo end tick should have Solo flag");
+            var chartText = ChartText.Chart(
+                ChartText.SongSection(),
+                ChartText.SyncSection(),
+                ChartText.Section("ExpertSingle",
+                    $"500 = E \"{TextEvents.SOLO_START}\"",
+                    $"1000 = E \"{TextEvents.SOLO_END}\"",
+                    "1000 = N 0 0",
+                    "1001 = N 1 0",
+                    "1100 = N 2 0"));
+            var track = LoadFiveFretGuitarTrack(chartText);
 
             // Note one tick after solo end - should NOT have solo flag
             var noteAfter = FindNoteAtTick(track, 1001);
@@ -181,26 +134,25 @@ namespace YARG.Core.UnitTests.Parsing
         {
             // Chord at solo end tick - all notes should have Solo flag
             // IMPORTANT: All entries must be in tick-ascending order
-            var chartText = StandardChartHeader() + @"
-[ExpertSingle]
-{
-  480 = N 0 0
-  500 = E ""solo""
-  600 = N 1 0
-  600 = N 2 0
-  600 = N 3 0
-  800 = N 2 0
-  1000 = E ""soloend""
-  1000 = N 0 0
-  1000 = N 1 0
-  1000 = N 2 0
-  1000 = N 3 0
-  1000 = N 4 0
-  1020 = N 0 0
-  1020 = N 1 0
-}
-";
-            var (_, track) = LoadChartForSoloTest(chartText);
+            var chartText = ChartText.Chart(
+                ChartText.SongSection(),
+                ChartText.SyncSection(),
+                ChartText.Section("ExpertSingle",
+                    "480 = N 0 0",
+                    $"500 = E \"{TextEvents.SOLO_START}\"",
+                    "600 = N 1 0",
+                    "600 = N 2 0",
+                    "600 = N 3 0",
+                    "800 = N 2 0",
+                    $"1000 = E \"{TextEvents.SOLO_END}\"",
+                    "1000 = N 0 0",
+                    "1000 = N 1 0",
+                    "1000 = N 2 0",
+                    "1000 = N 3 0",
+                    "1000 = N 4 0",
+                    "1020 = N 0 0",
+                    "1020 = N 1 0"));
+            var track = LoadFiveFretGuitarTrack(chartText);
 
             // Note before solo - no solo flag
             var noteBefore = FindNoteAtTick(track, 480);
@@ -208,7 +160,7 @@ namespace YARG.Core.UnitTests.Parsing
 
             // Chord inside solo - all notes have solo flag
             var chordInside = FindChordAtTick(track, 600);
-            Assert.That(chordInside.Count, Is.EqualTo(3), "Chord inside solo should have 3 notes");
+            Assert.That(chordInside, Has.Count.EqualTo(3), "Chord inside solo should have 3 notes");
             foreach (var note in chordInside)
             {
                 AssertHasSolo(note, "All notes in chord inside solo should have Solo flag");
@@ -220,7 +172,7 @@ namespace YARG.Core.UnitTests.Parsing
 
             // Chord at exact solo end tick - ALL notes should have solo flag (inclusive)
             var chordAtEnd = FindChordAtTick(track, 1000);
-            Assert.That(chordAtEnd.Count, Is.EqualTo(5), "Chord at solo end should have 5 notes");
+            Assert.That(chordAtEnd, Has.Count.EqualTo(5), "Chord at solo end should have 5 notes");
             foreach (var note in chordAtEnd)
             {
                 AssertHasSolo(note, "All notes in chord at solo end tick should have Solo flag (inclusive boundary)");
@@ -228,7 +180,7 @@ namespace YARG.Core.UnitTests.Parsing
 
             // Chord after solo - no solo flags
             var chordAfter = FindChordAtTick(track, 1020);
-            Assert.That(chordAfter.Count, Is.EqualTo(2), "Chord after solo should have 2 notes");
+            Assert.That(chordAfter, Has.Count.EqualTo(2), "Chord after solo should have 2 notes");
             foreach (var note in chordAfter)
             {
                 AssertDoesNotHaveSolo(note, "All notes in chord after solo should NOT have Solo flag");
@@ -241,19 +193,18 @@ namespace YARG.Core.UnitTests.Parsing
             // Two consecutive solos sharing a boundary
             // Note at boundary should be in SECOND solo only
             // IMPORTANT: All entries must be in tick-ascending order
-            var chartText = StandardChartHeader() + @"
-[ExpertSingle]
-{
-  500 = E ""solo""
-  600 = N 0 0
-  1000 = E ""soloend""
-  1000 = E ""solo""
-  1000 = N 1 0
-  1100 = N 2 0
-  1500 = E ""soloend""
-}
-";
-            var (_, track) = LoadChartForSoloTest(chartText);
+            var chartText = ChartText.Chart(
+                ChartText.SongSection(),
+                ChartText.SyncSection(),
+                ChartText.Section("ExpertSingle",
+                    $"500 = E \"{TextEvents.SOLO_START}\"",
+                    "600 = N 0 0",
+                    $"1000 = E \"{TextEvents.SOLO_END}\"",
+                    $"1000 = E \"{TextEvents.SOLO_START}\"",
+                    "1000 = N 1 0",
+                    "1100 = N 2 0",
+                    $"1500 = E \"{TextEvents.SOLO_END}\""));
+            var track = LoadFiveFretGuitarTrack(chartText);
 
             // Note in first solo - has solo flag
             var noteFirst = FindNoteAtTick(track, 600);
@@ -274,17 +225,16 @@ namespace YARG.Core.UnitTests.Parsing
         {
             // Zero-length solo with note at same tick
             // IMPORTANT: All entries must be in tick-ascending order
-            var chartText = StandardChartHeader() + @"
-[ExpertSingle]
-{
-  480 = E ""test""
-  500 = E ""solo""
-  500 = E ""soloend""
-  500 = N 0 0
-  520 = N 1 0
-}
-";
-            var (_, track) = LoadChartForSoloTest(chartText);
+            var chartText = ChartText.Chart(
+                ChartText.SongSection(),
+                ChartText.SyncSection(),
+                ChartText.Section("ExpertSingle",
+                    "480 = E \"test\"",
+                    $"500 = E \"{TextEvents.SOLO_START}\"",
+                    $"500 = E \"{TextEvents.SOLO_END}\"",
+                    "500 = N 0 0",
+                    "520 = N 1 0"));
+            var track = LoadFiveFretGuitarTrack(chartText);
 
             // Note at same tick as zero-length solo - should have solo flag
             var noteAt = FindNoteAtTick(track, 500);
@@ -300,7 +250,7 @@ namespace YARG.Core.UnitTests.Parsing
         /// </summary>
         private static GuitarNote FindNoteAtTick(InstrumentTrack<GuitarNote> track, uint tick)
         {
-            var difficulty = track.GetDifficulty(Difficulty.Expert);
+            var difficulty = track.GetDifficulty(YargDifficulty.Expert);
             foreach (var note in difficulty.Notes)
             {
                 if (note.Tick == tick)
@@ -308,6 +258,7 @@ namespace YARG.Core.UnitTests.Parsing
                     return note;
                 }
             }
+
             Assert.Fail($"No note found at tick {tick}");
             return null!;
         }
@@ -317,17 +268,275 @@ namespace YARG.Core.UnitTests.Parsing
         /// </summary>
         private static List<GuitarNote> FindChordAtTick(InstrumentTrack<GuitarNote> track, uint tick)
         {
-            var difficulty = track.GetDifficulty(Difficulty.Expert);
+            var difficulty = track.GetDifficulty(YargDifficulty.Expert);
             foreach (var note in difficulty.Notes)
             {
                 if (note.Tick == tick)
                 {
-                    var chord = new List<GuitarNote> { note };
+                    var chord = new List<GuitarNote>
+                    {
+                        note
+                    };
                     chord.AddRange(note.ChildNotes);
                     return chord;
                 }
             }
+
             return new List<GuitarNote>();
+        }
+
+
+        [Test]
+        public void ReadFromText_ThrowsWhenSongSectionIsMissing()
+        {
+            var chartText = ChartText.Chart(
+                ChartText.Section(ChartIOHelper.SECTION_SYNC_TRACK, "0 = B 120000"));
+
+            Assert.Throws<InvalidDataException>(() => ChartReader.ReadFromText(chartText));
+        }
+
+        [Test]
+        public void ReadFromText_ThrowsWhenRequiredSectionsAreOutOfOrder()
+        {
+            var chartText = ChartText.Chart(
+                ChartText.Section(ChartIOHelper.SECTION_SYNC_TRACK, "0 = B 120000"),
+                ChartText.Section(ChartIOHelper.SECTION_SONG, "Resolution = 192"));
+
+            Assert.Throws<InvalidDataException>(() => ChartReader.ReadFromText(chartText));
+        }
+
+        [Test]
+        public void ReadFromText_ParsesSongAndSyncSections()
+        {
+            var chartText = ChartText.Chart(
+                ChartText.SongSection(resolution: 480),
+                ChartText.Section(ChartIOHelper.SECTION_SYNC_TRACK,
+                    "0 = B 150000",
+                    "240 = TS 7 3"));
+
+            var song = ChartReader.ReadFromText(chartText);
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(song.resolution, Is.EqualTo(480));
+                Assert.That(song.hopoThreshold, Is.EqualTo(162));
+                Assert.That(song.syncTrack.Tempos, Has.Count.EqualTo(1));
+                Assert.That(song.syncTrack.Tempos[0].BeatsPerMinute, Is.EqualTo(150));
+                Assert.That(song.syncTrack.TimeSignatures, Has.Count.EqualTo(2));
+                Assert.That(song.syncTrack.TimeSignatures[^1].Tick, Is.EqualTo(240));
+                Assert.That(song.syncTrack.TimeSignatures[^1].Numerator, Is.EqualTo(7));
+                Assert.That(song.syncTrack.TimeSignatures[^1].Denominator, Is.EqualTo(8));
+            }
+        }
+
+        [Test]
+        public void ReadFromText_ParsesGlobalSectionsAndEvents()
+        {
+            var chartText = ChartText.Chart(
+                ChartText.SongSection(),
+                ChartText.SyncSection(),
+                ChartText.Section(ChartIOHelper.SECTION_EVENTS,
+                    "0 = E \"section Intro\"",
+                    "192 = E \"music_start\""));
+
+            var song = ChartReader.ReadFromText(chartText);
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(song.sections, Has.One.Matches<MoonText>(text =>
+                    text.tick == 0 && text.text == "Intro"));
+                Assert.That(song.events, Has.One.Matches<MoonText>(text =>
+                    text.tick == 192 && text.text == "music_start"));
+            }
+        }
+
+        [Test]
+        public void GuitarProcessList_AppliesTapOverForcedAfterNotesAreParsed()
+        {
+            var chartText = ChartText.Chart(
+                ChartText.SongSection(),
+                ChartText.SyncSection(),
+                ChartText.Section("ExpertSingle",
+                    "0 = N 0 192",
+                    "0 = N 5 0",
+                    "0 = N 6 0"));
+
+            var song = ChartReader.ReadFromText(chartText);
+            var notes = song.GetChart(MoonInstrument.Guitar, MoonDifficulty.Expert).notes;
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(notes, Has.Count.EqualTo(1));
+                Assert.That(notes[0].guitarFret, Is.EqualTo(GuitarFret.Green));
+                AssertHasFlag(notes[0], Flags.Tap);
+                AssertDoesNotHaveFlag(notes[0], Flags.Forced);
+            }
+        }
+
+        [Test]
+        public void GuitarProcessList_ConvertsSoloTextEventsToInclusiveSoloPhrase()
+        {
+            var chartText = ChartText.Chart(
+                ChartText.SongSection(),
+                ChartText.SyncSection(),
+                ChartText.Section("ExpertSingle",
+                    $"100 = E \"{TextEvents.SOLO_START}\"",
+                    $"199 = E \"{TextEvents.SOLO_END}\""));
+
+            var song = ChartReader.ReadFromText(chartText);
+            var chart = song.GetChart(MoonInstrument.Guitar, MoonDifficulty.Expert);
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(chart.events, Is.Empty);
+                Assert.That(chart.specialPhrases, Has.One.Matches<MoonPhrase>(phrase =>
+                    phrase is { tick: 100, length: 99, type: MoonPhrase.Type.Solo }));
+            }
+        }
+
+        [Test]
+        public void GuitarProcessList_SplitsSameTickSoloEndAndStartWithoutOverlap()
+        {
+            var chartText = ChartText.Chart(
+                ChartText.SongSection(),
+                ChartText.SyncSection(),
+                ChartText.Section("ExpertSingle",
+                    $"100 = E \"{TextEvents.SOLO_START}\"",
+                    $"200 = E \"{TextEvents.SOLO_START}\"",
+                    $"200 = E \"{TextEvents.SOLO_END}\"",
+                    $"299 = E \"{TextEvents.SOLO_END}\""));
+
+            var song = ChartReader.ReadFromText(chartText);
+            var phrases = song.GetChart(MoonInstrument.Guitar, MoonDifficulty.Expert).specialPhrases;
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(phrases, Has.Count.EqualTo(2));
+                Assert.That(phrases, Has.One.Matches<MoonPhrase>(phrase =>
+                    phrase is { tick: 100, length: 100, type: MoonPhrase.Type.Solo }));
+                Assert.That(phrases, Has.One.Matches<MoonPhrase>(phrase =>
+                    phrase is { tick: 200, length: 99, type: MoonPhrase.Type.Solo }));
+            }
+        }
+
+        [Test]
+        public void GuitarProcessList_ConvertsZeroLengthSoloTextEventsToSoloPhrase()
+        {
+            var chartText = ChartText.Chart(
+                ChartText.SongSection(),
+                ChartText.SyncSection(),
+                ChartText.Section("ExpertSingle",
+                    "480 = E \"test\"",
+                    $"500 = E \"{TextEvents.SOLO_START}\"",
+                    $"500 = E \"{TextEvents.SOLO_END}\""));
+
+            var song = ChartReader.ReadFromText(chartText);
+            var chart = song.GetChart(MoonInstrument.Guitar, MoonDifficulty.Expert);
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(chart.events, Has.One.Matches<MoonText>(text =>
+                    text is { tick: 480, text: "test" }));
+                Assert.That(chart.specialPhrases, Has.One.Matches<MoonPhrase>(phrase =>
+                    phrase is { tick: 500, length: 0, type: MoonPhrase.Type.Solo }));
+            }
+        }
+
+        [Test]
+        public void DrumsProcessList_AppliesCymbalAndDynamicsAfterNotesAreParsed()
+        {
+            var chartText = ChartText.Chart(
+                ChartText.SongSection(),
+                ChartText.SyncSection(),
+                ChartText.Section("ExpertDrums",
+                    "0 = N 2 192",
+                    $"0 = N {ChartIOHelper.NOTE_OFFSET_PRO_DRUMS + 2} 0",
+                    $"0 = N {ChartIOHelper.NOTE_OFFSET_DRUMS_ACCENT + 2} 0",
+                    $"0 = N {ChartIOHelper.NOTE_OFFSET_DRUMS_GHOST + 2} 0"));
+
+            var song = ChartReader.ReadFromText(chartText);
+            var notes = song.GetChart(MoonInstrument.Drums, MoonDifficulty.Expert).notes;
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(notes, Has.Count.EqualTo(1));
+                Assert.That(notes[0].drumPad, Is.EqualTo(DrumPad.Yellow));
+                AssertHasFlag(notes[0], Flags.ProDrums_Cymbal);
+                AssertHasFlag(notes[0], Flags.ProDrums_Accent);
+                AssertDoesNotHaveFlag(notes[0], Flags.ProDrums_Ghost);
+            }
+        }
+
+        [Test]
+        public void DrumsProcessList_DisambiguatesUnknownDrumsTypeFromCymbalMarkers()
+        {
+            var settings = ParseSettings.Default_Chart;
+            var chartText = ChartText.Chart(
+                ChartText.SongSection(),
+                ChartText.SyncSection(),
+                ChartText.Section("ExpertDrums",
+                    "0 = N 2 192",
+                    $"0 = N {ChartIOHelper.NOTE_OFFSET_PRO_DRUMS + 2} 0"));
+
+            ChartReader.ReadFromText(ref settings, chartText);
+
+            Assert.That(settings.DrumsType, Is.EqualTo(DrumsType.FourLane));
+        }
+
+        [Test]
+        public void DrumsProcessList_DisambiguatesUnknownDrumsTypeFromFiveLaneGreen()
+        {
+            var settings = ParseSettings.Default_Chart;
+            var chartText = ChartText.Chart(
+                ChartText.SongSection(),
+                ChartText.SyncSection(),
+                ChartText.Section("ExpertDrums", "0 = N 5 192"));
+
+            ChartReader.ReadFromText(ref settings, chartText);
+
+            Assert.That(settings.DrumsType, Is.EqualTo(DrumsType.FiveLane));
+        }
+
+        [Test]
+        public void ReadFromText_AppliesSustainCutoffThreshold()
+        {
+            var settings = ParseSettings.Default_Chart;
+            settings.SustainCutoffThreshold = 10;
+            var chartText = ChartText.Chart(
+                ChartText.SongSection(),
+                ChartText.SyncSection(),
+                ChartText.Section("ExpertSingle", "0 = N 0 9", "100 = N 1 10"));
+
+            var song = ChartReader.ReadFromText(ref settings, chartText);
+            var notes = song.GetChart(MoonInstrument.Guitar, MoonDifficulty.Expert).notes;
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(notes, Has.Count.EqualTo(2));
+                Assert.That(notes.Single(note => note.tick == 0).length, Is.EqualTo(0));
+                Assert.That(notes.Single(note => note.tick == 100).length, Is.EqualTo(10));
+            }
+        }
+
+        [Test]
+        public void GhlProcessList_ParsesGhlSpecificNoteMapAndTapFlag()
+        {
+            var chartText = ChartText.Chart(
+                ChartText.SongSection(),
+                ChartText.SyncSection(),
+                ChartText.Section("ExpertGHLGuitar",
+                    "0 = N 8 192",
+                    "0 = N 6 0"));
+
+            var song = ChartReader.ReadFromText(chartText);
+            var notes = song.GetChart(MoonInstrument.GHLiveGuitar, MoonDifficulty.Expert).notes;
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(notes, Has.Count.EqualTo(1));
+                Assert.That(notes[0].ghliveGuitarFret, Is.EqualTo(GHLiveGuitarFret.Black3));
+                AssertHasFlag(notes[0], Flags.Tap);
+            }
         }
     }
 }
