@@ -80,17 +80,9 @@ namespace YARG.Core.Chart
                 SplitStaticLyricPhrases(ref mergedPhrases, staticShiftPhrases);
             }
 
-            if (harmonyPart is 0)
-            {
-                SplitStaticLyricPhrases(ref staticLyricPhrases, staticShiftPhrases);
-            }
 
-            foreach (var p in staticLyricPhrases)
-            {
-                var txt = string.Join("", p.Lyrics.Select(l => l.JoinOrHyphenateWithNext ? l.Text : l.Text + " "));
-                YargLogger.LogFormatDebug("Merged phrase: {0} (tick {1}, length {2})",
-                    txt, p.Tick, p.TickLength);
-            }
+            SplitStaticLyricPhrases(ref staticLyricPhrases, staticShiftPhrases);
+
             return new(isHarmony, notePhrases, staticLyricPhrases, mergedPhrases, otherPhrases, textEvents);
         }
 
@@ -507,9 +499,10 @@ namespace YARG.Core.Chart
 
         private static List<VocalsPhrase> SplitPhraseByTime(VocalsPhrase phrase)
         {
+            const double minTimeForGap = 0.6f;
+
             if (phrase.Lyrics.Count == 0)
             {
-                // Fix: Truly avoid list allocation if no work is needed
                 return new List<VocalsPhrase>
                 {
                     phrase
@@ -526,7 +519,7 @@ namespace YARG.Core.Chart
             {
                 var lyric = phrase.Lyrics[i];
 
-                if (lyric.Time - previousLyric.TimeEnd > 0.6f && !previousLyric.JoinOrHyphenateWithNext && (i - sliceStartIndex) >= 3)
+                if (lyric.Time - previousLyric.TimeEnd > minTimeForGap && !previousLyric.JoinOrHyphenateWithNext && (i - sliceStartIndex) >= 3)
                 {
                     int count = i - sliceStartIndex;
                     resultPhrases.Add(CreateSubPhraseByIndex(phrase, sliceStartIndex, count, sliceStartTime,
