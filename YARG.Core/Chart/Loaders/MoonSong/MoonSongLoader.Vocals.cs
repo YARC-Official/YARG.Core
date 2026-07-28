@@ -508,7 +508,7 @@ namespace YARG.Core.Chart
             {
                 var lyric = phrase.Lyrics[i];
 
-                if (lyric.Time - previousLyric.TimeEnd > minTimeForGap && !previousLyric.JoinOrHyphenateWithNext && (i - sliceStartIndex) >= 3)
+                if (lyric.Time - previousLyric.TimeEnd > minTimeForGap && !previousLyric.JoinOrHyphenateWithNext)
                 {
                     int count = i - sliceStartIndex;
                     resultPhrases.Add(CreateSubPhraseByIndex(phrase, sliceStartIndex, count, sliceStartTime,
