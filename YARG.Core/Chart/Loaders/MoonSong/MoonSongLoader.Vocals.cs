@@ -70,7 +70,7 @@ namespace YARG.Core.Chart
             var textEvents = GetTextEvents(moonChart);
             List<VocalsPhrase> mergedPhrases = new();
             TrimOrphanPhrases(notePhrases, otherPhrases);
-            var staticShiftPhrases = moonChart.specialPhrases.Where(p => p.type == MoonPhrase.Type.Vocals_LyricShift).ToList();
+            var staticShiftPhrases = moonChart.specialPhrases.Where(p => p.type == MoonPhrase.Type.Vocals_LyricShift).Select(p => p.tick).ToList();
             if (harmonyPart is 1)
             {
                 var harm3Phrases =
@@ -251,37 +251,30 @@ namespace YARG.Core.Chart
             }
 
             phrases.TrimExcess();
-            if (staticLyricPhrases)
-            {
-                phrases.ForEach(FixLyricLengths);
-            }
+            // This needs to be done at the end because of carried notes.
+            phrases.ForEach(FixLyricLengths);
 
             return phrases;
         }
 
         /// <summary>
-        /// Finds the vocal note that is probably the note associated with this lyric, based on the smallest time difference.
+        /// Finds the vocal note that is associated with this lyric (on the same tick).
         /// </summary>
         /// <param name="lyric">The lyric to match against.</param>
         /// <param name="notes">The list of vocal notes in the phrase.</param>
-        /// <returns>The found vocal note, or null if no notes were provided</returns>
-        private static VocalNote? GetProbableNoteForLyric(LyricEvent lyric, List<VocalNote> notes)
+        /// <returns>The found vocal note, or null if no match.</returns>
+        private static VocalNote? GetNoteForLyric(LyricEvent lyric, List<VocalNote> notes)
         {
-            // Get the note with the smallest time difference from the lyric
-            var smallestTimeDelta = double.MaxValue;
-            VocalNote? probableNote = null;
-
-            foreach (var note in notes)
+            for (int i = 0; i < notes.Count; i++)
             {
-                var timeDelta = Math.Abs(lyric.Time - note.Time);
-                if (timeDelta < smallestTimeDelta)
+                var note = notes[i];
+                if (note.Tick == lyric.Tick)
                 {
-                    smallestTimeDelta = timeDelta;
-                    probableNote = note;
+                    return note;
                 }
             }
 
-            return probableNote;
+            return null;
         }
 
         /// <summary>
@@ -293,7 +286,7 @@ namespace YARG.Core.Chart
             for (var i = 0; i < phrase.Lyrics.Count; i++)
             {
                 var lyric = phrase.Lyrics[i];
-                var note = GetProbableNoteForLyric(lyric, phrase.PhraseParentNote.ChildNotes);
+                var note = GetNoteForLyric(lyric, phrase.PhraseParentNote.ChildNotes);
                 if (note != null)
                 {
                     lyric.TimeLength = note.TotalTimeEnd - note.Time;
@@ -405,26 +398,22 @@ namespace YARG.Core.Chart
             return result;
         }
 
-        private void SplitStaticLyricPhrases(ref List<VocalsPhrase> phrases, List<MoonPhrase> staticShiftPhrases)
+        private void SplitStaticLyricPhrases(ref List<VocalsPhrase> phrases, List<uint> staticShifts)
         {
-            var staticShifts = new List<uint>(staticShiftPhrases.Count);
-            foreach (var p in staticShiftPhrases)
+            if (staticShifts.Count == 0)
             {
-                staticShifts.Add(p.tick);
-            }
-
-            foreach (var phrase in phrases)
-            {
-                foreach (var lyric in phrase.Lyrics)
+                // I am assuming here that no chart uses both the "/" for shifts, and note shifts.
+                foreach (var phrase in phrases)
                 {
-                    if ((lyric.Flags & LyricSymbolFlags.StaticShift) != 0)
+                    foreach (var lyric in phrase.Lyrics)
                     {
-                        staticShifts.Add(lyric.TickEnd);
+                        if ((lyric.Flags & LyricSymbolFlags.StaticShift) != 0)
+                        {
+                            staticShifts.Add(lyric.TickEnd);
+                        }
                     }
                 }
             }
-
-            staticShifts.Sort();
 
             var finalPhrases = new List<VocalsPhrase>(phrases.Count * 2);
             int currentShiftIndex = 0;
