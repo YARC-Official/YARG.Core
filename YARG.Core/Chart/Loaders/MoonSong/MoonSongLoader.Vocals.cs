@@ -60,28 +60,31 @@ namespace YARG.Core.Chart
             var moonChart = _moonSong.GetChart(moonInstrument, MoonSong.Difficulty.Expert);
 
             var isHarmony = moonInstrument != MoonSong.MoonInstrument.Vocals;
-            var isBacking = harmonyPart is 1 or 2;
             var notePhrases = GetVocalsPhrases(moonChart, harmonyPart, false);
 
-            // For solo vocals and HARM1, the static lyric phrases are always the same as the scoring phrases. HARM2 and HARM3 derive
-            // their static lyric phrases from a different phrase type, so we have to run through again, looking for that type instead
             var staticLyricPhrases = GetVocalsPhrases(moonChart, harmonyPart, true);
             var otherPhrases = GetPhrases(moonChart);
             var textEvents = GetTextEvents(moonChart);
             List<VocalsPhrase> mergedPhrases = new();
             TrimOrphanPhrases(notePhrases, otherPhrases);
-            var staticShiftPhrases = moonChart.specialPhrases.Where(p => p.type == MoonPhrase.Type.Vocals_LyricShift).Select(p => p.tick).ToList();
             if (harmonyPart is 1)
             {
                 var harm3Phrases =
                     GetVocalsPhrases(_moonSong.GetChart(MoonSong.MoonInstrument.Harmony3, MoonSong.Difficulty.Expert),
                         2, true);
                 mergedPhrases = MergePhrases(staticLyricPhrases, harm3Phrases);
-                SplitStaticLyricPhrases(ref mergedPhrases, staticShiftPhrases);
+                SplitStaticLyricPhrases(ref mergedPhrases, new List<uint>());
             }
 
-
-            SplitStaticLyricPhrases(ref staticLyricPhrases, staticShiftPhrases);
+            if (harmonyPart is 0)
+            {
+                var staticShiftPhrases = moonChart.specialPhrases.Where(p => p.type == MoonPhrase.Type.Vocals_LyricShift).Select(p => p.tick).ToList();
+                SplitStaticLyricPhrases(ref staticLyricPhrases, staticShiftPhrases);
+            }
+            else
+            {
+                SplitStaticLyricPhrases(ref staticLyricPhrases, new List<uint>());
+            }
 
             return new(isHarmony, notePhrases, staticLyricPhrases, mergedPhrases, otherPhrases, textEvents);
         }
@@ -420,13 +423,16 @@ namespace YARG.Core.Chart
 
             foreach (var phrase in phrases)
             {
-                if (TrySplitByStaticShift(phrase, staticShifts, ref currentShiftIndex, out var staticSplits))
+                if (!TrySplitByStaticShift(phrase, staticShifts, ref currentShiftIndex, out var staticSplits))
                 {
-                    finalPhrases.AddRange(staticSplits);
-                    continue;
+                    staticSplits.Add(phrase);
                 }
 
-                var timeSplits = SplitPhraseByTime(phrase);
+                var timeSplits = new List<VocalsPhrase>(staticSplits.Count);
+                foreach (var staticSplitPhrase in staticSplits)
+                {
+                    timeSplits.AddRange(SplitPhraseByTime(staticSplitPhrase));
+                }
 
                 foreach (var timeSplitPhrase in timeSplits)
                 {
@@ -441,7 +447,7 @@ namespace YARG.Core.Chart
         private bool TrySplitByStaticShift(VocalsPhrase phrase, List<uint> staticShifts,
             ref int currentShiftIndex, out List<VocalsPhrase> splitPhrases)
         {
-            splitPhrases = null!;
+            splitPhrases = new List<VocalsPhrase>();
 
             if (staticShifts.Count == 0 || currentShiftIndex >= staticShifts.Count)
             {
@@ -466,7 +472,6 @@ namespace YARG.Core.Chart
                 return false;
             }
 
-            splitPhrases = new List<VocalsPhrase>();
             var lastTick = phrase.Tick;
             var lastTime = phrase.Time;
 
