@@ -233,25 +233,6 @@ namespace YARG.Core.Audio
             }
         }
 
-        public static AudioOutputMetrics OutputMetrics
-        {
-            get
-            {
-                lock (_instanceLock)
-                {
-                    return _instance?.OutputMetrics ?? default;
-                }
-            }
-        }
-
-        public static void ResetOutputMetrics()
-        {
-            lock (_instanceLock)
-            {
-                _instance?.ResetOutputMetrics();
-            }
-        }
-
         public static float GlobalSpeed
         {
             get
