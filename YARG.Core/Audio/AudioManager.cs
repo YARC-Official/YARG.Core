@@ -21,6 +21,54 @@ namespace YARG.Core.Audio
         }
     }
 
+    public readonly struct AudioOutputMetrics
+    {
+        public bool UsesManagedCallback { get; }
+        public double CallbackPeriodMilliseconds { get; }
+        public double MaximumCallbackTimeMilliseconds { get; }
+        public double MaximumCallbackGapMilliseconds { get; }
+        public double MaximumCallbackLatenessMilliseconds { get; }
+        public long LateCallbackCount { get; }
+        public long OutputUnderfillCount { get; }
+        public double RenderAheadMilliseconds { get; }
+        public double MinimumRenderAheadMilliseconds { get; }
+        public double MaximumRenderTimeMilliseconds { get; }
+        public double MaximumRenderSourceReadTimeMilliseconds { get; }
+        public double MaximumRenderQueueWriteTimeMilliseconds { get; }
+        public double MaximumGcRenderTimeMilliseconds { get; }
+        public double MaximumNonGcRenderTimeMilliseconds { get; }
+        public long GcOverlapRenderCallCount { get; }
+        public long RenderUnderrunCount { get; }
+
+        public AudioOutputMetrics(bool usesManagedCallback, double callbackPeriodMilliseconds,
+            double maximumCallbackTimeMilliseconds, double maximumCallbackGapMilliseconds,
+            double maximumCallbackLatenessMilliseconds, long lateCallbackCount,
+            long outputUnderfillCount,
+            double renderAheadMilliseconds, double minimumRenderAheadMilliseconds,
+            double maximumRenderTimeMilliseconds, double maximumRenderSourceReadTimeMilliseconds,
+            double maximumRenderQueueWriteTimeMilliseconds, double maximumGcRenderTimeMilliseconds,
+            double maximumNonGcRenderTimeMilliseconds, long gcOverlapRenderCallCount,
+            long renderUnderrunCount)
+        {
+            UsesManagedCallback = usesManagedCallback;
+            CallbackPeriodMilliseconds = callbackPeriodMilliseconds;
+            MaximumCallbackTimeMilliseconds = maximumCallbackTimeMilliseconds;
+            MaximumCallbackGapMilliseconds = maximumCallbackGapMilliseconds;
+            MaximumCallbackLatenessMilliseconds = maximumCallbackLatenessMilliseconds;
+            LateCallbackCount = lateCallbackCount;
+            OutputUnderfillCount = outputUnderfillCount;
+            RenderAheadMilliseconds = renderAheadMilliseconds;
+            MinimumRenderAheadMilliseconds = minimumRenderAheadMilliseconds;
+            MaximumRenderTimeMilliseconds = maximumRenderTimeMilliseconds;
+            MaximumRenderSourceReadTimeMilliseconds = maximumRenderSourceReadTimeMilliseconds;
+            MaximumRenderQueueWriteTimeMilliseconds = maximumRenderQueueWriteTimeMilliseconds;
+            MaximumGcRenderTimeMilliseconds = maximumGcRenderTimeMilliseconds;
+            MaximumNonGcRenderTimeMilliseconds = maximumNonGcRenderTimeMilliseconds;
+            GcOverlapRenderCallCount = gcOverlapRenderCallCount;
+            RenderUnderrunCount = renderUnderrunCount;
+        }
+    }
+
     public abstract class AudioManager
     {
         private static float _globalSpeed = 1f;
@@ -36,7 +84,7 @@ namespace YARG.Core.Audio
         protected internal Dictionary<string, VenueSampleChannel>  VenueSamples     = new();
         protected internal int PlaybackLatency;
         protected internal virtual double PlaybackStartDelay => PlaybackLatency / 1000.0;
-        protected internal virtual double MaximumOutputCallbackTimeMilliseconds => 0;
+        protected internal virtual AudioOutputMetrics OutputMetrics => default;
         protected internal int MinimumBufferLength;
         protected internal int MaximumBufferLength;
 
@@ -146,7 +194,7 @@ namespace YARG.Core.Audio
 
         protected internal virtual bool ReinitializeOutput(int bufferLength) => false;
 
-        protected internal virtual void ResetMaximumOutputCallbackTime() { }
+        protected internal virtual void ResetOutputMetrics() { }
 
         protected internal virtual void SetSingleMixer(bool enabled) { }
 

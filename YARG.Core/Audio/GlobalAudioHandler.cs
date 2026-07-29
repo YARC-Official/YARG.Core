@@ -233,22 +233,22 @@ namespace YARG.Core.Audio
             }
         }
 
-        public static double MaximumOutputCallbackTimeMilliseconds
+        public static AudioOutputMetrics OutputMetrics
         {
             get
             {
                 lock (_instanceLock)
                 {
-                    return _instance?.MaximumOutputCallbackTimeMilliseconds ?? 0;
+                    return _instance?.OutputMetrics ?? default;
                 }
             }
         }
 
-        public static void ResetMaximumOutputCallbackTime()
+        public static void ResetOutputMetrics()
         {
             lock (_instanceLock)
             {
-                _instance?.ResetMaximumOutputCallbackTime();
+                _instance?.ResetOutputMetrics();
             }
         }
 
