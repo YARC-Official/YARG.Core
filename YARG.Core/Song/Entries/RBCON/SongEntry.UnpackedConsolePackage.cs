@@ -39,10 +39,10 @@ namespace YARG.Core.Song
             return image;
         }
 
-        public override BackgroundResult? LoadBackground()
+        public override BackgroundResult? LoadBackground(bool excludeYarground = false)
         {
             string yarground = Path.Combine(_root.FullName, _subName, YARGROUND_FULLNAME);
-            if (File.Exists(yarground))
+            if (File.Exists(yarground) && !excludeYarground)
             {
                 var stream = File.OpenRead(yarground);
                 return new BackgroundResult(BackgroundType.Yarground, stream);

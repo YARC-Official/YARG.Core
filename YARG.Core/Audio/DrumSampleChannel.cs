@@ -30,7 +30,7 @@ namespace YARG.Core.Audio
                 if (!_disposed)
                 {
                     _volume = volume;
-                    volume *= GlobalAudioHandler.GetVolumeSetting(SongStem.DrumSfx);
+                    volume *= GlobalAudioHandler.GetTrueVolume(SongStem.DrumSfx);
                     SetVolume_Internal(volume);
                     Play_Internal();
                 }

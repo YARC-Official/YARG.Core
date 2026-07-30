@@ -237,9 +237,16 @@ namespace YARG.Core.Engine.Guitar
 
             note.SetHitState(true, true);
 
-            // Cancel the rest of hit logic during BRE phrase
-            if (IsCodaActive && note.IsBigRockEnding)
+            // Cancel the rest of hit logic during BRE phrase, but still resolve any
+            // previous notes skipped by an out-of-order BRE hit (mirror of the drums
+            // fix) — otherwise NoteIndex strands on the already-hit note and the engine
+            // soft-locks for the rest of the song.
+            // Key on CodaHasStarted, not IsCodaActive (see DrumsEngine.HitNote): a finale charted
+            // exactly on the BRE-end tick is judged (hit/miss) after the coda's EndTime, where
+            // IsCodaActive is already false.
+            if (CodaHasStarted && note.IsBigRockEnding)
             {
+                SkipPreviousNotes(note);
                 base.HitNote(note);
                 return;
             }
@@ -258,21 +265,6 @@ namespace YARG.Core.Engine.Guitar
                     AwardStarPower(note);
                     EngineStats.StarPowerPhrasesHit++;
                 }
-            }
-
-            if (note.IsSoloStart)
-            {
-                StartSolo();
-            }
-
-            if (IsSoloActive)
-            {
-                Solos[CurrentSoloIndex].NotesHit++;
-            }
-
-            if (note.IsSoloEnd)
-            {
-                EndSolo();
             }
 
             IncrementCombo();
@@ -330,29 +322,6 @@ namespace YARG.Core.Engine.Guitar
                 StripStarPower(note);
             }
 
-            // Solo has the start and end flag
-            if(note is { IsSoloStart: true, IsSoloEnd: true })
-            {
-                // While a solo is active, end the current solo and immediately start the next.
-                if (IsSoloActive)
-                {
-                    EndSolo();
-                    StartSolo();
-                }
-                else
-                {
-                    // If no solo is currently active, start and immediately end the solo.
-                    StartSolo();
-                    EndSolo();
-                }
-            } else if(note.IsSoloEnd)
-            {
-                EndSolo();
-            } else if (note.IsSoloStart)
-            {
-                StartSolo();
-            }
-
             WasNoteGhosted = false;
 
             ResetCombo();
@@ -392,6 +361,11 @@ namespace YARG.Core.Engine.Guitar
             if (!IsLaneActive)
             {
                 return false;
+            }
+
+            if (RequiredLaneNote == WildcardMask)
+            {
+                return true;
             }
 
             if (MaskIsMultiFret(RequiredLaneNote)) // Active lane is chord tremolo

@@ -30,19 +30,23 @@ namespace YARG.Core.Audio
         {
             StemSettings = new()
             {
-                { SongStem.Song,     new StemSettings() },
-                { SongStem.Guitar,   new StemSettings() },
-                { SongStem.Bass,     new StemSettings() },
-                { SongStem.Rhythm,   new StemSettings() },
-                { SongStem.Keys,     new StemSettings() },
-                { SongStem.Vocals,   new StemSettings() },
-                { SongStem.Drums,    new StemSettings() },
-                { SongStem.Crowd,    new StemSettings() },
-                { SongStem.Sfx,      new StemSettings() },
-                { SongStem.DrumSfx,  new StemSettings() },
-                { SongStem.VoxSample, new StemSettings() },
-                { SongStem.Metronome, new StemSettings() },
-                { SongStem.Preview, new StemSettings() },
+                { SongStem.Song,        new StemSettings() },
+                { SongStem.Guitar,      new StemSettings() },
+                { SongStem.Bass,        new StemSettings() },
+                { SongStem.Rhythm,      new StemSettings() },
+                { SongStem.Keys,        new StemSettings() },
+                { SongStem.Vocals,      new StemSettings() },
+                { SongStem.Drums1,      new StemSettings() },
+                { SongStem.Drums2,      new StemSettings() },
+                { SongStem.Drums3,      new StemSettings() },
+                { SongStem.Drums4,      new StemSettings() },
+                { SongStem.Crowd,       new StemSettings() },
+                { SongStem.Sfx,         new StemSettings() },
+                { SongStem.DrumSfx,     new StemSettings() },
+                { SongStem.VoxSample,   new StemSettings() },
+                { SongStem.VenueSample, new StemSettings() },
+                { SongStem.Metronome,   new StemSettings() },
+                { SongStem.Preview,     new StemSettings() },
             };
         }
 
@@ -88,9 +92,19 @@ namespace YARG.Core.Audio
             return StemSettings[stem].VolumeSetting;
         }
 
+        public static double GetVolumeMultiplier(SongStem stem)
+        {
+            return StemSettings[stem].VolumeMultiplier;
+        }
+
         public static void SetVolumeSetting(SongStem stem, double volume)
         {
             StemSettings[stem].VolumeSetting = volume;
+        }
+
+        public static void SetVolumeMultiplier(SongStem stem, double multiplier)
+        {
+            StemSettings[stem].VolumeMultiplier = multiplier;
         }
 
         public static bool GetReverbSetting(SongStem stem)
@@ -243,13 +257,26 @@ namespace YARG.Core.Audio
             }
         }
 
-        public static void StopSoundEffect(SfxSample sample, double duration = 0)
+        public static int CreateSoundEffectStream(SfxSample sample)
         {
             lock (_instanceLock)
             {
                 if (_instance == null)
                 {
                     throw new NotInitializedException();
+                }
+
+                return _instance.SfxSamples[(int) sample]?.CreateStream() ?? 0;
+            }
+        }
+
+        public static void StopSoundEffect(SfxSample sample, double duration = 0)
+        {
+            lock (_instanceLock)
+            {
+                if (_instance == null)
+                {
+                    return;
                 }
                 _instance.SfxSamples[(int) sample]?.Stop(duration);
             }
@@ -288,6 +315,14 @@ namespace YARG.Core.Audio
                     PauseSoundEffect(sample.Kind);
                 }
             }
+
+            lock (_instanceLock)
+            {
+                foreach (var sample in _instance.VenueSamples.Values)
+                {
+                    sample.Pause();
+                }
+            }
         }
 
         public static void ResumeAllSfx()
@@ -297,6 +332,14 @@ namespace YARG.Core.Audio
                 if (sample.IsPlaying)
                 {
                     ResumeSoundEffect(sample.Kind);
+                }
+            }
+
+            lock (_instanceLock)
+            {
+                foreach (var sample in _instance.VenueSamples.Values)
+                {
+                    sample.Resume();
                 }
             }
         }
@@ -326,6 +369,48 @@ namespace YARG.Core.Audio
             }
         }
 
+        public static void PlayVenueSample(string sampleName)
+        {
+            lock (_instanceLock)
+            {
+                if (_instance == null)
+                {
+                    throw new NotInitializedException();
+                }
+
+                if (_instance.VenueSamples.ContainsKey(sampleName))
+                {
+                    _instance.VenueSamples[sampleName]?.Play();
+                }
+            }
+        }
+
+        public static void AddVenueSample(string sampleName, byte[] sampleData)
+        {
+            lock (_instanceLock)
+            {
+                if (_instance == null)
+                {
+                    throw new NotInitializedException();
+                }
+
+                _instance.LoadVenueSample(sampleName, sampleData);
+            }
+        }
+
+        public static void ClearVenueSamples()
+        {
+            lock (_instanceLock)
+            {
+                if (_instance == null)
+                {
+                    throw new NotInitializedException();
+                }
+
+                _instance.ClearVenueSamples();
+            }
+        }
+
         public static void PlayMetronomeSoundEffect(MetronomeSample sample, MetronomePitch pitch)
         {
             lock (_instanceLock)
@@ -343,6 +428,19 @@ namespace YARG.Core.Audio
                 }
 
                 _instance.MetronomeSamples[(int) sample]?.PlayLo();
+            }
+        }
+
+        public static int CreateMetronomeStream(MetronomeSample sample, MetronomePitch pitch)
+        {
+            lock (_instanceLock)
+            {
+                if (_instance == null)
+                {
+                    throw new NotInitializedException();
+                }
+
+                return _instance.MetronomeSamples[(int) sample]?.CreateStream(pitch) ?? 0;
             }
         }
 

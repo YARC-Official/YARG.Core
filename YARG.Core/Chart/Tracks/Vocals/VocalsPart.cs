@@ -119,7 +119,10 @@ namespace YARG.Core.Chart
 
         public InstrumentDifficulty<VocalNote> CloneAsInstrumentDifficulty()
         {
-            var vocalNotes = NotePhrases.Select(i => i.PhraseParentNote).ToList();
+            // Deep-clone the phrase notes: multiple players can sing the same part, and
+            // each engine mutates hit/miss state on its notes. Sharing instances would
+            // leak one player's hit/miss state into every other engine on this part.
+            var vocalNotes = NotePhrases.Select(i => i.PhraseParentNote.Clone()).ToList();
             var instrument = IsHarmony ? Instrument.Harmony : Instrument.Vocals;
 
             var diff = new InstrumentDifficulty<VocalNote>(instrument, Difficulty.Expert,

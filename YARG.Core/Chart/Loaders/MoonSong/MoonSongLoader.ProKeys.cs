@@ -77,15 +77,17 @@ namespace YARG.Core.Chart
                 return;
             }
 
-            foreach (var phrase in chart.Phrases)
+            for (var phraseIndex = 0; phraseIndex < chart.Phrases.Count; phraseIndex++)
             {
+                var phrase = chart.Phrases[phraseIndex];
+
                 // Pro Keys does not support tremolos. Glissando phrases are handled earlier, since they don't require complex adjacent-note validation logic
                 if (phrase.Type is not PhraseType.TrillLane)
                 {
                     continue;
                 }
 
-                var notesInPhrase = GetNotesInPhrase(phrase, chart.Notes, noteIndex, out noteIndex);
+                var notesInPhrase = GetNotesInLanePhrase(chart.Phrases, phraseIndex, chart.Notes, noteIndex, out noteIndex);
 
                 var laneNotes = GetProKeysTrillNotes(notesInPhrase);
 

@@ -8,6 +8,8 @@ namespace YARG.Core.Engine.Guitar.Engines
 {
     public class YargFiveFretGuitarEngine : GuitarEngine
     {
+        protected override int WildcardMask => 1 << ((int)FiveFretGuitarFret.Wildcard - 1);
+
         public YargFiveFretGuitarEngine(InstrumentDifficulty<GuitarNote> chart, SyncTrack syncTrack,
             GuitarEngineParameters engineParameters, bool isBot)
             : base(chart, syncTrack, engineParameters, isBot)

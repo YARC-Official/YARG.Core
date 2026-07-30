@@ -214,9 +214,6 @@ namespace YARG.Core.Game
         public class VocalsPreset
         {
             // Pitch window is in semitones (max. difference between correct pitch and sung pitch).
-
-            [SettingType(SettingType.Slider)]
-            [SettingRange(0f, 6f)]
             public float PitchWindowB = 6f; // Beginner can hit if any recognizable noise is being made
 
             [SettingType(SettingType.Slider)]
@@ -246,8 +243,6 @@ namespace YARG.Core.Game
             // These percentages may seem low, but accounting for delay,
             // plosives not being detected, etc., it's pretty good.
 
-            [SettingType(SettingType.Slider)]
-            [SettingRange(0f, 1f)]
             public float HitPercentB = 0.225f;
 
             [SettingType(SettingType.Slider)]

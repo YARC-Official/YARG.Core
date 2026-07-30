@@ -153,7 +153,7 @@ public class PreviewContextTests
 
         public override YARGImage? LoadAlbumData() => null;
 
-        public override BackgroundResult? LoadBackground() => null;
+        public override BackgroundResult? LoadBackground(bool excludeYarground = false) => null;
 
         public override FixedArray<byte>? LoadMiloData() => null;
     }
@@ -182,6 +182,9 @@ public class PreviewContextTests
 
         protected internal override void SetMasterVolume(double volume) { }
 
+        public override void LoadVenueSample(string name, byte[] sampleData, OutputChannel? outputChannel = null) { }
+        public override void ClearVenueSamples() { }
+
 
         protected override void SetBufferLength_Internal(int length) { }
     }
@@ -200,6 +203,16 @@ public class PreviewContextTests
         {
             add => _songEnd += value;
             remove => _songEnd -= value;
+        }
+
+        public override OneShotChannel CreateOneShotChannel(int sampleStream,
+            IReadOnlyList<double> scheduledPlays, double outputLeadTime = 0) => new EmptyOneShotChannel();
+
+        private sealed class EmptyOneShotChannel : OneShotChannel
+        {
+            public override void SetEnabled(bool enabled) { }
+            public override void SetVolume(double volume) { }
+            public override void Dispose() { }
         }
 
         protected override int Play_Internal() => 0;
@@ -227,7 +240,7 @@ public class PreviewContextTests
 
         protected override int GetLevel_Internal(float[] level) => 0;
 
-        protected override void SetSpeed_Internal(float speed, bool shiftPitch) { }
+        protected override void SetPlaybackSpeed_Internal(float songSpeed, float syncAdjustment, bool shiftPitch) { }
 
         protected override bool AddChannels_Internal(Stream stream, params StemInfo[] stemInfos) => false;
 

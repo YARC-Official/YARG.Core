@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.IO;
 using YARG.Core.Extensions;
 using YARG.Core.IO;
@@ -54,6 +55,11 @@ namespace YARG.Core.Engine.Vocals
             TicksHit = 0;
             TicksMissed = 0;
             HasCarryNote = false;
+        }
+
+        public override IReadOnlyList<double> GetOffsetSamples()
+        {
+            return Array.Empty<double>();
         }
 
         public override void Serialize(BinaryWriter writer)

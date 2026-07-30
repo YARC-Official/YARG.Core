@@ -1,68 +1,40 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Text;
 
 namespace YARG.Core.Audio
 {
-    public abstract class SampleChannel : IDisposable
+    public abstract class VenueSampleChannel : IDisposable
     {
-        protected const double PLAYBACK_SUPPRESS_THRESHOLD = 0.05f;
         private bool _disposed;
 
-        protected readonly string _path;
-        protected readonly int _playbackCount;
+        private         byte[] _sampleData;
+        public readonly string SampleName;
 
-        public readonly SfxSample Sample;
-        protected SampleChannel(SfxSample sample, string path, int playbackCount)
+        public VenueSampleChannel(string sampleName, byte[] sampleData)
         {
-            Sample = sample;
-            _path = path;
-            _playbackCount = playbackCount;
+            SampleName = sampleName;
+            _sampleData = sampleData;
 
-            GlobalAudioHandler.StemSettings[SongStem.Sfx].OnVolumeChange += SetVolume;
+            GlobalAudioHandler.StemSettings[SongStem.VoxSample].OnVolumeChange += SetVolume;
         }
 
-        public void Play(double duration = 0)
+        public void Play()
         {
             lock (this)
             {
                 if (!_disposed)
                 {
-                    Play_Internal(duration);
-                }
-            }
-        }
-
-        /// <summary>
-        /// Creates an owned decode stream for sample-accurate playback in a song mixer.
-        /// </summary>
-        internal int CreateStream()
-        {
-            lock (this)
-            {
-                return _disposed ? 0 : CreateStream_Internal();
-            }
-        }
-
-        // TODO: Implement properly (fade out when duration approaches if sample is still playing)
-        public void PlayForTime(double duration)
-        {
-            Play();
-        }
-
-        public void Stop(double duration = 0)
-        {
-            lock (this)
-            {
-                if (!_disposed)
-                {
-                    Stop_Internal(duration);
+                    Play_Internal();
                 }
             }
         }
 
         public void Pause()
         {
+            if (!IsPlaying())
+            {
+                return;
+            }
+
             lock (this)
             {
                 if (!_disposed)
@@ -74,11 +46,69 @@ namespace YARG.Core.Audio
 
         public void Resume()
         {
+            if (!IsPaused())
+            {
+                return;
+            }
+
             lock (this)
             {
                 if (!_disposed)
                 {
                     Resume_Internal();
+                }
+            }
+        }
+
+        public void Stop()
+        {
+            if (!IsPlaying() && !IsPaused())
+            {
+                return;
+            }
+
+            lock (this)
+            {
+                if (!_disposed)
+                {
+                    Stop_Internal();
+                }
+            }
+        }
+
+        public bool IsPlaying()
+        {
+            lock (this)
+            {
+                if (!_disposed)
+                {
+                    return IsPlaying_Internal();
+                }
+            }
+
+            return false;
+        }
+
+        public bool IsPaused()
+        {
+            lock (this)
+            {
+                if (!_disposed)
+                {
+                    return IsPaused_Internal();
+                }
+            }
+
+            return false;
+        }
+
+        internal void SetOutputChannel(OutputChannel channel)
+        {
+            lock (this)
+            {
+                if (!_disposed)
+                {
+                    SetOutputChannel_Internal(channel);
                 }
             }
         }
@@ -90,17 +120,6 @@ namespace YARG.Core.Audio
                 if (!_disposed)
                 {
                     SetVolume_Internal(volume);
-                }
-            }
-        }
-
-        internal void SetOutputChannel(OutputChannel channel)
-        {
-            lock (this)
-            {
-                if (!_disposed)
-                {
-                    SetOutputChannel_Internal(channel);
                 }
             }
         }
@@ -127,15 +146,16 @@ namespace YARG.Core.Audio
             }
         }
 
-        protected abstract void Play_Internal(double duration);
-        protected abstract int CreateStream_Internal();
-        protected abstract void Stop_Internal(double duration);
+        protected abstract void Play_Internal();
+        protected abstract void Stop_Internal();
         protected abstract void Pause_Internal();
         protected abstract void Resume_Internal();
         protected abstract void SetVolume_Internal(double volume);
         protected abstract void SetEndCallback_Internal();
-        protected abstract void SetOutputChannel_Internal(OutputChannel? channel);
         protected abstract void EndCallback_Internal(int _, int __, int ___, IntPtr ____);
+        protected abstract void SetOutputChannel_Internal(OutputChannel? channel);
+        protected abstract bool IsPlaying_Internal();
+        protected abstract bool IsPaused_Internal();
 
         protected virtual void DisposeManagedResources() { }
         protected virtual void DisposeUnmanagedResources() { }
@@ -146,26 +166,27 @@ namespace YARG.Core.Audio
             {
                 if (!_disposed)
                 {
-                    GlobalAudioHandler.StemSettings[SongStem.Sfx].OnVolumeChange -= SetVolume;
+                    GlobalAudioHandler.StemSettings[SongStem.VoxSample].OnVolumeChange -= SetVolume;
                     if (disposing)
                     {
                         DisposeManagedResources();
                     }
+
                     DisposeUnmanagedResources();
                     _disposed = true;
                 }
             }
         }
 
-        ~SampleChannel()
-        {
-            Dispose(disposing: false);
-        }
-
         public void Dispose()
         {
-            Dispose(disposing: true);
+            Dispose(true);
             GC.SuppressFinalize(this);
+        }
+
+        ~VenueSampleChannel()
+        {
+            Dispose(false);
         }
     }
 }

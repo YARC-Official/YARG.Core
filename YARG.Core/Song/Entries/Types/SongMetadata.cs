@@ -57,6 +57,7 @@ namespace YARG.Core.Song
             Location = string.Empty,
             CreditAlbumArtDesignedBy = string.Empty,
             CreditArrangedBy = string.Empty,
+            CreditBackground = string.Empty,
             CreditComposedBy = string.Empty,
             CreditCourtesyOf = string.Empty,
             CreditEngineeredBy = string.Empty,
@@ -87,6 +88,8 @@ namespace YARG.Core.Song
             Video = (0, -1),
             VocalScrollSpeedScalingFactor = null,
             VocalGender = VocalGender.Unspecified,
+            VenueHint = string.Empty,
+            VocalCharacterHint = string.Empty,
         };
 
         public string Name;
@@ -143,6 +146,7 @@ namespace YARG.Core.Song
         public string CreditProducedBy;
         public string CreditPublishedBy;
         public string CreditWrittenBy;
+        public string CreditBackground;
 
         public string CharterAudio;
         public string CharterBass;
@@ -159,6 +163,10 @@ namespace YARG.Core.Song
 
         public float? VocalScrollSpeedScalingFactor;
         public VocalGender VocalGender;
+
+        // Venue hints
+        public string VenueHint;
+        public string VocalCharacterHint;
 
         public static SongMetadata CreateFromIni(IniModifierCollection modifiers)
         {
@@ -305,6 +313,11 @@ namespace YARG.Core.Song
             if (modifiers.Extract("credit_arranged_by", out string creditArrangedBy))
             {
                 metadata.CreditArrangedBy = creditArrangedBy;
+            }
+
+            if (modifiers.Extract("credit_background", out string creditBackground))
+            {
+                metadata.CreditBackground = creditBackground;
             }
 
             if (modifiers.Extract("credit_composed_by", out string creditComposedBy))
@@ -509,6 +522,11 @@ namespace YARG.Core.Song
                 metadata.LinkBandcamp = linkBandcamp;
             }
 
+            if (modifiers.Extract("vocal_character_hint", out string vocalCharacterHint))
+            {
+                metadata.VocalCharacterHint = vocalCharacterHint;
+            }
+
             if (modifiers.Extract("vocal_scroll_speed", out short vocalScrollSpeed))
             {
                 // INI vocal scroll speed is interpreted as a percentage
@@ -517,7 +535,19 @@ namespace YARG.Core.Song
 
             if (modifiers.Extract("vocal_gender", out string vocalGender))
             {
-                metadata.VocalGender = Enum.Parse<VocalGender>(vocalGender);
+                if (Enum.TryParse<VocalGender>(vocalGender, true, out var genderValue))
+                {
+                    metadata.VocalGender = genderValue;
+                }
+                else
+                {
+                    metadata.VocalGender = VocalGender.Unspecified;
+                }
+            }
+
+            if (modifiers.Extract("venue_hint", out string venueHint))
+            {
+                metadata.VenueHint = venueHint;
             }
         }
     }

@@ -98,7 +98,7 @@ namespace YARG.Core.Song
             return null;
         }
 
-        public override BackgroundResult? LoadBackground()
+        public override BackgroundResult? LoadBackground(bool excludeYarground = false)
         {
             using var sngFile = SngFile.TryLoadFromFile(_location, false);
             if (!sngFile.IsLoaded)
@@ -112,7 +112,7 @@ namespace YARG.Core.Song
             }
 
             string file = Path.ChangeExtension(_location, YARGROUND_EXTENSION);
-            if (File.Exists(file))
+            if (File.Exists(file) && !excludeYarground)
             {
                 return new BackgroundResult(BackgroundType.Yarground, File.OpenRead(file));
             }
@@ -174,6 +174,21 @@ namespace YARG.Core.Song
 
         public override FixedArray<byte>? LoadMiloData()
         {
+            using var sng = SngFile.TryLoadFromFile(_location, false);
+            if (sng.IsLoaded)
+            {
+                foreach (var name in sng.Listings.Keys)
+                {
+                    if (name.EndsWith(".milo_xbox") || name.EndsWith(".milo"))
+                    {
+                        if (sng.TryGetListing(name, out var listing))
+                        {
+                            return sng.LoadAllBytes(in listing);
+                        }
+                    }
+                }
+            }
+            
             return null;
         }
 

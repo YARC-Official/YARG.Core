@@ -87,8 +87,10 @@ namespace YARG.Core.Engine.Keys
 
             KeyPressTimes[note.Key] = DEFAULT_PRESS_TIME;
 
-            // Cancel rest of hit logic during BRE phrase
-            if (IsCodaActive && note.IsBigRockEnding)
+            // Cancel rest of hit logic during BRE phrase. Key on CodaHasStarted, not IsCodaActive
+            // (see DrumsEngine.HitNote): an end-tick finale is judged after the coda's EndTime,
+            // where IsCodaActive is already false.
+            if (CodaHasStarted && note.IsBigRockEnding)
             {
                 // Be sure to disable the stagger timer so it doesn't run long
                 ChordStaggerTimer.Disable(CurrentTime, early: true);
@@ -111,21 +113,6 @@ namespace YARG.Core.Engine.Keys
                     AwardStarPower(note);
                     EngineStats.StarPowerPhrasesHit++;
                 }
-            }
-
-            if (note.IsSoloStart)
-            {
-                StartSolo();
-            }
-
-            if (IsSoloActive)
-            {
-                Solos[CurrentSoloIndex].NotesHit++;
-            }
-
-            if (note.IsSoloEnd && note.ParentOrSelf.WasFullyHitOrMissed())
-            {
-                EndSolo();
             }
 
             if (note.ParentOrSelf.WasFullyHit())
@@ -180,10 +167,13 @@ namespace YARG.Core.Engine.Keys
 
             KeyPressTimes[note.Key] = DEFAULT_PRESS_TIME;
 
-            // Can't miss a note during BRE phrase
-            if (IsCodaActive && note.IsBigRockEnding)
+            // Can't miss a note during the coda. Key on CodaHasStarted, not IsCodaActive (see
+            // DrumsEngine.MissNote): the miss is judged at the back-end time, which for an
+            // end-tick finale falls after the coda's EndTime where IsCodaActive is already false.
+            if (CodaHasStarted && note.IsBigRockEnding)
             {
-                note.SetHitState(true, false);
+                // Resolve the whole chord, matching GuitarEngine (see DrumsEngine.MissNote).
+                note.SetHitState(true, true);
                 base.HitNote(note);
                 return;
             }
@@ -201,30 +191,6 @@ namespace YARG.Core.Engine.Keys
             if (note.IsStarPower)
             {
                 StripStarPower(note);
-            }
-
-            if (note is { IsSoloStart: true, IsSoloEnd: true } && note.ParentOrSelf.WasFullyHitOrMissed())
-            {
-                // While a solo is active, end the current solo and immediately start the next.
-                if (IsSoloActive)
-                {
-                    EndSolo();
-                    StartSolo();
-                }
-                else
-                {
-                    // If no solo is currently active, start and immediately end the solo.
-                    StartSolo();
-                    EndSolo();
-                }
-            }
-            else if (note.IsSoloEnd && note.ParentOrSelf.WasFullyHitOrMissed())
-            {
-                EndSolo();
-            }
-            else if (note.IsSoloStart)
-            {
-                StartSolo();
             }
 
             if (note.IsGlissandoStart)
