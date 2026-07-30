@@ -160,7 +160,7 @@ namespace YARG.Core.Engine.Keys.Engines
                 if (missed)
                 {
                     // Intercept missed note while lane phrase is active
-                    if (!AutohitNoteFromLane(parentNote))
+                    if (!AutohitNoteFromLane(parentNote) && !AutohitNoteFromGlissando(parentNote))
                     {
                         // If one of the notes in the chord was missed out the back end,
                         // that means all of them would miss.

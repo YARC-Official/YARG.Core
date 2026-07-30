@@ -156,6 +156,29 @@ namespace YARG.Core.Engine.Keys
             base.HitNote(note);
         }
 
+        protected bool AutohitNoteFromGlissando(ProKeysNote note)
+        {
+            // If the note was already hit or missed, don't let the caller attempt to autohit it
+            if (note.WasHit || note.WasMissed)
+            {
+                return false;
+            }
+
+            if (note.Time > LaneAutohitExpireTime)
+            {
+                return false;
+            }
+
+            if (note.IsGlissando)
+            {
+                // Glissandos don't require the first note to be hit accurately, so we can just hit the note and return true
+                HitNote(note);
+                return true;
+            }
+
+            return false;
+        }
+
         protected override void MissNote(ProKeysNote note)
         {
             if (note.WasHit || note.WasMissed)
