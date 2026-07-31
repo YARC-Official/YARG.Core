@@ -136,10 +136,20 @@ namespace YARG.Core.Game
         }
 
         /// <summary>
-        /// The currently selected modifiers as a flag.
-        /// Use <see cref="AddSingleModifier"/> and <see cref="RemoveModifiers"/> to modify.
+        /// The modifiers the player explicitly selected, as saved in the profile.
+        /// Serialized under the same property name as the old combined value so
+        /// existing profiles load unchanged.
         /// </summary>
-        [JsonProperty]
+        [JsonProperty("CurrentModifiers")]
+        private Modifier _savedModifiers;
+
+        /// <summary>
+        /// The modifiers in effect for gameplay, as a flag.
+        /// Use <see cref="AddSingleModifier"/> and <see cref="RemoveModifiers"/> to modify;
+        /// these also update the saved selection. <see cref="ApplySessionModifiers"/> changes
+        /// only this value, leaving the saved selection intact.
+        /// </summary>
+        [JsonIgnore]
         public Modifier CurrentModifiers { get; private set; }
 
         /// <summary>
@@ -173,6 +183,7 @@ namespace YARG.Core.Game
             RockMeterPreset = Game.RockMeterPreset.Normal.Id;
 
             CurrentModifiers = Modifier.None;
+            _savedModifiers = Modifier.None;
         }
 
         public YargProfile(Guid id) : this()
@@ -201,6 +212,7 @@ namespace YARG.Core.Game
             CurrentInstrument = (Instrument) stream.ReadByte();
             CurrentDifficulty = (Difficulty) stream.ReadByte();
             CurrentModifiers = (Modifier) stream.Read<ulong>(Endianness.Little);
+            _savedModifiers = CurrentModifiers;
             _harmonyIndex = _harmonyIndexFallback = stream.ReadByte();
 
             NoteSpeed = stream.Read<float>(Endianness.Little);
@@ -318,11 +330,13 @@ namespace YARG.Core.Game
             // Remove conflicting modifiers first
             RemoveModifiers(ModifierConflicts.FromSingleModifier(modifier));
             CurrentModifiers |= modifier;
+            _savedModifiers = CurrentModifiers;
         }
 
         public void RemoveModifiers(Modifier modifier)
         {
             CurrentModifiers &= ~modifier;
+            _savedModifiers = CurrentModifiers;
         }
 
         public bool IsModifierActive(Modifier modifier)
@@ -334,6 +348,29 @@ namespace YARG.Core.Game
         {
             // The modifiers of the other profile are guaranteed to be correct
             CurrentModifiers = profile.CurrentModifiers;
+            _savedModifiers = CurrentModifiers;
+        }
+
+        /// <summary>
+        /// Takes on another profile's modifiers for the current session only:
+        /// gameplay (and anything else reading <see cref="CurrentModifiers"/>) sees
+        /// the source profile's modifiers, while this profile's saved selection is
+        /// left untouched and will be restored on the next load.
+        /// </summary>
+        public void ApplySessionModifiers(YargProfile profile)
+        {
+            CurrentModifiers = profile.CurrentModifiers;
+        }
+
+        /// <summary>
+        /// Discards any session-scoped modifiers (see <see cref="ApplySessionModifiers"/>)
+        /// and puts the player's saved selection back in effect. Call when starting a
+        /// fresh modifier-selection session so a previous song's imposed modifiers don't
+        /// linger on the in-memory profile.
+        /// </summary>
+        public void RestoreSavedModifiers()
+        {
+            CurrentModifiers = _savedModifiers;
         }
 
         public void ApplyModifiers<TNote>(InstrumentDifficulty<TNote> track, SyncTrack syncTrack) where TNote : Note<TNote>
@@ -459,6 +496,10 @@ namespace YARG.Core.Game
             _harmonyIndex = _harmonyIndexFallback;
 
             ValidatePreferredInstrument();
+
+            // The saved modifier selection is the serialized source of truth;
+            // a freshly loaded profile starts with it in effect.
+            CurrentModifiers = _savedModifiers;
         }
 
         private void ValidatePreferredInstrument()
