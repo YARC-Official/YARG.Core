@@ -1,4 +1,5 @@
-﻿using System;
+#nullable disable
+using System;
 using System.IO;
 using Newtonsoft.Json;
 using YARG.Core.Chart;
@@ -553,7 +554,7 @@ namespace YARG.Core.Game
 
             writer.Write((byte) OpenLaneDisplayType);
 
-            writer.Write((byte)FourLaneDrumsHighwayOrdering.Length);
+            writer.Write((byte) FourLaneDrumsHighwayOrdering.Length);
             foreach (var item in FourLaneDrumsHighwayOrdering)
             {
                 writer.Write((byte) item);

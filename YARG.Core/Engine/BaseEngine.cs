@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using YARG.Core.Chart;
 using YARG.Core.Input;
@@ -128,7 +128,7 @@ namespace YARG.Core.Engine
 
         public double BaseTimeInStarPower { get; protected set; }
 
-        public          int[]  StarScoreThresholds { get; protected set;  }
+        public          int[]?  StarScoreThresholds { get; protected set;  }
 
         public readonly struct EngineFrameUpdate
         {
