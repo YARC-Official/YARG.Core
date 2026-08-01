@@ -112,7 +112,8 @@ namespace YARG.Core.Game
         {
             // Only expose harmony index when playing harmonies, ensures consistent behavior
             // while still allowing harmony index to persist between instrument switches
-            get => CurrentInstrument == Instrument.Harmony ? _harmonyIndex : (byte) 0;
+            get => (CurrentInstrument == Instrument.Harmony || CurrentInstrument == Instrument.PartyVocals)
+                ? _harmonyIndex : (byte) 0;
             set => _harmonyIndex = _harmonyIndexFallback = value;
         }
 
