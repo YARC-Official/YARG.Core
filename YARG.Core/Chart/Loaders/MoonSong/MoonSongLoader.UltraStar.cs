@@ -55,12 +55,15 @@ namespace YARG.Core.Chart
 
                     foreach (var child in parent.ChildNotes)
                     {
-                        if (child.Type != VocalNoteType.Lyric)
+                        if (child.Type != VocalNoteType.Lyric && child.Type != VocalNoteType.Percussion)
                         {
                             continue;
                         }
 
-                        var flags = child.IsNonPitched ? MoonNote.Flags.Vocals_Percussion : MoonNote.Flags.None;
+                        // UltraStar freestyle (F), rap (R), and golden freestyle (G) notes are
+                        // unpitched lyrical notes, NOT percussion. Keep as None so they stay
+                        // VocalNoteType.Lyric downstream.
+                        var flags = MoonNote.Flags.None;
 
                         int rawNote = child.IsNonPitched ? 0 : (int) child.Pitch;
 
@@ -90,7 +93,7 @@ namespace YARG.Core.Chart
 
             foreach (var p in allPhrasesList.OrderBy(p => p.tick))
             {
-                chart.Add(p); 
+                chart.Add(p);
             }
 
             var uniqueText = allText
@@ -139,7 +142,12 @@ namespace YARG.Core.Chart
 
             if (vocalTrack.Parts.Count > 0)
             {
-                AddPartToChart(vocalTrack.Parts, soloChart);
+                // For duet, only show first part in solo Vocals chart.
+                // Both parts are still available separately in Harmony1/Harmony2.
+                var soloParts = isDuet
+                    ? new List<VocalsPart> { vocalTrack.Parts[0] }
+                    : vocalTrack.Parts;
+                AddPartToChart(soloParts, soloChart);
             }
 
             if (isDuet && vocalTrack.Parts.Count >= 2)

@@ -1,9 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using YARG.Core.Chart;
-using YARG.Core.Engine.Drums;
-using YARG.Core.Engine.Guitar;
-using YARG.Core.Engine.Keys;
 using YARG.Core.Engine.Vocals;
 using YARG.Core.Logging;
 using YARG.Core.Extensions;
@@ -18,7 +15,7 @@ namespace YARG.Core.Engine
             public double                        TimeEnd             { get; }
             public uint                          Tick                { get; }
             public uint                          TickEnd             { get; }
-            public int                           PartCount           { get; private set; }
+            public int                           PartCount           => ParticipantToPhrase.Count;
             public int                           SuccessCount        { get; private set; }
             public bool                          Awarded             { get; set; }
             public Dictionary<int, UnisonPhrase> ParticipantToPhrase { get; }
@@ -29,7 +26,6 @@ namespace YARG.Core.Engine
                 TimeEnd = timeEnd;
                 Tick = tick;
                 TickEnd = tickEnd;
-                PartCount = 0;
                 SuccessCount = 0;
                 Awarded = false;
                 ParticipantToPhrase = new Dictionary<int, UnisonPhrase>();
@@ -37,20 +33,12 @@ namespace YARG.Core.Engine
 
             public void AddPlayer(EngineContainer engineContainer, UnisonPhrase sourcePhrase)
             {
-                if (!ParticipantToPhrase.TryAdd(engineContainer.EngineId, sourcePhrase))
-                {
-                    return;
-                }
-
-                PartCount++;
+                ParticipantToPhrase[engineContainer.EngineId] = sourcePhrase;
             }
 
             public void RemovePlayer(EngineContainer engineContainer)
             {
-                if (ParticipantToPhrase.Remove(engineContainer.EngineId))
-                {
-                    PartCount--;
-                }
+                ParticipantToPhrase.Remove(engineContainer.EngineId);
             }
 
             // Returns true if all players succesfully completed the unison
@@ -170,7 +158,7 @@ namespace YARG.Core.Engine
         private void AddPlayerToUnisons(EngineContainer engineContainer, SongChart chart)
         {
             // Vocals don't participate in unisons, so don't add them to the list
-            if (engineContainer.Engine is BaseEngine<VocalNote, VocalsEngineParameters, VocalsStats>)
+            if (engineContainer is EngineContainer<VocalNote, VocalsEngineParameters, VocalsStats>)
             {
                 return;
             }
@@ -208,144 +196,27 @@ namespace YARG.Core.Engine
                 unisonEvent.AddPlayer(engineContainer, phrase);
             }
             // Subscribe the container to OnStarPowerPhraseHit so bonuses can be awarded as appropriate
-            if (engineContainer.Engine is BaseEngine<GuitarNote,GuitarEngineParameters,GuitarStats> guitarEngine)
-            {
-                guitarEngine.OnStarPowerPhraseHit += engineContainer.OnStarPowerPhraseHit;
-            }
-
-            if (engineContainer.Engine is BaseEngine<DrumNote, DrumsEngineParameters, DrumsStats> drumEngine)
-            {
-                drumEngine.OnStarPowerPhraseHit += engineContainer.OnStarPowerPhraseHit;
-            }
-
-            if (engineContainer.Engine is BaseEngine<ProKeysNote, KeysEngineParameters, KeysStats>
-                proKeysEngine)
-            {
-                proKeysEngine.OnStarPowerPhraseHit += engineContainer.OnStarPowerPhraseHit;
-            }
-
-            if (engineContainer.Engine is BaseEngine<GuitarNote, KeysEngineParameters, KeysStats>
-                fiveLaneKeysEngine)
-            {
-                fiveLaneKeysEngine.OnStarPowerPhraseHit += engineContainer.OnStarPowerPhraseHit;
-            }
-            // Vocals don't participate in unisons, so they get left out.
+            engineContainer.SubscribeToStarPowerPhraseHit();
         }
 
         private void RemovePlayerFromUnisons(EngineContainer engineContainer)
         {
-            foreach (var unisonEvent in _unisonEvents)
+            for (int i = _unisonEvents.Count - 1; i >= 0; i--)
             {
+                var unisonEvent = _unisonEvents[i];
+                if (unisonEvent.TimeEnd < engineContainer.BaseEngine.CurrentTime)
+                {
+                    // This unison has already passed, don't update it
+                    continue;
+                }
                 unisonEvent.RemovePlayer(engineContainer);
-            }
-
-            // Unsubscribe the container from OnStarPowerPhraseHit so bonuses can be awarded as appropriate
-            if (engineContainer.Engine is BaseEngine<GuitarNote,GuitarEngineParameters,GuitarStats> guitarEngine)
-            {
-                guitarEngine.OnStarPowerPhraseHit -= engineContainer.OnStarPowerPhraseHit;
-            }
-
-            if (engineContainer.Engine is BaseEngine<DrumNote, DrumsEngineParameters, DrumsStats> drumEngine)
-            {
-                drumEngine.OnStarPowerPhraseHit -= engineContainer.OnStarPowerPhraseHit;
-            }
-
-            if (engineContainer.Engine is BaseEngine<ProKeysNote, KeysEngineParameters, KeysStats>
-                proKeysEngine)
-            {
-                proKeysEngine.OnStarPowerPhraseHit -= engineContainer.OnStarPowerPhraseHit;
-            }
-
-            if (engineContainer.Engine is BaseEngine<GuitarNote, KeysEngineParameters, KeysStats>
-                fiveLaneKeysEngine)
-            {
-                fiveLaneKeysEngine.OnStarPowerPhraseHit -= engineContainer.OnStarPowerPhraseHit;
-            }
-        }
-
-        /// <summary>
-        /// Builds unison phrases for a combination of instrument and chart
-        /// </summary>
-        /// <param name="instrument"><see cref="Instrument"/></param>
-        /// <param name="difficulty"><see cref="Difficulty"/></param>
-        /// <param name="chart"><see cref="SongChart"/></param>
-        /// <param name="includeChildNotesInNoteCount">Used to determine how to calculate note count in the phrase.</param>
-        /// <returns>List of UnisonPhrase objects.
-        /// <br />These Phrases have corresponding StarPower Phrases in other tracks,
-        /// <br />which is what makes them unison phrases.
-        /// </returns>
-        public static List<UnisonPhrase> GetUnisonPhrases(Instrument instrument, Difficulty difficulty, SongChart chart, bool includeChildNotesInNoteCount)
-        {
-
-            // Find a track that corresponds to the player's instrument
-            if (TryFindTrackForInstrument(instrument, chart.FiveFretTracks, out var fiveFretTrack))
-            {
-                if (fiveFretTrack.TryGetDifficulty(difficulty, out var track))
+                if (unisonEvent.PartCount == 0)
                 {
-                    return GetUnisonPhrases(track, chart, includeChildNotesInNoteCount);
+                    _unisonEvents.RemoveAt(i);
                 }
             }
 
-            if (TryFindTrackForInstrument(instrument, chart.DrumsTracks, out var drumsTrack))
-            {
-                if (drumsTrack.TryGetDifficulty(difficulty, out var track))
-                {
-                    return GetUnisonPhrases(track, chart, includeChildNotesInNoteCount);
-                }
-            }
-
-            if (TryFindTrackForInstrument(instrument, chart.SixFretTracks, out var sixFretTrack))
-            {
-                if (sixFretTrack.TryGetDifficulty(difficulty, out var track))
-                {
-                    return GetUnisonPhrases(track, chart, includeChildNotesInNoteCount);
-                }
-            }
-
-            if (TryFindTrackForInstrument(instrument, chart.ProGuitarTracks, out var proGuitarTrack))
-            {
-                if (proGuitarTrack.TryGetDifficulty(difficulty, out var track))
-                {
-                    return GetUnisonPhrases(track, chart, includeChildNotesInNoteCount);
-                }
-            }
-
-            if (chart.ProKeys.Instrument == instrument)
-            {
-                if (chart.ProKeys.TryGetDifficulty(difficulty, out var track))
-                {
-                    return GetUnisonPhrases(track, chart, includeChildNotesInNoteCount);
-                }
-            }
-
-            if (chart.Keys.Instrument == instrument)
-            {
-                if (chart.Keys.TryGetDifficulty(difficulty, out var track))
-                {
-                    return GetUnisonPhrases(track, chart, includeChildNotesInNoteCount);
-                }
-            }
-
-
-            YargLogger.LogFormatError("Could not find any instrument difficulty for {0}", instrument);
-            return new List<UnisonPhrase>();
-
-            // Get the track for a given instrument, if it exists
-            static bool TryFindTrackForInstrument<TNote>(Instrument instrument,
-                IEnumerable<InstrumentTrack<TNote>> trackEnumerable, out InstrumentTrack<TNote> instrumentTrack) where TNote : Note<TNote>
-            {
-                foreach (var track in trackEnumerable)
-                {
-                    if (track.Instrument == instrument)
-                    {
-                        instrumentTrack = track;
-                        return true;
-                    }
-                }
-
-                instrumentTrack = null!;
-                return false;
-            }
+            engineContainer.UnsubscribeFromStarPowerPhraseHit();
         }
 
         /// <summary>
@@ -358,7 +229,9 @@ namespace YARG.Core.Engine
         /// <br />These Phrases have corresponding StarPower Phrases in other tracks,
         /// <br />which is what makes them unison phrases.
         /// </returns>
-        public static List<UnisonPhrase> GetUnisonPhrases<TNoteType>(InstrumentDifficulty<TNoteType> instrumentDifficulty, SongChart chart, bool includeChildNotesInNoteCount) where TNoteType : Note<TNoteType>
+        public static List<UnisonPhrase> GetUnisonPhrases<TNoteType>(
+            InstrumentDifficulty<TNoteType> instrumentDifficulty, SongChart chart, bool includeChildNotesInNoteCount)
+            where TNoteType : Note<TNoteType>
         {
             // Unisons must have at least 2 participants.
 
@@ -493,11 +366,14 @@ namespace YARG.Core.Engine
                 YargLogger.LogDebug("Attempted to award bonus SP, but it was already awarded");
                 return;
             }
-            foreach (var id in unison.ParticipantToPhrase.Keys)
+
+            foreach (var engineContainer in _allEngines)
             {
-                YargLogger.LogFormatDebug("EngineManager awarding bonus SP to participant ID {0}", id);
-                var engineContainer = _allEnginesById[id];
-                engineContainer.SendCommand(EngineCommandType.AwardUnisonBonus);
+                if (unison.ParticipantToPhrase.ContainsKey(engineContainer.EngineId))
+                {
+                    YargLogger.LogFormatDebug("EngineManager awarding bonus SP to participant ID {0}", engineContainer.EngineId);
+                    engineContainer.SendCommand(EngineCommandType.AwardUnisonBonus);
+                }
             }
             unison.Awarded = true;
             OnUnisonPhraseSuccess?.Invoke();

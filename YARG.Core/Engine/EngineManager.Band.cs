@@ -31,7 +31,7 @@ namespace YARG.Core.Engine
                 var totalBonus = 0;
                 foreach (var engine in Engines)
                 {
-                    totalBonus += engine.Engine.CurrentCodaBonus;
+                    totalBonus += engine.BaseEngine.CurrentCodaBonus;
                 }
 
                 return totalBonus;
@@ -44,7 +44,7 @@ namespace YARG.Core.Engine
             {
                 foreach (var engine in Engines)
                 {
-                    if (!engine.Engine.CodaSuccess)
+                    if (!engine.BaseEngine.CodaSuccess)
                     {
                         return false;
                     }
@@ -74,7 +74,7 @@ namespace YARG.Core.Engine
 
                 foreach (var engine in Engines)
                 {
-                    engine.Engine.AwardCodaBonus(success);
+                    engine.BaseEngine.AwardCodaBonus(success);
                 }
             }
         }
@@ -83,7 +83,7 @@ namespace YARG.Core.Engine
         {
             foreach (var engine in Engines)
             {
-                engine.Engine.UpdateBandMultiplier(BandMultiplier);
+                engine.BaseEngine.UpdateBandMultiplier(BandMultiplier);
             }
         }
 

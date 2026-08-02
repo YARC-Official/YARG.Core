@@ -139,7 +139,7 @@ namespace YARG.Core.Audio
                 {
                     foreach (var mixer in _activeMixers)
                     {
-                        mixer.SetSpeed(value, true);
+                        mixer.SetPlaybackSpeed(value);
                     }
                 }
             }

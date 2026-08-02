@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 
 namespace YARG.Core.Audio
@@ -15,11 +15,11 @@ namespace YARG.Core.Audio
             { "vocals",   SongStem.Vocals  },
             { "vocals_1", SongStem.Vocals },
             { "vocals_2", SongStem.Vocals },
-            { "drums",    SongStem.Drums   },
-            { "drums_1",  SongStem.Drums  },
-            { "drums_2",  SongStem.Drums  },
-            { "drums_3",  SongStem.Drums  },
-            { "drums_4",  SongStem.Drums  },
+            { "drums",    SongStem.Drums1 },
+            { "drums_1",  SongStem.Drums1 },
+            { "drums_2",  SongStem.Drums2 },
+            { "drums_3",  SongStem.Drums3 },
+            { "drums_4",  SongStem.Drums4 },
             { "crowd",    SongStem.Crowd   },
             // "preview"
         };
@@ -43,45 +43,52 @@ namespace YARG.Core.Audio
                 "vocals"   => SongStem.Vocals,
                 "vocals_1" => SongStem.Vocals,
                 "vocals_2" => SongStem.Vocals,
-                "drums"    => SongStem.Drums,
-                "drums_1"  => SongStem.Drums,
-                "drums_2"  => SongStem.Drums,
-                "drums_3"  => SongStem.Drums,
-                "drums_4"  => SongStem.Drums,
+                "drums"    => SongStem.Drums1,
+                "drums_1"  => SongStem.Drums1,
+                "drums_2"  => SongStem.Drums2,
+                "drums_3"  => SongStem.Drums3,
+                "drums_4"  => SongStem.Drums4,
                 "crowd"    => SongStem.Crowd,
                 // "preview" => SongStem.Preview,
                 _ => SongStem.Song,
             };
         }
 
-        public static SongStem ToSongStem(this Instrument instrument)
+        private static readonly HashSet<SongStem> GuitarStems  = new() { SongStem.Guitar };
+        private static readonly HashSet<SongStem> BassStems    = new() { SongStem.Bass };
+        private static readonly HashSet<SongStem> RhythmStems  = new() { SongStem.Rhythm };
+        private static readonly HashSet<SongStem> KeysStems    = new() { SongStem.Keys };
+        private static readonly HashSet<SongStem> DrumsStems   = new() { SongStem.Drums1, SongStem.Drums2, SongStem.Drums3, SongStem.Drums4 };
+        private static readonly HashSet<SongStem> VocalsStems  = new() { SongStem.Vocals };
+
+        public static IEnumerable<SongStem> ToSongStems(this Instrument instrument)
         {
             return instrument switch
             {
                 Instrument.FiveFretGuitar or
                 Instrument.SixFretGuitar or
                 Instrument.ProGuitar_17Fret or
-                Instrument.ProGuitar_22Fret => SongStem.Guitar,
+                Instrument.ProGuitar_22Fret => GuitarStems,
 
                 Instrument.FiveFretBass or
                 Instrument.SixFretBass or
                 Instrument.ProBass_17Fret or
-                Instrument.ProBass_22Fret => SongStem.Bass,
+                Instrument.ProBass_22Fret => BassStems,
 
                 Instrument.FiveFretRhythm or
                 Instrument.SixFretRhythm or
                 Instrument.FiveFretCoopGuitar or
-                Instrument.SixFretCoopGuitar => SongStem.Rhythm,
+                Instrument.SixFretCoopGuitar => RhythmStems,
 
                 Instrument.Keys or
-                Instrument.ProKeys => SongStem.Keys,
+                Instrument.ProKeys => KeysStems,
 
                 Instrument.ProDrums or
                 Instrument.FourLaneDrums or
-                Instrument.FiveLaneDrums => SongStem.Drums,
+                Instrument.FiveLaneDrums => DrumsStems,
 
                 Instrument.Vocals or
-                Instrument.Harmony => SongStem.Vocals,
+                Instrument.Harmony => VocalsStems,
 
                 _ => throw new Exception("Unreachable.")
             };
@@ -98,7 +105,7 @@ namespace YARG.Core.Audio
             new Sample<SfxSample>(SfxSample.StarPowerDeploy, "starpower_deploy", 0.4f),
             new Sample<SfxSample>(SfxSample.StarPowerDeployCrowd, "overdrive_deploy_crowd", 0.4f),
             new Sample<SfxSample>(SfxSample.StarPowerRelease, "starpower_release", 0.5f),
-            new Sample<SfxSample>(SfxSample.Clap, "clap", 0.16f),
+            new Sample<SfxSample>(SfxSample.Clap, "clap", 0.35f),
             new Sample<SfxSample>(SfxSample.StarGain, "star"),
             new Sample<SfxSample>(SfxSample.StarGold, "star_gold"),
             new Sample<SfxSample>(SfxSample.Overstrum1, "overstrum_1", 0.4f),
@@ -211,13 +218,13 @@ namespace YARG.Core.Audio
             // Samples taken from https://www.reddit.com/r/audioengineering/comments/kg8gth/free_click_track_sound_archive/
             // Normalised with `ffmpeg -i <original> -filter:a "loudnorm=I=-11:LRA=7:TP=-1, volume=29dB" -c:a libvorbis <final>`
             new Sample<MetronomeSample>(MetronomeSample.None, "", ""),
-            new Sample<MetronomeSample>(MetronomeSample.Castanet, "castanet_hi", "castanet_lo"),
-            new Sample<MetronomeSample>(MetronomeSample.Clap, "clap_hi", "clap_lo"),
-            new Sample<MetronomeSample>(MetronomeSample.Party, "party_hi", "party_lo"),
-            new Sample<MetronomeSample>(MetronomeSample.Quartz, "quartz_hi", "quartz_lo"),
-            new Sample<MetronomeSample>(MetronomeSample.Sine, "sine_hi", "sine_lo"),
-            new Sample<MetronomeSample>(MetronomeSample.Square, "square_hi", "square_lo"),
-            new Sample<MetronomeSample>(MetronomeSample.Trashcan, "trashcan_hi", "trashcan_lo"),
+            new Sample<MetronomeSample>(MetronomeSample.Castanet, "castanet_hi", 0.10f, alternateFile: "castanet_lo"),
+            new Sample<MetronomeSample>(MetronomeSample.Clap, "clap_hi", 0.10f, alternateFile: "clap_lo"),
+            new Sample<MetronomeSample>(MetronomeSample.Party, "party_hi", 0.10f, alternateFile: "party_lo"),
+            new Sample<MetronomeSample>(MetronomeSample.Quartz, "quartz_hi", 0.10f, alternateFile: "quartz_lo"),
+            new Sample<MetronomeSample>(MetronomeSample.Sine, "sine_hi", 0.10f, alternateFile: "sine_lo"),
+            new Sample<MetronomeSample>(MetronomeSample.Square, "square_hi", 0.10f, alternateFile: "square_lo"),
+            new Sample<MetronomeSample>(MetronomeSample.Trashcan, "trashcan_hi", 0.10f, alternateFile: "trashcan_lo"),
         };
 
         public class Sample<T>

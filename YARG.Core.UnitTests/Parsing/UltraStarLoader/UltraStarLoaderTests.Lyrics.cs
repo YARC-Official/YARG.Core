@@ -54,6 +54,43 @@ namespace YARG.Core.UnitTests.Parsing
         }
 
         [Test]
+        public void MelismaJoinAppendsHyphenToLyric()
+        {
+            // ni ~ght. should display as "ni-ght." with JoinWithNext on "ni-"
+            var loader = LoadUltraStar(Us(
+                "#BPM:120",
+                ": 0 4 0 ni",
+                ": 5 4 2 ~ght."
+            ));
+
+            var track = loader.LoadVocalsTrack(Instrument.Vocals);
+            var lyrics = track.Parts[0].NotePhrases[0].Lyrics;
+
+            Assert.That(lyrics, Has.Count.EqualTo(2));
+            Assert.That(lyrics[0].Text, Is.EqualTo("ni-"));
+            Assert.That(lyrics[0].JoinWithNext, Is.True);
+            Assert.That(lyrics[1].Text, Does.Contain("ght."));
+        }
+
+        [Test]
+        public void MelismaJoinInLyricsTrack()
+        {
+            var loader = LoadUltraStar(Us(
+                "#BPM:120",
+                ": 0 4 0 ni",
+                ": 5 4 2 ~ght."
+            ));
+
+            var lyricsTrack = loader.LoadLyrics();
+            var events = lyricsTrack.Phrases[0].Lyrics;
+
+            Assert.That(events, Has.Count.EqualTo(2));
+            Assert.That(events[0].Text, Is.EqualTo("ni-"));
+            Assert.That(events[0].JoinWithNext, Is.True);
+            Assert.That(events[1].Text, Does.Contain("ght."));
+        }
+
+        [Test]
         public void ParseHyphenJoinWithNext()
         {
             var loader = LoadUltraStar(Us(

@@ -44,10 +44,11 @@ public class EngineManagerTester : EngineTester
     [Test]
     public void EngineManagerGeneratesUnisonPhrases()
     {
-        var guitarPhrases = EngineManager.GetUnisonPhrases(Instrument.FiveFretGuitar, Difficulty.Expert, GetChart(), false);
-        var bassPhrases = EngineManager.GetUnisonPhrases(Instrument.FiveFretBass, Difficulty.Expert, GetChart(), true);
-        var drumsPhrases = EngineManager.GetUnisonPhrases(Instrument.FourLaneDrums, Difficulty.Expert, GetChart(), false);
-        var keysPhrases = EngineManager.GetUnisonPhrases(Instrument.ProKeys, Difficulty.Expert, GetChart(), false);
+        var chart = GetChart();
+        var guitarPhrases = EngineManager.GetUnisonPhrases(chart.FiveFretGuitar.GetDifficulty(Difficulty.Expert), GetChart(), false);
+        var bassPhrases = EngineManager.GetUnisonPhrases(chart.FiveFretBass.GetDifficulty(Difficulty.Expert), GetChart(), true);
+        var drumsPhrases = EngineManager.GetUnisonPhrases(chart.FourLaneDrums.GetDifficulty(Difficulty.Expert), GetChart(), false);
+        var keysPhrases = EngineManager.GetUnisonPhrases(chart.ProKeys.GetDifficulty(Difficulty.Expert), GetChart(), false);
 
         using (Assert.EnterMultipleScope())
         {
@@ -63,10 +64,11 @@ public class EngineManagerTester : EngineTester
     {
         var tolerance = (GetChart().Resolution / 4) - 1; // 16th note tolerance
         Func<EngineManager.UnisonPhrase, EngineManager.UnisonPhrase, bool> comparer = (a, b) => EngineManager.TickWithinTolerance(a.Tick, b.Tick, tolerance) && EngineManager.TickWithinTolerance(a.TickEnd, b.TickEnd, tolerance);
-        var guitarPhrases = EngineManager.GetUnisonPhrases(Instrument.FiveFretGuitar, Difficulty.Expert, GetChart(), false);
-        var bassPhrases = EngineManager.GetUnisonPhrases(Instrument.FiveFretBass, Difficulty.Expert, GetChart(), false);
-        var drumsPhrases = EngineManager.GetUnisonPhrases(Instrument.FourLaneDrums, Difficulty.Expert, GetChart(), true);
-        var keysPhrases = EngineManager.GetUnisonPhrases(Instrument.ProKeys, Difficulty.Expert, GetChart(), false);
+        var chart = GetChart();
+        var guitarPhrases = EngineManager.GetUnisonPhrases(chart.FiveFretGuitar.GetDifficulty(Difficulty.Expert), chart, false);
+        var bassPhrases = EngineManager.GetUnisonPhrases(chart.FiveFretBass.GetDifficulty(Difficulty.Expert), chart, false);
+        var drumsPhrases = EngineManager.GetUnisonPhrases(chart.FourLaneDrums.GetDifficulty(Difficulty.Expert), chart, true);
+        var keysPhrases = EngineManager.GetUnisonPhrases(chart.ProKeys.GetDifficulty(Difficulty.Expert), chart, false);
 
         using (Assert.EnterMultipleScope())
         {
@@ -81,28 +83,28 @@ public class EngineManagerTester : EngineTester
     public void EngineManagerUnisonPhraseNoteCountIsCorrect()
     {
         var chart = GetChart();
-        var guitarPhrases = EngineManager.GetUnisonPhrases(Instrument.FiveFretGuitar, Difficulty.Expert, GetChart(), false);
-        var bassPhrases = EngineManager.GetUnisonPhrases(Instrument.FiveFretBass, Difficulty.Expert, GetChart(), false);
-        var drumsPhrases = EngineManager.GetUnisonPhrases(Instrument.FourLaneDrums, Difficulty.Expert, GetChart(), true);
-        var keysPhrases = EngineManager.GetUnisonPhrases(Instrument.ProKeys, Difficulty.Expert, GetChart(), false);
+        var guitarPhrases = EngineManager.GetUnisonPhrases(chart.FiveFretGuitar.GetDifficulty(Difficulty.Expert), chart, false);
+        var bassPhrases = EngineManager.GetUnisonPhrases(chart.FiveFretBass.GetDifficulty(Difficulty.Expert), chart, false);
+        var drumsPhrases = EngineManager.GetUnisonPhrases(chart.FourLaneDrums.GetDifficulty(Difficulty.Expert), chart, true);
+        var keysPhrases = EngineManager.GetUnisonPhrases(chart.ProKeys.GetDifficulty(Difficulty.Expert), chart, false);
 
         using (Assert.EnterMultipleScope())
         {
             foreach (var phrase in guitarPhrases)
             {
-                var notes = chart.GetFiveFretTrack(Instrument.FiveFretGuitar).GetDifficulty(Difficulty.Expert).Notes;
+                var notes = chart.FiveFretGuitar.GetDifficulty(Difficulty.Expert).Notes;
                 var noteCount = notes.Count(n => n.Tick >= phrase.Tick && n.Tick < phrase.TickEnd);
                 Assert.That(phrase.NoteCount, Is.EqualTo(noteCount));
             }
             foreach (var phrase in bassPhrases)
             {
-                var notes = chart.GetFiveFretTrack(Instrument.FiveFretBass).GetDifficulty(Difficulty.Expert).Notes;
+                var notes = chart.FiveFretBass.GetDifficulty(Difficulty.Expert).Notes;
                 var noteCount = notes.Count(n => n.Tick >= phrase.Tick && n.Tick < phrase.TickEnd);
                 Assert.That(phrase.NoteCount, Is.EqualTo(noteCount));
             }
             foreach (var phrase in drumsPhrases)
             {
-                var notes = chart.GetDrumsTrack(Instrument.FourLaneDrums).GetDifficulty(Difficulty.Expert).Notes;
+                var notes = chart.FourLaneDrums.GetDifficulty(Difficulty.Expert).Notes;
                 var noteCount = notes.Sum(n => (n.Tick >= phrase.Tick && n.Tick < phrase.TickEnd) ? n.ChildNotes.Count + 1 : 0);
                 Assert.That(phrase.NoteCount, Is.EqualTo(noteCount));
             }
@@ -123,10 +125,10 @@ public class EngineManagerTester : EngineTester
         var engineManager = new EngineManager();
         var chart = GetChart();
 
-        var guitarEngineContainer = engineManager.Register(CreateEngine(_guitarEngineParams, true, false).Engine, Instrument.FiveFretGuitar, Difficulty.Expert, chart, RockMeterPreset.Normal);
-        var bassEngineContainer = engineManager.Register(CreateEngine(_bassEngineParams, true, true).Engine, Instrument.FiveFretBass, Difficulty.Expert, chart, RockMeterPreset.Normal);
-        var drumsEngineContainer = engineManager.Register(CreateEngine(_drumsEngineParams, true).Engine, Instrument.FourLaneDrums, Difficulty.Expert, chart, RockMeterPreset.Normal);
-        var keysEngineContainer = engineManager.Register(CreateEngine(_keysEngineParams, true).Engine, Instrument.ProKeys, Difficulty.Expert, chart, RockMeterPreset.Normal);
+        var guitarEngineContainer = engineManager.Register(CreateEngine(_guitarEngineParams, true, false).Engine, chart.FiveFretGuitar.GetDifficulty(Difficulty.Expert), chart, RockMeterPreset.Normal);
+        var bassEngineContainer = engineManager.Register(CreateEngine(_bassEngineParams, true, true).Engine, chart.FiveFretBass.GetDifficulty(Difficulty.Expert), chart, RockMeterPreset.Normal);
+        var drumsEngineContainer = engineManager.Register(CreateEngine(_drumsEngineParams, true).Engine, chart.FourLaneDrums.GetDifficulty(Difficulty.Expert), chart, RockMeterPreset.Normal);
+        var keysEngineContainer = engineManager.Register(CreateEngine(_keysEngineParams, true).Engine, chart.Keys.GetDifficulty(Difficulty.Expert), chart, RockMeterPreset.Normal);
 
         var globalUnisonEvents = engineManager.UnisonEvents;
         using (Assert.EnterMultipleScope())
@@ -213,10 +215,10 @@ public class EngineManagerTester : EngineTester
         var drumsEngine = CreateEngine(_drumsEngineParams, true);
         var keysEngine = CreateEngine(_keysEngineParams, true);
 
-        var guitarContainer = manager.Register(guitarEngine.Engine, Instrument.FiveFretGuitar, Difficulty.Expert, chart, RockMeterPreset.Normal);
-        var bassContainer = manager.Register(bassEngine.Engine, Instrument.FiveFretBass, Difficulty.Expert, chart, RockMeterPreset.Normal);
-        var drumsContainer = manager.Register(drumsEngine.Engine, Instrument.FourLaneDrums, Difficulty.Expert, chart, RockMeterPreset.Normal);
-        var keysContainer = manager.Register(keysEngine.Engine, Instrument.ProKeys, Difficulty.Expert, chart, RockMeterPreset.Normal);
+        var guitarContainer = manager.Register(guitarEngine.Engine, chart.FiveFretGuitar.GetDifficulty(Difficulty.Expert), chart, RockMeterPreset.Normal);
+        var bassContainer = manager.Register(bassEngine.Engine, chart.FiveFretBass.GetDifficulty(Difficulty.Expert), chart, RockMeterPreset.Normal);
+        var drumsContainer = manager.Register(drumsEngine.Engine, chart.FourLaneDrums.GetDifficulty(Difficulty.Expert), chart, RockMeterPreset.Normal);
+        var keysContainer = manager.Register(keysEngine.Engine, chart.Keys.GetDifficulty(Difficulty.Expert), chart, RockMeterPreset.Normal);
 
         return (manager, [guitarContainer, bassContainer, drumsContainer, keysContainer]);
     }

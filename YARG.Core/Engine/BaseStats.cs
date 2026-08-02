@@ -172,6 +172,11 @@ namespace YARG.Core.Engine
         public int StarPowerPhrasesMissed => TotalStarPowerPhrases - StarPowerPhrasesHit;
 
         /// <summary>
+        /// Number of times Star Power was used to revive a bandmate.
+        /// </summary>
+        public int StarPowerRevives;
+
+        /// <summary>
         /// Amount of points earned from solo bonuses.
         /// </summary>
         public int SoloBonuses;
@@ -216,6 +221,11 @@ namespace YARG.Core.Engine
         /// </summary>
         private readonly List<double> OffsetSamples = new();
 
+        /// <summary>
+        /// The player's average multiplier. Calculated by CommittedScore / BaseNoteScore
+        /// </summary>
+        public float AverageMultiplier;
+
         protected BaseStats()
         {
         }
@@ -232,6 +242,7 @@ namespace YARG.Core.Engine
             MaxCombo = stats.MaxCombo;
             ScoreMultiplier = stats.ScoreMultiplier;
             BandMultiplier = stats.BandMultiplier;
+            AverageMultiplier = stats.AverageMultiplier;
 
             NotesHit = stats.NotesHit;
             LanedNotesHit = stats.LanedNotesHit;
@@ -294,8 +305,18 @@ namespace YARG.Core.Engine
             StarPowerPhrasesHit = stream.Read<int>(Endianness.Little);
             TotalStarPowerPhrases = stream.Read<int>(Endianness.Little);
 
+            if (version >= 17)
+            {
+                StarPowerRevives = stream.Read<int>(Endianness.Little);
+            }
+
             SoloBonuses = stream.Read<int>(Endianness.Little);
             StarPowerScore = stream.Read<int>(Endianness.Little);
+
+            if (version >= 16)
+            {
+                AverageMultiplier = stream.Read<float>(Endianness.Little);
+            }
 
             // Deliberately not read so that stars can be re-calculated if thresholds change
             // Stars = reader.ReadInt32();
@@ -317,6 +338,7 @@ namespace YARG.Core.Engine
             TotalOffset = 0.0;
             AverageOffset = 0.0;
             OffsetSamples.Clear();
+            AverageMultiplier = 0;
             // Don't reset TotalNotes
             // TotalNotes = 0;
 
@@ -330,6 +352,7 @@ namespace YARG.Core.Engine
 
             StarPowerPhrasesHit = 0;
             // TotalStarPowerPhrases = 0;
+            StarPowerRevives = 0;
 
             SoloBonuses = 0;
             CodaBonuses = 0;
@@ -365,9 +388,12 @@ namespace YARG.Core.Engine
 
             writer.Write(StarPowerPhrasesHit);
             writer.Write(TotalStarPowerPhrases);
+            writer.Write(StarPowerRevives);
 
             writer.Write(SoloBonuses);
             writer.Write(StarPowerScore);
+
+            writer.Write(AverageMultiplier);
 
             // Deliberately not written so that stars can be re-calculated with different thresholds
             // writer.Write(Stars);

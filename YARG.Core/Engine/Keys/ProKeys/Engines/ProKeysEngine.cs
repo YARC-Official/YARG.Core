@@ -115,21 +115,6 @@ namespace YARG.Core.Engine.Keys
                 }
             }
 
-            if (note.IsSoloStart)
-            {
-                StartSolo();
-            }
-
-            if (IsSoloActive)
-            {
-                Solos[CurrentSoloIndex].NotesHit++;
-            }
-
-            if (note.IsSoloEnd && note.ParentOrSelf.WasFullyHitOrMissed())
-            {
-                EndSolo();
-            }
-
             if (note.ParentOrSelf.WasFullyHit())
             {
                 ChordStaggerTimer.Disable(CurrentTime, early: true);
@@ -206,30 +191,6 @@ namespace YARG.Core.Engine.Keys
             if (note.IsStarPower)
             {
                 StripStarPower(note);
-            }
-
-            if (note is { IsSoloStart: true, IsSoloEnd: true } && note.ParentOrSelf.WasFullyHitOrMissed())
-            {
-                // While a solo is active, end the current solo and immediately start the next.
-                if (IsSoloActive)
-                {
-                    EndSolo();
-                    StartSolo();
-                }
-                else
-                {
-                    // If no solo is currently active, start and immediately end the solo.
-                    StartSolo();
-                    EndSolo();
-                }
-            }
-            else if (note.IsSoloEnd && note.ParentOrSelf.WasFullyHitOrMissed())
-            {
-                EndSolo();
-            }
-            else if (note.IsSoloStart)
-            {
-                StartSolo();
             }
 
             if (note.IsGlissandoStart)
