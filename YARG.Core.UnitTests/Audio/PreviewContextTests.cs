@@ -253,7 +253,7 @@ public class PreviewContextTests
 
         protected override void SetOutputDevice_Internal(OutputDevice device) { }
 
-        public override IDisposable AttachOutputDsp(IMixerDspProcessor processor, int priority = 0)
+        public override IDisposable? AttachOutputDsp(IMixerDspProcessor processor, int priority = 0)
         {
             return new EmptyDisposable();
         }
