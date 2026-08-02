@@ -121,6 +121,67 @@ public class GuitarEngineTester : EngineTester
     }
 
     [Test]
+    public void DisjointChord_CountsSingleComboAndScoresEachSustainOnce()
+    {
+        var notes = Enumerable.Range(1, 8)
+            .Select(index => CreateNote(
+                FiveFretGuitarFret.Green,
+                NoteFlags.None,
+                index * 0.5,
+                (uint) index * 480))
+            .ToList();
+
+        // Disjoint chord: green (no sustain) + red (one-beat sustain), same tick
+        var disjointChord = new GuitarNote(FiveFretGuitarFret.Green, GuitarNoteType.Strum,
+            GuitarNoteFlags.Disjoint, NoteFlags.None, 4.5, 0, 8 * 480, 0);
+        disjointChord.AddChildNote(new GuitarNote(FiveFretGuitarFret.Red, GuitarNoteType.Strum,
+            GuitarNoteFlags.None, NoteFlags.None, 4.5, 0.5, 8 * 480, 480));
+
+        var lastNote = CreateNote(FiveFretGuitarFret.Green, NoteFlags.None, 5.0, 9 * 480);
+        var allNotes = notes.Concat(new[] { disjointChord, lastNote }).ToList();
+        LinkNotes(allNotes.ToArray());
+
+        var difficulty = new InstrumentDifficulty<GuitarNote>(Instrument.FiveFretGuitar, Difficulty.Expert,
+            allNotes, new(), new());
+        var engineParams = new GuitarEngineParameters(
+            CreateHitWindowSettings(),
+            4,
+            0,
+            0,
+            StarMultiplierThresholds,
+            SoloBonusStarMultiplierThresholds,
+            0.1,
+            0.1,
+            0.1,
+            false,
+            true,
+            false,
+            false,
+            true);
+        var engine = new YargFiveFretGuitarEngine(difficulty, CreateSyncTrack(), engineParams, true);
+
+        engine.Update(5.5);
+
+        using (Assert.EnterMultipleScope())
+        {
+            // 8 singles at 1x + chord (2 notes) at 1x + last single at 1x = 550,
+            // plus the child sustain (480 ticks / 19.2 ticks per point) = 25
+            //
+            // The disjoint chord is hit with a single strum, so it must only
+            // increment combo once (8 singles + chord + last note = 10 max combo).
+            // If the chord's child notes incremented combo, the last note would
+            // be scored at 2x and BaseScore would be 625 instead of 575.
+            Assert.That(engine.BaseNoteScore, Is.EqualTo(575));
+            Assert.That(engine.BaseScore, Is.EqualTo(575));
+            Assert.That(engine.EngineStats.TotalNotes, Is.EqualTo(10));
+            Assert.That(engine.EngineStats.NotesHit, Is.EqualTo(10));
+            Assert.That(engine.EngineStats.MaxCombo, Is.EqualTo(10));
+            Assert.That(engine.EngineStats.Percent, Is.EqualTo(1f));
+            Assert.That(engine.EngineStats.IsFullCombo, Is.True);
+        }
+    }
+
+    [Test]
     public void TopFretBeforeTrillStart_IsForgivenByGuitarGhostLeniency()
     {
         var (engine, notes) = CreateTrillProximityEngine();

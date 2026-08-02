@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
 using YARG.Core.Chart;
 using YARG.Core.Input;
 using YARG.Core.Logging;
@@ -421,20 +420,15 @@ namespace YARG.Core.Engine.Guitar
                 noteScore += pointsForSustain;
                 combo++;
                 // If a note is disjoint, each sustain is counted separately.
+                // Disjoint chords are hit with a single strum, so they do not
+                // increment combo beyond the single increment above.
                 if (note.IsDisjoint)
                 {
-                    HashSet<uint> seenNoteTicks = new();
                     foreach (var child in note.ChildNotes)
                     {
                         double pointsForDisjoint = Math.Ceiling(child.TickLength / TicksPerSustainPoint);
                         baseScore += multiplier * pointsForDisjoint;
                         noteScore += pointsForDisjoint;
-                        // Only increment combo if we haven't already seen a note in that tick
-                        if (!seenNoteTicks.Contains(child.Tick))
-                        {
-                            combo++;
-                            seenNoteTicks.Add(child.Tick);
-                        }
                     }
                 }
             }
