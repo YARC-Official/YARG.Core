@@ -428,6 +428,22 @@ namespace YARG.Core.Engine.Drums
                 StripStarPower(note);
             }
 
+            if (note.IsKickLane)
+            {
+                if (note.IsKickLaneStart)
+                {
+                    YargLogger.LogFormatTrace("Starting kick lane behavior at time {0}. ", CurrentTime);
+                    IsKickLaneActive = true;
+                }
+                else if (note.IsKickLaneEnd)
+                {
+                    YargLogger.LogFormatTrace("Lane ending at {0}", CurrentTime);
+                    IsKickLaneActive = false;
+                }
+
+                YargLogger.LogFormatTrace("Kick lane note missed at {0}", CurrentTime);
+            }
+
             ResetCombo();
 
             UpdateMultiplier();
