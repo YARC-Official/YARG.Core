@@ -135,11 +135,12 @@ namespace YARG.Core.Replays
             writer.Write((byte) BandStars);
 
             writer.Write(Pauses.Length);
-            writer.Write(CensorshipEnabled);
             foreach (var pause in Pauses)
             {
                 pause.Serialize(writer);
             }
+
+            writer.Write(CensorshipEnabled);
 
             writer.Write(Stats.Length);
             foreach (var stat in Stats)
