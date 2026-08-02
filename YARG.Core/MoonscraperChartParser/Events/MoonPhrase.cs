@@ -23,28 +23,26 @@ namespace MoonscraperChartEditor.Song
             Coda,
 
             // RB Pro Drums
-
             ProDrums_Activation,
+            ProDrums_KickLane,
 
             // Vocals
-
             Vocals_ScoringPhrase,
             Vocals_StaticLyricPhrase,
             Vocals_PercussionPhrase,
             Vocals_RangeShift,
             Vocals_LyricShift,
 
-            // Pro keys
-
+            // Pro Keys
             ProKeys_RangeShift0,
             ProKeys_RangeShift1,
             ProKeys_RangeShift2,
             ProKeys_RangeShift3,
             ProKeys_RangeShift4,
             ProKeys_RangeShift5,
-
             ProKeys_Glissando,
 
+            // Elite Drums
             EliteDrums_RightCrashLane,
             EliteDrums_RideLane,
             EliteDrums_Tom3Lane,
