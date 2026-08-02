@@ -118,6 +118,15 @@ internal sealed class TestSongEntry : SongEntry
         return parts;
     }
 
+    public static (ScanExpected<long> Result, AvailableParts Parts, DrumsType DrumsType) ParseMidiForTest(
+        FixedArray<byte> file, DrumsType initialDrumsType = DrumsType.Unknown)
+    {
+        var parts = AvailableParts.Default;
+        var drumsType = initialDrumsType;
+        var result = ParseMidi(file, ref parts, ref drumsType);
+        return (result, parts, drumsType);
+    }
+
     public static bool IsValidForTest(in AvailableParts parts)
     {
         return IsValid(in parts);

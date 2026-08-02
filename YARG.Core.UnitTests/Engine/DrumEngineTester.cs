@@ -54,6 +54,174 @@ public class DrumEngineTester : EngineTester
     }
 
     [Test]
+    public void TenSingleNotes_FcUsesCorrectMultiplierBoundary()
+    {
+        var notes = Enumerable.Range(1, 10)
+            .Select(index => new DrumNote(
+                FourLaneDrumPad.RedDrum,
+                DrumNoteType.Neutral,
+                DrumNoteFlags.None,
+                NoteFlags.None,
+                index * 0.5,
+                (uint) index * 480))
+            .ToList();
+        LinkNotes(notes);
+
+        var difficulty = new InstrumentDifficulty<DrumNote>(Instrument.ProDrums, Difficulty.Expert,
+            notes, new(), new());
+        var syncTrack = new SyncTrack(480);
+        syncTrack.Tempos.Add(new TempoChange(120, 0, 0));
+        var engineParams = new DrumsEngineParameters(
+            new HitWindowSettings(0.1, 0.1, 1.0, false, 0, 1.0, 1.0, 0.15, 0.25),
+            4,
+            StarMultiplierThresholds,
+            SoloBonusStarMultiplierThresholds,
+            DrumsEngineParameters.DrumMode.ProFourLane,
+            false,
+            true);
+        var engine = new YargDrumsEngine(difficulty, syncTrack, engineParams, true, false);
+
+        engine.Update(notes[^1].Time + 0.5);
+
+        using (Assert.EnterMultipleScope())
+        {
+            // 10 notes at 60 points each (pro four lane = 50 + 10); chart base score assumes
+            // the pre-note combo (all 1x), while an FC commits the 10th note at 2x
+            Assert.That(engine.BaseNoteScore, Is.EqualTo(600));
+            Assert.That(engine.BaseScore, Is.EqualTo(600));
+            Assert.That(engine.EngineStats.CommittedScore, Is.EqualTo(660));
+            Assert.That(engine.EngineStats.NoteScore, Is.EqualTo(600));
+            Assert.That(engine.EngineStats.MultiplierScore, Is.EqualTo(60));
+            Assert.That(engine.EngineStats.PendingScore, Is.Zero);
+            Assert.That(engine.EngineStats.TotalNotes, Is.EqualTo(10));
+            Assert.That(engine.EngineStats.NotesHit, Is.EqualTo(10));
+            Assert.That(engine.EngineStats.NotesMissed, Is.Zero);
+            Assert.That(engine.EngineStats.MaxCombo, Is.EqualTo(10));
+            Assert.That(engine.EngineStats.Percent, Is.EqualTo(1f));
+            Assert.That(engine.EngineStats.IsFullCombo, Is.True);
+        }
+    }
+
+    [Test]
+    public void MissOneNote_PercentReflectsMissAndComboResets()
+    {
+        var notes = Enumerable.Range(1, 10)
+            .Select(index => new DrumNote(
+                FourLaneDrumPad.RedDrum,
+                DrumNoteType.Neutral,
+                DrumNoteFlags.None,
+                NoteFlags.None,
+                index * 0.5,
+                (uint) index * 480))
+            .ToList();
+        LinkNotes(notes);
+
+        var difficulty = new InstrumentDifficulty<DrumNote>(Instrument.ProDrums, Difficulty.Expert,
+            notes, new(), new());
+        var syncTrack = new SyncTrack(480);
+        syncTrack.Tempos.Add(new TempoChange(120, 0, 0));
+        var engine = new YargDrumsEngine(difficulty, syncTrack, _engineParams, false, false);
+
+        // Hit every note except the 5th (at 2.5s)
+        for (int i = 0; i < notes.Count; i++)
+        {
+            if (i == 4)
+            {
+                continue;
+            }
+
+            HitPad(engine, notes[i].Time, DrumsAction.RedDrum);
+        }
+
+        engine.Update(notes[^1].Time + 0.5);
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(engine.EngineStats.NotesHit, Is.EqualTo(9));
+            Assert.That(engine.EngineStats.NotesMissed, Is.EqualTo(1));
+            Assert.That(engine.EngineStats.MaxCombo, Is.EqualTo(5));
+            Assert.That(engine.EngineStats.Percent, Is.EqualTo(0.9f));
+            Assert.That(engine.EngineStats.IsFullCombo, Is.False);
+        }
+    }
+
+    [Test]
+    public void SoloUnderSixtyPercent_AwardsNoBonus()
+    {
+        // 5/10 = 50% < 60% -> bonus deleted
+        var (engine, notes) = CreateSoloEngine(10);
+
+        for (int i = 0; i < 5; i++)
+        {
+            HitPad(engine, notes.Notes[i].Time, DrumsAction.RedDrum);
+        }
+
+        engine.Update(notes.Notes[^1].Time + 0.5);
+
+        Assert.That(engine.EngineStats.SoloBonuses, Is.Zero);
+    }
+
+    [Test]
+    public void SoloAtExactlySixtyPercent_AwardsNoBonus()
+    {
+        // 6/10 = 60% -> multiplier clamps to 0 -> 0 points
+        var (engine, notes) = CreateSoloEngine(10);
+
+        for (int i = 0; i < 6; i++)
+        {
+            HitPad(engine, notes.Notes[i].Time, DrumsAction.RedDrum);
+        }
+
+        engine.Update(notes.Notes[^1].Time + 0.5);
+
+        Assert.That(engine.EngineStats.SoloBonuses, Is.Zero);
+    }
+
+    [Test]
+    public void SoloOverSixtyPercent_RoundsBonusDownToNearestFifty()
+    {
+        // 7/10 = 70% -> multiplier (0.7 - 0.6) / 0.4 = 0.25 -> 100 * 7 * 0.25 = 175 -> 150
+        var (engine, notes) = CreateSoloEngine(10);
+
+        for (int i = 0; i < 7; i++)
+        {
+            HitPad(engine, notes.Notes[i].Time, DrumsAction.RedDrum);
+        }
+
+        engine.Update(notes.Notes[^1].Time + 0.5);
+
+        Assert.That(engine.EngineStats.SoloBonuses, Is.EqualTo(150));
+    }
+
+    private static (YargDrumsEngine Engine, InstrumentDifficulty<DrumNote> Notes) CreateSoloEngine(int noteCount)
+    {
+        var notes = Enumerable.Range(1, noteCount)
+            .Select(index => new DrumNote(
+                FourLaneDrumPad.RedDrum,
+                DrumNoteType.Neutral,
+                DrumNoteFlags.None,
+                NoteFlags.Solo,
+                index * 0.5,
+                (uint) index * 480))
+            .ToList();
+        LinkNotes(notes);
+
+        var difficulty = new InstrumentDifficulty<DrumNote>(Instrument.ProDrums, Difficulty.Expert,
+            notes, new(), new());
+        var syncTrack = new SyncTrack(480);
+        syncTrack.Tempos.Add(new TempoChange(120, 0, 0));
+
+        return (new YargDrumsEngine(difficulty, syncTrack, new DrumsEngineParameters(
+            new HitWindowSettings(0.1, 0.1, 1.0, false, 0, 1.0, 1.0, 0.15, 0.25),
+            4,
+            StarMultiplierThresholds,
+            SoloBonusStarMultiplierThresholds,
+            DrumsEngineParameters.DrumMode.ProFourLane,
+            false,
+            true), false, false), difficulty);
+    }
+
+    [Test]
     public void Reset_ClearsRuntimeDrumStatsButPreservesChartTotals()
     {
         var (engine, notes) = CreateEngine(isBot: true);
@@ -331,6 +499,22 @@ public class DrumEngineTester : EngineTester
         return (new YargDrumsEngine(notes, syncTrack, engineParams, false, false), notes);
     }
 
+
+    private static void LinkNotes(List<DrumNote> notes)
+    {
+        for (int i = 0; i < notes.Count; i++)
+        {
+            if (i > 0)
+            {
+                notes[i].PreviousNote = notes[i - 1];
+            }
+
+            if (i < notes.Count - 1)
+            {
+                notes[i].NextNote = notes[i + 1];
+            }
+        }
+    }
 
     private static void HitPad(YargDrumsEngine engine, double time, DrumsAction action)
     {
