@@ -814,6 +814,13 @@ namespace YARG.Core.Engine
                 return;
             }
 
+            if (CurrentSoloIndex >= Solos.Count)
+            {
+                // If this happens, something has probably gone wrong
+                YargLogger.LogFormatWarning("Solo note has been hit at time {0}, but all solos have already been completed! Ignoring solo", CurrentTime);
+                return;
+            }
+
             if (note.IsSoloStart)
             {
                 StartSolo();
@@ -1399,7 +1406,7 @@ namespace YARG.Core.Engine
         {
             var soloSections = new List<SoloSection>();
 
-            if (Notes.Count > 0 && Notes[0] is { IsSolo: true, IsSoloEnd: false })
+            if (Notes.Count > 0 && Notes[0].IsSolo)
             {
                 Notes[0].ActivateFlag(NoteFlags.SoloStart);
             }
