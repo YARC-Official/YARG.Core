@@ -4,6 +4,40 @@ using System.IO;
 
 namespace YARG.Core.Audio
 {
+    /// <summary>
+    /// Playback positions sampled together for audio synchronization.
+    /// </summary>
+    /// <remarks>
+    /// <see cref="Heard"/> reports playback currently reaching listener according to the mixer backend.
+    /// <see cref="Control"/> may project through commands still waiting in playback buffers, allowing
+    /// synchronization to account for corrections which have been requested but are not audible yet.
+    /// </remarks>
+    public readonly struct SyncPosition
+    {
+        /// <summary>
+        /// Playback position currently reaching listener according to the mixer backend, in seconds.
+        /// </summary>
+        public double Heard { get; }
+
+        /// <summary>
+        /// Delay-free position used to choose synchronization corrections, in seconds.
+        /// </summary>
+        public double Control { get; }
+
+        /// <summary>
+        /// Creates positions from one mixer playback sample.
+        /// </summary>
+        /// <param name="heard">Playback position currently reaching listener, in seconds.</param>
+        /// <param name="control">
+        /// Delay-free position used to choose synchronization corrections, in seconds.
+        /// </param>
+        public SyncPosition(double heard, double control)
+        {
+            Heard = heard;
+            Control = control;
+        }
+    }
+
     public abstract class OneShotChannel : IDisposable
     {
         public abstract void SetEnabled(bool enabled);
@@ -137,6 +171,25 @@ namespace YARG.Core.Audio
                     return 0;
                 }
                 return GetPosition_Internal();
+            }
+        }
+
+        /// <summary>
+        /// Samples heard and control playback positions together for synchronization.
+        /// </summary>
+        /// <remarks>
+        /// Sampling both positions in one operation prevents time elapsed between separate position
+        /// queries from appearing as a difference between heard and control playback.
+        /// </remarks>
+        public SyncPosition GetSyncPosition()
+        {
+            lock (this)
+            {
+                if (_disposed)
+                {
+                    return default;
+                }
+                return GetSyncPosition_Internal();
             }
         }
 
@@ -363,6 +416,11 @@ namespace YARG.Core.Audio
         protected abstract void FadeOut_Internal(double duration);
         protected abstract int Pause_Internal();
         protected abstract double GetPosition_Internal();
+        protected virtual SyncPosition GetSyncPosition_Internal()
+        {
+            double position = GetPosition_Internal();
+            return new SyncPosition(position, position);
+        }
         protected virtual double GetControlPosition_Internal() => GetPosition_Internal();
         protected virtual double GetTempoStreamLatency_Internal() => 0;
         protected abstract double GetVolume_Internal();

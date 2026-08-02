@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 
 namespace YARG.Core.Audio
@@ -22,11 +22,11 @@ namespace YARG.Core.Audio
             { "vocals_explicit",   SongStem.Vocals  },
             { "vocals_1_explicit", SongStem.Vocals },
             { "vocals_2_explicit", SongStem.Vocals },
-            { "drums",    SongStem.Drums   },
-            { "drums_1",  SongStem.Drums  },
-            { "drums_2",  SongStem.Drums  },
-            { "drums_3",  SongStem.Drums  },
-            { "drums_4",  SongStem.Drums  },
+            { "drums",    SongStem.Drums1 },
+            { "drums_1",  SongStem.Drums1 },
+            { "drums_2",  SongStem.Drums2 },
+            { "drums_3",  SongStem.Drums3 },
+            { "drums_4",  SongStem.Drums4 },
             { "crowd",    SongStem.Crowd   },
             { "crowd_clean",    SongStem.Crowd   },
             { "crowd_explicit",    SongStem.Crowd   },
@@ -59,11 +59,11 @@ namespace YARG.Core.Audio
                 "vocals_1_explicit" => SongStem.Vocals,
                 "vocals_2_clean"    => SongStem.Vocals,
                 "vocals_2_explicit" => SongStem.Vocals,
-                "drums"             => SongStem.Drums,
-                "drums_1"           => SongStem.Drums,
-                "drums_2"           => SongStem.Drums,
-                "drums_3"           => SongStem.Drums,
-                "drums_4"           => SongStem.Drums,
+                "drums"             => SongStem.Drums1,
+                "drums_1"           => SongStem.Drums1,
+                "drums_2"           => SongStem.Drums2,
+                "drums_3"           => SongStem.Drums3,
+                "drums_4"           => SongStem.Drums4,
                 "crowd"             => SongStem.Crowd,
                 "crowd_clean"       => SongStem.Crowd,
                 "crowd_explicit"    => SongStem.Crowd,
@@ -72,34 +72,41 @@ namespace YARG.Core.Audio
             };
         }
 
-        public static SongStem ToSongStem(this Instrument instrument)
+        private static readonly HashSet<SongStem> GuitarStems  = new() { SongStem.Guitar };
+        private static readonly HashSet<SongStem> BassStems    = new() { SongStem.Bass };
+        private static readonly HashSet<SongStem> RhythmStems  = new() { SongStem.Rhythm };
+        private static readonly HashSet<SongStem> KeysStems    = new() { SongStem.Keys };
+        private static readonly HashSet<SongStem> DrumsStems   = new() { SongStem.Drums1, SongStem.Drums2, SongStem.Drums3, SongStem.Drums4 };
+        private static readonly HashSet<SongStem> VocalsStems  = new() { SongStem.Vocals };
+
+        public static IEnumerable<SongStem> ToSongStems(this Instrument instrument)
         {
             return instrument switch
             {
                 Instrument.FiveFretGuitar or
                 Instrument.SixFretGuitar or
                 Instrument.ProGuitar_17Fret or
-                Instrument.ProGuitar_22Fret => SongStem.Guitar,
+                Instrument.ProGuitar_22Fret => GuitarStems,
 
                 Instrument.FiveFretBass or
                 Instrument.SixFretBass or
                 Instrument.ProBass_17Fret or
-                Instrument.ProBass_22Fret => SongStem.Bass,
+                Instrument.ProBass_22Fret => BassStems,
 
                 Instrument.FiveFretRhythm or
                 Instrument.SixFretRhythm or
                 Instrument.FiveFretCoopGuitar or
-                Instrument.SixFretCoopGuitar => SongStem.Rhythm,
+                Instrument.SixFretCoopGuitar => RhythmStems,
 
                 Instrument.Keys or
-                Instrument.ProKeys => SongStem.Keys,
+                Instrument.ProKeys => KeysStems,
 
                 Instrument.ProDrums or
                 Instrument.FourLaneDrums or
-                Instrument.FiveLaneDrums => SongStem.Drums,
+                Instrument.FiveLaneDrums => DrumsStems,
 
                 Instrument.Vocals or
-                Instrument.Harmony => SongStem.Vocals,
+                Instrument.Harmony => VocalsStems,
 
                 _ => throw new Exception("Unreachable.")
             };

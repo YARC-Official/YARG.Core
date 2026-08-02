@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using YARG.Core.Chart;
 using YARG.Core.Input;
@@ -128,7 +128,7 @@ namespace YARG.Core.Engine
 
         public double BaseTimeInStarPower { get; protected set; }
 
-        public          int[]  StarScoreThresholds { get; protected set;  }
+        public          int[]?  StarScoreThresholds { get; protected set;  }
 
         public readonly struct EngineFrameUpdate
         {
@@ -473,10 +473,11 @@ namespace YARG.Core.Engine
         {
             // I don't think RB quite did it this way, but we'll let players burn half a bar to revive bandmates
             // even if they are already in SP, so long as they have enough
-            if (PlayerNeedsRevive && BaseStats.StarPowerTickAmount >= TicksPerFullSpBar / 2)
+            if (PlayerNeedsRevive && BaseStats.StarPowerTickAmount >= TicksPerHalfSpBar)
             {
                 // Dock starpower and send revive event
-                BaseStats.StarPowerTickAmount -= TicksPerFullSpBar / 2;
+                BaseStats.StarPowerTickAmount -= TicksPerHalfSpBar;
+                BaseStats.StarPowerRevives++;
                 OnPlayerRevived?.Invoke();
                 return;
             }

@@ -11,19 +11,24 @@ namespace YARG.Core.Replays
 {
     public class ReplayData
     {
-        private const int PRESETS_VERSION = 0;
-        private readonly Dictionary<Guid, ColorProfile> _colorProfiles;
-        private readonly Dictionary<Guid, CameraPreset> _cameraPresets;
-        public readonly ReplayFrame[] Frames;
+        private const    int                               PRESETS_VERSION = 0;
+        private readonly Dictionary<Guid, ColorProfile>    _colorProfiles;
+        private readonly Dictionary<Guid, CameraPreset>    _cameraPresets;
+        private readonly Dictionary<Guid, RockMeterPreset> _rockMeterPresets;
+        public readonly  bool                              NoFail;
+        public readonly  ReplayFrame[]                     Frames;
 
         public readonly double[] FrameTimes;
 
         public int PlayerCount => Frames.Length;
 
-        public ReplayData(Dictionary<Guid, ColorProfile> colors, Dictionary<Guid, CameraPreset> cameras, ReplayFrame[] frames, double[] frameTimes)
+        public ReplayData(Dictionary<Guid, ColorProfile> colors, Dictionary<Guid, CameraPreset> cameras,
+            Dictionary<Guid, RockMeterPreset> rockMeterPresets, bool noFail, ReplayFrame[] frames, double[] frameTimes)
         {
             _colorProfiles = colors;
             _cameraPresets = cameras;
+            _rockMeterPresets = rockMeterPresets;
+            NoFail = noFail;
             Frames = frames;
             FrameTimes = frameTimes;
         }
@@ -33,6 +38,16 @@ namespace YARG.Core.Replays
             int _ = stream.Read<int>(Endianness.Little);
             _colorProfiles = DeserializeDict<ColorProfile>(ref stream);
             _cameraPresets = DeserializeDict<CameraPreset>(ref stream);
+            if (version >= 17)
+            {
+                _rockMeterPresets = DeserializeDict<RockMeterPreset>(ref stream);
+                NoFail = stream.ReadBoolean();
+            }
+            else
+            {
+                _rockMeterPresets = new Dictionary<Guid, RockMeterPreset>();
+                NoFail = false;
+            }
 
             int count = stream.Read<int>(Endianness.Little);
             Frames = new ReplayFrame[count];
@@ -68,6 +83,8 @@ namespace YARG.Core.Replays
             writer.Write(PRESETS_VERSION);
             SerializeDict(writer, _colorProfiles);
             SerializeDict(writer, _cameraPresets);
+            SerializeDict(writer, _rockMeterPresets);
+            writer.Write(NoFail);
 
             writer.Write(Frames.Length);
             foreach (var frame in Frames)
@@ -99,6 +116,12 @@ namespace YARG.Core.Replays
         public CameraPreset? GetCameraPreset(Guid guid)
         {
             _cameraPresets.TryGetValue(guid, out var preset);
+            return preset;
+        }
+
+        public RockMeterPreset? GetRockMeterPreset(Guid guid)
+        {
+            _rockMeterPresets.TryGetValue(guid, out var preset);
             return preset;
         }
 
