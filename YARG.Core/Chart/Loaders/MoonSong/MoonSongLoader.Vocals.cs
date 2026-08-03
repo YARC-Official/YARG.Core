@@ -410,7 +410,7 @@ namespace YARG.Core.Chart
                 {
                     foreach (var lyric in phrase.Lyrics)
                     {
-                        if ((lyric.Flags & LyricSymbolFlags.StaticShift) != 0)
+                        if (lyric.StaticShift)
                         {
                             staticShifts.Add(lyric.TickEnd);
                         }

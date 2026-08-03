@@ -514,7 +514,7 @@ namespace YARG.Core.Chart.Loaders.UltraStar
                         flags |= LyricSymbolFlags.JoinWithNext;
                     }
 
-                    lyrics.Add(new LyricEvent(flags, lyric, noteTime, noteTick));
+                    lyrics.Add(new LyricEvent(flags, lyric, noteTime, noteTimeLen, noteTick, noteTickLen));
                 }
             }
 
