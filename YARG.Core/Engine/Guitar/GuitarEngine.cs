@@ -274,21 +274,13 @@ namespace YARG.Core.Engine.Guitar
 
             AddScore(note);
 
-            if (note.IsDisjoint)
+            // Every sustained chord member gets its own sustain, disjoint or not.
+            foreach (var chordNote in note.AllNotes)
             {
-                foreach (var chordNote in note.AllNotes)
+                if (chordNote.IsSustain)
                 {
-                    if (!chordNote.IsSustain)
-                    {
-                        continue;
-                    }
-
                     StartSustain(chordNote);
                 }
-            }
-            else if (note.IsSustain)
-            {
-                StartSustain(note);
             }
 
             WasNoteGhosted = false;
@@ -415,21 +407,16 @@ namespace YARG.Core.Engine.Guitar
                 baseScore += multiplier * pointsForNote;
                 noteScore += pointsForNote;
 
-                double pointsForSustain = Math.Ceiling(note.TickLength / TicksPerSustainPoint);
-                baseScore += multiplier * pointsForSustain;
-                noteScore += pointsForSustain;
                 combo++;
-                // If a note is disjoint, each sustain is counted separately.
                 // Disjoint chords are hit with a single strum, so they do not
                 // increment combo beyond the single increment above.
-                if (note.IsDisjoint)
+                // Every sustained chord member scores its own sustain (AllNotes[0]
+                // is the parent itself), disjoint or not.
+                foreach (var chordNote in note.AllNotes)
                 {
-                    foreach (var child in note.ChildNotes)
-                    {
-                        double pointsForDisjoint = Math.Ceiling(child.TickLength / TicksPerSustainPoint);
-                        baseScore += multiplier * pointsForDisjoint;
-                        noteScore += pointsForDisjoint;
-                    }
+                    double pointsForSustain = Math.Ceiling(chordNote.TickLength / TicksPerSustainPoint);
+                    baseScore += multiplier * pointsForSustain;
+                    noteScore += pointsForSustain;
                 }
             }
 

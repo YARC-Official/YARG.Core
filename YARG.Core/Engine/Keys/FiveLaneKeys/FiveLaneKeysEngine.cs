@@ -181,16 +181,19 @@ namespace YARG.Core.Engine.Keys
                 }
 
                 // Get the current multiplier given the current combo
-                // Every note in a chord is hit and scored separately on keys, and
-                // each sustain is worth its own points, so iterate over AllNotes
+                multiplier = Math.Min((combo / 10) + 1, BaseParameters.MaxMultiplier);
+                double pointsForNote = POINTS_PER_NOTE * (1 + note.ChildNotes.Count);
+                baseScore += multiplier * pointsForNote;
+                noteScore += pointsForNote;
                 foreach (var chordNote in note.AllNotes)
                 {
-                    multiplier = Math.Min((combo / 10) + 1, BaseParameters.MaxMultiplier);
-                    double scoreForNote = POINTS_PER_NOTE + (int) Math.Ceiling(chordNote.TickLength / TicksPerSustainPoint);
-                    baseScore += multiplier * scoreForNote;
-                    noteScore += scoreForNote;
-                    combo++;
+                    int pointsForSustain = (int) Math.Ceiling(chordNote.TickLength / TicksPerSustainPoint);
+                    baseScore += multiplier * pointsForSustain;
+                    noteScore += pointsForSustain;
                 }
+
+                // Keys combo increments per chord, not per note.
+                combo++;
             }
 
             YargLogger.LogDebug($"[Keys] Base score: {baseScore}, Max Combo: {combo}");

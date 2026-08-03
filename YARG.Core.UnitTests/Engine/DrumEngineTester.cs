@@ -499,23 +499,6 @@ public class DrumEngineTester : EngineTester
         return (new YargDrumsEngine(notes, syncTrack, engineParams, false, false), notes);
     }
 
-
-    private static void LinkNotes(List<DrumNote> notes)
-    {
-        for (int i = 0; i < notes.Count; i++)
-        {
-            if (i > 0)
-            {
-                notes[i].PreviousNote = notes[i - 1];
-            }
-
-            if (i < notes.Count - 1)
-            {
-                notes[i].NextNote = notes[i + 1];
-            }
-        }
-    }
-
     private static void HitPad(YargDrumsEngine engine, double time, DrumsAction action)
     {
         var input = GameInput.Create(time, action, 1.0f);

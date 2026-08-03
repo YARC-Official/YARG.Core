@@ -130,11 +130,18 @@ public class ReplayInfoTests
         return info;
     }
 
+    /// <summary>
+    /// Fallback value for fields not listed in <see cref="BuildCanonicalReplayInfo"/>'s switch,
+    /// so newly added fields are covered automatically. Values are deliberately non-default
+    /// and recognizable: a field that is not serialized comes back as its default value
+    /// (0 / null / false) and fails the round-trip equality assert.
+    /// </summary>
     private static object DistinctValueFor(Type type, string fieldName)
     {
         if (type == typeof(string))
         {
-            return "pǝɹʇ-юникод-名前";
+            // Distinctive string, deliberately non-default.
+            return "The quick brown fox jumps over the lazy dog";
         }
 
         if (type == typeof(bool))
