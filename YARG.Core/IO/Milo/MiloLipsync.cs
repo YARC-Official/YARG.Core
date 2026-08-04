@@ -4,68 +4,127 @@ using System.Collections.Generic;
 using System.Text;
 using YARG.Core.Extensions;
 using YARG.Core.Logging;
+using YARG.Core.Venue;
 
 namespace YARG.Core.IO
 {
     public class MiloLipsync : IDisposable
     {
-        private enum Part
+        public static VenueCharacterHelpers.CharacterType ParseInstrumentFromMiloString(string instrument)
         {
-            Harm1,
-            Harm2,
-            Harm3
-        }
-        // TODO: There can actually be multiple lipsync files, so we should handle that case
-        private const string MILO_LIPSYNC_FILE = "song.lipsync";
-        private const string HARM2_LIPSYNC_FILE = "part2.lipsync";
-        private const string HARM3_LIPSYNC_FILE = "part3.lipsync";
-
-        private string GetLipSyncFilename(Part part)
-        {
-            return part switch
+            return instrument.ToLower() switch
             {
-                Part.Harm1 => MILO_LIPSYNC_FILE,
-                Part.Harm2 => HARM2_LIPSYNC_FILE,
-                Part.Harm3 => HARM3_LIPSYNC_FILE,
-                _ => throw new ArgumentOutOfRangeException(nameof(part), part, null)
+                "guitar" => VenueCharacterHelpers.CharacterType.Guitar,
+                "bass"   => VenueCharacterHelpers.CharacterType.Bass,
+                "drum"   => VenueCharacterHelpers.CharacterType.Drums,
+                _        => VenueCharacterHelpers.CharacterType.Guitar // Fallback
             };
         }
+        public static VenueCharacterHelpers.MiloAnimationGenre ParseGenreFromMiloString(string genre)
+        {
+            return genre.ToLower() switch
+            {
+                "banger"   => VenueCharacterHelpers.MiloAnimationGenre.Metal,
+                "dramatic" => VenueCharacterHelpers.MiloAnimationGenre.Goth,
+                "rocker"   => VenueCharacterHelpers.MiloAnimationGenre.Rock,
+                "spazz"    => VenueCharacterHelpers.MiloAnimationGenre.Punk,
+                _          => VenueCharacterHelpers.MiloAnimationGenre.Rock // Fallback
+            };
+        }
+        public struct BandSongPref
+        {
+            public VenueCharacterHelpers.CharacterType      Part2Instrument { get; set; }
+            public VenueCharacterHelpers.CharacterType      Part3Instrument { get; set; }
+            public VenueCharacterHelpers.CharacterType      Part4Instrument { get; set; }
+            public VenueCharacterHelpers.MiloAnimationGenre AnimationGenre  { get; set; }
+        }
+        private const string MILO_LIPSYNC_FILE = "song.lipsync";
 
-        private readonly FixedArray<byte>  _harm1Data;
-        private readonly FixedArray<byte> _harm2Data;
-        private readonly FixedArray<byte> _harm3Data;
-        private          bool              _disposed;
+        private readonly List<FixedArray<byte>> _lipsyncDataList;
+        private readonly FixedArray<byte> _bandSongPref;
+        private          bool                   _disposed;
 
         public MiloLipsync(FixedArray<byte> miloFile)
         {
-            _harm1Data = YARGMiloReader.GetMiloFile(miloFile, MILO_LIPSYNC_FILE);
-            _harm2Data = YARGMiloReader.GetMiloFile(miloFile, HARM2_LIPSYNC_FILE);
-            _harm3Data = YARGMiloReader.GetMiloFile(miloFile,  HARM3_LIPSYNC_FILE);
-        }
+            _lipsyncDataList = new List<FixedArray<byte>>(3);
+            // No extension because Harmonix is weird
+            _bandSongPref = YARGMiloReader.GetMiloFile(miloFile, "BandSongPref");
 
+            // Read the lipsync data for each part
+            _lipsyncDataList.Add(YARGMiloReader.GetMiloFile(miloFile, MILO_LIPSYNC_FILE));
+            int currentPart = 2; // starts at 2
+            while (true)
+            {
+                var lipsync = YARGMiloReader.GetMiloFile(miloFile, $"part{currentPart}.lipsync");
+                if (lipsync.Length == 0)
+                {
+                    break;
+                }
+                _lipsyncDataList.Add(lipsync);
+                currentPart++;
+            }
+        }
+        /// <summary>
+        /// Gets Milo lipsync data for a given chart, if present.
+        /// </summary>
+        /// <returns>An array of <see cref="VisemeData"/> lists, indexed by lipsync part. <br/>
+        /// Index 0 = song.lipsync, otherwise index n = part{n+1}.lipsync </returns>
         public List<VisemeData>[] GetLipsyncData()
         {
-            var harmonyData = new List<VisemeData>[3];
-            foreach (var part in EnumExtensions<Part>.Values)
+            var harmonyData = new List<VisemeData>[_lipsyncDataList.Count];
+            for (int i = 0; i < _lipsyncDataList.Count; i++)
             {
-                harmonyData[(int)part] = GetLipsyncDataForPart(part);
+                harmonyData[i] = GetLipsyncDataForPart(i);
             }
             return harmonyData;
         }
 
-        private List<VisemeData> GetLipsyncDataForPart(Part part)
+        public BandSongPref? GetBandSongPref()
         {
-            var data = part switch
+            if (_bandSongPref.Length == 0)
             {
-                Part.Harm1 => _harm1Data,
-                Part.Harm2 => _harm2Data,
-                Part.Harm3 => _harm3Data,
-                _ => throw new ArgumentOutOfRangeException(nameof(part), part, null)
-            };
+                return null;
+            }
+            // Parse the band song preferences from the stored data
+            /*
+             * 0x14 => Length of Part2Instrument
+             * 0x15-0x15+Length => Part2Instrument
+             * 0x1C => Length of Part3Instrument
+             * 0x1D-0x1D+Length => Part3Instrument
+             * 0x24 => Length of Part4Instrument
+             * 0x25-0x25+Length => Part4Instrument
+             * 0x2E => Length of AnimationGenre
+             * 0x2F-0x2F+Length => AnimationGenre
+             */
+            var bandSongPref = new BandSongPref();
+
+            var part2InstrumentLength = _bandSongPref[0x14];
+            var part2Instrument = Encoding.UTF8.GetString(_bandSongPref.Slice(0x15, part2InstrumentLength).ToArray());
+            bandSongPref.Part2Instrument = ParseInstrumentFromMiloString(part2Instrument);
+
+            var part3InstrumentLength = _bandSongPref[0x1C];
+            var part3Instrument = Encoding.UTF8.GetString(_bandSongPref.Slice(0x1D, part3InstrumentLength).ToArray());
+            bandSongPref.Part3Instrument = ParseInstrumentFromMiloString(part3Instrument);
+
+            var part4InstrumentLength = _bandSongPref[0x24];
+            var part4Instrument = Encoding.UTF8.GetString(_bandSongPref.Slice(0x25, part4InstrumentLength).ToArray());
+            bandSongPref.Part4Instrument = ParseInstrumentFromMiloString(part4Instrument);
+
+            var animationGenreLength = _bandSongPref[0x2E];
+            var animationGenre = Encoding.UTF8.GetString(_bandSongPref.Slice(0x2F, animationGenreLength).ToArray());
+            bandSongPref.AnimationGenre = ParseGenreFromMiloString(animationGenre);
+
+            YargLogger.LogFormatDebug<string, string, string, string>("BandSongPref: Part2Instrument={0}, Part3Instrument={1}, Part4Instrument={2}, AnimationGenre={3}", part2Instrument, part3Instrument, part4Instrument, animationGenre);
+            return bandSongPref;
+        }
+
+        private List<VisemeData> GetLipsyncDataForPart(int partIndex)
+        {
+            var data = _lipsyncDataList[partIndex];
             if (data.Length == 0)
             {
                 data.Dispose();
-                YargLogger.LogWarning("Milo file does not contain lipsync data");
+                YargLogger.LogFormatWarning("Milo file does not contain lipsync data for part {0}", partIndex);
                 return new List<VisemeData>();
             }
 
@@ -251,7 +310,11 @@ namespace YARG.Core.IO
                 }
 
                 // This is treated as if it is unmanaged since it is wrapping unmanaged memory
-                _harm1Data.Dispose();
+                foreach (var data in _lipsyncDataList)
+                {
+                    data.Dispose();
+                }
+                _lipsyncDataList.Clear();
 
                 _disposed = true;
             }

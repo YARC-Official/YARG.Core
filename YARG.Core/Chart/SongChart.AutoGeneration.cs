@@ -518,6 +518,7 @@ namespace YARG.Core.Chart
             songChart.VenueTrack.CameraCuts.AddRange(miloVenue.CameraCuts);
             songChart.VenueTrack.PostProcessing.AddRange(miloVenue.PostProcessingEvents);
             songChart.VenueTrack.Performer.AddRange(miloVenue.PerformerEvents);
+            songChart.BandSongPref = miloVenue.BandSongPref;
         }
 
         // TODO: Work it out such that we can combine venue and lipsync
@@ -526,12 +527,11 @@ namespace YARG.Core.Chart
         {
             var miloLipsync = new MiloVenue(songChart, songEntry);
             miloLipsync.Load();
+            songChart.LipsyncEvents = new List<LipsyncEvent>[miloLipsync.LipsyncEvents.Length];
+
             for (int i = 0; i < songChart.LipsyncEvents.Length; i++)
             {
-                if (songChart.LipsyncEvents[i] is null)
-                {
-                    songChart.LipsyncEvents[i] = new List<LipsyncEvent>();
-                }
+                songChart.LipsyncEvents[i] = new List<LipsyncEvent>();
                 songChart.LipsyncEvents[i].AddRange(miloLipsync.LipsyncEvents[i]);
                 // Generate lipsync from vocals if no lipsync data was found
                 if (songChart.LipsyncEvents[i].Count == 0 && i == 0)
@@ -544,6 +544,10 @@ namespace YARG.Core.Chart
         //TODO: This should be usable with harmony parts too
         public static void GenerateLipsyncFromVocals(SongChart songChart)
         {
+            if (songChart.LipsyncEvents is null)
+            {
+                songChart.LipsyncEvents = new List<LipsyncEvent>[1];
+            }
             if (!songChart.Lyrics.IsEmpty)
             {
                 songChart.LipsyncEvents[0].AddRange(LipsyncGenerator.GenerateFromLyrics(songChart.Lyrics));

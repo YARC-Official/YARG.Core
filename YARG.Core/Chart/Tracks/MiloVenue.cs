@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using YARG.Core.Chart.Events;
 using YARG.Core.IO;
+using YARG.Core.Logging;
 using YARG.Core.Song;
 using MiloAnimationEvent = YARG.Core.IO.MiloAnimation.MiloAnimationEvent;
 using MiloAnimationType = YARG.Core.IO.MiloAnimation.MiloAnimationType;
@@ -15,14 +16,15 @@ namespace YARG.Core.Chart
     /// </summary>
     public class MiloVenue
     {
-        public List<CharacterState>         CharacterStates      { get; } = new();
-        public List<CameraCutEvent>         CameraCuts           { get; } = new();
-        public List<CrowdEvent>             CrowdEvents          { get; } = new();
-        public List<PostProcessingEvent>    PostProcessingEvents { get; } = new();
-        public List<LightingEvent>          LightingEvents       { get; } = new();
-        public List<StageEffectEvent>       StageEvents          { get; } = new();
-        public List<PerformerEvent>         PerformerEvents      { get; } = new();
-        public List<LipsyncEvent>[]           LipsyncEvents        { get; } = new List<LipsyncEvent>[3];
+        public List<CharacterState>      CharacterStates      { get; }              = new();
+        public List<CameraCutEvent>      CameraCuts           { get; }              = new();
+        public List<CrowdEvent>          CrowdEvents          { get; }              = new();
+        public List<PostProcessingEvent> PostProcessingEvents { get; }              = new();
+        public List<LightingEvent>       LightingEvents       { get; }              = new();
+        public List<StageEffectEvent>    StageEvents          { get; }              = new();
+        public List<PerformerEvent>      PerformerEvents      { get; }              = new();
+        public List<LipsyncEvent>[]      LipsyncEvents        { get; private set;  } = new List<LipsyncEvent>[4];
+        public MiloLipsync.BandSongPref? BandSongPref { get; private set; }
 
         private List<MiloAnimationEvent> _rawEvents = new();
 
@@ -30,7 +32,7 @@ namespace YARG.Core.Chart
         private readonly SongEntry _song;
 
         private int                          _rawEventIndex;
-        private List<MiloLipsync.VisemeData>[] _lipsyncData = new List<MiloLipsync.VisemeData>[3];
+        private List<MiloLipsync.VisemeData>[] _lipsyncData = new List<MiloLipsync.VisemeData>[4];
 
         public MiloVenue(SongChart chart, SongEntry song)
         {
@@ -52,7 +54,20 @@ namespace YARG.Core.Chart
                 using(var lipsyncReader = new MiloLipsync(miloData))
                 {
                     _lipsyncData = lipsyncReader.GetLipsyncData();
+                }
 
+                using(var bandSongPrefReader = new MiloLipsync(miloData))
+                {
+                    BandSongPref = bandSongPrefReader.GetBandSongPref();
+                    if (BandSongPref is null)
+                    {
+                        YargLogger.LogWarning("BandSongPref is null, this may cause issues with character selection.");
+                    }
+                    else
+                    {
+                        YargLogger.LogFormatDebug("BandSongPref: {0}, {1}, {2}, {3}", BandSongPref.Value.Part2Instrument,
+                            BandSongPref.Value.Part3Instrument, BandSongPref.Value.Part4Instrument, BandSongPref.Value.AnimationGenre);
+                    }
                 }
             }
             else
@@ -289,13 +304,11 @@ namespace YARG.Core.Chart
 
         private void HandleLipsync()
         {
+            LipsyncEvents = new List<LipsyncEvent>[_lipsyncData.Length];
             for (int i = 0; i < LipsyncEvents.Length; i++)
             {
                 var lipsyncData = _lipsyncData[i];
-                if (LipsyncEvents[i] is null)
-                {
-                    LipsyncEvents[i] = new List<LipsyncEvent>();
-                }
+                LipsyncEvents[i] = new List<LipsyncEvent>();
                 foreach (var viseme in lipsyncData)
                 {
                     // Scale 0-255 int to 0.0-1.0 float

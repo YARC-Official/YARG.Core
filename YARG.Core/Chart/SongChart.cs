@@ -3,8 +3,10 @@ using System.Collections.Generic;
 using System.Linq;
 using Melanchall.DryWetMidi.Core;
 using YARG.Core.Chart.Events;
+using YARG.Core.IO;
 using YARG.Core.Logging;
 using YARG.Core.Parsing;
+using YARG.Core.Venue;
 
 namespace YARG.Core.Chart
 {
@@ -25,8 +27,9 @@ namespace YARG.Core.Chart
         public VenueTrack VenueTrack { get; set; } = new();
         public LyricsTrack Lyrics { get; set; } = new();
 
-        // TODO: Add support for multiple lipsync tracks
-        public List<LipsyncEvent>[] LipsyncEvents { get; set; } = new List<LipsyncEvent>[3];
+        public List<LipsyncEvent>[]? LipsyncEvents { get; set; }
+
+        public MiloLipsync.BandSongPref? BandSongPref { get; set; } = new();
 
 
         public InstrumentTrack<GuitarNote> FiveFretGuitar { get; set; } = new(Instrument.FiveFretGuitar);
