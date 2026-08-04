@@ -172,13 +172,11 @@ public class PreviewContextTests
 
         protected internal override OutputChannel? CreateOutputChannel(int channelId) => null;
 
-        protected internal override OutputDevice? CreateOutputDevice(int deviceId, string name) => null;
-
         protected internal override List<(int id, string name)> GetAllOutputDevices() => [];
 
         protected internal override int GetOutputChannelCount() => 0;
 
-        protected internal override OutputDevice? GetOutputDevice(string name) => null;
+        protected internal override bool SetOutputDevice(string name) => false;
 
         protected internal override void SetMasterVolume(double volume) { }
 

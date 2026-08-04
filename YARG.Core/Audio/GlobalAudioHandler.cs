@@ -632,7 +632,7 @@ namespace YARG.Core.Audio
             }
         }
 
-        public static OutputDevice? GetOutputDevice(string name)
+        public static AudioOutputBackend GetOutputBackend(string name)
         {
             lock (_instanceLock)
             {
@@ -640,7 +640,7 @@ namespace YARG.Core.Audio
                 {
                     throw new NotInitializedException();
                 }
-                return _instance.GetOutputDevice(name);
+                return _instance.GetOutputBackend(name);
             }
         }
 

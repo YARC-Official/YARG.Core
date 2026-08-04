@@ -95,8 +95,6 @@ namespace YARG.Core.Audio
 
         protected internal abstract OutputChannel? CreateOutputChannel(int channelId);
 
-        protected internal abstract OutputDevice? CreateOutputDevice(int deviceId, string name);
-
         protected internal abstract List<(int id, string name)> GetAllOutputDevices();
 
         protected internal abstract int GetOutputChannelCount();
@@ -105,7 +103,12 @@ namespace YARG.Core.Audio
 
         protected internal virtual bool OpenOutputControlPanel() => false;
 
-        protected internal abstract OutputDevice? GetOutputDevice(string name);
+        /// <summary>
+        /// The driver family a device name belongs to. Classification lives with the
+        /// transport implementations, not with name parsing in callers.
+        /// </summary>
+        protected internal virtual AudioOutputBackend GetOutputBackend(string name) =>
+            AudioOutputBackend.WindowsAudio;
 
         protected internal abstract void SetMasterVolume(double volume);
 
@@ -124,24 +127,7 @@ namespace YARG.Core.Audio
             }
         }
 
-        protected internal virtual bool SetOutputDevice(string name)
-        {
-            lock (_activeMixers)
-            {
-                OutputDevice? device = GetOutputDevice(name);
-                if (device == null)
-                {
-                    return false;
-                }
-
-                foreach (var mixer in _activeMixers)
-                {
-                    mixer.SetOutputDevice(device);
-                }
-            }
-
-            return true;
-        }
+        protected internal abstract bool SetOutputDevice(string name);
 
         protected internal virtual bool ReinitializeOutput(int bufferLength) => false;
 
