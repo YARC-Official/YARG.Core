@@ -22,7 +22,7 @@ namespace YARG.Core.Chart
         public List<LightingEvent>          LightingEvents       { get; } = new();
         public List<StageEffectEvent>       StageEvents          { get; } = new();
         public List<PerformerEvent>         PerformerEvents      { get; } = new();
-        public List<LipsyncEvent>           LipsyncEvents        { get; } = new();
+        public List<LipsyncEvent>[]           LipsyncEvents        { get; } = new List<LipsyncEvent>[3];
 
         private List<MiloAnimationEvent> _rawEvents = new();
 
@@ -30,7 +30,7 @@ namespace YARG.Core.Chart
         private readonly SongEntry _song;
 
         private int                          _rawEventIndex;
-        private List<MiloLipsync.VisemeData> _lipsyncData = new();
+        private List<MiloLipsync.VisemeData>[] _lipsyncData = new List<MiloLipsync.VisemeData>[3];
 
         public MiloVenue(SongChart chart, SongEntry song)
         {
@@ -114,7 +114,10 @@ namespace YARG.Core.Chart
 
             // Deal with lipsync now
             HandleLipsync();
-            LipsyncEvents.Sort((a, b) => a.Time.CompareTo(b.Time));
+            foreach (var harmonyLipsync in LipsyncEvents)
+            {
+                harmonyLipsync.Sort((a, b) => a.Time.CompareTo(b.Time));
+            }
         }
 
         private void HandleStage()
@@ -286,16 +289,24 @@ namespace YARG.Core.Chart
 
         private void HandleLipsync()
         {
-            foreach (var viseme in _lipsyncData)
+            for (int i = 0; i < LipsyncEvents.Length; i++)
             {
-                // Scale 0-255 int to 0.0-1.0 float
-                var value = viseme.Value / 255.0f;
-                var time = viseme.StartTime;
-
-                if (VisemeLookup.TryGetValue(viseme.Viseme, out var lipsyncType))
+                var lipsyncData = _lipsyncData[i];
+                if (LipsyncEvents[i] is null)
                 {
-                    LipsyncEvents.Add(new LipsyncEvent(lipsyncType, value, time,
-                        _chart.SyncTrack.TimeToTick(time)));
+                    LipsyncEvents[i] = new List<LipsyncEvent>();
+                }
+                foreach (var viseme in lipsyncData)
+                {
+                    // Scale 0-255 int to 0.0-1.0 float
+                    var value = viseme.Value / 255.0f;
+                    var time = viseme.StartTime;
+
+                    if (VisemeLookup.TryGetValue(viseme.Viseme, out var lipsyncType))
+                    {
+                        LipsyncEvents[i].Add(new LipsyncEvent(lipsyncType, value, time,
+                            _chart.SyncTrack.TimeToTick(time)));
+                    }
                 }
             }
         }

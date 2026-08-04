@@ -26,7 +26,7 @@ namespace YARG.Core.Chart
         public LyricsTrack Lyrics { get; set; } = new();
 
         // TODO: Add support for multiple lipsync tracks
-        public List<LipsyncEvent> LipsyncEvents { get; set; } = new();
+        public List<LipsyncEvent>[] LipsyncEvents { get; set; } = new List<LipsyncEvent>[3];
 
 
         public InstrumentTrack<GuitarNote> FiveFretGuitar { get; set; } = new(Instrument.FiveFretGuitar);

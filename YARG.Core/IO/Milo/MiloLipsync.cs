@@ -2,28 +2,69 @@
 using System.Buffers.Binary;
 using System.Collections.Generic;
 using System.Text;
+using YARG.Core.Extensions;
 using YARG.Core.Logging;
 
 namespace YARG.Core.IO
 {
     public class MiloLipsync : IDisposable
     {
+        private enum Part
+        {
+            Harm1,
+            Harm2,
+            Harm3
+        }
         // TODO: There can actually be multiple lipsync files, so we should handle that case
         private const string MILO_LIPSYNC_FILE = "song.lipsync";
+        private const string HARM2_LIPSYNC_FILE = "part2.lipsync";
+        private const string HARM3_LIPSYNC_FILE = "part3.lipsync";
 
-        private readonly FixedArray<byte> _data;
-        private bool _disposed;
+        private string GetLipSyncFilename(Part part)
+        {
+            return part switch
+            {
+                Part.Harm1 => MILO_LIPSYNC_FILE,
+                Part.Harm2 => HARM2_LIPSYNC_FILE,
+                Part.Harm3 => HARM3_LIPSYNC_FILE,
+                _ => throw new ArgumentOutOfRangeException(nameof(part), part, null)
+            };
+        }
+
+        private readonly FixedArray<byte>  _harm1Data;
+        private readonly FixedArray<byte> _harm2Data;
+        private readonly FixedArray<byte> _harm3Data;
+        private          bool              _disposed;
 
         public MiloLipsync(FixedArray<byte> miloFile)
         {
-            _data = YARGMiloReader.GetMiloFile(miloFile, MILO_LIPSYNC_FILE);
+            _harm1Data = YARGMiloReader.GetMiloFile(miloFile, MILO_LIPSYNC_FILE);
+            _harm2Data = YARGMiloReader.GetMiloFile(miloFile, HARM2_LIPSYNC_FILE);
+            _harm3Data = YARGMiloReader.GetMiloFile(miloFile,  HARM3_LIPSYNC_FILE);
         }
 
-        public List<VisemeData> GetLipsyncData()
+        public List<VisemeData>[] GetLipsyncData()
         {
-            if (_data.Length == 0)
+            var harmonyData = new List<VisemeData>[3];
+            foreach (var part in EnumExtensions<Part>.Values)
             {
-                _data.Dispose();
+                harmonyData[(int)part] = GetLipsyncDataForPart(part);
+            }
+            return harmonyData;
+        }
+
+        private List<VisemeData> GetLipsyncDataForPart(Part part)
+        {
+            var data = part switch
+            {
+                Part.Harm1 => _harm1Data,
+                Part.Harm2 => _harm2Data,
+                Part.Harm3 => _harm3Data,
+                _ => throw new ArgumentOutOfRangeException(nameof(part), part, null)
+            };
+            if (data.Length == 0)
+            {
+                data.Dispose();
                 YargLogger.LogWarning("Milo file does not contain lipsync data");
                 return new List<VisemeData>();
             }
@@ -33,7 +74,7 @@ namespace YARG.Core.IO
             byte[] fourBytes = new byte[4];
 
             // Read four bytes from data starting at bufferIndex into fourBytes
-            _data.Slice(bufferIndex, 4).CopyTo(fourBytes);
+            data.Slice(bufferIndex, 4).CopyTo(fourBytes);
 
             // Parse the four bytes into a uint and add 17 to get the start
             var start = BinaryPrimitives.ReadUInt32LittleEndian(fourBytes) + 17;
@@ -42,7 +83,7 @@ namespace YARG.Core.IO
             // From now on we're working in big endian
 
             // Read a uint at start to get the count of visemes in this file
-            var visemeCount = BinaryPrimitives.ReadUInt32BigEndian(_data.Slice((int) bufferIndex, 4));
+            var visemeCount = BinaryPrimitives.ReadUInt32BigEndian(data.Slice((int) bufferIndex, 4));
             bufferIndex += 4;
 
             // Allocate an array of Viseme, which will serve as our ordered list referenced in the frame data
@@ -51,10 +92,10 @@ namespace YARG.Core.IO
             for (int i = 0; i < visemeCount; i++)
             {
                 // Read a uint denoting the length of the name
-                var nameLength = BinaryPrimitives.ReadUInt32BigEndian(_data.Slice(bufferIndex, 4));
+                var nameLength = BinaryPrimitives.ReadUInt32BigEndian(data.Slice(bufferIndex, 4));
                 bufferIndex += 4;
 
-                var visemeName = _data.Slice(bufferIndex, (int) nameLength).ToArray();
+                var visemeName = data.Slice(bufferIndex, (int) nameLength).ToArray();
                 bufferIndex += (int) nameLength;
 
                 // Parse the viseme name into a Viseme enum value
@@ -69,11 +110,11 @@ namespace YARG.Core.IO
             }
 
             // Next read a uint for the frame count
-            var frameCount = BinaryPrimitives.ReadUInt32BigEndian(_data.Slice(bufferIndex, 4));
+            var frameCount = BinaryPrimitives.ReadUInt32BigEndian(data.Slice(bufferIndex, 4));
             bufferIndex += 4;
 
             // And one more for visemeElements, whatever that is
-            var visemeElementsCount = BinaryPrimitives.ReadUInt32BigEndian(_data.Slice(bufferIndex, 4));
+            var visemeElementsCount = BinaryPrimitives.ReadUInt32BigEndian(data.Slice(bufferIndex, 4));
             bufferIndex += 4;
 
             // I think we're being told we will have visemeElementsCount viseme updates?
@@ -82,7 +123,7 @@ namespace YARG.Core.IO
             for (var i = 0; i < frameCount; i++)
             {
                 // Read one ushort
-                var frameChanges = (int) _data[bufferIndex];
+                var frameChanges = (int) data[bufferIndex];
                 bufferIndex++;
 
                 if (frameChanges == 0)
@@ -94,9 +135,9 @@ namespace YARG.Core.IO
                 // Read frameChanges changes, creating a Viseme struct for each
                 for (var j = 0; j < frameChanges; j++)
                 {
-                    var idx = (int) _data[bufferIndex];
+                    var idx = (int) data[bufferIndex];
                     bufferIndex++;
-                    var value = (int) _data[bufferIndex];
+                    var value = (int) data[bufferIndex];
                     bufferIndex++;
 
                     var viseme = new VisemeData
@@ -123,6 +164,7 @@ namespace YARG.Core.IO
         public enum Visemes
         {
             // Actual visemes
+            // ReSharper disable InconsistentNaming
             Bump_hi,
             Bump_lo,
             Cage_hi,
@@ -190,6 +232,7 @@ namespace YARG.Core.IO
             exp_banger_slackjawed_01,
             exp_banger_roar_01,
             exp_banger_oohface_01
+            // ReSharper restore InconsistentNaming
         }
 
         public void Dispose()
@@ -208,7 +251,7 @@ namespace YARG.Core.IO
                 }
 
                 // This is treated as if it is unmanaged since it is wrapping unmanaged memory
-                _data.Dispose();
+                _harm1Data.Dispose();
 
                 _disposed = true;
             }

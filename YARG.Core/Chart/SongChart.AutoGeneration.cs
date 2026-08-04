@@ -526,21 +526,27 @@ namespace YARG.Core.Chart
         {
             var miloLipsync = new MiloVenue(songChart, songEntry);
             miloLipsync.Load();
-
-            songChart.LipsyncEvents.AddRange(miloLipsync.LipsyncEvents);
-            
-            // Generate lipsync from vocals if no lipsync data was found
-            if (songChart.LipsyncEvents.Count == 0)
+            for (int i = 0; i < songChart.LipsyncEvents.Length; i++)
             {
-                GenerateLipsyncFromVocals(songChart);
+                if (songChart.LipsyncEvents[i] is null)
+                {
+                    songChart.LipsyncEvents[i] = new List<LipsyncEvent>();
+                }
+                songChart.LipsyncEvents[i].AddRange(miloLipsync.LipsyncEvents[i]);
+                // Generate lipsync from vocals if no lipsync data was found
+                if (songChart.LipsyncEvents[i].Count == 0 && i == 0)
+                {
+                    GenerateLipsyncFromVocals(songChart);
+                }
             }
         }
 
+        //TODO: This should be usable with harmony parts too
         public static void GenerateLipsyncFromVocals(SongChart songChart)
         {
             if (!songChart.Lyrics.IsEmpty)
             {
-                songChart.LipsyncEvents.AddRange(LipsyncGenerator.GenerateFromLyrics(songChart.Lyrics));
+                songChart.LipsyncEvents[0].AddRange(LipsyncGenerator.GenerateFromLyrics(songChart.Lyrics));
             }
         }
 
