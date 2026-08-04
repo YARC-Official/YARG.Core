@@ -140,8 +140,8 @@ public class ReplayInfoTests
     {
         if (type == typeof(string))
         {
-            // Distinctive string, deliberately non-default.
-            return "The quick brown fox jumps over the lazy dog";
+            // Accented character, deliberately: exercises UTF-8 encode/decode round-trip.
+            return "café";
         }
 
         if (type == typeof(bool))

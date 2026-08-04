@@ -35,8 +35,8 @@ Defined in `YARG.Core/Engine/BaseEngine.cs`:
 
 | Constant | Value | Meaning |
 |---|---|---|
-| `POINTS_PER_NOTE` | 50 | Points for one regular note (guitar, keys, 4-lane drums) |
-| `POINTS_PER_PRO_NOTE` | 60 | Points for one pro four-lane drum pad |
+| `POINTS_PER_NOTE` | 50 | Points for one regular note (guitar, five-lane keys, four-lane drums, five-lane drums) |
+| `POINTS_PER_PRO_NOTE` | 60 | Points for one pro four-lane drum pad (`ProFourLane` only) |
 | `POINTS_PER_PRO_KEYS_NOTE` | 120 | Points for one pro keys note (`ProKeysEngine.cs`) |
 | `POINTS_PER_BEAT` | 25 | Points per quarter-note beat of sustain (see [Ticks and time](#ticks-and-time)) |
 
@@ -698,16 +698,3 @@ listens for `OnUnisonBonusAwarded` to show the bonus.
 | `LanedNotesHit` | Lane notes autohit (or hit) while a lane was active; excluded from timing-offset stats. |
 | `Overstrums` | Number of overstrums/overhits. |
 | `AverageMultiplier` | `CommittedScore / BaseNoteScore`; float, recomputed on every `AddScore`. |
-
-## History
-
-- `df171b81` (PR #221, Jul 2025) - "Improve Star Score requirements for sparse charts":
-  introduced weighted base score and the sparse-chart leniency rationale.
-- `b3d37169` (Apr 2026) - star rework: replaced weighting with the current pre-note
-  multiplier, split `noteScore` from `baseScore`, added disjoint-chord handling to
-  `CalculateChartScores`. Accidentally double-counted parent sustains (five-lane keys) and
-  double-incremented combo (guitar disjoint chords, keys).
-- PR #439 - fixed the sustain double-count and disjoint-chord combo overcount; restored
-  per-chord combo + per-chord multiplier in five-lane keys.
-- (current) - guitar sustain crediting no longer gated on `IsDisjoint`; non-disjoint
-  chords now credit every sustained member's sustain in base score and runtime.
