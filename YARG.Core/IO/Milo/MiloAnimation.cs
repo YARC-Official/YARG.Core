@@ -7,6 +7,14 @@ namespace YARG.Core.IO
 {
     public class MiloAnimation : IDisposable
     {
+        public enum MiloAnimationGenre
+        {
+            Metal,
+            Goth,
+            Rock,
+            Punk
+        }
+
         private const    string           MILO_ANIMATION_FILE = "song.anim";
         private readonly FixedArray<byte> _data;
         private          bool             _disposed;

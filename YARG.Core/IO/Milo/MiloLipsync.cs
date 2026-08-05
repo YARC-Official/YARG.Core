@@ -2,6 +2,7 @@
 using System.Buffers.Binary;
 using System.Collections.Generic;
 using System.Text;
+using YARG.Core.Chart;
 using YARG.Core.Extensions;
 using YARG.Core.Logging;
 using YARG.Core.Venue;
@@ -10,33 +11,33 @@ namespace YARG.Core.IO
 {
     public class MiloLipsync : IDisposable
     {
-        public static VenueCharacterHelpers.CharacterType ParseInstrumentFromMiloString(string instrument)
+        public static Performer ParsePerformerFromMiloString(string instrument)
         {
             return instrument.ToLower() switch
             {
-                "guitar" => VenueCharacterHelpers.CharacterType.Guitar,
-                "bass"   => VenueCharacterHelpers.CharacterType.Bass,
-                "drum"   => VenueCharacterHelpers.CharacterType.Drums,
-                _        => VenueCharacterHelpers.CharacterType.Guitar // Fallback
+                "guitar" => Performer.Guitar,
+                "bass"   => Performer.Bass,
+                "drum"   => Performer.Drums,
+                _        => Performer.Guitar // Fallback
             };
         }
-        public static VenueCharacterHelpers.MiloAnimationGenre ParseGenreFromMiloString(string genre)
+        public static MiloAnimation.MiloAnimationGenre ParseGenreFromMiloString(string genre)
         {
             return genre.ToLower() switch
             {
-                "banger"   => VenueCharacterHelpers.MiloAnimationGenre.Metal,
-                "dramatic" => VenueCharacterHelpers.MiloAnimationGenre.Goth,
-                "rocker"   => VenueCharacterHelpers.MiloAnimationGenre.Rock,
-                "spazz"    => VenueCharacterHelpers.MiloAnimationGenre.Punk,
-                _          => VenueCharacterHelpers.MiloAnimationGenre.Rock // Fallback
+                "banger"   => MiloAnimation.MiloAnimationGenre.Metal,
+                "dramatic" => MiloAnimation.MiloAnimationGenre.Goth,
+                "rocker"   => MiloAnimation.MiloAnimationGenre.Rock,
+                "spazz"    => MiloAnimation.MiloAnimationGenre.Punk,
+                _          => MiloAnimation.MiloAnimationGenre.Rock // Fallback
             };
         }
         public struct BandSongPref
         {
-            public VenueCharacterHelpers.CharacterType      Part2Instrument { get; set; }
-            public VenueCharacterHelpers.CharacterType      Part3Instrument { get; set; }
-            public VenueCharacterHelpers.CharacterType      Part4Instrument { get; set; }
-            public VenueCharacterHelpers.MiloAnimationGenre AnimationGenre  { get; set; }
+            public Performer                        Part2Instrument { get; set; }
+            public Performer                        Part3Instrument { get; set; }
+            public Performer                        Part4Instrument { get; set; }
+            public MiloAnimation.MiloAnimationGenre AnimationGenre  { get; set; }
         }
         private const string MILO_LIPSYNC_FILE = "song.lipsync";
 
@@ -100,15 +101,15 @@ namespace YARG.Core.IO
 
             var part2InstrumentLength = _bandSongPref[0x14];
             var part2Instrument = Encoding.UTF8.GetString(_bandSongPref.Slice(0x15, part2InstrumentLength).ToArray());
-            bandSongPref.Part2Instrument = ParseInstrumentFromMiloString(part2Instrument);
+            bandSongPref.Part2Instrument = ParsePerformerFromMiloString(part2Instrument);
 
             var part3InstrumentLength = _bandSongPref[0x1C];
             var part3Instrument = Encoding.UTF8.GetString(_bandSongPref.Slice(0x1D, part3InstrumentLength).ToArray());
-            bandSongPref.Part3Instrument = ParseInstrumentFromMiloString(part3Instrument);
+            bandSongPref.Part3Instrument = ParsePerformerFromMiloString(part3Instrument);
 
             var part4InstrumentLength = _bandSongPref[0x24];
             var part4Instrument = Encoding.UTF8.GetString(_bandSongPref.Slice(0x25, part4InstrumentLength).ToArray());
-            bandSongPref.Part4Instrument = ParseInstrumentFromMiloString(part4Instrument);
+            bandSongPref.Part4Instrument = ParsePerformerFromMiloString(part4Instrument);
 
             var animationGenreLength = _bandSongPref[0x2E];
             var animationGenre = Encoding.UTF8.GetString(_bandSongPref.Slice(0x2F, animationGenreLength).ToArray());
