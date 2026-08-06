@@ -27,9 +27,9 @@ namespace YARG.Core.Chart
         public VenueTrack VenueTrack { get; set; } = new();
         public LyricsTrack Lyrics { get; set; } = new();
 
-        public List<LipsyncEvent>[]? LipsyncEvents { get; set; }
+        public List<LipsyncEvent>[] LipsyncEventsByPart { get; set; }
 
-        public Performer[] SingerPreference { get; set; } = new Performer[4];
+        public Performer[] SingerPreference { get; set; }
         public MiloAnimation.MiloAnimationGenre AnimationGenre { get; set; } = MiloAnimation.MiloAnimationGenre.Rock;
 
 

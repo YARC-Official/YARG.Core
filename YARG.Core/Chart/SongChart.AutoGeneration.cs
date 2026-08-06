@@ -524,34 +524,70 @@ namespace YARG.Core.Chart
 
         // TODO: Work it out such that we can combine venue and lipsync
         //  Also, we need to eventually parse lipsync from midi if it's there (rare, but it happens)
-        public static void LoadLipsyncFromMilo(SongChart songChart, SongEntry songEntry)
+        public static void LoadLipsync(SongChart songChart, SongEntry songEntry)
         {
             var miloLipsync = new MiloVenue(songChart, songEntry);
             miloLipsync.Load();
-            songChart.LipsyncEvents = new List<LipsyncEvent>[miloLipsync.LipsyncEvents.Length];
-
-            for (int i = 0; i < songChart.LipsyncEvents.Length; i++)
+            bool singalongsExist = songChart.VenueTrack.Performer.Any(e => e.Type is PerformerEventType.Singalong);
+            if (miloLipsync.LipsyncEventsByPart is not null)
             {
-                songChart.LipsyncEvents[i] = new List<LipsyncEvent>();
-                songChart.LipsyncEvents[i].AddRange(miloLipsync.LipsyncEvents[i]);
-                // Generate lipsync from vocals if no lipsync data was found
-                if (songChart.LipsyncEvents[i].Count == 0 && i == 0)
+                // We only do autogen if there are no singalongs to prevent weirdness
+                songChart.LipsyncEventsByPart = new List<LipsyncEvent>[singalongsExist
+                    ? Math.Max(miloLipsync.LipsyncEventsByPart.Length, songChart.Harmony.Parts.Count)
+                    : miloLipsync.LipsyncEventsByPart.Length];
+                for (int i = 0; i < songChart.LipsyncEventsByPart.Length; i++)
                 {
-                    GenerateLipsyncFromVocals(songChart);
+                    songChart.LipsyncEventsByPart[i] = new List<LipsyncEvent>();
                 }
+
+                for (int i = 0; i < miloLipsync.LipsyncEventsByPart.Length; i++)
+                {
+                    songChart.LipsyncEventsByPart[i].AddRange(miloLipsync.LipsyncEventsByPart[i]);
+                    YargLogger.LogFormatDebug("Loaded {0} lipsync events from milo for part {1}",
+                        songChart.LipsyncEventsByPart[i].Count, i);
+                }
+            }
+            else
+            {
+                songChart.LipsyncEventsByPart = new List<LipsyncEvent>[Math.Max(1, songChart.Harmony.Parts.Count)];
+                for (int i = 0; i < songChart.LipsyncEventsByPart.Length; i++)
+                {
+                    songChart.LipsyncEventsByPart[i] = new List<LipsyncEvent>();
+                }
+            }
+
+            if (!singalongsExist)
+            {
+                GenerateMissingLipsync(songChart);
             }
         }
 
-        //TODO: This should be usable with harmony parts too
-        public static void GenerateLipsyncFromVocals(SongChart songChart)
+        private static void GenerateMissingLipsync(SongChart songChart)
         {
-            if (songChart.LipsyncEvents is null)
+            if (songChart.Harmony.Parts.Count == 0)
             {
-                songChart.LipsyncEvents = new List<LipsyncEvent>[1];
+                if (!songChart.Lyrics.IsEmpty)
+                {
+                    songChart.LipsyncEventsByPart[0].AddRange(LipsyncGenerator.GenerateFromLyrics(songChart.Lyrics));
+                    YargLogger.LogFormatDebug("Generated {0} lipsync events from lyrics", songChart.LipsyncEventsByPart[0].Count);
+                }
+                else if (!songChart.Vocals.IsEmpty)
+                {
+                    // I don't know if this branch is even possible to reach
+                    songChart.LipsyncEventsByPart[0].AddRange(LipsyncGenerator.GenerateFromVocalsPart(songChart.Harmony.Parts[0]));
+                }
             }
-            if (!songChart.Lyrics.IsEmpty)
+            else
             {
-                songChart.LipsyncEvents[0].AddRange(LipsyncGenerator.GenerateFromLyrics(songChart.Lyrics));
+                for (int i = 0; i < songChart.Harmony.Parts.Count; i++)
+                {
+                    if (songChart.LipsyncEventsByPart[i].Count > 0)
+                    {
+                        continue;
+                    }
+                    songChart.LipsyncEventsByPart[i].AddRange(LipsyncGenerator.GenerateFromVocalsPart(songChart.Harmony.Parts[i]));
+                    YargLogger.LogFormatDebug("Generated {0} lipsync events from vocals part {1}", songChart.LipsyncEventsByPart[i].Count, i);
+                }
             }
         }
 

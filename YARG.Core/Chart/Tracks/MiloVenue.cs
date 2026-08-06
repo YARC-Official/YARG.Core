@@ -16,15 +16,15 @@ namespace YARG.Core.Chart
     /// </summary>
     public class MiloVenue
     {
-        public List<CharacterState>      CharacterStates      { get; }              = new();
-        public List<CameraCutEvent>      CameraCuts           { get; }              = new();
-        public List<CrowdEvent>          CrowdEvents          { get; }              = new();
-        public List<PostProcessingEvent> PostProcessingEvents { get; }              = new();
-        public List<LightingEvent>       LightingEvents       { get; }              = new();
-        public List<StageEffectEvent>    StageEvents          { get; }              = new();
-        public List<PerformerEvent>      PerformerEvents      { get; }              = new();
-        public List<LipsyncEvent>[]      LipsyncEvents        { get; private set;  }
-        public Performer[] SingerPreference { get; private set; }
+        public List<CharacterState> CharacterStates { get; } = new();
+        public List<CameraCutEvent> CameraCuts { get; } = new();
+        public List<CrowdEvent> CrowdEvents { get; } = new();
+        public List<PostProcessingEvent> PostProcessingEvents { get; } = new();
+        public List<LightingEvent> LightingEvents { get; } = new();
+        public List<StageEffectEvent> StageEvents { get; } = new();
+        public List<PerformerEvent> PerformerEvents { get; } = new();
+        public List<LipsyncEvent>[]? LipsyncEventsByPart { get; private set; }
+        public Performer[] SingerPreference { get; private set; } = new Performer[4];
         public MiloAnimation.MiloAnimationGenre AnimationGenre { get; private set; } = MiloAnimation.MiloAnimationGenre.Rock;
 
         private List<MiloAnimationEvent> _rawEvents = new();
@@ -119,7 +119,7 @@ namespace YARG.Core.Chart
 
             // Deal with lipsync now
             HandleLipsync();
-            foreach (var harmonyLipsync in LipsyncEvents)
+            foreach (var harmonyLipsync in LipsyncEventsByPart)
             {
                 harmonyLipsync.Sort((a, b) => a.Time.CompareTo(b.Time));
             }
@@ -294,11 +294,11 @@ namespace YARG.Core.Chart
 
         private void HandleLipsync()
         {
-            LipsyncEvents = new List<LipsyncEvent>[_lipsyncData.Length];
-            for (int i = 0; i < LipsyncEvents.Length; i++)
+            LipsyncEventsByPart = new List<LipsyncEvent>[_lipsyncData.Length];
+            for (int i = 0; i < LipsyncEventsByPart.Length; i++)
             {
                 var lipsyncData = _lipsyncData[i];
-                LipsyncEvents[i] = new List<LipsyncEvent>();
+                LipsyncEventsByPart[i] = new List<LipsyncEvent>();
                 foreach (var viseme in lipsyncData)
                 {
                     // Scale 0-255 int to 0.0-1.0 float
@@ -307,7 +307,7 @@ namespace YARG.Core.Chart
 
                     if (VisemeLookup.TryGetValue(viseme.Viseme, out var lipsyncType))
                     {
-                        LipsyncEvents[i].Add(new LipsyncEvent(lipsyncType, value, time,
+                        LipsyncEventsByPart[i].Add(new LipsyncEvent(lipsyncType, value, time,
                             _chart.SyncTrack.TimeToTick(time)));
                     }
                 }
