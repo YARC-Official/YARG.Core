@@ -518,7 +518,8 @@ namespace YARG.Core.Chart
             songChart.VenueTrack.CameraCuts.AddRange(miloVenue.CameraCuts);
             songChart.VenueTrack.PostProcessing.AddRange(miloVenue.PostProcessingEvents);
             songChart.VenueTrack.Performer.AddRange(miloVenue.PerformerEvents);
-            songChart.BandSongPref = miloVenue.BandSongPref;
+            songChart.SingerPreference = miloVenue.SingerPreference;
+            songChart.AnimationGenre = miloVenue.AnimationGenre;
         }
 
         // TODO: Work it out such that we can combine venue and lipsync

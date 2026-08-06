@@ -23,8 +23,9 @@ namespace YARG.Core.Chart
         public List<LightingEvent>       LightingEvents       { get; }              = new();
         public List<StageEffectEvent>    StageEvents          { get; }              = new();
         public List<PerformerEvent>      PerformerEvents      { get; }              = new();
-        public List<LipsyncEvent>[]      LipsyncEvents        { get; private set;  } = new List<LipsyncEvent>[4];
-        public MiloLipsync.BandSongPref? BandSongPref { get; private set; }
+        public List<LipsyncEvent>[]      LipsyncEvents        { get; private set;  }
+        public Performer[] SingerPreference { get; private set; }
+        public MiloAnimation.MiloAnimationGenre AnimationGenre { get; private set; } = MiloAnimation.MiloAnimationGenre.Rock;
 
         private List<MiloAnimationEvent> _rawEvents = new();
 
@@ -49,25 +50,14 @@ namespace YARG.Core.Chart
                 using (var miloReader = new MiloAnimation(miloData))
                 {
                     _rawEvents = miloReader.GetMiloAnimation();
+                    AnimationGenre = miloReader.GetAnimationGenre();
                 }
 
                 using(var lipsyncReader = new MiloLipsync(miloData))
                 {
                     _lipsyncData = lipsyncReader.GetLipsyncData();
-                }
-
-                using(var bandSongPrefReader = new MiloLipsync(miloData))
-                {
-                    BandSongPref = bandSongPrefReader.GetBandSongPref();
-                    if (BandSongPref is null)
-                    {
-                        YargLogger.LogWarning("BandSongPref is null, this may cause issues with character selection.");
-                    }
-                    else
-                    {
-                        YargLogger.LogFormatDebug("BandSongPref: {0}, {1}, {2}, {3}", BandSongPref.Value.Part2Instrument,
-                            BandSongPref.Value.Part3Instrument, BandSongPref.Value.Part4Instrument, BandSongPref.Value.AnimationGenre);
-                    }
+                    SingerPreference = lipsyncReader.GetSingerPreferenceFromMilo();
+                    YargLogger.LogFormatDebug("Singer Preference: {0}, {1}, {2}, {3}", SingerPreference[0], SingerPreference[1], SingerPreference[2], SingerPreference[3]);
                 }
             }
             else

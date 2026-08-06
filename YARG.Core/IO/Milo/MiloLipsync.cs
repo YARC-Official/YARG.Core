@@ -11,34 +11,6 @@ namespace YARG.Core.IO
 {
     public class MiloLipsync : IDisposable
     {
-        public static Performer ParsePerformerFromMiloString(string instrument)
-        {
-            return instrument.ToLower() switch
-            {
-                "guitar" => Performer.Guitar,
-                "bass"   => Performer.Bass,
-                "drum"   => Performer.Drums,
-                _        => Performer.Guitar // Fallback
-            };
-        }
-        public static MiloAnimation.MiloAnimationGenre ParseGenreFromMiloString(string genre)
-        {
-            return genre.ToLower() switch
-            {
-                "banger"   => MiloAnimation.MiloAnimationGenre.Metal,
-                "dramatic" => MiloAnimation.MiloAnimationGenre.Goth,
-                "rocker"   => MiloAnimation.MiloAnimationGenre.Rock,
-                "spazz"    => MiloAnimation.MiloAnimationGenre.Punk,
-                _          => MiloAnimation.MiloAnimationGenre.Rock // Fallback
-            };
-        }
-        public struct BandSongPref
-        {
-            public Performer                        Part2Instrument { get; set; }
-            public Performer                        Part3Instrument { get; set; }
-            public Performer                        Part4Instrument { get; set; }
-            public MiloAnimation.MiloAnimationGenre AnimationGenre  { get; set; }
-        }
         private const string MILO_LIPSYNC_FILE = "song.lipsync";
 
         private readonly List<FixedArray<byte>> _lipsyncDataList;
@@ -80,13 +52,12 @@ namespace YARG.Core.IO
             return harmonyData;
         }
 
-        public BandSongPref? GetBandSongPref()
+        public Performer[] GetSingerPreferenceFromMilo()
         {
             if (_bandSongPref.Length == 0)
             {
-                return null;
+                return new Performer[4];
             }
-            // Parse the band song preferences from the stored data
             /*
              * 0x14 => Length of Part2Instrument
              * 0x15-0x15+Length => Part2Instrument
@@ -97,26 +68,36 @@ namespace YARG.Core.IO
              * 0x2E => Length of AnimationGenre
              * 0x2F-0x2F+Length => AnimationGenre
              */
-            var bandSongPref = new BandSongPref();
+            return new Performer[]
+            {
+                Performer.Vocals,
+                GetPerformerFromBandSongPrefBytes(_bandSongPref, 0x14),
+                GetPerformerFromBandSongPrefBytes(_bandSongPref, 0x1C),
+                GetPerformerFromBandSongPrefBytes(_bandSongPref, 0x24)
+            };
+        }
 
-            var part2InstrumentLength = _bandSongPref[0x14];
-            var part2Instrument = Encoding.UTF8.GetString(_bandSongPref.Slice(0x15, part2InstrumentLength).ToArray());
-            bandSongPref.Part2Instrument = ParsePerformerFromMiloString(part2Instrument);
-
-            var part3InstrumentLength = _bandSongPref[0x1C];
-            var part3Instrument = Encoding.UTF8.GetString(_bandSongPref.Slice(0x1D, part3InstrumentLength).ToArray());
-            bandSongPref.Part3Instrument = ParsePerformerFromMiloString(part3Instrument);
-
-            var part4InstrumentLength = _bandSongPref[0x24];
-            var part4Instrument = Encoding.UTF8.GetString(_bandSongPref.Slice(0x25, part4InstrumentLength).ToArray());
-            bandSongPref.Part4Instrument = ParsePerformerFromMiloString(part4Instrument);
-
-            var animationGenreLength = _bandSongPref[0x2E];
-            var animationGenre = Encoding.UTF8.GetString(_bandSongPref.Slice(0x2F, animationGenreLength).ToArray());
-            bandSongPref.AnimationGenre = ParseGenreFromMiloString(animationGenre);
-
-            YargLogger.LogFormatDebug<string, string, string, string>("BandSongPref: Part2Instrument={0}, Part3Instrument={1}, Part4Instrument={2}, AnimationGenre={3}", part2Instrument, part3Instrument, part4Instrument, animationGenre);
-            return bandSongPref;
+        /// <summary>
+        /// Get the performer from the bytes in a BandSongPref milo file.
+        /// </summary>
+        /// <param name="data">The bytes in the BandSongPref file.</param>
+        /// <param name="offset">The start of the performer string entry, including the length prefix.</param>
+        /// <returns>The listed performer, or </returns>
+        private static Performer GetPerformerFromBandSongPrefBytes(in FixedArray<byte> data, int offset)
+        {
+            if (data.Length < offset + 4)
+            {
+                return Performer.None;
+            }
+            var length = data[offset];
+            var instrument = Encoding.UTF8.GetString(data.Slice(offset + 1, length).ToArray());
+            return instrument.ToLower() switch
+            {
+                "guitar" => Performer.Guitar,
+                "bass"   => Performer.Bass,
+                "drum"   => Performer.Drums,
+                _        => Performer.None
+            };
         }
 
         private List<VisemeData> GetLipsyncDataForPart(int partIndex)

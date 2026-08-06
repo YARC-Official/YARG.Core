@@ -17,11 +17,33 @@ namespace YARG.Core.IO
 
         private const    string           MILO_ANIMATION_FILE = "song.anim";
         private readonly FixedArray<byte> _data;
+        private readonly FixedArray<byte> _bandSongPref;
         private          bool             _disposed;
 
         public MiloAnimation(FixedArray<byte> miloFile)
         {
             _data = YARGMiloReader.GetMiloFile(miloFile, MILO_ANIMATION_FILE);
+            _bandSongPref = YARGMiloReader.GetMiloFile(miloFile, "BandSongPref");
+        }
+
+        public MiloAnimationGenre GetAnimationGenre()
+        {
+            const int offset = 0x1C;
+            // The genre is stored in the band song preferences section of the milo file, which is at offset 0x1C
+            if (_bandSongPref.Length < offset + 4)
+            {
+                return MiloAnimationGenre.Rock;
+            }
+            var length = _bandSongPref[offset];
+            var genre = Encoding.UTF8.GetString(_bandSongPref.Slice(offset + 1, length).ToArray());
+            return genre.ToLower() switch
+            {
+                "banger"   => MiloAnimationGenre.Metal,
+                "dramatic" => MiloAnimationGenre.Goth,
+                "rocker"   => MiloAnimationGenre.Rock,
+                "spazz"    => MiloAnimationGenre.Punk,
+                _          => MiloAnimationGenre.Rock // Fallback
+            };
         }
 
         // Thanks to AddyMills' RB-Tools parser for the general inspiration and file format

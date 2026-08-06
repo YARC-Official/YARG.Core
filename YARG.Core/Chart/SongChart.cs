@@ -29,7 +29,8 @@ namespace YARG.Core.Chart
 
         public List<LipsyncEvent>[]? LipsyncEvents { get; set; }
 
-        public MiloLipsync.BandSongPref? BandSongPref { get; set; } = new();
+        public Performer[] SingerPreference { get; set; } = new Performer[4];
+        public MiloAnimation.MiloAnimationGenre AnimationGenre { get; set; } = MiloAnimation.MiloAnimationGenre.Rock;
 
 
         public InstrumentTrack<GuitarNote> FiveFretGuitar { get; set; } = new(Instrument.FiveFretGuitar);
