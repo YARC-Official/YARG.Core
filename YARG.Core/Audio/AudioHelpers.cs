@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 
 namespace YARG.Core.Audio
@@ -8,6 +8,7 @@ namespace YARG.Core.Audio
         public static readonly Dictionary<string, SongStem> SupportedStems = new()
         {
             { "song",     SongStem.Song    },
+            { "song_clean",     SongStem.Song    },
             { "guitar",   SongStem.Guitar  },
             { "bass",     SongStem.Bass    },
             { "rhythm",   SongStem.Rhythm  },
@@ -15,12 +16,20 @@ namespace YARG.Core.Audio
             { "vocals",   SongStem.Vocals  },
             { "vocals_1", SongStem.Vocals },
             { "vocals_2", SongStem.Vocals },
+            { "vocals_clean",   SongStem.Vocals  },
+            { "vocals_1_clean", SongStem.Vocals },
+            { "vocals_2_clean", SongStem.Vocals },
+            { "vocals_explicit",   SongStem.Vocals  },
+            { "vocals_1_explicit", SongStem.Vocals },
+            { "vocals_2_explicit", SongStem.Vocals },
             { "drums",    SongStem.Drums1 },
             { "drums_1",  SongStem.Drums1 },
             { "drums_2",  SongStem.Drums2 },
             { "drums_3",  SongStem.Drums3 },
             { "drums_4",  SongStem.Drums4 },
             { "crowd",    SongStem.Crowd   },
+            { "crowd_clean",    SongStem.Crowd   },
+            { "crowd_explicit",    SongStem.Crowd   },
             // "preview"
         };
 
@@ -35,20 +44,29 @@ namespace YARG.Core.Audio
         {
             return stem.ToLowerInvariant() switch
             {
-                "song"     => SongStem.Song,
-                "guitar"   => SongStem.Guitar,
-                "bass"     => SongStem.Bass,
-                "rhythm"   => SongStem.Rhythm,
-                "keys"     => SongStem.Keys,
-                "vocals"   => SongStem.Vocals,
-                "vocals_1" => SongStem.Vocals,
-                "vocals_2" => SongStem.Vocals,
-                "drums"    => SongStem.Drums1,
-                "drums_1"  => SongStem.Drums1,
-                "drums_2"  => SongStem.Drums2,
-                "drums_3"  => SongStem.Drums3,
-                "drums_4"  => SongStem.Drums4,
-                "crowd"    => SongStem.Crowd,
+                "song"              => SongStem.Song,
+                "song_clean"        => SongStem.Song,
+                "guitar"            => SongStem.Guitar,
+                "bass"              => SongStem.Bass,
+                "rhythm"            => SongStem.Rhythm,
+                "keys"              => SongStem.Keys,
+                "vocals"            => SongStem.Vocals,
+                "vocals_1"          => SongStem.Vocals,
+                "vocals_2"          => SongStem.Vocals,
+                "vocals_clean"      => SongStem.Vocals,
+                "vocals_explicit"   => SongStem.Vocals,
+                "vocals_1_clean"    => SongStem.Vocals,
+                "vocals_1_explicit" => SongStem.Vocals,
+                "vocals_2_clean"    => SongStem.Vocals,
+                "vocals_2_explicit" => SongStem.Vocals,
+                "drums"             => SongStem.Drums1,
+                "drums_1"           => SongStem.Drums1,
+                "drums_2"           => SongStem.Drums2,
+                "drums_3"           => SongStem.Drums3,
+                "drums_4"           => SongStem.Drums4,
+                "crowd"             => SongStem.Crowd,
+                "crowd_clean"       => SongStem.Crowd,
+                "crowd_explicit"    => SongStem.Crowd,
                 // "preview" => SongStem.Preview,
                 _ => SongStem.Song,
             };

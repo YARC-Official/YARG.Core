@@ -11,6 +11,8 @@ namespace YARG.Core.Chart
         private class LyricConverter : ITextPhraseConverter
         {
             private readonly MoonSong _moonSong;
+            private readonly List<MoonNote> _censoredNotes;
+            private int _censorNoteIndex;
 
             public readonly List<LyricsPhrase> Phrases;
             private List<LyricEvent> _currentLyrics;
@@ -23,6 +25,29 @@ namespace YARG.Core.Chart
                 _moonSong = song;
                 Phrases = new();
                 _currentLyrics = new();
+                _censoredNotes = _moonSong.GetChart(MoonSong.MoonInstrument.Vocals, MoonSong.Difficulty.Expert).notes.Where(n => n.flags.HasFlag(MoonNote.Flags.Vocals_Censorship)).ToList();
+                _censorNoteIndex = 0;
+            }
+
+            private bool IsCensorableAtTick(uint tick)
+            {
+                // Check if the current censor note is before the tick
+                while (_censorNoteIndex < _censoredNotes.Count && _censoredNotes[_censorNoteIndex].tick + _censoredNotes[_censorNoteIndex].length <= tick)
+                {
+                    _censorNoteIndex++;
+                }
+
+                // Check if the current censor note is at the tick
+                if (_censorNoteIndex < _censoredNotes.Count)
+                {
+                    var censorNote = _censoredNotes[_censorNoteIndex];
+                    if (censorNote.tick == tick)
+                    {
+                        return true;
+                    }
+                }
+
+                return false;
             }
 
             public void AddPhrase(uint startTick, uint endTick)
@@ -62,7 +87,7 @@ namespace YARG.Core.Chart
                 }
 
                 double time = _moonSong.TickToTime(tick);
-                _currentLyrics.Add(new(flags, strippedLyric, time, tick));
+                _currentLyrics.Add(new(flags, strippedLyric, time, tick, IsCensorableAtTick(tick)));
             }
         }
 
