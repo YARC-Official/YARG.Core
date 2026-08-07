@@ -99,6 +99,7 @@ namespace MoonscraperChartEditor.Song.IO
         public const byte DRUM_FILL_NOTE_4 = 124;
 
         // Drum rolls - http://docs.c3universe.com/rbndocs/index.php?title=Drum_Authoring#Drum_Rolls
+        public const byte DRUMS_KICK_LANE_NOTE = 125;
         public const byte TREMOLO_LANE_NOTE = 126;
         public const byte TRILL_LANE_NOTE = 127;
 
