@@ -43,9 +43,10 @@ public class DrumsStatsTests
         {
             GhostsHit = 2,
             TotalGhosts = 3,
-            AccentsHit = 4,
-            TotalAccents = 5,
-            DynamicsBonus = 6,
+            GhostsBonus = 4,
+            AccentsHit = 5,
+            TotalAccents = 6,
+            AccentsBonus = 7,
         };
         original.RecordOverhit(10);
         original.RecordOverhit(10);
@@ -62,7 +63,8 @@ public class DrumsStatsTests
             Assert.That(copy.TotalGhosts, Is.EqualTo(original.TotalGhosts));
             Assert.That(copy.AccentsHit, Is.EqualTo(original.AccentsHit));
             Assert.That(copy.TotalAccents, Is.EqualTo(original.TotalAccents));
-            Assert.That(copy.DynamicsBonus, Is.EqualTo(original.DynamicsBonus));
+            Assert.That(copy.GhostsBonus, Is.EqualTo(original.GhostsBonus));
+            Assert.That(copy.AccentsBonus, Is.EqualTo(original.AccentsBonus));
         }
     }
 
@@ -82,7 +84,8 @@ public class DrumsStatsTests
             TotalGhosts = 3,
             AccentsHit = 4,
             TotalAccents = 5,
-            DynamicsBonus = 6,
+            GhostsBonus = 10,
+            AccentsBonus = 20,
         };
         stats.RecordOverhit(10);
 
@@ -102,7 +105,8 @@ public class DrumsStatsTests
             Assert.That(stats.TotalGhosts, Is.EqualTo(3));
             Assert.That(stats.AccentsHit, Is.Zero);
             Assert.That(stats.TotalAccents, Is.EqualTo(5));
-            Assert.That(stats.DynamicsBonus, Is.Zero);
+            Assert.That(stats.GhostsBonus, Is.Zero);
+            Assert.That(stats.AccentsBonus, Is.Zero);
         }
     }
 }

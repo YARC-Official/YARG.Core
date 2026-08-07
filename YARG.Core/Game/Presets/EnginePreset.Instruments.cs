@@ -290,13 +290,13 @@ namespace YARG.Core.Game
                 float updatesPerSecond, bool singToActivateStarPower)
             {
                 // Hit window is in semitones (max. difference between correct pitch and sung pitch).
-                var (pitchWindow, hitPercent, pointsPerPhrase) = difficulty switch
+                var (pitchWindow, hitPercent, phraseScoreMultiplier) = difficulty switch
                 {
-                    Difficulty.Beginner => (PitchWindowB, HitPercentB, 200),
-                    Difficulty.Easy   => (PitchWindowE, HitPercentE, 400),
-                    Difficulty.Medium => (PitchWindowM, HitPercentM, 800),
-                    Difficulty.Hard   => (PitchWindowH, HitPercentH, 1600),
-                    Difficulty.Expert => (PitchWindowX, HitPercentX, 2000),
+                    Difficulty.Beginner => (PitchWindowB, HitPercentB, 0.1),
+                    Difficulty.Easy   => (PitchWindowE, HitPercentE, 0.2),
+                    Difficulty.Medium => (PitchWindowM, HitPercentM, 0.4),
+                    Difficulty.Hard   => (PitchWindowH, HitPercentH, 0.8),
+                    Difficulty.Expert => (PitchWindowX, HitPercentX, 1),
                     _                 => throw new InvalidOperationException("Unreachable")
                 };
 
@@ -313,7 +313,7 @@ namespace YARG.Core.Game
                     hitPercent,
                     updatesPerSecond,
                     singToActivateStarPower,
-                    pointsPerPhrase);
+                    phraseScoreMultiplier);
             }
         }
 
