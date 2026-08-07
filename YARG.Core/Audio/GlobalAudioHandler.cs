@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Threading;
 using System.Threading.Tasks;
 using YARG.Core.Logging;
 
@@ -496,19 +497,21 @@ namespace YARG.Core.Audio
             }
         }
 
-        public static List<(int id, string name)> GetAllInputDevices()
+        public static Task<List<InputDeviceInfo>> GetAllInputDevicesAsync(CancellationToken cancellationToken = default)
         {
+            AudioManager? instance;
             lock (_instanceLock)
             {
                 if (_instance == null)
                 {
                     throw new NotInitializedException();
                 }
-                return _instance.GetAllInputDevices();
+                instance = _instance;
             }
+            return instance.GetAllInputDevicesAsync(cancellationToken);
         }
 
-        public static MicDevice? CreateInputDevice(int deviceId, string name)
+        public static MicDevice? CreateInputDevice(InputDeviceInfo device)
         {
             lock (_instanceLock)
             {
@@ -516,7 +519,7 @@ namespace YARG.Core.Audio
                 {
                     throw new NotInitializedException();
                 }
-                return _instance.CreateInputDevice(deviceId, name);
+                return _instance.CreateInputDevice(device);
             }
         }
 
