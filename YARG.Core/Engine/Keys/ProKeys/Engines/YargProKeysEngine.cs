@@ -184,7 +184,10 @@ namespace YARG.Core.Engine.Keys.Engines
                     {
                         HitNote(childNote);
                     }
-
+                    if (parentNote.IsGlissando)
+                    {
+                        UpdateLaneAutohitExpireTime();
+                    }
                     KeyHitThisUpdate = null;
                 }
                 else
@@ -203,6 +206,10 @@ namespace YARG.Core.Engine.Keys.Engines
                                 if ((KeyMask & note.DisjointMask) == note.DisjointMask && IsKeyInTime(note, frontEnd))
                                 {
                                     HitNote(note);
+                                    if (note.IsGlissando)
+                                    {
+                                        UpdateLaneAutohitExpireTime();
+                                    }
                                     YargLogger.LogFormatTrace("Hit staggered note {0} in chord", note.Key);
                                 }
                                 else

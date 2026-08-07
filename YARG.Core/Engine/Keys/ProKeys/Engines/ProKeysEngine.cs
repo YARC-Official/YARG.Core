@@ -139,8 +139,6 @@ namespace YARG.Core.Engine.Keys
 
             if (note.IsGlissando)
             {
-                UpdateLaneAutohitExpireTime();
-
                 if (note.IsGlissandoStart)
                 {
                     IsGlissandoActive = true;
@@ -197,14 +195,6 @@ namespace YARG.Core.Engine.Keys
             {
                 // Resolve the whole chord, matching GuitarEngine (see DrumsEngine.MissNote).
                 note.SetHitState(true, true);
-                base.HitNote(note);
-                return;
-            }
-
-            // Autohit glissando notes as long as the player keeps providing inputs
-            if (note.IsGlissando && note.Time < LaneAutohitExpireTime)
-            {
-                note.SetHitState(true, false);
                 base.HitNote(note);
                 return;
             }
