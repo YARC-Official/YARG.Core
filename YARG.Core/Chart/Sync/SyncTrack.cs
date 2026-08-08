@@ -425,8 +425,21 @@ namespace YARG.Core.Chart
             {
                 low = approxTime;
                 high = approxTime * 2;
+
+                uint lastHighTick = TimeToMeasureTick(high);
                 while (TimeToMeasureTick(high) < targetTick)
                 {
+                    uint nextHighTick = TimeToMeasureTick(high * 2);
+
+                    // The measure tick is monotonic in time, so if it stops growing the
+                    // target is unreachable (e.g. beyond the end of the track, or a track
+                    // with no time signatures). Bail out instead of doubling forever.
+                    if (nextHighTick <= lastHighTick)
+                    {
+                        return approxTime;
+                    }
+
+                    lastHighTick = nextHighTick;
                     low = high;
                     high *= 2;
                 }

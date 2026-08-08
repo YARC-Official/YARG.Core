@@ -64,4 +64,23 @@ public class EngineTester
         var engine = new YargFiveLaneKeysEngine(notes, chart.SyncTrack, engineParams, isBot);
         return (engine, notes);
     }
+
+    protected static void LinkNotes<TNote>(IList<TNote> notes) where TNote : Note<TNote>
+    {
+        for (int i = 0; i < notes.Count; i++)
+        {
+            if (i > 0)
+            {
+                notes[i].PreviousNote = notes[i - 1];
+            }
+
+            if (i < notes.Count - 1)
+            {
+                notes[i].NextNote = notes[i + 1];
+            }
+        }
+    }
+
+    protected static void LinkNotes<TNote>(params TNote[] notes) where TNote : Note<TNote>
+        => LinkNotes((IList<TNote>) notes);
 }

@@ -469,6 +469,7 @@ namespace YARG.Core.Engine
 
         protected void ActivateStarPower()
         {
+
             // I don't think RB quite did it this way, but we'll let players burn half a bar to revive bandmates
             // even if they are already in SP, so long as they have enough
             if (PlayerNeedsRevive && BaseStats.StarPowerTickAmount >= TicksPerHalfSpBar)
