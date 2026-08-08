@@ -3,15 +3,8 @@ using System;
 namespace YARG.Core.Audio
 {
     /// <summary>
-    /// An input device as it appears in the mic list and in saved mic settings.
+    /// An input device as it appears in the input devices list
     /// </summary>
-    /// <remarks>
-    /// A device with multiple channels (like a USB interface with two XLR inputs)
-    /// shows up as one entry per channel. Each entry opens the same BASS device,
-    /// but only records <see cref="Channel"/> of the interleaved stream. Mono
-    /// devices have <see cref="ChannelCount"/> == 1 and no suffix in
-    /// <see cref="DisplayName"/>.
-    /// </remarks>
     public readonly struct InputDeviceInfo
     {
         public const string CHANNEL_SUFFIX = " - Channel ";
@@ -27,20 +20,17 @@ namespace YARG.Core.Audio
         public readonly string Name;
 
         /// <summary>
-        /// Channel to record from the interleaved stream. Only used when
-        /// <see cref="ChannelCount"/> is greater than 1.
+        /// Channel to record from the interleaved stream.
         /// </summary>
         public readonly int Channel;
 
         /// <summary>
-        /// Total channels the device exposes (1 for mono). Only affects
-        /// <see cref="DisplayName"/>; parsed names carry a best-effort value.
+        /// Total channels the device exposes (1 for mono)
         /// </summary>
         public readonly int ChannelCount;
 
         /// <summary>
-        /// Name shown in the mic list and used when restoring a saved mic.
-        /// Split devices get a 1-based " - Channel N" suffix.
+        /// Name shown in the mic list and used when restoring a saved mic.  e.g. "Focusrite 2i2 - Channel 1"
         /// </summary>
         public string DisplayName => ChannelCount > 1 ? $"{Name}{CHANNEL_SUFFIX}{Channel + 1}" : Name;
 
@@ -64,12 +54,12 @@ namespace YARG.Core.Audio
             int separator = displayName.LastIndexOf(CHANNEL_SUFFIX, StringComparison.Ordinal);
             if (separator >= 0)
             {
-                string b = displayName.Substring(0, separator);
+                string parsedBaseName = displayName.Substring(0, separator);
                 string channelText = displayName.Substring(separator + CHANNEL_SUFFIX.Length);
-                if (int.TryParse(channelText, out int c) && c >= 1)
+                if (int.TryParse(channelText, out int parsedChannel) && parsedChannel >= 1)
                 {
-                    baseName = b;
-                    channel = c - 1;
+                    baseName = parsedBaseName;
+                    channel = parsedChannel - 1;
                     return true;
                 }
             }

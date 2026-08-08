@@ -17,10 +17,10 @@ namespace YARG.Core.Audio
 
         public SerializedMic(string displayName)
         {
-            if (InputDeviceInfo.TryParseDisplayName(displayName, out var b, out var c))
+            if (InputDeviceInfo.TryParseDisplayName(displayName, out var parsedBaseName, out var parsedChannel))
             {
-                BaseName = b;
-                Channel = c;
+                BaseName = parsedBaseName;
+                Channel = parsedChannel;
             }
             else
             {
