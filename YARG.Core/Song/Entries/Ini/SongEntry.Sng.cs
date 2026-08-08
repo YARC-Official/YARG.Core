@@ -256,15 +256,16 @@ namespace YARG.Core.Song
             return mixer;
         }
 
-        private SngEntry(uint version, string location, in DateTime lastWrite, ChartFormat format)
-            : base(location, in lastWrite, format)
+        private SngEntry(uint version, string location, in DateTime lastWrite, ChartFormat format, int chartFileTypeIndex)
+            : base(location, in lastWrite, format, chartFileTypeIndex)
         {
             _version = version;
         }
 
-        public static ScanExpected<SngEntry> ProcessNewEntry(in SngFile sng, in SngFileListing listing, FileInfo info, ChartFormat format, string defaultPlaylist)
+        public static ScanExpected<SngEntry> ProcessNewEntry(in SngFile sng, in SngFileListing listing, FileInfo info, int chartFileTypeIndex, string defaultPlaylist)
         {
-            var entry = new SngEntry(sng.Version, info.FullName, AbridgedFileInfo.NormalizedLastWrite(info), format);
+            var format = CHART_FILE_TYPES[chartFileTypeIndex].Format;
+            var entry = new SngEntry(sng.Version, info.FullName, AbridgedFileInfo.NormalizedLastWrite(info), format, chartFileTypeIndex);
             entry._metadata.Playlist = defaultPlaylist;
 
             using var file = sng.LoadAllBytes(in listing);
@@ -288,8 +289,9 @@ namespace YARG.Core.Song
                 return null;
             }
 
-            var format = CHART_FILE_TYPES[stream.ReadByte()].Format;
-            var entry = new SngEntry(version, location, in lastWrite, format);
+            int chartFileTypeIndex = stream.ReadByte();
+            var format = CHART_FILE_TYPES[chartFileTypeIndex].Format;
+            var entry = new SngEntry(version, location, in lastWrite, format, chartFileTypeIndex);
             entry.Deserialize(ref stream, strings);
             return entry;
         }
@@ -300,8 +302,9 @@ namespace YARG.Core.Song
             string location = Path.Combine(baseDirectory, relative);
             var lastWrite = DateTime.FromBinary(stream.Read<long>(Endianness.Little));
             uint version = stream.Read<uint>(Endianness.Little);
-            var format = CHART_FILE_TYPES[stream.ReadByte()].Format;
-            var entry = new SngEntry(version, location, in lastWrite, format);
+            int chartFileTypeIndex = stream.ReadByte();
+            var format = CHART_FILE_TYPES[chartFileTypeIndex].Format;
+            var entry = new SngEntry(version, location, in lastWrite, format, chartFileTypeIndex);
             entry.Deserialize(ref stream, strings);
             return entry;
         }
