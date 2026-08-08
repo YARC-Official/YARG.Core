@@ -52,33 +52,30 @@ namespace YARG.Core.Audio
             ChannelCount = channelCount;
         }
 
-        /// <summary>
-        /// Parses a display name back into base name and channel. The device id
-        /// is unknown (-1) and has to be resolved with a device scan.
-        /// </summary>
-        public static bool TryParseDisplayName(string displayName, out InputDeviceInfo result)
+        public static bool TryParseDisplayName(string displayName, out string baseName, out int channel)
         {
             if (displayName == null)
             {
-                result = default;
+                baseName = null!;
+                channel = 0;
                 return false;
             }
 
             int separator = displayName.LastIndexOf(CHANNEL_SUFFIX, StringComparison.Ordinal);
             if (separator >= 0)
             {
-                string baseName = displayName.Substring(0, separator);
+                string b = displayName.Substring(0, separator);
                 string channelText = displayName.Substring(separator + CHANNEL_SUFFIX.Length);
-                if (int.TryParse(channelText, out int channel) && channel >= 1)
+                if (int.TryParse(channelText, out int c) && c >= 1)
                 {
-                    // Channel count only matters for the suffix, so anything above
-                    // 1 gives back the original display name.
-                    result = new InputDeviceInfo(-1, baseName, channel - 1, channel + 1);
+                    baseName = b;
+                    channel = c - 1;
                     return true;
                 }
             }
 
-            result = new InputDeviceInfo(-1, displayName, 0, 1);
+            baseName = displayName;
+            channel = 0;
             return true;
         }
     }

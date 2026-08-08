@@ -62,11 +62,17 @@ namespace YARG.Core.Audio
 
         protected internal virtual MicDevice? GetInputDevice(string name)
         {
-            if (InputDeviceInfo.TryParseDisplayName(name, out var info))
+            if (InputDeviceInfo.TryParseDisplayName(name, out var baseName, out var channel))
             {
-                return CreateInputDevice(info);
+                return GetInputDevice(baseName, channel);
             }
             return null;
+        }
+
+        protected internal virtual MicDevice? GetInputDevice(string baseName, int channel)
+        {
+            var info = new InputDeviceInfo(-1, baseName, channel, channel + 1);
+            return CreateInputDevice(info);
         }
 
         protected internal abstract OutputChannel? CreateOutputChannel(int channelId);

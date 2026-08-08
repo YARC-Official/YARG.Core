@@ -495,6 +495,18 @@ namespace YARG.Core.Audio
             }
         }
 
+        public static MicDevice? GetInputDevice(string baseName, int channel)
+        {
+            lock (_instanceLock)
+            {
+                if (_instance == null)
+                {
+                    throw new NotInitializedException();
+                }
+                return _instance.GetInputDevice(baseName, channel);
+            }
+        }
+
         public static List<InputDeviceInfo> GetAllInputDevices()
         {
             lock (_instanceLock)
