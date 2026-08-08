@@ -12,6 +12,7 @@ namespace YARG.Core.Chart
     {
         public Instrument Instrument { get; }
         public Difficulty Difficulty { get; }
+        public bool IsGenerated { get; }
 
         public List<TNote>      Notes            { get; } = new();
         public List<Phrase>     Phrases          { get; } = new();
@@ -28,14 +29,26 @@ namespace YARG.Core.Chart
         public bool IsEmpty => Notes.Count == 0 && Phrases.Count == 0 && TextEvents.Count == 0;
 
         public InstrumentDifficulty(Instrument instrument, Difficulty difficulty)
+            : this(instrument, difficulty, false)
+        {
+        }
+
+        internal InstrumentDifficulty(Instrument instrument, Difficulty difficulty, bool isGenerated)
         {
             Instrument = instrument;
             Difficulty = difficulty;
+            IsGenerated = isGenerated;
         }
 
         public InstrumentDifficulty(Instrument instrument, Difficulty difficulty,
             List<TNote> notes, List<Phrase> phrases, List<TextEvent> text)
-            : this(instrument, difficulty)
+            : this(instrument, difficulty, notes, phrases, text, false)
+        {
+        }
+
+        internal InstrumentDifficulty(Instrument instrument, Difficulty difficulty,
+            List<TNote> notes, List<Phrase> phrases, List<TextEvent> text, bool isGenerated)
+            : this(instrument, difficulty, isGenerated)
         {
             Notes = notes;
             Phrases = phrases;
@@ -45,7 +58,14 @@ namespace YARG.Core.Chart
 
         public InstrumentDifficulty(Instrument instrument, Difficulty difficulty,
             List<TNote> notes, List<Phrase> phrases, List<TextEvent> text, List<RangeShift> shifts)
-            : this(instrument, difficulty)
+            : this(instrument, difficulty, notes, phrases, text, shifts, false)
+        {
+        }
+
+        internal InstrumentDifficulty(Instrument instrument, Difficulty difficulty,
+            List<TNote> notes, List<Phrase> phrases, List<TextEvent> text, List<RangeShift> shifts,
+            bool isGenerated)
+            : this(instrument, difficulty, isGenerated)
         {
             Notes = notes;
             Phrases = phrases;
@@ -55,7 +75,7 @@ namespace YARG.Core.Chart
 
         public InstrumentDifficulty(InstrumentDifficulty<TNote> other)
             : this(other.Instrument, other.Difficulty, other.Notes.DuplicateNotes(), other.Phrases.Duplicate(),
-                other.TextEvents.Duplicate(), other.RangeShiftEvents.Duplicate())
+                other.TextEvents.Duplicate(), other.RangeShiftEvents.Duplicate(), other.IsGenerated)
         {
         }
 

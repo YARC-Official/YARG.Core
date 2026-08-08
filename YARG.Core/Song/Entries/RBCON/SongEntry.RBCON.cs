@@ -106,6 +106,11 @@ namespace YARG.Core.Song
 
         public override SongChart? LoadChart()
         {
+            return LoadChart(DownchartGenerationMode.Disabled);
+        }
+
+        public override SongChart? LoadChart(DownchartGenerationMode downchartGeneration)
+        {
             MidiFile midi;
             var readingSettings = MidiSettingsLatin1.Instance; // RBCONs are always Latin-1
             // Read base MIDI
@@ -158,7 +163,8 @@ namespace YARG.Core.Song
                 TuningOffsetCents = _settings.TuningOffsetCents,
                 DrumsType = DrumsType.FourLane,
                 ChordHopoCancellation = true,
-                NoteSnapThreshold = NOTE_SNAP_THRESHOLD
+                NoteSnapThreshold = NOTE_SNAP_THRESHOLD,
+                DownchartGeneration = downchartGeneration,
             };
             return SongChart.FromMidi(in parseSettings, midi);
         }
