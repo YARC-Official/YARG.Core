@@ -166,9 +166,9 @@ public class PreviewContextTests
 
         protected internal override MicDevice? GetInputDevice(string name) => null;
 
-        protected internal override List<(int id, string name)> GetAllInputDevices() => [];
+        protected internal override List<InputDeviceInfo> GetAllInputDevices() => [];
 
-        protected internal override MicDevice? CreateInputDevice(int deviceId, string name) => null;
+        protected internal override MicDevice? CreateInputDevice(InputDeviceInfo device) => null;
 
         protected internal override OutputChannel? CreateOutputChannel(int channelId) => null;
 

@@ -13,7 +13,11 @@ namespace YARG.Core.Game
 {
     public partial class YargProfile
     {
-        private readonly int PROFILE_VERSION = 9;
+        /// <summary>
+        /// The current version for profile serialization.
+        /// Increment this when adding new fields to the profile that may affect deserialization.
+        /// </summary>
+        private const int PROFILE_VERSION = 9;
 
         public int Version;
 

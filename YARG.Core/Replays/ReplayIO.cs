@@ -28,8 +28,17 @@ namespace YARG.Core.Replays
     {
         private static readonly EightCC REPLAY_MAGIC_HEADER_OLD = new('Y', 'A', 'R', 'G', 'P', 'L', 'A', 'Y');
         private static readonly EightCC REPLAY_MAGIC_HEADER = new('Y', 'A', 'R', 'E', 'P', 'L', 'A', 'Y');
-
+        /// <summary>
+        /// OLD_MIN - The lowest version where anything "can" be read, but needs to use a different deserialization due to replay format changes. <br/>
+        /// METADATA_MIN - The lowest version where metadata can be read from the replay. <br/>
+        /// DATA_MIN - The lowest version where a replay can be loaded and played back. <br/>
+        /// CURRENT - The current version of the replay format. Increase whenever new metadata is added to the replay format. <br/>
+        /// </summary>
         public static readonly (int OLD_MIN, int METADATA_MIN, int DATA_MIN, int CURRENT) REPLAY_VERSIONS = (4, 6, 9, 17);
+        /// <remarks>
+        /// Increase this whenever the engine is functionally changed in any way,
+        /// to where a replay may no longer simulate accurately what was originally performed.
+        /// </remarks>
         private const int ENGINE_VERSION = 5;
 
         public static (ReplayReadResult Result, ReplayInfo Info, ReplayData Data) TryDeserialize(string path, ReplayReadOptions replayOptions)
