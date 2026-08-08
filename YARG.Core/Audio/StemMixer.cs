@@ -5,6 +5,20 @@ using System.IO;
 namespace YARG.Core.Audio
 {
     /// <summary>
+    /// Audio-backend-agnostic interface for a DSP processor that can be attached to
+    /// the mixer's output stream. Implementations receive the mixed audio buffer on
+    /// the audio thread and may read or modify it.
+    /// </summary>
+    public interface IMixerDspProcessor
+    {
+        /// <summary>
+        /// Called on the audio thread for each output buffer.
+        /// <paramref name="songTimeEnd"/> is the song position at the end of the buffer.
+        /// </summary>
+        void ProcessAudio(Span<float> buffer, int frames, int channels, int sampleRate, double songTimeEnd);
+    }
+
+    /// <summary>
     /// Playback positions sampled together for audio synchronization.
     /// </summary>
     /// <remarks>
@@ -91,6 +105,14 @@ namespace YARG.Core.Audio
         /// </summary>
         public abstract OneShotChannel CreateOneShotChannel(int sampleStream,
             IReadOnlyList<double> scheduledPlays, double outputLeadTime = 0);
+
+        /// <summary>
+        /// Attaches a DSP processor to the mixer's output stream.
+        /// The processor will be called on the audio thread for each output buffer.
+        /// Returns a handle that removes the processor when disposed, or <c>null</c>
+        /// if the processor could not be attached.
+        /// </summary>
+        public abstract IDisposable? AttachOutputDsp(IMixerDspProcessor processor, int priority = 0);
 
         protected StemMixer(string name, AudioManager manager,bool clampStemVolume)
         {
