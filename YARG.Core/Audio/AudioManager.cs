@@ -1,8 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Threading;
-using System.Threading.Tasks;
 using YARG.Core.Logging;
 
 namespace YARG.Core.Audio
@@ -59,11 +57,6 @@ namespace YARG.Core.Audio
         protected internal abstract StemMixer? CreateMixer(string name, float speed, double volume, bool clampStemVolume, bool normalize);
 
         protected internal abstract List<InputDeviceInfo> GetAllInputDevices();
-
-        protected internal virtual Task<List<InputDeviceInfo>> GetAllInputDevicesAsync(CancellationToken cancellationToken = default)
-        {
-            return Task.Run(() => GetAllInputDevices(), cancellationToken);
-        }
 
         protected internal abstract MicDevice? CreateInputDevice(InputDeviceInfo device);
 
