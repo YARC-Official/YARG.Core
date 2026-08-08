@@ -25,6 +25,27 @@ namespace YARG.Core.Song.Cache
             }
         }
 
+        /// <summary>
+        /// Removes all the entries present in all unpacked ini groups that have a matching shortname
+        /// </summary>
+        public List<UnpackedIniEntry> RemoveEntries(string shortname)
+        {
+            lock (_unpacked)
+            {
+                var removed = new List<UnpackedIniEntry>();
+                _unpacked.RemoveAll(entry =>
+                {
+                    if (entry.Shortname == shortname)
+                    {
+                        removed.Add(entry);
+                        return true;
+                    }
+                    return false;
+                });
+                return removed;
+            }
+        }
+
         public void AddEntry(SngEntry entry)
         {
             lock (_packed)
