@@ -31,25 +31,6 @@ namespace YARG.Core.Audio
         }
     }
 
-    public readonly struct AudioInputDescriptor
-    {
-        /// <summary>Stable identity, independent of display name.</summary>
-        public string Id { get; }
-
-        /// <summary>User-facing name. Also the legacy serialized microphone name.</summary>
-        public string DisplayName { get; }
-
-        /// <summary>Transport-local channel/device index.</summary>
-        public int ChannelId { get; }
-
-        public AudioInputDescriptor(string id, string displayName, int channelId)
-        {
-            Id = id;
-            DisplayName = displayName;
-            ChannelId = channelId;
-        }
-    }
-
     public readonly struct AudioTransportConfiguration
     {
         /// <summary>Driver callback buffer length in frames. 0 = driver default.</summary>
@@ -90,10 +71,10 @@ namespace YARG.Core.Audio
         public abstract void Deactivate();
 
         /// <summary>Inputs available from this transport while active.</summary>
-        public abstract IReadOnlyList<AudioInputDescriptor> GetInputs();
+        public abstract IReadOnlyList<InputDeviceInfo> GetInputs();
 
         /// <summary>Creates a mic device for one of <see cref="GetInputs"/>' descriptors.</summary>
-        public abstract MicDevice? CreateInput(AudioInputDescriptor descriptor);
+        public abstract MicDevice? CreateInput(InputDeviceInfo input);
 
         /// <summary>Buffer configuration support. null = no buffer control.</summary>
         public virtual OutputBufferInfo? GetBufferInfo() => null;
