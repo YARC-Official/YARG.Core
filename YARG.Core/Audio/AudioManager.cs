@@ -5,11 +5,28 @@ using YARG.Core.Logging;
 
 namespace YARG.Core.Audio
 {
+    public readonly struct OutputBufferInfo
+    {
+        public int[] SupportedLengths { get; }
+        public int PreferredLength { get; }
+        public int SampleRate { get; }
+        public bool IsDriverControlled { get; }
+
+        public OutputBufferInfo(int[] supportedLengths, int preferredLength, int sampleRate, bool isDriverControlled)
+        {
+            SupportedLengths = supportedLengths;
+            PreferredLength = preferredLength;
+            SampleRate = sampleRate;
+            IsDriverControlled = isDriverControlled;
+        }
+    }
+
     public abstract class AudioManager
     {
         private static float _globalSpeed = 1f;
 
         private bool _disposed;
+        private bool _disposing;
         private List<StemMixer> _activeMixers = new();
 
         protected internal SampleChannel[]          SfxSamples       = new SampleChannel[AudioHelpers.SfxSamples.Count];
@@ -18,6 +35,7 @@ namespace YARG.Core.Audio
         protected internal MetronomeSampleChannel[] MetronomeSamples = new MetronomeSampleChannel[AudioHelpers.MetronomeSamples.Count];
         protected internal Dictionary<string, VenueSampleChannel>  VenueSamples     = new();
         protected internal int PlaybackLatency;
+        protected internal virtual double PlaybackStartDelay => PlaybackLatency / 1000.0;
         protected internal int MinimumBufferLength;
         protected internal int MaximumBufferLength;
 
@@ -77,13 +95,20 @@ namespace YARG.Core.Audio
 
         protected internal abstract OutputChannel? CreateOutputChannel(int channelId);
 
-        protected internal abstract OutputDevice? CreateOutputDevice(int deviceId, string name);
-
         protected internal abstract List<(int id, string name)> GetAllOutputDevices();
 
         protected internal abstract int GetOutputChannelCount();
 
-        protected internal abstract OutputDevice? GetOutputDevice(string name);
+        protected internal virtual OutputBufferInfo? GetOutputBufferInfo() => null;
+
+        protected internal virtual bool OpenOutputControlPanel() => false;
+
+        /// <summary>
+        /// The driver family a device name belongs to. Classification lives with the
+        /// transport implementations, not with name parsing in callers.
+        /// </summary>
+        protected internal virtual AudioOutputBackend GetOutputBackend(string name) =>
+            AudioOutputBackend.WindowsAudio;
 
         protected internal abstract void SetMasterVolume(double volume);
 
@@ -102,23 +127,32 @@ namespace YARG.Core.Audio
             }
         }
 
-        protected internal virtual bool SetOutputDevice(string name)
+        protected internal abstract bool SetOutputDevice(string name);
+
+        protected internal virtual bool ReinitializeOutput(int bufferLength) => false;
+
+        protected internal virtual void SetSingleMixer(bool enabled) { }
+
+        protected bool HasActiveMixers
+        {
+            get
+            {
+                lock (_activeMixers)
+                {
+                    return _activeMixers.Count != 0;
+                }
+            }
+        }
+
+        protected void MoveActiveMixersTo(OutputDevice device)
         {
             lock (_activeMixers)
             {
-                OutputDevice? device = GetOutputDevice(name);
-                if (device == null)
-                {
-                    return false;
-                }
-
-                foreach (var mixer in _activeMixers)
+                foreach (StemMixer mixer in _activeMixers)
                 {
                     mixer.SetOutputDevice(device);
                 }
             }
-
-            return true;
         }
 
 
@@ -187,13 +221,22 @@ namespace YARG.Core.Audio
         /// <remarks>Should stay limited to the Audio namespace</remarks>
         internal void RemoveMixer(StemMixer mixer)
         {
+            bool becameIdle;
             lock (_activeMixers)
             {
                 var level = GlobalAudioHandler.LogMixerStatus ? LogLevel.Debug : LogLevel.Trace;
                 YargLogger.LogFormat(level, "Mixer \"{0}\" disposed", mixer.Name);
-                _activeMixers.Remove(mixer);
+                bool removed = _activeMixers.Remove(mixer);
+                becameIdle = removed && _activeMixers.Count == 0;
+            }
+
+            if (becameIdle && !_disposing)
+            {
+                OnMixersIdle();
             }
         }
+
+        protected virtual void OnMixersIdle() { }
 
         protected virtual void DisposeManagedResources() { }
         protected virtual void DisposeUnmanagedResources() { }
@@ -204,6 +247,7 @@ namespace YARG.Core.Audio
             {
                 if (!_disposed)
                 {
+                    _disposing = true;
                     StemMixer[] mixers;
                     lock (_activeMixers)
                     {

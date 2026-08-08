@@ -14,13 +14,13 @@ namespace YARG.Core.Audio
 
     public static class GlobalAudioHandler
     {
-        public const int WHAMMY_FFT_DEFAULT = 2048;
+        public const int WHAMMY_FFT_DEFAULT        = 2048;
         public const int WHAMMY_OVERSAMPLE_DEFAULT = 8;
         public static readonly int MAX_THREADS = Environment.ProcessorCount switch
         {
             >= 16 => 16,
-            >= 6 => Environment.ProcessorCount / 2,
-            _ => 2
+            >= 6  => Environment.ProcessorCount / 2,
+            _     => 2
         };
 
         internal static readonly Dictionary<SongStem, StemSettings> StemSettings;
@@ -184,6 +184,21 @@ namespace YARG.Core.Audio
                         throw new NotInitializedException();
                     }
                     return _instance.PlaybackLatency;
+                }
+            }
+        }
+
+        public static double PlaybackStartDelay
+        {
+            get
+            {
+                lock (_instanceLock)
+                {
+                    if (_instance == null)
+                    {
+                        throw new NotInitializedException();
+                    }
+                    return _instance.PlaybackStartDelay;
                 }
             }
         }
@@ -556,6 +571,19 @@ namespace YARG.Core.Audio
             }
         }
 
+        public static void SetSingleMixer(bool enabled)
+        {
+            lock (_instanceLock)
+            {
+                if (_instance == null)
+                {
+                    throw new NotInitializedException();
+                }
+
+                _instance.SetSingleMixer(enabled);
+            }
+        }
+
         public static List<(int id, string name)> GetAllOutputDevices()
         {
             lock (_instanceLock)
@@ -580,7 +608,7 @@ namespace YARG.Core.Audio
             }
         }
 
-        public static OutputDevice? GetOutputDevice(string name)
+        public static OutputBufferInfo? GetOutputBufferInfo()
         {
             lock (_instanceLock)
             {
@@ -588,7 +616,31 @@ namespace YARG.Core.Audio
                 {
                     throw new NotInitializedException();
                 }
-                return _instance.GetOutputDevice(name);
+                return _instance.GetOutputBufferInfo();
+            }
+        }
+
+        public static bool OpenOutputControlPanel()
+        {
+            lock (_instanceLock)
+            {
+                if (_instance == null)
+                {
+                    throw new NotInitializedException();
+                }
+                return _instance.OpenOutputControlPanel();
+            }
+        }
+
+        public static AudioOutputBackend GetOutputBackend(string name)
+        {
+            lock (_instanceLock)
+            {
+                if (_instance == null)
+                {
+                    throw new NotInitializedException();
+                }
+                return _instance.GetOutputBackend(name);
             }
         }
 
@@ -659,7 +711,7 @@ namespace YARG.Core.Audio
             }
         }
 
-        public static void SetOutputDevice(string name)
+        public static bool SetOutputDevice(string name)
         {
             lock (_instanceLock)
             {
@@ -667,7 +719,19 @@ namespace YARG.Core.Audio
                 {
                     throw new NotInitializedException();
                 }
-                _instance.SetOutputDevice(name);
+                return _instance.SetOutputDevice(name);
+            }
+        }
+
+        public static bool ReinitializeOutput(int bufferLength)
+        {
+            lock (_instanceLock)
+            {
+                if (_instance == null)
+                {
+                    throw new NotInitializedException();
+                }
+                return _instance.ReinitializeOutput(bufferLength);
             }
         }
     }
