@@ -402,7 +402,7 @@ namespace YARG.Core.Chart.Loaders.UltraStar
 
             otherPhrases = otherPhrases.OrderBy(p => p.Tick).ToList();
 
-            return new VocalsPart(isHarmony, phrases, new List<VocalsPhrase>(), otherPhrases, textEvents);
+            return new VocalsPart(isHarmony, phrases, new List<VocalsPhrase>(), new(), otherPhrases, textEvents);
         }
 
         private List<List<UltraStarNote>> GroupNotesIntoPhrases(List<UltraStarNote> notes)
@@ -514,7 +514,7 @@ namespace YARG.Core.Chart.Loaders.UltraStar
                         flags |= LyricSymbolFlags.JoinWithNext;
                     }
 
-                    lyrics.Add(new LyricEvent(flags, lyric, noteTime, noteTick));
+                    lyrics.Add(new LyricEvent(flags, lyric, noteTime, noteTimeLen, noteTick, noteTickLen));
                 }
             }
 
