@@ -238,6 +238,14 @@ namespace YARG.Core.Replays.Analyzer
                     manager.Register((GuitarEngine)engine, notes, _chart, rockMeterPreset);
                     break;
                 }
+                case GameMode.SixFretGuitar:
+                {
+                    var notes = _chart.GetSixFretTrack(frame.Profile.CurrentInstrument)
+                        .GetDifficulty(frame.Profile.CurrentDifficulty).Clone();
+                    profile.ApplyModifiers(notes, _chart.SyncTrack);
+                    manager.Register((GuitarEngine)engine, notes, _chart, rockMeterPreset);
+                    break;
+                }
                 case GameMode.FourLaneDrums:
                 case GameMode.FiveLaneDrums:
                 case GameMode.EliteDrums:
