@@ -6,7 +6,6 @@ using YARG.Core.Chart.Events;
 using YARG.Core.IO;
 using YARG.Core.Logging;
 using YARG.Core.Parsing;
-using YARG.Core.Venue;
 
 namespace YARG.Core.Chart
 {
@@ -27,10 +26,10 @@ namespace YARG.Core.Chart
         public VenueTrack VenueTrack { get; set; } = new();
         public LyricsTrack Lyrics { get; set; } = new();
 
-        public List<LipsyncEvent>[] LipsyncEventsByPart { get; set; }
+        public List<List<LipsyncEvent>> LipsyncEventsByPart { get; set; } = new();
 
         public Performer[] SingerPreference { get; set; }
-        public MiloAnimation.MiloAnimationGenre AnimationGenre { get; set; } = MiloAnimation.MiloAnimationGenre.Rock;
+        public MiloAnimation.MiloAnimationGenre AnimationGenre { get; set; }
 
 
         public InstrumentTrack<GuitarNote> FiveFretGuitar { get; set; } = new(Instrument.FiveFretGuitar);
@@ -170,6 +169,7 @@ namespace YARG.Core.Chart
 
             PostProcessSections();
             FixDrumPhraseEnds();
+            GenerateSingerPreference();
         }
 
         public void Append(SongChart song)

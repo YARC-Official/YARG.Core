@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using NUnit.Framework;
 using YARG.Core.Chart.Events;
 using YARG.Core.IO;
 using YARG.Core.Logging;
@@ -23,8 +24,8 @@ namespace YARG.Core.Chart
         public List<LightingEvent> LightingEvents { get; } = new();
         public List<StageEffectEvent> StageEvents { get; } = new();
         public List<PerformerEvent> PerformerEvents { get; } = new();
-        public List<LipsyncEvent>[]? LipsyncEventsByPart { get; private set; }
-        public Performer[] SingerPreference { get; private set; } = new Performer[4];
+        public List<List<LipsyncEvent>> LipsyncEventsByPart { get; } = new();
+        public Performer[] SingerPreference { get; private set; } = Array.Empty<Performer>();
         public MiloAnimation.MiloAnimationGenre AnimationGenre { get; private set; } = MiloAnimation.MiloAnimationGenre.Rock;
 
         private List<MiloAnimationEvent> _rawEvents = new();
@@ -33,7 +34,7 @@ namespace YARG.Core.Chart
         private readonly SongEntry _song;
 
         private int                          _rawEventIndex;
-        private List<MiloLipsync.VisemeData>[] _lipsyncData = new List<MiloLipsync.VisemeData>[4];
+        private List<MiloLipsync.VisemeData>[] _lipsyncData = Array.Empty<List<MiloLipsync.VisemeData>>();
 
         public MiloVenue(SongChart chart, SongEntry song)
         {
@@ -57,7 +58,6 @@ namespace YARG.Core.Chart
                 {
                     _lipsyncData = lipsyncReader.GetLipsyncData();
                     SingerPreference = lipsyncReader.GetSingerPreferenceFromMilo();
-                    YargLogger.LogFormatDebug("Singer Preference: {0}, {1}, {2}, {3}", SingerPreference[0], SingerPreference[1], SingerPreference[2], SingerPreference[3]);
                 }
             }
             else
@@ -294,11 +294,10 @@ namespace YARG.Core.Chart
 
         private void HandleLipsync()
         {
-            LipsyncEventsByPart = new List<LipsyncEvent>[_lipsyncData.Length];
-            for (int i = 0; i < LipsyncEventsByPart.Length; i++)
+            for (int i = 0; i < _lipsyncData.Length; i++)
             {
                 var lipsyncData = _lipsyncData[i];
-                LipsyncEventsByPart[i] = new List<LipsyncEvent>();
+                var events = new List<LipsyncEvent>();
                 foreach (var viseme in lipsyncData)
                 {
                     // Scale 0-255 int to 0.0-1.0 float
@@ -307,10 +306,11 @@ namespace YARG.Core.Chart
 
                     if (VisemeLookup.TryGetValue(viseme.Viseme, out var lipsyncType))
                     {
-                        LipsyncEventsByPart[i].Add(new LipsyncEvent(lipsyncType, value, time,
+                        events.Add(new LipsyncEvent(lipsyncType, value, time,
                             _chart.SyncTrack.TimeToTick(time)));
                     }
                 }
+                LipsyncEventsByPart.Add(events);
             }
         }
 

@@ -130,6 +130,7 @@ namespace YARG.Core.Chart
             return events.OrderBy(e => e.Time).ToList();
         }
 
+        //TODO: This should really take into account vocal note length if an associated note exists
         public static List<LipsyncEvent> GenerateFromVocalsPart(VocalsPart part)
         {
             var events = new List<LipsyncEvent>();

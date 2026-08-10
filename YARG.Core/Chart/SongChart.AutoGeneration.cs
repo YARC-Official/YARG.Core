@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using YARG.Core.IO;
 using YARG.Core.Logging;
 using YARG.Core.Parsing;
 using YARG.Core.Song;
@@ -508,6 +507,38 @@ namespace YARG.Core.Chart
             }
         }
 
+        public void GenerateSingerPreference()
+        {
+            var prefs = new List<Performer>();
+            if (!Vocals.IsEmpty || (!Harmony.IsEmpty && !Harmony.Parts[0].IsEmpty) || !Lyrics.IsEmpty)
+            {
+                prefs.Add(Performer.Vocals);
+            }
+            if (!FiveFretGuitar.IsEmpty)
+            {
+                prefs.Add(Performer.Guitar);
+            }
+            if (!FiveFretBass.IsEmpty)
+            {
+                prefs.Add(Performer.Bass);
+            }
+            if (!ProDrums.IsEmpty)
+            {
+                prefs.Add(Performer.Drums);
+            }
+            if (!Keys.IsEmpty)
+            {
+                prefs.Add(Performer.Keyboard);
+            }
+
+            if (prefs.Count < 5)
+            {
+                // Add nones to fill out the array for all possible characters
+                prefs.AddRange(Enumerable.Repeat(Performer.None, 5 - prefs.Count));
+            }
+            SingerPreference = prefs.ToArray();
+        }
+
         public static void LoadVenueFromMilo(SongChart songChart, SongEntry songEntry)
         {
             var miloVenue = new MiloVenue(songChart, songEntry);
@@ -518,7 +549,12 @@ namespace YARG.Core.Chart
             songChart.VenueTrack.CameraCuts.AddRange(miloVenue.CameraCuts);
             songChart.VenueTrack.PostProcessing.AddRange(miloVenue.PostProcessingEvents);
             songChart.VenueTrack.Performer.AddRange(miloVenue.PerformerEvents);
-            songChart.SingerPreference = miloVenue.SingerPreference;
+
+            if (miloVenue.SingerPreference.Length > 0)
+            {
+                songChart.SingerPreference = miloVenue.SingerPreference;
+            }
+
             songChart.AnimationGenre = miloVenue.AnimationGenre;
         }
 
@@ -528,35 +564,13 @@ namespace YARG.Core.Chart
         {
             var miloLipsync = new MiloVenue(songChart, songEntry);
             miloLipsync.Load();
-            bool singalongsExist = songChart.VenueTrack.Performer.Any(e => e.Type is PerformerEventType.Singalong);
-            if (miloLipsync.LipsyncEventsByPart is not null)
+            if (miloLipsync.LipsyncEventsByPart.Count > 0)
             {
-                // We only do autogen if there are no singalongs to prevent weirdness
-                songChart.LipsyncEventsByPart = new List<LipsyncEvent>[singalongsExist
-                    ? Math.Max(miloLipsync.LipsyncEventsByPart.Length, songChart.Harmony.Parts.Count)
-                    : miloLipsync.LipsyncEventsByPart.Length];
-                for (int i = 0; i < songChart.LipsyncEventsByPart.Length; i++)
-                {
-                    songChart.LipsyncEventsByPart[i] = new List<LipsyncEvent>();
-                }
-
-                for (int i = 0; i < miloLipsync.LipsyncEventsByPart.Length; i++)
-                {
-                    songChart.LipsyncEventsByPart[i].AddRange(miloLipsync.LipsyncEventsByPart[i]);
-                    YargLogger.LogFormatDebug("Loaded {0} lipsync events from milo for part {1}",
-                        songChart.LipsyncEventsByPart[i].Count, i);
-                }
-            }
-            else
-            {
-                songChart.LipsyncEventsByPart = new List<LipsyncEvent>[Math.Max(1, songChart.Harmony.Parts.Count)];
-                for (int i = 0; i < songChart.LipsyncEventsByPart.Length; i++)
-                {
-                    songChart.LipsyncEventsByPart[i] = new List<LipsyncEvent>();
-                }
+                songChart.LipsyncEventsByPart.AddRange(miloLipsync.LipsyncEventsByPart);
             }
 
-            if (!singalongsExist)
+            // We only do autogen if there are no singalongs to prevent weirdness
+            if (!songChart.VenueTrack.Performer.Any(e => e.Type is PerformerEventType.Singalong))
             {
                 GenerateMissingLipsync(songChart);
             }
@@ -564,7 +578,12 @@ namespace YARG.Core.Chart
 
         private static void GenerateMissingLipsync(SongChart songChart)
         {
-            if (songChart.Harmony.Parts.Count == 0)
+            if (songChart.LipsyncEventsByPart.Count >= 1 && songChart.LipsyncEventsByPart.Count >= songChart.Harmony.Parts.Count)
+            {
+                // Nothing we can do with vocal parts here
+                return;
+            }
+            if (songChart.Harmony.Parts.Count == 0 && songChart.LipsyncEventsByPart.Count == 0)
             {
                 if (!songChart.Lyrics.IsEmpty)
                 {
@@ -581,11 +600,11 @@ namespace YARG.Core.Chart
             {
                 for (int i = 0; i < songChart.Harmony.Parts.Count; i++)
                 {
-                    if (songChart.LipsyncEventsByPart[i].Count > 0)
+                    if (songChart.LipsyncEventsByPart.Count > i)
                     {
                         continue;
                     }
-                    songChart.LipsyncEventsByPart[i].AddRange(LipsyncGenerator.GenerateFromVocalsPart(songChart.Harmony.Parts[i]));
+                    songChart.LipsyncEventsByPart.Add(LipsyncGenerator.GenerateFromVocalsPart(songChart.Harmony.Parts[i]));
                     YargLogger.LogFormatDebug("Generated {0} lipsync events from vocals part {1}", songChart.LipsyncEventsByPart[i].Count, i);
                 }
             }

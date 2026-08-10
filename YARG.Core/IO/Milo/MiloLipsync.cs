@@ -3,9 +3,7 @@ using System.Buffers.Binary;
 using System.Collections.Generic;
 using System.Text;
 using YARG.Core.Chart;
-using YARG.Core.Extensions;
 using YARG.Core.Logging;
-using YARG.Core.Venue;
 
 namespace YARG.Core.IO
 {
@@ -52,11 +50,18 @@ namespace YARG.Core.IO
             return harmonyData;
         }
 
+        /// <summary>
+        /// Attempts to get the preference for which performer should sing a given song part, from BandSongPref. <br/>
+        /// </summary>
+        /// <returns>
+        /// Empty array of performers, if BandSongPref doesn't exist. <br/>
+        /// 4-length array of performers if it does, with the first always being Vocals.
+        /// </returns>
         public Performer[] GetSingerPreferenceFromMilo()
         {
             if (_bandSongPref.Length == 0)
             {
-                return new Performer[4];
+                return Array.Empty<Performer>();
             }
             /*
              * 0x14 => Length of Part2Instrument
@@ -68,7 +73,7 @@ namespace YARG.Core.IO
              * 0x2E => Length of AnimationGenre
              * 0x2F-0x2F+Length => AnimationGenre
              */
-            return new Performer[]
+            return new []
             {
                 Performer.Vocals,
                 GetPerformerFromBandSongPrefBytes(_bandSongPref, 0x14),
@@ -82,7 +87,7 @@ namespace YARG.Core.IO
         /// </summary>
         /// <param name="data">The bytes in the BandSongPref file.</param>
         /// <param name="offset">The start of the performer string entry, including the length prefix.</param>
-        /// <returns>The listed performer, or </returns>
+        /// <returns>The listed performer, or None if invalid.</returns>
         private static Performer GetPerformerFromBandSongPrefBytes(in FixedArray<byte> data, int offset)
         {
             if (data.Length < offset + 4)
@@ -296,6 +301,8 @@ namespace YARG.Core.IO
                 {
                     data.Dispose();
                 }
+                _bandSongPref.Dispose();
+
                 _lipsyncDataList.Clear();
 
                 _disposed = true;

@@ -29,7 +29,6 @@ namespace YARG.Core.IO
         public MiloAnimationGenre GetAnimationGenre()
         {
             const int offset = 0x1C;
-            // The genre is stored in the band song preferences section of the milo file, which is at offset 0x1C
             if (_bandSongPref.Length < offset + 4)
             {
                 return MiloAnimationGenre.Rock;
