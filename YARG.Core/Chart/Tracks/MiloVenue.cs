@@ -1,9 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
-using NUnit.Framework;
 using YARG.Core.Chart.Events;
 using YARG.Core.IO;
-using YARG.Core.Logging;
 using YARG.Core.Song;
 using MiloAnimationEvent = YARG.Core.IO.MiloAnimation.MiloAnimationEvent;
 using MiloAnimationType = YARG.Core.IO.MiloAnimation.MiloAnimationType;

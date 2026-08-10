@@ -29,6 +29,7 @@ namespace YARG.Core.IO
                 var lipsync = YARGMiloReader.GetMiloFile(miloFile, $"part{currentPart}.lipsync");
                 if (lipsync.Length == 0)
                 {
+                    lipsync.Dispose();
                     break;
                 }
                 _lipsyncDataList.Add(lipsync);
@@ -95,6 +96,12 @@ namespace YARG.Core.IO
                 return Performer.None;
             }
             var length = data[offset];
+
+            if (data.Length < offset + 1 + length)
+            {
+                return Performer.None;
+            }
+
             var instrument = Encoding.UTF8.GetString(data.Slice(offset + 1, length).ToArray());
             return instrument.ToLower() switch
             {
@@ -110,7 +117,6 @@ namespace YARG.Core.IO
             var data = _lipsyncDataList[partIndex];
             if (data.Length == 0)
             {
-                data.Dispose();
                 YargLogger.LogFormatWarning("Milo file does not contain lipsync data for part {0}", partIndex);
                 return new List<VisemeData>();
             }

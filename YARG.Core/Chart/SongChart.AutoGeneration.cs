@@ -530,12 +530,6 @@ namespace YARG.Core.Chart
             {
                 prefs.Add(Performer.Keyboard);
             }
-
-            if (prefs.Count < 5)
-            {
-                // Add nones to fill out the array for all possible characters
-                prefs.AddRange(Enumerable.Repeat(Performer.None, 5 - prefs.Count));
-            }
             SingerPreference = prefs.ToArray();
         }
 
@@ -587,13 +581,13 @@ namespace YARG.Core.Chart
             {
                 if (!songChart.Lyrics.IsEmpty)
                 {
-                    songChart.LipsyncEventsByPart[0].AddRange(LipsyncGenerator.GenerateFromLyrics(songChart.Lyrics));
+                    songChart.LipsyncEventsByPart.Add(LipsyncGenerator.GenerateFromLyrics(songChart.Lyrics));
                     YargLogger.LogFormatDebug("Generated {0} lipsync events from lyrics", songChart.LipsyncEventsByPart[0].Count);
                 }
                 else if (!songChart.Vocals.IsEmpty)
                 {
                     // I don't know if this branch is even possible to reach
-                    songChart.LipsyncEventsByPart[0].AddRange(LipsyncGenerator.GenerateFromVocalsPart(songChart.Harmony.Parts[0]));
+                    songChart.LipsyncEventsByPart.Add(LipsyncGenerator.GenerateFromVocalsPart(songChart.Harmony.Parts[0]));
                 }
             }
             else
