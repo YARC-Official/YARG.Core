@@ -577,7 +577,7 @@ namespace YARG.Core.Chart
                 // Nothing we can do with vocal parts here
                 return;
             }
-            if (songChart.Harmony.Parts.Count == 0 && songChart.LipsyncEventsByPart.Count == 0)
+            if (songChart.Harmony.Parts.Count(part => !part.IsEmpty) == 0 && songChart.LipsyncEventsByPart.Count == 0)
             {
                 if (!songChart.Lyrics.IsEmpty)
                 {
