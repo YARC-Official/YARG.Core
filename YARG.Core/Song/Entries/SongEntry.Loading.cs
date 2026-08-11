@@ -48,6 +48,12 @@ namespace YARG.Core.Song
     public abstract partial class SongEntry
     {
         public abstract SongChart? LoadChart();
+
+        public virtual SongChart? LoadChart(DownchartGenerationMode downchartGeneration)
+        {
+            return LoadChart();
+        }
+
         public abstract StemMixer? LoadAudio(float speed, double volume, params SongStem[] ignoreStems);
         public abstract StemMixer? LoadPreviewAudio(float speed);
         public abstract YARGImage? LoadAlbumData();

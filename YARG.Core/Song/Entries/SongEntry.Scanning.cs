@@ -86,6 +86,7 @@ namespace YARG.Core.Song
                     parts.HarmonyVocals.ActivateSubtrack(2);
                 }
             }
+
             return midiFile.Resolution;
         }
 
