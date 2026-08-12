@@ -178,7 +178,7 @@ namespace YARG.Core.Chart
                         if (lyric.IsEmpty)
                             continue;
 
-                        ProcessLyric(lyrics, lyric, moonEvent.tick, out lyricFlags);
+                        ProcessLyric(lyrics, lyric, moonEvent.tick, moonNote.flags.HasFlag(MoonNote.Flags.Vocals_Censorship), out lyricFlags);
                     }
 
                     // Create new note
@@ -264,7 +264,7 @@ namespace YARG.Core.Chart
             }
         }
 
-        private void ProcessLyric(List<LyricEvent> lyrics, ReadOnlySpan<char> lyric, uint lyricTick,
+        private void ProcessLyric(List<LyricEvent> lyrics, ReadOnlySpan<char> lyric, uint lyricTick, bool isCensorable,
             out LyricSymbolFlags lyricFlags)
         {
             LyricSymbols.DeferredLyricJoinWorkaround(lyrics, ref lyric, addHyphen: true);
@@ -288,7 +288,7 @@ namespace YARG.Core.Chart
                 return;
 
             double time = _moonSong.TickToTime(lyricTick);
-            lyrics.Add(new(lyricFlags, strippedLyric, time, lyricTick));
+            lyrics.Add(new(lyricFlags, strippedLyric, time, lyricTick, isCensorable));
         }
 
         private List<VocalsRangeShift> GetRangeShifts(List<VocalsPart> parts, MoonSong.MoonInstrument sourceInstrument)
@@ -437,9 +437,9 @@ namespace YARG.Core.Chart
         {
             var vocalType = GetVocalNoteType(moonNote);
             float pitch = GetVocalNotePitch(moonNote, lyricFlags);
-
+            bool isCensorable = moonNote.flags.HasFlag(MoonNote.Flags.Vocals_Censorship);
             double time = _moonSong.TickToTime(moonNote.tick);
-            return new VocalNote(pitch, harmonyPart, vocalType, time, GetLengthInTime(moonNote), moonNote.tick, moonNote.length);
+            return new VocalNote(pitch, harmonyPart, vocalType, time, GetLengthInTime(moonNote), moonNote.tick, moonNote.length, isCensorable);
         }
 
         private float GetVocalNotePitch(MoonNote moonNote, LyricSymbolFlags lyricFlags)

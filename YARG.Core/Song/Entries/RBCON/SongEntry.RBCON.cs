@@ -183,7 +183,7 @@ namespace YARG.Core.Song
             return version is UNENCRYPTED_MOGG or YARG_MOGG;
         }
 
-        public override StemMixer? LoadAudio(float speed, double volume, params SongStem[] ignoreStems)
+        public override StemMixer? LoadAudio(float speed, double volume, bool enableCensoring, params SongStem[] ignoreStems)
         {
             var stream = GetMoggStream();
             if (stream == null)
@@ -281,9 +281,9 @@ namespace YARG.Core.Song
             return mixer;
         }
 
-        public override StemMixer? LoadPreviewAudio(float speed)
+        public override StemMixer? LoadPreviewAudio(float speed, bool enableCensoring)
         {
-            return LoadAudio(speed, 0, SongStem.Crowd);
+            return LoadAudio(speed, 0, enableCensoring, SongStem.Crowd);
         }
 
         internal void UpdateInfo(in AbridgedFileInfo? updateDirectory, in DateTime? updateMidi, RBProUpgrade? upgrade)
