@@ -1577,7 +1577,11 @@ namespace YARG.Core.Song.Cache
                 using var filestream = new FileStream(filename, FileMode.Open, FileAccess.Read, FileShare.Read, CON_HEADER_BUFFERSIZE);
                 return CONFile.TryParseListings(filename, filestream);
             }
-            catch (Exception ex) when (ex is FileNotFoundException or DirectoryNotFoundException)
+            catch (FileNotFoundException)
+            {
+                return null;
+            }
+            catch (DirectoryNotFoundException)
             {
                 return null;
             }
