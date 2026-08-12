@@ -767,6 +767,16 @@ namespace YARG.Core.Song
             if (dta.CoveredBy != null)            { entry._metadata.CoveredBy     = YARGDTAReader.DecodeString(dta.CoveredBy.Value, dta.MetadataEncoding); }
             if (dta.Album != null)                { entry._metadata.Album         = YARGDTAReader.DecodeString(dta.Album.Value, dta.MetadataEncoding); }
             if (dta.Charter != null)              { entry._metadata.Charter       = YARGDTAReader.DecodeString(dta.Charter.Value, dta.MetadataEncoding); }
+            if (dta.CharterKeys != null)
+            {
+                entry._metadata.CharterKeys    = YARGDTAReader.DecodeString(dta.CharterKeys.Value, dta.MetadataEncoding);
+                entry._metadata.CharterProKeys = YARGDTAReader.DecodeString(dta.CharterKeys.Value, dta.MetadataEncoding);
+            }
+            if (dta.CharterProStrings != null)
+            {
+                entry._metadata.CharterProGuitar = YARGDTAReader.DecodeString(dta.CharterProStrings.Value, dta.MetadataEncoding);
+                entry._metadata.CharterProBass   = YARGDTAReader.DecodeString(dta.CharterProStrings.Value, dta.MetadataEncoding);
+            }
             if (dta.LoadingPhrase != null)        { entry._metadata.LoadingPhrase = YARGDTAReader.DecodeString(dta.LoadingPhrase.Value, dta.MetadataEncoding); }
             if (dta.Playlist != null)             { entry._metadata.Playlist      = YARGDTAReader.DecodeString(dta.Playlist.Value, dta.MetadataEncoding); }
             if (dta.Genre != null)

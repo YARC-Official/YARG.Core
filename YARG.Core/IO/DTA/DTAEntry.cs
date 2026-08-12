@@ -19,6 +19,8 @@ namespace YARG.Core.IO
         public string? Genre;
         public string? Subgenre;
         public TextSpan? Charter;
+        public TextSpan? CharterKeys;
+        public TextSpan? CharterProStrings;
         public string? Source;
         public TextSpan? Playlist;
         public TextSpan? LoadingPhrase;
@@ -221,6 +223,8 @@ namespace YARG.Core.IO
                     case "song_length": SongLength = YARGDTAReader.ExtractInteger<long>(ref container); break;
                     case "sub_genre": Subgenre = YARGDTAReader.ExtractText(ref container); break;
                     case "author": Charter = YARGDTAReader.ExtractTextBytes(ref container); break;
+                    case "keys_author": CharterKeys = YARGDTAReader.ExtractTextBytes(ref container); break;
+                    case "strings_author": CharterProStrings = YARGDTAReader.ExtractTextBytes(ref container); break;
                     case "guide_pitch_volume": /*GuidePitchVolume = YARGDTAReader.Extract<float>(ref container);*/ break;
                     case "encoding":
                         MetadataEncoding = YARGDTAReader.ExtractText(ref container).ToLower() switch
