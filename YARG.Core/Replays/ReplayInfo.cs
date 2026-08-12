@@ -95,7 +95,7 @@ namespace YARG.Core.Replays
                 Pauses = Array.Empty<PauseInfo>();
             }
 
-            if (ReplayVersion > 15)
+            if (ReplayVersion >= 18)
             {
                 CensorshipEnabled = stream.ReadBoolean();
             }
