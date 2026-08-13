@@ -528,7 +528,7 @@ namespace YARG.Core.Chart
             miloLipsync.Load();
 
             songChart.LipsyncEvents.AddRange(miloLipsync.LipsyncEvents);
-            
+
             // Generate lipsync from vocals if no lipsync data was found
             if (songChart.LipsyncEvents.Count == 0)
             {
@@ -694,6 +694,91 @@ namespace YARG.Core.Chart
                 });
             }
             return rangeShiftEvents;
+        }
+        public void ApplyCensorship()
+        {
+            if (!Vocals.IsEmpty)
+            {
+                ApplyCensoringToVocalsTrack(Vocals);
+            }
+            if (!Harmony.IsEmpty)
+            {
+                ApplyCensoringToVocalsTrack(Harmony);
+            }
+            if (!Lyrics.IsEmpty)
+            {
+                foreach (var phrase in Lyrics.Phrases)
+                {
+                    ApplyCensoringToLyricEvents(phrase.Lyrics);
+                }
+            }
+        }
+        private static void ApplyCensoringToLyricEvents(List<LyricEvent> lyricEvents)
+        {
+            LyricEvent? firstInWord = null;
+            int i = 0;
+            while (i < lyricEvents.Count)
+            {
+                var lyric = lyricEvents[i];
+                if (lyric.IsCensorable)
+                {
+                    if (firstInWord != null)
+                    {
+                        // This syllable is part of a censored word, but not the first, so remove it
+                        lyricEvents.RemoveAt(i);
+                        firstInWord.TickLength += lyric.TickLength;
+                        firstInWord.TimeLength += lyric.TimeLength;
+                        firstInWord = lyric.JoinOrHyphenateWithNext ? firstInWord : null;
+                        // Don't increment i as the next element has shifted into position i.
+                    }
+                    else
+                    {
+                        // First syllable of a censored word, replace with a dash.
+                        lyricEvents[i] = new LyricEvent(lyric.Flags & ~LyricSymbolFlags.HyphenateWithNext & ~LyricSymbolFlags.JoinWithNext, "-", lyric.Time, lyric.Tick, true);
+                        firstInWord = lyricEvents[i];
+                        i++;
+                    }
+                }
+                else
+                {
+                    firstInWord = null;
+                    i++;
+                }
+            }
+        }
+
+        private static void ApplyCensoringToVocalsTrack(VocalsTrack vocals)
+        {
+            foreach (var part in vocals.Parts)
+            {
+                for (int i = part.NotePhrases.Count - 1; i >= 0; i--)
+                {
+                    var phrase = part.NotePhrases[i];
+                    int removedCount = 0;
+                    for (int j = phrase.PhraseParentNote.ChildNotes.Count - 1; j >= 0; j--)
+                    {
+                        var childNote = phrase.PhraseParentNote.ChildNotes[j];
+                        if (!childNote.IsCensorable) continue;
+
+                        var prev = childNote.PreviousNote;
+                        var next = childNote.NextNote;
+                        if (prev != null) prev.NextNote = next;
+                        if (next != null) next.PreviousNote = prev;
+
+                        phrase.PhraseParentNote.ChildNotes.RemoveAt(j);
+                        removedCount++;
+                    }
+                    ApplyCensoringToLyricEvents(phrase.Lyrics);
+                    if (removedCount > 0 && phrase.IsEmpty)
+                    {
+                        part.NotePhrases.RemoveAt(i);
+                    }
+                }
+                foreach (var phrase in part.StaticLyricPhrases)
+                {
+                    ApplyCensoringToLyricEvents(phrase.Lyrics);
+                }
+            }
         }
     }
 

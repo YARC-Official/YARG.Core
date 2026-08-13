@@ -92,11 +92,16 @@ namespace YARG.Core.Chart
         public bool IsEmptyPhrase => IsPhrase && ChildNotes.Count == 0;
 
         /// <summary>
+        /// Whether this vocal note should be removed when vocal censorship is enabled.
+        /// </summary>
+        public bool IsCensorable { get; }
+
+        /// <summary>
         /// Creates a new <see cref="VocalNote"/> with the given properties.
         /// This constructor should be used for notes only.
         /// </summary>
         public VocalNote(float pitch, int harmonyPart, VocalNoteType type,
-            double time, double timeLength, uint tick, uint tickLength)
+            double time, double timeLength, uint tick, uint tickLength, bool isCensorable = false)
             : base(NoteFlags.None, time, timeLength, tick, tickLength)
         {
             Type = type;
@@ -105,6 +110,7 @@ namespace YARG.Core.Chart
 
             TotalTimeLength = timeLength;
             TotalTickLength = tickLength;
+            IsCensorable = isCensorable;
         }
 
         /// <summary>
@@ -119,6 +125,7 @@ namespace YARG.Core.Chart
 
             TotalTimeLength = timeLength;
             TotalTickLength = tickLength;
+            IsCensorable = false; // A phrase itself is not censorable, only its children can be.
         }
 
         public VocalNote(VocalNote other) : base(other)
@@ -129,6 +136,7 @@ namespace YARG.Core.Chart
 
             TotalTimeLength = other.TotalTimeLength;
             TotalTickLength = other.TotalTickLength;
+            IsCensorable = other.IsCensorable;
         }
 
         /// <summary>
@@ -178,7 +186,7 @@ namespace YARG.Core.Chart
         {
             /*
              TODO Add same child note checking like the other instruments
-             (but I have no idea how vocals works) - Riley 
+             (but I have no idea how vocals works) - Riley
             */
 
             if (IsLyricPhrase)

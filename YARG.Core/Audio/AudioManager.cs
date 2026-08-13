@@ -56,11 +56,24 @@ namespace YARG.Core.Audio
 
         protected internal abstract StemMixer? CreateMixer(string name, float speed, double volume, bool clampStemVolume, bool normalize);
 
-        protected internal abstract MicDevice? GetInputDevice(string name);
+        protected internal abstract List<InputDeviceInfo> GetAllInputDevices();
 
-        protected internal abstract List<(int id, string name)> GetAllInputDevices();
+        protected internal abstract MicDevice? CreateInputDevice(InputDeviceInfo device);
 
-        protected internal abstract MicDevice? CreateInputDevice(int deviceId, string name);
+        protected internal virtual MicDevice? GetInputDevice(string name)
+        {
+            if (InputDeviceInfo.TryParseDisplayName(name, out var baseName, out var channel))
+            {
+                return GetInputDevice(baseName, channel);
+            }
+            return null;
+        }
+
+        protected internal virtual MicDevice? GetInputDevice(string baseName, int channel)
+        {
+            var info = new InputDeviceInfo(-1, baseName, channel, channel + 1);
+            return CreateInputDevice(info);
+        }
 
         protected internal abstract OutputChannel? CreateOutputChannel(int channelId);
 

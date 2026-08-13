@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Threading.Tasks;
 using YARG.Core.Logging;
 
 namespace YARG.Core.Audio
@@ -318,6 +317,8 @@ namespace YARG.Core.Audio
 
             lock (_instanceLock)
             {
+                if (_instance == null) { throw new NotInitializedException(); }
+
                 foreach (var sample in _instance.VenueSamples.Values)
                 {
                     sample.Pause();
@@ -337,6 +338,8 @@ namespace YARG.Core.Audio
 
             lock (_instanceLock)
             {
+                if (_instance == null) { throw new NotInitializedException(); }
+
                 foreach (var sample in _instance.VenueSamples.Values)
                 {
                     sample.Resume();
@@ -492,7 +495,19 @@ namespace YARG.Core.Audio
             }
         }
 
-        public static List<(int id, string name)> GetAllInputDevices()
+        public static MicDevice? GetInputDevice(string baseName, int channel)
+        {
+            lock (_instanceLock)
+            {
+                if (_instance == null)
+                {
+                    throw new NotInitializedException();
+                }
+                return _instance.GetInputDevice(baseName, channel);
+            }
+        }
+
+        public static List<InputDeviceInfo> GetAllInputDevices()
         {
             lock (_instanceLock)
             {
@@ -504,7 +519,7 @@ namespace YARG.Core.Audio
             }
         }
 
-        public static MicDevice? CreateInputDevice(int deviceId, string name)
+        public static MicDevice? CreateInputDevice(InputDeviceInfo device)
         {
             lock (_instanceLock)
             {
@@ -512,7 +527,7 @@ namespace YARG.Core.Audio
                 {
                     throw new NotInitializedException();
                 }
-                return _instance.CreateInputDevice(deviceId, name);
+                return _instance.CreateInputDevice(device);
             }
         }
 
