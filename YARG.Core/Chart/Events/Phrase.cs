@@ -22,7 +22,8 @@ namespace YARG.Core.Chart
         BigRockEnding, // The part where we show BRE graphics and can't hit or miss notes
         Coda, // The entirety of the coda section, including the final notes; should contain a BigRockEnding phrase
 
-        // Pro-keys range shifts
+
+        // Pro Keys-exclusive phrases
         ProKeys_RangeShift0,
         ProKeys_RangeShift1,
         ProKeys_RangeShift2,
@@ -30,6 +31,7 @@ namespace YARG.Core.Chart
         ProKeys_RangeShift4,
         ProKeys_RangeShift5,
 
+        // Elite Drums-exclusive phrases
         EliteDrums_RightCrashLane,
         EliteDrums_RideLane,
         EliteDrums_Tom3Lane,
@@ -41,6 +43,9 @@ namespace YARG.Core.Chart
         EliteDrums_KickLane,
         EliteDrums_HatPedalLane,
         EliteDrums_DiscoFlip,
+
+        // (Non-Elite) Drums-exclusive phrases
+        KickLane,
     }
 
     /// <summary>

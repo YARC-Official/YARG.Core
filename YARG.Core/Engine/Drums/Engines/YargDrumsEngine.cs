@@ -122,6 +122,11 @@ namespace YARG.Core.Engine.Drums.Engines
                                     continue;
                                 }
 
+                                if (AutohitNoteFromKickLane(missedNote))
+                                {
+                                    continue;
+                                }
+
                                 // Allow drummers to skip SP activation notes without being penalized.
                                 if (missedNote.IsStarPowerActivator && CanStarPowerActivate)
                                 {
@@ -222,6 +227,36 @@ namespace YARG.Core.Engine.Drums.Engines
             Action = null;
             PadHit = null;
             HitVelocity = null;
+        }
+
+        private bool AutohitNoteFromKickLane(DrumNote note)
+        {
+            if (note.IsKickLane)
+            {
+                if (note.WasHit || note.WasMissed)
+                {
+                    return false;
+                }
+
+                if (note.Time > KickLaneAutohitExpireTime)
+                {
+                    return false;
+                }
+
+                if (note.IsKickLaneStart)
+                {
+                    // The autohit window at the end of the previous kick lane overlaps with the start of this one
+                    // The first note in a lane must be manually hit in order to count
+                    return false;
+                }
+
+                YargLogger.LogFormatTrace("Missed kick with time of {0} was forgiven by kick lane", note.Time);
+                HitNote(note);
+
+                return true;
+            }
+
+            return false;
         }
     }
 }

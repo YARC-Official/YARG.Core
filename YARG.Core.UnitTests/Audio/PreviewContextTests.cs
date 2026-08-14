@@ -22,6 +22,7 @@ public class PreviewContextTests
             speed: 1f,
             delaySeconds: 30,
             fadeDuration: 0,
+            false,
             cancellationTokenSource.Token);
 
         await cancellationTokenSource.CancelAsync();
@@ -54,6 +55,7 @@ public class PreviewContextTests
             speed: 1f,
             delaySeconds: 0,
             fadeDuration: 0,
+            false,
             cancellationTokenSource.Token);
 
         var context = await createTask;
@@ -80,6 +82,7 @@ public class PreviewContextTests
             speed: 1f,
             delaySeconds: 0,
             fadeDuration: 0,
+            false,
             cancellationTokenSource.Token);
 
         Assert.That(context, Is.Not.Null);
@@ -111,6 +114,7 @@ public class PreviewContextTests
             speed: 1f,
             delaySeconds: 0,
             fadeDuration: 0.05,
+            false,
             cancellationTokenSource.Token);
 
         Assert.That(context, Is.Not.Null);
@@ -143,9 +147,9 @@ public class PreviewContextTests
 
         public override SongChart? LoadChart() => null;
 
-        public override StemMixer? LoadAudio(float speed, double volume, params SongStem[] ignoreStems) => null;
+        public override StemMixer? LoadAudio(float speed, double volume, bool enableCensoring, params SongStem[] ignoreStems) => null;
 
-        public override StemMixer? LoadPreviewAudio(float speed)
+        public override StemMixer? LoadPreviewAudio(float speed, bool enableCensoring)
         {
             LoadPreviewAudioCallCount++;
             return loadPreviewAudio();
@@ -166,9 +170,9 @@ public class PreviewContextTests
 
         protected internal override MicDevice? GetInputDevice(string name) => null;
 
-        protected internal override List<(int id, string name)> GetAllInputDevices() => [];
+        protected internal override List<InputDeviceInfo> GetAllInputDevices() => [];
 
-        protected internal override MicDevice? CreateInputDevice(int deviceId, string name) => null;
+        protected internal override MicDevice? CreateInputDevice(InputDeviceInfo device) => null;
 
         protected internal override OutputChannel? CreateOutputChannel(int channelId) => null;
 
