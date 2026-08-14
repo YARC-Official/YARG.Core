@@ -40,6 +40,7 @@ namespace YARG.Core.Audio
 
     public abstract class OneShotChannel : IDisposable
     {
+        public abstract void Play();
         public abstract void SetEnabled(bool enabled);
         public abstract void SetVolume(double volume);
         public abstract void Dispose();
