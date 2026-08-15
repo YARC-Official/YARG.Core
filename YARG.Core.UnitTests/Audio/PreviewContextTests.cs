@@ -208,7 +208,6 @@ public class PreviewContextTests
 
         private sealed class EmptyOneShotChannel : OneShotChannel
         {
-            public override void Play() { }
             public override void SetEnabled(bool enabled) { }
             public override void SetVolume(double volume) { }
             public override void Dispose() { }
