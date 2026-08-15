@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 
 namespace YARG.Core.Audio
@@ -8,6 +8,7 @@ namespace YARG.Core.Audio
         public static readonly Dictionary<string, SongStem> SupportedStems = new()
         {
             { "song",     SongStem.Song    },
+            { "song_clean",     SongStem.Song    },
             { "guitar",   SongStem.Guitar  },
             { "bass",     SongStem.Bass    },
             { "rhythm",   SongStem.Rhythm  },
@@ -15,12 +16,20 @@ namespace YARG.Core.Audio
             { "vocals",   SongStem.Vocals  },
             { "vocals_1", SongStem.Vocals },
             { "vocals_2", SongStem.Vocals },
+            { "vocals_clean",   SongStem.Vocals  },
+            { "vocals_1_clean", SongStem.Vocals },
+            { "vocals_2_clean", SongStem.Vocals },
+            { "vocals_explicit",   SongStem.Vocals  },
+            { "vocals_1_explicit", SongStem.Vocals },
+            { "vocals_2_explicit", SongStem.Vocals },
             { "drums",    SongStem.Drums1 },
             { "drums_1",  SongStem.Drums1 },
             { "drums_2",  SongStem.Drums2 },
             { "drums_3",  SongStem.Drums3 },
             { "drums_4",  SongStem.Drums4 },
             { "crowd",    SongStem.Crowd   },
+            { "crowd_clean",    SongStem.Crowd   },
+            { "crowd_explicit",    SongStem.Crowd   },
             // "preview"
         };
 
@@ -35,20 +44,29 @@ namespace YARG.Core.Audio
         {
             return stem.ToLowerInvariant() switch
             {
-                "song"     => SongStem.Song,
-                "guitar"   => SongStem.Guitar,
-                "bass"     => SongStem.Bass,
-                "rhythm"   => SongStem.Rhythm,
-                "keys"     => SongStem.Keys,
-                "vocals"   => SongStem.Vocals,
-                "vocals_1" => SongStem.Vocals,
-                "vocals_2" => SongStem.Vocals,
-                "drums"    => SongStem.Drums1,
-                "drums_1"  => SongStem.Drums1,
-                "drums_2"  => SongStem.Drums2,
-                "drums_3"  => SongStem.Drums3,
-                "drums_4"  => SongStem.Drums4,
-                "crowd"    => SongStem.Crowd,
+                "song"              => SongStem.Song,
+                "song_clean"        => SongStem.Song,
+                "guitar"            => SongStem.Guitar,
+                "bass"              => SongStem.Bass,
+                "rhythm"            => SongStem.Rhythm,
+                "keys"              => SongStem.Keys,
+                "vocals"            => SongStem.Vocals,
+                "vocals_1"          => SongStem.Vocals,
+                "vocals_2"          => SongStem.Vocals,
+                "vocals_clean"      => SongStem.Vocals,
+                "vocals_explicit"   => SongStem.Vocals,
+                "vocals_1_clean"    => SongStem.Vocals,
+                "vocals_1_explicit" => SongStem.Vocals,
+                "vocals_2_clean"    => SongStem.Vocals,
+                "vocals_2_explicit" => SongStem.Vocals,
+                "drums"             => SongStem.Drums1,
+                "drums_1"           => SongStem.Drums1,
+                "drums_2"           => SongStem.Drums2,
+                "drums_3"           => SongStem.Drums3,
+                "drums_4"           => SongStem.Drums4,
+                "crowd"             => SongStem.Crowd,
+                "crowd_clean"       => SongStem.Crowd,
+                "crowd_explicit"    => SongStem.Crowd,
                 // "preview" => SongStem.Preview,
                 _ => SongStem.Song,
             };
@@ -218,13 +236,13 @@ namespace YARG.Core.Audio
             // Samples taken from https://www.reddit.com/r/audioengineering/comments/kg8gth/free_click_track_sound_archive/
             // Normalised with `ffmpeg -i <original> -filter:a "loudnorm=I=-11:LRA=7:TP=-1, volume=29dB" -c:a libvorbis <final>`
             new Sample<MetronomeSample>(MetronomeSample.None, "", ""),
-            new Sample<MetronomeSample>(MetronomeSample.Castanet, "castanet_hi", 0.10f, alternateFile: "castanet_lo"),
-            new Sample<MetronomeSample>(MetronomeSample.Clap, "clap_hi", 0.10f, alternateFile: "clap_lo"),
-            new Sample<MetronomeSample>(MetronomeSample.Party, "party_hi", 0.10f, alternateFile: "party_lo"),
-            new Sample<MetronomeSample>(MetronomeSample.Quartz, "quartz_hi", 0.10f, alternateFile: "quartz_lo"),
-            new Sample<MetronomeSample>(MetronomeSample.Sine, "sine_hi", 0.10f, alternateFile: "sine_lo"),
-            new Sample<MetronomeSample>(MetronomeSample.Square, "square_hi", 0.10f, alternateFile: "square_lo"),
-            new Sample<MetronomeSample>(MetronomeSample.Trashcan, "trashcan_hi", 0.10f, alternateFile: "trashcan_lo"),
+            new Sample<MetronomeSample>(MetronomeSample.Castanet, "castanet_hi", 0.35f, alternateFile: "castanet_lo"),
+            new Sample<MetronomeSample>(MetronomeSample.Clap, "clap_hi", 0.35f, alternateFile: "clap_lo"),
+            new Sample<MetronomeSample>(MetronomeSample.Party, "party_hi", 0.35f, alternateFile: "party_lo"),
+            new Sample<MetronomeSample>(MetronomeSample.Quartz, "quartz_hi", 0.35f, alternateFile: "quartz_lo"),
+            new Sample<MetronomeSample>(MetronomeSample.Sine, "sine_hi", 0.35f, alternateFile: "sine_lo"),
+            new Sample<MetronomeSample>(MetronomeSample.Square, "square_hi", 0.35f, alternateFile: "square_lo"),
+            new Sample<MetronomeSample>(MetronomeSample.Trashcan, "trashcan_hi", 0.35f, alternateFile: "trashcan_lo"),
         };
 
         public class Sample<T>
