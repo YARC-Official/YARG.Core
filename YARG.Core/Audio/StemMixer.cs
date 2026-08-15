@@ -13,9 +13,12 @@ namespace YARG.Core.Audio
     {
         /// <summary>
         /// Called on the audio thread for each output buffer.
-        /// <paramref name="songTimeEnd"/> is the song position at the end of the buffer.
+        /// <paramref name="songTimeStart"/> and <paramref name="songTimeEnd"/> are the song positions at
+        /// the start and end of the buffer. Their difference is scaled by the playback speed, so it is
+        /// not equal to <c>frames / sampleRate</c> unless the song is playing at normal speed.
         /// </summary>
-        void ProcessAudio(Span<float> buffer, int frames, int channels, int sampleRate, double songTimeEnd);
+        void ProcessAudio(Span<float> buffer, int frames, int channels, int sampleRate,
+            double songTimeStart, double songTimeEnd);
     }
 
     /// <summary>
