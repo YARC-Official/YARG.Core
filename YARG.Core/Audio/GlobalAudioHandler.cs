@@ -196,21 +196,6 @@ namespace YARG.Core.Audio
             }
         }
 
-        public static double PlaybackStartDelay
-        {
-            get
-            {
-                lock (_instanceLock)
-                {
-                    if (_instance == null)
-                    {
-                        throw new NotInitializedException();
-                    }
-                    return _instance.PlaybackStartDelay;
-                }
-            }
-        }
-
         public static int MinimumBufferLength
         {
             get
