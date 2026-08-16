@@ -1486,26 +1486,15 @@ namespace YARG.Core.Engine
                 codaTime = Codas[0].StartTime;
             }
 
-            for (int i = 0; i < notes.Count; i++)
+            double latestNoteEndTime = 0;
+            uint latestNoteEndTick = 0;
+
+            foreach (var parent in notes)
             {
-                // Compare the note at the current index against the previous note
-                double noteOneTimeEnd = 0;
-                uint noteOneTickEnd = 0;
-
-                if (i > 0) {
-                    Note<TNoteType> noteOne = notes[i-1];
-                    noteOneTimeEnd = noteOne.TimeEnd;
-                    noteOneTickEnd = noteOne.TickEnd;
-                }
-
-                Note<TNoteType> noteTwo = notes[i];
-
-                if (noteTwo.Time - noteOneTimeEnd >= WaitCountdown.MIN_SECONDS)
+                if (parent.Time - latestNoteEndTime >= WaitCountdown.MIN_SECONDS)
                 {
-                    // Distance between these two notes is over the threshold
-
                     // If this countdown would start after the coda event, don't create it
-                    if (noteOneTimeEnd >= codaTime)
+                    if (latestNoteEndTime >= codaTime)
                     {
                         continue;
                     }
@@ -1513,19 +1502,33 @@ namespace YARG.Core.Engine
                     WaitCountdown newCountdown;
 
                     // If the countdown would last into a coda, cut it off at the coda start time
-                    if (noteTwo.Time > codaTime)
+                    if (parent.Time > codaTime)
                     {
-                        newCountdown = new WaitCountdown(noteOneTimeEnd, codaTime - noteOneTimeEnd, noteOneTickEnd,
-                            SyncTrack.TimeToTick(codaTime) - noteOneTickEnd);
+                        newCountdown = new WaitCountdown(
+                            latestNoteEndTime,
+                            codaTime - latestNoteEndTime,
+                            latestNoteEndTick,
+                            SyncTrack.TimeToTick(codaTime) - latestNoteEndTick
+                        );
                     }
                     else
                     {
-                        newCountdown = new WaitCountdown(noteOneTimeEnd, noteTwo.Time - noteOneTimeEnd, noteOneTickEnd,
-                            noteTwo.Tick - noteOneTickEnd);
+                        newCountdown = new WaitCountdown(
+                            latestNoteEndTime,
+                            parent.Time - latestNoteEndTime,
+                            latestNoteEndTick,
+                            parent.Tick - latestNoteEndTick
+                        );
                     }
 
                     WaitCountdowns.Add(newCountdown);
                     YargLogger.LogFormatTrace("Created a WaitCountdown at time {0} of {1} seconds in length", newCountdown.Time, newCountdown.TimeLength);
+                }
+
+                foreach (var child in parent.AllNotes)
+                {
+                    latestNoteEndTime = Math.Max(latestNoteEndTime, child.TimeEnd);
+                    latestNoteEndTick = Math.Max(latestNoteEndTick, child.TickEnd);
                 }
             }
         }
