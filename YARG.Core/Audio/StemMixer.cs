@@ -5,20 +5,43 @@ using System.IO;
 namespace YARG.Core.Audio
 {
     /// <summary>
-    /// Audio-backend-agnostic interface for a DSP processor that can be attached to
-    /// the mixer's output stream. Implementations receive the mixed audio buffer on
-    /// the audio thread and may read or modify it.
+    /// One segment of a tone schedule, in song seconds and MIDI pitch.
     /// </summary>
-    public interface IMixerDspProcessor
+    /// <remarks>
+    /// A segment whose pitches are equal is held; unequal pitches are interpolated linearly across
+    /// the segment. Segments must be sorted by <see cref="StartTime"/> and must not overlap; the
+    /// tone is silent outside them. The layout is shared with the audio backend, so the field order
+    /// and types must not be changed.
+    /// </remarks>
+    public readonly struct ToneSegment
+    {
+        public readonly double StartTime;
+        public readonly double EndTime;
+        public readonly float  StartPitch;
+        public readonly float  EndPitch;
+
+        public ToneSegment(double startTime, double endTime, float startPitch, float endPitch)
+        {
+            StartTime = startTime;
+            EndTime = endTime;
+            StartPitch = startPitch;
+            EndPitch = endPitch;
+        }
+    }
+
+    /// <summary>
+    /// Mixes a synthesized tone into the song, following a pitch schedule expressed in song time.
+    /// The schedule is rendered by the audio backend, so setting it is the only work the caller
+    /// performs; nothing runs per sample on the caller's side.
+    /// </summary>
+    public abstract class ToneChannel : IDisposable
     {
         /// <summary>
-        /// Called on the audio thread for each output buffer.
-        /// <paramref name="songTimeStart"/> and <paramref name="songTimeEnd"/> are the song positions at
-        /// the start and end of the buffer. Their difference is scaled by the playback speed, so it is
-        /// not equal to <c>frames / sampleRate</c> unless the song is playing at normal speed.
+        /// Replaces the pitch schedule. Pass an empty span to silence the tone.
         /// </summary>
-        void ProcessAudio(Span<float> buffer, int frames, int channels, int sampleRate,
-            double songTimeStart, double songTimeEnd);
+        public abstract void SetSchedule(ReadOnlySpan<ToneSegment> segments);
+
+        public abstract void Dispose();
     }
 
     /// <summary>
@@ -115,7 +138,15 @@ namespace YARG.Core.Audio
         /// Returns a handle that removes the processor when disposed, or <c>null</c>
         /// if the processor could not be attached.
         /// </summary>
-        public abstract IDisposable? AttachOutputDsp(IMixerDspProcessor processor, int priority = 0);
+        /// <summary>
+        /// Creates a tone mixed into this song, or <c>null</c> if the backend cannot provide one.
+        /// The caller owns the returned channel and must dispose it.
+        /// </summary>
+        /// <param name="volume">Tone volume relative to the mix.</param>
+        /// <param name="fadeDuration">
+        /// Seconds for a full volume ramp, used to declick the edges of each segment.
+        /// </param>
+        public abstract ToneChannel? CreateToneChannel(double volume, double fadeDuration);
 
         protected StemMixer(string name, AudioManager manager,bool clampStemVolume)
         {

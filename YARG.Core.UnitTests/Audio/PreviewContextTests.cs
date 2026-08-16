@@ -255,14 +255,16 @@ public class PreviewContextTests
 
         protected override void SetOutputDevice_Internal(OutputDevice device) { }
 
-        public override IDisposable? AttachOutputDsp(IMixerDspProcessor processor, int priority = 0)
+        public override ToneChannel? CreateToneChannel(double volume, double fadeDuration)
         {
-            return new EmptyDisposable();
+            return new EmptyToneChannel();
         }
 
-        private sealed class EmptyDisposable : IDisposable
+        private sealed class EmptyToneChannel : ToneChannel
         {
-            public void Dispose() { }
+            public override void SetSchedule(ReadOnlySpan<ToneSegment> segments) { }
+
+            public override void Dispose() { }
         }
 
         protected override void DisposeManagedResources()
