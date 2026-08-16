@@ -16,6 +16,7 @@ namespace YARG.Core.Audio
     {
         public const int WHAMMY_FFT_DEFAULT        = 2048;
         public const int WHAMMY_OVERSAMPLE_DEFAULT = 8;
+        public static readonly string[] CLAMPED_AUDIO_SOURCES = { "yarg", "yargdlc", "yarn" };
         public static readonly int MAX_THREADS = Environment.ProcessorCount switch
         {
             >= 16 => 16,
