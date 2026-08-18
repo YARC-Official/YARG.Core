@@ -33,7 +33,7 @@ namespace YARG.Core.Song
         public override StemMixer? LoadAudio(float speed, double volume, bool enableCensoring, params SongStem[] ignoreStems)
         {
             var subFiles = GetSubFiles();
-            bool clampStemVolume = _metadata.Source.ToLowerInvariant() == "yarg";
+            bool clampStemVolume = GlobalAudioHandler.CLAMPED_AUDIO_SOURCES.Contains(_metadata.Source.ToLowerInvariant());
 
             // Prefer a raw multi-channel .mogg (+ its channel-map sidecar) over split
             // stem files, when both are present.
@@ -42,7 +42,6 @@ namespace YARG.Core.Song
             {
                 return moggMixer;
             }
-
             var mixer = GlobalAudioHandler.CreateMixer(ToString(), speed, volume, clampStemVolume: clampStemVolume,
                 normalize: true);
             if (mixer == null)

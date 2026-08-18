@@ -5,6 +5,22 @@ using YARG.Core.Logging;
 
 namespace YARG.Core.Audio
 {
+    public readonly struct OutputBufferInfo
+    {
+        public int[] SupportedLengths { get; }
+        public int PreferredLength { get; }
+        public int SampleRate { get; }
+        public bool IsDriverControlled { get; }
+
+        public OutputBufferInfo(int[] supportedLengths, int preferredLength, int sampleRate, bool isDriverControlled)
+        {
+            SupportedLengths = supportedLengths;
+            PreferredLength = preferredLength;
+            SampleRate = sampleRate;
+            IsDriverControlled = isDriverControlled;
+        }
+    }
+
     public abstract class AudioManager
     {
         private static float _globalSpeed = 1f;
@@ -77,13 +93,22 @@ namespace YARG.Core.Audio
 
         protected internal abstract OutputChannel? CreateOutputChannel(int channelId);
 
-        protected internal abstract OutputDevice? CreateOutputDevice(int deviceId, string name);
-
         protected internal abstract List<(int id, string name)> GetAllOutputDevices();
 
         protected internal abstract int GetOutputChannelCount();
 
-        protected internal abstract OutputDevice? GetOutputDevice(string name);
+        protected internal virtual OutputBufferInfo? GetOutputBufferInfo() => null;
+
+        protected internal virtual bool OpenOutputControlPanel() => false;
+
+        protected internal virtual void Update() { }
+
+        /// <summary>
+        /// The driver family a device name belongs to. Classification lives with the
+        /// transport implementations, not with name parsing in callers.
+        /// </summary>
+        protected internal virtual AudioOutputMode GetOutputMode(string name) =>
+            AudioOutputMode.Shared;
 
         protected internal abstract void SetMasterVolume(double volume);
 
@@ -93,44 +118,31 @@ namespace YARG.Core.Audio
 
         protected internal virtual void SetOutputChannel(OutputChannel channel)
         {
-            lock (_activeMixers)
+            foreach (StemMixer mixer in SnapshotActiveMixers())
             {
-                foreach (StemMixer mixer in _activeMixers)
-                {
-                    mixer.SetOutputChannel(channel);
-                }
+                mixer.SetOutputChannel(channel);
             }
         }
 
-        protected internal virtual bool SetOutputDevice(string name)
+        protected internal abstract bool SetOutputDevice(string name);
+
+        protected internal virtual bool ReinitializeOutput() => false;
+
+        protected void MoveActiveMixersTo(OutputDevice device)
         {
-            lock (_activeMixers)
+            foreach (StemMixer mixer in SnapshotActiveMixers())
             {
-                OutputDevice? device = GetOutputDevice(name);
-                if (device == null)
-                {
-                    return false;
-                }
-
-                foreach (var mixer in _activeMixers)
-                {
-                    mixer.SetOutputDevice(device);
-                }
+                mixer.SetOutputDevice(device);
             }
-
-            return true;
         }
 
 
         internal void SetBufferLength(int length)
         {
             SetBufferLength_Internal(length);
-            lock (_activeMixers)
+            foreach (var mixer in SnapshotActiveMixers())
             {
-                foreach (var mixer in _activeMixers)
-                {
-                    mixer.SetBufferLength(length);
-                }
+                mixer.SetBufferLength(length);
             }
         }
 
@@ -148,13 +160,20 @@ namespace YARG.Core.Audio
                 }
 
                 _globalSpeed = value;
-                lock (_activeMixers)
+                foreach (var mixer in SnapshotActiveMixers())
                 {
-                    foreach (var mixer in _activeMixers)
-                    {
-                        mixer.SetPlaybackSpeed(value);
-                    }
+                    mixer.SetPlaybackSpeed(value);
                 }
+            }
+        }
+
+        private StemMixer[] SnapshotActiveMixers()
+        {
+            // Mixer disposal removes itself from this list while holding mixer lock.
+            // Release list lock before calling into any mixer to avoid lock inversion.
+            lock (_activeMixers)
+            {
+                return _activeMixers.ToArray();
             }
         }
 

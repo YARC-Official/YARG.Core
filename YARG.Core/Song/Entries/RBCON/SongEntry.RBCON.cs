@@ -188,7 +188,7 @@ namespace YARG.Core.Song
                 return null;
             }
 
-            bool clampStemVolume = _metadata.Source.ToLowerInvariant() == "yarg";
+            bool clampStemVolume = GlobalAudioHandler.CLAMPED_AUDIO_SOURCES.Contains(_metadata.Source.ToLowerInvariant());
             return MoggAudioLoader.BuildMixer(stream, ToString(), speed, volume, clampStemVolume,
                 in _indices, in _panning, ignoreStems);
         }
