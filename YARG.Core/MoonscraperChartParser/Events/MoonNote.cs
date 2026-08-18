@@ -105,6 +105,7 @@ namespace MoonscraperChartEditor.Song
 
             // Vocals
             Vocals_Percussion = 1 << 9,
+            Vocals_Censorship = 1 << 24,
 
             // Elite Drums
             EliteDrums_Flam = 1 << 10,

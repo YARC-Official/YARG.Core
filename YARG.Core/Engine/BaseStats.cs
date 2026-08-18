@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.IO;
 using YARG.Core.Chart;
 using YARG.Core.Extensions;
@@ -172,6 +172,11 @@ namespace YARG.Core.Engine
         public int StarPowerPhrasesMissed => TotalStarPowerPhrases - StarPowerPhrasesHit;
 
         /// <summary>
+        /// Number of times Star Power was used to revive a bandmate.
+        /// </summary>
+        public int StarPowerRevives;
+
+        /// <summary>
         /// Amount of points earned from solo bonuses.
         /// </summary>
         public int SoloBonuses;
@@ -300,6 +305,11 @@ namespace YARG.Core.Engine
             StarPowerPhrasesHit = stream.Read<int>(Endianness.Little);
             TotalStarPowerPhrases = stream.Read<int>(Endianness.Little);
 
+            if (version >= 17)
+            {
+                StarPowerRevives = stream.Read<int>(Endianness.Little);
+            }
+
             SoloBonuses = stream.Read<int>(Endianness.Little);
             StarPowerScore = stream.Read<int>(Endianness.Little);
 
@@ -342,6 +352,7 @@ namespace YARG.Core.Engine
 
             StarPowerPhrasesHit = 0;
             // TotalStarPowerPhrases = 0;
+            StarPowerRevives = 0;
 
             SoloBonuses = 0;
             CodaBonuses = 0;
@@ -377,6 +388,7 @@ namespace YARG.Core.Engine
 
             writer.Write(StarPowerPhrasesHit);
             writer.Write(TotalStarPowerPhrases);
+            writer.Write(StarPowerRevives);
 
             writer.Write(SoloBonuses);
             writer.Write(StarPowerScore);
@@ -408,7 +420,7 @@ namespace YARG.Core.Engine
         {
             NotesHit++;
 
-            if (!note.IsLane)
+            if (!note.IsAnyLane)
             {
                 double offset = current_time - note.Time;
                 TotalOffset += offset;

@@ -183,7 +183,7 @@ namespace YARG.Core.Song
             return version is UNENCRYPTED_MOGG or YARG_MOGG;
         }
 
-        public override StemMixer? LoadAudio(float speed, double volume, params SongStem[] ignoreStems)
+        public override StemMixer? LoadAudio(float speed, double volume, bool enableCensoring, params SongStem[] ignoreStems)
         {
             var stream = GetMoggStream();
             if (stream == null)
@@ -202,7 +202,7 @@ namespace YARG.Core.Song
             int start = stream.Read<int>(Endianness.Little);
             stream.Seek(start, SeekOrigin.Begin);
 
-            bool clampStemVolume = _metadata.Source.ToLowerInvariant() == "yarg";
+            bool clampStemVolume = GlobalAudioHandler.CLAMPED_AUDIO_SOURCES.Contains(_metadata.Source.ToLowerInvariant());
             var mixer = GlobalAudioHandler.CreateMixer(ToString(), speed, volume, clampStemVolume: clampStemVolume,
                 normalize: true);
             if (mixer == null)
@@ -281,9 +281,9 @@ namespace YARG.Core.Song
             return mixer;
         }
 
-        public override StemMixer? LoadPreviewAudio(float speed)
+        public override StemMixer? LoadPreviewAudio(float speed, bool enableCensoring)
         {
-            return LoadAudio(speed, 0, SongStem.Crowd);
+            return LoadAudio(speed, 0, enableCensoring, SongStem.Crowd);
         }
 
         internal void UpdateInfo(in AbridgedFileInfo? updateDirectory, in DateTime? updateMidi, RBProUpgrade? upgrade)
@@ -706,6 +706,16 @@ namespace YARG.Core.Song
             if (dta.CoveredBy != null)            { entry._metadata.CoveredBy     = YARGDTAReader.DecodeString(dta.CoveredBy.Value, dta.MetadataEncoding); }
             if (dta.Album != null)                { entry._metadata.Album         = YARGDTAReader.DecodeString(dta.Album.Value, dta.MetadataEncoding); }
             if (dta.Charter != null)              { entry._metadata.Charter       = YARGDTAReader.DecodeString(dta.Charter.Value, dta.MetadataEncoding); }
+            if (dta.CharterKeys != null)
+            {
+                entry._metadata.CharterKeys    = YARGDTAReader.DecodeString(dta.CharterKeys.Value, dta.MetadataEncoding);
+                entry._metadata.CharterProKeys = YARGDTAReader.DecodeString(dta.CharterKeys.Value, dta.MetadataEncoding);
+            }
+            if (dta.CharterProStrings != null)
+            {
+                entry._metadata.CharterProGuitar = YARGDTAReader.DecodeString(dta.CharterProStrings.Value, dta.MetadataEncoding);
+                entry._metadata.CharterProBass   = YARGDTAReader.DecodeString(dta.CharterProStrings.Value, dta.MetadataEncoding);
+            }
             if (dta.LoadingPhrase != null)        { entry._metadata.LoadingPhrase = YARGDTAReader.DecodeString(dta.LoadingPhrase.Value, dta.MetadataEncoding); }
             if (dta.Playlist != null)             { entry._metadata.Playlist      = YARGDTAReader.DecodeString(dta.Playlist.Value, dta.MetadataEncoding); }
             if (dta.Genre != null)
