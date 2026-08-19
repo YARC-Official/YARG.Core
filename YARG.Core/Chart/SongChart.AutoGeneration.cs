@@ -507,7 +507,7 @@ namespace YARG.Core.Chart
             }
         }
 
-        public void GenerateSingerPreference()
+        private void GenerateSingerPreference()
         {
             var prefs = new List<Performer>();
             if (!Vocals.IsEmpty || (!Harmony.IsEmpty && !Harmony.Parts[0].IsEmpty) || !Lyrics.IsEmpty)
