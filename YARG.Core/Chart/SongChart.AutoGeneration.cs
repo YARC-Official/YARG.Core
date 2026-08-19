@@ -563,22 +563,29 @@ namespace YARG.Core.Chart
                 songChart.LipsyncEventsByPart.AddRange(miloLipsync.LipsyncEventsByPart);
             }
 
-            // We only do autogen if there are no singalongs to prevent weirdness
-            if (!songChart.VenueTrack.Performer.Any(e => e.Type is PerformerEventType.Singalong))
-            {
-                GenerateMissingLipsync(songChart);
-            }
-        }
+            GenerateMissingLipsync(songChart);
 
+        }
+        /// <summary>
+        /// Generates lipsync events for the song chart if they are missing.
+        /// </summary>
+        /// <remarks>
+        /// Lipsync events for harmony parts other than the first (vocalist) will *only* be generated if there are no singalong events in the venue track.
+        /// This is to preserve RB behavior, where singalongs copy the first vocal part's lipsync events if other lipsync parts are not present.
+        /// </remarks>
+        /// <param name="songChart">The song chart for which to generate lipsync events.</param>
         private static void GenerateMissingLipsync(SongChart songChart)
         {
+            bool singalongsExist = songChart.VenueTrack.Performer.Any(e => e.Type is PerformerEventType.Singalong);
+
             if (songChart.LipsyncEventsByPart.Count >= 1 && songChart.LipsyncEventsByPart.Count >= songChart.Harmony.Parts.Count)
             {
                 // Nothing we can do with vocal parts here
                 return;
             }
-            if (songChart.Harmony.Parts.Count(part => !part.IsEmpty) == 0 && songChart.LipsyncEventsByPart.Count == 0)
+            if ((songChart.Harmony.Parts.Count(part => !part.IsEmpty) == 0 || singalongsExist) && songChart.LipsyncEventsByPart.Count == 0)
             {
+                // TODO: Remove the generation from lyrics, and just generate from vocals, so we can use the note lengths.
                 if (!songChart.Lyrics.IsEmpty)
                 {
                     songChart.LipsyncEventsByPart.Add(LipsyncGenerator.GenerateFromLyrics(songChart.Lyrics));
@@ -590,7 +597,7 @@ namespace YARG.Core.Chart
                     songChart.LipsyncEventsByPart.Add(LipsyncGenerator.GenerateFromVocalsPart(songChart.Harmony.Parts[0]));
                 }
             }
-            else
+            else if (!singalongsExist) // Only generate lipsync for vocal parts if there are no singalongs to prevent weirdness
             {
                 for (int i = 0; i < songChart.Harmony.Parts.Count; i++)
                 {
