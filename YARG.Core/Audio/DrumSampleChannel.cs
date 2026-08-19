@@ -10,15 +10,13 @@ namespace YARG.Core.Audio
         private bool _disposed;
 
         protected readonly string _path;
-        protected readonly int _playbackCount;
         protected double _volume;
 
         public readonly DrumSfxSample Sample;
-        protected DrumSampleChannel(DrumSfxSample sample, string path, int playbackCount)
+        protected DrumSampleChannel(DrumSfxSample sample, string path)
         {
             Sample = sample;
             _path = path;
-            _playbackCount = playbackCount;
 
             GlobalAudioHandler.StemSettings[SongStem.DrumSfx].OnVolumeChange += SetVolume;
         }

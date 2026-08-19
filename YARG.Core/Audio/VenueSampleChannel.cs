@@ -124,35 +124,11 @@ namespace YARG.Core.Audio
             }
         }
 
-        protected void SetEndCallback()
-        {
-            lock (this)
-            {
-                if (!_disposed)
-                {
-                    SetEndCallback_Internal();
-                }
-            }
-        }
-
-        protected void EndCallback(int _, int __, int ___, IntPtr ____)
-        {
-            lock (this)
-            {
-                if (!_disposed)
-                {
-                    EndCallback_Internal(_, __, ___, ____);
-                }
-            }
-        }
-
         protected abstract void Play_Internal();
         protected abstract void Stop_Internal();
         protected abstract void Pause_Internal();
         protected abstract void Resume_Internal();
         protected abstract void SetVolume_Internal(double volume);
-        protected abstract void SetEndCallback_Internal();
-        protected abstract void EndCallback_Internal(int _, int __, int ___, IntPtr ____);
         protected abstract void SetOutputChannel_Internal(OutputChannel? channel);
         protected abstract bool IsPlaying_Internal();
         protected abstract bool IsPaused_Internal();
