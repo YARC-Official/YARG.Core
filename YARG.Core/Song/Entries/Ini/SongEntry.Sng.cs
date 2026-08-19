@@ -188,7 +188,7 @@ namespace YARG.Core.Song
                     }
                 }
             }
-            
+
             return null;
         }
 
@@ -208,7 +208,7 @@ namespace YARG.Core.Song
 
         private StemMixer? CreateAudioMixer(float speed, double volume, in SngFile sngFile, bool enableCensoring, params SongStem[] ignoreStems)
         {
-            bool clampStemVolume = _metadata.Source.ToLowerInvariant() == "yarg";
+            bool clampStemVolume = GlobalAudioHandler.CLAMPED_AUDIO_SOURCES.Contains(_metadata.Source.ToLowerInvariant());
             var mixer = GlobalAudioHandler.CreateMixer(ToString(), speed, volume, clampStemVolume: clampStemVolume,
                 normalize: true);
             if (mixer == null)
