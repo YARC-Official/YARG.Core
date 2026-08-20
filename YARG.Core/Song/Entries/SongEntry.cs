@@ -241,6 +241,7 @@ namespace YARG.Core.Song
 
                     Instrument.Vocals => _parts.LeadVocals,
                     Instrument.Harmony => _parts.HarmonyVocals,
+                    Instrument.PartyVocals => _parts.HarmonyVocals,
                     Instrument.Band => _parts.BandDifficulty,
 
                     _ => throw new NotImplementedException($"Unhandled instrument {instrument}!")
@@ -278,6 +279,7 @@ namespace YARG.Core.Song
 
                 Instrument.Vocals => _parts.LeadVocals.IsActive(),
                 Instrument.Harmony => _parts.HarmonyVocals.IsActive(),
+                Instrument.PartyVocals => _parts.LeadVocals.IsActive() || _parts.HarmonyVocals.IsActive(),
                 Instrument.Band => _parts.BandDifficulty.IsActive(),
 
                 _ => false
@@ -320,6 +322,7 @@ namespace YARG.Core.Song
 
                 Instrument.Vocals  => _parts.LeadVocals,
                 Instrument.Harmony => _parts.HarmonyVocals,
+                Instrument.PartyVocals => _parts.HarmonyVocals.IsActive() ? _parts.HarmonyVocals : _parts.LeadVocals,
                 Instrument.Band    => _parts.BandDifficulty,
                 _ => throw new ArgumentException("Unhandled instrument", nameof(instrument))
             };
