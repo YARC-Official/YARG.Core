@@ -304,6 +304,16 @@ namespace YARG.Core.Chart
             };
         }
 
+        public bool TryGetFiveFretDifficulty(Instrument instrument, Difficulty difficulty, out InstrumentDifficulty<GuitarNote> track)
+        {
+            return GetFiveFretTrack(instrument).TryGetDifficulty(difficulty, out track);
+        }
+
+        public bool TryGetSixFretDifficulty(Instrument instrument, Difficulty difficulty, out InstrumentDifficulty<GuitarNote> track)
+        {
+            return GetSixFretTrack(instrument).TryGetDifficulty(difficulty, out track);
+        }
+
         /// <summary>
         /// Gets the start time of the first event in this chart
         /// </summary>
