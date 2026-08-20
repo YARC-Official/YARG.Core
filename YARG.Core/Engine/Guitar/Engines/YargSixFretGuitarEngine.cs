@@ -293,6 +293,10 @@ namespace YARG.Core.Engine.Guitar.Engines
 
         protected override byte[] CreateCodaFretMask() => new byte[6];
 
-        protected override int GetCodaFretCount() => 6;
+        /// <summary>
+        /// Six-fret condenses its 6 fret buttons into 3 BRE lanes (one per fret number,
+        /// black + white pair). CodaSection remaps button bits 0-5 to lanes 0-2.
+        /// </summary>
+        protected override int GetCodaFretCount() => 3;
     }
 }
