@@ -40,6 +40,28 @@ namespace YARG.Core.Audio
         }
     }
 
+    public readonly struct MicBufferInfo
+    {
+        public readonly int BufferFrames;
+        public readonly double BufferMilliseconds;
+        public readonly int SampleRate;
+        public readonly int Channels;
+        public readonly bool IsAsio;
+        public readonly int CushionMilliseconds;
+        public readonly int WaitingBytes;
+
+        public MicBufferInfo(int bufferFrames, double bufferMilliseconds, int sampleRate, int channels, bool isAsio, int cushionMilliseconds, int waitingBytes)
+        {
+            BufferFrames = bufferFrames;
+            BufferMilliseconds = bufferMilliseconds;
+            SampleRate = sampleRate;
+            Channels = channels;
+            IsAsio = isAsio;
+            CushionMilliseconds = cushionMilliseconds;
+            WaitingBytes = waitingBytes;
+        }
+    }
+
     public abstract class MicDevice : IDisposable
     {
         public const int RECORD_PERIOD_MS = 40;
@@ -80,6 +102,10 @@ namespace YARG.Core.Audio
         /// </summary>
         /// <param name="volume">The volume to set to.</param>
         public abstract void SetMonitoringLevel(float volume);
+
+        public abstract void SetReverbLevel(float wet);
+
+        public abstract MicBufferInfo? GetBufferInfo();
 
         /// <summary>
         /// Converts this microphone into its serialized form.
