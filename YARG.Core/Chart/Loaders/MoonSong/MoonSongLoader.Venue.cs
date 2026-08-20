@@ -72,17 +72,6 @@ namespace YARG.Core.Chart
                             continue;
 
                         HandlePostProcessingEvent(postProcessingEvents, type, moonVenue, ref postProcessingCurrentEvent);
-
-                        // uint length = 0;
-                        // double timeLength = 0;
-                        // if (moonVenue.length >= sixteenthNote)
-                        // {
-                        //     length = moonVenue.length;
-                        //     timeLength = GetLengthInTime(moonVenue);
-                        // }
-                        //
-                        // double time = _moonSong.TickToTime(moonVenue.tick);
-                        // postProcessingEvents.Add(new(type, time, timeLength, moonVenue.tick, length));
                         break;
                     }
 
