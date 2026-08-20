@@ -9,6 +9,12 @@ namespace YARG.Core.Chart
     {
         public PostProcessingType Type { get; }
 
+        public PostProcessingEvent(PostProcessingType type, double time, double timeLength, uint tick, uint tickLength)
+            : base(time, timeLength, tick, tickLength)
+        {
+            Type = type;
+        }
+
         public PostProcessingEvent(PostProcessingType type, double time, uint tick)
             : base(time, 0, tick, 0)
         {
