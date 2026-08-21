@@ -336,7 +336,7 @@ namespace YARG.Core.Chart
             { MiloAnimationType.SpotKeyboard, PerformerEventType.Spotlight }
         };
 
-        private static readonly Dictionary<Visemes, LipsyncType> VisemeLookup = new()
+        public static readonly Dictionary<Visemes, LipsyncType> VisemeLookup = new()
         {
                 // Actual visemes
                 { Visemes.Bump_hi, LipsyncType.Bump_hi },

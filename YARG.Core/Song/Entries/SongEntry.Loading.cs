@@ -53,5 +53,6 @@ namespace YARG.Core.Song
         public abstract YARGImage? LoadAlbumData();
         public abstract BackgroundResult? LoadBackground(bool excludeYarground = false);
         public abstract FixedArray<byte>? LoadMiloData();
+        public abstract FixedArray<byte>? LoadVocData();
     }
 }

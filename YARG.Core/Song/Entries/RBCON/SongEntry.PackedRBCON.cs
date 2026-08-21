@@ -15,6 +15,7 @@ namespace YARG.Core.Song
         private CONFileListing? _moggListing;
         private CONFileListing? _miloListing;
         private CONFileListing? _imgListing;
+        private CONFileListing? _vocListing;
         private string          _psuedoDirectory;
 
         public override EntryType SubType => EntryType.CON;
@@ -143,6 +144,16 @@ namespace YARG.Core.Song
             return data;
         }
 
+        public override FixedArray<byte>? LoadVocData()
+        {
+            var data = LoadUpdateVocData();
+            if (data == null && _vocListing != null)
+            {
+                data = CONFileStream.LoadFile(_root.FullName, _vocListing);
+            }
+            return data;
+        }
+
         protected override FixedArray<byte>? GetMainMidiData()
         {
             return _midiListing != null
@@ -222,6 +233,7 @@ namespace YARG.Core.Song
                 string genPath = $"songs/{entry._subName}/gen/{entry._subName}";
                 listings.FindListing(genPath + ".milo_xbox", out entry._miloListing);
                 listings.FindListing(genPath + "_keep.png_xbox", out entry._imgListing);
+                listings.FindListing(location.Value + ".voc", out entry._vocListing);
                 entry.SetSortStrings();
                 return entry;
             }
@@ -258,6 +270,7 @@ namespace YARG.Core.Song
             string genPath = $"songs/{entry._subName}/gen/{entry._subName}";
             listings.FindListing(genPath + ".milo_xbox", out entry._miloListing);
             listings.FindListing(genPath + "_keep.png_xbox", out entry._imgListing);
+            listings.FindListing(location + ".voc", out entry._vocListing);
             return entry;
         }
 
@@ -275,6 +288,7 @@ namespace YARG.Core.Song
                 string location = $"songs/{entry._subName}/{entry._subName}";
                 listings.FindListing(location + ".mid", out entry._midiListing);
                 listings.FindListing(location + ".mogg", out entry._moggListing);
+                listings.FindListing(location + ".voc", out entry._vocListing);
 
 
                 string genPath = $"songs/{entry._subName}/gen/{entry._subName}";

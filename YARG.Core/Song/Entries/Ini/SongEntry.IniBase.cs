@@ -128,6 +128,11 @@ namespace YARG.Core.Song
             return null;
         }
 
+        public override FixedArray<byte>? LoadVocData()
+        {
+            return null;
+        }
+
         protected new void Deserialize(ref FixedArrayStream stream, CacheReadStrings strings)
         {
             base.Deserialize(ref stream, strings);

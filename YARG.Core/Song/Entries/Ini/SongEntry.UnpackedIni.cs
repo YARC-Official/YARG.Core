@@ -216,6 +216,23 @@ namespace YARG.Core.Song
 
             return null;
         }
+        // this is included for completeness, but please do not use this
+        public override FixedArray<byte> LoadVocData()
+        {
+            var subFiles = GetSubFiles();
+            foreach (var name in subFiles.Keys)
+            {
+                if (name.EndsWith(".voc"))
+                {
+                    if (subFiles.TryGetValue(name, out var file) && File.Exists(file))
+                    {
+                        return FixedArray.LoadFile(file);
+                    }
+                }
+            }
+
+            return null;
+        }
 
         protected override FixedArray<byte> GetChartData(string filename)
         {

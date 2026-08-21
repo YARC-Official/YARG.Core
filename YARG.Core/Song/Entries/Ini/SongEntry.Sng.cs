@@ -191,6 +191,25 @@ namespace YARG.Core.Song
 
             return null;
         }
+        // PLEASE do not do this in your charts
+        public override FixedArray<byte>? LoadVocData()
+        {
+            using var sng = SngFile.TryLoadFromFile(_location, false);
+            if (sng.IsLoaded)
+            {
+                foreach (var name in sng.Listings.Keys)
+                {
+                    if (name.EndsWith(".voc"))
+                    {
+                        if (sng.TryGetListing(name, out var listing))
+                        {
+                            return sng.LoadAllBytes(in listing);
+                        }
+                    }
+                }
+            }
+            return null;
+        }
 
         protected override FixedArray<byte>? GetChartData(string filename)
         {

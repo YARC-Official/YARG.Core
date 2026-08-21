@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using YARG.Core.IO.Voc;
 using YARG.Core.Logging;
 using YARG.Core.Parsing;
 using YARG.Core.Song;
@@ -561,6 +562,16 @@ namespace YARG.Core.Chart
             if (miloLipsync.LipsyncEventsByPart.Count > 0)
             {
                 songChart.LipsyncEventsByPart.AddRange(miloLipsync.LipsyncEventsByPart);
+            }
+            else
+            {
+                // If milo was a no-go, attempt to load from a .voc file
+                var events = YARGVocFileReader.GetVocExpressions(songChart, songEntry);
+                if (events.Count > 0)
+                {
+                    YargLogger.LogFormatDebug("Loaded {0} lipsync events from .voc", events.Count);
+                    songChart.LipsyncEventsByPart.Add(events);
+                }
             }
 
             GenerateMissingLipsync(songChart);
