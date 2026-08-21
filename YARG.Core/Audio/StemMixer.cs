@@ -136,12 +136,6 @@ namespace YARG.Core.Audio
             IReadOnlyList<double> scheduledPlays, double outputLeadTime = 0);
 
         /// <summary>
-        /// Attaches a DSP processor to the mixer's output stream.
-        /// The processor will be called on the audio thread for each output buffer.
-        /// Returns a handle that removes the processor when disposed, or <c>null</c>
-        /// if the processor could not be attached.
-        /// </summary>
-        /// <summary>
         /// Creates a tone mixed into this song, or <c>null</c> if the backend cannot provide one.
         /// The caller owns the returned channel and must dispose it.
         /// </summary>
