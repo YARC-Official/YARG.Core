@@ -39,7 +39,11 @@ namespace YARG.Core.Audio
         /// <summary>
         /// Replaces the pitch schedule. Pass an empty span to silence the tone.
         /// </summary>
-        public abstract void SetSchedule(ReadOnlySpan<ToneSegment> segments);
+        /// <returns>
+        /// <c>false</c> if the backend rejected or could not apply the schedule, in which case the
+        /// previous one is still playing.
+        /// </returns>
+        public abstract bool SetSchedule(ReadOnlySpan<ToneSegment> segments);
 
         public abstract void Dispose();
     }

@@ -262,7 +262,7 @@ public class PreviewContextTests
 
         private sealed class EmptyToneChannel : ToneChannel
         {
-            public override void SetSchedule(ReadOnlySpan<ToneSegment> segments) { }
+            public override bool SetSchedule(ReadOnlySpan<ToneSegment> segments) => true;
 
             public override void Dispose() { }
         }
