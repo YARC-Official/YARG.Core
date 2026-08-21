@@ -95,6 +95,8 @@ namespace YARG.Core.Song
         public SortString Source => _source;
         public SortString Playlist => _playlist;
 
+        public string YargGuid => _metadata.YargGuid;
+
         public string CoveredBy => _metadata.CoveredBy;
 
         public string UnmodifiedYear => _metadata.Year;
@@ -365,6 +367,8 @@ namespace YARG.Core.Song
             stream.Write(node.Playlist, Endianness.Little);
             stream.Write(node.Source, Endianness.Little);
 
+            stream.Write(_metadata.YargGuid);
+
             stream.Write(_metadata.IsMaster);
             stream.Write(_metadata.VideoLoop);
 
@@ -458,6 +462,8 @@ namespace YARG.Core.Song
             _metadata.Charter =  strings.Charters [stream.Read<int>(Endianness.Little)];
             _metadata.Playlist = strings.Playlists[stream.Read<int>(Endianness.Little)];
             _metadata.Source =   strings.Sources  [stream.Read<int>(Endianness.Little)];
+
+            _metadata.YargGuid = stream.ReadString();
 
             _metadata.IsMaster =  stream.ReadBoolean();
             _metadata.VideoLoop = stream.ReadBoolean();
