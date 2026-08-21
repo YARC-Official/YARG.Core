@@ -34,6 +34,8 @@
         Select = 10,
         /// <summary>Focus the search field.</summary>
         Search = 11,
+        /// <summary>Select the artist of the current song.</summary>
+        SelectArtist = 12,
     }
 
     /// <summary>
