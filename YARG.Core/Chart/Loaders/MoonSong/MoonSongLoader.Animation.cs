@@ -12,6 +12,7 @@ namespace YARG.Core.Chart
             { AnimationLookup.ANIMATION_STATE_IDLE,          CharacterState.CharacterStateType.Idle },
             { AnimationLookup.ANIMATION_STATE_IDLE_INTENSE,  CharacterState.CharacterStateType.IdleIntense },
             { AnimationLookup.ANIMATION_STATE_IDLE_REALTIME, CharacterState.CharacterStateType.IdleRealtime },
+            { AnimationLookup.ANIMATION_STATE_IDLE_MELLOW,   CharacterState.CharacterStateType.IdleMellow },
             { AnimationLookup.ANIMATION_STATE_PLAY,          CharacterState.CharacterStateType.Play },
             { AnimationLookup.ANIMATION_STATE_PLAY_SOLO,     CharacterState.CharacterStateType.PlaySolo },
             { AnimationLookup.ANIMATION_STATE_PLAY_INTENSE,  CharacterState.CharacterStateType.Intense },
