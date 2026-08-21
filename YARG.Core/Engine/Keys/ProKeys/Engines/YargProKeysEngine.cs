@@ -160,7 +160,7 @@ namespace YARG.Core.Engine.Keys.Engines
                 if (missed)
                 {
                     // Intercept missed note while lane phrase is active
-                    if (!AutohitNoteFromLane(parentNote))
+                    if (!AutohitNoteFromLane(parentNote) && !AutohitNoteFromGlissando(parentNote))
                     {
                         // If one of the notes in the chord was missed out the back end,
                         // that means all of them would miss.
@@ -184,7 +184,10 @@ namespace YARG.Core.Engine.Keys.Engines
                     {
                         HitNote(childNote);
                     }
-
+                    if (parentNote.IsGlissando)
+                    {
+                        UpdateLaneAutohitExpireTime();
+                    }
                     KeyHitThisUpdate = null;
                 }
                 else
@@ -203,6 +206,10 @@ namespace YARG.Core.Engine.Keys.Engines
                                 if ((KeyMask & note.DisjointMask) == note.DisjointMask && IsKeyInTime(note, frontEnd))
                                 {
                                     HitNote(note);
+                                    if (note.IsGlissando)
+                                    {
+                                        UpdateLaneAutohitExpireTime();
+                                    }
                                     YargLogger.LogFormatTrace("Hit staggered note {0} in chord", note.Key);
                                 }
                                 else

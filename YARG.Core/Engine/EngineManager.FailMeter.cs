@@ -415,6 +415,43 @@ namespace YARG.Core.Engine
                 EngineManager.OnPlayerFailed += OnPlayerFailedReceived;
                 Engine.OnPlayerRevived += OnPlayerRevivedReceived;
             }
+
+            public override void UnsubscribeFromEvents()
+            {
+                base.UnsubscribeFromEvents();
+                // Vocals engine handles hit events differently, so we don't want to subscribe to the note hit/miss events for it
+                if (Engine is not VocalsEngine)
+                {
+                    Engine.OnNoteHit -= OnNoteHit;
+                    Engine.OnNoteMissed -= OnNoteMissed;
+                }
+
+                Engine.OnStarPowerStatus -= OnStarPowerStatus;
+
+                // Overhit/Overstrum events are not in BaseEngine,
+                // so we need to check the type of engine and subscribe to the appropriate event
+                switch (Engine)
+                {
+                    case GuitarEngine guitarEngine:
+                        guitarEngine.OnOverstrum -= OnOverstrum;
+                        break;
+                    case DrumsEngine drumsEngine:
+                        drumsEngine.OnOverhit -= OnOverstrum;
+                        break;
+                    case ProKeysEngine proKeysEngine:
+                        proKeysEngine.OnOverhit -= OnKeysOverhit;
+                        break;
+                    case FiveLaneKeysEngine fiveLaneKeysEngine:
+                        fiveLaneKeysEngine.OnOverhit -= OnKeysOverhit;
+                        break;
+                    case VocalsEngine vocalsEngine:
+                        vocalsEngine.OnPhraseHit -= OnVocalPhraseHit;
+                        break;
+                }
+
+                EngineManager.OnPlayerFailed -= OnPlayerFailedReceived;
+                Engine.OnPlayerRevived -= OnPlayerRevivedReceived;
+            }
         }
     }
 }

@@ -11,8 +11,6 @@ namespace YARG.Core.Engine
     {
         private int                      _nextEngineIndex;
         List <EngineContainer>           _allEngines     = new();
-        Dictionary<int, EngineContainer> _allEnginesById = new();
-
         public List<EngineContainer> Engines => _allEngines;
 
         private SongChart?               _chart;
@@ -34,14 +32,19 @@ namespace YARG.Core.Engine
                 EngineManager.UpdateStarPowerCount(count);
             }
 
+            public virtual void UnsubscribeFromEvents()
+            {
+                BaseEngine.OnCodaStart -= EngineManager.CodaStartHandler;
+                BaseEngine.OnCodaEnd -= EngineManager.CodaEndHandler;
+            }
+
             public abstract void SendCommand(EngineCommandType command);
             public abstract void UpdateEngine(double time);
             public abstract BaseEngine BaseEngine { get; }
             public abstract Instrument Instrument { get; }
             public abstract Difficulty Difficulty { get; }
             public abstract void SubscribeToStarPowerPhraseHit();
-            public abstract void UnsubscribeToStarPowerPhraseHit();
-
+            public abstract void UnsubscribeFromStarPowerPhraseHit();
             protected EngineContainer(int engineId, int harmonyIndex, EngineManager manager,
                 RockMeterPreset rockMeterPreset, List<UnisonPhrase> unisonPhrases)
             {
@@ -112,7 +115,7 @@ namespace YARG.Core.Engine
                 Engine.OnStarPowerPhraseHit += OnStarPowerPhraseHit;
             }
 
-            public override void UnsubscribeToStarPowerPhraseHit()
+            public override void UnsubscribeFromStarPowerPhraseHit()
             {
                 Engine.OnStarPowerPhraseHit -= OnStarPowerPhraseHit;
             }
@@ -152,24 +155,11 @@ namespace YARG.Core.Engine
             // _previousHappiness = rockMeterPreset.StartingHappiness;
 
             _allEngines.Add(engineContainer);
-            _allEnginesById.Add(engineContainer.EngineId, engineContainer);
             AddPlayerToUnisons(engineContainer, chart);
             engine.OnCodaStart += CodaStartHandler;
             engine.OnCodaEnd += CodaEndHandler;
 
             return engineContainer;
-        }
-
-        private EngineContainer GetEngineContainer(BaseEngine target)
-        {
-            foreach (var engine in _allEngines)
-            {
-                if (engine.BaseEngine == target)
-                {
-                    return engine;
-                }
-            }
-            throw new ArgumentException("Target engine not found");
         }
 
         private void UpdateStarPowerCount(int count)
@@ -183,12 +173,19 @@ namespace YARG.Core.Engine
             }
         }
 
-        public void Reset()
+        /// <summary>
+        /// Resets mutable state - stars, codas, fail meter, band combo, unison event successes.
+        /// </summary>
+        public void ResetState()
         {
             _activeCodaCount = 0;
             _currentStarIndex = 0;
             _previousHappiness = 100f;
             _starpowerCount = 0;
+            _activeCodaCount = 0;
+            _happinessAdjustment = 0f;
+            _lastUpdateTime = 0f;
+            _playerFailed = false;
             // These values are derived from others, so there's no reason to reset them
             // Score = 0; derived from all players' Score + BandBonusScore
             // Stars = 0; derived from Score
@@ -204,6 +201,8 @@ namespace YARG.Core.Engine
             {
                 unisonEvent.Reset();
             }
+
+            //_noFail = false; There should be no instance where we want to reset this
         }
 
         public void UpdateEngines(double time)
@@ -229,7 +228,43 @@ namespace YARG.Core.Engine
         {
             RemovePlayerFromUnisons(engineContainer);
             _allEngines.Remove(engineContainer);
-            _allEnginesById.Remove(engineContainer.EngineId);
+            engineContainer.UnsubscribeFromEvents();
+            RecalculateBandState();
+
+            if (engineContainer.BaseEngine.CodaHasStarted)
+            {
+                _activeCodaCount--;
+            }
+        }
+
+        /// <summary>
+        /// Unregisters all engines, removes all unison events, and resets all game state.
+        /// </summary>
+        public void Reset()
+        {
+            foreach (var engine in _allEngines)
+            {
+                engine.UnsubscribeFromEvents();
+            }
+            _allEngines.Clear();
+            _unisonEvents.Clear();
+            _nextEngineIndex = 0;
+            ResetState();
+        }
+
+        private void RecalculateBandState()
+        {
+            int activeSpCount = 0;
+            for (int i = 0; i < _allEngines.Count; i++)
+            {
+                var engine = _allEngines[i];
+                if (engine.BaseEngine.BaseStats.IsStarPowerActive)
+                    activeSpCount++;
+            }
+
+            UpdateStarPowerCount(activeSpCount);
+            UpdateBandMultiplier();
+            UpdateHappiness();
         }
     }
 }

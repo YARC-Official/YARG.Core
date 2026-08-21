@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using YARG.Core.Chart;
 using YARG.Core.Input;
@@ -128,7 +128,7 @@ namespace YARG.Core.Engine
 
         public double BaseTimeInStarPower { get; protected set; }
 
-        public          int[]  StarScoreThresholds { get; protected set;  }
+        public          int[]?  StarScoreThresholds { get; protected set;  }
 
         public readonly struct EngineFrameUpdate
         {
@@ -149,7 +149,6 @@ namespace YARG.Core.Engine
 
         protected double LaneAutohitExpireTime;
         public bool IsLaneActive => RequiredLaneNote != -1;
-        public bool LanesExist => CurrentLaneIndex <= TotalLanes;
 
         /// <summary>
         /// Whether or not the specified engine should treat a note as a chord, or separately.
@@ -428,7 +427,6 @@ namespace YARG.Core.Engine
             CodaHasStarted = false;
 
             TotalLanes = 0;
-            CurrentLaneIndex = 1;
             RequiredLaneNote = -1;
             NextTrillNote = -1;
             LaneAutohitExpireTime = -1;

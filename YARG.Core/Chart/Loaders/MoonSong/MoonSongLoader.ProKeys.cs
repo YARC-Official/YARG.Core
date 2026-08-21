@@ -87,7 +87,7 @@ namespace YARG.Core.Chart
                     continue;
                 }
 
-                var notesInPhrase = GetNotesInLanePhrase(chart.Phrases, phraseIndex, chart.Notes, noteIndex, out noteIndex);
+                var notesInPhrase = GetNotesInLanePhrase(chart.Phrases, phraseIndex, chart.Notes, noteIndex, out noteIndex, false);
 
                 var laneNotes = GetProKeysTrillNotes(notesInPhrase);
 

@@ -130,6 +130,116 @@ namespace YARG.Core.Chart
             return events.OrderBy(e => e.Time).ToList();
         }
 
+        //TODO: This should really take into account vocal note length if an associated note exists
+        public static List<LipsyncEvent> GenerateFromVocalsPart(VocalsPart part)
+        {
+            var events = new List<LipsyncEvent>();
+            var defaultViseme = LipsyncEvent.LipsyncType.Neutral_lo;
+
+            var random = new Random();
+            var nextBlinkTime = 2.0 + random.NextDouble() * 3.0; // First blink between 2-5s
+            var nextExpressionTime = 4.0 + random.NextDouble() * 4.0; // First expression between 4-8s
+
+            foreach (var phrase in part.StaticLyricPhrases)
+            {
+                if (phrase.Lyrics.Count == 0)
+                    continue;
+
+                // Add expression at phrase start occasionally
+                if (phrase.Time > nextExpressionTime && random.NextDouble() > 0.5)
+                {
+                    AddRandomExpression(events, phrase.Time, phrase.TimeLength, random);
+                    nextExpressionTime = phrase.Time + phrase.TimeLength + 3.0 + random.NextDouble() * 5.0;
+                }
+
+                for (int i = 0; i < phrase.Lyrics.Count; i++)
+                {
+                    var lyric = phrase.Lyrics[i];
+
+                    var text = LyricSymbols.StripForVocals(lyric.Text);
+                    if (string.IsNullOrWhiteSpace(text))
+                        continue;
+
+                    // Add blinks if enough time has passed
+                    while (nextBlinkTime < lyric.Time)
+                    {
+                        events.Add(new LipsyncEvent(LipsyncEvent.LipsyncType.Blink, 1.0f, nextBlinkTime, 0));
+                        events.Add(new LipsyncEvent(LipsyncEvent.LipsyncType.Blink, 0f, nextBlinkTime + 0.15, 0));
+                        nextBlinkTime += 2.0 + random.NextDouble() * 4.0; // Next blink in 2-6s
+                    }
+
+                    var syllable = GetSyllableForLyric(text);
+
+                    YargLogger.LogFormatTrace("Lyric '{0}' at tick {1} -> Initial: [{2}], Vowel: {3}, VowelEnd: {4}, Final: [{5}]",
+                        (object)text, (object)lyric.Tick,
+                        (object)string.Join(", ", syllable.Initial),
+                        (object)syllable.VowelMain,
+                        (object)(syllable.VowelEnd?.ToString() ?? "none"),
+                        (object)string.Join(", ", syllable.Final));
+
+                    var endTime = i < phrase.Lyrics.Count - 1
+                        ? phrase.Lyrics[i + 1].Time
+                        : phrase.Time + phrase.TimeLength;
+
+                    var duration = endTime - lyric.Time;
+                    var initialBack = Math.Min(HALF_TRANSITION, duration / 2);
+                    var finalFront = Math.Min(HALF_TRANSITION, duration / 2);
+
+                    var startTime = lyric.Time;
+                    var eventCountBefore = events.Count;
+
+                    // Transition to initial consonants or vowel
+                    if (syllable.Initial.Count > 0)
+                    {
+                        AddTransition(events, startTime, initialBack,
+                            defaultViseme, syllable.Initial, lyric.Tick);
+                        startTime += initialBack;
+                    }
+
+                    // Hold vowel (with diphthong if present)
+                    var vowelDuration = duration - initialBack - finalFront;
+                    if (syllable.VowelEnd.HasValue)
+                    {
+                        // Diphthong: transition from main to end vowel
+                        AddDiphthong(events, startTime, vowelDuration,
+                            syllable.VowelMain, syllable.VowelEnd.Value, lyric.Tick);
+                    }
+                    else
+                    {
+                        events.Add(new LipsyncEvent(syllable.VowelMain, VISEME_WEIGHT, startTime, lyric.Tick));
+                    }
+                    startTime += vowelDuration;
+
+                    // Transition through final consonants then close
+                    if (syllable.Final.Count > 0)
+                    {
+                        AddTransition(events, startTime, finalFront,
+                            syllable.VowelEnd ?? syllable.VowelMain, syllable.Final, lyric.Tick);
+                        startTime += finalFront;
+                    }
+
+                    // Close mouth - reset all visemes used in this syllable
+                    var usedVisemes = new HashSet<LipsyncEvent.LipsyncType>();
+                    usedVisemes.UnionWith(syllable.Initial);
+                    usedVisemes.Add(syllable.VowelMain);
+                    if (syllable.VowelEnd.HasValue)
+                        usedVisemes.Add(syllable.VowelEnd.Value);
+                    usedVisemes.UnionWith(syllable.Final);
+
+                    foreach (var viseme in usedVisemes)
+                    {
+                        events.Add(new LipsyncEvent(viseme, 0f, startTime, lyric.Tick));
+                    }
+
+                    var eventCount = events.Count - eventCountBefore;
+                    YargLogger.LogFormatTrace("  Generated {0} lipsync events for lyric '{1}'",
+                        (object)eventCount, (object)text);
+                }
+            }
+
+            return events.OrderBy(e => e.Time).ToList();
+        }
+
         private static void AddRandomExpression(List<LipsyncEvent> events, double time, double duration, Random random)
         {
             var expressions = new[]

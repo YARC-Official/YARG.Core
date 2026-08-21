@@ -96,6 +96,20 @@ namespace YARG.Core.Song
             return data;
         }
 
+        public override FixedArray<byte>? LoadVocData()
+        {
+            var data = LoadUpdateVocData();
+            if (data == null)
+            {
+                var path = Path.Combine(_root.FullName, _subName, _subName + ".voc");
+                if (File.Exists(path))
+                {
+                    data = FixedArray.LoadFile(path);
+                }
+            }
+            return data;
+        }
+
         protected FixedArray<byte>? GetMainMidiData(string fileExtension)
         {
             string path = Path.Combine(_root.FullName, _subName, _subName + fileExtension);

@@ -8,7 +8,7 @@ namespace YARG.Core.Game
 {
     public partial class ColorProfile : BasePreset, IBinarySerializable
     {
-        private const int COLOR_PROFILE_VERSION = 1;
+        private const int COLOR_PROFILE_VERSION = 2;
 
         /// <summary>
         /// Interface that has methods that allows for generic fret color retrieval.
