@@ -160,6 +160,8 @@ public class PreviewContextTests
         public override BackgroundResult? LoadBackground(bool excludeYarground = false) => null;
 
         public override FixedArray<byte>? LoadMiloData() => null;
+
+        public override FixedArray<byte>? LoadVocData() => null;
     }
 
     private sealed class FakeAudioManager : AudioManager
