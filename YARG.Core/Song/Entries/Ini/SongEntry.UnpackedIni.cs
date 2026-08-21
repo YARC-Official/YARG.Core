@@ -32,7 +32,7 @@ namespace YARG.Core.Song
 
         public override StemMixer? LoadAudio(float speed, double volume, bool enableCensoring, params SongStem[] ignoreStems)
         {
-            bool clampStemVolume = _metadata.Source.ToLowerInvariant() == "yarg";
+            bool clampStemVolume = GlobalAudioHandler.CLAMPED_AUDIO_SOURCES.Contains(_metadata.Source.ToLowerInvariant());
             var mixer = GlobalAudioHandler.CreateMixer(ToString(), speed, volume, clampStemVolume: clampStemVolume,
                 normalize: true);
             if (mixer == null)
@@ -206,6 +206,23 @@ namespace YARG.Core.Song
             foreach (var name in subFiles.Keys)
             {
                 if (name.EndsWith(".milo_xbox") || name.EndsWith(".milo"))
+                {
+                    if (subFiles.TryGetValue(name, out var file) && File.Exists(file))
+                    {
+                        return FixedArray.LoadFile(file);
+                    }
+                }
+            }
+
+            return null;
+        }
+        // this is included for completeness, but please do not use this
+        public override FixedArray<byte> LoadVocData()
+        {
+            var subFiles = GetSubFiles();
+            foreach (var name in subFiles.Keys)
+            {
+                if (name.EndsWith(".voc"))
                 {
                     if (subFiles.TryGetValue(name, out var file) && File.Exists(file))
                     {

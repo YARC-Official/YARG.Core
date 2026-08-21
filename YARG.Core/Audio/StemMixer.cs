@@ -133,7 +133,7 @@ namespace YARG.Core.Audio
         /// Creates a one-shot channel from an owned sample stream and its scheduled play times.
         /// </summary>
         public abstract OneShotChannel CreateOneShotChannel(int sampleStream,
-            IReadOnlyList<double> scheduledPlays, double outputLeadTime = 0);
+            IReadOnlyList<double> scheduledPlays, double outputLeadTime = 0, OutputChannel? outputChannel = null);
 
         /// <summary>
         /// Creates a tone mixed into this song, or <c>null</c> if the backend cannot provide one.

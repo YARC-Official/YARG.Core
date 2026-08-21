@@ -160,6 +160,8 @@ public class PreviewContextTests
         public override BackgroundResult? LoadBackground(bool excludeYarground = false) => null;
 
         public override FixedArray<byte>? LoadMiloData() => null;
+
+        public override FixedArray<byte>? LoadVocData() => null;
     }
 
     private sealed class FakeAudioManager : AudioManager
@@ -186,6 +188,8 @@ public class PreviewContextTests
 
         public override void LoadVenueSample(string name, byte[] sampleData, OutputChannel? outputChannel = null) { }
         public override void ClearVenueSamples() { }
+        protected internal override void PlayMetronomeSoundEffectToChannel(MetronomeSample sample,
+            MetronomePitch pitch, int channelId) { }
 
 
         protected override void SetBufferLength_Internal(int length) { }
@@ -208,7 +212,8 @@ public class PreviewContextTests
         }
 
         public override OneShotChannel CreateOneShotChannel(int sampleStream,
-            IReadOnlyList<double> scheduledPlays, double outputLeadTime = 0) => new EmptyOneShotChannel();
+            IReadOnlyList<double> scheduledPlays, double outputLeadTime = 0,
+            OutputChannel? outputChannel = null) => new EmptyOneShotChannel();
 
         private sealed class EmptyOneShotChannel : OneShotChannel
         {

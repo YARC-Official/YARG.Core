@@ -16,6 +16,7 @@ namespace YARG.Core.Audio
     {
         public const int WHAMMY_FFT_DEFAULT        = 2048;
         public const int WHAMMY_OVERSAMPLE_DEFAULT = 8;
+        public static readonly string[] CLAMPED_AUDIO_SOURCES = { "yarg", "yargdlc", "yarn" };
         public static readonly int MAX_THREADS = Environment.ProcessorCount switch
         {
             >= 16 => 16,
@@ -442,6 +443,20 @@ namespace YARG.Core.Audio
             }
         }
 
+        public static void PlayMetronomeSoundEffectToChannel(MetronomeSample sample, MetronomePitch pitch,
+            int channelId)
+        {
+            lock (_instanceLock)
+            {
+                if (_instance == null)
+                {
+                    throw new NotInitializedException();
+                }
+
+                _instance.PlayMetronomeSoundEffectToChannel(sample, pitch, channelId);
+            }
+        }
+
         public static int CreateMetronomeStream(MetronomeSample sample, MetronomePitch pitch)
         {
             lock (_instanceLock)
@@ -584,6 +599,19 @@ namespace YARG.Core.Audio
                     throw new NotInitializedException();
                 }
                 return _instance.GetOutputChannelCount();
+            }
+        }
+
+        public static OutputChannel? CreateOutputChannel(int channelId)
+        {
+            lock (_instanceLock)
+            {
+                if (_instance == null)
+                {
+                    throw new NotInitializedException();
+                }
+
+                return _instance.CreateOutputChannel(channelId);
             }
         }
 

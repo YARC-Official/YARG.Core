@@ -15,14 +15,16 @@ namespace YARG.Core.Chart
     /// </summary>
     public class MiloVenue
     {
-        public List<CharacterState>         CharacterStates      { get; } = new();
-        public List<CameraCutEvent>         CameraCuts           { get; } = new();
-        public List<CrowdEvent>             CrowdEvents          { get; } = new();
-        public List<PostProcessingEvent>    PostProcessingEvents { get; } = new();
-        public List<LightingEvent>          LightingEvents       { get; } = new();
-        public List<StageEffectEvent>       StageEvents          { get; } = new();
-        public List<PerformerEvent>         PerformerEvents      { get; } = new();
-        public List<LipsyncEvent>           LipsyncEvents        { get; } = new();
+        public List<CharacterState> CharacterStates { get; } = new();
+        public List<CameraCutEvent> CameraCuts { get; } = new();
+        public List<CrowdEvent> CrowdEvents { get; } = new();
+        public List<PostProcessingEvent> PostProcessingEvents { get; } = new();
+        public List<LightingEvent> LightingEvents { get; } = new();
+        public List<StageEffectEvent> StageEvents { get; } = new();
+        public List<PerformerEvent> PerformerEvents { get; } = new();
+        public List<List<LipsyncEvent>> LipsyncEventsByPart { get; } = new();
+        public Performer[] SingerPreference { get; private set; } = Array.Empty<Performer>();
+        public MiloAnimation.MiloAnimationGenre AnimationGenre { get; private set; } = MiloAnimation.MiloAnimationGenre.Rock;
 
         private List<MiloAnimationEvent> _rawEvents = new();
 
@@ -30,7 +32,7 @@ namespace YARG.Core.Chart
         private readonly SongEntry _song;
 
         private int                          _rawEventIndex;
-        private List<MiloLipsync.VisemeData> _lipsyncData = new();
+        private List<MiloLipsync.VisemeData>[] _lipsyncData = Array.Empty<List<MiloLipsync.VisemeData>>();
 
         public MiloVenue(SongChart chart, SongEntry song)
         {
@@ -47,12 +49,13 @@ namespace YARG.Core.Chart
                 using (var miloReader = new MiloAnimation(miloData))
                 {
                     _rawEvents = miloReader.GetMiloAnimation();
+                    AnimationGenre = miloReader.GetAnimationGenre();
                 }
 
                 using(var lipsyncReader = new MiloLipsync(miloData))
                 {
                     _lipsyncData = lipsyncReader.GetLipsyncData();
-
+                    SingerPreference = lipsyncReader.GetSingerPreferenceFromMilo();
                 }
             }
             else
@@ -114,7 +117,10 @@ namespace YARG.Core.Chart
 
             // Deal with lipsync now
             HandleLipsync();
-            LipsyncEvents.Sort((a, b) => a.Time.CompareTo(b.Time));
+            foreach (var harmonyLipsync in LipsyncEventsByPart)
+            {
+                harmonyLipsync.Sort((a, b) => a.Time.CompareTo(b.Time));
+            }
         }
 
         private void HandleStage()
@@ -286,17 +292,23 @@ namespace YARG.Core.Chart
 
         private void HandleLipsync()
         {
-            foreach (var viseme in _lipsyncData)
+            for (int i = 0; i < _lipsyncData.Length; i++)
             {
-                // Scale 0-255 int to 0.0-1.0 float
-                var value = viseme.Value / 255.0f;
-                var time = viseme.StartTime;
-
-                if (VisemeLookup.TryGetValue(viseme.Viseme, out var lipsyncType))
+                var lipsyncData = _lipsyncData[i];
+                var events = new List<LipsyncEvent>();
+                foreach (var viseme in lipsyncData)
                 {
-                    LipsyncEvents.Add(new LipsyncEvent(lipsyncType, value, time,
-                        _chart.SyncTrack.TimeToTick(time)));
+                    // Scale 0-255 int to 0.0-1.0 float
+                    var value = viseme.Value / 255.0f;
+                    var time = viseme.StartTime;
+
+                    if (VisemeLookup.TryGetValue(viseme.Viseme, out var lipsyncType))
+                    {
+                        events.Add(new LipsyncEvent(lipsyncType, value, time,
+                            _chart.SyncTrack.TimeToTick(time)));
+                    }
                 }
+                LipsyncEventsByPart.Add(events);
             }
         }
 
@@ -324,7 +336,7 @@ namespace YARG.Core.Chart
             { MiloAnimationType.SpotKeyboard, PerformerEventType.Spotlight }
         };
 
-        private static readonly Dictionary<Visemes, LipsyncType> VisemeLookup = new()
+        public static readonly Dictionary<Visemes, LipsyncType> VisemeLookup = new()
         {
                 // Actual visemes
                 { Visemes.Bump_hi, LipsyncType.Bump_hi },

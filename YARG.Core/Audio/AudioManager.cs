@@ -116,6 +116,9 @@ namespace YARG.Core.Audio
 
         public abstract void ClearVenueSamples();
 
+        protected internal abstract void PlayMetronomeSoundEffectToChannel(MetronomeSample sample,
+            MetronomePitch pitch, int channelId);
+
         protected internal virtual void SetOutputChannel(OutputChannel channel)
         {
             foreach (StemMixer mixer in SnapshotActiveMixers())

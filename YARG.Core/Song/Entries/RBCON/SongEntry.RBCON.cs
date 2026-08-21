@@ -202,7 +202,7 @@ namespace YARG.Core.Song
             int start = stream.Read<int>(Endianness.Little);
             stream.Seek(start, SeekOrigin.Begin);
 
-            bool clampStemVolume = _metadata.Source.ToLowerInvariant() == "yarg";
+            bool clampStemVolume = GlobalAudioHandler.CLAMPED_AUDIO_SOURCES.Contains(_metadata.Source.ToLowerInvariant());
             var mixer = GlobalAudioHandler.CreateMixer(ToString(), speed, volume, clampStemVolume: clampStemVolume,
                 normalize: true);
             if (mixer == null)
@@ -663,6 +663,20 @@ namespace YARG.Core.Song
                 if (File.Exists(updateMiloPath))
                 {
                     data = FixedArray.LoadFile(updateMiloPath);
+                }
+            }
+            return data;
+        }
+
+        protected FixedArray<byte>? LoadUpdateVocData()
+        {
+            var data = default(FixedArray<byte>);
+            if (_updateDirectoryAndDtaLastWrite.HasValue)
+            {
+                string updateVocPath = Path.Combine(_updateDirectoryAndDtaLastWrite.Value.FullName, _subName, _subName + ".voc");
+                if (File.Exists(updateVocPath))
+                {
+                    data = FixedArray.LoadFile(updateVocPath);
                 }
             }
             return data;

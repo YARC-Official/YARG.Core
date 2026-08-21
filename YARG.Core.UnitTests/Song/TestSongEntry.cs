@@ -136,4 +136,6 @@ internal sealed class TestSongEntry : SongEntry
     public override BackgroundResult? LoadBackground(bool excludeYarground) => null;
 
     public override FixedArray<byte>? LoadMiloData() => null;
+
+    public override FixedArray<byte>? LoadVocData() => null;
 }
