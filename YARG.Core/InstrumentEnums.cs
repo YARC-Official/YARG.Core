@@ -163,6 +163,32 @@ namespace YARG.Core
 
     public static class ChartEnumExtensions
     {
+        /// <summary>
+        /// Maps a 6-fret instrument to its 5-fret equivalent for chart fallback.
+        /// When a 6-fret chart is not available, the corresponding 5-fret chart
+        /// can be used instead since fret values map 1:1 (Green=1→Black1=1, etc.).
+        /// </summary>
+        public static Instrument ToFiveFretEquivalent(this Instrument instrument)
+        {
+            return instrument switch
+            {
+                Instrument.SixFretGuitar    => Instrument.FiveFretGuitar,
+                Instrument.SixFretBass      => Instrument.FiveFretBass,
+                Instrument.SixFretRhythm    => Instrument.FiveFretRhythm,
+                Instrument.SixFretCoopGuitar => Instrument.FiveFretCoopGuitar,
+                _ => instrument
+            };
+        }
+
+        /// <summary>
+        /// Checks if an instrument is a 6-fret guitar variant.
+        /// </summary>
+        public static bool IsSixFret(this Instrument instrument)
+        {
+            return instrument is Instrument.SixFretGuitar or Instrument.SixFretBass
+                or Instrument.SixFretRhythm or Instrument.SixFretCoopGuitar;
+        }
+
         public static GameMode ToNativeGameMode(this Instrument instrument)
         {
             return instrument switch
@@ -282,6 +308,18 @@ namespace YARG.Core
                         Instrument.ProDrums,
                         //Instrument.EliteDrums,
                     },
+                GameMode.SixFretGuitar => new[]
+                {
+                    Instrument.SixFretGuitar,
+                    Instrument.SixFretBass,
+                    Instrument.SixFretRhythm,
+                    Instrument.SixFretCoopGuitar,
+                    // Allow selecting 5-fret tracks in 6-fret mode (pro keys pattern)
+                    Instrument.FiveFretGuitar,
+                    Instrument.FiveFretBass,
+                    Instrument.FiveFretRhythm,
+                    Instrument.FiveFretCoopGuitar,
+                },
                 _  => PossibleInstruments(gameMode)
             };
         }

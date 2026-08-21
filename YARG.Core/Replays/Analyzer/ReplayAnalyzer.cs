@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Text;
 using YARG.Core.Chart;
@@ -238,6 +238,24 @@ namespace YARG.Core.Replays.Analyzer
                     manager.Register((GuitarEngine)engine, notes, _chart, rockMeterPreset);
                     break;
                 }
+                case GameMode.SixFretGuitar:
+                {
+                    var instrument = frame.Profile.CurrentInstrument;
+                    InstrumentTrack<GuitarNote> track;
+                    if (instrument.IsSixFret())
+                    {
+                        track = _chart.GetSixFretTrack(instrument);
+                    }
+                    else
+                    {
+                        // Replay recorded with a 5-fret instrument selected in 6-fret mode
+                        track = _chart.GetFiveFretTrack(instrument);
+                    }
+                    var notes = track.GetDifficulty(frame.Profile.CurrentDifficulty).Clone();
+                    profile.ApplyModifiers(notes, _chart.SyncTrack);
+                    manager.Register((GuitarEngine)engine, notes, _chart, rockMeterPreset);
+                    break;
+                }
                 case GameMode.FourLaneDrums:
                 case GameMode.FiveLaneDrums:
                 case GameMode.EliteDrums:
@@ -302,6 +320,35 @@ namespace YARG.Core.Replays.Analyzer
 
                     // Create engine
                     return new YargFiveFretGuitarEngine(
+                        notes,
+                        _chart.SyncTrack,
+                        (GuitarEngineParameters) parameters,
+                        profile.IsBot);
+                }
+                case GameMode.SixFretGuitar:
+                {
+                    var instrument = profile.CurrentInstrument;
+                    InstrumentTrack<GuitarNote> track;
+                    if (instrument.IsSixFret())
+                    {
+                        track = _chart.GetSixFretTrack(instrument);
+                    }
+                    else
+                    {
+                        // Replay recorded with a 5-fret instrument selected in 6-fret mode
+                        track = _chart.GetFiveFretTrack(instrument);
+                    }
+                    var notes = track.GetDifficulty(profile.CurrentDifficulty).Clone();
+                    profile.ApplyModifiers(notes, _chart.SyncTrack);
+                    foreach (var note in notes.Notes)
+                    {
+                        foreach (var subNote in note.AllNotes)
+                        {
+                            subNote.ResetNoteState();
+                        }
+                    }
+
+                    return new YargSixFretGuitarEngine(
                         notes,
                         _chart.SyncTrack,
                         (GuitarEngineParameters) parameters,
