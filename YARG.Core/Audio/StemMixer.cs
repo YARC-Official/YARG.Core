@@ -10,8 +10,7 @@ namespace YARG.Core.Audio
     /// <remarks>
     /// A segment whose pitches are equal is held; unequal pitches are interpolated linearly across
     /// the segment. Segments must be sorted by <see cref="StartTime"/> and must not overlap; the
-    /// tone is silent outside them. The layout is shared with the audio backend, so the field order
-    /// and types must not be changed.
+    /// tone is silent outside them.
     /// </remarks>
     public readonly struct ToneSegment
     {
