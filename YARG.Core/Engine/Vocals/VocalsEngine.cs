@@ -182,11 +182,21 @@ namespace YARG.Core.Engine.Vocals
             }
         }
 
+        /// <summary>
+        /// When false, <see cref="MissNote(VocalNote, double)"/> will not strip the
+        /// StarPower flag off the (shared) note on a miss. Coordinator sub-engines set
+        /// this so an individual mic's miss can't clear SP from notes that the
+        /// authoritative coordinator still needs to score — the sub-engines and the
+        /// coordinator share the same VocalNote objects. Standalone engines (solo,
+        /// single-mic free vocals) keep the default.
+        /// </summary>
+        protected bool StripStarPowerOnMiss { get; set; } = true;
+
         protected void MissNote(VocalNote note, double hitPercent)
         {
             note.SetMissState(true, false);
 
-            if (note.IsStarPower)
+            if (note.IsStarPower && StripStarPowerOnMiss)
             {
                 StripStarPower(note);
             }
@@ -261,7 +271,14 @@ namespace YARG.Core.Engine.Vocals
             return null;
         }
 
-        protected static VocalNote? GetNextPercussionNote(VocalNote phrase, uint tick)
+        // <paramref name="isResolved"/> lets a caller decide which percussion notes are
+        // already done WITHOUT relying on the note's own WasHit/WasMissed flags. The
+        // PartyVocalsCoordinatorEngine scores percussion off shared VocalNote objects, so
+        // it must not mutate hit-state (that leaks across engines — see the SP-earning
+        // bug); it tracks consumed notes locally and passes that lookup here instead.
+        // The default (null) preserves the original WasHit/WasMissed behavior for solo.
+        protected static VocalNote? GetNextPercussionNote(VocalNote phrase, uint tick,
+            Func<VocalNote, bool>? isResolved = null)
         {
             foreach (var note in phrase.ChildNotes)
             {
@@ -271,8 +288,11 @@ namespace YARG.Core.Engine.Vocals
                     continue;
                 }
 
-                // Skip hit/missed percussion notes
-                if (note.IsPercussion && (note.WasHit || note.WasMissed))
+                // Skip already-resolved (hit/missed) percussion notes
+                bool resolved = isResolved is not null
+                    ? isResolved(note)
+                    : note.WasHit || note.WasMissed;
+                if (note.IsPercussion && resolved)
                 {
                     continue;
                 }

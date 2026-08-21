@@ -16,7 +16,7 @@ namespace YARG.Core.Chart
             return instrument switch
             {
                 Instrument.Vocals => LoadSoloVocals(instrument),
-                Instrument.Harmony => LoadHarmonyVocals(instrument),
+                Instrument.Harmony or Instrument.PartyVocals => LoadHarmonyVocals(instrument),
                 _ => throw new ArgumentException($"Instrument {instrument} is not a drums instrument!", nameof(instrument))
             };
         }
