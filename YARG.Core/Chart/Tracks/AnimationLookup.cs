@@ -21,6 +21,7 @@ namespace YARG.Core.Chart
         public const string ANIMATION_STATE_IDLE          = "idle";
         public const string ANIMATION_STATE_IDLE_REALTIME = "idle_realtime";
         public const string ANIMATION_STATE_IDLE_INTENSE  = "idle_intense";
+        public const string ANIMATION_STATE_IDLE_MELLOW   = "idle_mellow";
         public const string ANIMATION_STATE_PLAY          = "play";
         public const string ANIMATION_STATE_PLAY_SOLO     = "play_solo";
         public const string ANIMATION_STATE_PLAY_INTENSE  = "intense";
@@ -99,6 +100,7 @@ namespace YARG.Core.Chart
             { "idle", ANIMATION_STATE_IDLE },
             { "idle_realtime", ANIMATION_STATE_IDLE_REALTIME },
             { "idle_intense", ANIMATION_STATE_IDLE_INTENSE },
+            { "idle_mellow", ANIMATION_STATE_IDLE_MELLOW },
             { "play", ANIMATION_STATE_PLAY },
             { "play_solo", ANIMATION_STATE_PLAY_SOLO },
             { "intense", ANIMATION_STATE_PLAY_INTENSE },

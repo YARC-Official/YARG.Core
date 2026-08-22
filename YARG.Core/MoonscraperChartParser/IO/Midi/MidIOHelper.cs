@@ -69,7 +69,7 @@ namespace MoonscraperChartEditor.Song.IO
         public static readonly Regex RightHandMapRegex = new("map (StrumMap_.*)", RegexOptions.Compiled | RegexOptions.Singleline);
 
         // For good measure, we'll make a regex that we may end up not using
-        public static readonly Regex CharacterStateRegex = new("^(idle(_realtime?|_intense?)|play(_solo?)|intense|mellow)$", RegexOptions.Compiled | RegexOptions.Singleline);
+        public static readonly Regex CharacterStateRegex = new("^(idle(_realtime?|_intense?|_mellow?)|play(_solo?)|intense|mellow)$", RegexOptions.Compiled | RegexOptions.Singleline);
 
         // Note numbers
         public const byte DOUBLE_KICK_NOTE = 95;

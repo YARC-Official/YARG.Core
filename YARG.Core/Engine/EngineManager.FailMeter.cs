@@ -60,6 +60,7 @@ namespace YARG.Core.Engine
         private const float HAPPINESS_FAIL_LOSS             = 0.05f;
 
         public  float Happiness => GetAverageHappiness();
+        public  bool IsCrowdBelowThreshold => Happiness < HAPPINESS_CROWD_THRESHOLD;
 
         // We set this to max because the crowd stem is enabled by default and we want the first
         // update to disable the crowd stem when the rock meter preset has an initial happiness
