@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 
 namespace YARG.Core.Game
@@ -71,6 +71,13 @@ namespace YARG.Core.Game
                     Modifier.TapsToHopos   |
                     Modifier.RangeCompress |
                     Modifier.OpensToGreens,
+
+                GameMode.SixFretGuitar =>
+                    Modifier.AllStrums     |
+                    Modifier.AllHopos      |
+                    Modifier.AllTaps       |
+                    Modifier.HoposToTaps   |
+                    Modifier.TapsToHopos,
 
                 GameMode.FourLaneDrums or
                 GameMode.FiveLaneDrums or
