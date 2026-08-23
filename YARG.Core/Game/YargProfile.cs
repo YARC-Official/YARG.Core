@@ -380,49 +380,43 @@ namespace YARG.Core.Game
 
         public void ApplyModifiers<TNote>(InstrumentDifficulty<TNote> track, SyncTrack syncTrack) where TNote : Note<TNote>
         {
-            InstrumentDifficulty<GuitarNote>? guitarTrack = null;
-            if (GameMode is GameMode.FiveFretGuitar or GameMode.SixFretGuitar)
-            {
-                if (track is not InstrumentDifficulty<GuitarNote> gt)
-                {
-                    throw new InvalidOperationException("Cannot apply guitar modifiers to non-guitar track " +
-                        $"with notes of {typeof(TNote)}!");
-                }
-                guitarTrack = gt;
-            }
-
             switch (GameMode)
             {
                 case GameMode.FiveFretGuitar:
+                case GameMode.SixFretGuitar:
+                    if (track is not InstrumentDifficulty<GuitarNote> guitarTrack)
+                    {
+                        throw new InvalidOperationException("Cannot apply guitar modifiers to non-guitar track " +
+                            $"with notes of {typeof(TNote)}!");
+                    }
+
                     if (IsModifierActive(Modifier.OpensToGreens))
                     {
-                        guitarTrack!.ConvertFromOpenToGreen(syncTrack);
+                        guitarTrack.ConvertFromOpenToGreen(syncTrack);
                     }
-                    if (IsModifierActive(Modifier.RangeCompress))
-                    {
-                        guitarTrack.CompressGuitarRange();
-                    }
-                    goto case GameMode.SixFretGuitar;
-                case GameMode.SixFretGuitar:
                     if (IsModifierActive(Modifier.AllStrums))
                     {
-                        guitarTrack!.ConvertToGuitarType(GuitarNoteType.Strum);
+                        guitarTrack.ConvertToGuitarType(GuitarNoteType.Strum);
                     }
                     else if (IsModifierActive(Modifier.AllHopos))
                     {
-                        guitarTrack!.ConvertToGuitarType(GuitarNoteType.Hopo);
+                        guitarTrack.ConvertToGuitarType(GuitarNoteType.Hopo);
                     }
                     else if (IsModifierActive(Modifier.AllTaps))
                     {
-                        guitarTrack!.ConvertToGuitarType(GuitarNoteType.Tap);
+                        guitarTrack.ConvertToGuitarType(GuitarNoteType.Tap);
                     }
                     else if (IsModifierActive(Modifier.HoposToTaps))
                     {
-                        guitarTrack!.ConvertFromTypeToType(GuitarNoteType.Hopo, GuitarNoteType.Tap);
+                        guitarTrack.ConvertFromTypeToType(GuitarNoteType.Hopo, GuitarNoteType.Tap);
                     }
                     else if (IsModifierActive(Modifier.TapsToHopos))
                     {
-                        guitarTrack!.ConvertFromTypeToType(GuitarNoteType.Tap, GuitarNoteType.Hopo);
+                        guitarTrack.ConvertFromTypeToType(GuitarNoteType.Tap, GuitarNoteType.Hopo);
+                    }
+                    else if (IsModifierActive(Modifier.RangeCompress))
+                    {
+                        guitarTrack.CompressGuitarRange();
                     }
 
                     break;
