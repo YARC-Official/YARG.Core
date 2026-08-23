@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using Melanchall.DryWetMidi.Core;
 using YARG.Core.Chart.Events;
@@ -304,12 +305,12 @@ namespace YARG.Core.Chart
             };
         }
 
-        public bool TryGetFiveFretDifficulty(Instrument instrument, Difficulty difficulty, out InstrumentDifficulty<GuitarNote> track)
+        public bool TryGetFiveFretDifficulty(Instrument instrument, Difficulty difficulty, [NotNullWhen(true)] out InstrumentDifficulty<GuitarNote>? track)
         {
             return GetFiveFretTrack(instrument).TryGetDifficulty(difficulty, out track);
         }
 
-        public bool TryGetSixFretDifficulty(Instrument instrument, Difficulty difficulty, out InstrumentDifficulty<GuitarNote> track)
+        public bool TryGetSixFretDifficulty(Instrument instrument, Difficulty difficulty, [NotNullWhen(true)] out InstrumentDifficulty<GuitarNote>? track)
         {
             return GetSixFretTrack(instrument).TryGetDifficulty(difficulty, out track);
         }
