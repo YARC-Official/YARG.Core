@@ -157,7 +157,7 @@ public class PreviewContextTests
 
         public override YARGImage? LoadAlbumData() => null;
 
-        public override BackgroundResult? LoadBackground(bool excludeYarground = false) => null;
+        public override BackgroundResult? LoadBackground(bool censoringEnabled, bool excludeYarground = false) => null;
 
         public override FixedArray<byte>? LoadMiloData() => null;
 
