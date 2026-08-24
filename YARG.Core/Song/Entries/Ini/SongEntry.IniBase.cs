@@ -128,6 +128,11 @@ namespace YARG.Core.Song
             return null;
         }
 
+        public override FixedArray<byte>? LoadVocData()
+        {
+            return null;
+        }
+
         protected new void Deserialize(ref FixedArrayStream stream, CacheReadStrings strings)
         {
             base.Deserialize(ref stream, strings);
@@ -289,12 +294,19 @@ namespace YARG.Core.Song
             return ScanResult.Success;
         }
 
-        protected static bool TryGetRandomBackgroundImage<TValue>(Dictionary<string, TValue> dict, out TValue? value)
+        protected static bool TryGetRandomBackgroundImage<TValue>(Dictionary<string, TValue> dict, bool enableCensoring, out TValue? value)
         {
+            var censorSuffix = enableCensoring ? CLEAN_BACKGROUND_SUFFIX : EXPLICIT_BACKGROUND_SUFFIX;
             // Choose a valid image background present in the folder at random
             List<TValue>? images = null;
+            List<TValue>? censoredImages = null;
             foreach (var format in IMAGE_EXTENSIONS)
             {
+                if (dict.TryGetValue("bg" + censorSuffix + format, out var censoredImage))
+                {
+                    censoredImages ??= new List<TValue>();
+                    censoredImages.Add(censoredImage);
+                }
                 if (dict.TryGetValue("bg" + format, out var image))
                 {
                     images ??= new List<TValue>();
@@ -313,20 +325,35 @@ namespace YARG.Core.Song
                 {
                     if (shortname.EndsWith(format))
                     {
-                        images ??= new List<TValue>();
-                        images.Add(image);
+                        if (shortname.EndsWith(censorSuffix + format))
+                        {
+                            censoredImages ??= new List<TValue>();
+                            censoredImages.Add(image);
+                        }
+                        else
+                        {
+                            images ??= new List<TValue>();
+                            images.Add(image);
+                        }
                         break;
                     }
                 }
             }
 
-            if (images == null)
+            if (censoredImages != null)
             {
-                value = default!;
-                return false;
+                value = censoredImages[BACKROUND_RNG.Next(censoredImages.Count)];
+                return true;
             }
-            value = images[BACKROUND_RNG.Next(images.Count)];
-            return true;
+
+            if (images != null)
+            {
+                value = images[BACKROUND_RNG.Next(images.Count)];
+                return true;
+            }
+
+            value = default!;
+            return false;
         }
 
         protected static DrumsType ParseDrumsType(in AvailableParts parts)

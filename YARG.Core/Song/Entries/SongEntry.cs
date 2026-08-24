@@ -60,6 +60,8 @@ namespace YARG.Core.Song
 
         protected const string YARGROUND_EXTENSION = ".yarground";
         protected const string YARGROUND_FULLNAME = "bg.yarground";
+        protected const string CLEAN_BACKGROUND_SUFFIX = "_clean";
+        protected const string EXPLICIT_BACKGROUND_SUFFIX = "_explicit";
         protected static readonly Random BACKROUND_RNG = new();
 
         private SortString _name = SortString.Empty;
@@ -94,6 +96,8 @@ namespace YARG.Core.Song
         public SortString Charter => _charter;
         public SortString Source => _source;
         public SortString Playlist => _playlist;
+
+        public string YargGuid => _metadata.YargGuid;
 
         public string CoveredBy => _metadata.CoveredBy;
 
@@ -365,6 +369,8 @@ namespace YARG.Core.Song
             stream.Write(node.Playlist, Endianness.Little);
             stream.Write(node.Source, Endianness.Little);
 
+            stream.Write(_metadata.YargGuid);
+
             stream.Write(_metadata.IsMaster);
             stream.Write(_metadata.VideoLoop);
 
@@ -458,6 +464,8 @@ namespace YARG.Core.Song
             _metadata.Charter =  strings.Charters [stream.Read<int>(Endianness.Little)];
             _metadata.Playlist = strings.Playlists[stream.Read<int>(Endianness.Little)];
             _metadata.Source =   strings.Sources  [stream.Read<int>(Endianness.Little)];
+
+            _metadata.YargGuid = stream.ReadString();
 
             _metadata.IsMaster =  stream.ReadBoolean();
             _metadata.VideoLoop = stream.ReadBoolean();

@@ -519,6 +519,20 @@ namespace YARG.Core.Song
             return data;
         }
 
+        protected FixedArray<byte>? LoadUpdateVocData()
+        {
+            var data = default(FixedArray<byte>);
+            if (_updateDirectoryAndDtaLastWrite.HasValue)
+            {
+                string updateVocPath = Path.Combine(_updateDirectoryAndDtaLastWrite.Value.FullName, _subName, _subName + ".voc");
+                if (File.Exists(updateVocPath))
+                {
+                    data = FixedArray.LoadFile(updateVocPath);
+                }
+            }
+            return data;
+        }
+
         private static void WriteUpdateInfo(in AbridgedFileInfo? info, MemoryStream stream)
         {
             stream.Write(info != null);
