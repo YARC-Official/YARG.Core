@@ -13,13 +13,14 @@ namespace YARG.Core.Chart
         ///
         /// The 5-fret and 6-fret fret values coincide numerically (Green-Orange = Black1-White2,
         /// Open is shared), so most notes map 1:1. However, a naive mapping can produce illegal
-        /// 6-fret chords: two notes sharing a lane form a barre, and charting rules forbid any
-        /// other chord note in a lane to the LEFT of a barre.
+        /// or unplayable 6-fret chords: two notes sharing a lane form a barre, and charting rules
+        /// forbid any other chord note in a lane to the LEFT of a barre.
         ///
         /// Conversion therefore walks the track sequentially, mirroring how human charters re-chart:
-        /// each chord is placed at the legal, fret-order-preserving position closest to where the
-        /// previous chord was placed (minimizing hand travel). The first chord prefers the direct
-        /// mapping when it is legal.
+        /// each chord is placed at the legal, fret-order-preserving position that best preserves
+        /// the chart's movement (scored in lane space), keeps anchor phrases hold-and-tap playable,
+        /// and avoids stacking sustains or barre hopos. See
+        /// docs/5fret_to_6fret_conversion.md for the full description.
         ///
         /// A legal 6-fret chord can hold at most 4 notes (one barre plus one note per lane to its
         /// right), so the 5-note open chord has no legal placement; its Orange member is dropped.
