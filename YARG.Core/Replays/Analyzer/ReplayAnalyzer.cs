@@ -240,18 +240,9 @@ namespace YARG.Core.Replays.Analyzer
                 }
                 case GameMode.SixFretGuitar:
                 {
-                    var instrument = frame.Profile.CurrentInstrument;
-                    InstrumentTrack<GuitarNote> track;
-                    if (instrument.IsSixFret())
-                    {
-                        track = _chart.GetSixFretTrack(instrument);
-                    }
-                    else
-                    {
-                        // Replay recorded with a 5-fret instrument selected in 6-fret mode
-                        track = _chart.GetFiveFretTrack(instrument);
-                    }
-                    var notes = track.GetDifficulty(frame.Profile.CurrentDifficulty).Clone();
+                    // Must match gameplay note selection (GetSixFretPlayableDifficulty) or replays fail verification
+                    var notes = _chart.GetSixFretPlayableDifficulty(frame.Profile.CurrentInstrument,
+                        frame.Profile.CurrentDifficulty).Clone();
                     profile.ApplyModifiers(notes, _chart.SyncTrack);
                     manager.Register((GuitarEngine)engine, notes, _chart, rockMeterPreset);
                     break;
@@ -327,18 +318,9 @@ namespace YARG.Core.Replays.Analyzer
                 }
                 case GameMode.SixFretGuitar:
                 {
-                    var instrument = profile.CurrentInstrument;
-                    InstrumentTrack<GuitarNote> track;
-                    if (instrument.IsSixFret())
-                    {
-                        track = _chart.GetSixFretTrack(instrument);
-                    }
-                    else
-                    {
-                        // Replay recorded with a 5-fret instrument selected in 6-fret mode
-                        track = _chart.GetFiveFretTrack(instrument);
-                    }
-                    var notes = track.GetDifficulty(profile.CurrentDifficulty).Clone();
+                    // Must match gameplay note selection (GetSixFretPlayableDifficulty) or replays fail verification
+                    var notes = _chart.GetSixFretPlayableDifficulty(profile.CurrentInstrument,
+                        profile.CurrentDifficulty).Clone();
                     profile.ApplyModifiers(notes, _chart.SyncTrack);
                     foreach (var note in notes.Notes)
                     {
