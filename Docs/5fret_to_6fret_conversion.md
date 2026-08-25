@@ -51,7 +51,7 @@ For each chord:
 
 ### 3.1 Member collection
 
-Open and Wildcard members keep their shared value (7/8), are excluded from lane logic, and their mask bits survive untouched. If more than 4 fretted members remain, **Orange is dropped** (see §3.7). Members are then sorted by fret.
+Open and Wildcard members keep their shared value (7/8), are excluded from lane logic, and their mask bits survive untouched. Members are then sorted by fret.
 
 ### 3.2 Candidates
 
