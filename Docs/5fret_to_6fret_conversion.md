@@ -26,7 +26,7 @@ However, GH Live charting rules make several naive placements **illegal or unpla
 2. **Sustain clarity** — a second sustain must not stack onto a lane that already has an overlapping sustain from a different note.
 3. **Barre hopos** — no pull-offs from a barre chord into a single in the barre's own lane, and no hammer-ons from a single onto a barre in the single's own lane.
 4. **Anchor phrases** — patterns like `YB,Y,Y,YB` are played by holding one note and tapping the other. The shared fret must keep its placed position across the phrase.
-5. **Capacity** — a legal 6-fret chord holds at most 4 fretted notes (one barre plus one note per lane to its right), so a 5-note chord has no legal placement at all.
+5. **Capacity** — a legal chord holds at most **5** fretted notes: two barres in the two leftmost lanes plus one single in the rightmost (e.g. `B1W1,B2W2,B3`). A triple barre is forbidden, and any single to the left of a barre is forbidden, so 6-note chords have no legal placement.
 
 ## 2. Where conversion runs
 
@@ -103,7 +103,7 @@ A phrase like `YB,Y,Y,YB` (or a sustained Y under `YB` chords) is played in 5-fr
 
 ### 3.7 Five-note chords
 
-`G,R,Y,B,O` cannot be placed legally (§1.5). The Orange member is removed and the remaining four are placed normally. This is the only case where conversion changes note count.
+`G,R,Y,B,O` fits exactly one legal shape family: two barres in the leftmost lanes plus a rightmost single — `B1W1,B2W2,B3` or `B1W1,B2W2,W3`. The candidate enumeration finds these automatically; no notes are dropped. (A 6-note chord — a triple barre — would have no legal placement, but 5-fret charts cannot produce one.)
 
 ## 4. Known limits
 

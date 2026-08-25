@@ -22,8 +22,9 @@ namespace YARG.Core.Chart
         /// and avoids stacking sustains or barre hopos. See
         /// Docs/5fret_to_6fret_conversion.md for the full description.
         ///
-        /// A legal 6-fret chord can hold at most 4 notes (one barre plus one note per lane to its
-        /// right), so the 5-note open chord has no legal placement; its Orange member is dropped.
+        /// Legality recap: no single note may sit in a lane to the left of a barre. Double barres
+        /// (e.g. B1W1+B2W2, optionally plus a rightmost single) are legal; a triple barre is not,
+        /// but cannot arise from 5-fret chords (it needs six notes).
         /// </summary>
         public static InstrumentDifficulty<GuitarNote> ConvertFiveFretToSixFret(this InstrumentDifficulty<GuitarNote> difficulty)
         {
@@ -134,12 +135,6 @@ namespace YARG.Core.Chart
             if (fretted == null || fretted.Count == 0)
             {
                 return (previousLane, previousIdentityCentroid);
-            }
-
-            // A legal 6-fret chord holds at most 4 fretted notes; drop Orange from 5-note chords
-            if (fretted.Count > 4)
-            {
-                RemoveOrangeMember(note, fretted);
             }
 
             // Members sorted by fret; candidates assign increasing 6-fret values (order-preserving)
@@ -385,22 +380,28 @@ namespace YARG.Core.Chart
         }
 
         /// <summary>
-        /// Whether the given fretted-bit mask forms a legal 6-fret chord: no note may sit in a
-        /// lane to the left of any barre (two notes sharing a lane).
+        /// Whether the given fretted-bit mask forms a legal 6-fret chord: no SINGLE note may sit
+        /// in a lane to the left of any barre (two notes sharing a lane). Notes belonging to
+        /// another barre to the left are fine, so double barres like B1W1+B2W2 (optionally plus
+        /// a rightmost single) are legal; a triple barre is not, but cannot arise from 5-fret
+        /// chords (it needs six notes).
         /// </summary>
         private static bool IsLegalSixFretChord(int mask)
         {
-            for (int lane = 0; lane < SixFretLaneMasks.Length; lane++)
+            int barreLanes = GetBarreLanes(mask);
+
+            for (int lane = 1; lane < SixFretLaneMasks.Length; lane++)
             {
-                if ((mask & SixFretLaneMasks[lane]) != SixFretLaneMasks[lane])
+                if ((barreLanes & (1 << lane)) == 0)
                 {
                     continue;
                 }
 
-                // Barre in this lane; nothing may exist in lanes to its left
+                // Barre in this lane; every lane to its left must be empty or barred too
                 for (int left = 0; left < lane; left++)
                 {
-                    if ((mask & SixFretLaneMasks[left]) != 0)
+                    int leftBits = mask & SixFretLaneMasks[left];
+                    if (leftBits != 0 && (barreLanes & (1 << left)) == 0)
                     {
                         return false;
                     }
@@ -440,43 +441,6 @@ namespace YARG.Core.Chart
         /// <summary>
         /// Removes the Orange member of a 5-note chord so the remainder can be placed legally.
         /// </summary>
-        private static void RemoveOrangeMember(GuitarNote note, List<GuitarNote> frettedMembers)
-        {
-            const int orangeMask = 1 << ((int) FiveFretGuitarFret.Orange - 1);
-
-            frettedMembers.RemoveAll(m => m.Fret == (int) FiveFretGuitarFret.Orange);
-            if (note.Fret != (int) FiveFretGuitarFret.Orange)
-            {
-                // Orange is a child; detach it
-                for (int i = note.ChildNotes.Count - 1; i >= 0; i--)
-                {
-                    if (note.ChildNotes[i].Fret == (int) FiveFretGuitarFret.Orange)
-                    {
-                        note.ChildNotes.RemoveAt(i);
-                    }
-                }
-                note.NoteMask &= ~orangeMask;
-                return;
-            }
-
-            // Orange is the parent: repoint it at the first surviving member and re-add the rest
-            note.ChildNotes.Clear();
-            if (frettedMembers.Count == 0)
-            {
-                note.NoteMask &= ~orangeMask;
-                note.DisjointMask &= ~orangeMask;
-                return;
-            }
-
-            note.Fret = frettedMembers[0].Fret;
-            note.DisjointMask = frettedMembers[0].DisjointMask;
-            note.NoteMask = 0;
-            foreach (var member in frettedMembers)
-            {
-                note.AddChildNote(member);
-            }
-        }
-
         public static void ConvertToGuitarType(this InstrumentDifficulty<GuitarNote> difficulty, GuitarNoteType type)
         {
             foreach (var note in difficulty.Notes)
