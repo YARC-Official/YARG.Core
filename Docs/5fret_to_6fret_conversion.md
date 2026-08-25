@@ -63,7 +63,7 @@ A candidate is rejected when any of the following fails. If *every* candidate is
 
 - **Barre legality** — for each lane containing both members, no chord note in any lane to its left.
 - **Sustain lanes** — no chord note may strike into a lane occupied by an active sustain, *except* when the chord **absorbs** that sustain: it contains the same 5-fret note and places it at the sustained fret. Absorption is what keeps anchor phrases with sustaining anchors playable (see §3.6).
-- **Barre hopo rule** — a single-note candidate may not sit in a lane where the previous chord had a barre, and a chord candidate may not barre the lane of the previous single.
+- **Barre hopo rule** — checked per lane between consecutive chords: a candidate may not barre a lane where the previous chord held a single note (hammer-on onto a barre), and may not place a note alone in a lane where the previous chord had a barre (pull-off from a barre). This applies even when the chords have other notes in different lanes.
 
 ### 3.4 Movement scoring
 

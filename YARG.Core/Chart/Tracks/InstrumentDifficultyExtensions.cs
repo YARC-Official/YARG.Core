@@ -181,17 +181,33 @@ namespace YARG.Core.Chart
             // When every lane is blocked by foreign sustains, the fallback pass places nearest.
             activeSustains.RemoveAll(s => s.TickEnd <= note.Tick);
 
-            // Hopo rule: no pull-offs from a barre into a single in the barre's own lane, and no
-            // hammer-ons from a single onto a barre in the single's own lane. Both directions are
-            // unplayable/ambiguous on a barre lane pair.
-            int previousMask = 0;
-            foreach (var fret in previousPlacedFrets)
+            // Hopo rule: no pull-offs from a barre into a note alone in the barre's own lane, and
+            // no hammer-ons onto a barre in a lane where the previous chord held a single note —
+            // holding one button of a lane while hammering the other into a barre (or releasing
+            // it off a barre) is ambiguous/unplayable. Composition is checked per lane, so the
+            // rule also applies when the chords have other notes in different lanes.
+            int previousSingleLanes = 0;
+            int previousBarreLanes = 0;
+            for (int lane = 0; lane < 3; lane++)
             {
-                previousMask |= 1 << (fret - 1);
+                int laneCount = 0;
+                foreach (var fret in previousPlacedFrets)
+                {
+                    if (LaneOf(fret) == lane)
+                    {
+                        laneCount++;
+                    }
+                }
+
+                if (laneCount == 1)
+                {
+                    previousSingleLanes |= 1 << lane;
+                }
+                else if (laneCount > 1)
+                {
+                    previousBarreLanes |= 1 << lane;
+                }
             }
-            int previousBarreLanes = GetBarreLanes(previousMask);
-            bool previousIsSingle = previousPlacedFrets.Count == 1;
-            int previousSingleLane = previousIsSingle ? LaneOf(previousPlacedFrets[0]) : -1;
 
             var candidates = EnumerateIncreasingAssignments(members.Count);
 
@@ -245,17 +261,41 @@ namespace YARG.Core.Chart
                         continue;
                     }
 
-                    // Pass 0 also enforces the barre/single hopo rule (see above)
+                    // Pass 0 also enforces the barre hopo rule (see above)
                     if (pass == 0)
                     {
-                        if (previousBarreLanes != 0 && candidate.Length == 1 &&
-                            (previousBarreLanes & (1 << LaneOf(candidate[0]))) != 0)
+                        // Hammer-on onto a barre in a lane where the previous chord held a single
+                        if ((GetBarreLanes(mask) & previousSingleLanes) != 0)
                         {
                             continue;
                         }
 
-                        if (previousIsSingle &&
-                            (GetBarreLanes(mask) & (1 << previousSingleLane)) != 0)
+                        // Pull-off from a barre into a note alone in the barre's lane
+                        bool pullsOffBarreLane = false;
+                        for (int barreLane = 0; barreLane < 3; barreLane++)
+                        {
+                            if ((previousBarreLanes & (1 << barreLane)) == 0)
+                            {
+                                continue;
+                            }
+
+                            int candidateLaneCount = 0;
+                            foreach (int value in candidate)
+                            {
+                                if (LaneOf(value) == barreLane)
+                                {
+                                    candidateLaneCount++;
+                                }
+                            }
+
+                            if (candidateLaneCount == 1)
+                            {
+                                pullsOffBarreLane = true;
+                                break;
+                            }
+                        }
+
+                        if (pullsOffBarreLane)
                         {
                             continue;
                         }
