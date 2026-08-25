@@ -67,12 +67,6 @@ namespace YARG.Core.Chart
         private const double FRET_WEIGHT = 0.125;
 
         /// <summary>
-        /// Penalty for re-striking the exact previous position on a distinct chart step, so forced
-        /// repeats at least flip rows (e.g. W2 to B2) and read as a new note.
-        /// </summary>
-        private const double REPEAT_POSITION_PENALTY = 0.25;
-
-        /// <summary>
         /// Penalty for moving a fret that the previous chord also contains. Chords sharing a 5-fret
         /// note with an adjacent single (e.g. YB,Y,Y,YB) are anchor phrases: the player holds the
         /// non-shared note and taps the shared one, which only works if the shared note keeps its
@@ -181,6 +175,24 @@ namespace YARG.Core.Chart
             // When every lane is blocked by foreign sustains, the fallback pass places nearest.
             activeSustains.RemoveAll(s => s.TickEnd <= note.Tick);
 
+            // Two DIFFERENT 5-fret chords must never map to the identical 6-fret chord — the
+            // passage would collapse into repeated shapes and the melody would be erased.
+            // Identical placement is only allowed when the 5-fret shape repeats too (a genuine
+            // chord repeat). Enforced as a pass-0 filter; the fallback pass may still repeat
+            // when nothing else is placeable.
+            bool sameShapeAsPrevious = previousIdentityFrets.Count == members.Count;
+            if (sameShapeAsPrevious)
+            {
+                for (int i = 0; i < members.Count; i++)
+                {
+                    if (members[i].Fret != previousIdentityFrets[i])
+                    {
+                        sameShapeAsPrevious = false;
+                        break;
+                    }
+                }
+            }
+
             // Hopo rule: no pull-offs from a barre into a note alone in the barre's own lane, and
             // no hammer-ons onto a barre in a lane where the previous chord held a single note —
             // holding one button of a lane while hammering the other into a barre (or releasing
@@ -256,7 +268,9 @@ namespace YARG.Core.Chart
                         laneSum += LaneOf(candidate[i]);
                     }
 
-                    if (!IsLegalSixFretChord(mask) || (pass == 0 && UsesForeignSustainLane(candidate, mask)))
+                    if (!IsLegalSixFretChord(mask)
+                        || (pass == 0 && UsesForeignSustainLane(candidate, mask))
+                        || (pass == 0 && !sameShapeAsPrevious && RepeatsPreviousPosition(candidate, previousPlacedFrets)))
                     {
                         continue;
                     }
@@ -305,13 +319,6 @@ namespace YARG.Core.Chart
                     double lane = laneSum / candidate.Length;
                     double score = LANE_WEIGHT * Math.Abs(lane - idealLane)
                         + FRET_WEIGHT * Math.Abs(fret - identityCentroid);
-
-                    // A distinct chart step shouldn't re-strike the exact previous position; when
-                    // the lane is forced, the penalty at least flips the row (e.g. W2 to B2)
-                    if (fretStep != 0 && RepeatsPreviousPosition(candidate, previousPlacedFrets))
-                    {
-                        score += REPEAT_POSITION_PENALTY;
-                    }
 
                     // Anchor phrases: members shared with the previous chord keep their placed
                     // fret, so the player can hold the non-shared note and tap the shared one

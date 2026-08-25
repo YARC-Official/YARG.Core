@@ -78,9 +78,13 @@ idealLane = previousLane + (identityFretCentroid - previousIdentityCentroid) * L
 ```
 score = 2.0 * |candidateLane - idealLane|        (lane distance dominates)
       + 0.125 * |candidateFretCentroid - identityFretCentroid|   (row tie-break)
-      + 0.25  * re-striking the exact previous position on a distinct step
       + 2.0  * (per member) moving a fret the previous chord also contains
       + lookahead overflow (below)
+
+Additionally, two placement rules are enforced as pass-0 filters rather than score
+terms: a chord with a *different* 5-fret shape than the previous chord may not map
+to the identical 6-fret placement (distinct chords must stay distinct, otherwise a
+passage collapses into repeated shapes), and the sustain/hopo exclusions of §3.3.
 ```
 
 - The **anchor term** implements §1.4: whenever the current chord shares a 5-fret fret with the previous chord, that member is strongly encouraged to keep its previous placed fret. Because it is a score penalty rather than a hard filter, sustains and legality still win when they conflict.
