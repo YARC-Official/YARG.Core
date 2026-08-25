@@ -311,7 +311,7 @@ namespace YARG.Core.Chart
         /// Natively six-fret instruments read their own track directly. Five-fret instruments have
         /// their track remapped into legal six-fret chords (see
         /// <see cref="InstrumentDifficultyExtensions.ConvertFiveFretToSixFret"/> and
-        /// docs/5fret_to_6fret_conversion.md); gameplay and replay analysis MUST use this same
+        /// Docs/5fret_to_6fret_conversion.md); gameplay and replay analysis MUST use this same
         /// mapping or replays will fail verification.
         /// </summary>
         /// <remarks>The returned difficulty may be shared chart data for six-fret instruments;

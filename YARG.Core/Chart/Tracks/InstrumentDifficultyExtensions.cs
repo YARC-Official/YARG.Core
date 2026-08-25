@@ -20,7 +20,7 @@ namespace YARG.Core.Chart
         /// each chord is placed at the legal, fret-order-preserving position that best preserves
         /// the chart's movement (scored in lane space), keeps anchor phrases hold-and-tap playable,
         /// and avoids stacking sustains or barre hopos. See
-        /// docs/5fret_to_6fret_conversion.md for the full description.
+        /// Docs/5fret_to_6fret_conversion.md for the full description.
         ///
         /// A legal 6-fret chord can hold at most 4 notes (one barre plus one note per lane to its
         /// right), so the 5-note open chord has no legal placement; its Orange member is dropped.
