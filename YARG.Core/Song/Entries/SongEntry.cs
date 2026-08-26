@@ -60,6 +60,8 @@ namespace YARG.Core.Song
 
         protected const string YARGROUND_EXTENSION = ".yarground";
         protected const string YARGROUND_FULLNAME = "bg.yarground";
+        protected const string CLEAN_BACKGROUND_SUFFIX = "_clean";
+        protected const string EXPLICIT_BACKGROUND_SUFFIX = "_explicit";
         protected static readonly Random BACKROUND_RNG = new();
 
         private SortString _name = SortString.Empty;

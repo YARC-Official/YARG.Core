@@ -161,9 +161,10 @@ namespace YARG.Core.Song
             return null;
         }
 
-        public override BackgroundResult? LoadBackground(bool excludeYarground = false)
+        public override BackgroundResult? LoadBackground(bool enableCensoring, bool excludeYarground = false)
         {
             var subFiles = GetSubFiles();
+            string censorSuffix = enableCensoring ? CLEAN_BACKGROUND_SUFFIX : EXPLICIT_BACKGROUND_SUFFIX;
             if (subFiles.TryGetValue("bg.yarground", out var file) && !excludeYarground)
             {
                 var stream = File.OpenRead(file);
@@ -180,6 +181,11 @@ namespace YARG.Core.Song
             {
                 foreach (var format in VIDEO_EXTENSIONS)
                 {
+                    if (subFiles.TryGetValue(stem + censorSuffix + format, out file))
+                    {
+                        var stream = File.OpenRead(file);
+                        return new BackgroundResult(BackgroundType.Video, stream);
+                    }
                     if (subFiles.TryGetValue(stem + format, out file))
                     {
                         var stream = File.OpenRead(file);
@@ -188,7 +194,7 @@ namespace YARG.Core.Song
                 }
             }
 
-            if (subFiles.TryGetValue(_background, out file) || TryGetRandomBackgroundImage(subFiles, out file))
+            if (subFiles.TryGetValue(_background, out file) || TryGetRandomBackgroundImage(subFiles, enableCensoring, out file))
             {
                 var image = YARGImage.Load(file!);
                 if (image != null)
