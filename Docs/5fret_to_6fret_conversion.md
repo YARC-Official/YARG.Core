@@ -57,17 +57,19 @@ Open and Wildcard members keep their shared value (7/8), are excluded from lane 
 
 Candidates are all **order-preserving** assignments of distinct 6-fret values (1-6) to the sorted members — i.e. combinations, `C(6,k) ≤ 15` per chord. Preserving fret order keeps chords physically shaped like their 5-fret originals.
 
-### 3.3 Hard filters (pass 0)
+### 3.3 Hard filters
 
-A candidate is rejected when any of the following fails. If *every* candidate is rejected, a second pass re-runs without the soft exclusions (sustain lanes and hopo rule) so a placement always exists:
+A candidate is rejected when any of the following fails:
 
-- **Barre legality** — for each lane containing both members, no chord note in any lane to its left.
-- **Sustain lanes** — no chord note may strike into a lane occupied by an active sustain, *except* when the chord **absorbs** that sustain: it contains the same 5-fret note and places it at the sustained fret. Absorption is what keeps anchor phrases with sustaining anchors playable (see §3.6).
-- **Barre hopo rule** — checked per lane between consecutive chords: a candidate may not barre a lane where the previous chord held a single note (hammer-on onto a barre), and may not place a note alone in a lane where the previous chord had a barre (pull-off from a barre). This applies even when the chords have other notes in different lanes.
+- **Barre legality** — for each lane containing both members, any lane to its left must be empty *or* also barred (a barre to the left is fine, so double barres with a rightmost single are legal).
+- **Barre hopos** — a barre may not form in a lane where the previous chord held a single, and a barre may not vanish into a single in its own lane.
+- **Chord collapse** — a chord with a *different* 5-fret shape than the previous chord may not map to the identical 6-fret placement; distinct chart chords must stay distinct.
 
-### 3.4 Movement scoring
+Legality is the only true hard filter (a legal candidate always exists); barre hopos and collapse fall back to the first legal placement in pathological contexts.
 
-Surviving candidates are scored primarily in **lane space**, not fret space: the 6-fret highway visually snakes (black row left-to-right, then white row), so a fret-monotonic sequence would zig-zag on screen. Lane-monotonic placements read as clean left-to-right sweeps.
+### 3.4 Scoring
+
+Everything else is a penalty. Surviving candidates are scored primarily in **lane space**, not fret space: the 6-fret highway visually snakes (black row left-to-right, then white row), so a fret-monotonic sequence would zig-zag on screen. Lane-monotonic placements read as clean left-to-right sweeps.
 
 ```
 idealLane = previousLane + (identityFretCentroid - previousIdentityCentroid) * LANES_PER_FRET
@@ -78,16 +80,15 @@ idealLane = previousLane + (identityFretCentroid - previousIdentityCentroid) * L
 ```
 score = 2.0 * |candidateLane - idealLane|        (lane distance dominates)
       + 0.125 * |candidateFretCentroid - identityFretCentroid|   (row tie-break)
-      + 2.0  * (per member) moving a fret the previous chord also contains
+      + 2.0   * striking into a lane held by a foreign sustain   (see below)
+      + 5.0   * lane persistence violation                       (see below)
+      + 2.0   * (per member) moving a fret the previous chord also contains
       + lookahead overflow (below)
-
-Additionally, two placement rules are enforced as pass-0 filters rather than score
-terms: a chord with a *different* 5-fret shape than the previous chord may not map
-to the identical 6-fret placement (distinct chords must stay distinct, otherwise a
-passage collapses into repeated shapes), and the sustain/hopo exclusions of §3.3.
 ```
 
-- The **anchor term** implements §1.4: whenever the current chord shares a 5-fret fret with the previous chord, that member is strongly encouraged to keep its previous placed fret. Because it is a score penalty rather than a hard filter, sustains and legality still win when they conflict.
+- **Lane persistence** — if both this chord and the previous one occupy the same lane, they must use the same fret(s). Otherwise the transition is a hopo *within* the lane (e.g. `W2→B2`), which is unplayable. A lane appearing or disappearing entirely between chords is fine. The penalty (not a hard filter) means a lane change can still happen when everything else is worse — placement is always the least-violating option.
+- **Sustain lanes** — striking into a lane held by a foreign sustain stacks a second sustain line. This resolves by **truncating** the foreign sustain at the chord's tick (real charters cut sustains when a pattern needs the space), so the penalty is mild. Absorption is exempt: a chord that *continues* its own sustaining note (same 5-fret fret, same placed fret) may share its lane — that keeps anchor phrases with sustaining anchors playable.
+- The **anchor term** implements §1.4: whenever the current chord shares a 5-fret fret with the previous chord, that member is strongly encouraged to keep its previous placed fret. Because it is a score penalty rather than a hard filter, legality still wins when they conflict.
 - The **lookahead** term penalizes placements that would push the *next* chord's ideal lane off the highway, so rising runs shift over early instead of pinning at White 3 and snapping back.
 
 The first chord of a track has no movement history; its ideal lane is simply the identity mapping's lane centroid.
@@ -96,7 +97,7 @@ The first chord of a track has no movement history; its ideal lane is simply the
 
 Each member's `Fret` is set and its `NoteMask` / `DisjointMask` bits are remapped; the parent's `NoteMask` is rebuilt from the chosen mask plus any open bits. The 5-fret identity is recorded **before** the fret is overwritten (it feeds the next chord's anchor and absorption checks).
 
-Sustaining members are registered as `(tickEnd, placedFret, identityFret)` in the active-sustain list, pruned by tick each chord.
+Before the placement is applied, any foreign sustains struck by the chosen placement are **truncated** at this chord's tick (see §3.4). Sustaining members are then registered as `(tickEnd, placedFret, identityFret, source)` in the active-sustain list, pruned by tick each chord.
 
 ### 3.6 Anchor phrases and sustain absorption
 

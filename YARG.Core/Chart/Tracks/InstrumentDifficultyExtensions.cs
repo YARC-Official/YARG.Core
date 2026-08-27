@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using YARG.Core.Engine.Guitar;
@@ -34,7 +34,7 @@ namespace YARG.Core.Chart
             double previousIdentityCentroid = -1;
             var previousPlacedFrets = new List<int>();
             var previousIdentityFrets = new List<int>();
-            var activeSustains = new List<(uint TickEnd, int PlacedFret, int IdentityFret)>();
+            var activeSustains = new List<(uint TickEnd, int PlacedFret, int IdentityFret, GuitarNote Source)>();
             for (int i = 0; i < converted.Notes.Count; i++)
             {
                 // One-note lookahead: avoid placements that would push the next chart step off
@@ -74,6 +74,21 @@ namespace YARG.Core.Chart
         /// </summary>
         private const double SHARED_ANCHOR_PENALTY = 2.0;
 
+        /// <summary>
+        /// Penalty for striking into a lane held by a foreign sustain. This resolves by TRUNCATING
+        /// the foreign sustain (real charts cut sustains when a pattern needs the space), so the
+        /// penalty is mild — cheaper than a lane-persistence violation, but non-zero so placements
+        /// that need no cut are preferred.
+        /// </summary>
+        private const double SUSTAIN_LANE_PENALTY = 2.0;
+
+        /// <summary>
+        /// Penalty for changing the fret(s) of a lane that both this chord and the previous chord
+        /// occupy — a hopo within the lane (e.g. W2 to B2) or a barre forming/vanishing around a
+        /// held finger.
+        /// </summary>
+        private const double LANE_PERSISTENCE_PENALTY = 5.0;
+
         private static readonly int[] SixFretLaneMasks =
         {
             (1 << ((int) SixFretGuitarFret.Black1 - 1)) | (1 << ((int) SixFretGuitarFret.White1 - 1)),
@@ -105,7 +120,8 @@ namespace YARG.Core.Chart
 
         private static (double placedLane, double identityCentroid) PlaceChordLegally(GuitarNote note,
             double previousLane, double previousIdentityCentroid, List<int> previousPlacedFrets,
-            List<int> previousIdentityFrets, List<(uint TickEnd, int PlacedFret, int IdentityFret)> activeSustains,
+            List<int> previousIdentityFrets,
+            List<(uint TickEnd, int PlacedFret, int IdentityFret, GuitarNote Source)> activeSustains,
             double? nextIdentityCentroid)
         {
             // Collect fretted members; Open/Wildcard members keep their shared value and are ignored
@@ -193,11 +209,16 @@ namespace YARG.Core.Chart
                 }
             }
 
-            // Hopo rule: no pull-offs from a barre into a note alone in the barre's own lane, and
-            // no hammer-ons onto a barre in a lane where the previous chord held a single note —
-            // holding one button of a lane while hammering the other into a barre (or releasing
-            // it off a barre) is ambiguous/unplayable. Composition is checked per lane, so the
-            // rule also applies when the chords have other notes in different lanes.
+            // Lane persistence (hopo rule): if both chords occupy the same lane, they must occupy
+            // it with the exact same fret(s). Otherwise the transition is a hopo WITHIN the lane
+            // (e.g. W2 -> B2), or a barre forming/vanishing around a held finger — all ambiguous
+            // or unplayable. A lane appearing or disappearing entirely between chords is fine.
+            int previousMask = 0;
+            foreach (var fret in previousPlacedFrets)
+            {
+                previousMask |= 1 << (fret - 1);
+            }
+
             int previousSingleLanes = 0;
             int previousBarreLanes = 0;
             for (int lane = 0; lane < 3; lane++)
@@ -226,7 +247,7 @@ namespace YARG.Core.Chart
             // Whether the candidate strikes into a lane occupied by a sustain it does not continue
             bool UsesForeignSustainLane(ReadOnlySpan<int> assignment, int assignmentMask)
             {
-                foreach (var (_, placedFret, identityFret) in activeSustains)
+                foreach (var (_, placedFret, identityFret, _) in activeSustains)
                 {
                     bool absorbed = false;
                     for (int i = 0; i < members.Count; i++)
@@ -252,102 +273,173 @@ namespace YARG.Core.Chart
             double bestLane = idealLane;
             Span<int> bestAssignment = stackalloc int[members.Count];
 
-            // Pass 0 honors the sustain-collision restriction; pass 1 ignores it as a fallback in
-            // case every legal candidate collides
-            for (int pass = 0; pass < 2 && bestMask == 0; pass++)
+            // Legality is the only hard filter (a legal candidate always exists). Everything else
+            // is a penalty, so when a chart makes the constraints mutually exclusive (e.g. sustain
+            // walls), the placement is always the LEAST-violating one instead of greedily
+            // ignoring every rule at once.
+            foreach (var candidate in candidates)
+            {
+                int mask = 0;
+                double fretSum = 0;
+                double laneSum = 0;
+                for (int i = 0; i < candidate.Length; i++)
+                {
+                    mask |= 1 << (candidate[i] - 1);
+                    fretSum += candidate[i];
+                    laneSum += LaneOf(candidate[i]);
+                }
+
+                if (!IsLegalSixFretChord(mask)
+                    || (!sameShapeAsPrevious && RepeatsPreviousPosition(candidate, previousPlacedFrets)))
+                {
+                    continue;
+                }
+
+                int candidateLane0 = 0;
+                int candidateLane1 = 0;
+                int candidateLane2 = 0;
+                foreach (int value in candidate)
+                {
+                    switch (LaneOf(value))
+                    {
+                        case 0: candidateLane0++; break;
+                        case 1: candidateLane1++; break;
+                        default: candidateLane2++; break;
+                    }
+                }
+
+                int candidateSingleLanes = 0;
+                if (candidateLane0 == 1) candidateSingleLanes |= 1;
+                if (candidateLane1 == 1) candidateSingleLanes |= 2;
+                if (candidateLane2 == 1) candidateSingleLanes |= 4;
+
+                // Barre hopos are hard-rejected in the primary loop
+                if (((GetBarreLanes(mask) & previousSingleLanes)
+                    | (previousBarreLanes & candidateSingleLanes)) != 0)
+                {
+                    continue;
+                }
+
+                double fret = fretSum / candidate.Length;
+                double lane = laneSum / candidate.Length;
+                double score = LANE_WEIGHT * Math.Abs(lane - idealLane)
+                    + FRET_WEIGHT * Math.Abs(fret - identityCentroid);
+
+                // Striking into a lane held by a foreign sustain stacks a second sustain line
+                if (UsesForeignSustainLane(candidate, mask))
+                {
+                    score += SUSTAIN_LANE_PENALTY;
+                }
+
+                // Lane persistence: if both chords occupy the same lane, they must use the same
+                // fret(s) — otherwise the transition is a hopo within the lane (e.g. W2 -> B2).
+                // A lane appearing or disappearing entirely between chords is fine.
+                for (int checkLane = 0; checkLane < 3; checkLane++)
+                {
+                    int laneMask = SixFretLaneMasks[checkLane];
+                    if ((previousMask & laneMask) != 0 && (mask & laneMask) != 0
+                        && (mask & laneMask) != (previousMask & laneMask))
+                    {
+                        score += LANE_PERSISTENCE_PENALTY;
+                        break;
+                    }
+                }
+
+                // Anchor phrases: members shared with the previous chord keep their placed
+                // fret, so the player can hold the non-shared note and tap the shared one
+                for (int i = 0; i < members.Count; i++)
+                {
+                    int sharedIndex = previousIdentityFrets.IndexOf(members[i].Fret);
+                    if (sharedIndex >= 0 && candidate[i] != previousPlacedFrets[sharedIndex])
+                    {
+                        score += SHARED_ANCHOR_PENALTY;
+                    }
+                }
+
+                // Lookahead: penalize placements that would force the next chart step off the
+                // highway, so runs approaching an edge shift over early instead of pinning
+                if (nextIdentityCentroid is double nextIdent)
+                {
+                    double nextIdealLane = lane + (nextIdent - identityCentroid) * LANES_PER_FRET;
+                    score += Math.Max(0, nextIdealLane - 2);
+                    score += Math.Max(0, -nextIdealLane);
+                }
+
+                if (score < bestScore)
+                {
+                    bestScore = score;
+                    bestMask = mask;
+                    bestLane = lane;
+                    candidate.CopyTo(bestAssignment);
+                }
+            }
+
+            // Last-resort fallback: if the hopo hard filter rejected every candidate (pathological
+            // contexts only), place the first legal one rather than nothing at all
+            if (bestMask == 0)
             {
                 foreach (var candidate in candidates)
                 {
                     int mask = 0;
-                    double fretSum = 0;
-                    double laneSum = 0;
-                    for (int i = 0; i < candidate.Length; i++)
+                    foreach (int value in candidate)
                     {
-                        mask |= 1 << (candidate[i] - 1);
-                        fretSum += candidate[i];
-                        laneSum += LaneOf(candidate[i]);
+                        mask |= 1 << (value - 1);
                     }
 
-                    if (!IsLegalSixFretChord(mask)
-                        || (pass == 0 && UsesForeignSustainLane(candidate, mask))
-                        || (pass == 0 && !sameShapeAsPrevious && RepeatsPreviousPosition(candidate, previousPlacedFrets)))
+                    if (!IsLegalSixFretChord(mask))
                     {
                         continue;
                     }
 
-                    // Pass 0 also enforces the barre hopo rule (see above)
-                    if (pass == 0)
+                    bestMask = mask;
+                    double laneSum = 0;
+                    foreach (int value in candidate)
                     {
-                        // Hammer-on onto a barre in a lane where the previous chord held a single
-                        if ((GetBarreLanes(mask) & previousSingleLanes) != 0)
-                        {
-                            continue;
-                        }
-
-                        // Pull-off from a barre into a note alone in the barre's lane
-                        bool pullsOffBarreLane = false;
-                        for (int barreLane = 0; barreLane < 3; barreLane++)
-                        {
-                            if ((previousBarreLanes & (1 << barreLane)) == 0)
-                            {
-                                continue;
-                            }
-
-                            int candidateLaneCount = 0;
-                            foreach (int value in candidate)
-                            {
-                                if (LaneOf(value) == barreLane)
-                                {
-                                    candidateLaneCount++;
-                                }
-                            }
-
-                            if (candidateLaneCount == 1)
-                            {
-                                pullsOffBarreLane = true;
-                                break;
-                            }
-                        }
-
-                        if (pullsOffBarreLane)
-                        {
-                            continue;
-                        }
+                        laneSum += LaneOf(value);
                     }
+                    bestLane = laneSum / candidate.Length;
+                    candidate.CopyTo(bestAssignment);
 
-                    double fret = fretSum / candidate.Length;
-                    double lane = laneSum / candidate.Length;
-                    double score = LANE_WEIGHT * Math.Abs(lane - idealLane)
-                        + FRET_WEIGHT * Math.Abs(fret - identityCentroid);
+                    break;
+                }
+            }
 
-                    // Anchor phrases: members shared with the previous chord keep their placed
-                    // fret, so the player can hold the non-shared note and tap the shared one
-                    for (int i = 0; i < members.Count; i++)
+            // Truncate foreign sustains this chord strikes into: cutting a sustain short is
+            // preferable to a same-lane hopo, and matches what real charters do when a new
+            // pattern needs the space. (Absorbed sustains — the chord continuing its own
+            // sustaining note — are left alone.)
+            for (int i = activeSustains.Count - 1; i >= 0; i--)
+            {
+                var (tickEnd, placedFret, identityFret, source) = activeSustains[i];
+                if ((bestMask & SixFretLaneMasks[LaneOf(placedFret)]) == 0)
+                {
+                    continue;
+                }
+
+                bool absorbed = false;
+                for (int m = 0; m < members.Count; m++)
+                {
+                    if (members[m].Fret == identityFret && bestAssignment[m] == placedFret)
                     {
-                        int sharedIndex = previousIdentityFrets.IndexOf(members[i].Fret);
-                        if (sharedIndex >= 0 && candidate[i] != previousPlacedFrets[sharedIndex])
-                        {
-                            score += SHARED_ANCHOR_PENALTY;
-                        }
-                    }
-
-                    // Lookahead: penalize placements that would force the next chart step off the
-                    // highway, so runs approaching an edge shift over early instead of pinning
-                    if (nextIdentityCentroid is double nextIdent)
-                    {
-                        double nextIdealLane = lane + (nextIdent - identityCentroid) * LANES_PER_FRET;
-                        score += Math.Max(0, nextIdealLane - 2);
-                        score += Math.Max(0, -nextIdealLane);
-                    }
-
-                    if (score < bestScore)
-                    {
-                        bestScore = score;
-                        bestMask = mask;
-                        bestLane = lane;
-                        candidate.CopyTo(bestAssignment);
+                        absorbed = true;
+                        break;
                     }
                 }
+
+                if (absorbed)
+                {
+                    continue;
+                }
+
+                uint oldTickLength = source.TickLength;
+                uint newTickLength = note.Tick >= source.Tick ? 0u : source.Tick - note.Tick;
+                source.TickLength = newTickLength;
+                if (oldTickLength > 0)
+                {
+                    source.TimeLength *= (double) newTickLength / oldTickLength;
+                }
+
+                activeSustains.RemoveAt(i);
             }
 
             // Apply the chosen assignment
@@ -365,7 +457,7 @@ namespace YARG.Core.Chart
                 if (members[i].TickLength > 0)
                 {
                     activeSustains.Add((members[i].Tick + members[i].TickLength,
-                        bestAssignment[i], identityFret));
+                        bestAssignment[i], identityFret, members[i]));
                 }
             }
 
