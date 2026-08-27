@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using NUnit.Framework;
 using YARG.Core.Chart;
 using YARG.Core.Engine;
@@ -9,95 +10,94 @@ namespace YARG.Core.UnitTests.Engine;
 
 public class SixFretGuitarEngineTests : EngineTester
 {
+    // GuitarAction has no Open action; open is bit 6 (OPEN_MASK in the engine).
+    private const int OpenMask = 1 << 6;
+
     #region IsAnchoringValid tests (direct)
 
     [Test]
     public void Anchoring_W2_Anchors_W3_SingleNote()
     {
-        // Player holds W2 (bit 4, fret 2) + W3 (bit 5, fret 3), note is W3
+        // Player holds W2 + W3, note is W3
         // W2 is a lower fret number → valid anchor
         var engine = CreateSixFretEngine();
-        Assert.That(engine.IsAnchoringValidFor(16, 32), Is.True);
+        Assert.That(engine.IsAnchoringValidFor(Mask(GuitarAction.White2Fret), Mask(GuitarAction.White3Fret)), Is.True);
     }
 
     [Test]
     public void Anchoring_B2_Anchors_W3_SingleNote()
     {
-        // Player holds B2 (bit 1, fret 2) + W3 (bit 5, fret 3), note is W3
+        // Player holds B2 + W3, note is W3
         // B2 is a lower fret number → valid anchor
         var engine = CreateSixFretEngine();
-        Assert.That(engine.IsAnchoringValidFor(2, 32), Is.True);
+        Assert.That(engine.IsAnchoringValidFor(Mask(GuitarAction.Black2Fret), Mask(GuitarAction.White3Fret)), Is.True);
     }
 
     [Test]
     public void Anchoring_B3_Cannot_Anchor_W3_SameFret()
     {
-        // Player holds B3 (bit 2) as anchor for W3 (bit 5) — same fret number, not interchangeable
+        // Player holds B3 as anchor for W3 — same fret number, not interchangeable
         var engine = CreateSixFretEngine();
-        Assert.That(engine.IsAnchoringValidFor(4, 32), Is.False);
+        Assert.That(engine.IsAnchoringValidFor(Mask(GuitarAction.Black3Fret), Mask(GuitarAction.White3Fret)), Is.False);
     }
 
     [Test]
     public void Anchoring_B1_Anchors_W3()
     {
-        // Player holds B1 (bit 0, fret 1) + W3 (bit 5, fret 3), note is W3
+        // Player holds B1 + W3, note is W3
         // B1 is a lower fret number → valid anchor
         var engine = CreateSixFretEngine();
-        Assert.That(engine.IsAnchoringValidFor(1, 32), Is.True);
+        Assert.That(engine.IsAnchoringValidFor(Mask(GuitarAction.Black1Fret), Mask(GuitarAction.White3Fret)), Is.True);
     }
 
     [Test]
     public void Anchoring_W3_Cannot_Anchor_W2()
     {
-        // Player holds W3 (bit 5, fret 3) + W2 (bit 4, fret 2), note is W2
+        // Player holds W3 + W2, note is W2
         // W3 is a higher fret number → invalid anchor
         var engine = CreateSixFretEngine();
-        Assert.That(engine.IsAnchoringValidFor(32, 16), Is.False);
+        Assert.That(engine.IsAnchoringValidFor(Mask(GuitarAction.White3Fret), Mask(GuitarAction.White2Fret)), Is.False);
     }
 
     [Test]
     public void Anchoring_W1_NotHeld_For_B1()
     {
-        // No interchangeability: holding W1 (bit 3) for a B1 (bit 0) note → B1 not held → invalid
-        // anchorButtons = 8 ^ 1 = 9 (bits 0+3), targetFretValue = 1
+        // No interchangeability: holding W1 for a B1 note → B1 not held → invalid
+        // anchorButtons = heldMask ^ noteMask, which contains W1 and B1
         var engine = CreateSixFretEngine();
-        Assert.That(engine.IsAnchoringValidFor(9, 1), Is.False);
+        Assert.That(engine.IsAnchoringValidFor(Mask(GuitarAction.White1Fret) ^ Mask(GuitarAction.Black1Fret), Mask(GuitarAction.Black1Fret)), Is.False);
     }
 
     [Test]
     public void Anchoring_B1_NotHeld_For_W1()
     {
-        // No interchangeability: holding B1 (bit 0) for a W1 (bit 3) note → W1 not held → invalid
-        // anchorButtons = 1 ^ 8 = 9 (bits 0+3), targetFretValue = 8
+        // No interchangeability: holding B1 for a W1 note → W1 not held → invalid
         var engine = CreateSixFretEngine();
-        Assert.That(engine.IsAnchoringValidFor(9, 8), Is.False);
+        Assert.That(engine.IsAnchoringValidFor(Mask(GuitarAction.Black1Fret) ^ Mask(GuitarAction.White1Fret), Mask(GuitarAction.White1Fret)), Is.False);
     }
 
     [Test]
     public void Anchoring_W2_NotHeld_For_B2()
     {
-        // No interchangeability: holding W2 (bit 4) for a B2 (bit 1) note → B2 not held → invalid
-        // anchorButtons = 16 ^ 2 = 18 (bits 1+4), targetFretValue = 2
+        // No interchangeability: holding W2 for a B2 note → B2 not held → invalid
         var engine = CreateSixFretEngine();
-        Assert.That(engine.IsAnchoringValidFor(18, 2), Is.False);
+        Assert.That(engine.IsAnchoringValidFor(Mask(GuitarAction.White2Fret) ^ Mask(GuitarAction.Black2Fret), Mask(GuitarAction.Black2Fret)), Is.False);
     }
 
     [Test]
     public void Anchoring_W3_NotHeld_For_B3()
     {
-        // No interchangeability: holding W3 (bit 5) for a B3 (bit 2) note → B3 not held → invalid
-        // anchorButtons = 32 ^ 4 = 36 (bits 2+5), targetFretValue = 4
+        // No interchangeability: holding W3 for a B3 note → B3 not held → invalid
         var engine = CreateSixFretEngine();
-        Assert.That(engine.IsAnchoringValidFor(36, 4), Is.False);
+        Assert.That(engine.IsAnchoringValidFor(Mask(GuitarAction.White3Fret) ^ Mask(GuitarAction.Black3Fret), Mask(GuitarAction.Black3Fret)), Is.False);
     }
 
     [Test]
     public void Anchoring_B3_NotHeld_For_W3()
     {
-        // No interchangeability: holding B3 (bit 2) for a W3 (bit 5) note → W3 not held → invalid
-        // anchorButtons = 4 ^ 32 = 36 (bits 2+5), targetFretValue = 32
+        // No interchangeability: holding B3 for a W3 note → W3 not held → invalid
         var engine = CreateSixFretEngine();
-        Assert.That(engine.IsAnchoringValidFor(36, 32), Is.False);
+        Assert.That(engine.IsAnchoringValidFor(Mask(GuitarAction.Black3Fret) ^ Mask(GuitarAction.White3Fret), Mask(GuitarAction.White3Fret)), Is.False);
     }
 
     [Test]
@@ -105,16 +105,15 @@ public class SixFretGuitarEngineTests : EngineTester
     {
         // Only the target fret held (exact match) — anchorButtons = 0 → valid
         var engine = CreateSixFretEngine();
-        Assert.That(engine.IsAnchoringValidFor(0, 32), Is.True);
+        Assert.That(engine.IsAnchoringValidFor(0, Mask(GuitarAction.White3Fret)), Is.True);
     }
 
     [Test]
     public void Anchoring_NeitherTargetHeld()
     {
-        // Note is B1 (bit 0), player holds B2 (bit 1) only — B1 not held, no equivalent
-        // anchorButtons = 1 ^ 2 = 3 (bits 0+1)
+        // Note is B1, player holds B2 only — B1 not held, no equivalent
         var engine = CreateSixFretEngine();
-        Assert.That(engine.IsAnchoringValidFor(3, 1), Is.False);
+        Assert.That(engine.IsAnchoringValidFor(Mask(GuitarAction.Black1Fret) ^ Mask(GuitarAction.Black2Fret), Mask(GuitarAction.Black1Fret)), Is.False);
     }
 
     #endregion
@@ -127,7 +126,7 @@ public class SixFretGuitarEngineTests : EngineTester
         // No interchangeability: holding W1 for a B1 note → not hittable
         var engine = CreateSixFretEngine();
         var note = CreateSixFretNote(SixFretGuitarFret.Black1, GuitarNoteType.Strum);
-        engine.SetButtonMask(1 << 3); // W1 (bit 3)
+        engine.SetButtonMask(Mask(GuitarAction.White1Fret));
         Assert.That(engine.CanBeHit(note), Is.False);
     }
 
@@ -136,7 +135,7 @@ public class SixFretGuitarEngineTests : EngineTester
     {
         var engine = CreateSixFretEngine();
         var note = CreateSixFretNote(SixFretGuitarFret.White1, GuitarNoteType.Strum);
-        engine.SetButtonMask(1 << 0); // B1 (bit 0)
+        engine.SetButtonMask(Mask(GuitarAction.Black1Fret));
         Assert.That(engine.CanBeHit(note), Is.False);
     }
 
@@ -145,7 +144,7 @@ public class SixFretGuitarEngineTests : EngineTester
     {
         var engine = CreateSixFretEngine();
         var note = CreateSixFretNote(SixFretGuitarFret.Black2, GuitarNoteType.Strum);
-        engine.SetButtonMask(1 << 4); // W2 (bit 4)
+        engine.SetButtonMask(Mask(GuitarAction.White2Fret));
         Assert.That(engine.CanBeHit(note), Is.False);
     }
 
@@ -154,7 +153,7 @@ public class SixFretGuitarEngineTests : EngineTester
     {
         var engine = CreateSixFretEngine();
         var note = CreateSixFretNote(SixFretGuitarFret.White2, GuitarNoteType.Strum);
-        engine.SetButtonMask(1 << 1); // B2 (bit 1)
+        engine.SetButtonMask(Mask(GuitarAction.Black2Fret));
         Assert.That(engine.CanBeHit(note), Is.False);
     }
 
@@ -163,7 +162,7 @@ public class SixFretGuitarEngineTests : EngineTester
     {
         var engine = CreateSixFretEngine();
         var note = CreateSixFretNote(SixFretGuitarFret.Black3, GuitarNoteType.Strum);
-        engine.SetButtonMask(1 << 5); // W3 (bit 5) instead of B3 (bit 2)
+        engine.SetButtonMask(Mask(GuitarAction.White3Fret));
         Assert.That(engine.CanBeHit(note), Is.False);
     }
 
@@ -172,18 +171,18 @@ public class SixFretGuitarEngineTests : EngineTester
     {
         var engine = CreateSixFretEngine();
         var note = CreateSixFretNote(SixFretGuitarFret.White3, GuitarNoteType.Strum);
-        engine.SetButtonMask(1 << 2); // B3 (bit 2) instead of W3 (bit 5)
+        engine.SetButtonMask(Mask(GuitarAction.Black3Fret));
         Assert.That(engine.CanBeHit(note), Is.False);
     }
 
     [Test]
     public void CannotHit_OpenNote_With_FretHeld()
     {
-        // Open note (Fret = 7, NoteMask = OPEN_MASK = 64) should not be hittable
+        // Open note (Fret = 7, NoteMask = OPEN_MASK) should not be hittable
         // while holding an extra fret — matches base 5-fret strictness.
         var engine = CreateSixFretEngine();
         var note = CreateSixFretNote(SixFretGuitarFret.Open, GuitarNoteType.Strum);
-        engine.SetButtonMask((1 << 6) | (1 << 0)); // Open + B1
+        engine.SetButtonMask(OpenMask | Mask(GuitarAction.Black1Fret));
         Assert.That(engine.CanBeHit(note), Is.False);
     }
 
@@ -192,7 +191,7 @@ public class SixFretGuitarEngineTests : EngineTester
     {
         var engine = CreateSixFretEngine();
         var note = CreateSixFretNote(SixFretGuitarFret.White3, GuitarNoteType.Strum);
-        engine.SetButtonMask((1 << 4) | (1 << 5)); // W2 + W3 (W2 is lower anchor)
+        engine.SetButtonMask(Mask(GuitarAction.White2Fret, GuitarAction.White3Fret)); // W2 is lower anchor
         Assert.That(engine.CanBeHit(note), Is.True);
     }
 
@@ -202,7 +201,7 @@ public class SixFretGuitarEngineTests : EngineTester
         // Same fret number (3), different row — B3 cannot anchor W3, not interchangeable
         var engine = CreateSixFretEngine();
         var note = CreateSixFretNote(SixFretGuitarFret.White3, GuitarNoteType.Strum);
-        engine.SetButtonMask((1 << 5) | (1 << 2)); // W3 + B3
+        engine.SetButtonMask(Mask(GuitarAction.White3Fret, GuitarAction.Black3Fret));
         Assert.That(engine.CanBeHit(note), Is.False);
     }
 
@@ -211,7 +210,7 @@ public class SixFretGuitarEngineTests : EngineTester
     {
         var engine = CreateSixFretEngine();
         var note = CreateSixFretNote(SixFretGuitarFret.White3, GuitarNoteType.Strum);
-        engine.SetButtonMask(1 << 5); // W3 (exact match)
+        engine.SetButtonMask(Mask(GuitarAction.White3Fret)); // exact match
         Assert.That(engine.CanBeHit(note), Is.True);
     }
 
@@ -220,7 +219,7 @@ public class SixFretGuitarEngineTests : EngineTester
     {
         var engine = CreateSixFretEngine();
         var note = CreateSixFretNote(SixFretGuitarFret.White2, GuitarNoteType.Strum);
-        engine.SetButtonMask((1 << 4) | (1 << 5)); // W2 + W3 (W3 is higher → invalid)
+        engine.SetButtonMask(Mask(GuitarAction.White2Fret, GuitarAction.White3Fret)); // W3 is higher → invalid
         Assert.That(engine.CanBeHit(note), Is.False);
     }
 
@@ -230,7 +229,7 @@ public class SixFretGuitarEngineTests : EngineTester
         // B1 (fret 1) can anchor B2 (fret 2)
         var engine = CreateSixFretEngine();
         var note = CreateSixFretNote(SixFretGuitarFret.Black2, GuitarNoteType.Strum);
-        engine.SetButtonMask((1 << 0) | (1 << 1)); // B1 + B2
+        engine.SetButtonMask(Mask(GuitarAction.Black1Fret, GuitarAction.Black2Fret));
         Assert.That(engine.CanBeHit(note), Is.True);
     }
 
@@ -240,7 +239,7 @@ public class SixFretGuitarEngineTests : EngineTester
         // Same fret number (2), different row — W2 cannot anchor B2, not interchangeable
         var engine = CreateSixFretEngine();
         var note = CreateSixFretNote(SixFretGuitarFret.Black2, GuitarNoteType.Strum);
-        engine.SetButtonMask((1 << 1) | (1 << 4)); // B2 + W2
+        engine.SetButtonMask(Mask(GuitarAction.Black2Fret, GuitarAction.White2Fret));
         Assert.That(engine.CanBeHit(note), Is.False);
     }
 
@@ -253,7 +252,7 @@ public class SixFretGuitarEngineTests : EngineTester
         var note = CreateSixFretChordNote(
             new[] { SixFretGuitarFret.White2, SixFretGuitarFret.White3 },
             GuitarNoteType.Strum);
-        engine.SetButtonMask((1 << 4) | (1 << 5)); // W2 + W3
+        engine.SetButtonMask(Mask(GuitarAction.White2Fret, GuitarAction.White3Fret));
         Assert.That(engine.CanBeHit(note), Is.True);
     }
 
@@ -264,7 +263,7 @@ public class SixFretGuitarEngineTests : EngineTester
         var note = CreateSixFretChordNote(
             new[] { SixFretGuitarFret.White1, SixFretGuitarFret.Black3 },
             GuitarNoteType.Tap);
-        engine.SetButtonMask((1 << (int)GuitarAction.White1Fret) | (1 << (int)GuitarAction.Black3Fret) | (1 << (int)GuitarAction.Black2Fret)); // W1 + B3 + B2(invalid anchor)
+        engine.SetButtonMask(Mask(GuitarAction.White1Fret, GuitarAction.Black3Fret, GuitarAction.Black2Fret)); // B2 is an invalid anchor
         Assert.That(engine.CanBeHit(note), Is.False);
     }
 
@@ -276,7 +275,7 @@ public class SixFretGuitarEngineTests : EngineTester
             new[] { SixFretGuitarFret.White2, SixFretGuitarFret.White3 },
             GuitarNoteType.Strum);
         // Hold B2 + W3 instead of W2 + W3 — chords require exact buttons
-        engine.SetButtonMask((1 << 1) | (1 << 5));
+        engine.SetButtonMask(Mask(GuitarAction.Black2Fret, GuitarAction.White3Fret));
         Assert.That(engine.CanBeHit(note), Is.False);
     }
 
@@ -288,7 +287,7 @@ public class SixFretGuitarEngineTests : EngineTester
             new[] { SixFretGuitarFret.Black1, SixFretGuitarFret.White2 },
             GuitarNoteType.Strum);
         // Hold W1 + W2 instead of B1 + W2 — chords require exact buttons
-        engine.SetButtonMask((1 << 3) | (1 << 4));
+        engine.SetButtonMask(Mask(GuitarAction.White1Fret, GuitarAction.White2Fret));
         Assert.That(engine.CanBeHit(note), Is.False);
     }
 
@@ -300,7 +299,7 @@ public class SixFretGuitarEngineTests : EngineTester
         var note = CreateSixFretChordNote(
             new[] { SixFretGuitarFret.Black2, SixFretGuitarFret.White3 },
             GuitarNoteType.Hopo);
-        engine.SetButtonMask((1 << 0) | (1 << 1) | (1 << 5)); // B1 + B2 + W3
+        engine.SetButtonMask(Mask(GuitarAction.Black1Fret, GuitarAction.Black2Fret, GuitarAction.White3Fret));
         Assert.That(engine.CanBeHit(note), Is.True);
     }
 
@@ -312,7 +311,7 @@ public class SixFretGuitarEngineTests : EngineTester
         var note = CreateSixFretChordNote(
             new[] { SixFretGuitarFret.White2, SixFretGuitarFret.White3 },
             GuitarNoteType.Strum);
-        engine.SetButtonMask((1 << 2) | (1 << 4) | (1 << 5)); // B3 + W2 + W3
+        engine.SetButtonMask(Mask(GuitarAction.Black3Fret, GuitarAction.White2Fret, GuitarAction.White3Fret));
         Assert.That(engine.CanBeHit(note), Is.False);
     }
 
@@ -324,7 +323,7 @@ public class SixFretGuitarEngineTests : EngineTester
         var note = CreateSixFretChordNote(
             new[] { SixFretGuitarFret.Black2, SixFretGuitarFret.White3 },
             GuitarNoteType.Hopo);
-        engine.SetButtonMask((1 << 0) | (1 << 1) | (1 << 5)); // B1 + B2 + W3
+        engine.SetButtonMask(Mask(GuitarAction.Black1Fret, GuitarAction.Black2Fret, GuitarAction.White3Fret));
         Assert.That(engine.CanBeHit(note), Is.True);
     }
 
@@ -343,8 +342,8 @@ public class SixFretGuitarEngineTests : EngineTester
         LinkNotes(notes);
         var engine = CreateSixFretEngine(notes);
 
-        // Previous: held B1 (bit 0). Now: B1 released, W2 pressed (bit 4)
-        engine.SetButtonState(effectiveMask: 1 << 4, lastMask: 1 << 0, isFretPress: true);
+        // Previous: held B1. Now: B1 released, W2 pressed
+        engine.SetButtonState(effectiveMask: Mask(GuitarAction.White2Fret), lastMask: Mask(GuitarAction.Black1Fret), isFretPress: true);
         engine.ClockToNote(1);
 
         Assert.That(engine.IsGhostInput(notes[1]), Is.False);
@@ -361,8 +360,8 @@ public class SixFretGuitarEngineTests : EngineTester
         LinkNotes(notes);
         var engine = CreateSixFretEngine(notes);
 
-        // Previous: held B1 (bit 0). Now: B1 released, W3 pressed (bit 5)
-        engine.SetButtonState(effectiveMask: 1 << 5, lastMask: 1 << 0, isFretPress: true);
+        // Previous: held B1. Now: B1 released, W3 pressed
+        engine.SetButtonState(effectiveMask: Mask(GuitarAction.White3Fret), lastMask: Mask(GuitarAction.Black1Fret), isFretPress: true);
         engine.ClockToNote(1);
 
         Assert.That(engine.IsGhostInput(notes[1]), Is.False);
@@ -379,11 +378,10 @@ public class SixFretGuitarEngineTests : EngineTester
         LinkNotes(notes);
         var engine = CreateSixFretEngine(notes);
 
-        // Previous: held B1 (bit 0, fret 1). Now: B3 pressed (bit 2, fret 3) — wrong fret
+        // Previous: held B1 (fret 1). Now: B3 pressed (fret 3) — wrong fret
         // currentFretNumber = 3, previousFretNumber = 1 → hammer-on
-        // note is W2 (bit 4), noteFretMask = 16
-        // (currentFrets & noteFretMask) = (4 & 16) = 0 → ghost
-        engine.SetButtonState(effectiveMask: 1 << 2, lastMask: 1 << 0, isFretPress: true);
+        // note is W2, and W2 is not held → ghost
+        engine.SetButtonState(effectiveMask: Mask(GuitarAction.Black3Fret), lastMask: Mask(GuitarAction.Black1Fret), isFretPress: true);
         engine.ClockToNote(1);
 
         Assert.That(engine.IsGhostInput(notes[1]), Is.True);
@@ -392,7 +390,7 @@ public class SixFretGuitarEngineTests : EngineTester
     [Test]
     public void Ghost_HammerOn_B1_To_B2_WrongFret_W2()
     {
-        // No interchangeability: holding W2 (bit 4) instead of B2 (bit 1) → ghost
+        // No interchangeability: holding W2 instead of B2 → ghost
         // W2 has the right fret number (2) but wrong button
         var notes = new[]
         {
@@ -402,11 +400,10 @@ public class SixFretGuitarEngineTests : EngineTester
         LinkNotes(notes);
         var engine = CreateSixFretEngine(notes);
 
-        // Previous: held B1 (bit 0, fret 1). Now: W2 pressed (bit 4, fret 2)
+        // Previous: held B1 (fret 1). Now: W2 pressed (fret 2)
         // currentFretNumber = 2, previousFretNumber = 1 → hammer-on
-        // note is B2 (bit 1), noteFretMask = 2
-        // (currentFrets & noteFretMask) = (16 & 2) = 0 → ghost
-        engine.SetButtonState(effectiveMask: 1 << 4, lastMask: 1 << 0, isFretPress: true);
+        // note is B2, and B2 is not held → ghost
+        engine.SetButtonState(effectiveMask: Mask(GuitarAction.White2Fret), lastMask: Mask(GuitarAction.Black1Fret), isFretPress: true);
         engine.ClockToNote(1);
 
         Assert.That(engine.IsGhostInput(notes[1]), Is.True);
@@ -423,8 +420,8 @@ public class SixFretGuitarEngineTests : EngineTester
         LinkNotes(notes);
         var engine = CreateSixFretEngine(notes);
 
-        // Previous: held B1 (bit 0). Now: held B1 + W1 (bits 0+3), B1 not released
-        engine.SetButtonState(effectiveMask: (1 << 0) | (1 << 3), lastMask: 1 << 0, isFretPress: true);
+        // Previous: held B1. Now: held B1 + W1, B1 not released
+        engine.SetButtonState(effectiveMask: Mask(GuitarAction.Black1Fret, GuitarAction.White1Fret), lastMask: Mask(GuitarAction.Black1Fret), isFretPress: true);
         engine.ClockToNote(1);
 
         Assert.That(engine.IsGhostInput(notes[1]), Is.True);
@@ -441,8 +438,8 @@ public class SixFretGuitarEngineTests : EngineTester
         LinkNotes(notes);
         var engine = CreateSixFretEngine(notes);
 
-        // Previous: held B1 (bit 0). Now: B1 released, only W1 (bit 3) held
-        engine.SetButtonState(effectiveMask: 1 << 3, lastMask: 1 << 0, isFretPress: true);
+        // Previous: held B1. Now: B1 released, only W1 held
+        engine.SetButtonState(effectiveMask: Mask(GuitarAction.White1Fret), lastMask: Mask(GuitarAction.Black1Fret), isFretPress: true);
         engine.ClockToNote(1);
 
         Assert.That(engine.IsGhostInput(notes[1]), Is.False);
@@ -459,7 +456,7 @@ public class SixFretGuitarEngineTests : EngineTester
         LinkNotes(notes);
         var engine = CreateSixFretEngine(notes);
 
-        engine.SetButtonState(effectiveMask: (1 << 1) | (1 << 4), lastMask: 1 << 1, isFretPress: true);
+        engine.SetButtonState(effectiveMask: Mask(GuitarAction.Black2Fret, GuitarAction.White2Fret), lastMask: Mask(GuitarAction.Black2Fret), isFretPress: true);
         engine.ClockToNote(1);
 
         Assert.That(engine.IsGhostInput(notes[1]), Is.True);
@@ -476,7 +473,7 @@ public class SixFretGuitarEngineTests : EngineTester
         LinkNotes(notes);
         var engine = CreateSixFretEngine(notes);
 
-        engine.SetButtonState(effectiveMask: (1 << 1) | (1 << 4), lastMask: 1 << 4, isFretPress: true);
+        engine.SetButtonState(effectiveMask: Mask(GuitarAction.Black2Fret, GuitarAction.White2Fret), lastMask: Mask(GuitarAction.White2Fret), isFretPress: true);
         engine.ClockToNote(1);
 
         Assert.That(engine.IsGhostInput(notes[1]), Is.True);
@@ -493,7 +490,7 @@ public class SixFretGuitarEngineTests : EngineTester
         LinkNotes(notes);
         var engine = CreateSixFretEngine(notes);
 
-        engine.SetButtonState(effectiveMask: (1 << 2) | (1 << 5), lastMask: 1 << 5, isFretPress: true);
+        engine.SetButtonState(effectiveMask: Mask(GuitarAction.Black3Fret, GuitarAction.White3Fret), lastMask: Mask(GuitarAction.White3Fret), isFretPress: true);
         engine.ClockToNote(1);
 
         Assert.That(engine.IsGhostInput(notes[1]), Is.True);
@@ -511,7 +508,7 @@ public class SixFretGuitarEngineTests : EngineTester
         var engine = CreateSixFretEngine(notes);
 
         // W3 released, B3 pressed → not a ghost
-        engine.SetButtonState(effectiveMask: 1 << 2, lastMask: 1 << 5, isFretPress: true);
+        engine.SetButtonState(effectiveMask: Mask(GuitarAction.Black3Fret), lastMask: Mask(GuitarAction.White3Fret), isFretPress: true);
         engine.ClockToNote(1);
 
         Assert.That(engine.IsGhostInput(notes[1]), Is.False);
@@ -528,11 +525,10 @@ public class SixFretGuitarEngineTests : EngineTester
         LinkNotes(notes);
         var engine = CreateSixFretEngine(notes);
 
-        // Previous: held B2 (bit 1). Now: B2 released, W3 pressed (bit 5)
+        // Previous: held B2. Now: B2 released, W3 pressed
         // currentFretNumber = 3, previousFretNumber = 2 → hammer-on
-        // note is W3 (bit 5), noteFretMask = 32
-        // (currentFrets & noteFretMask) = (32 & 32) ≠ 0 → not a ghost
-        engine.SetButtonState(effectiveMask: 1 << 5, lastMask: 1 << 1, isFretPress: true);
+        // note is W3, and W3 is held → not a ghost
+        engine.SetButtonState(effectiveMask: Mask(GuitarAction.White3Fret), lastMask: Mask(GuitarAction.Black2Fret), isFretPress: true);
         engine.ClockToNote(1);
 
         Assert.That(engine.IsGhostInput(notes[1]), Is.False);
@@ -541,8 +537,8 @@ public class SixFretGuitarEngineTests : EngineTester
     [Test]
     public void Ghost_HammerOn_W1_To_B3_WithAnchor()
     {
-        // B3 (bit 2, fret 3) has a higher fret number than W1 (bit 3, fret 1),
-        // but a LOWER bit position. GetMostSignificantBit would find bit 3 (W1, fret 1)
+        // B3 (fret 3) has a higher fret number than W1 (fret 1),
+        // but a LOWER bit position. GetMostSignificantBit would find W1 (fret 1)
         // and incorrectly think this is a vertical transition (fret 1 → fret 1).
         // The fix iterates all bits to find the highest FRET NUMBER (3, from B3),
         // correctly identifying this as a hammer-on (fret 1 → fret 3).
@@ -554,8 +550,8 @@ public class SixFretGuitarEngineTests : EngineTester
         LinkNotes(notes);
         var engine = CreateSixFretEngine(notes);
 
-        // Previous: held W1 (bit 3). Now: held W1 + B3 (bits 2+3, W1 as anchor)
-        engine.SetButtonState(effectiveMask: (1 << 2) | (1 << 3), lastMask: 1 << 3, isFretPress: true);
+        // Previous: held W1. Now: held W1 + B3 (W1 as anchor)
+        engine.SetButtonState(effectiveMask: Mask(GuitarAction.Black3Fret, GuitarAction.White1Fret), lastMask: Mask(GuitarAction.White1Fret), isFretPress: true);
         engine.ClockToNote(1);
 
         Assert.That(engine.IsGhostInput(notes[1]), Is.False);
@@ -572,11 +568,11 @@ public class SixFretGuitarEngineTests : EngineTester
         LinkNotes(notes);
         var engine = CreateSixFretEngine(notes);
 
-        // Previous: held W3 (bit 5). Now: W3 released, W2 pressed (bit 4)
+        // Previous: held W3. Now: W3 released, W2 pressed
         // currentFretNumber = 2, previousFretNumber = 3 → pull-off (not hammer-on)
         // Vertical check not triggered (different fret numbers)
         // No ghost
-        engine.SetButtonState(effectiveMask: 1 << 4, lastMask: 1 << 5, isFretPress: true);
+        engine.SetButtonState(effectiveMask: Mask(GuitarAction.White2Fret), lastMask: Mask(GuitarAction.White3Fret), isFretPress: true);
         engine.ClockToNote(1);
 
         Assert.That(engine.IsGhostInput(notes[1]), Is.False);
@@ -585,6 +581,20 @@ public class SixFretGuitarEngineTests : EngineTester
     #endregion
 
     #region Test helpers
+
+    /// <summary>
+    /// Converts fret buttons into an int button mask.
+    /// </summary>
+    private static int Mask(params GuitarAction[] frets)
+    {
+        var mask = 0;
+        foreach (var fret in frets)
+        {
+            mask |= 1 << (int) fret;
+        }
+
+        return mask;
+    }
 
     private static TestSixFretGuitarEngine CreateSixFretEngine()
     {
