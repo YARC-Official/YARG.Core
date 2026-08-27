@@ -485,9 +485,6 @@ namespace YARG.Core.Chart
             return results;
         }
 
-        /// <summary>
-        /// Removes the Orange member of a 5-note chord so the remainder can be placed legally.
-        /// </summary>
         public static void ConvertToGuitarType(this InstrumentDifficulty<GuitarNote> difficulty, GuitarNoteType type)
         {
             foreach (var note in difficulty.Notes)
