@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 
 namespace YARG.Core.Game
@@ -93,7 +93,6 @@ namespace YARG.Core.Game
                     Modifier.RangeCompress |
                     Modifier.OpensToGreens,
 
-                GameMode.SixFretGuitar or
                 GameMode.ProGuitar     or
             //  GameMode.Dj            or
                 GameMode.ProKeys       => Modifier.None,
