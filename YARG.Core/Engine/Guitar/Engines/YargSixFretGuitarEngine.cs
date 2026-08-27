@@ -1,4 +1,3 @@
-using System.Collections.Generic;
 using YARG.Core.Chart;
 using YARG.Core.Input;
 
@@ -62,23 +61,33 @@ namespace YARG.Core.Engine.Guitar.Engines
         {
         }
 
+        /// <summary>
+        /// Returns the mask of the fret in the chord with the lowest fret number (1-3).
+        /// Iterates bit positions and compares fret numbers, since bit position order
+        /// (B1, B2, B3, W1, W2, W3) does not match fret number order (1, 2, 3, 1, 2, 3).
+        /// </summary>
         protected override int GetChordLowestFretMask(GuitarNote note)
         {
-            var chordMask = 0;
-            for (var fret = GuitarAction.GreenFret; fret <= GuitarAction.White3Fret; fret++)
+            int lowestMask = 0;
+            int lowestFretNumber = int.MaxValue;
+            for (int i = 0; i < 6; i++)
             {
-                chordMask = 1 << (int) fret;
-
-                // If the current fret mask is part of the chord, break
-                if ((chordMask & note.NoteMask) == chordMask)
+                int mask = 1 << i;
+                if ((mask & note.NoteMask) == 0)
                 {
-                    break;
+                    continue;
+                }
+
+                int fretNumber = GetFretNumberFromBitPosition(i);
+                if (fretNumber < lowestFretNumber)
+                {
+                    lowestFretNumber = fretNumber;
+                    lowestMask = mask;
                 }
             }
 
-            return chordMask;
+            return lowestMask;
         }
-
         /// <summary>
         /// Converts a 0-indexed bit position (0-5) to a GH Live fret number (1-3).
         /// Bit 0=B1, 1=B2, 2=B3, 3=W1, 4=W2, 5=W3 → fret numbers 1,2,3,1,2,3.
@@ -240,9 +249,10 @@ namespace YARG.Core.Engine.Guitar.Engines
 
         /// <summary>
         /// Overrides anchoring validation for six-fret guitar.
-        /// Frets are NOT interchangeable — each button (B1, W1, B2, W2, B3, W3)
-        /// is distinct. The target fret must be held; only frets with a strictly
-        /// lower fret number can be held as additional anchors.
+        /// For anchoring, only the fret position (column 1-3) matters: held frets with a strictly
+        /// lower fret position can be held as additional anchors, regardless of row — W1 (bit 3,
+        /// position 1) can anchor B2 (bit 1, position 2). The target note itself, however, must
+        /// be held exactly: specific buttons DO matter for hitting notes (B2 cannot substitute W2).
         /// </summary>
         protected override bool IsAnchoringValid(int anchorButtons, int targetFretValue)
         {
@@ -265,30 +275,22 @@ namespace YARG.Core.Engine.Guitar.Engines
 
             // Target fret must be held (i.e., NOT in the XOR-based anchorButtons,
             // which contains the target bit only when it is missing from the held buttons).
-            // Since frets are NOT interchangeable, the exact target fret is required.
             if ((anchorButtons & targetFretValue) != 0)
             {
                 // Target fret is in anchorButtons → it was NOT held → anchoring invalid
                 return false;
             }
 
-            // Check each anchor bit: must have a strictly lower fret number
-            for (int i = 0; i < 6; i++)
+            // The highest held anchor fret number must be strictly lower than the target fret number.
+            // Compare fret numbers, not bit positions — same fret number on a different row is NOT
+            // interchangeable, and higher fret numbers can never anchor.
+            int highestAnchorPosition = GetHighestFretBitPosition(anchorButtons);
+            if (highestAnchorPosition < 0)
             {
-                if ((anchorButtons & (1 << i)) != 0)
-                {
-                    int anchorFretNumber = GetFretNumberFromBitPosition(i);
-                    if (anchorFretNumber >= targetFretNumber)
-                    {
-                        // Anchor fret is same or higher than target — invalid
-                        // (same fret number, different row is NOT interchangeable)
-                        return false;
-                    }
-                    // anchorFretNumber < targetFretNumber — valid anchor, continue
-                }
+                return true;
             }
 
-            return true;
+            return GetFretNumberFromBitPosition(highestAnchorPosition) < targetFretNumber;
         }
 
         protected override byte[] CreateCodaFretMask() => new byte[6];

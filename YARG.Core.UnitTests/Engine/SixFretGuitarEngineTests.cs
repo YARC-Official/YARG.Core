@@ -1,4 +1,3 @@
-using System.Collections.Generic;
 using NUnit.Framework;
 using YARG.Core.Chart;
 using YARG.Core.Engine;
@@ -256,6 +255,17 @@ public class SixFretGuitarEngineTests : EngineTester
             GuitarNoteType.Strum);
         engine.SetButtonMask((1 << 4) | (1 << 5)); // W2 + W3
         Assert.That(engine.CanBeHit(note), Is.True);
+    }
+
+    [Test]
+    public void Chord_InvalidAnchoring()
+    {
+        var engine = CreateSixFretEngine();
+        var note = CreateSixFretChordNote(
+            new[] { SixFretGuitarFret.White1, SixFretGuitarFret.Black3 },
+            GuitarNoteType.Tap);
+        engine.SetButtonMask((1 << (int)GuitarAction.White1Fret) | (1 << (int)GuitarAction.Black3Fret) | (1 << (int)GuitarAction.Black2Fret)); // W1 + B3 + B2(invalid anchor)
+        Assert.That(engine.CanBeHit(note), Is.False);
     }
 
     [Test]
