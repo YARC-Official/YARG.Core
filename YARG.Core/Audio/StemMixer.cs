@@ -5,6 +5,49 @@ using System.IO;
 namespace YARG.Core.Audio
 {
     /// <summary>
+    /// One segment of a tone schedule, in song seconds and MIDI pitch.
+    /// </summary>
+    /// <remarks>
+    /// A segment whose pitches are equal is held; unequal pitches are interpolated linearly across
+    /// the segment. Segments must be sorted by <see cref="StartTime"/> and must not overlap; the
+    /// tone is silent outside them.
+    /// </remarks>
+    public readonly struct ToneSegment
+    {
+        public readonly double StartTime;
+        public readonly double EndTime;
+        public readonly float  StartPitch;
+        public readonly float  EndPitch;
+
+        public ToneSegment(double startTime, double endTime, float startPitch, float endPitch)
+        {
+            StartTime = startTime;
+            EndTime = endTime;
+            StartPitch = startPitch;
+            EndPitch = endPitch;
+        }
+    }
+
+    /// <summary>
+    /// Mixes a synthesized tone into the song, following a pitch schedule expressed in song time.
+    /// The schedule is rendered by the audio backend, so setting it is the only work the caller
+    /// performs; nothing runs per sample on the caller's side.
+    /// </summary>
+    public abstract class ToneChannel : IDisposable
+    {
+        /// <summary>
+        /// Replaces the pitch schedule. Pass an empty span to silence the tone.
+        /// </summary>
+        /// <returns>
+        /// <c>false</c> if the backend rejected or could not apply the schedule, in which case the
+        /// previous one is still playing.
+        /// </returns>
+        public abstract bool SetSchedule(ReadOnlySpan<ToneSegment> segments);
+
+        public abstract void Dispose();
+    }
+
+    /// <summary>
     /// Playback positions sampled together for audio synchronization.
     /// </summary>
     /// <remarks>
@@ -90,7 +133,17 @@ namespace YARG.Core.Audio
         /// Creates a one-shot channel from an owned sample stream and its scheduled play times.
         /// </summary>
         public abstract OneShotChannel CreateOneShotChannel(int sampleStream,
-            IReadOnlyList<double> scheduledPlays, double outputLeadTime = 0);
+            IReadOnlyList<double> scheduledPlays, double outputLeadTime = 0, OutputChannel? outputChannel = null);
+
+        /// <summary>
+        /// Creates a tone mixed into this song, or <c>null</c> if the backend cannot provide one.
+        /// The caller owns the returned channel and must dispose it.
+        /// </summary>
+        /// <param name="volume">Tone volume relative to the mix.</param>
+        /// <param name="fadeDuration">
+        /// Seconds for a full volume ramp, used to declick the edges of each segment.
+        /// </param>
+        public abstract ToneChannel? CreateToneChannel(double volume, double fadeDuration);
 
         protected StemMixer(string name, AudioManager manager,bool clampStemVolume)
         {

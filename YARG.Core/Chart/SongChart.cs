@@ -4,6 +4,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using Melanchall.DryWetMidi.Core;
 using YARG.Core.Chart.Events;
+using YARG.Core.IO;
 using YARG.Core.Logging;
 using YARG.Core.Parsing;
 
@@ -26,8 +27,9 @@ namespace YARG.Core.Chart
         public VenueTrack VenueTrack { get; set; } = new();
         public LyricsTrack Lyrics { get; set; } = new();
 
-        // TODO: Add support for multiple lipsync tracks
-        public List<LipsyncEvent> LipsyncEvents { get; set; } = new();
+        public List<List<LipsyncEvent>> LipsyncEventsByPart { get; set; } = new();
+        public Performer[] SingerPreference { get; set; } = Array.Empty<Performer>();
+        public MiloAnimation.MiloAnimationGenre AnimationGenre   { get; set; }
 
 
         public InstrumentTrack<GuitarNote> FiveFretGuitar { get; set; } = new(Instrument.FiveFretGuitar);
@@ -167,6 +169,7 @@ namespace YARG.Core.Chart
 
             PostProcessSections();
             FixDrumPhraseEnds();
+            GenerateSingerPreference();
         }
 
         public void Append(SongChart song)

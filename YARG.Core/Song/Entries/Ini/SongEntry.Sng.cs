@@ -98,9 +98,10 @@ namespace YARG.Core.Song
             return null;
         }
 
-        public override BackgroundResult? LoadBackground(bool excludeYarground = false)
+        public override BackgroundResult? LoadBackground(bool enableCensoring, bool excludeYarground = false)
         {
             using var sngFile = SngFile.TryLoadFromFile(_location, false);
+            string censorSuffix = enableCensoring ? CLEAN_BACKGROUND_SUFFIX : EXPLICIT_BACKGROUND_SUFFIX;
             if (!sngFile.IsLoaded)
             {
                 return null;
@@ -126,6 +127,11 @@ namespace YARG.Core.Song
             {
                 foreach (var format in VIDEO_EXTENSIONS)
                 {
+                    string censoredName = stem + censorSuffix + format;
+                    if (sngFile.TryGetListing(censoredName, out listing))
+                    {
+                        return new BackgroundResult(BackgroundType.Video, sngFile.CreateStream(censoredName, in listing));
+                    }
                     string name = stem + format;
                     if (sngFile.TryGetListing(name, out listing))
                     {
@@ -136,6 +142,11 @@ namespace YARG.Core.Song
 
             foreach (var format in VIDEO_EXTENSIONS)
             {
+                var censorSpecificPath = Path.ChangeExtension(_location + censorSuffix, format);
+                if (File.Exists(censorSpecificPath))
+                {
+                    return new BackgroundResult(BackgroundType.Video, File.OpenRead(censorSpecificPath));
+                }
                 string path = Path.ChangeExtension(_location, format);
                 if (File.Exists(path))
                 {
@@ -143,7 +154,7 @@ namespace YARG.Core.Song
                 }
             }
 
-            if (sngFile.TryGetListing(_background, out listing) || TryGetRandomBackgroundImage(sngFile.Listings, out listing))
+            if (sngFile.TryGetListing(_background, out listing) || TryGetRandomBackgroundImage(sngFile.Listings, enableCensoring, out listing))
             {
                 using var data = sngFile.LoadAllBytes(in listing);
                 var image = YARGImage.Load(data);
@@ -157,17 +168,28 @@ namespace YARG.Core.Song
             // Fallback to a potential external image mapped specifically to the sng
             foreach (var format in IMAGE_EXTENSIONS)
             {
-                string path = Path.ChangeExtension(_location, format);
-                if (File.Exists(path))
+                var censorSpecificPath = Path.ChangeExtension(_location + censorSuffix, format);
+                string normalPath = Path.ChangeExtension(_location, format);
+                string path;
+                if (File.Exists(censorSpecificPath))
                 {
-                    using var data = FixedArray.LoadFile(path);
-                    var image = YARGImage.Load(data);
-                    if (image != null)
-                    {
-                        return new BackgroundResult(image);
-                    }
-                    YargLogger.LogFormatError("Failed to load background image {0}", path);
+                    path = censorSpecificPath;
                 }
+                else if (File.Exists(normalPath))
+                {
+                    path = normalPath;
+                }
+                else
+                {
+                    continue;
+                }
+                using var data = FixedArray.LoadFile(path);
+                var image = YARGImage.Load(data);
+                if (image != null)
+                {
+                    return new BackgroundResult(image);
+                }
+                YargLogger.LogFormatError("Failed to load background image {0}", censorSpecificPath);
             }
             return null;
         }
@@ -189,6 +211,25 @@ namespace YARG.Core.Song
                 }
             }
 
+            return null;
+        }
+        // PLEASE do not do this in your charts
+        public override FixedArray<byte>? LoadVocData()
+        {
+            using var sng = SngFile.TryLoadFromFile(_location, false);
+            if (sng.IsLoaded)
+            {
+                foreach (var name in sng.Listings.Keys)
+                {
+                    if (name.EndsWith(".voc"))
+                    {
+                        if (sng.TryGetListing(name, out var listing))
+                        {
+                            return sng.LoadAllBytes(in listing);
+                        }
+                    }
+                }
+            }
             return null;
         }
 
