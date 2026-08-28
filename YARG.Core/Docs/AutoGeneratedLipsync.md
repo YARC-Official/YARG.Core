@@ -52,15 +52,20 @@ await UniTask.RunOnThreadPool(() => LipsyncGenerator.Initialize(dictText));
 
 `CMUDict.Initialize()` builds a `Dictionary<string, string[]>` mapping words → phoneme arrays (e.g., `"HELLO"` → `["HH", "AH0", "L", "OW1"]`).
 
-### 2. Per-Lyric Processing
+### 2. Per-Word Processing
 
-For each `LyricEvent` in each `LyricsPhrase`:
+Syllable fragments are re-joined into whole words before analysis. Fragments linked by
+`JoinWithNext`/`HyphenateWithNext` flags (e.g. `Du-` + `vet`) are concatenated, and empty
+slide-gap fragments (pitch slides) extend the previous syllable's audible length.
 
-1. **Clean text** — Strip vocal symbols (`-`, `=`, `#`, `!`, `^`, `$`)
-2. **Lookup phonemes** — Try CMU dict; fallback to simple vowel mapping
-3. **Convert phonemes → syllable** — Split into Initial consonants, Vowel (main + optional diphthong end), Final consonants
-4. **Map phonemes → visemes** — Each phoneme maps to a `LipsyncEvent.LipsyncType` (see Viseme Mapping below)
-5. **Generate timed events** — Create `LipsyncEvent` entries with smooth transitions
+For each word in each `LyricsPhrase`:
+
+1. **Clean text** — Concatenate fragment texts, strip vocal symbols (`-`, `=`, `#`, `!`, `^`, `$`)
+2. **Lookup phonemes** — Try CMU dict on the whole word; fallback to simple vowel mapping
+3. **Split phonemes → syllables** — One syllable per vowel, using maximum-onset (consonants between vowels start the next syllable)
+4. **Align syllables → fragments** — 1:1 when counts match; proportional grouping when the word has more/fewer syllables than fragments
+5. **Map phonemes → visemes** — Each phoneme maps to a `LipsyncEvent.LipsyncType` (see Viseme Mapping below)
+6. **Generate timed events** — Create `LipsyncEvent` entries with smooth ramped transitions
 
 ### 3. Syllable Structure
 
@@ -84,27 +89,41 @@ Phoneme classification:
 
 | Constant | Value | Purpose |
 |----------|-------|---------|
-| `TRANSITION_TIME` | 0.12s | Total transition duration |
-| `HALF_TRANSITION` | 0.06s | Max time for initial/final transitions |
-| `TRANSITION_STEPS` | 4 | Interpolation steps (~30fps × 0.12s) |
-| `VISEME_WEIGHT` | 200/255 ≈ 0.55 | Onyx used 140, we bumped it |
+| `ATTACK_MAX_TIME` | 0.20s | Consonant/vowel attack ramp length |
+| `CODA_MAX_TIME` | 0.15s | Final-consonant ramp length |
+| `RELEASE_TIME` | 0.20s | Mouth close ramp length |
+| `RELEASE_THRESHOLD` | 0.30s | Minimum gap before releasing the mouth |
+| `STEP_TIME` | 1/30s | Interpolation step interval (Milo-style keyframes) |
+| `VOWEL_BASE_WEIGHT` | 0.55 | Minimum vowel weight |
+| `VOWEL_WEIGHT_SCALE` | 1.0 | Vowel weight growth per second of note length |
+| `VOWEL_WEIGHT_CAP` | 0.95 | Maximum vowel weight |
+| `CONSONANT_WEIGHT` | 0.45 | Partial weight for consonant shapes |
 
-**Timeline for a lyric at time `t` with duration `d`:**
+Vowel openness scales with the note's duration (longer/held notes open fuller), and holds are
+re-emitted as dense per-frame keyframes — matching how authored Milo lipsync data behaves.
+
+**Timing sources:** when a vocals part is available, each syllable uses its vocal note's
+actual end time; the mouth closes at the note end if a silent gap follows instead of holding
+open until the next lyric. Otherwise slots run until the next fragment's start time.
+
+**Timeline for a syllable slot `[t, t+d]`:**
 
 ```
-t                          t+d
-│                          │
-├─ Initial consonants (min 0.06s or d/2)
-│   └─ Smooth transition from Neutral → each consonant (4 steps)
-│
-├─ Vowel hold (remaining duration)
-│   └─ If diphthong: hold VowelMain 60%, then 40% transition to VowelEnd (ease-in-expo)
-│
-├─ Final consonants (min 0.06s or d/2)
-│   └─ Smooth transition from VowelEnd/VowelMain → each consonant → Neutral (4 steps)
-│
-└─ Reset all used visemes to 0
+t-attack                 t                       t+d
+│                        │                       │
+├─ Attack (anticipation): ramp through initial consonants into the vowel,
+│   peaking AT the lyric time (in the gap before the slot when available)
+├─ Vowel hold (dense per-frame keys; weights glide)
+│   └─ If diphthong: hold VowelMain 60%, then 40% ramp to VowelEnd
+├─ Coda: ramp from the vowel through each final consonant up to t+d
+└─ Release (only if a gap > RELEASE_THRESHOLD follows): ramp weight to 0 over RELEASE_TIME
 ```
+
+All ramps use smoothstep easing for S-curved motion.
+
+Mouth state is tracked while generating, so transitions ramp from the *actual* previous
+viseme and weight — there are no instant snaps and no bulk viseme resets. Ramps interpolate
+in ~30fps steps so the runtime never applies multiple collapsed sub-frame steps in one update.
 
 ### 5. Blink & Expression Events
 
@@ -149,7 +168,8 @@ t                          t+d
 | F, V | `Fave_lo` | Teeth on lip |
 | TH, DH | `Told_lo` | Tongue between teeth |
 | S, Z | `Size_lo` | Teeth together |
-| T, D, N, L | `Told_lo` | Tongue behind teeth |
+| T, D, NG, K, G | `Told_lo` | Tongue behind teeth / velar closure |
+| N, L | `New_lo` | Tongue up, mouth nearly closed |
 | SH, ZH, CH, JH | `Told_lo` | Tongue back |
 | R | `Roar_lo` | Rounded |
 | W | `Wet_lo` | Rounded |
@@ -173,8 +193,8 @@ public class LipsyncEvent : ChartEvent, ICloneable<LipsyncEvent>
 }
 ```
 
-- `Value` = `VISEME_WEIGHT` (0.55) for active visemes, `0f` for reset
-- Multiple events at same timestamp can overlap (e.g., transition from→to)
+- `Value` is analog (0.0–1.0): vowel weights scale with note length, consonants sit at ~0.45, `0f` for released visemes
+- Multiple events at same timestamp can overlap (e.g., ramp from→to)
 
 ### LyricsTrack → LyricsPhrase → LyricEvent
 
@@ -222,9 +242,7 @@ No initial/final consonants or diphthongs are generated in fallback mode.
 Enable trace logging to debug generation:
 
 ```csharp
-YargLogger.LogFormatTrace("Lyric '{0}' at tick {1} -> Initial: [{2}], Vowel: {3}, VowelEnd: {4}, Final: [{5}]", ...);
-YargLogger.LogFormatTrace("  Generated {0} lipsync events for lyric '{1}'", ...);
-YargLogger.LogFormatTrace("  Phonemes: [{0}]", string.Join(", ", phonemes));
+YargLogger.LogFormatTrace("Lipsync word '{0}' at {1:F3}s -> {2} syllable(s)", ...);
 ```
 
 ---

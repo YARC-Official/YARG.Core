@@ -594,18 +594,22 @@ namespace YARG.Core.Chart
                 // Nothing we can do with vocal parts here
                 return;
             }
-            if ((songChart.Harmony.Parts.Count(part => !part.IsEmpty) == 0 || singalongsExist) && songChart.LipsyncEventsByPart.Count == 0)
+            var nonEmptyParts = songChart.Harmony.Parts.Where(part => !part.IsEmpty).ToList();
+            if ((nonEmptyParts.Count == 0 || singalongsExist) && songChart.LipsyncEventsByPart.Count == 0)
             {
-                // TODO: Remove the generation from lyrics, and just generate from vocals, so we can use the note lengths.
-                if (!songChart.Lyrics.IsEmpty)
+                if (nonEmptyParts.Count > 0)
                 {
+                    // Generate from the vocals part when it exists so we can use the note lengths
+                    // for timing (resolved TODO: previously generated from lyrics here).
+                    songChart.LipsyncEventsByPart.Add(LipsyncGenerator.GenerateFromVocalsPart(
+                        nonEmptyParts[0], nonEmptyParts));
+                    YargLogger.LogFormatDebug("Generated {0} lipsync events from vocals part", songChart.LipsyncEventsByPart[0].Count);
+                }
+                else if (!songChart.Lyrics.IsEmpty)
+                {
+                    // No vocal notes to time against; fall back to the lyrics track.
                     songChart.LipsyncEventsByPart.Add(LipsyncGenerator.GenerateFromLyrics(songChart.Lyrics));
                     YargLogger.LogFormatDebug("Generated {0} lipsync events from lyrics", songChart.LipsyncEventsByPart[0].Count);
-                }
-                else if (!songChart.Vocals.IsEmpty)
-                {
-                    // I don't know if this branch is even possible to reach
-                    songChart.LipsyncEventsByPart.Add(LipsyncGenerator.GenerateFromVocalsPart(songChart.Harmony.Parts[0]));
                 }
             }
             else if (!singalongsExist) // Only generate lipsync for vocal parts if there are no singalongs to prevent weirdness
@@ -616,7 +620,8 @@ namespace YARG.Core.Chart
                     {
                         continue;
                     }
-                    songChart.LipsyncEventsByPart.Add(LipsyncGenerator.GenerateFromVocalsPart(songChart.Harmony.Parts[i]));
+                    songChart.LipsyncEventsByPart.Add(LipsyncGenerator.GenerateFromVocalsPart(
+                        songChart.Harmony.Parts[i], songChart.Harmony.Parts.Where(part => !part.IsEmpty)));
                     YargLogger.LogFormatDebug("Generated {0} lipsync events from vocals part {1}", songChart.LipsyncEventsByPart[i].Count, i);
                 }
             }
