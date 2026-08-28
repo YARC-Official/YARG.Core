@@ -260,6 +260,18 @@ public class PreviewContextTests
 
         protected override void SetOutputDevice_Internal(OutputDevice device) { }
 
+        public override ToneChannel? CreateToneChannel(double volume, double fadeDuration)
+        {
+            return new EmptyToneChannel();
+        }
+
+        private sealed class EmptyToneChannel : ToneChannel
+        {
+            public override bool SetSchedule(ReadOnlySpan<ToneSegment> segments) => true;
+
+            public override void Dispose() { }
+        }
+
         protected override void DisposeManagedResources()
         {
             DisposeCount++;
