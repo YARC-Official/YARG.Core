@@ -180,6 +180,52 @@ namespace YARG.Core.Song
             return metadata;
         }
 
+        /// <summary>
+        /// Fills in the plain text/metadata fields (name, artist, album, genre, year, etc.)
+        /// from a parsed DTA entry. Extracted from the metadata-only portion of
+        /// <see cref="RBCONEntry.ParseDTA"/> so both RBCON and DTA-fallback ini songs
+        /// decode/format these fields identically. Chart-derived data (parts, intensities,
+        /// RBCON-specific audio/venue fields) is intentionally left out - callers that need
+        /// those still handle them themselves.
+        /// </summary>
+        public static void FillFromDTA(ref SongMetadata metadata, in DTAEntry dta)
+        {
+            if (dta.Name != null)                 { metadata.Name          = YARGDTAReader.DecodeString(dta.Name.Value, dta.MetadataEncoding); }
+            if (dta.Artist != null)               { metadata.Artist        = YARGDTAReader.DecodeString(dta.Artist.Value, dta.MetadataEncoding); }
+            if (dta.CoveredBy != null)            { metadata.CoveredBy     = YARGDTAReader.DecodeString(dta.CoveredBy.Value, dta.MetadataEncoding); }
+            if (dta.Album != null)                { metadata.Album         = YARGDTAReader.DecodeString(dta.Album.Value, dta.MetadataEncoding); }
+            if (dta.Charter != null)              { metadata.Charter       = YARGDTAReader.DecodeString(dta.Charter.Value, dta.MetadataEncoding); }
+            if (dta.CharterKeys != null)
+            {
+                metadata.CharterKeys    = YARGDTAReader.DecodeString(dta.CharterKeys.Value, dta.MetadataEncoding);
+                metadata.CharterProKeys = YARGDTAReader.DecodeString(dta.CharterKeys.Value, dta.MetadataEncoding);
+            }
+            if (dta.CharterProStrings != null)
+            {
+                metadata.CharterProGuitar = YARGDTAReader.DecodeString(dta.CharterProStrings.Value, dta.MetadataEncoding);
+                metadata.CharterProBass   = YARGDTAReader.DecodeString(dta.CharterProStrings.Value, dta.MetadataEncoding);
+            }
+            if (dta.LoadingPhrase != null)        { metadata.LoadingPhrase = YARGDTAReader.DecodeString(dta.LoadingPhrase.Value, dta.MetadataEncoding); }
+            if (dta.Playlist != null)             { metadata.Playlist      = YARGDTAReader.DecodeString(dta.Playlist.Value, dta.MetadataEncoding); }
+            if (dta.Genre != null)
+            {
+                metadata.Genre    = dta.Genre;
+                metadata.Subgenre = string.Empty;
+            }
+            if (dta.Subgenre != null)             { metadata.Subgenre      = dta.Subgenre.Replace("subgenre_", ""); }
+            if (dta.YearAsNumber != null)         { metadata.Year          = dta.YearAsNumber.Value.ToString("D4"); }
+            if (dta.YearSecondaryAsNumber != null) { metadata.YearSecondary = dta.YearSecondaryAsNumber.Value.ToString("D4"); }
+            // Plain source copy only - RBCON's ugc/beatles source overrides are catalog-specific
+            // business rules, not general DTA semantics, so those stay in RBCONEntry.ParseDTA.
+            if (dta.Source != null)               { metadata.Source        = dta.Source; }
+            if (dta.SongLength != null)           { metadata.SongLength    = dta.SongLength.Value; }
+            if (dta.IsMaster != null)             { metadata.IsMaster      = dta.IsMaster.Value; }
+            if (dta.AlbumTrack != null)           { metadata.AlbumTrack    = dta.AlbumTrack.Value; }
+            if (dta.Preview != null)              { metadata.Preview       = dta.Preview.Value; }
+            if (dta.SongRating != null)           { metadata.SongRating    = dta.SongRating.Value; }
+            if (dta.VocalGender != null)          { metadata.VocalGender   = DTAEntry.ConvertVocalGender(dta.VocalGender); }
+        }
+
         public static void FillFromIni(ref SongMetadata metadata, IniModifierCollection modifiers)
         {
             if (modifiers.Extract("name", out string name) && name.Length > 0)

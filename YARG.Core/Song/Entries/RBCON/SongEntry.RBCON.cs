@@ -627,47 +627,18 @@ namespace YARG.Core.Song
 
         private static void ParseDTA(RBCONEntry entry, in DTAEntry dta, ref string? location, ref float[]? volumes, ref float[]? pans, ref float[]? cores)
         {
-            if (dta.Name != null)                 { entry._metadata.Name          = YARGDTAReader.DecodeString(dta.Name.Value, dta.MetadataEncoding); }
-            if (dta.Artist != null)               { entry._metadata.Artist        = YARGDTAReader.DecodeString(dta.Artist.Value, dta.MetadataEncoding); }
-            if (dta.CoveredBy != null)            { entry._metadata.CoveredBy     = YARGDTAReader.DecodeString(dta.CoveredBy.Value, dta.MetadataEncoding); }
-            if (dta.Album != null)                { entry._metadata.Album         = YARGDTAReader.DecodeString(dta.Album.Value, dta.MetadataEncoding); }
-            if (dta.Charter != null)              { entry._metadata.Charter       = YARGDTAReader.DecodeString(dta.Charter.Value, dta.MetadataEncoding); }
-            if (dta.CharterKeys != null)
-            {
-                entry._metadata.CharterKeys    = YARGDTAReader.DecodeString(dta.CharterKeys.Value, dta.MetadataEncoding);
-                entry._metadata.CharterProKeys = YARGDTAReader.DecodeString(dta.CharterKeys.Value, dta.MetadataEncoding);
-            }
-            if (dta.CharterProStrings != null)
-            {
-                entry._metadata.CharterProGuitar = YARGDTAReader.DecodeString(dta.CharterProStrings.Value, dta.MetadataEncoding);
-                entry._metadata.CharterProBass   = YARGDTAReader.DecodeString(dta.CharterProStrings.Value, dta.MetadataEncoding);
-            }
-            if (dta.LoadingPhrase != null)        { entry._metadata.LoadingPhrase = YARGDTAReader.DecodeString(dta.LoadingPhrase.Value, dta.MetadataEncoding); }
-            if (dta.Playlist != null)             { entry._metadata.Playlist      = YARGDTAReader.DecodeString(dta.Playlist.Value, dta.MetadataEncoding); }
-            if (dta.Genre != null)
-            {
-                entry._metadata.Genre    = dta.Genre;
-                entry._metadata.Subgenre = string.Empty;
-            }
-            if (dta.Subgenre != null)             { entry._metadata.Subgenre      = dta.Subgenre.Replace("subgenre_", ""); }
+            SongMetadata.FillFromDTA(ref entry._metadata, in dta);
+
             if (dta.YearAsNumber != null)
             {
                 entry._yearAsNumber = dta.YearAsNumber.Value;
-                entry._metadata.Year = entry._yearAsNumber.ToString("D4");
             }
-            if (dta.YearSecondaryAsNumber != null)
-            {
-                entry._metadata.YearSecondary = dta.YearSecondaryAsNumber.Value.ToString("D4");
-            }
+
             if (dta.Source != null)
             {
                 if (!entry._nodeName.StartsWith("UGC_", StringComparison.OrdinalIgnoreCase) && (dta.Source == "ugc" || dta.Source == "ugc_plus" || (dta.Source == "rb2" && dta.UGC.HasValue && dta.UGC.Value)))
                 {
                     entry._metadata.Source = "customs";
-                }
-                else
-                {
-                    entry._metadata.Source = dta.Source;
                 }
 
                 if (dta.Source == "beatles")
@@ -677,12 +648,7 @@ namespace YARG.Core.Song
                     entry._metadata.VocalGender = VocalGender.Male;
                 }
             }
-            if (dta.SongLength != null)           { entry._metadata.SongLength    = dta.SongLength.Value; }
-            if (dta.IsMaster != null)             { entry._metadata.IsMaster      = dta.IsMaster.Value; }
-            if (dta.AlbumTrack != null)           { entry._metadata.AlbumTrack    = dta.AlbumTrack.Value; }
-            if (dta.Preview != null)              { entry._metadata.Preview       = dta.Preview.Value; }
             if (dta.HopoThreshold != null)        { entry._settings.HopoThreshold = dta.HopoThreshold.Value; }
-            if (dta.SongRating != null)           { entry._metadata.SongRating    = dta.SongRating.Value; }
             if (dta.VocalSongScrollSpeed != null) {
                 entry._rbMetadata.VocalSongScrollSpeed = dta.VocalSongScrollSpeed.Value;
 
