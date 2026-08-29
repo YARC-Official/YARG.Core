@@ -157,7 +157,7 @@ public class PreviewContextTests
 
         public override YARGImage? LoadAlbumData() => null;
 
-        public override BackgroundResult? LoadBackground(bool excludeYarground = false) => null;
+        public override BackgroundResult? LoadBackground(bool censoringEnabled, bool excludeYarground = false) => null;
 
         public override FixedArray<byte>? LoadMiloData() => null;
 
@@ -259,6 +259,18 @@ public class PreviewContextTests
         protected override void SetOutputChannel_Internal(OutputChannel? channel) { }
 
         protected override void SetOutputDevice_Internal(OutputDevice device) { }
+
+        public override ToneChannel? CreateToneChannel(double volume, double fadeDuration)
+        {
+            return new EmptyToneChannel();
+        }
+
+        private sealed class EmptyToneChannel : ToneChannel
+        {
+            public override bool SetSchedule(ReadOnlySpan<ToneSegment> segments) => true;
+
+            public override void Dispose() { }
+        }
 
         protected override void DisposeManagedResources()
         {

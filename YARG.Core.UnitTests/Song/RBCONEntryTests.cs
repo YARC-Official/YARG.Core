@@ -203,7 +203,7 @@ public class RBCONEntryTests
             string videoPath = Path.Combine(root, conName + ".mp4");
             File.WriteAllBytes(videoPath, [0x00]);
 
-            using var background = PackedRBCONEntry.LoadExternalBackground(conPath, "testsong", false);
+            using var background = PackedRBCONEntry.LoadExternalBackground(conPath, "testsong", false, false);
 
             Assert.That(background, Is.Not.Null);
             Assert.That(background!.Type, Is.EqualTo(BackgroundType.Video));
@@ -230,10 +230,143 @@ public class RBCONEntryTests
             string videoPath = Path.Combine(root, "testsong.mp4");
             File.WriteAllBytes(videoPath, [0x00]);
 
-            using var background = PackedRBCONEntry.LoadExternalBackground(conPath, "othersong", false);
+            using var background = PackedRBCONEntry.LoadExternalBackground(conPath, "othersong", false, false);
 
             Assert.That(background, Is.Not.Null);
             Assert.That(background!.Type, Is.EqualTo(BackgroundType.Video));
+        }
+        finally
+        {
+            if (Directory.Exists(root))
+            {
+                Directory.Delete(root, true);
+            }
+        }
+    }
+
+    [TestCase("_clean", true, TestName = "Loads clean video when censoring enabled")]
+    [TestCase("_explicit", false, TestName = "Loads explicit video when censoring disabled")]
+    public void LoadBackground_LoadsSpecificVideo_BasedOnCensorship(string suffix, bool censoringEnabled)
+    {
+        const string conName = "testsong.con";
+        string root = CreateTempDirectory();
+        try
+        {
+            string conPath = Path.Combine(root, conName);
+            File.WriteAllBytes(conPath, []);
+
+            string videoPath = Path.Combine(root, $"testsong{suffix}.mp4");
+            File.WriteAllBytes(videoPath, [0x00]);
+
+            using var background =
+                PackedRBCONEntry.LoadExternalBackground(conPath, "othersong", false, censoringEnabled);
+
+            Assert.That(background, Is.Not.Null);
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(background!.Type, Is.EqualTo(BackgroundType.Video));
+                Assert.That(background.Stream!.ReadByte(), Is.Zero);
+            }
+        }
+        finally
+        {
+            if (Directory.Exists(root))
+            {
+                Directory.Delete(root, true);
+            }
+        }
+    }
+
+    [TestCase("_clean", false, TestName = "Does not load clean video when censoring disabled")]
+    [TestCase("_explicit", true, TestName = "Does not load explicit video when censoring enabled")]
+    public void LoadBackground_DoesNotLoadSpecificVideo_WhenRejectedByCensorship(string suffix, bool censoringEnabled)
+    {
+        const string conName = "testsong.con";
+        string root = CreateTempDirectory();
+        try
+        {
+            string conPath = Path.Combine(root, conName);
+            File.WriteAllBytes(conPath, []);
+
+            string videoPath = Path.Combine(root, $"testsong{suffix}.mp4");
+            File.WriteAllBytes(videoPath, [0x00]);
+
+            using var background =
+                PackedRBCONEntry.LoadExternalBackground(conPath, "othersong", false, censoringEnabled);
+
+            Assert.That(background, Is.Null);
+        }
+        finally
+        {
+            if (Directory.Exists(root))
+            {
+                Directory.Delete(root, true);
+            }
+        }
+    }
+
+    [TestCase("_explicit", true, TestName = "Falls back to normal video when explicit is rejected")]
+    [TestCase("_clean", false, TestName = "Falls back to normal video when clean is rejected")]
+    public void LoadBackground_FallsBackToNormalBackground_WhenSpecificVideoRejected(string rejectedSuffix,
+        bool censoringEnabled)
+    {
+        const string conName = "testsong.con";
+        string root = CreateTempDirectory();
+        try
+        {
+            string conPath = Path.Combine(root, conName);
+            File.WriteAllBytes(conPath, []);
+
+            var specificVideoPath = Path.Combine(root, $"testsong{rejectedSuffix}.mp4");
+            File.WriteAllBytes(specificVideoPath, [0x00]);
+
+            string videoPath = Path.Combine(root, "testsong.mp4");
+            File.WriteAllBytes(videoPath, [0x01]);
+
+            using var background =
+                PackedRBCONEntry.LoadExternalBackground(conPath, "othersong", false, censoringEnabled);
+
+            Assert.That(background, Is.Not.Null);
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(background!.Type, Is.EqualTo(BackgroundType.Video));
+                Assert.That(background.Stream!.ReadByte(), Is.EqualTo(0x01));
+            }
+        }
+        finally
+        {
+            if (Directory.Exists(root))
+            {
+                Directory.Delete(root, true);
+            }
+        }
+    }
+
+    [TestCase(true, 0x02, TestName = "Prioritizes clean video over base and explicit videos when censoring enabled")]
+    [TestCase(false, 0x03, TestName = "Prioritizes explicit video over base and clean videos when censoring disabled")]
+    public void LoadBackground_PrioritizesCorrectVideo_WhenMultipleFilesExist(bool censoringEnabled, int expectedByte)
+    {
+        const string conName = "testsong.con";
+        string root = CreateTempDirectory();
+        try
+        {
+            string conPath = Path.Combine(root, conName);
+            File.WriteAllBytes(conPath, []);
+
+            // Create all three potential files with distinct bytes to identify them
+            File.WriteAllBytes(Path.Combine(root, "testsong.mp4"), [0x01]);          // Base
+            File.WriteAllBytes(Path.Combine(root, "testsong_clean.mp4"), [0x02]);    // Clean
+            File.WriteAllBytes(Path.Combine(root, "testsong_explicit.mp4"), [0x03]); // Explicit
+
+            using var background =
+                PackedRBCONEntry.LoadExternalBackground(conPath, "othersong", false, censoringEnabled);
+
+            Assert.That(background, Is.Not.Null);
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(background!.Type, Is.EqualTo(BackgroundType.Video));
+                Assert.That(background.Stream!.ReadByte(), Is.EqualTo(expectedByte));
+            }
         }
         finally
         {
@@ -269,7 +402,7 @@ public class RBCONEntryTests
             string videoPath = Path.Combine(root, "testsong", "bg.mp4");
             File.WriteAllBytes(videoPath, [0x00]);
 
-            using var background = entry.LoadBackground();
+            using var background = entry.LoadBackground(false);
 
             Assert.That(background, Is.Not.Null);
             Assert.That(background!.Type, Is.EqualTo(BackgroundType.Video));
@@ -283,7 +416,8 @@ public class RBCONEntryTests
         }
     }
 
-    private static RBCONEntry CreateUnpackedEntry(string root, string nodeName, string dtaText, int moggVersion = RBCONEntry.UNENCRYPTED_MOGG)
+    private static RBCONEntry CreateUnpackedEntry(string root, string nodeName, string dtaText,
+        int moggVersion = RBCONEntry.UNENCRYPTED_MOGG)
     {
         string songDirectory = Path.Combine(root, nodeName);
         Directory.CreateDirectory(songDirectory);
@@ -335,16 +469,16 @@ public class RBCONEntryTests
     private static string CreateBasicDta(string nodeName)
     {
         return $$"""
-        ({{nodeName}}
-          (name "Test Song")
-          (song
-            (name "songs/{{nodeName}}/{{nodeName}}")
-            (pans (0.0))
-            (vols (0.0))
-            (cores (0.0))
-          )
-        )
-        """;
+                 ({{nodeName}}
+                   (name "Test Song")
+                   (song
+                     (name "songs/{{nodeName}}/{{nodeName}}")
+                     (pans (0.0))
+                     (vols (0.0))
+                     (cores (0.0))
+                   )
+                 )
+                 """;
     }
 
     private static List<CONFileListing> CreatePackedConListings(string nodeName, int midiLength)
@@ -394,7 +528,8 @@ public class RBCONEntryTests
             midi.CopyTo(image.AsSpan((int) CONFileStream.CalculateBlockLocation(1, 0)));
         }
 
-        using var mogg = new MemoryStream(image, (int) CONFileStream.CalculateBlockLocation(80, 0), CONFileStream.BYTES_PER_BLOCK);
+        using var mogg = new MemoryStream(image, (int) CONFileStream.CalculateBlockLocation(80, 0),
+            CONFileStream.BYTES_PER_BLOCK);
         mogg.Write(moggVersion, Endianness.Little);
 
         return new MemoryStream(image, writable: false);
@@ -444,7 +579,7 @@ public class RBCONEntryTests
 
         public override YARGImage? LoadAlbumData() => null;
 
-        public override BackgroundResult? LoadBackground(bool excludeYarground = false) => null;
+        public override BackgroundResult? LoadBackground(bool censoringEnabled, bool excludeYarground = false) => null;
 
         public override FixedArray<byte>? LoadMiloData() => null;
         public override FixedArray<byte>? LoadVocData() => null;

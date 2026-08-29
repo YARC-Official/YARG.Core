@@ -4,6 +4,7 @@ namespace YARG.Core.Audio
     {
         Shared,
         Asio,
+        WasapiExclusive,
     }
 
 }

@@ -42,21 +42,22 @@ namespace YARG.Core.Song
         }
         #nullable restore
 
-        public override BackgroundResult? LoadBackground(bool excludeYarground = false)
+        public override BackgroundResult? LoadBackground(bool enableCensoring, bool excludeYarground = false)
         {
             if (_midiListing == null)
             {
                 return null;
             }
 
-            return LoadExternalBackground(_root.FullName, _subName, excludeYarground);
+            return LoadExternalBackground(_root.FullName, _subName, excludeYarground, enableCensoring);
         }
 
-        internal static BackgroundResult? LoadExternalBackground(string conPath, string subName, bool excludeYarground)
+        internal static BackgroundResult? LoadExternalBackground(string conPath, string subName, bool excludeYarground, bool enableCensoring)
         {
             string actualDirectory = Path.GetDirectoryName(conPath)!;
             string conName = Path.GetFileName(conPath);
             string conNameWithoutExtension = Path.GetFileNameWithoutExtension(conPath);
+            string censorSuffix = enableCensoring ? CLEAN_BACKGROUND_SUFFIX : EXPLICIT_BACKGROUND_SUFFIX;
             foreach (var name in GetPackedConBackgroundNames(subName, conName, conNameWithoutExtension))
             {
                 string specificVenue = Path.Combine(actualDirectory, name + YARGROUND_EXTENSION);
@@ -79,6 +80,12 @@ namespace YARG.Core.Song
                 string fileBase = Path.Combine(actualDirectory, name);
                 foreach (var ext in VIDEO_EXTENSIONS)
                 {
+                    string censoredPath = fileBase + censorSuffix + ext;
+                    if (File.Exists(censoredPath))
+                    {
+                        var stream = File.OpenRead(censoredPath);
+                        return new BackgroundResult(BackgroundType.Video, stream);
+                    }
                     string backgroundPath = fileBase + ext;
                     if (File.Exists(backgroundPath))
                     {
@@ -93,6 +100,15 @@ namespace YARG.Core.Song
                 var fileBase = Path.Combine(actualDirectory, name);
                 foreach (var ext in IMAGE_EXTENSIONS)
                 {
+                    string censoredPath = fileBase + censorSuffix + ext;
+                    if (File.Exists(censoredPath))
+                    {
+                        var image = YARGImage.Load(censoredPath);
+                        if (image != null)
+                        {
+                            return new BackgroundResult(image);
+                        }
+                    }
                     string backgroundPath = fileBase + ext;
                     if (File.Exists(backgroundPath))
                     {
