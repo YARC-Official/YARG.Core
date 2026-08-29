@@ -50,7 +50,6 @@ namespace YARG.Core.Song
                 return null;
             }
             var addedCleanStems = new HashSet<SongStem>();
-            var subFiles = GetSubFiles();
             if (enableCensoring)
             {
                 foreach (var stem in IniAudio.SupportedCleanStems)
@@ -144,7 +143,6 @@ namespace YARG.Core.Song
             return null;
         }
 
-        public override StemMixer? LoadPreviewAudio(float speed)
         private static bool TryLoadStem(string stem, SongStem stemEnum, Dictionary<string, string> fileDictionary, StemMixer mixer)
         {
             foreach (var format in IniAudio.SupportedFormats)

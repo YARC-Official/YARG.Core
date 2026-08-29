@@ -50,37 +50,37 @@ namespace YARG.Core.Song
 
             var stemInfos = new List<StemInfo>();
 
-            if (indices.Drums.Length > 0 && !ignoreStems.Contains(SongStem.Drums))
+            if (indices.Drums.Length > 0 && !ignoreStems.Contains(SongStem.Drums1))
             {
                 switch (indices.Drums.Length)
                 {
                     //drum (0 1): stereo kit --> (0 1)
                     case 1:
                     case 2:
-                        stemInfos.Add(new StemInfo(SongStem.Drums, indices.Drums, panning.Drums));
+                        stemInfos.Add(new StemInfo(SongStem.Drums1, indices.Drums, panning.Drums));
                         break;
                     //drum (0 1 2): mono kick, stereo snare/kit --> (0) (1 2)
                     case 3:
-                        stemInfos.Add(new StemInfo(SongStem.Drums, indices.Drums[0..1], panning.Drums[0..2]));
-                        stemInfos.Add(new StemInfo(SongStem.Drums, indices.Drums[1..3], panning.Drums[2..6]));
+                        stemInfos.Add(new StemInfo(SongStem.Drums1, indices.Drums[0..1], panning.Drums[0..2]));
+                        stemInfos.Add(new StemInfo(SongStem.Drums2, indices.Drums[1..3], panning.Drums[2..6]));
                         break;
                     //drum (0 1 2 3): mono kick, mono snare, stereo kit --> (0) (1) (2 3)
                     case 4:
-                        stemInfos.Add(new StemInfo(SongStem.Drums, indices.Drums[0..1], panning.Drums[0..2]));
-                        stemInfos.Add(new StemInfo(SongStem.Drums, indices.Drums[1..2], panning.Drums[2..4]));
-                        stemInfos.Add(new StemInfo(SongStem.Drums, indices.Drums[2..4], panning.Drums[4..8]));
+                        stemInfos.Add(new StemInfo(SongStem.Drums1, indices.Drums[0..1], panning.Drums[0..2]));
+                        stemInfos.Add(new StemInfo(SongStem.Drums2, indices.Drums[1..2], panning.Drums[2..4]));
+                        stemInfos.Add(new StemInfo(SongStem.Drums3, indices.Drums[2..4], panning.Drums[4..8]));
                         break;
                     //drum (0 1 2 3 4): mono kick, stereo snare, stereo kit --> (0) (1 2) (3 4)
                     case 5:
-                        stemInfos.Add(new StemInfo(SongStem.Drums, indices.Drums[0..1], panning.Drums[0..2]));
-                        stemInfos.Add(new StemInfo(SongStem.Drums, indices.Drums[1..3], panning.Drums[2..6]));
-                        stemInfos.Add(new StemInfo(SongStem.Drums, indices.Drums[3..5], panning.Drums[6..10]));
+                        stemInfos.Add(new StemInfo(SongStem.Drums1, indices.Drums[0..1], panning.Drums[0..2]));
+                        stemInfos.Add(new StemInfo(SongStem.Drums2, indices.Drums[1..3], panning.Drums[2..6]));
+                        stemInfos.Add(new StemInfo(SongStem.Drums3, indices.Drums[3..5], panning.Drums[6..10]));
                         break;
                     //drum (0 1 2 3 4 5): stereo kick, stereo snare, stereo kit --> (0 1) (2 3) (4 5)
                     case 6:
-                        stemInfos.Add(new StemInfo(SongStem.Drums, indices.Drums[0..2], panning.Drums[0..4]));
-                        stemInfos.Add(new StemInfo(SongStem.Drums, indices.Drums[2..4], panning.Drums[4..8]));
-                        stemInfos.Add(new StemInfo(SongStem.Drums, indices.Drums[4..6], panning.Drums[8..12]));
+                        stemInfos.Add(new StemInfo(SongStem.Drums1, indices.Drums[0..2], panning.Drums[0..4]));
+                        stemInfos.Add(new StemInfo(SongStem.Drums2, indices.Drums[2..4], panning.Drums[4..8]));
+                        stemInfos.Add(new StemInfo(SongStem.Drums3, indices.Drums[4..6], panning.Drums[8..12]));
                         break;
                 }
             }
