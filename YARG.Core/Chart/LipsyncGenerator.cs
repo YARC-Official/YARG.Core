@@ -15,6 +15,12 @@ namespace YARG.Core.Chart
     /// the vocal notes' actual lengths when available, and mouth shapes are ramped in/out
     /// smoothly instead of snapping.
     /// </remarks>
+    /// <remarks>
+    /// Only <c>_lo</c> visemes are emitted. Authored Milo data pairs most <c>_lo</c> keyframes
+    /// with a matching <c>_hi</c> channel, but YARG avatars define no <c>_hi</c> expression
+    /// clips and the runtime falls back to a single generic mouth key for unknown viseme names,
+    /// so emitting <c>_hi</c> today only doubles the event count with no visual effect.
+    /// </remarks>
     public static class LipsyncGenerator
     {
         private const double ATTACK_MAX_TIME = 0.20;    // Consonant/vowel attack ramp length
