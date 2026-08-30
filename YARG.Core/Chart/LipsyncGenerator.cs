@@ -24,6 +24,13 @@ namespace YARG.Core.Chart
         private const double STEP_TIME = 1.0 / 30;      // ~30fps interpolation steps (Milo-style keyframes)
         private const double MIN_SLOT_DURATION = 0.05;  // Minimum syllable slot duration
 
+        // Section-level brow state: authored data keeps brow/emotional channels active for most of
+        // the song (stacked, sustained from seconds to minutes), so one brow state is chosen per
+        // section of phrases and sustained across it instead of firing per-phrase blips
+        private const double BROW_SECTION_GAP = 2.0;  // Silent gap that starts a new brow section
+        private const double BROW_FADE_TIME = 0.8;    // Brow ramp in/out length
+        private const float EXPRESSION_CHANCE = 0.08f; // Chance a section uses a full-face expression
+
         // Co-articulation: the outgoing shape keeps a faint residual while the new one rises,
         // so transitions overlap like authored keyframes instead of snapping between poses
         private const float CO_ARTICULATION_RESIDUAL = 0.12f;
@@ -54,8 +61,9 @@ namespace YARG.Core.Chart
             var events = new List<LipsyncEvent>();
             var random = new Random();
             var nextBlinkTime = 2.0 + random.NextDouble() * 3.0; // First blink between 2-5s
-            var nextExpressionTime = 4.0 + random.NextDouble() * 4.0; // First expression between 4-8s
             var mouth = new MouthState();
+
+            EmitBrowStates(events, lyrics.Phrases, random);
 
             for (int i = 0; i < lyrics.Phrases.Count; i++)
             {
@@ -63,7 +71,6 @@ namespace YARG.Core.Chart
                 if (phrase.Lyrics.Count == 0)
                     continue;
 
-                AddPhraseExpression(events, phrase.Time, phrase.TimeLength, random, ref nextExpressionTime);
                 ProcessPhrase(events, phrase.Lyrics, phrase.Time + phrase.TimeLength, noteEndsByTick, random,
                     ref nextBlinkTime, ref mouth);
 
@@ -90,8 +97,9 @@ namespace YARG.Core.Chart
             var events = new List<LipsyncEvent>();
             var random = new Random();
             var nextBlinkTime = 2.0 + random.NextDouble() * 3.0; // First blink between 2-5s
-            var nextExpressionTime = 4.0 + random.NextDouble() * 4.0; // First expression between 4-8s
             var mouth = new MouthState();
+
+            EmitBrowStates(events, part.StaticLyricPhrases, random);
 
             for (int i = 0; i < part.StaticLyricPhrases.Count; i++)
             {
@@ -99,7 +107,6 @@ namespace YARG.Core.Chart
                 if (phrase.Lyrics.Count == 0)
                     continue;
 
-                AddPhraseExpression(events, phrase.Time, phrase.TimeLength, random, ref nextExpressionTime);
                 ProcessPhrase(events, phrase.Lyrics, phrase.Time + phrase.TimeLength, noteEndsByTick, random,
                     ref nextBlinkTime, ref mouth);
 
@@ -141,34 +148,126 @@ namespace YARG.Core.Chart
             return noteEnds;
         }
 
-        private static void AddPhraseExpression(List<LipsyncEvent> events, double phraseStart,
-            double phraseDuration, Random random, ref double nextExpressionTime)
+        /// <summary>
+        /// Sustained brow state machine: groups lyric phrases into sections (separated by silent
+        /// gaps longer than <see cref="BROW_SECTION_GAP"/>) and emits one brow state per section,
+        /// ramped in/out slowly and held across the section's phrases and internal gaps.
+        /// </summary>
+        private static void EmitBrowStates(List<LipsyncEvent> events, List<LyricsPhrase> phrases,
+            Random random)
         {
-            if (phraseStart <= nextExpressionTime || random.NextDouble() <= 0.5)
+            var spans = new List<(double Start, double End)>(phrases.Count);
+            foreach (var phrase in phrases)
+            {
+                if (phrase.Lyrics.Count > 0)
+                    spans.Add((phrase.Time, phrase.Time + phrase.TimeLength));
+            }
+            EmitBrowSections(events, spans, random);
+        }
+
+        private static void EmitBrowStates(List<LipsyncEvent> events, List<VocalsPhrase> phrases,
+            Random random)
+        {
+            var spans = new List<(double Start, double End)>(phrases.Count);
+            foreach (var phrase in phrases)
+            {
+                if (phrase.Lyrics.Count > 0)
+                    spans.Add((phrase.Time, phrase.Time + phrase.TimeLength));
+            }
+            EmitBrowSections(events, spans, random);
+        }
+
+        private static void EmitBrowSections(List<LipsyncEvent> events,
+            List<(double Start, double End)> spans, Random random)
+        {
+            // Precondition: spans are time-ordered (phrase lists from the chart are)
+            int i = 0;
+            while (i < spans.Count)
+            {
+                double start = spans[i].Start;
+                double end = spans[i].End;
+                int j = i + 1;
+                while (j < spans.Count && spans[j].Start - end <= BROW_SECTION_GAP)
+                {
+                    end = Math.Max(end, spans[j].End);
+                    j++;
+                }
+
+                EmitBrowSection(events, start, end, random);
+                i = j;
+            }
+        }
+
+        private static void EmitBrowSection(List<LipsyncEvent> events, double start, double end,
+            Random random)
+        {
+            if (end - start < 0.1)
                 return;
 
-            var expressions = new[]
+            var primary = PickBrowType(random, LipsyncEvent.LipsyncType.Neutral_lo);
+            EmitBrowChannel(events, primary, 0.3f + (float) random.NextDouble() * 0.4f, start, end);
+
+            // Authored data often stacks a faint second brow channel under the primary one
+            if (random.NextDouble() < 0.4)
             {
-                LipsyncEvent.LipsyncType.Brow_up,
-                LipsyncEvent.LipsyncType.Brow_down,
-                LipsyncEvent.LipsyncType.exp_rocker_smile_mellow_01,
-                LipsyncEvent.LipsyncType.exp_rocker_teethgrit_happy_01,
-                LipsyncEvent.LipsyncType.exp_dramatic_happy_eyesopen_01,
-            };
+                var secondary = PickBrowType(random, primary);
+                EmitBrowChannel(events, secondary,
+                    0.1f + (float) random.NextDouble() * 0.15f, start, end);
+            }
+        }
 
-            var expression = expressions[random.Next(expressions.Length)];
-            var intensity = 0.3f + (float) random.NextDouble() * 0.4f; // 0.3 to 0.7
-            var expressionDuration = Math.Min(phraseDuration * 0.6, 1.5); // Max 1.5s or 60% of phrase
+        private static void EmitBrowChannel(List<LipsyncEvent> events, LipsyncEvent.LipsyncType type,
+            float intensity, double start, double end)
+        {
+            double fade = Math.Min(BROW_FADE_TIME, (end - start) * 0.25);
 
-            // Ease the expression in and out instead of snapping between face poses
-            const double expressionFade = 0.3;
-            EmitRamp(events, expression, 0f, intensity, phraseStart, expressionFade);
-            EmitRamp(events, expression, intensity, intensity, phraseStart + expressionFade,
-                Math.Max(0, expressionDuration - expressionFade * 2));
-            EmitRamp(events, expression, intensity, 0f, phraseStart + expressionDuration - expressionFade,
-                expressionFade);
+            // Ease the brow in and out instead of snapping between face poses
+            EmitRamp(events, type, 0f, intensity, start, fade);
+            EmitRamp(events, type, intensity, intensity, start + fade,
+                Math.Max(0, end - start - fade * 2));
+            EmitRamp(events, type, intensity, 0f, end - fade, fade);
+        }
 
-            nextExpressionTime = phraseStart + phraseDuration + 3.0 + random.NextDouble() * 5.0;
+        private static readonly (LipsyncEvent.LipsyncType Type, float Weight)[] BrowPalette =
+        {
+            // Weights roughly follow authored segment counts across the reference charts
+            (LipsyncEvent.LipsyncType.Brow_down, 5f),
+            (LipsyncEvent.LipsyncType.Brow_pouty, 5f),
+            (LipsyncEvent.LipsyncType.Brow_aggressive, 5f),
+            (LipsyncEvent.LipsyncType.Brow_up, 2f),
+            (LipsyncEvent.LipsyncType.Squint, 1.5f),
+            (LipsyncEvent.LipsyncType.Brow_dramatic, 1f),
+        };
+
+        private static LipsyncEvent.LipsyncType PickBrowType(Random random,
+            LipsyncEvent.LipsyncType exclude)
+        {
+            // Rare full-face expression instead of a brow, like authored data
+            if (exclude == LipsyncEvent.LipsyncType.Neutral_lo
+                && random.NextDouble() < EXPRESSION_CHANCE)
+            {
+                return LipsyncEvent.LipsyncType.exp_rocker_smile_intense_01;
+            }
+
+            float total = 0;
+            foreach (var entry in BrowPalette)
+            {
+                if (entry.Type != exclude)
+                    total += entry.Weight;
+            }
+
+            float roll = (float) (random.NextDouble() * total);
+            foreach (var entry in BrowPalette)
+            {
+                if (entry.Type == exclude)
+                    continue;
+
+                roll -= entry.Weight;
+                if (roll <= 0)
+                    return entry.Type;
+            }
+
+            return LipsyncEvent.LipsyncType.Brow_down;
         }
 
         /// <summary>
