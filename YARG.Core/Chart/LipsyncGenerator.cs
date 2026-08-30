@@ -46,13 +46,13 @@ namespace YARG.Core.Chart
         // Vowel peak scales with note length (longer/held notes open fuller, like authored lipsync).
         // The vowel rides a peak-shaped envelope: peak at the syllable, decaying to a low tail —
         // authored keyframes spend most of their time at low weights and rarely reach full open.
-        private const float VOWEL_PEAK_BASE_WEIGHT = 0.20f;   // Peak weight floor for short syllables
-        private const float VOWEL_PEAK_SCALE = 0.35f;         // Peak weight growth per second of note length
+        private const float VOWEL_PEAK_BASE_WEIGHT = 0.55f;   // Peak weight floor for short syllables
+        private const float VOWEL_PEAK_SCALE = 0.45f;         // Peak weight growth per second of note length
         private const float VOWEL_PEAK_CAP = 0.90f;           // Maximum vowel peak weight
         private const float VOWEL_TAIL_WEIGHT = 0.05f;        // Weight the vowel decays to by the slot end
-        private const double VOWEL_PEAK_HOLD_FRACTION = 0.30; // Fraction of a short slot spent at/near peak
+        private const double VOWEL_PEAK_HOLD_FRACTION = 0.25; // Fraction of a short slot spent at/near peak
         private const double VOWEL_PEAK_HOLD_TIME = 0.30;     // Absolute cap on the peak hold (long slots)
-        private const double VOWEL_DECAY_TIME = 0.60;         // Absolute decay time from peak to tail
+        private const double VOWEL_DECAY_TIME = 0.25;         // Absolute decay time from peak to tail
         private const float CONSONANT_WEIGHT = 0.32f;         // Authored consonant means measure ~0.28
 
         private static IReadOnlyDictionary<string, string[]>? _cmuDict;
