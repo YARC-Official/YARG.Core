@@ -2,6 +2,8 @@
 
 When a chart lacks Milo lipsync data (typically from Rock Band `.lipsync` files), YARG automatically generates lipsync events from the chart's lyrics track. This document describes the implementation.
 
+The phoneme→viseme mapping, weight model, and expression behavior documented here were validated against handmade Milo lipsync data from **12 Rock Band charts** (~400k viseme keyframes, 3,217 CMU-resolved lyric-word windows), using per-phoneme statistical lift analysis with carryover confounds split out conditionally.
+
 ---
 
 ## Overview
@@ -11,30 +13,11 @@ The lipsync system has two sources:
 1. **Milo Lipsync** — Pre-authored lipsync data from Rock Band charts (`.lipsync` files), parsed via `MiloLipsync` and `MiloVenue`
 2. **Auto-Generated** — Generated at chart load time from lyrics using `LipsyncGenerator`
 
-The fallback logic is in `SongChart.LoadLipsyncFromMilo()`:
+The fallback logic is in `SongChart.AutoGeneration.GenerateMissingLipsync()`: Milo (then `.voc`) data is used when present; the generator only runs for parts that have no authored lipsync. Charts with authored lipsync are unaffected by the generator.
 
-```csharp
-public static void LoadLipsyncFromMilo(SongChart songChart, SongEntry songEntry)
-{
-    var miloLipsync = new MiloVenue(songChart, songEntry);
-    miloLipsync.Load();
-    songChart.LipsyncEvents.AddRange(miloLipsync.LipsyncEvents);
+### Lo-only visemes
 
-    // Generate lipsync from vocals if no lipsync data was found
-    if (songChart.LipsyncEvents.Count == 0)
-    {
-        GenerateLipsyncFromVocals(songChart);
-    }
-}
-
-public static void GenerateLipsyncFromVocals(SongChart songChart)
-{
-    if (!songChart.Lyrics.IsEmpty)
-    {
-        songChart.LipsyncEvents.AddRange(LipsyncGenerator.GenerateFromLyrics(songChart.Lyrics));
-    }
-}
-```
+The generator emits only `_lo` visemes. Authored Milo data pairs most `_lo` keyframes with a matching `_hi` channel (11 of the 12 reference charts), but YARG avatars define no `_hi` expression clips and the runtime (`VRMCharacter.SetExpression`) falls back to a single generic mouth key for unknown viseme names — so emitting `_hi` today only doubles the event count with no visual effect. Revisit if avatars ship `_hi` clips (authored pairing is an exact mirror, or lo ≥ hi).
 
 ---
 
@@ -50,7 +33,9 @@ var dictText = cmudictAsset.text;
 await UniTask.RunOnThreadPool(() => LipsyncGenerator.Initialize(dictText));
 ```
 
-`CMUDict.Initialize()` builds a `Dictionary<string, string[]>` mapping words → phoneme arrays (e.g., `"HELLO"` → `["HH", "AH0", "L", "OW1"]`).
+`CMUDict.Initialize()` builds a `Dictionary<string, string[]>` mapping words → phoneme arrays (e.g. `"HELLO"` → `["HH", "AH0", "L", "OW1"]`), stripping `(N)` homograph suffixes (first pronunciation wins) and stress digits.
+
+Dictionary hit rate on the reference charts is ~69% of lyric tokens (≈90% excluding one chant song). Misses are per-note syllable fragments (`GON`, `SKAT`, `NEV` — RB3 charts split words per note without join symbols) and punctuation-bearing keys; those words fall back to `SimpleSyllable`.
 
 ### 2. Per-Word Processing
 
@@ -60,7 +45,7 @@ slide-gap fragments (pitch slides) extend the previous syllable's audible length
 
 For each word in each `LyricsPhrase`:
 
-1. **Clean text** — Concatenate fragment texts, strip vocal symbols (`-`, `=`, `#`, `!`, `^`, `$`)
+1. **Clean text** — Concatenate fragment texts, strip vocal symbols (`-`, `=`, `+`, `#`, `^`, `*`, `$`, …)
 2. **Lookup phonemes** — Try CMU dict on the whole word; fallback to simple vowel mapping
 3. **Split phonemes → syllables** — One syllable per vowel, using maximum-onset (consonants between vowels start the next syllable)
 4. **Align syllables → fragments** — 1:1 when counts match; proportional grouping when the word has more/fewer syllables than fragments
@@ -75,14 +60,14 @@ Each lyric produces a `Syllable`:
 struct Syllable {
     List<LipsyncType> Initial;     // Consonants before vowel
     LipsyncType VowelMain;         // Primary vowel viseme
-    LipsyncType? VowelEnd;         // Diphthong end viseme (e.g., "eye" = OX → IF)
+    LipsyncType? VowelEnd;         // Diphthong end viseme (e.g. "boy" = OX → EAT)
     List<LipsyncType> Final;       // Consonants after vowel
 }
 ```
 
 Phoneme classification:
 - **Vowels**: AA, AE, AH, AO, AW, AY, EH, ER, EY, IH, IY, OW, OY, UH, UW
-- **Diphthongs**: AY, EY, OW, AW, OY (have a `VowelEnd` transition)
+- **Diphthongs**: AY, EY, AW, OY (have a `VowelEnd` transition); OW holds its start shape
 - **Consonants**: Everything else → Initial (pre-vowel) or Final (post-vowel)
 
 ### 4. Timing & Transitions
@@ -94,13 +79,18 @@ Phoneme classification:
 | `RELEASE_TIME` | 0.20s | Mouth close ramp length |
 | `RELEASE_THRESHOLD` | 0.30s | Minimum gap before releasing the mouth |
 | `STEP_TIME` | 1/30s | Interpolation step interval (Milo-style keyframes) |
-| `VOWEL_BASE_WEIGHT` | 0.55 | Minimum vowel weight |
-| `VOWEL_WEIGHT_SCALE` | 1.0 | Vowel weight growth per second of note length |
-| `VOWEL_WEIGHT_CAP` | 0.95 | Maximum vowel weight |
-| `CONSONANT_WEIGHT` | 0.45 | Partial weight for consonant shapes |
+| `MIN_SLOT_DURATION` | 0.05s | Minimum syllable slot duration |
+| `VOWEL_PEAK_BASE_WEIGHT` | 0.30 | Peak weight floor for short syllables |
+| `VOWEL_PEAK_SCALE` | 0.50/s | Peak weight growth per second of note length |
+| `VOWEL_PEAK_CAP` | 0.95 | Maximum vowel peak weight |
+| `VOWEL_TAIL_WEIGHT` | 0.08 | Weight the vowel decays to by the slot end |
+| `VOWEL_PEAK_HOLD_FRACTION` | 0.45 | Hold fraction spent at/near the peak before decay |
+| `CONSONANT_WEIGHT` | 0.45 | Weight for consonant shapes |
+| `CO_ARTICULATION_RESIDUAL` | 0.12 | Faint weight the outgoing viseme keeps mid-ramp |
 
-Vowel openness scales with the note's duration (longer/held notes open fuller), and holds are
-re-emitted as dense per-frame keyframes — matching how authored Milo lipsync data behaves.
+**Vowel peak envelope.** The vowel rides a peak-shaped envelope instead of a flat hold: the attack ramps up to the syllable's peak weight (scaling with note length; longer/held notes open fuller), the peak is sustained for ~45% of the hold, then it smoothstep-decays to a low tail by the slot end. This matches authored data, where keyframe weights are mostly low (median 0.19, p90 0.51, only ~1% ≥ 0.9) and the mouth settles between syllables.
+
+**Co-articulation.** During any viseme ramp, the outgoing shape fades to a faint residual (0.12, clamped to the outgoing weight) over the first 60% of the ramp and then out by the end — two mouth shapes are briefly active together, like authored keyframes.
 
 **Timing sources:** when a vocals part is available, each syllable uses its vocal note's
 actual end time; the mouth closes at the note end if a silent gap follows instead of holding
@@ -113,102 +103,87 @@ t-attack                 t                       t+d
 │                        │                       │
 ├─ Attack (anticipation): ramp through initial consonants into the vowel,
 │   peaking AT the lyric time (in the gap before the slot when available)
-├─ Vowel hold (dense per-frame keys; weights glide)
-│   └─ If diphthong: hold VowelMain 60%, then 40% ramp to VowelEnd
-├─ Coda: ramp from the vowel through each final consonant up to t+d
+├─ Vowel envelope (dense per-frame keys)
+│   ├─ peak sustained ~45% of the hold
+│   └─ smoothstep decay to the tail weight by t+d
+│   └─ If diphthong: envelope to 60%, then ramp to VowelEnd at the
+│       envelope's current weight over the remaining 40%
+├─ Coda: ramp from the tail through each final consonant up to t+d
 └─ Release (only if a gap > RELEASE_THRESHOLD follows): ramp weight to 0 over RELEASE_TIME
 ```
 
-All ramps use smoothstep easing for S-curved motion.
+All ramps use smoothstep easing for S-curved motion. Mouth state is tracked while
+generating, so transitions ramp from the *actual* previous viseme and weight — no instant
+snaps. Ramps interpolate in ~30fps steps so the runtime never applies multiple collapsed
+sub-frame steps in one update.
 
-Mouth state is tracked while generating, so transitions ramp from the *actual* previous
-viseme and weight — there are no instant snaps and no bulk viseme resets. Ramps interpolate
-in ~30fps steps so the runtime never applies multiple collapsed sub-frame steps in one update.
+### 5. Brow & Expression Events
 
-### 5. Blink & Expression Events
+Authored data keeps brow/emotional channels active for most of the song (measured duty cycle 60–100%, stacking multiple channels, segments from ~1s to minutes). The generator therefore uses a **sustained brow state machine** instead of per-phrase blips:
 
-- **Blinks**: Every 2–6 seconds (randomized), 0.15s duration (on → off)
-- **Expressions**: At phrase starts, 30–70% intensity, max 1.5s or 60% of phrase duration
-- Expression types: `Brow_up`, `Brow_down`, `exp_rocker_smile_mellow_01`, `exp_rocker_teethgrit_happy_01`, `exp_dramatic_happy_eyesopen_01`
+- Lyric phrases are grouped into **sections** separated by silent gaps > 2s (`BROW_SECTION_GAP`)
+- One brow state is chosen per section (weighted random) and held across the section and its internal instrumental gaps, with slow 0.8s fades in/out
+- 40% chance of a faint secondary brow channel (0.1–0.25 weight) under the primary, mirroring authored stacking
+- Primary intensity 0.3–0.7
+
+Palette (weights roughly follow authored segment counts): `Brow_down` (5), `Brow_pouty` (5), `Brow_aggressive` (5), `Brow_up` (2), `Squint` (1.5), `Brow_dramatic` (1); 8% of sections use `exp_rocker_smile_intense_01` instead of a brow.
+
+`exp_rocker_teethgrit_happy_01` and `exp_dramatic_happy_eyesopen_01` are never emitted — they appear in zero of the 12 reference charts.
+
+### 6. Blinks
+
+- **Blinks**: Every 2–6 seconds (randomized), ~0.15s duration (on → off), independent of viseme/expression changes
 
 ---
 
 ## Viseme Mapping (Phoneme → LipsyncType)
 
+Validated against authored Milo data (per-phoneme lift analysis; "—" = unchanged from the pre-analysis mapping and not contradicted by evidence).
+
 ### Vowels
 
-| Phoneme | Example | Viseme | Diphthong End |
-|---------|---------|--------|---------------|
+| Phoneme | Example | Viseme | Evidence |
+|---------|---------|--------|----------|
 | AA | f**a**ther | `Ox_lo` | — |
-| AE | c**a**t | `Cage_lo` | — |
+| AE | c**a**t | `Cage_lo` | ambiguous in authored data (no significant lift); kept, see follow-ups |
 | AH | **u**p | `If_lo` | — |
-| AO | th**ou**ght | `Earth_lo` | — |
-| EH | b**e**d | `Cage_lo` | — |
-| ER | b**ir**d | `Church_lo` | — |
+| AO | th**ou**ght | `Ox_lo` | lift 1.9× (was Earth) |
+| EH | b**e**d | `If_lo` | `If` in 84% of windows (was Cage) |
+| ER | b**ir**d | `Earth_lo` | lift 2.3× (was Church) |
 | IH | b**i**t | `If_lo` | — |
 | IY | s**ee** | `Eat_lo` | — |
-| UH | b**oo**k | `Though_lo` | — |
+| UH | b**oo**k | `Though_lo` | sparse evidence; unchanged |
 | UW | f**oo**d | `Wet_lo` | — |
 
 ### Diphthongs
 
-| Phoneme | Example | Main → End | Viseme Transition |
-|---------|---------|------------|-------------------|
-| AY | **eye** | `Ox_lo` → `If_lo` | OX → IF |
-| EY | d**ay** | `Cage_lo` → `If_lo` | CAGE → IF |
-| OW | g**o** | `Oat_lo` → `Wet_lo` | OAT → WET |
-| AW | c**ow** | `Ox_lo` → `Wet_lo` | OX → WET |
-| OY | b**oy** | `Oat_lo` → `If_lo` | OAT → IF |
+| Phoneme | Example | Viseme Transition | Evidence |
+|---------|---------|------------|---------------|
+| AY | **eye** | `Eat_lo` → `If_lo` | `Eat` in 69% of windows, `If` tail (was Ox → If) |
+| EY | d**ay** | `Ox_lo` → `If_lo` | Ox start lift 1.9× (was Cage → If) |
+| OW | g**o** | `Ox_lo` (held, no tail) | Ox in 76% of windows; `Wet` absent from tails (was Oat → Wet) |
+| AW | c**ow** | `Ox_lo` → `Wet_lo` | — |
+| OY | b**oy** | `Ox_lo` → `Eat_lo` | `Eat` tail-dominant (was Oat → If) |
 
 ### Consonants
 
-| Phonemes | Viseme | Mouth Shape |
-|----------|--------|-------------|
-| B, P, M | `Bump_lo` | Lips closed |
-| F, V | `Fave_lo` | Teeth on lip |
-| TH, DH | `Told_lo` | Tongue between teeth |
-| S, Z | `Size_lo` | Teeth together |
-| T, D, NG, K, G | `Told_lo` | Tongue behind teeth / velar closure |
-| N, L | `New_lo` | Tongue up, mouth nearly closed |
-| SH, ZH, CH, JH | `Told_lo` | Tongue back |
-| R | `Roar_lo` | Rounded |
-| W | `Wet_lo` | Rounded |
-| Y | `Eat_lo` | Spread |
+| Phonemes | Viseme | Evidence |
+|----------|--------|----------|
+| B, P, M | `Bump_lo` | — |
+| F, V | `Fave_lo` | — |
+| TH, DH | `Though_lo` | lift 4.3× / 5.2× (was Told) |
+| S, Z | `Size_lo` | — |
+| T, D | `Told_lo` | — |
+| N | `New_lo` | — |
+| L | `Told_lo` | 61% of clean-L windows (was New) |
+| NG | `New_lo` | lift 4.1× (was Told) |
+| K, G | `Cage_lo` | K lift 4.9×; G inferred from same velar class (was Told) |
+| SH, ZH, CH, JH | `Church_lo` | lift 9.8× / 8.6× for SH/JH (was Told) |
+| R | `Roar_lo` | — |
+| W | `Wet_lo` | — |
+| Y | `Eat_lo` | — |
 
----
-
-## Data Structures
-
-### LipsyncEvent
-
-```csharp
-public class LipsyncEvent : ChartEvent, ICloneable<LipsyncEvent>
-{
-    public enum LipsyncType { /* 59 values: visemes + expressions */ }
-    
-    public LipsyncType Type { get; }
-    public float Value { get; }  // 0.0–1.0 (weight)
-    
-    public LipsyncEvent(LipsyncType type, float value, double time, uint tick)
-}
-```
-
-- `Value` is analog (0.0–1.0): vowel weights scale with note length, consonants sit at ~0.45, `0f` for released visemes
-- Multiple events at same timestamp can overlap (e.g., ramp from→to)
-
-### LyricsTrack → LyricsPhrase → LyricEvent
-
-```
-LyricsTrack
-  └─ List<LyricsPhrase> Phrases
-       └─ LyricsPhrase (time, timeLength, tick, tickLength)
-            └─ List<LyricEvent> Lyrics
-                 └─ LyricEvent (text, time, tick, flags)
-```
-
----
-
-## Fallback: Simple Syllable (No CMU Dict)
+### Fallback: Simple Syllable (No CMU Dict)
 
 If CMU dict lookup fails (uninitialized or word not found), `SimpleSyllable()` uses first vowel character:
 
@@ -225,15 +200,34 @@ No initial/final consonants or diphthongs are generated in fallback mode.
 
 ---
 
-## Integration Points
+## Data Structures
 
-| Component | Role |
-|-----------|------|
-| `LoadingScreen` | Loads `cmudict.txt` from Resources, calls `LipsyncGenerator.Initialize()` |
-| `SongChart.LoadLipsyncFromMilo()` | Tries Milo first, falls back to `GenerateLipsyncFromVocals()` |
-| `LipsyncGenerator.GenerateFromLyrics()` | Main generation entry point |
-| `MiloVenue.HandleLipsync()` | Parses Milo `.lipsync` → `LipsyncEvent` (30fps frame data) |
-| `VisemeLookup` (in `MiloVenue`) | Maps Milo `Visemes` enum → `LipsyncEvent.LipsyncType` |
+### LipsyncEvent
+
+```csharp
+public class LipsyncEvent : ChartEvent, ICloneable<LipsyncEvent>
+{
+    public enum LipsyncType { /* visemes (_lo/_hi) + brows + expressions */ }
+
+    public LipsyncType Type { get; }
+    public float Value { get; }  // 0.0–1.0 (weight)
+
+    public LipsyncEvent(LipsyncType type, float value, double time, uint tick)
+}
+```
+
+- `Value` is analog (0.0–1.0): vowel peaks scale with note length, consonants sit at ~0.45, `0f` for released visemes
+- Multiple events at same timestamp can overlap (e.g. co-articulation ramps from→to)
+
+### LyricsTrack → LyricsPhrase → LyricEvent
+
+```
+LyricsTrack
+  └─ List<LyricsPhrase> Phrases
+       └─ LyricsPhrase (time, timeLength, tick, tickLength)
+            └─ List<LyricEvent> Lyrics
+                 └─ LyricEvent (text, time, tick, flags)
+```
 
 ---
 
@@ -260,3 +254,4 @@ YargLogger.LogFormatTrace("Lipsync word '{0}' at {1:F3}s -> {2} syllable(s)", ..
 | `YARG.Core/Chart/SongChart.AutoGeneration.cs` | Fallback logic |
 | `Assets/Resources/cmudict.txt` | Phoneme dictionary (CMU format) |
 | `Assets/Script/Persistent/LoadingScreen.cs` | Dictionary initialization |
+| `YARG.Core.UnitTests/Chart/LipsyncGeneratorTests.cs` | Mapping unit tests |

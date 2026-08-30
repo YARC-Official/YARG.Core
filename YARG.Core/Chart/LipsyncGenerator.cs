@@ -547,11 +547,9 @@ namespace YARG.Core.Chart
                 }
             }
 
-            // Hold the vowel with dense per-frame keys so weights glide like Milo keyframes.
             // With a pre-roll the vowel already peaks at the slot start.
             double holdStart = Math.Max(t, slot.Start);
             double holdEnd = slot.End - coda;
-            // Hold the vowel with dense per-frame keys
             if (hasVowel)
             {
                 // Vowel rides a peak-shaped envelope, decaying toward the tail weight by the slot
