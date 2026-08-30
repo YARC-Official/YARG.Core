@@ -589,12 +589,18 @@ namespace YARG.Core.Chart
         {
             bool singalongsExist = songChart.VenueTrack.Performer.Any(e => e.Type is PerformerEventType.Singalong);
 
-            if (songChart.LipsyncEventsByPart.Count >= 1 && songChart.LipsyncEventsByPart.Count >= songChart.Harmony.Parts.Count)
+            // Lead vocals (PART VOCALS) come first — they are the primary singer's part — then
+            // any harmony parts. Charts can have only lead vocals, only harmony, or both.
+            var nonEmptyParts = new List<VocalsPart>();
+            if (!songChart.Vocals.IsEmpty)
+                nonEmptyParts.AddRange(songChart.Vocals.Parts);
+            nonEmptyParts.AddRange(songChart.Harmony.Parts.Where(part => !part.IsEmpty));
+
+            if (songChart.LipsyncEventsByPart.Count >= 1 && songChart.LipsyncEventsByPart.Count >= nonEmptyParts.Count)
             {
                 // Nothing we can do with vocal parts here
                 return;
             }
-            var nonEmptyParts = songChart.Harmony.Parts.Where(part => !part.IsEmpty).ToList();
             if ((nonEmptyParts.Count == 0 || singalongsExist) && songChart.LipsyncEventsByPart.Count == 0)
             {
                 if (nonEmptyParts.Count > 0)
@@ -614,14 +620,14 @@ namespace YARG.Core.Chart
             }
             else if (!singalongsExist) // Only generate lipsync for vocal parts if there are no singalongs to prevent weirdness
             {
-                for (int i = 0; i < songChart.Harmony.Parts.Count; i++)
+                for (int i = 0; i < nonEmptyParts.Count; i++)
                 {
                     if (songChart.LipsyncEventsByPart.Count > i)
                     {
                         continue;
                     }
                     songChart.LipsyncEventsByPart.Add(LipsyncGenerator.GenerateFromVocalsPart(
-                        songChart.Harmony.Parts[i], songChart.Harmony.Parts.Where(part => !part.IsEmpty)));
+                        nonEmptyParts[i], nonEmptyParts));
                     YargLogger.LogFormatDebug("Generated {0} lipsync events from vocals part {1}", songChart.LipsyncEventsByPart[i].Count, i);
                 }
             }
