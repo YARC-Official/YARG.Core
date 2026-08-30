@@ -51,6 +51,9 @@ namespace YARG.Core.Chart
         private const float VOWEL_PEAK_CAP = 0.90f;           // Maximum vowel peak weight
         private const float VOWEL_TAIL_WEIGHT = 0.05f;        // Weight the vowel decays to by the slot end (no note evidence)
         private const float VOWEL_SUSTAIN_FLOOR = 0.50f;      // Sustain weight on long notes (authored sustains measure ~0.5)
+        private const float VOWEL_PITCH_MOD = 0.12f;          // Sustain openness varies with pitch (higher = slightly more open)
+        private const float VOCAL_PITCH_MIN = 36f;            // Vocal pitch range used for normalization (midi note numbers)
+        private const float VOCAL_PITCH_MAX = 84f;
         private const double VOWEL_PEAK_HOLD_FRACTION = 0.25; // Fraction of a short slot spent at/near peak
         private const double VOWEL_PEAK_HOLD_TIME = 0.30;     // Absolute cap on the peak hold (long slots)
         private const double VOWEL_DECAY_TIME = 0.25;         // Absolute decay time from peak to tail
@@ -66,7 +69,7 @@ namespace YARG.Core.Chart
 
         public static List<LipsyncEvent> GenerateFromLyrics(LyricsTrack lyrics)
         {
-            var noteEndsByTick = new Dictionary<uint, double>();
+            var notesByTick = new Dictionary<uint, VocalNote>();
 
             var events = new List<LipsyncEvent>();
             var random = new Random();
@@ -81,7 +84,7 @@ namespace YARG.Core.Chart
                 if (phrase.Lyrics.Count == 0)
                     continue;
 
-                ProcessPhrase(events, phrase.Lyrics, phrase.Time + phrase.TimeLength, noteEndsByTick, random,
+                ProcessPhrase(events, phrase.Lyrics, phrase.Time + phrase.TimeLength, notesByTick, random,
                     ref nextBlinkTime, ref mouth);
 
                 // Close the mouth during silent gaps between phrases
@@ -102,7 +105,7 @@ namespace YARG.Core.Chart
         {
             // Merge note ends across all harmony parts: a word is vocalized as long as any part
             // sustains it, even if this part's own charting cut the note short.
-            var noteEndsByTick = BuildNoteEndMap(noteSources ?? new[] { part });
+            var notesByTick = BuildNoteMap(noteSources ?? new[] { part });
 
             var events = new List<LipsyncEvent>();
             var random = new Random();
@@ -117,7 +120,7 @@ namespace YARG.Core.Chart
                 if (phrase.Lyrics.Count == 0)
                     continue;
 
-                ProcessPhrase(events, phrase.Lyrics, phrase.Time + phrase.TimeLength, noteEndsByTick, random,
+                ProcessPhrase(events, phrase.Lyrics, phrase.Time + phrase.TimeLength, notesByTick, random,
                     ref nextBlinkTime, ref mouth);
 
                 // Close the mouth during silent gaps between phrases
@@ -134,13 +137,14 @@ namespace YARG.Core.Chart
         }
 
         /// <summary>
-        /// Maps lyric ticks to the end times of their associated vocal notes, merged across all
-        /// harmony parts. A word is vocalized as long as any part sustains it, so the longest
-        /// note wins.
+        /// Maps lyric ticks to their associated vocal notes, merged across all harmony parts. A
+        /// word is vocalized as long as any part sustains it, even if this part's own charting cut
+        /// the note short. The note carries its slide children, so pitch can be tracked through
+        /// sustains and TotalTimeEnd covers pitch changes.
         /// </summary>
-        private static Dictionary<uint, double> BuildNoteEndMap(IEnumerable<VocalsPart> parts)
+        private static Dictionary<uint, VocalNote> BuildNoteMap(IEnumerable<VocalsPart> parts)
         {
-            var noteEnds = new Dictionary<uint, double>();
+            var notesByLyricTick = new Dictionary<uint, VocalNote>();
             foreach (var part in parts)
             {
                 foreach (var phrase in part.NotePhrases)
@@ -150,12 +154,12 @@ namespace YARG.Core.Chart
                     for (int i = 0; i < lyrics.Count && i < notes.Count; i++)
                     {
                         var tick = lyrics[i].Tick;
-                        if (!noteEnds.TryGetValue(tick, out var noteEnd) || notes[i].TimeEnd > noteEnd)
-                            noteEnds[tick] = notes[i].TimeEnd;
+                        if (!notesByLyricTick.TryGetValue(tick, out var note) || notes[i].TotalTimeEnd > note.TotalTimeEnd)
+                            notesByLyricTick[tick] = notes[i];
                     }
                 }
             }
-            return noteEnds;
+            return notesByLyricTick;
         }
 
         /// <summary>
@@ -301,7 +305,7 @@ namespace YARG.Core.Chart
         }
 
         private static void ProcessPhrase(List<LipsyncEvent> events, List<LyricEvent> lyrics,
-            double phraseEnd, Dictionary<uint, double> noteEndsByTick, Random random,
+            double phraseEnd, Dictionary<uint, VocalNote> notesByTick, Random random,
             ref double nextBlinkTime, ref MouthState mouth)
         {
             int count = lyrics.Count;
@@ -340,14 +344,14 @@ namespace YARG.Core.Chart
                     j++;
                 }
 
-                GenerateWord(events, wordLyrics, wordTexts, j, lyrics, phraseEnd, noteEndsByTick, ref mouth);
+                GenerateWord(events, wordLyrics, wordTexts, j, lyrics, phraseEnd, notesByTick, ref mouth);
                 i = j;
             }
         }
 
         private static void GenerateWord(List<LipsyncEvent> events, List<LyricEvent> wordLyrics,
             List<string> wordTexts, int flatIndexAfterWord, List<LyricEvent> allLyrics,
-            double phraseEnd, Dictionary<uint, double> noteEndsByTick, ref MouthState mouth)
+            double phraseEnd, Dictionary<uint, VocalNote> notesByTick, ref MouthState mouth)
         {
             var wordText = string.Concat(wordTexts);
             var syllables = GetSyllablesForWord(wordText);
@@ -366,8 +370,8 @@ namespace YARG.Core.Chart
                 // Use the slide fragment's own time as the minimum sung extent, or its note end
                 // when the vocals part does have a note for it.
                 double candidate = allLyrics[k].Time;
-                if (noteEndsByTick.TryGetValue(allLyrics[k].Tick, out var gapEnd) && gapEnd > candidate)
-                    candidate = gapEnd;
+                if (notesByTick.TryGetValue(allLyrics[k].Tick, out var gapNote) && gapNote.TotalTimeEnd > candidate)
+                    candidate = gapNote.TotalTimeEnd;
                 if (candidate > extensionEnd)
                     extensionEnd = candidate;
                 k++;
@@ -389,6 +393,7 @@ namespace YARG.Core.Chart
             int syllCount = syllables.Count;
 
             bool noteCapped = false;
+            VocalNote? slotNote = null;
 
             // Computes the audible end of the syllable slot for real fragment index fi
             double SlotEnd(int fi)
@@ -403,9 +408,13 @@ namespace YARG.Core.Chart
                 // sung portion of the word, not to the silence after it. For legato lines where
                 // the note runs into the next lyric, the next lyric wins. Slide-gap fragments
                 // extend the audible length past the note end when the word keeps being sung.
+                // TotalTimeEnd covers pitch-slide children, so sustains that change pitch hold.
                 double audibleEnd = -1;
-                if (noteEndsByTick.TryGetValue(frag.Tick, out var noteEnd) && noteEnd > frag.Time)
-                    audibleEnd = noteEnd;
+                if (notesByTick.TryGetValue(frag.Tick, out var note) && note.TotalTimeEnd > frag.Time)
+                {
+                    audibleEnd = note.TotalTimeEnd;
+                    slotNote = note;
+                }
                 if (fi == fragCount - 1)
                     audibleEnd = Math.Max(audibleEnd, extensionEnd);
 
@@ -450,6 +459,7 @@ namespace YARG.Core.Chart
                             End = start + (s + 1) * step,
                             Tick = wordLyrics[realIndices[fi]].Tick,
                             NoteCapped = noteCapped,
+                            Note = slotNote,
                         });
                     }
                 }
@@ -469,6 +479,7 @@ namespace YARG.Core.Chart
                         End = SlotEnd(fi),
                         Tick = wordLyrics[realIndices[fi]].Tick,
                         NoteCapped = noteCapped,
+                        Note = slotNote,
                     });
                 }
             }
@@ -582,7 +593,7 @@ namespace YARG.Core.Chart
                     // Diphthong: hold the main vowel 60%, then glide to its end shape over 40%
                     double transitionStart = holdStart + (holdEnd - holdStart) * 0.6;
                     float glideWeight = EmitVowelEnvelope(events, ref mouth, vowelPeak, tailWeight,
-                        holdStart, transitionStart, holdEnd, slot.Tick);
+                        holdStart, transitionStart, holdEnd, slot.Tick, slot.Note);
                     mouth.Weight = glideWeight;
                     RampTo(events, ref mouth, syll.VowelEnd.Value, glideWeight, transitionStart,
                         holdEnd - transitionStart, slot.Tick);
@@ -590,7 +601,7 @@ namespace YARG.Core.Chart
                 else
                 {
                     mouth.Weight = EmitVowelEnvelope(events, ref mouth, vowelPeak, tailWeight,
-                        holdStart, holdEnd, holdEnd, slot.Tick);
+                        holdStart, holdEnd, holdEnd, slot.Tick, slot.Note);
                 }
             }
             else
@@ -657,7 +668,8 @@ namespace YARG.Core.Chart
         /// envelope mid-decay. Returns the weight at <paramref name="stopTime"/>.
         /// </summary>
         private static float EmitVowelEnvelope(List<LipsyncEvent> events, ref MouthState mouth,
-            float peakWeight, float tailWeight, double startTime, double stopTime, double endTime, uint tick)
+            float peakWeight, float tailWeight, double startTime, double stopTime, double endTime, uint tick,
+            VocalNote? note)
         {
             if (mouth.Weight <= 0.001f || stopTime <= startTime)
                 return mouth.Weight;
@@ -694,13 +706,31 @@ namespace YARG.Core.Chart
                 }
                 else
                 {
-                    weight = tailWeight;
+                    weight = SustainWeight(note, t, tailWeight);
                 }
                 events.Add(new LipsyncEvent(mouth.Type, weight, t, tick));
                 lastWeight = weight;
             }
             mouth.LastEmissionEnd = stopTime;
             return lastWeight;
+        }
+
+        /// <summary>
+        /// Sustain weight for the note at time <paramref name="t"/>: the sustain floor, opened or
+        /// closed slightly as the pitch changes (higher pitch = slightly more open). Notes without
+        /// a usable pitch hold the plain floor.
+        /// </summary>
+        private static float SustainWeight(VocalNote? note, double t, float floor)
+        {
+            if (note is null || note.IsNonPitched || note.IsPercussion || note.IsPhrase)
+                return floor;
+
+            float pitch = note.PitchAtSongTime(t);
+            if (pitch < VOCAL_PITCH_MIN)
+                return floor;
+
+            float norm = Math.Clamp((pitch - VOCAL_PITCH_MIN) / (VOCAL_PITCH_MAX - VOCAL_PITCH_MIN), 0f, 1f);
+            return Math.Clamp(floor + (norm - 0.5f) * 2f * VOWEL_PITCH_MOD, 0f, VOWEL_PEAK_CAP);
         }
 
         /// <summary>
@@ -785,6 +815,7 @@ namespace YARG.Core.Chart
             public double End;
             public uint Tick;
             public bool NoteCapped; // Slot end came from a vocal note's end (a real sung sustain)
+            public VocalNote? Note; // The vocal note backing this slot (for pitch-aware sustains)
         }
 
         private struct Syllable

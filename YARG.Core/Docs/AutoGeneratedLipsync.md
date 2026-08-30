@@ -95,7 +95,7 @@ Phoneme classification:
 
 **Co-articulation.** During any viseme ramp, the outgoing shape fades to a faint residual (0.08, clamped to the outgoing weight) over the first 60% of the ramp and then out by the end — two mouth shapes are briefly active together, like authored keyframes.
 
-**Sustains.** On note-capped slots the vowel settles at a 0.5 sustain floor after the brief peak — authored long sustains keep the mouth open (~0.5 dominant weight throughout the note) and close only at the note's end. Slots without note evidence (lyrics-track path) decay to the 0.05 tail instead.
+**Sustains.** On note-capped slots the vowel settles at a 0.5 sustain floor after the brief peak — authored long sustains keep the mouth open (~0.5 dominant weight throughout the note) and close only at the note's end. Slot ends use the note's `TotalTimeEnd`, so pitch-slide children extend the sustain through pitch changes, and the sustain weight is modulated ±0.12 by the pitch at that moment (higher pitch = slightly more open, lerped across slide segments via `PitchAtSongTime`). Slots without note evidence (lyrics-track path) decay to the 0.05 tail instead.
 
 **Per-slot closure.** At the end of every syllable slot, all visemes that slot used are explicitly driven to 0 — viseme channels persist until rewritten, and authored data zeroes inactive channels constantly. Without this, envelope tails and transition residuals keep the mouth open through silence on avatars with per-viseme blendshapes.
 
