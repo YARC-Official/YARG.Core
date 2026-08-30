@@ -24,6 +24,11 @@ namespace YARG.Core.Chart
         private const double STEP_TIME = 1.0 / 30;      // ~30fps interpolation steps (Milo-style keyframes)
         private const double MIN_SLOT_DURATION = 0.05;  // Minimum syllable slot duration
 
+        // Co-articulation: the outgoing shape keeps a faint residual while the new one rises,
+        // so transitions overlap like authored keyframes instead of snapping between poses
+        private const float CO_ARTICULATION_RESIDUAL = 0.12f;
+        private const double CO_ARTICULATION_FADE_FRACTION = 0.6; // Ramp fraction spent fading to the residual
+
         // Vowel peak scales with note length (longer/held notes open fuller, like authored lipsync).
         // The vowel rides a peak-shaped envelope: peak at the syllable, decaying to a low tail —
         // authored keyframes spend most of their time at low weights and rarely reach full open.
@@ -571,7 +576,26 @@ namespace YARG.Core.Chart
                     double time = startTime + i * stepDur;
 
                     if (emitFrom)
-                        events.Add(new LipsyncEvent(fromType, fromWeight * (1 - t), time, tick));
+                    {
+                        // Co-articulation: fade the outgoing shape to a small residual first, then
+                        // out, leaving both shapes faintly active mid-transition like authored data
+                        float residual = Math.Min(CO_ARTICULATION_RESIDUAL, fromWeight);
+                        float outWeight;
+                        if (t < CO_ARTICULATION_FADE_FRACTION)
+                        {
+                            float fade = t / (float) CO_ARTICULATION_FADE_FRACTION;
+                            outWeight = residual + (fromWeight - residual) * (1 - fade);
+                        }
+                        else
+                        {
+                            float fade = (float) ((t - CO_ARTICULATION_FADE_FRACTION)
+                                / (1.0 - CO_ARTICULATION_FADE_FRACTION));
+                            outWeight = residual * (1 - fade);
+                        }
+
+                        if (outWeight > 0.001f)
+                            events.Add(new LipsyncEvent(fromType, outWeight, time, tick));
+                    }
                     events.Add(new LipsyncEvent(toType, fromWeight + (toWeight - fromWeight) * t, time, tick));
                 }
             }
