@@ -80,17 +80,17 @@ Phoneme classification:
 | `RELEASE_THRESHOLD` | 0.30s | Minimum gap before releasing the mouth |
 | `STEP_TIME` | 1/30s | Interpolation step interval (Milo-style keyframes) |
 | `MIN_SLOT_DURATION` | 0.05s | Minimum syllable slot duration |
-| `VOWEL_PEAK_BASE_WEIGHT` | 0.30 | Peak weight floor for short syllables |
-| `VOWEL_PEAK_SCALE` | 0.50/s | Peak weight growth per second of note length |
-| `VOWEL_PEAK_CAP` | 0.95 | Maximum vowel peak weight |
-| `VOWEL_TAIL_WEIGHT` | 0.08 | Weight the vowel decays to by the slot end |
-| `VOWEL_PEAK_HOLD_FRACTION` | 0.45 | Hold fraction spent at/near the peak before decay |
-| `CONSONANT_WEIGHT` | 0.45 | Weight for consonant shapes |
-| `CO_ARTICULATION_RESIDUAL` | 0.12 | Faint weight the outgoing viseme keeps mid-ramp |
+| `VOWEL_PEAK_BASE_WEIGHT` | 0.20 | Peak weight floor for short syllables |
+| `VOWEL_PEAK_SCALE` | 0.35/s | Peak weight growth per second of note length |
+| `VOWEL_PEAK_CAP` | 0.90 | Maximum vowel peak weight |
+| `VOWEL_TAIL_WEIGHT` | 0.05 | Weight the vowel decays to by the slot end |
+| `VOWEL_PEAK_HOLD_FRACTION` | 0.30 | Hold fraction spent at/near the peak before decay |
+| `CONSONANT_WEIGHT` | 0.32 | Weight for consonant shapes (authored consonant means measure ~0.28) |
+| `CO_ARTICULATION_RESIDUAL` | 0.08 | Faint weight the outgoing viseme keeps mid-ramp |
 
 **Vowel peak envelope.** The vowel rides a peak-shaped envelope instead of a flat hold: the attack ramps up to the syllable's peak weight (scaling with note length; longer/held notes open fuller), the peak is sustained for ~45% of the hold, then it smoothstep-decays to a low tail by the slot end. This matches authored data, where keyframe weights are mostly low (median 0.19, p90 0.51, only ~1% ≥ 0.9) and the mouth settles between syllables.
 
-**Co-articulation.** During any viseme ramp, the outgoing shape fades to a faint residual (0.12, clamped to the outgoing weight) over the first 60% of the ramp and then out by the end — two mouth shapes are briefly active together, like authored keyframes.
+**Co-articulation.** During any viseme ramp, the outgoing shape fades to a faint residual (0.08, clamped to the outgoing weight) over the first 60% of the ramp and then out by the end — two mouth shapes are briefly active together, like authored keyframes.
 
 **Timing sources:** when a vocals part is available, each syllable uses its vocal note's
 actual end time; the mouth closes at the note end if a silent gap follows instead of holding
@@ -216,7 +216,7 @@ public class LipsyncEvent : ChartEvent, ICloneable<LipsyncEvent>
 }
 ```
 
-- `Value` is analog (0.0–1.0): vowel peaks scale with note length, consonants sit at ~0.45, `0f` for released visemes
+- `Value` is analog (0.0–1.0): vowel peaks scale with note length, consonants sit at ~0.32, `0f` for released visemes
 - Multiple events at same timestamp can overlap (e.g. co-articulation ramps from→to)
 
 ### LyricsTrack → LyricsPhrase → LyricEvent

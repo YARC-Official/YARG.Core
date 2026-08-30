@@ -39,18 +39,18 @@ namespace YARG.Core.Chart
 
         // Co-articulation: the outgoing shape keeps a faint residual while the new one rises,
         // so transitions overlap like authored keyframes instead of snapping between poses
-        private const float CO_ARTICULATION_RESIDUAL = 0.12f;
+        private const float CO_ARTICULATION_RESIDUAL = 0.08f;
         private const double CO_ARTICULATION_FADE_FRACTION = 0.6; // Ramp fraction spent fading to the residual
 
         // Vowel peak scales with note length (longer/held notes open fuller, like authored lipsync).
         // The vowel rides a peak-shaped envelope: peak at the syllable, decaying to a low tail —
         // authored keyframes spend most of their time at low weights and rarely reach full open.
-        private const float VOWEL_PEAK_BASE_WEIGHT = 0.30f;   // Peak weight floor for short syllables
-        private const float VOWEL_PEAK_SCALE = 0.50f;         // Peak weight growth per second of note length
-        private const float VOWEL_PEAK_CAP = 0.95f;           // Maximum vowel peak weight
-        private const float VOWEL_TAIL_WEIGHT = 0.08f;        // Weight the vowel decays to by the slot end
-        private const double VOWEL_PEAK_HOLD_FRACTION = 0.45; // Fraction of the hold spent at/near peak
-        private const float CONSONANT_WEIGHT = 0.45f;
+        private const float VOWEL_PEAK_BASE_WEIGHT = 0.20f;   // Peak weight floor for short syllables
+        private const float VOWEL_PEAK_SCALE = 0.35f;         // Peak weight growth per second of note length
+        private const float VOWEL_PEAK_CAP = 0.90f;           // Maximum vowel peak weight
+        private const float VOWEL_TAIL_WEIGHT = 0.05f;        // Weight the vowel decays to by the slot end
+        private const double VOWEL_PEAK_HOLD_FRACTION = 0.30; // Fraction of the hold spent at/near peak
+        private const float CONSONANT_WEIGHT = 0.32f;         // Authored consonant means measure ~0.28
 
         private static IReadOnlyDictionary<string, string[]>? _cmuDict;
 
