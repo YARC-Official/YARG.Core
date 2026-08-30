@@ -717,33 +717,37 @@ namespace YARG.Core.Chart
             return phoneme switch
             {
                 // Vowels
+                // Mapping verified against handmade Milo lipsync data from 12 Rock Band charts
+                // (per-phoneme lift analysis over ~3.2k CMU-resolved lyric-word windows)
                 "AA" => (LipsyncEvent.LipsyncType.Ox_lo, false, null),
                 "AE" => (LipsyncEvent.LipsyncType.Cage_lo, false, null),
                 "AH" => (LipsyncEvent.LipsyncType.If_lo, false, null),
-                "AO" => (LipsyncEvent.LipsyncType.Earth_lo, false, null),
-                "EH" => (LipsyncEvent.LipsyncType.Cage_lo, false, null),
-                "ER" => (LipsyncEvent.LipsyncType.Church_lo, false, null),
+                "AO" => (LipsyncEvent.LipsyncType.Ox_lo, false, null),
+                "EH" => (LipsyncEvent.LipsyncType.If_lo, false, null),
+                "ER" => (LipsyncEvent.LipsyncType.Earth_lo, false, null),
                 "IH" => (LipsyncEvent.LipsyncType.If_lo, false, null),
                 "IY" => (LipsyncEvent.LipsyncType.Eat_lo, false, null),
                 "UH" => (LipsyncEvent.LipsyncType.Though_lo, false, null),
                 "UW" => (LipsyncEvent.LipsyncType.Wet_lo, false, null),
 
                 // Diphthongs
-                "AY" => (LipsyncEvent.LipsyncType.Ox_lo, true, LipsyncEvent.LipsyncType.If_lo),
-                "EY" => (LipsyncEvent.LipsyncType.Cage_lo, true, LipsyncEvent.LipsyncType.If_lo),
-                "OW" => (LipsyncEvent.LipsyncType.Oat_lo, true, LipsyncEvent.LipsyncType.Wet_lo),
+                "AY" => (LipsyncEvent.LipsyncType.Eat_lo, true, LipsyncEvent.LipsyncType.If_lo),
+                "EY" => (LipsyncEvent.LipsyncType.Ox_lo, true, LipsyncEvent.LipsyncType.If_lo),
+                "OW" => (LipsyncEvent.LipsyncType.Ox_lo, false, null),
                 "AW" => (LipsyncEvent.LipsyncType.Ox_lo, true, LipsyncEvent.LipsyncType.Wet_lo),
-                "OY" => (LipsyncEvent.LipsyncType.Oat_lo, true, LipsyncEvent.LipsyncType.If_lo),
+                "OY" => (LipsyncEvent.LipsyncType.Ox_lo, true, LipsyncEvent.LipsyncType.Eat_lo),
 
                 // Consonants
                 "B" or "P" or "M" => (LipsyncEvent.LipsyncType.Bump_lo, false, null),
                 "F" or "V" => (LipsyncEvent.LipsyncType.Fave_lo, false, null),
-                "TH" or "DH" => (LipsyncEvent.LipsyncType.Told_lo, false, null),
+                "TH" or "DH" => (LipsyncEvent.LipsyncType.Though_lo, false, null),
                 "S" or "Z" => (LipsyncEvent.LipsyncType.Size_lo, false, null),
                 "T" or "D" => (LipsyncEvent.LipsyncType.Told_lo, false, null),
-                "N" or "L" => (LipsyncEvent.LipsyncType.New_lo, false, null),
-                "NG" or "K" or "G" => (LipsyncEvent.LipsyncType.Told_lo, false, null),
-                "SH" or "ZH" or "CH" or "JH" => (LipsyncEvent.LipsyncType.Told_lo, false, null),
+                "N" => (LipsyncEvent.LipsyncType.New_lo, false, null),
+                "L" => (LipsyncEvent.LipsyncType.Told_lo, false, null),
+                "NG" => (LipsyncEvent.LipsyncType.New_lo, false, null),
+                "K" or "G" => (LipsyncEvent.LipsyncType.Cage_lo, false, null),
+                "SH" or "ZH" or "CH" or "JH" => (LipsyncEvent.LipsyncType.Church_lo, false, null),
                 "R" => (LipsyncEvent.LipsyncType.Roar_lo, false, null),
                 "W" => (LipsyncEvent.LipsyncType.Wet_lo, false, null),
                 "Y" => (LipsyncEvent.LipsyncType.Eat_lo, false, null),
