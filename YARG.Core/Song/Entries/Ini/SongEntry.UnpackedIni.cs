@@ -416,7 +416,7 @@ namespace YARG.Core.Song
                 var dta = DTAEntry.Create(name, container);
                 YARGDTAReader.EndNode(ref container);
 
-                modifiers = DTAMetadataAdapter.BuildModifiers(dta);
+                modifiers = DTAMetadataAdapter.BuildModifiers(name, dta);
                 return true;
             }
             catch (Exception e)

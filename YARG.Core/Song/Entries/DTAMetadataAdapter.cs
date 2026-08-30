@@ -15,12 +15,17 @@ namespace YARG.Core.Song
     /// </summary>
     internal static class DTAMetadataAdapter
     {
-        public static IniModifierCollection BuildModifiers(in DTAEntry dta)
+        public static IniModifierCollection BuildModifiers(string nodeName, in DTAEntry dta)
         {
             var metadata = default(SongMetadata);
             SongMetadata.FillFromDTA(ref metadata, in dta);
 
             var modifiers = new IniModifierCollection();
+
+            // The DTA node's own key is the RB shortname - CON update matching
+            // (songs_updates.dta, upgrades, etc.) keys off this, same as song.ini's
+            // "shortname" tag.
+            modifiers.SetString("shortname", nodeName);
 
             if (dta.Name != null)              { modifiers.SetString("name", metadata.Name); }
             if (dta.Artist != null)            { modifiers.SetString("artist", metadata.Artist); }
