@@ -24,10 +24,14 @@ namespace YARG.Core.Chart
         private const double STEP_TIME = 1.0 / 30;      // ~30fps interpolation steps (Milo-style keyframes)
         private const double MIN_SLOT_DURATION = 0.05;  // Minimum syllable slot duration
 
-        // Vowel openness scales with note length (longer/held notes open fuller, like authored lipsync)
-        private const float VOWEL_BASE_WEIGHT = 0.55f;
-        private const float VOWEL_WEIGHT_SCALE = 1.0f;
-        private const float VOWEL_WEIGHT_CAP = 0.95f;
+        // Vowel peak scales with note length (longer/held notes open fuller, like authored lipsync).
+        // The vowel rides a peak-shaped envelope: peak at the syllable, decaying to a low tail —
+        // authored keyframes spend most of their time at low weights and rarely reach full open.
+        private const float VOWEL_PEAK_BASE_WEIGHT = 0.30f;   // Peak weight floor for short syllables
+        private const float VOWEL_PEAK_SCALE = 0.50f;         // Peak weight growth per second of note length
+        private const float VOWEL_PEAK_CAP = 0.95f;           // Maximum vowel peak weight
+        private const float VOWEL_TAIL_WEIGHT = 0.08f;        // Weight the vowel decays to by the slot end
+        private const double VOWEL_PEAK_HOLD_FRACTION = 0.45; // Fraction of the hold spent at/near peak
         private const float CONSONANT_WEIGHT = 0.45f;
 
         private static IReadOnlyDictionary<string, string[]>? _cmuDict;
@@ -376,8 +380,8 @@ namespace YARG.Core.Chart
             bool hasVowel = syll.VowelMain != LipsyncEvent.LipsyncType.Neutral_lo || syll.VowelEnd.HasValue;
 
             // Vowel openness scales with the note's length; consonants sit at a partial weight
-            float vowelWeight = hasVowel
-                ? Math.Min(VOWEL_WEIGHT_CAP, VOWEL_BASE_WEIGHT + (float) duration * VOWEL_WEIGHT_SCALE)
+            float vowelPeak = hasVowel
+                ? Math.Min(VOWEL_PEAK_CAP, VOWEL_PEAK_BASE_WEIGHT + (float) duration * VOWEL_PEAK_SCALE)
                 : 0f;
 
             int attackSegments = syll.Initial.Count + (hasVowel ? 1 : 0);
@@ -428,7 +432,7 @@ namespace YARG.Core.Chart
 
                 if (hasVowel)
                 {
-                    RampTo(events, ref mouth, syll.VowelMain, vowelWeight, t, seg, slot.Tick);
+                    RampTo(events, ref mouth, syll.VowelMain, vowelPeak, t, seg, slot.Tick);
                     t += seg;
                 }
             }
@@ -440,17 +444,22 @@ namespace YARG.Core.Chart
             // Hold the vowel with dense per-frame keys
             if (hasVowel)
             {
+                // Vowel rides a peak-shaped envelope, decaying toward the tail weight by the slot
+                // end like authored vowels. With a pre-roll the peak already sits at the lyric.
                 if (syll.VowelEnd.HasValue)
                 {
                     // Diphthong: hold the main vowel 60%, then glide to its end shape over 40%
                     double transitionStart = holdStart + (holdEnd - holdStart) * 0.6;
-                    EmitHold(events, ref mouth, holdStart, transitionStart, slot.Tick);
-                    RampTo(events, ref mouth, syll.VowelEnd.Value, vowelWeight, transitionStart,
+                    float glideWeight = EmitVowelEnvelope(events, ref mouth, vowelPeak,
+                        holdStart, transitionStart, holdEnd, slot.Tick);
+                    mouth.Weight = glideWeight;
+                    RampTo(events, ref mouth, syll.VowelEnd.Value, glideWeight, transitionStart,
                         holdEnd - transitionStart, slot.Tick);
                 }
                 else
                 {
-                    EmitHold(events, ref mouth, holdStart, holdEnd, slot.Tick);
+                    mouth.Weight = EmitVowelEnvelope(events, ref mouth, vowelPeak,
+                        holdStart, holdEnd, holdEnd, slot.Tick);
                 }
             }
             else
@@ -484,6 +493,50 @@ namespace YARG.Core.Chart
             for (double t = startTime; t < endTime; t += STEP_TIME)
                 events.Add(new LipsyncEvent(mouth.Type, mouth.Weight, t, tick));
             mouth.LastEmissionEnd = endTime;
+        }
+
+        /// <summary>
+        /// Emits the vowel hold as a peak-shaped envelope sampled every ~30fps frame: peak weight
+        /// at the start of the hold (the attack already peaks at the lyric), sustained briefly,
+        /// then decaying to a low tail like authored Milo vowels. Weight decays relative to
+        /// <paramref name="endTime"/>, so a diphthong glide that cuts the hold short leaves the
+        /// envelope mid-decay. Returns the weight at <paramref name="stopTime"/>.
+        /// </summary>
+        private static float EmitVowelEnvelope(List<LipsyncEvent> events, ref MouthState mouth,
+            float peakWeight, double startTime, double stopTime, double endTime, uint tick)
+        {
+            if (mouth.Weight <= 0.001f || stopTime <= startTime)
+                return mouth.Weight;
+
+            // The attack ramp's final key already sits at the hold start with the same shape;
+            // skip a duplicate leading frame.
+            bool skipFirst = Math.Abs(startTime - mouth.LastEmissionEnd) < 0.001;
+
+            float lastWeight = peakWeight;
+            int steps = (int) Math.Ceiling((stopTime - startTime) / STEP_TIME);
+            for (int i = 0; i < steps; i++)
+            {
+                if (i == 0 && skipFirst)
+                    continue;
+
+                double t = startTime + i * STEP_TIME;
+                double prog = Math.Clamp((t - startTime) / (endTime - startTime), 0.0, 1.0);
+                float weight;
+                if (prog <= VOWEL_PEAK_HOLD_FRACTION)
+                {
+                    weight = peakWeight;
+                }
+                else
+                {
+                    double raw = (prog - VOWEL_PEAK_HOLD_FRACTION) / (1.0 - VOWEL_PEAK_HOLD_FRACTION);
+                    double ease = raw * raw * (3.0 - 2.0 * raw); // Smoothstep decay
+                    weight = peakWeight + (VOWEL_TAIL_WEIGHT - peakWeight) * (float) ease;
+                }
+                events.Add(new LipsyncEvent(mouth.Type, weight, t, tick));
+                lastWeight = weight;
+            }
+            mouth.LastEmissionEnd = stopTime;
+            return lastWeight;
         }
 
         /// <summary>
