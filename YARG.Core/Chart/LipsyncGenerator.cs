@@ -598,6 +598,29 @@ namespace YARG.Core.Chart
                     ct += codaSeg;
                 }
             }
+
+            // Close the mouth: zero every viseme this syllable used, like authored per-channel
+            // lipsync data. Viseme weights persist until explicitly rewritten, so without this
+            // the envelope tail, diphthong ends, and co-articulation residuals would keep the
+            // mouth open through silence.
+            var slotVisemes = new HashSet<LipsyncEvent.LipsyncType>();
+            if (hasVowel)
+            {
+                slotVisemes.Add(syll.VowelMain);
+                if (syll.VowelEnd.HasValue)
+                    slotVisemes.Add(syll.VowelEnd.Value);
+            }
+            foreach (var consonant in syll.Initial)
+                slotVisemes.Add(consonant);
+            foreach (var consonant in syll.Final)
+                slotVisemes.Add(consonant);
+
+            foreach (var viseme in slotVisemes)
+            {
+                events.Add(new LipsyncEvent(viseme, 0f, slot.End, slot.Tick));
+            }
+            mouth.Weight = 0f;
+            mouth.LastEmissionEnd = slot.End;
         }
 
         /// <summary>
@@ -717,7 +740,7 @@ namespace YARG.Core.Chart
                             outWeight = residual * (1 - fade);
                         }
 
-                        if (outWeight > 0.001f)
+                        if (outWeight > 0.001f || i == steps)
                             events.Add(new LipsyncEvent(fromType, outWeight, time, tick));
                     }
                     events.Add(new LipsyncEvent(toType, fromWeight + (toWeight - fromWeight) * t, time, tick));

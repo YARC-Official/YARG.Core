@@ -95,6 +95,8 @@ Phoneme classification:
 
 **Co-articulation.** During any viseme ramp, the outgoing shape fades to a faint residual (0.08, clamped to the outgoing weight) over the first 60% of the ramp and then out by the end — two mouth shapes are briefly active together, like authored keyframes.
 
+**Per-slot closure.** At the end of every syllable slot, all visemes that slot used are explicitly driven to 0 — viseme channels persist until rewritten, and authored data zeroes inactive channels constantly. Without this, envelope tails and transition residuals keep the mouth open through silence on avatars with per-viseme blendshapes.
+
 **Timing sources:** when a vocals part is available, each syllable uses its vocal note's
 actual end time; the mouth closes at the note end if a silent gap follows instead of holding
 open until the next lyric. Otherwise slots run until the next fragment's start time.

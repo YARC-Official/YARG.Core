@@ -30,6 +30,8 @@ namespace YARG.Core.UnitTests.Chart
             SING  S IH1 NG
             LOVE  L AH1 V
             BED  B EH1 D
+            LA  L AH1
+            GO1  G OW1
             """;
 
         [OneTimeSetUp]
@@ -156,6 +158,41 @@ namespace YARG.Core.UnitTests.Chart
         {
             AssertEmits("bed", LipsyncEvent.LipsyncType.If_lo);
             AssertDoesNotEmit("bed", LipsyncEvent.LipsyncType.Cage_lo);
+        }
+
+        [Test]
+        public void GapBetweenWordsClosesAllVisemeChannels()
+        {
+            // Viseme channels persist until explicitly rewritten; the generator must zero every
+            // used channel during silence, or the mouth stays open between words/parts.
+            // Two separate phrases with a long instrumental gap between them
+            var phrase1 = new LyricsPhrase(0.0, 0.5, 0, 1000, new List<LyricEvent>
+            {
+                new(LyricSymbolFlags.None, "go", 0.0, 0),
+            });
+            var phrase2 = new LyricsPhrase(5.0, 0.5, 5000, 1000, new List<LyricEvent>
+            {
+                new(LyricSymbolFlags.None, "la", 5.0, 5000),
+            });
+            var track = new LyricsTrack(new List<LyricsPhrase> { phrase1, phrase2 });
+
+            var events = LipsyncGenerator.GenerateFromLyrics(track);
+
+            // Viseme channels persist until rewritten, so for EVERY viseme type the last event
+            // before the gap must be zero-weight, or that channel holds the mouth open.
+            var visemeEvents = events
+                .Where(e => e.Time < 4.5)
+                .Where(e => e.Type.ToString().EndsWith("_lo", StringComparison.Ordinal)
+                    || e.Type.ToString().EndsWith("_hi", StringComparison.Ordinal))
+                .GroupBy(e => e.Type);
+
+            Assert.That(visemeEvents, Is.Not.Empty, "Expected viseme events before the gap");
+            foreach (var group in visemeEvents)
+            {
+                var last = group.OrderBy(e => e.Time).Last();
+                Assert.That(last.Value, Is.EqualTo(0).Within(0.0001),
+                    $"Viseme channel {group.Key} must end at zero before silence");
+            }
         }
 
         [Test]
