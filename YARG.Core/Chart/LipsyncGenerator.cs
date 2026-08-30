@@ -49,7 +49,8 @@ namespace YARG.Core.Chart
         private const float VOWEL_PEAK_BASE_WEIGHT = 0.55f;   // Peak weight floor for short syllables
         private const float VOWEL_PEAK_SCALE = 0.45f;         // Peak weight growth per second of note length
         private const float VOWEL_PEAK_CAP = 0.90f;           // Maximum vowel peak weight
-        private const float VOWEL_TAIL_WEIGHT = 0.05f;        // Weight the vowel decays to by the slot end
+        private const float VOWEL_TAIL_WEIGHT = 0.05f;        // Weight the vowel decays to by the slot end (no note evidence)
+        private const float VOWEL_SUSTAIN_FLOOR = 0.50f;      // Sustain weight on long notes (authored sustains measure ~0.5)
         private const double VOWEL_PEAK_HOLD_FRACTION = 0.25; // Fraction of a short slot spent at/near peak
         private const double VOWEL_PEAK_HOLD_TIME = 0.30;     // Absolute cap on the peak hold (long slots)
         private const double VOWEL_DECAY_TIME = 0.25;         // Absolute decay time from peak to tail
@@ -387,6 +388,8 @@ namespace YARG.Core.Chart
             int fragCount = realIndices.Count;
             int syllCount = syllables.Count;
 
+            bool noteCapped = false;
+
             // Computes the audible end of the syllable slot for real fragment index fi
             double SlotEnd(int fi)
             {
@@ -407,7 +410,10 @@ namespace YARG.Core.Chart
                     audibleEnd = Math.Max(audibleEnd, extensionEnd);
 
                 if (audibleEnd > 0)
+                {
+                    noteCapped = true;
                     slotEnd = Math.Min(slotEnd, Math.Max(audibleEnd, frag.Time + MIN_SLOT_DURATION));
+                }
                 else
                 {
                     // No vocal note to time against (lyrics-track generation on charts without
@@ -443,6 +449,7 @@ namespace YARG.Core.Chart
                             Start = start + s * step,
                             End = start + (s + 1) * step,
                             Tick = wordLyrics[realIndices[fi]].Tick,
+                            NoteCapped = noteCapped,
                         });
                     }
                 }
@@ -461,6 +468,7 @@ namespace YARG.Core.Chart
                         Start = wordLyrics[realIndices[fi]].Time,
                         End = SlotEnd(fi),
                         Tick = wordLyrics[realIndices[fi]].Tick,
+                        NoteCapped = noteCapped,
                     });
                 }
             }
@@ -565,11 +573,15 @@ namespace YARG.Core.Chart
             {
                 // Vowel rides a peak-shaped envelope, decaying toward the tail weight by the slot
                 // end like authored vowels. With a pre-roll the peak already sits at the lyric.
+                // A note-capped slot is a real sung sustain: settle at the sustain floor so the
+                // mouth stays open while the note is held (authored sustains measure ~0.5 all
+                // the way through). Without note evidence, close soon.
+                float tailWeight = slot.NoteCapped ? VOWEL_SUSTAIN_FLOOR : VOWEL_TAIL_WEIGHT;
                 if (syll.VowelEnd.HasValue)
                 {
                     // Diphthong: hold the main vowel 60%, then glide to its end shape over 40%
                     double transitionStart = holdStart + (holdEnd - holdStart) * 0.6;
-                    float glideWeight = EmitVowelEnvelope(events, ref mouth, vowelPeak,
+                    float glideWeight = EmitVowelEnvelope(events, ref mouth, vowelPeak, tailWeight,
                         holdStart, transitionStart, holdEnd, slot.Tick);
                     mouth.Weight = glideWeight;
                     RampTo(events, ref mouth, syll.VowelEnd.Value, glideWeight, transitionStart,
@@ -577,7 +589,7 @@ namespace YARG.Core.Chart
                 }
                 else
                 {
-                    mouth.Weight = EmitVowelEnvelope(events, ref mouth, vowelPeak,
+                    mouth.Weight = EmitVowelEnvelope(events, ref mouth, vowelPeak, tailWeight,
                         holdStart, holdEnd, holdEnd, slot.Tick);
                 }
             }
@@ -645,7 +657,7 @@ namespace YARG.Core.Chart
         /// envelope mid-decay. Returns the weight at <paramref name="stopTime"/>.
         /// </summary>
         private static float EmitVowelEnvelope(List<LipsyncEvent> events, ref MouthState mouth,
-            float peakWeight, double startTime, double stopTime, double endTime, uint tick)
+            float peakWeight, float tailWeight, double startTime, double stopTime, double endTime, uint tick)
         {
             if (mouth.Weight <= 0.001f || stopTime <= startTime)
                 return mouth.Weight;
@@ -678,11 +690,11 @@ namespace YARG.Core.Chart
                 {
                     double raw = (t - holdEnd) / (decayEnd - holdEnd);
                     double ease = raw * raw * (3.0 - 2.0 * raw); // Smoothstep decay
-                    weight = peakWeight + (VOWEL_TAIL_WEIGHT - peakWeight) * (float) ease;
+                    weight = peakWeight + (tailWeight - peakWeight) * (float) ease;
                 }
                 else
                 {
-                    weight = VOWEL_TAIL_WEIGHT;
+                    weight = tailWeight;
                 }
                 events.Add(new LipsyncEvent(mouth.Type, weight, t, tick));
                 lastWeight = weight;
@@ -772,6 +784,7 @@ namespace YARG.Core.Chart
             public double Start;
             public double End;
             public uint Tick;
+            public bool NoteCapped; // Slot end came from a vocal note's end (a real sung sustain)
         }
 
         private struct Syllable
