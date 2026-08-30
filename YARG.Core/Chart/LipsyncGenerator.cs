@@ -29,6 +29,7 @@ namespace YARG.Core.Chart
         private const double RELEASE_THRESHOLD = 0.30;  // Minimum gap before releasing the mouth
         private const double STEP_TIME = 1.0 / 30;      // ~30fps interpolation steps (Milo-style keyframes)
         private const double MIN_SLOT_DURATION = 0.05;  // Minimum syllable slot duration
+        private const double MAX_UNVOICED_SLOT = 2.0;   // Max slot length when no note end caps it
 
         // Section-level brow state: authored data keeps brow/emotional channels active for most of
         // the song (stacked, sustained from seconds to minutes), so one brow state is chosen per
@@ -49,7 +50,9 @@ namespace YARG.Core.Chart
         private const float VOWEL_PEAK_SCALE = 0.35f;         // Peak weight growth per second of note length
         private const float VOWEL_PEAK_CAP = 0.90f;           // Maximum vowel peak weight
         private const float VOWEL_TAIL_WEIGHT = 0.05f;        // Weight the vowel decays to by the slot end
-        private const double VOWEL_PEAK_HOLD_FRACTION = 0.30; // Fraction of the hold spent at/near peak
+        private const double VOWEL_PEAK_HOLD_FRACTION = 0.30; // Fraction of a short slot spent at/near peak
+        private const double VOWEL_PEAK_HOLD_TIME = 0.30;     // Absolute cap on the peak hold (long slots)
+        private const double VOWEL_DECAY_TIME = 0.60;         // Absolute decay time from peak to tail
         private const float CONSONANT_WEIGHT = 0.32f;         // Authored consonant means measure ~0.28
 
         private static IReadOnlyDictionary<string, string[]>? _cmuDict;
@@ -405,6 +408,14 @@ namespace YARG.Core.Chart
 
                 if (audibleEnd > 0)
                     slotEnd = Math.Min(slotEnd, Math.Max(audibleEnd, frag.Time + MIN_SLOT_DURATION));
+                else
+                {
+                    // No vocal note to time against (lyrics-track generation on charts without
+                    // vocal notes): a phrase-final word would otherwise stretch its slot to the
+                    // phrase end — seconds past the sung word — holding the mouth open through
+                    // the silence. Cap it like an actual sung word length.
+                    slotEnd = Math.Min(slotEnd, frag.Time + MAX_UNVOICED_SLOT);
+                }
 
                 slotEnd = Math.Max(slotEnd, frag.Time + MIN_SLOT_DURATION);
                 return Math.Min(slotEnd, phraseEnd);
@@ -620,6 +631,13 @@ namespace YARG.Core.Chart
             // skip a duplicate leading frame.
             bool skipFirst = Math.Abs(startTime - mouth.LastEmissionEnd) < 0.001;
 
+            // The peak is sustained briefly and decays on an ABSOLUTE timescale (not proportional
+            // to the slot): a long vocal note must settle near-closed like authored vowels instead
+            // of holding a wide-open pose for seconds.
+            double slotLen = endTime - startTime;
+            double holdEnd = startTime + Math.Min(VOWEL_PEAK_HOLD_TIME, slotLen * VOWEL_PEAK_HOLD_FRACTION);
+            double decayEnd = Math.Min(holdEnd + VOWEL_DECAY_TIME, endTime);
+
             float lastWeight = peakWeight;
             int steps = (int) Math.Ceiling((stopTime - startTime) / STEP_TIME);
             for (int i = 0; i < steps; i++)
@@ -628,17 +646,20 @@ namespace YARG.Core.Chart
                     continue;
 
                 double t = startTime + i * STEP_TIME;
-                double prog = Math.Clamp((t - startTime) / (endTime - startTime), 0.0, 1.0);
                 float weight;
-                if (prog <= VOWEL_PEAK_HOLD_FRACTION)
+                if (t <= holdEnd)
                 {
                     weight = peakWeight;
                 }
-                else
+                else if (t < decayEnd)
                 {
-                    double raw = (prog - VOWEL_PEAK_HOLD_FRACTION) / (1.0 - VOWEL_PEAK_HOLD_FRACTION);
+                    double raw = (t - holdEnd) / (decayEnd - holdEnd);
                     double ease = raw * raw * (3.0 - 2.0 * raw); // Smoothstep decay
                     weight = peakWeight + (VOWEL_TAIL_WEIGHT - peakWeight) * (float) ease;
+                }
+                else
+                {
+                    weight = VOWEL_TAIL_WEIGHT;
                 }
                 events.Add(new LipsyncEvent(mouth.Type, weight, t, tick));
                 lastWeight = weight;
