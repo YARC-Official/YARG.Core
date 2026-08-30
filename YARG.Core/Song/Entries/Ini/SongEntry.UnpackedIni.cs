@@ -108,39 +108,53 @@ namespace YARG.Core.Song
         }
 
         /// <summary>
-        /// Looks for a "*.mogg" + "*.mogg.dta" pair in the song folder and, if found,
-        /// builds a mixer directly from the raw multi-channel mogg instead of split
-        /// stem files. Returns null (without logging as an error) if no mogg pair is
-        /// present, so the caller can fall back to split stems.
+        /// Looks for a ".mogg" file and a ".dta" channel map in the song folder and, if both are
+        /// found, builds a mixer directly from the raw multi-channel mogg instead of split stem
+        /// files. The two aren't required to share a name - different rippers/extractors name
+        /// their dta after the song, the mogg, or nothing in particular. Returns null (without
+        /// logging as an error) if no mogg is present, so the caller can fall back to split stems.
         /// </summary>
         private StemMixer? TryLoadMoggAudio(Dictionary<string, string> subFiles, float speed, double volume,
             bool clampStemVolume, SongStem[] ignoreStems)
         {
+            string? moggPath = null;
             foreach (var name in subFiles.Keys)
             {
-                if (!name.EndsWith(".mogg"))
+                if (name.EndsWith(".mogg"))
                 {
-                    continue;
+                    moggPath = subFiles[name];
+                    break;
                 }
-
-                if (!subFiles.TryGetValue(name + ".dta", out var dtaPath))
-                {
-                    YargLogger.LogFormatWarning("Found {0} but no matching {0}.dta channel map - falling back to split stems", name);
-                    return null;
-                }
-
-                using var dtaBytes = FixedArray.LoadFile(dtaPath);
-                if (!MoggAudioLoader.TryParseChannelMap(dtaBytes, out var indices, out var panning))
-                {
-                    return null;
-                }
-
-                var moggPath = subFiles[name];
-                var stream = new FileStream(moggPath, FileMode.Open, FileAccess.Read, FileShare.Read, 1);
-                return MoggAudioLoader.BuildMixer(stream, ToString(), speed, volume, clampStemVolume,
-                    in indices, in panning, ignoreStems);
             }
-            return null;
+            if (moggPath == null)
+            {
+                return null;
+            }
+
+            string? dtaPath = null;
+            foreach (var name in subFiles.Keys)
+            {
+                if (name.EndsWith(".dta"))
+                {
+                    dtaPath = subFiles[name];
+                    break;
+                }
+            }
+            if (dtaPath == null)
+            {
+                YargLogger.LogFormatWarning("Found {0} but no .dta channel map alongside it - falling back to split stems", moggPath);
+                return null;
+            }
+
+            using var dtaBytes = FixedArray.LoadFile(dtaPath);
+            if (!MoggAudioLoader.TryParseChannelMap(dtaBytes, out var indices, out var panning))
+            {
+                return null;
+            }
+
+            var stream = new FileStream(moggPath, FileMode.Open, FileAccess.Read, FileShare.Read, 1);
+            return MoggAudioLoader.BuildMixer(stream, ToString(), speed, volume, clampStemVolume,
+                in indices, in panning, ignoreStems);
         }
 
         private static bool TryLoadStem(string stem, SongStem stemEnum, Dictionary<string, string> fileDictionary, StemMixer mixer)
