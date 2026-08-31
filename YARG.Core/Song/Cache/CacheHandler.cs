@@ -223,34 +223,34 @@ namespace YARG.Core.Song.Cache
         }
 
         /// <summary>
-        /// Removes all the entries present in all unpacked ini groups that have a matching shortname
+        /// Removes all the entries present in all unpacked ini groups that have a matching shortname.
+        /// Safe to call concurrently across different shortname batches: iniGroups itself is only ever
+        /// populated in the constructor, and each group now guards its own unpacked/index state internally,
+        /// so this no longer needs to serialize the parallel PreScanUpdateMidis scan behind a single lock.
         /// </summary>
         private void RemoveIniEntries(IEnumerable<string> shortnames)
         {
-            lock (iniGroups)
+            foreach (var shortname in shortnames)
             {
-                foreach (var shortname in shortnames)
+                foreach (var group in iniGroups)
                 {
-                    foreach (var group in iniGroups)
+                    var removed = group.RemoveEntries(shortname);
+                    foreach (var entry in removed)
                     {
-                        var removed = group.RemoveEntries(shortname);
-                        foreach (var entry in removed)
+                        lock (preScannedPaths)
                         {
-                            lock (preScannedPaths)
+                            preScannedPaths.Remove(entry.ActualLocation);
+                        }
+                        lock (cache.Entries)
+                        {
+                            if (cache.Entries.TryGetValue(entry.Hash, out var list))
                             {
-                                preScannedPaths.Remove(entry.ActualLocation);
-                            }
-                            lock (cache.Entries)
-                            {
-                                if (cache.Entries.TryGetValue(entry.Hash, out var list))
+                                lock (list)
                                 {
-                                    lock (list)
+                                    list.Remove(entry);
+                                    if (list.Count == 0)
                                     {
-                                        list.Remove(entry);
-                                        if (list.Count == 0)
-                                        {
-                                            cache.Entries.Remove(entry.Hash);
-                                        }
+                                        cache.Entries.Remove(entry.Hash);
                                     }
                                 }
                             }

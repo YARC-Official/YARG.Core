@@ -6,8 +6,11 @@ namespace YARG.Core.Song.Cache
 {
     internal sealed class IniEntryGroup : IEntryGroup
     {
+        private static readonly List<UnpackedIniEntry> NO_MATCHES = new();
+
         private readonly string _directory;
-        private readonly List<UnpackedIniEntry> _unpacked = new();
+        private readonly HashSet<UnpackedIniEntry> _unpacked = new();
+        private readonly Dictionary<string, List<UnpackedIniEntry>> _unpackedByShortname = new();
         private readonly List<SngEntry> _packed = new();
 
         public string Directory => _directory;
@@ -22,27 +25,38 @@ namespace YARG.Core.Song.Cache
             lock (_unpacked)
             {
                 _unpacked.Add(entry);
+                if (entry.Shortname != null)
+                {
+                    if (!_unpackedByShortname.TryGetValue(entry.Shortname, out var matches))
+                    {
+                        _unpackedByShortname[entry.Shortname] = matches = new List<UnpackedIniEntry>();
+                    }
+                    matches.Add(entry);
+                }
             }
         }
 
         /// <summary>
-        /// Removes all the entries present in all unpacked ini groups that have a matching shortname
+        /// Removes all the entries present in this ini group that have a matching shortname.
+        /// Indexed by shortname: most shortnames coming out of a songs_updates scan don't
+        /// correspond to an already-cached entry, so a miss here is O(1) instead of a full
+        /// linear scan of every cached entry in the group.
         /// </summary>
         public List<UnpackedIniEntry> RemoveEntries(string shortname)
         {
             lock (_unpacked)
             {
-                var removed = new List<UnpackedIniEntry>();
-                _unpacked.RemoveAll(entry =>
+                if (!_unpackedByShortname.TryGetValue(shortname, out var matches))
                 {
-                    if (entry.Shortname == shortname)
-                    {
-                        removed.Add(entry);
-                        return true;
-                    }
-                    return false;
-                });
-                return removed;
+                    return NO_MATCHES;
+                }
+
+                foreach (var entry in matches)
+                {
+                    _unpacked.Remove(entry);
+                }
+                _unpackedByShortname.Remove(shortname);
+                return matches;
             }
         }
 
@@ -62,7 +76,7 @@ namespace YARG.Core.Song.Cache
             SerializeList(entryStream, _packed, groupStream, nodes);
         }
 
-        private void SerializeList<TEntry>(MemoryStream entryStream, List<TEntry> entries, MemoryStream groupStream, Dictionary<SongEntry, CacheWriteIndices> nodes)
+        private void SerializeList<TEntry>(MemoryStream entryStream, ICollection<TEntry> entries, MemoryStream groupStream, Dictionary<SongEntry, CacheWriteIndices> nodes)
             where TEntry : IniSubEntry
         {
             groupStream.Write(entries.Count, Endianness.Little);
