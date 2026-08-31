@@ -589,14 +589,17 @@ namespace YARG.Core.Chart
         {
             bool singalongsExist = songChart.VenueTrack.Performer.Any(e => e.Type is PerformerEventType.Singalong);
 
-            // Lead vocals (PART VOCALS) come first — they are the primary singer's part — then
-            // any harmony parts. Charts can have only lead vocals, only harmony, or both.
-            var nonEmptyParts = new List<VocalsPart>();
+            // Positional layout: part 0 is the primary singer (lead vocals when present, else the
+            // first harmony part), followed by harmony parts. Empty parts keep their position with
+            // an empty event list so CharacterManager's per-index assignment stays aligned with
+            // the singer preference.
+            var allParts = new List<VocalsPart>();
             if (!songChart.Vocals.IsEmpty)
-                nonEmptyParts.AddRange(songChart.Vocals.Parts);
-            nonEmptyParts.AddRange(songChart.Harmony.Parts.Where(part => !part.IsEmpty));
+                allParts.AddRange(songChart.Vocals.Parts);
+            allParts.AddRange(songChart.Harmony.Parts);
+            var nonEmptyParts = allParts.Where(part => !part.IsEmpty).ToList();
 
-            if (songChart.LipsyncEventsByPart.Count >= 1 && songChart.LipsyncEventsByPart.Count >= nonEmptyParts.Count)
+            if (songChart.LipsyncEventsByPart.Count >= 1 && songChart.LipsyncEventsByPart.Count >= allParts.Count)
             {
                 // Nothing we can do with vocal parts here
                 return;
@@ -620,14 +623,22 @@ namespace YARG.Core.Chart
             }
             else if (!singalongsExist) // Only generate lipsync for vocal parts if there are no singalongs to prevent weirdness
             {
-                for (int i = 0; i < nonEmptyParts.Count; i++)
+                for (int i = 0; i < allParts.Count; i++)
                 {
                     if (songChart.LipsyncEventsByPart.Count > i)
                     {
                         continue;
                     }
+
+                    // Empty parts keep their position with an empty event list
+                    if (allParts[i].IsEmpty)
+                    {
+                        songChart.LipsyncEventsByPart.Add(new List<LipsyncEvent>());
+                        continue;
+                    }
+
                     songChart.LipsyncEventsByPart.Add(LipsyncGenerator.GenerateFromVocalsPart(
-                        nonEmptyParts[i], nonEmptyParts));
+                        allParts[i], nonEmptyParts));
                     YargLogger.LogFormatDebug("Generated {0} lipsync events from vocals part {1}", songChart.LipsyncEventsByPart[i].Count, i);
                 }
             }

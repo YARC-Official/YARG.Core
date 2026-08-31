@@ -80,18 +80,18 @@ Phoneme classification:
 | `RELEASE_THRESHOLD` | 0.30s | Minimum gap before releasing the mouth |
 | `STEP_TIME` | 1/30s | Interpolation step interval (Milo-style keyframes) |
 | `MIN_SLOT_DURATION` | 0.05s | Minimum syllable slot duration |
-| `VOWEL_PEAK_BASE_WEIGHT` | 0.20 | Peak weight floor for short syllables |
-| `VOWEL_PEAK_SCALE` | 0.35/s | Peak weight growth per second of note length |
+| `VOWEL_PEAK_BASE_WEIGHT` | 0.55 | Peak weight floor for short syllables |
+| `VOWEL_PEAK_SCALE` | 0.45/s | Peak weight growth per second of note length |
 | `VOWEL_PEAK_CAP` | 0.90 | Maximum vowel peak weight |
 | `VOWEL_TAIL_WEIGHT` | 0.05 | Weight the vowel decays to by the slot end |
-| `VOWEL_PEAK_HOLD_FRACTION` | 0.30 | Fraction of a short slot spent at/near the peak before decay |
+| `VOWEL_PEAK_HOLD_FRACTION` | 0.25 | Fraction of a short slot spent at/near the peak before decay |
 | `VOWEL_PEAK_HOLD_TIME` | 0.30s | Absolute cap on the peak hold (long slots never hold wide open) |
-| `VOWEL_DECAY_TIME` | 0.60s | Absolute decay time from peak to tail |
+| `VOWEL_DECAY_TIME` | 0.25s | Absolute decay time from peak to the sustain/tail weight |
 | `MAX_UNVOICED_SLOT` | 2.0s | Slot cap when no vocal note end is available (phrase-final words) |
 | `CONSONANT_WEIGHT` | 0.32 | Weight for consonant shapes (authored consonant means measure ~0.28) |
 | `CO_ARTICULATION_RESIDUAL` | 0.08 | Faint weight the outgoing viseme keeps mid-ramp |
 
-**Vowel peak envelope.** The vowel rides a peak-shaped envelope instead of a flat hold: the attack ramps up to the syllable's peak weight (scaling with note length; longer/held notes open fuller), the peak is sustained briefly, then it decays to a low tail within ~0.9s and settles there — regardless of how long the note or slot lasts. This matches authored data, where keyframe weights are mostly low (median 0.19, p90 0.51, only ~1% ≥ 0.9) and the mouth settles between syllables and during long sustains.
+**Vowel peak envelope.** The vowel rides a peak-shaped envelope instead of a flat hold: the attack ramps up to the syllable's peak weight (scaling with note length; longer/held notes open fuller), the peak is sustained briefly, then it decays to the sustain/tail weight within ~0.6s. On note-capped slots it settles at the 0.5 sustain floor (staying open through the sung note); on slots without note evidence it decays to the 0.05 tail. This matches authored data, where keyframe weights are mostly low (median 0.19, p90 0.51, only ~1% ≥ 0.9) with brief wide peaks, and the mouth settles between syllables.
 
 **Co-articulation.** During any viseme ramp, the outgoing shape fades to a faint residual (0.08, clamped to the outgoing weight) over the first 60% of the ramp and then out by the end — two mouth shapes are briefly active together, like authored keyframes.
 

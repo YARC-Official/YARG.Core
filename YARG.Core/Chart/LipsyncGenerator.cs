@@ -25,8 +25,6 @@ namespace YARG.Core.Chart
     {
         private const double ATTACK_MAX_TIME = 0.20;    // Consonant/vowel attack ramp length
         private const double CODA_MAX_TIME = 0.15;      // Final-consonant ramp length
-        private const double RELEASE_TIME = 0.20;       // Mouth close ramp length
-        private const double RELEASE_THRESHOLD = 0.30;  // Minimum gap before releasing the mouth
         private const double STEP_TIME = 1.0 / 30;      // ~30fps interpolation steps (Milo-style keyframes)
         private const double MIN_SLOT_DURATION = 0.05;  // Minimum syllable slot duration
         private const double MAX_UNVOICED_SLOT = 2.0;   // Max slot length when no note end caps it
@@ -87,14 +85,8 @@ namespace YARG.Core.Chart
                 ProcessPhrase(events, phrase.Lyrics, phrase.Time + phrase.TimeLength, notesByTick, random,
                     ref nextBlinkTime, ref mouth);
 
-                // Close the mouth during silent gaps between phrases
-                double? nextPhraseStart = null;
-                for (int p = i + 1; p < lyrics.Phrases.Count && nextPhraseStart == null; p++)
-                {
-                    if (lyrics.Phrases[p].Lyrics.Count > 0)
-                        nextPhraseStart = lyrics.Phrases[p].Lyrics[0].Time;
-                }
-                ReleaseAfterPhrase(events, ref mouth, phrase.Time + phrase.TimeLength, nextPhraseStart);
+                // The mouth closes at each slot end (per-slot closure), so nothing is needed
+                // between phrases
             }
 
             return events.OrderBy(e => e.Time).ToList();
@@ -123,14 +115,8 @@ namespace YARG.Core.Chart
                 ProcessPhrase(events, phrase.Lyrics, phrase.Time + phrase.TimeLength, notesByTick, random,
                     ref nextBlinkTime, ref mouth);
 
-                // Close the mouth during silent gaps between phrases
-                double? nextPhraseStart = null;
-                for (int p = i + 1; p < part.StaticLyricPhrases.Count && nextPhraseStart == null; p++)
-                {
-                    if (part.StaticLyricPhrases[p].Lyrics.Count > 0)
-                        nextPhraseStart = part.StaticLyricPhrases[p].Lyrics[0].Time;
-                }
-                ReleaseAfterPhrase(events, ref mouth, phrase.Time + phrase.TimeLength, nextPhraseStart);
+                // The mouth closes at each slot end (per-slot closure), so nothing is needed
+                // between phrases
             }
 
             return events.OrderBy(e => e.Time).ToList();
@@ -151,11 +137,20 @@ namespace YARG.Core.Chart
                 {
                     var lyrics = phrase.Lyrics;
                     var notes = phrase.PhraseParentNote.ChildNotes;
-                    for (int i = 0; i < lyrics.Count && i < notes.Count; i++)
+
+                    // Pair by tick: lyric-less notes (e.g. unflagged slides) must not shift the
+                    // index alignment between lyrics and notes.
+                    var noteByTick = new Dictionary<uint, VocalNote>();
+                    foreach (var note in notes)
+                        noteByTick[note.Tick] = note;
+
+                    foreach (var lyric in lyrics)
                     {
-                        var tick = lyrics[i].Tick;
-                        if (!notesByLyricTick.TryGetValue(tick, out var note) || notes[i].TotalTimeEnd > note.TotalTimeEnd)
-                            notesByLyricTick[tick] = notes[i];
+                        if (!noteByTick.TryGetValue(lyric.Tick, out var note))
+                            continue;
+
+                        if (!notesByLyricTick.TryGetValue(lyric.Tick, out var existing) || note.TotalTimeEnd > existing.TotalTimeEnd)
+                            notesByLyricTick[lyric.Tick] = note;
                     }
                 }
             }
@@ -398,6 +393,8 @@ namespace YARG.Core.Chart
             // Computes the audible end of the syllable slot for real fragment index fi
             double SlotEnd(int fi)
             {
+                noteCapped = false;
+                slotNote = null;
                 var frag = wordLyrics[realIndices[fi]];
                 double nextStart = fi + 1 < fragCount
                     ? wordLyrics[realIndices[fi + 1]].Time
@@ -487,27 +484,6 @@ namespace YARG.Core.Chart
             foreach (var slot in slots)
                 EmitSyllableSlot(events, ref mouth, in slot);
 
-            // Release into the gap after the word
-            double lastEnd = slots[^1].End;
-            if (nextWordStart - lastEnd > RELEASE_THRESHOLD)
-            {
-                double releaseDur = Math.Min(RELEASE_TIME, nextWordStart - lastEnd);
-                ReleaseMouth(events, ref mouth, lastEnd, releaseDur, slots[^1].Tick);
-            }
-        }
-
-        private static void ReleaseAfterPhrase(List<LipsyncEvent> events, ref MouthState mouth,
-            double phraseEnd, double? nextPhraseStart)
-        {
-            if (mouth.Weight <= 0.001f)
-                return;
-
-            // If the next phrase is unknown/far away, just release
-            double gapEnd = nextPhraseStart ?? (phraseEnd + RELEASE_TIME);
-            if (gapEnd - phraseEnd < 0.005)
-                return;
-
-            ReleaseMouth(events, ref mouth, phraseEnd, Math.Min(RELEASE_TIME, gapEnd - phraseEnd), 0);
         }
 
         private static void EmitSyllableSlot(List<LipsyncEvent> events, ref MouthState mouth, in Slot slot)
@@ -792,13 +768,6 @@ namespace YARG.Core.Chart
             mouth.Type = toType;
             mouth.Weight = toWeight;
             mouth.LastEmissionEnd = startTime + duration;
-        }
-
-        private static void ReleaseMouth(List<LipsyncEvent> events, ref MouthState mouth,
-            double startTime, double duration, uint tick)
-        {
-            if (mouth.Weight > 0.001f)
-                RampTo(events, ref mouth, mouth.Type, 0f, startTime, duration, tick);
         }
 
         private struct MouthState
