@@ -53,6 +53,25 @@ namespace YARG.Core.Song.Cache
             return file != null!;
         }
 
+        /// <summary>
+        /// Finds every file matching the given extension (case-insensitive) -- used for
+        /// formats like UltraStar whose chart file has no fixed name. A folder holding
+        /// more than one match is treated as more than one song, not an ambiguity.
+        /// </summary>
+        public List<FileInfo> FindAllFilesByExtension(string extension)
+        {
+            var files = new List<FileInfo>();
+            foreach (var entry in _entries)
+            {
+                if (entry.Value is FileInfo candidate &&
+                    string.Equals(Path.GetExtension(candidate.Name), extension, StringComparison.OrdinalIgnoreCase))
+                {
+                    files.Add(candidate);
+                }
+            }
+            return files;
+        }
+
         public bool FindDirectory(string name, out DirectoryInfo directory)
         {
             directory = null!;

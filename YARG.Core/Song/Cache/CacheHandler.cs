@@ -35,7 +35,7 @@ namespace YARG.Core.Song.Cache
         /// if multiple cache version changes happen in a single day).
         /// </summary>
         /// <remarks>Change whenever the song cache needs to be cleared and regenerated, e.g. when the new data is added to the cache.</remarks>
-        private const int CACHE_VERSION = 26_09_04_00;
+        private const int CACHE_VERSION = 26_09_04_01;
 
         public static ScanProgressTracker Progress => _progress;
         private static ScanProgressTracker _progress;
@@ -809,48 +809,87 @@ namespace YARG.Core.Song.Cache
             int i = hasIni ? 0 : 3;
             while (i < 4)
             {
-                if (!collection.FindFile(IniSubEntry.CHART_FILE_TYPES[i].Filename, out var chart))
+                bool isUltraStar = IniSubEntry.CHART_FILE_TYPES[i].Format == ChartFormat.UltraStar;
+                bool found = collection.FindFile(IniSubEntry.CHART_FILE_TYPES[i].Filename, out var chart);
+                if (found)
                 {
-                    ++i;
-                    continue;
+                    // A chart with no audio in the folder is treated as if nothing was found here,
+                    // allowing directory traversal to continue (see ScanIniChart).
+                    if (!ScanIniChart(collection, chart, IniSubEntry.CHART_FILE_TYPES[i].Format, hasIni ? ini : null, group, defaultPlaylist))
+                    {
+                        return false;
+                    }
+                    return true;
                 }
 
-                // Can't play a song without any audio can you?
-                //
-                // Note though that this is purely a pre-add check.
-                // We will not invalidate an entry from cache if the user removes the audio after the fact.
-                if (!collection.ContainsAudio())
+                // UltraStar charts are conventionally "Artist - Title.txt", not a fixed name --
+                // fall back to every .txt file in the folder. More than one match means more
+                // than one song sharing the folder, not an ambiguity -- scan each on its own.
+                if (isUltraStar)
                 {
-                    AddToBadSongs(chart.FullName, ScanResult.NoAudio);
-                    break;
+                    var txtFiles = collection.FindAllFilesByExtension(".txt");
+                    if (txtFiles.Count == 0)
+                    {
+                        ++i;
+                        continue;
+                    }
+
+                    foreach (var txtFile in txtFiles)
+                    {
+                        ScanIniChart(collection, txtFile, ChartFormat.UltraStar, hasIni ? ini : null, group, defaultPlaylist);
+                    }
+                    return true;
                 }
 
-                try
-                {
-                    var entry = UnpackedIniEntry.ProcessNewEntry(collection.Directory, chart, IniSubEntry.CHART_FILE_TYPES[i].Format, hasIni ? ini : null, defaultPlaylist);
-                    if (entry)
-                    {
-                        AddEntry(entry.Value);
-                        group.AddEntry(entry.Value);
-                    }
-                    else
-                    {
-                        AddToBadSongs(chart.FullName, entry.Error);
-                    }
-                }
-                catch (PathTooLongException)
-                {
-                    YargLogger.LogFormatError("Path {0} is too long for the file system!", chart);
-                    AddToBadSongs(chart.FullName, ScanResult.PathTooLong);
-                }
-                catch (Exception e)
-                {
-                    YargLogger.LogException(e, $"Error while scanning chart file {chart}!");
-                    AddToBadSongs(collection.Directory, ScanResult.IniEntryCorruption);
-                }
-                return true;
+                ++i;
             }
             return false;
+        }
+
+        /// <summary>
+        /// Scans a single discovered chart file into a song entry, on success or failure.
+        /// Returns false only when the chart was skipped outright (no audio in the folder)
+        /// rather than actually attempted.
+        /// </summary>
+        private bool ScanIniChart(in FileCollection collection, FileInfo chart, ChartFormat format, FileInfo? ini, IniEntryGroup group, string defaultPlaylist)
+        {
+            // Can't play a song without any audio can you?
+            //
+            // Note though that this is purely a pre-add check.
+            // We will not invalidate an entry from cache if the user removes the audio after the fact.
+            //
+            // UltraStar's audio is named per its #AUDIO/#MP3 tag rather than a fixed stem,
+            // so this generic check can't apply to it -- ScanUltraStar validates it instead.
+            if (format != ChartFormat.UltraStar && !collection.ContainsAudio())
+            {
+                AddToBadSongs(chart.FullName, ScanResult.NoAudio);
+                return false;
+            }
+
+            try
+            {
+                var entry = UnpackedIniEntry.ProcessNewEntry(collection.Directory, chart, format, ini, defaultPlaylist);
+                if (entry)
+                {
+                    AddEntry(entry.Value);
+                    group.AddEntry(entry.Value);
+                }
+                else
+                {
+                    AddToBadSongs(chart.FullName, entry.Error);
+                }
+            }
+            catch (PathTooLongException)
+            {
+                YargLogger.LogFormatError("Path {0} is too long for the file system!", chart);
+                AddToBadSongs(chart.FullName, ScanResult.PathTooLong);
+            }
+            catch (Exception e)
+            {
+                YargLogger.LogException(e, $"Error while scanning chart file {chart}!");
+                AddToBadSongs(collection.Directory, ScanResult.IniEntryCorruption);
+            }
+            return true;
         }
 
         /// <summary>

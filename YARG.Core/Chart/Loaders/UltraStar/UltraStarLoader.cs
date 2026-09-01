@@ -22,6 +22,11 @@ namespace YARG.Core.Chart.Loaders.UltraStar
 
         #region Fields
 
+        // Maximum number of independent voices supported. Matches YARG's harmony
+        // vocals model (HARM1-3, see VocalNote.HarmonyPart) — a P4+ marker has no
+        // slot to route into.
+        private const int MAX_VOICE_PARTS = 3;
+
         private readonly Dictionary<string, string> _metadata     = new(StringComparer.OrdinalIgnoreCase);
         private          uint                       _ticksPerBeat = 120;
         private          double                     _bpm          = 120.0;
@@ -33,11 +38,11 @@ namespace YARG.Core.Chart.Loaders.UltraStar
         private VenueTrack? _venueTrack;
         private LyricsTrack? _lyricsTrack;
 
-        private readonly Dictionary<int, List<UltraStarNote>> _partNotes = new()
-        {
-            [0] = new(),
-            [1] = new()
-        };
+        // (Beat, BPM) mid-song tempo changes from "B <beat> <bpm>" lines, sorted by beat once parsing completes.
+        private readonly List<(uint Beat, double Bpm)> _tempoChanges = new();
+
+        private readonly Dictionary<int, List<UltraStarNote>> _partNotes = new();
+        private readonly HashSet<int> _seenParts = new();
         private int _currentPart = 0;
 
         #endregion
@@ -94,22 +99,22 @@ namespace YARG.Core.Chart.Loaders.UltraStar
                     }
 
                     if (line[0] == '#') { ParseMetadataLine(line); continue; }
-                    if (line == "P1")
+
+                    if (line.Length == 2 && line[0] == 'P' && char.IsDigit(line[1]))
                     {
-                        _metadata["PARTS"] = "2";
-                        _currentPart = 0;
+                        ParseVoiceMarker(line[1] - '0');
                         continue;
                     }
 
-                    if (line == "P2")
-                    {
-                        _metadata["PARTS"] = "2";
-                        _currentPart = 1;
-                        continue;
-                    }
                     if (line == "E")
                     {
                         break;
+                    }
+
+                    if (line[0] == 'B')
+                    {
+                        ParseTempoChangeLine(line);
+                        continue;
                     }
 
                     if (line[0] is ':' or '*' or 'F' or '-' or 'R' or 'G')
@@ -117,6 +122,42 @@ namespace YARG.Core.Chart.Loaders.UltraStar
                         ParseNoteLine(line);
                     }
                 }
+            }
+
+            _tempoChanges.Sort((a, b) => a.Beat.CompareTo(b.Beat));
+        }
+
+        /// <summary>
+        /// Handles voice-change markers. Per spec (§4.3), each is an
+        /// independent voice, not a "both singers" combination marker. n is capped
+        /// to match YARG's harmony vocals model; markers beyond that are logged and ignored.
+        /// </summary>
+        private void ParseVoiceMarker(int voiceNumber)
+        {
+            if (voiceNumber < 1 || voiceNumber > MAX_VOICE_PARTS)
+            {
+                YargLogger.LogFormatWarning("[UltraStar] Voice marker P{0} exceeds the {1} supported harmony parts — ignoring", voiceNumber, MAX_VOICE_PARTS);
+                return;
+            }
+
+            _currentPart = voiceNumber - 1;
+            GetOrCreatePart(_currentPart);
+            _seenParts.Add(voiceNumber);
+            _metadata["PARTS"] = _seenParts.Count.ToString();
+        }
+
+        private void ParseTempoChangeLine(string line)
+        {
+            var parts = line.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+            if (parts.Length < 3 || !uint.TryParse(parts[1], out uint beat))
+            {
+                return;
+            }
+
+            string norm = parts[2].Replace(',', '.');
+            if (double.TryParse(norm, NumberStyles.Float, CultureInfo.InvariantCulture, out double bpm) && bpm > 0)
+            {
+                _tempoChanges.Add((beat, bpm));
             }
         }
 
@@ -164,7 +205,7 @@ namespace YARG.Core.Chart.Loaders.UltraStar
             {
                 if (parts.Length >= 2 && uint.TryParse(parts[1], out uint restBeat))
                 {
-                    _partNotes[_currentPart].Add(new UltraStarNote
+                    GetOrCreatePart(_currentPart).Add(new UltraStarNote
                     {
                         PartIndex = _currentPart,
                         Type = '-',
@@ -206,7 +247,7 @@ namespace YARG.Core.Chart.Loaders.UltraStar
                 // previous note's lyric.
                 if (hasText)
                 {
-                    var partNotes = _partNotes[_currentPart];
+                    var partNotes = GetOrCreatePart(_currentPart);
                     for (int i = partNotes.Count - 1; i >= 0; i--)
                     {
                         if (!partNotes[i].IsRest)
@@ -218,7 +259,7 @@ namespace YARG.Core.Chart.Loaders.UltraStar
                 }
             }
 
-            _partNotes[_currentPart].Add(new UltraStarNote
+            GetOrCreatePart(_currentPart).Add(new UltraStarNote
             {
                 PartIndex = _currentPart,
                 Type = noteType,
@@ -229,18 +270,60 @@ namespace YARG.Core.Chart.Loaders.UltraStar
             });
         }
 
+        /// <summary>
+        /// Gets the note list for a voice part, creating it on first use. Only
+        /// parts actually referenced by a note or voice-change marker exist as
+        /// dictionary entries.
+        /// </summary>
+        private List<UltraStarNote> GetOrCreatePart(int index)
+        {
+            if (!_partNotes.TryGetValue(index, out var list))
+            {
+                list = new List<UltraStarNote>();
+                _partNotes[index] = list;
+            }
+            return list;
+        }
+
+        private List<UltraStarNote> GetPart(int index)
+            => _partNotes.TryGetValue(index, out var list) ? list : new List<UltraStarNote>();
+
         #endregion
 
         #region Beat Conversion
 
+        // Ticks are a pure subdivision of beat position and don't depend on BPM,
+        // so mid-song tempo changes don't affect this conversion.
         private uint BeatToTick(uint beat)
         {
             uint ticksPerUSBeat = _ticksPerBeat / 8;
             uint gapTicks = (uint) (_gapMs / 1000.0 * _bpm);
             return gapTicks + (beat * ticksPerUSBeat);
         }
-        private double BeatToTime(uint beat) => beat * 60.0 / _bpm;
-        private double BeatsToSeconds(uint beats) => beats * 60.0 / _bpm;
+
+        // Walks the tempo-change segments (sorted by beat) accumulating elapsed
+        // time per segment, since each segment's beat-to-time rate differs.
+        private double BeatToTime(uint beat)
+        {
+            double time = 0.0;
+            double currentBpm = _bpm;
+            uint currentBeat = 0;
+
+            foreach (var (changeBeat, changeBpm) in _tempoChanges)
+            {
+                if (beat <= changeBeat)
+                {
+                    break;
+                }
+
+                time += (changeBeat - currentBeat) * 60.0 / currentBpm;
+                currentBeat = changeBeat;
+                currentBpm = changeBpm;
+            }
+
+            time += (beat - currentBeat) * 60.0 / currentBpm;
+            return time;
+        }
 
         #endregion
 
@@ -272,9 +355,22 @@ namespace YARG.Core.Chart.Loaders.UltraStar
             // fire at the correct rate. Note timing via BeatToTime/BeatToTick
             // still uses the original _bpm and remains correct because
             // UltraStar beat positions are also in "double time".
+            double gapSeconds = _gapMs / 1000.0;
+            var tempos = new List<TempoChange> { new(_bpm / 2.0, -gapSeconds, 0u) };
+
+            // Ticks/time are normalized relative to beat 0 (which BeatToTick/BeatToTime
+            // place at gapTicks/0s respectively) to match the initial entry above.
+            uint tickAtBeatZero = BeatToTick(0);
+            foreach (var (beat, bpm) in _tempoChanges)
+            {
+                uint tick = BeatToTick(beat) - tickAtBeatZero;
+                double time = BeatToTime(beat) - gapSeconds;
+                tempos.Add(new TempoChange(bpm / 2.0, time, tick));
+            }
+
             _syncTrack = new SyncTrack(120,
-                new List<TempoChange> { new(_bpm / 2.0, -_gapMs / 1000.0, 0u) },
-                new List<TimeSignatureChange> { new(4, 4, -_gapMs / 1000.0, 0u, 0u, 0u, 0u, 0.0) },
+                tempos,
+                new List<TimeSignatureChange> { new(4, 4, -gapSeconds, 0u, 0u, 0u, 0u, 0.0) },
                 new List<Beatline>());
             return _syncTrack;
         }
@@ -287,7 +383,7 @@ namespace YARG.Core.Chart.Loaders.UltraStar
             }
 
             var phrases = new List<LyricsPhrase>();
-            var lyricSource = _partNotes[0];
+            var lyricSource = GetPart(0);
 
             foreach (var group in GroupNotesIntoPhrases(lyricSource))
             {
@@ -348,16 +444,23 @@ namespace YARG.Core.Chart.Loaders.UltraStar
 
             if (instrument == Instrument.Vocals)
             {
-                parts.Add(BuildVocalsPart(_partNotes[0], false));
+                parts.Add(BuildVocalsPart(GetPart(0), false, 0));
             }
             else if (instrument == Instrument.Harmony)
             {
-                bool isDuet = _metadata.TryGetValue("PARTS", out var p) && p == "2";
-
-                parts.Add(BuildVocalsPart(_partNotes[0], true));
-                if (isDuet)
+                // One VocalsPart per voice actually populated (P1..P3), in order.
+                foreach (var partIndex in _partNotes.Keys.OrderBy(k => k))
                 {
-                    parts.Add(BuildVocalsPart(_partNotes[1], true));
+                    if (_partNotes[partIndex].Count == 0)
+                    {
+                        continue;
+                    }
+                    parts.Add(BuildVocalsPart(_partNotes[partIndex], true, partIndex));
+                }
+
+                if (parts.Count == 0)
+                {
+                    parts.Add(BuildVocalsPart(GetPart(0), true, 0));
                 }
             }
 
@@ -368,13 +471,11 @@ namespace YARG.Core.Chart.Loaders.UltraStar
 
         #region Vocals Processing
 
-        private VocalsPart BuildVocalsPart(List<UltraStarNote> notes, bool isHarmony)
+        private VocalsPart BuildVocalsPart(List<UltraStarNote> notes, bool isHarmony, int partIndex)
         {
             var phrases = new List<VocalsPhrase>();
             var otherPhrases = new List<Phrase>();
             var textEvents = new List<TextEvent>();
-
-            int harmonyIndex = isHarmony ? 1 : 0;
 
             foreach (var group in GroupNotesIntoPhrases(notes))
             {
@@ -383,7 +484,7 @@ namespace YARG.Core.Chart.Loaders.UltraStar
                     continue;
                 }
 
-                var phrase = CreateVocalsPhrase(group, harmonyIndex);
+                var phrase = CreateVocalsPhrase(group, partIndex);
                 if (phrase != null)
                 {
                     phrases.Add(phrase);
@@ -472,7 +573,7 @@ namespace YARG.Core.Chart.Loaders.UltraStar
                 phraseStartTick, phraseTickLen);
 
             var lyrics = new List<LyricEvent>();
-            int harmonyPart = partIndex == 0 ? 0 : 1;
+            int harmonyPart = Math.Clamp(partIndex, 0, MAX_VOICE_PARTS - 1);
 
             foreach (var uNote in phraseNotes)
             {
@@ -480,7 +581,9 @@ namespace YARG.Core.Chart.Loaders.UltraStar
                 uint noteTick = BeatToTick(uNote.StartBeat);
                 uint noteTickLen = uNote.DurationBeats * ticksPerUsBeat;
                 double noteTime = BeatToTime(uNote.StartBeat);
-                double noteTimeLen = BeatsToSeconds(uNote.DurationBeats);
+                // Computed via BeatToTime end-minus-start (not a flat beats*60/bpm)
+                // so durations spanning a mid-song tempo change stay correct.
+                double noteTimeLen = BeatToTime(uNote.StartBeat + uNote.DurationBeats) - noteTime;
 
                 bool isUnpitched = uNote.IsUnpitched;
 
