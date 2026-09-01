@@ -135,28 +135,37 @@ namespace YARG.Core.Chart
                 moonSong.AddTimeSignature(ts.Numerator, ts.Denominator, ts.Tick);
             }
 
-            bool isDuet = loader.GetMetadata("PARTS") == "2";
+            // "PARTS" holds the number of independent voices seen (P1..P3, see
+            // UltraStarLoader) rather than a fixed duet flag.
+            bool isMultiVoice = int.TryParse(loader.GetMetadata("PARTS"), out int voiceCount) && voiceCount >= 2;
 
-            var vocalTrack = loader.LoadVocalsTrack(isDuet ? Instrument.Harmony : Instrument.Vocals);
+            var vocalTrack = loader.LoadVocalsTrack(isMultiVoice ? Instrument.Harmony : Instrument.Vocals);
             var soloChart = moonSong.GetChart(MoonSong.MoonInstrument.Vocals, MoonSong.Difficulty.Expert);
 
             if (vocalTrack.Parts.Count > 0)
             {
-                // For duet, only show first part in solo Vocals chart.
-                // Both parts are still available separately in Harmony1/Harmony2.
-                var soloParts = isDuet
+                // For multi-voice songs, only show first part in solo Vocals chart.
+                // All parts are still available separately in Harmony1/2/3.
+                var soloParts = isMultiVoice
                     ? new List<VocalsPart> { vocalTrack.Parts[0] }
                     : vocalTrack.Parts;
                 AddPartToChart(soloParts, soloChart);
             }
 
-            if (isDuet && vocalTrack.Parts.Count >= 2)
+            if (isMultiVoice)
             {
-                var chartH1 = moonSong.GetChart(MoonSong.MoonInstrument.Harmony1, MoonSong.Difficulty.Expert);
-                AddPartToChart(new[] { vocalTrack.Parts[0] }, chartH1);
+                var harmonyInstruments = new[]
+                {
+                    MoonSong.MoonInstrument.Harmony1,
+                    MoonSong.MoonInstrument.Harmony2,
+                    MoonSong.MoonInstrument.Harmony3,
+                };
 
-                var chartH2 = moonSong.GetChart(MoonSong.MoonInstrument.Harmony2, MoonSong.Difficulty.Expert);
-                AddPartToChart(new[] { vocalTrack.Parts[1] }, chartH2);
+                for (int i = 0; i < vocalTrack.Parts.Count && i < harmonyInstruments.Length; i++)
+                {
+                    var chart = moonSong.GetChart(harmonyInstruments[i], MoonSong.Difficulty.Expert);
+                    AddPartToChart(new[] { vocalTrack.Parts[i] }, chart);
+                }
             }
 
             return moonSong;
