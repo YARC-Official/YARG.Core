@@ -71,9 +71,16 @@ namespace YARG.Core.Song
         protected readonly string _location;
         protected readonly DateTime _chartLastWrite;
         protected readonly ChartFormat _chartFormat;
+        // The chart file's actual on-disk name. Equal to CHART_FILE_TYPES[format].Filename
+        // for every format except UltraStar, whose .txt is conventionally named
+        // "Artist - Title.txt" rather than a fixed name.
+        protected readonly string _chartFileName;
         protected string _background = string.Empty;
         protected string _video = string.Empty;
         protected string _cover = string.Empty;
+        // UltraStar's #AUDIO/#MP3-referenced audio file. Unused (empty) for other formats,
+        // which locate audio purely by stem-name convention instead (see IniAudio).
+        protected string _audioFile = string.Empty;
 
         public override string SortBasedLocation => _location;
         public override string ActualLocation => _location;
@@ -87,11 +94,12 @@ namespace YARG.Core.Song
             stream.Write(_background);
             stream.Write(_video);
             stream.Write(_cover);
+            stream.Write(_audioFile);
         }
 
         public override SongChart? LoadChart()
         {
-            using var data = GetChartData(CHART_FILE_TYPES[(int) _chartFormat].Filename);
+            using var data = GetChartData(_chartFileName);
 
             if (data == null)
             {
@@ -139,14 +147,16 @@ namespace YARG.Core.Song
             _background = stream.ReadString();
             _video = stream.ReadString();
             _cover = stream.ReadString();
+            _audioFile = stream.ReadString();
             (_parsedYear, _yearAsNumber) = ParseYear(_metadata.Year);
         }
 
-        protected IniSubEntry(string location, in DateTime chartLastWrite, ChartFormat chartFormat)
+        protected IniSubEntry(string location, in DateTime chartLastWrite, ChartFormat chartFormat, string? chartFileName = null)
         {
             _location = location;
             _chartLastWrite = chartLastWrite;
             _chartFormat = chartFormat;
+            _chartFileName = chartFileName ?? CHART_FILE_TYPES[(int) chartFormat].Filename;
         }
 
         protected internal static ScanResult ScanChart(IniSubEntry entry, FixedArray<byte> file, IniModifierCollection modifiers)
@@ -567,6 +577,14 @@ namespace YARG.Core.Song
                 return ScanResult.NoName;
             }
 
+            // #AUDIO is the canonical tag; #MP3 is the legacy/synonym tag some
+            // tooling still writes (the referenced file isn't necessarily an mp3).
+            string? audioFile = loader.GetMetadata("AUDIO") ?? loader.GetMetadata("MP3");
+            if (string.IsNullOrWhiteSpace(audioFile) || !SubFileExists(entry._location, audioFile))
+            {
+                return ScanResult.NoAudio;
+            }
+
             entry._metadata = SongMetadata.Default;
 
             entry._metadata.Name = title!; // We will have returned already if title is null
@@ -574,7 +592,14 @@ namespace YARG.Core.Song
             entry._metadata.Album = loader.GetMetadata("ALBUM") ?? SongMetadata.DEFAULT_ALBUM;
             entry._metadata.Genre = loader.GetMetadata("GENRE") ?? string.Empty;
             entry._metadata.Year = loader.GetMetadata("YEAR") ?? SongMetadata.DEFAULT_YEAR;
-            entry._metadata.Charter = loader.GetMetadata("CREATOR") ?? SongMetadata.DEFAULT_CHARTER;
+            // #AUTHOR is the legacy/synonym tag some tooling writes in place of #CREATOR.
+            entry._metadata.Charter = loader.GetMetadata("CREATOR") ?? loader.GetMetadata("AUTHOR") ?? SongMetadata.DEFAULT_CHARTER;
+            entry._metadata.LoadingPhrase = loader.GetMetadata("COMMENT") ?? string.Empty;
+
+            entry._audioFile = audioFile;
+            entry._cover = loader.GetMetadata("COVER") ?? string.Empty;
+            entry._video = loader.GetMetadata("VIDEO") ?? string.Empty;
+            entry._background = loader.GetMetadata("BACKGROUND") ?? string.Empty;
 
             if (loader.GetMetadata("GAP") is string gapStr &&
                 double.TryParse(gapStr,
@@ -582,7 +607,19 @@ namespace YARG.Core.Song
                     System.Globalization.CultureInfo.InvariantCulture,
                     out double gapMs))
             {
-                entry._metadata.SongOffset = 0;
+                entry._metadata.SongOffset = (long) gapMs;
+            }
+
+            if (loader.GetMetadata("VIDEOGAP") is string videoGapStr &&
+                double.TryParse(videoGapStr,
+                    System.Globalization.NumberStyles.Float,
+                    System.Globalization.CultureInfo.InvariantCulture,
+                    out double videoGapSeconds))
+            {
+                // VIDEOGAP delays the video's start relative to the song; Video.Start is
+                // consumed as a seek offset (positive = skip ahead into the clip), so the
+                // delay semantic requires the sign flipped.
+                entry._metadata.Video.Start = -(long) (videoGapSeconds * SongMetadata.MILLISECOND_FACTOR);
             }
 
             if (loader.GetMetadata("PREVIEWSTART") is string previewStr &&
@@ -601,9 +638,9 @@ namespace YARG.Core.Song
             entry._parts.LeadVocals.ActivateDifficulty(Difficulty.Expert);
             entry._parts.LeadVocals.Intensity = 0;
 
-            if (loader.GetMetadata("PARTS") == "2")
+            if (int.TryParse(loader.GetMetadata("PARTS"), out int voiceCount) && voiceCount >= 2)
             {
-                entry._parts.HarmonyVocals.SubTracks = 2;
+                entry._parts.HarmonyVocals.SubTracks = (byte) Math.Min(voiceCount, 3);
                 entry._parts.HarmonyVocals.Intensity = 0;
                 entry._parts.HarmonyVocals.ActivateDifficulty(Difficulty.Expert);
             }
@@ -626,6 +663,26 @@ namespace YARG.Core.Song
             }
 
             return ScanResult.Success;
+        }
+
+        /// <summary>
+        /// Case-insensitive check for whether a file exists directly inside a song folder.
+        /// </summary>
+        protected static bool SubFileExists(string location, string filename)
+        {
+            if (string.IsNullOrEmpty(filename) || !Directory.Exists(location))
+            {
+                return false;
+            }
+
+            foreach (var file in Directory.EnumerateFiles(location))
+            {
+                if (string.Equals(Path.GetFileName(file), filename, StringComparison.OrdinalIgnoreCase))
+                {
+                    return true;
+                }
+            }
+            return false;
         }
 
         private static void SetIntensities(IniModifierCollection modifiers, ref AvailableParts parts)

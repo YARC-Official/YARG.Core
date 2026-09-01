@@ -275,4 +275,63 @@ internal class UltraStarLoaderTests_Basic : UltraStarLoaderTests
         var track = loader.LoadVocalsTrack(Instrument.Vocals);
         Assert.That(track.Parts[0].NotePhrases, Has.Count.EqualTo(1));
     }
+
+    [Test]
+    public void MidSongTempoChangeAffectsNoteTiming()
+    {
+        // At 120 BPM, beat 20 lands at 10s. After "B 20 240" (double tempo),
+        // each beat afterward takes half as long.
+        var loader = LoadUltraStar(Us(
+            "#BPM:120",
+            ": 0 4 0 Before",
+            "- 5",
+            "B 20 240",
+            ": 20 4 0 AtChange",
+            "- 25",
+            ": 30 4 0 After"
+        ));
+
+        var track = loader.LoadVocalsTrack(Instrument.Vocals);
+        var atChangeNote = track.Parts[0].NotePhrases[1].PhraseParentNote.ChildNotes[0];
+        var afterNote = track.Parts[0].NotePhrases[2].PhraseParentNote.ChildNotes[0];
+
+        // Beat 20 at 120 BPM = 10s (tempo hasn't changed yet at this exact beat).
+        Assert.That(atChangeNote.Time, Is.EqualTo(10.0).Within(0.001));
+        // Beats 20-30 occur entirely after the change, at 240 BPM (0.25s/beat): 10 * 0.25 = 2.5s.
+        Assert.That(afterNote.Time, Is.EqualTo(12.5).Within(0.001));
+    }
+
+    [Test]
+    public void MidSongTempoChangeAffectsSyncTrackTempos()
+    {
+        var loader = LoadUltraStar(Us(
+            "#BPM:120",
+            ": 0 4 0 Before",
+            "- 5",
+            "B 20 240",
+            ": 20 4 0 After"
+        ));
+
+        var syncTrack = loader.LoadSyncTrack();
+
+        Assert.That(syncTrack.Tempos, Has.Count.EqualTo(2));
+        // Halved for the SyncTrack, same as the initial tempo.
+        Assert.That(syncTrack.Tempos[1].BeatsPerMinute, Is.EqualTo(120f));
+        Assert.That(syncTrack.Tempos[1].Time, Is.EqualTo(10.0).Within(0.001));
+    }
+
+    [Test]
+    public void GapPropagatesToSongOffsetViaScan()
+    {
+        // Loader-level: GAP is parsed and available via metadata; the
+        // ms -> SongOffset propagation itself is exercised at the scan level
+        // (see UltraStarIniEntryTests).
+        var loader = LoadUltraStar(Us(
+            "#BPM:120",
+            "#GAP:2500",
+            ": 0 4 0 Test"
+        ));
+
+        Assert.That(loader.GetMetadata("GAP"), Is.EqualTo("2500"));
+    }
 }
