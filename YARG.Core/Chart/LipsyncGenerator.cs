@@ -44,7 +44,7 @@ namespace YARG.Core.Chart
         // Vowel peak scales with note length (longer/held notes open fuller, like authored lipsync).
         // The vowel rides a peak-shaped envelope: peak at the syllable, decaying to a low tail —
         // authored keyframes spend most of their time at low weights and rarely reach full open.
-        private const float VOWEL_PEAK_BASE_WEIGHT = 0.40f;   // Peak weight floor for short syllables
+        private const float VOWEL_PEAK_BASE_WEIGHT = 0.42f;   // Peak weight floor for short syllables
         private const float VOWEL_PEAK_SCALE = 0.50f;         // Peak weight growth per second of note length
         private const float VOWEL_PEAK_CAP = 1.00f;           // Maximum vowel peak weight
         private const float VOWEL_TAIL_WEIGHT = 0.35f;        // Weight the vowel decays to by the slot end (no note evidence)
@@ -59,10 +59,11 @@ namespace YARG.Core.Chart
         private const double MOUTH_GAP_CLOSE = 1.5;     // Silence length that closes the mouth
         private const double MOUTH_CLOSE_DELAY = 0.30;  // Delay after the note before closing
         private const double MOUTH_CLOSE_TIME = 0.25;   // Mouth close ramp length
-        private const float VOWEL_PEAK_JITTER_MIN = 0.55f;  // Per-syllable peak expression range
-        private const float VOWEL_PEAK_JITTER_MAX = 1.75f;  // (authored peaks vary per vocal energy)
-        private const float VOWEL_WOBBLE_AMPLITUDE = 0.17f; // Continuous vocal wobble around the envelope
-        private const double VOWEL_WOBBLE_HZ = 4.5;         // Wobble rate (authored mouths move every frame)
+        private const double MOUTH_HOLD_WOBBLE_TIME = 0.6; // Max wobble duration across a short gap
+        private const float VOWEL_PEAK_JITTER_MIN = 0.8f;   // Per-syllable peak expression range
+        private const float VOWEL_PEAK_JITTER_MAX = 1.35f;  // (kept narrow so adjacent syllables agree)
+        private const float VOWEL_WOBBLE_AMPLITUDE = 0.13f; // Continuous vocal wobble around the envelope
+        private const double VOWEL_WOBBLE_HZ = 2.2;         // Wobble rate (authored swells last ~0.4s)
 
         private static IReadOnlyDictionary<string, string[]>? _cmuDict;
 
@@ -591,12 +592,12 @@ namespace YARG.Core.Chart
                 coda *= scale;
             }
 
-            // A bilabial consonant (M/B/P) requires closed lips: silence the previously held
-            // vowel so the closed shape is not masked by the still-open channel.
+            // A bilabial consonant (M/B/P) requires closed lips: ramp the previously held
+            // vowel down quickly (but not instantly) so the closed shape is not masked by the
+            // still-open channel.
             if (syll.Initial.Count > 0 && syll.Initial[0] == LipsyncEvent.LipsyncType.Bump_lo && mouth.Weight > 0f)
             {
-                events.Add(new LipsyncEvent(mouth.Type, 0f, attackStart, slot.Tick));
-                mouth.Weight = 0f;
+                RampTo(events, ref mouth, mouth.Type, 0f, attackStart, Math.Min(0.07, attack), slot.Tick);
             }
 
             // Attack: ramp through initial consonants, then into the vowel, peaking at the slot start
@@ -606,7 +607,10 @@ namespace YARG.Core.Chart
                 double seg = attack / attackSegments;
                 foreach (var consonant in syll.Initial)
                 {
-                    RampTo(events, ref mouth, consonant, CONSONANT_WEIGHT, t, seg, slot.Tick);
+                    // Consonants morph the shape without dipping the overall openness: authored
+                    // openness never dives at consonants, it only rises/falls with the vowel.
+                    float consonantWeight = Math.Max(CONSONANT_WEIGHT, mouth.Weight * 0.9f);
+                    RampTo(events, ref mouth, consonant, consonantWeight, t, seg, slot.Tick);
                     t += seg;
                 }
 
@@ -629,9 +633,10 @@ namespace YARG.Core.Chart
                 // the way through). Without note evidence, close soon.
                 float tailWeight = slot.NoteCapped ? VOWEL_SUSTAIN_FLOOR : VOWEL_TAIL_WEIGHT;
                 // Wobble amplitude varies per syllable (authored wobble is strongest on big
-                // open syllables, nearly absent on quiet ones)
+                // open syllables, nearly absent on quiet ones). The phase is absolute time so
+                // the wave stays continuous across syllable boundaries.
                 float wobbleAmplitude = VOWEL_WOBBLE_AMPLITUDE * (0.5f + (float) random.NextDouble());
-                double wobblePhase = random.NextDouble() * 2.0 * Math.PI;
+                double wobblePhase = 0.0;
                 if (syll.VowelEnd.HasValue)
                 {
                     // Diphthong: hold the main vowel 60%, then glide to its end shape over 40%
@@ -660,16 +665,16 @@ namespace YARG.Core.Chart
                 double codaSeg = coda / syll.Final.Count;
                 double ct = slot.End - coda;
 
-                // Word-final bilabial (M/B/P): closed lips, so silence the held vowel first
+                // Word-final bilabial (M/B/P): closed lips, so ramp the held vowel down quickly
                 if (syll.Final.Contains(LipsyncEvent.LipsyncType.Bump_lo) && mouth.Weight > CONSONANT_WEIGHT)
                 {
-                    events.Add(new LipsyncEvent(mouth.Type, 0f, ct, slot.Tick));
-                    mouth.Weight = 0f;
+                    RampTo(events, ref mouth, mouth.Type, 0f, ct, Math.Min(0.07, codaSeg), slot.Tick);
                 }
 
                 foreach (var consonant in syll.Final)
                 {
-                    RampTo(events, ref mouth, consonant, CONSONANT_WEIGHT, ct, codaSeg, slot.Tick);
+                    float consonantWeight = Math.Max(CONSONANT_WEIGHT, mouth.Weight * 0.9f);
+                    RampTo(events, ref mouth, consonant, consonantWeight, ct, codaSeg, slot.Tick);
                     ct += codaSeg;
                 }
             }
@@ -704,6 +709,24 @@ namespace YARG.Core.Chart
             }
             else
             {
+                // Keep the mouth alive through short gaps: continue the wobble around the
+                // current weight (authored mouths never freeze between syllables). Stop short
+                // of the next slot so its attack ramp can take over cleanly.
+                double wobbleEnd = Math.Min(nextStart - ATTACK_MAX_TIME, slot.End + MOUTH_HOLD_WOBBLE_TIME);
+                if (wobbleEnd - slot.End > STEP_TIME && mouth.Weight > 0.001f)
+                {
+                    float amp = VOWEL_WOBBLE_AMPLITUDE * 0.75f;
+                    float baseWeight = mouth.Weight;
+                    float last = baseWeight;
+                    for (double wt = slot.End; wt < wobbleEnd; wt += STEP_TIME)
+                    {
+                        float weight = Math.Clamp(baseWeight + amp
+                            * (float) Math.Sin(2.0 * Math.PI * VOWEL_WOBBLE_HZ * wt), 0f, VOWEL_PEAK_CAP);
+                        events.Add(new LipsyncEvent(mouth.Type, weight, wt, slot.Tick));
+                        last = weight;
+                    }
+                    mouth.Weight = last;
+                }
                 mouth.LastEmissionEnd = slot.End;
             }
         }
@@ -717,8 +740,14 @@ namespace YARG.Core.Chart
             if (mouth.Weight <= 0.001f)
                 return;
 
+            // Gentle wobble so consonant holds are not flat freezes
+            float amp = VOWEL_WOBBLE_AMPLITUDE * 0.5f;
             for (double t = startTime; t < endTime; t += STEP_TIME)
-                events.Add(new LipsyncEvent(mouth.Type, mouth.Weight, t, tick));
+            {
+                float weight = Math.Clamp(mouth.Weight + amp
+                    * (float) Math.Sin(2.0 * Math.PI * VOWEL_WOBBLE_HZ * t), 0f, VOWEL_PEAK_CAP);
+                events.Add(new LipsyncEvent(mouth.Type, weight, t, tick));
+            }
             mouth.LastEmissionEnd = endTime;
         }
 
