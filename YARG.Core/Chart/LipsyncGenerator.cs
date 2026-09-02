@@ -44,16 +44,16 @@ namespace YARG.Core.Chart
         // Vowel peak scales with note length (longer/held notes open fuller, like authored lipsync).
         // The vowel rides a peak-shaped envelope: peak at the syllable, decaying to a low tail —
         // authored keyframes spend most of their time at low weights and rarely reach full open.
-        private const float VOWEL_PEAK_BASE_WEIGHT = 0.42f;   // Peak weight floor for short syllables
-        private const float VOWEL_PEAK_SCALE = 0.50f;         // Peak weight growth per second of note length
+        private const float VOWEL_PEAK_BASE_WEIGHT = 0.50f;   // Peak weight floor for short syllables
+        private const float VOWEL_PEAK_SCALE = 0.60f;         // Peak weight growth per second of note length
         private const float VOWEL_PEAK_CAP = 1.00f;           // Maximum vowel peak weight
-        private const float VOWEL_TAIL_WEIGHT = 0.35f;        // Weight the vowel decays to by the slot end (no note evidence)
-        private const float VOWEL_SUSTAIN_FLOOR = 0.55f;      // Sustain weight on long notes (authored sustains measure ~0.5)
+        private const float VOWEL_TAIL_WEIGHT = 0.42f;        // Weight the vowel decays to by the slot end (no note evidence)
+        private const float VOWEL_SUSTAIN_FLOOR = 0.58f;      // Sustain weight on long notes (authored sustains measure ~0.5)
         private const float VOWEL_PITCH_MOD = 0.12f;          // Sustain openness varies with pitch (higher = slightly more open)
         private const float VOCAL_PITCH_MIN = 36f;            // Vocal pitch range used for normalization (midi note numbers)
         private const float VOCAL_PITCH_MAX = 84f;
-        private const double VOWEL_PEAK_HOLD_FRACTION = 0.25; // Fraction of a short slot spent at/near peak
-        private const double VOWEL_PEAK_HOLD_TIME = 0.30;     // Absolute cap on the peak hold (long slots)
+        private const double VOWEL_PEAK_HOLD_FRACTION = 0.35; // Fraction of a short slot spent at/near peak
+        private const double VOWEL_PEAK_HOLD_TIME = 0.40;     // Absolute cap on the peak hold (long slots)
         private const double VOWEL_DECAY_TIME = 0.25;         // Absolute decay time from peak to tail
         private const float CONSONANT_WEIGHT = 0.32f;         // Authored consonant means measure ~0.28
         private const double MOUTH_GAP_CLOSE = 1.5;     // Silence length that closes the mouth
@@ -62,7 +62,7 @@ namespace YARG.Core.Chart
         private const double MOUTH_HOLD_WOBBLE_TIME = 0.6; // Max wobble duration across a short gap
         private const float VOWEL_PEAK_JITTER_MIN = 0.8f;   // Per-syllable peak expression range
         private const float VOWEL_PEAK_JITTER_MAX = 1.35f;  // (kept narrow so adjacent syllables agree)
-        private const float VOWEL_WOBBLE_AMPLITUDE = 0.13f; // Continuous vocal wobble around the envelope
+        private const float VOWEL_WOBBLE_AMPLITUDE = 0.16f; // Continuous vocal wobble around the envelope
         private const double VOWEL_WOBBLE_HZ = 2.2;         // Wobble rate (authored swells last ~0.4s)
 
         private static IReadOnlyDictionary<string, string[]>? _cmuDict;

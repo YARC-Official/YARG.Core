@@ -78,12 +78,12 @@ Phoneme classification:
 | `CODA_MAX_TIME` | 0.15s | Final-consonant ramp length |
 | `STEP_TIME` | 1/30s | Interpolation step interval (Milo-style keyframes) |
 | `MIN_SLOT_DURATION` | 0.05s | Minimum syllable slot duration |
-| `VOWEL_PEAK_BASE_WEIGHT` | 0.42 | Peak weight floor for short syllables |
-| `VOWEL_PEAK_SCALE` | 0.50/s | Peak weight growth per second of note length |
+| `VOWEL_PEAK_BASE_WEIGHT` | 0.50 | Peak weight floor for short syllables |
+| `VOWEL_PEAK_SCALE` | 0.60/s | Peak weight growth per second of note length |
 | `VOWEL_PEAK_CAP` | 1.00 | Maximum vowel peak weight |
-| `VOWEL_TAIL_WEIGHT` | 0.35 | Weight the vowel decays to by the slot end (no note evidence) |
-| `VOWEL_PEAK_HOLD_FRACTION` | 0.25 | Fraction of a short slot spent at/near the peak before decay |
-| `VOWEL_PEAK_HOLD_TIME` | 0.30s | Absolute cap on the peak hold (long slots never hold wide open) |
+| `VOWEL_TAIL_WEIGHT` | 0.42 | Weight the vowel decays to by the slot end (no note evidence) |
+| `VOWEL_PEAK_HOLD_FRACTION` | 0.35 | Fraction of a short slot spent at/near the peak before decay |
+| `VOWEL_PEAK_HOLD_TIME` | 0.40s | Absolute cap on the peak hold (long slots) |
 | `VOWEL_DECAY_TIME` | 0.25s | Absolute decay time from peak to the sustain/tail weight |
 | `MAX_UNVOICED_SLOT` | 2.0s | Slot cap when no vocal note end is available (phrase-final words) |
 | `CONSONANT_WEIGHT` | 0.32 | Weight for consonant shapes (authored consonant means measure ~0.28) |
@@ -92,13 +92,15 @@ Phoneme classification:
 | `MOUTH_GAP_CLOSE` | 1.5s | Silence length after a slot that closes the mouth |
 | `MOUTH_CLOSE_DELAY` | 0.30s | Delay after the note before the close ramp starts |
 | `MOUTH_CLOSE_TIME` | 0.25s | Mouth close ramp length |
-| `VOWEL_WOBBLE_AMPLITUDE` | 0.13 | Continuous vocal wobble around the vowel envelope |
+| `VOWEL_WOBBLE_AMPLITUDE` | 0.16 | Continuous vocal wobble around the vowel envelope |
 | `VOWEL_WOBBLE_HZ` | 2.2 | Wobble rate (authored swells last ~0.4s) |
 | `CO_ARTICULATION_RESIDUAL` | 0.08 | Faint weight the outgoing viseme keeps mid-ramp |
 
 **Vowel peak envelope.** The vowel rides a peak-shaped envelope instead of a flat hold: the attack ramps up to the syllable's peak weight (scaling with the sung note's length), the peak is sustained briefly, then it decays to the sustain/tail weight within ~0.6s. On note-capped slots it settles at the 0.55 sustain floor (staying open through the sung note); on slots without note evidence it decays to the 0.35 tail (both also carrying the wobble). Each syllable's peak is multiplied by a per-syllable expression jitter (0.55–1.75): authored peak openness varies widely (p10 ≈ 0.4, p90 ≈ 1.0) regardless of note length, driven by vocal energy the chart does not record. This matches authored word-peak distributions (p10 0.38, p50 0.60, p90 0.96, max 1.00).
 
 **Co-articulation.** During any viseme ramp, the outgoing shape fades to a faint residual (0.08, clamped to the outgoing weight) over the first 60% of the ramp and then out by the end — two mouth shapes are briefly active together, like authored keyframes.
+
+**Operating band.** While singing, the mouth should spend roughly a third of its time wide open (≥0.75) and swing between ~0.3 and ~1.0 — authored singers open wide most of the time; a mid-band mouth reads as timid or teeth-grinding. The constants above are tuned so the singing-time openness distribution matches authored charts (median ~0.65, p75 ~0.77).
 
 **Vocal wobble.** While a vowel is sounding, the envelope weight is modulated by a continuous wobble (per-syllable amplitude, random phase) so the mouth animates smoothly every frame — authored singing mouths move constantly instead of holding flat between keyframes, which is what separates natural singing from a mechanical look. The wobble phase is absolute time (continuous across syllables) and also runs during short inter-syllable holds and consonant holds so nothing freezes.
 
