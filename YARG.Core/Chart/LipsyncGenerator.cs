@@ -23,7 +23,7 @@ namespace YARG.Core.Chart
     /// </remarks>
     public static class LipsyncGenerator
     {
-        private const double ATTACK_MAX_TIME = 0.20;    // Consonant/vowel attack ramp length
+        private const double ATTACK_MAX_TIME = 0.12;    // Consonant/vowel attack ramp length
         private const double CODA_MAX_TIME = 0.15;      // Final-consonant ramp length
         private const double STEP_TIME = 1.0 / 30;      // ~30fps interpolation steps (Milo-style keyframes)
         private const double MIN_SLOT_DURATION = 0.05;  // Minimum syllable slot duration
@@ -48,7 +48,7 @@ namespace YARG.Core.Chart
         private const float VOWEL_PEAK_SCALE = 0.50f;         // Peak weight growth per second of note length
         private const float VOWEL_PEAK_CAP = 1.00f;           // Maximum vowel peak weight
         private const float VOWEL_TAIL_WEIGHT = 0.35f;        // Weight the vowel decays to by the slot end (no note evidence)
-        private const float VOWEL_SUSTAIN_FLOOR = 0.50f;      // Sustain weight on long notes (authored sustains measure ~0.5)
+        private const float VOWEL_SUSTAIN_FLOOR = 0.55f;      // Sustain weight on long notes (authored sustains measure ~0.5)
         private const float VOWEL_PITCH_MOD = 0.12f;          // Sustain openness varies with pitch (higher = slightly more open)
         private const float VOCAL_PITCH_MIN = 36f;            // Vocal pitch range used for normalization (midi note numbers)
         private const float VOCAL_PITCH_MAX = 84f;
@@ -61,6 +61,8 @@ namespace YARG.Core.Chart
         private const double MOUTH_CLOSE_TIME = 0.25;   // Mouth close ramp length
         private const float VOWEL_PEAK_JITTER_MIN = 0.55f;  // Per-syllable peak expression range
         private const float VOWEL_PEAK_JITTER_MAX = 1.75f;  // (authored peaks vary per vocal energy)
+        private const float VOWEL_WOBBLE_AMPLITUDE = 0.17f; // Continuous vocal wobble around the envelope
+        private const double VOWEL_WOBBLE_HZ = 4.5;         // Wobble rate (authored mouths move every frame)
 
         private static IReadOnlyDictionary<string, string[]>? _cmuDict;
 
@@ -626,12 +628,16 @@ namespace YARG.Core.Chart
                 // mouth stays open while the note is held (authored sustains measure ~0.5 all
                 // the way through). Without note evidence, close soon.
                 float tailWeight = slot.NoteCapped ? VOWEL_SUSTAIN_FLOOR : VOWEL_TAIL_WEIGHT;
+                // Wobble amplitude varies per syllable (authored wobble is strongest on big
+                // open syllables, nearly absent on quiet ones)
+                float wobbleAmplitude = VOWEL_WOBBLE_AMPLITUDE * (0.5f + (float) random.NextDouble());
+                double wobblePhase = random.NextDouble() * 2.0 * Math.PI;
                 if (syll.VowelEnd.HasValue)
                 {
                     // Diphthong: hold the main vowel 60%, then glide to its end shape over 40%
                     double transitionStart = holdStart + (holdEnd - holdStart) * 0.6;
                     float glideWeight = EmitVowelEnvelope(events, ref mouth, vowelPeak, tailWeight,
-                        holdStart, transitionStart, holdEnd, slot.Tick, slot.Note);
+                        holdStart, transitionStart, holdEnd, slot.Tick, slot.Note, wobbleAmplitude, wobblePhase);
                     mouth.Weight = glideWeight;
                     RampTo(events, ref mouth, syll.VowelEnd.Value, glideWeight, transitionStart,
                         holdEnd - transitionStart, slot.Tick);
@@ -639,7 +645,7 @@ namespace YARG.Core.Chart
                 else
                 {
                     mouth.Weight = EmitVowelEnvelope(events, ref mouth, vowelPeak, tailWeight,
-                        holdStart, holdEnd, holdEnd, slot.Tick, slot.Note);
+                        holdStart, holdEnd, holdEnd, slot.Tick, slot.Note, wobbleAmplitude, wobblePhase);
                 }
             }
             else
@@ -725,7 +731,7 @@ namespace YARG.Core.Chart
         /// </summary>
         private static float EmitVowelEnvelope(List<LipsyncEvent> events, ref MouthState mouth,
             float peakWeight, float tailWeight, double startTime, double stopTime, double endTime, uint tick,
-            VocalNote? note)
+            VocalNote? note, float wobbleAmplitude, double wobblePhase)
         {
             if (mouth.Weight <= 0.001f || stopTime <= startTime)
                 return mouth.Weight;
@@ -764,6 +770,11 @@ namespace YARG.Core.Chart
                 {
                     weight = SustainWeight(note, t, tailWeight);
                 }
+
+                // Continuous vocal wobble: authored mouths animate smoothly every frame while
+                // singing (mean frame delta ~0.1) instead of holding flat between events.
+                weight = Math.Clamp(weight + wobbleAmplitude
+                    * (float) Math.Sin(2.0 * Math.PI * VOWEL_WOBBLE_HZ * t + wobblePhase), 0f, VOWEL_PEAK_CAP);
                 events.Add(new LipsyncEvent(mouth.Type, weight, t, tick));
                 lastWeight = weight;
             }

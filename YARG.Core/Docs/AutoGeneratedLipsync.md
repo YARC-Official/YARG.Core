@@ -74,7 +74,7 @@ Phoneme classification:
 
 | Constant | Value | Purpose |
 |----------|-------|---------|
-| `ATTACK_MAX_TIME` | 0.20s | Consonant/vowel attack ramp length |
+| `ATTACK_MAX_TIME` | 0.12s | Consonant/vowel attack ramp length |
 | `CODA_MAX_TIME` | 0.15s | Final-consonant ramp length |
 | `STEP_TIME` | 1/30s | Interpolation step interval (Milo-style keyframes) |
 | `MIN_SLOT_DURATION` | 0.05s | Minimum syllable slot duration |
@@ -92,13 +92,17 @@ Phoneme classification:
 | `MOUTH_GAP_CLOSE` | 1.5s | Silence length after a slot that closes the mouth |
 | `MOUTH_CLOSE_DELAY` | 0.30s | Delay after the note before the close ramp starts |
 | `MOUTH_CLOSE_TIME` | 0.25s | Mouth close ramp length |
+| `VOWEL_WOBBLE_AMPLITUDE` | 0.17 | Continuous vocal wobble around the vowel envelope |
+| `VOWEL_WOBBLE_HZ` | 4.5 | Wobble rate (authored mouths animate every frame) |
 | `CO_ARTICULATION_RESIDUAL` | 0.08 | Faint weight the outgoing viseme keeps mid-ramp |
 
-**Vowel peak envelope.** The vowel rides a peak-shaped envelope instead of a flat hold: the attack ramps up to the syllable's peak weight (scaling with the sung note's length), the peak is sustained briefly, then it decays to the sustain/tail weight within ~0.6s. On note-capped slots it settles at the 0.5 sustain floor (staying open through the sung note); on slots without note evidence it decays to the 0.35 tail. Each syllable's peak is multiplied by a per-syllable expression jitter (0.55–1.75): authored peak openness varies widely (p10 ≈ 0.4, p90 ≈ 1.0) regardless of note length, driven by vocal energy the chart does not record. This matches authored word-peak distributions (p10 0.38, p50 0.60, p90 0.96, max 1.00).
+**Vowel peak envelope.** The vowel rides a peak-shaped envelope instead of a flat hold: the attack ramps up to the syllable's peak weight (scaling with the sung note's length), the peak is sustained briefly, then it decays to the sustain/tail weight within ~0.6s. On note-capped slots it settles at the 0.55 sustain floor (staying open through the sung note); on slots without note evidence it decays to the 0.35 tail. Each syllable's peak is multiplied by a per-syllable expression jitter (0.55–1.75): authored peak openness varies widely (p10 ≈ 0.4, p90 ≈ 1.0) regardless of note length, driven by vocal energy the chart does not record. This matches authored word-peak distributions (p10 0.38, p50 0.60, p90 0.96, max 1.00).
 
 **Co-articulation.** During any viseme ramp, the outgoing shape fades to a faint residual (0.08, clamped to the outgoing weight) over the first 60% of the ramp and then out by the end — two mouth shapes are briefly active together, like authored keyframes.
 
-**Sustains.** On note-capped slots the vowel settles at a 0.5 sustain floor after the brief peak — authored long sustains keep the mouth open (~0.5 dominant weight throughout the note) and close only at the note's end. Slot ends use the note's `TotalTimeEnd`, so pitch-slide children extend the sustain through pitch changes, and the sustain weight is modulated ±0.12 by the pitch at that moment (higher pitch = slightly more open, lerped across slide segments via `PitchAtSongTime`). Slots without note evidence (lyrics-track path) decay to the 0.35 tail instead.
+**Vocal wobble.** While a vowel is sounding, the envelope weight is modulated by a continuous wobble (per-syllable amplitude, random phase) so the mouth animates smoothly every frame — authored singing mouths move constantly (mean frame delta ~0.1 at 30fps) instead of holding flat between keyframes, which is what separates natural singing from a mechanical look.
+
+**Sustains.** On note-capped slots the vowel settles at a 0.55 sustain floor after the brief peak — authored long sustains keep the mouth open (~0.5 dominant weight throughout the note) and close only at the note's end. Slot ends use the note's `TotalTimeEnd`, so pitch-slide children extend the sustain through pitch changes, and the sustain weight is modulated ±0.12 by the pitch at that moment (higher pitch = slightly more open, lerped across slide segments via `PitchAtSongTime`). Slots without note evidence (lyrics-track path) decay to the 0.35 tail instead.
 
 **Mouth closure.** The mouth keeps its shape across short gaps: viseme weights persist until rewritten (like authored lipsync), so nothing is emitted between syllables that are close together — this is what keeps continuous singing from stuttering. The mouth closes only when the silence after a slot reaches `MOUTH_GAP_CLOSE` (1.5s), ramping closed after `MOUTH_CLOSE_DELAY` and reopening at the next syllable's attack. At closure every mouth viseme channel is driven to 0 — all channels persist until rewritten, so stale weights from earlier syllables would otherwise keep the mouth open. Bilabial consonants (M/B/P) silence the held vowel first: their closed-lips shape must not be masked by a still-open vowel channel.
 
