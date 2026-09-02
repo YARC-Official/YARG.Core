@@ -44,10 +44,10 @@ namespace YARG.Core.Chart
         // Vowel peak scales with note length (longer/held notes open fuller, like authored lipsync).
         // The vowel rides a peak-shaped envelope: peak at the syllable, decaying to a low tail —
         // authored keyframes spend most of their time at low weights and rarely reach full open.
-        private const float VOWEL_PEAK_BASE_WEIGHT = 0.55f;   // Peak weight floor for short syllables
-        private const float VOWEL_PEAK_SCALE = 0.45f;         // Peak weight growth per second of note length
-        private const float VOWEL_PEAK_CAP = 0.90f;           // Maximum vowel peak weight
-        private const float VOWEL_TAIL_WEIGHT = 0.05f;        // Weight the vowel decays to by the slot end (no note evidence)
+        private const float VOWEL_PEAK_BASE_WEIGHT = 0.40f;   // Peak weight floor for short syllables
+        private const float VOWEL_PEAK_SCALE = 0.50f;         // Peak weight growth per second of note length
+        private const float VOWEL_PEAK_CAP = 1.00f;           // Maximum vowel peak weight
+        private const float VOWEL_TAIL_WEIGHT = 0.35f;        // Weight the vowel decays to by the slot end (no note evidence)
         private const float VOWEL_SUSTAIN_FLOOR = 0.50f;      // Sustain weight on long notes (authored sustains measure ~0.5)
         private const float VOWEL_PITCH_MOD = 0.12f;          // Sustain openness varies with pitch (higher = slightly more open)
         private const float VOCAL_PITCH_MIN = 36f;            // Vocal pitch range used for normalization (midi note numbers)
@@ -56,6 +56,11 @@ namespace YARG.Core.Chart
         private const double VOWEL_PEAK_HOLD_TIME = 0.30;     // Absolute cap on the peak hold (long slots)
         private const double VOWEL_DECAY_TIME = 0.25;         // Absolute decay time from peak to tail
         private const float CONSONANT_WEIGHT = 0.32f;         // Authored consonant means measure ~0.28
+        private const double MOUTH_GAP_CLOSE = 1.5;     // Silence length that closes the mouth
+        private const double MOUTH_CLOSE_DELAY = 0.30;  // Delay after the note before closing
+        private const double MOUTH_CLOSE_TIME = 0.25;   // Mouth close ramp length
+        private const float VOWEL_PEAK_JITTER_MIN = 0.55f;  // Per-syllable peak expression range
+        private const float VOWEL_PEAK_JITTER_MAX = 1.75f;  // (authored peaks vary per vocal energy)
 
         private static IReadOnlyDictionary<string, string[]>? _cmuDict;
 
@@ -64,6 +69,22 @@ namespace YARG.Core.Chart
             CMUDict.Initialize(dictionaryText);
             _cmuDict = CMUDict.GetDictionary();
         }
+
+        /// <summary>
+        /// All mouth viseme channels the generator can emit. Viseme weights persist until
+        /// rewritten, so full closures must zero every one of these.
+        /// </summary>
+        private static readonly LipsyncEvent.LipsyncType[] MouthVisemes =
+        {
+            LipsyncEvent.LipsyncType.Bump_lo, LipsyncEvent.LipsyncType.Cage_lo,
+            LipsyncEvent.LipsyncType.Church_lo, LipsyncEvent.LipsyncType.Earth_lo,
+            LipsyncEvent.LipsyncType.Eat_lo, LipsyncEvent.LipsyncType.Fave_lo,
+            LipsyncEvent.LipsyncType.If_lo, LipsyncEvent.LipsyncType.Neutral_lo,
+            LipsyncEvent.LipsyncType.New_lo, LipsyncEvent.LipsyncType.Oat_lo,
+            LipsyncEvent.LipsyncType.Ox_lo, LipsyncEvent.LipsyncType.Roar_lo,
+            LipsyncEvent.LipsyncType.Size_lo, LipsyncEvent.LipsyncType.Though_lo,
+            LipsyncEvent.LipsyncType.Told_lo, LipsyncEvent.LipsyncType.Wet_lo,
+        };
 
         public static List<LipsyncEvent> GenerateFromLyrics(LyricsTrack lyrics)
         {
@@ -82,11 +103,15 @@ namespace YARG.Core.Chart
                 if (phrase.Lyrics.Count == 0)
                     continue;
 
-                ProcessPhrase(events, phrase.Lyrics, phrase.Time + phrase.TimeLength, notesByTick, random,
-                    ref nextBlinkTime, ref mouth);
+                double nextPhraseStart = double.MaxValue;
+                for (int p = i + 1; p < lyrics.Phrases.Count && nextPhraseStart == double.MaxValue; p++)
+                {
+                    if (lyrics.Phrases[p].Lyrics.Count > 0)
+                        nextPhraseStart = lyrics.Phrases[p].Lyrics[0].Time;
+                }
 
-                // The mouth closes at each slot end (per-slot closure), so nothing is needed
-                // between phrases
+                ProcessPhrase(events, phrase.Lyrics, phrase.Time + phrase.TimeLength, notesByTick, random,
+                    ref nextBlinkTime, ref mouth, nextPhraseStart);
             }
 
             return events.OrderBy(e => e.Time).ToList();
@@ -112,11 +137,15 @@ namespace YARG.Core.Chart
                 if (phrase.Lyrics.Count == 0)
                     continue;
 
-                ProcessPhrase(events, phrase.Lyrics, phrase.Time + phrase.TimeLength, notesByTick, random,
-                    ref nextBlinkTime, ref mouth);
+                double nextPhraseStart = double.MaxValue;
+                for (int p = i + 1; p < part.StaticLyricPhrases.Count && nextPhraseStart == double.MaxValue; p++)
+                {
+                    if (part.StaticLyricPhrases[p].Lyrics.Count > 0)
+                        nextPhraseStart = part.StaticLyricPhrases[p].Lyrics[0].Time;
+                }
 
-                // The mouth closes at each slot end (per-slot closure), so nothing is needed
-                // between phrases
+                ProcessPhrase(events, phrase.Lyrics, phrase.Time + phrase.TimeLength, notesByTick, random,
+                    ref nextBlinkTime, ref mouth, nextPhraseStart);
             }
 
             return events.OrderBy(e => e.Time).ToList();
@@ -301,7 +330,7 @@ namespace YARG.Core.Chart
 
         private static void ProcessPhrase(List<LipsyncEvent> events, List<LyricEvent> lyrics,
             double phraseEnd, Dictionary<uint, VocalNote> notesByTick, Random random,
-            ref double nextBlinkTime, ref MouthState mouth)
+            ref double nextBlinkTime, ref MouthState mouth, double nextPhraseStart)
         {
             int count = lyrics.Count;
             int i = 0;
@@ -339,14 +368,16 @@ namespace YARG.Core.Chart
                     j++;
                 }
 
-                GenerateWord(events, wordLyrics, wordTexts, j, lyrics, phraseEnd, notesByTick, ref mouth);
+                GenerateWord(events, wordLyrics, wordTexts, j, lyrics, phraseEnd, nextPhraseStart,
+                    notesByTick, random, ref mouth);
                 i = j;
             }
         }
 
         private static void GenerateWord(List<LipsyncEvent> events, List<LyricEvent> wordLyrics,
             List<string> wordTexts, int flatIndexAfterWord, List<LyricEvent> allLyrics,
-            double phraseEnd, Dictionary<uint, VocalNote> notesByTick, ref MouthState mouth)
+            double phraseEnd, double nextPhraseStart, Dictionary<uint, VocalNote> notesByTick,
+            Random random, ref MouthState mouth)
         {
             var wordText = string.Concat(wordTexts);
             var syllables = GetSyllablesForWord(wordText);
@@ -372,7 +403,7 @@ namespace YARG.Core.Chart
                 k++;
             }
 
-            double nextWordStart = k < allLyrics.Count ? allLyrics[k].Time : phraseEnd;
+            double nextWordStart = k < allLyrics.Count ? allLyrics[k].Time : nextPhraseStart;
 
             // Real (non-empty) syllable fragments
             var realIndices = new List<int>();
@@ -481,12 +512,17 @@ namespace YARG.Core.Chart
                 }
             }
 
-            foreach (var slot in slots)
-                EmitSyllableSlot(events, ref mouth, in slot);
+            for (int i = 0; i < slots.Count; i++)
+            {
+                double nextSlotStart = i + 1 < slots.Count ? slots[i + 1].Start : nextWordStart;
+                var slot = slots[i];
+                EmitSyllableSlot(events, ref mouth, in slot, nextSlotStart, random);
+            }
 
         }
 
-        private static void EmitSyllableSlot(List<LipsyncEvent> events, ref MouthState mouth, in Slot slot)
+        private static void EmitSyllableSlot(List<LipsyncEvent> events, ref MouthState mouth, in Slot slot,
+            double nextStart, Random random)
         {
             double duration = slot.End - slot.Start;
             if (duration <= 0.01)
@@ -495,9 +531,15 @@ namespace YARG.Core.Chart
             var syll = slot.Syllable;
             bool hasVowel = syll.VowelMain != LipsyncEvent.LipsyncType.Neutral_lo || syll.VowelEnd.HasValue;
 
-            // Vowel openness scales with the note's length; consonants sit at a partial weight
+            // Vowel openness scales with the sung note's length (longer notes peak fuller, like
+            // authored lipsync); consonants sit at a partial weight
+            float peakDur = slot.Note is { } note ? (float) note.TotalTimeLength : (float) duration;
+            // Per-syllable expression jitter: authored peaks vary widely (p10 0.4, p90 ~1.0)
+            // regardless of note length, driven by vocal energy the chart does not record.
+            float peakJitter = VOWEL_PEAK_JITTER_MIN + (float) random.NextDouble()
+                * (VOWEL_PEAK_JITTER_MAX - VOWEL_PEAK_JITTER_MIN);
             float vowelPeak = hasVowel
-                ? Math.Min(VOWEL_PEAK_CAP, VOWEL_PEAK_BASE_WEIGHT + (float) duration * VOWEL_PEAK_SCALE)
+                ? Math.Min(VOWEL_PEAK_CAP, (VOWEL_PEAK_BASE_WEIGHT + peakDur * VOWEL_PEAK_SCALE) * peakJitter)
                 : 0f;
 
             int attackSegments = syll.Initial.Count + (hasVowel ? 1 : 0);
@@ -533,6 +575,14 @@ namespace YARG.Core.Chart
                 double scale = duration * 0.9 / (attack + coda);
                 attack *= scale;
                 coda *= scale;
+            }
+
+            // A bilabial consonant (M/B/P) requires closed lips: silence the previously held
+            // vowel so the closed shape is not masked by the still-open channel.
+            if (syll.Initial.Count > 0 && syll.Initial[0] == LipsyncEvent.LipsyncType.Bump_lo && mouth.Weight > 0f)
+            {
+                events.Add(new LipsyncEvent(mouth.Type, 0f, attackStart, slot.Tick));
+                mouth.Weight = 0f;
             }
 
             // Attack: ramp through initial consonants, then into the vowel, peaking at the slot start
@@ -591,6 +641,14 @@ namespace YARG.Core.Chart
             {
                 double codaSeg = coda / syll.Final.Count;
                 double ct = slot.End - coda;
+
+                // Word-final bilabial (M/B/P): closed lips, so silence the held vowel first
+                if (syll.Final.Contains(LipsyncEvent.LipsyncType.Bump_lo) && mouth.Weight > CONSONANT_WEIGHT)
+                {
+                    events.Add(new LipsyncEvent(mouth.Type, 0f, ct, slot.Tick));
+                    mouth.Weight = 0f;
+                }
+
                 foreach (var consonant in syll.Final)
                 {
                     RampTo(events, ref mouth, consonant, CONSONANT_WEIGHT, ct, codaSeg, slot.Tick);
@@ -598,28 +656,38 @@ namespace YARG.Core.Chart
                 }
             }
 
-            // Close the mouth: zero every viseme this syllable used, like authored per-channel
-            // lipsync data. Viseme weights persist until explicitly rewritten, so without this
-            // the envelope tail, diphthong ends, and co-articulation residuals would keep the
-            // mouth open through silence.
-            var slotVisemes = new HashSet<LipsyncEvent.LipsyncType>();
-            if (hasVowel)
+            // Inter-syllable policy: the mouth keeps its shape across short gaps (viseme
+            // weights persist like authored lipsync, so no events are needed). It closes only
+            // when the silence is long enough that the singer stops vocalizing; the next
+            // syllable's attack reopens it.
+            double gapToNext = nextStart - slot.End;
+            if (gapToNext >= MOUTH_GAP_CLOSE)
             {
-                slotVisemes.Add(syll.VowelMain);
-                if (syll.VowelEnd.HasValue)
-                    slotVisemes.Add(syll.VowelEnd.Value);
+                // Close every mouth channel: all previously used channels must return to zero
+                // or stale weights would keep the mouth open through the silence.
+                double closeStart = slot.End + MOUTH_CLOSE_DELAY;
+                double closeEnd = closeStart + MOUTH_CLOSE_TIME;
+                if (closeEnd < nextStart)
+                {
+                    RampTo(events, ref mouth, mouth.Type, 0f, closeStart, MOUTH_CLOSE_TIME, slot.Tick);
+                    foreach (var viseme in MouthVisemes)
+                    {
+                        if (viseme == mouth.Type)
+                            continue;
+                        events.Add(new LipsyncEvent(viseme, 0f, closeEnd, slot.Tick));
+                    }
+                    mouth.LastEmissionEnd = closeEnd;
+                }
+                else
+                {
+                    // Gap too short for a graceful close; the next syllable handles it
+                    mouth.LastEmissionEnd = slot.End;
+                }
             }
-            foreach (var consonant in syll.Initial)
-                slotVisemes.Add(consonant);
-            foreach (var consonant in syll.Final)
-                slotVisemes.Add(consonant);
-
-            foreach (var viseme in slotVisemes)
+            else
             {
-                events.Add(new LipsyncEvent(viseme, 0f, slot.End, slot.Tick));
+                mouth.LastEmissionEnd = slot.End;
             }
-            mouth.Weight = 0f;
-            mouth.LastEmissionEnd = slot.End;
         }
 
         /// <summary>
