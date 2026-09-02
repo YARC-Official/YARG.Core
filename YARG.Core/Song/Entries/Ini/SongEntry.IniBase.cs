@@ -13,6 +13,8 @@ namespace YARG.Core.Song
 {
     public static class IniAudio
     {
+        public static readonly string[] SupportedCleanStems = { "song_clean", "vocals_clean", "vocals_1_clean", "vocals_2_clean", "crowd_clean" };
+        public static readonly string[] SupportedExplicitStems = { "vocals_explicit", "vocals_1_explicit", "vocals_2_explicit", "crowd_explicit" };
         public static readonly string[] SupportedStems = { "song", "guitar", "bass", "rhythm", "keys", "vocals", "vocals_1", "vocals_2", "drums", "drums_1", "drums_2", "drums_3", "drums_4", "crowd", };
         public static readonly string[] SupportedFormats = { ".opus", ".ogg", ".mp3", ".wav", ".aiff", };
         private static readonly HashSet<string> SupportedAudioFiles = new();
@@ -44,7 +46,7 @@ namespace YARG.Core.Song
 
         protected static readonly string[] ALBUMART_FILES;
         protected static readonly string[] PREVIEW_FILES;
-
+        protected static readonly string[] CLEAN_PREVIEW_FILES;
         static IniSubEntry()
         {
             ALBUMART_FILES = new string[IMAGE_EXTENSIONS.Length];
@@ -57,6 +59,12 @@ namespace YARG.Core.Song
             for (int i = 0; i < PREVIEW_FILES.Length; i++)
             {
                 PREVIEW_FILES[i] = "preview" + IniAudio.SupportedFormats[i];
+            }
+
+            CLEAN_PREVIEW_FILES = new string[IniAudio.SupportedFormats.Length];
+            for (int i = 0; i < PREVIEW_FILES.Length; i++)
+            {
+                CLEAN_PREVIEW_FILES[i] = "preview_clean" + IniAudio.SupportedFormats[i];
             }
         }
 
@@ -116,6 +124,11 @@ namespace YARG.Core.Song
         }
 
         public override FixedArray<byte>? LoadMiloData()
+        {
+            return null;
+        }
+
+        public override FixedArray<byte>? LoadVocData()
         {
             return null;
         }
@@ -272,7 +285,7 @@ namespace YARG.Core.Song
 
             if (entry._metadata.SongLength <= 0)
             {
-                using var mixer = entry.LoadAudio(0, 0);
+                using var mixer = entry.LoadAudio(0, 0, false);
                 if (mixer != null)
                 {
                     entry._metadata.SongLength = (long) (mixer.Length * SongMetadata.MILLISECOND_FACTOR);
@@ -281,12 +294,19 @@ namespace YARG.Core.Song
             return ScanResult.Success;
         }
 
-        protected static bool TryGetRandomBackgroundImage<TValue>(Dictionary<string, TValue> dict, out TValue? value)
+        protected static bool TryGetRandomBackgroundImage<TValue>(Dictionary<string, TValue> dict, bool enableCensoring, out TValue? value)
         {
+            var censorSuffix = enableCensoring ? CLEAN_BACKGROUND_SUFFIX : EXPLICIT_BACKGROUND_SUFFIX;
             // Choose a valid image background present in the folder at random
             List<TValue>? images = null;
+            List<TValue>? censoredImages = null;
             foreach (var format in IMAGE_EXTENSIONS)
             {
+                if (dict.TryGetValue("bg" + censorSuffix + format, out var censoredImage))
+                {
+                    censoredImages ??= new List<TValue>();
+                    censoredImages.Add(censoredImage);
+                }
                 if (dict.TryGetValue("bg" + format, out var image))
                 {
                     images ??= new List<TValue>();
@@ -305,20 +325,35 @@ namespace YARG.Core.Song
                 {
                     if (shortname.EndsWith(format))
                     {
-                        images ??= new List<TValue>();
-                        images.Add(image);
+                        if (shortname.EndsWith(censorSuffix + format))
+                        {
+                            censoredImages ??= new List<TValue>();
+                            censoredImages.Add(image);
+                        }
+                        else
+                        {
+                            images ??= new List<TValue>();
+                            images.Add(image);
+                        }
                         break;
                     }
                 }
             }
 
-            if (images == null)
+            if (censoredImages != null)
             {
-                value = default!;
-                return false;
+                value = censoredImages[BACKROUND_RNG.Next(censoredImages.Count)];
+                return true;
             }
-            value = images[BACKROUND_RNG.Next(images.Count)];
-            return true;
+
+            if (images != null)
+            {
+                value = images[BACKROUND_RNG.Next(images.Count)];
+                return true;
+            }
+
+            value = default!;
+            return false;
         }
 
         protected static DrumsType ParseDrumsType(in AvailableParts parts)
@@ -583,7 +618,7 @@ namespace YARG.Core.Song
 
             if (entry._metadata.SongLength <= 0)
             {
-                using var mixer = entry.LoadAudio(0, 0);
+                using var mixer = entry.LoadAudio(0, 0, false);
                 if (mixer != null)
                 {
                     entry._metadata.SongLength = (long) (mixer.Length * SongMetadata.MILLISECOND_FACTOR);

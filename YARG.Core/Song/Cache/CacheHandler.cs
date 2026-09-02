@@ -34,7 +34,8 @@ namespace YARG.Core.Song.Cache
         /// Format is YY_MM_DD_RR: Y = year, M = month, D = day, R = revision (reset across dates, only increment
         /// if multiple cache version changes happen in a single day).
         /// </summary>
-        private const int CACHE_VERSION = 26_07_23_00;
+        /// <remarks>Change whenever the song cache needs to be cleared and regenerated, e.g. when the new data is added to the cache.</remarks>
+        private const int CACHE_VERSION = 26_08_21_00;
 
         public static ScanProgressTracker Progress => _progress;
         private static ScanProgressTracker _progress;
@@ -904,7 +905,13 @@ namespace YARG.Core.Song.Cache
         private HashSet<string> invalidSongsInCache = new();
         private Dictionary<string, FileCollection> collectionCache = new();
         private Dictionary<string, QuickCONMods> cacheCONModifications = new();
-        private Dictionary<string, List<CONFileListing>?> cacheCONListings = new();
+        private Dictionary<string, Lazy<List<CONFileListing>?>> cacheCONListings = new();
+
+        /// <summary>
+        /// Spans every header field <see cref="CONFile.TryParseListings"/> reads (0x0 - 0x381), so that they all
+        /// resolve out of a single buffer fill.
+        /// </summary>
+        private const int CON_HEADER_BUFFERSIZE = 0x1000;
 
         /// <summary>
         /// The sum of all "count" variables in a file
@@ -1547,20 +1554,42 @@ namespace YARG.Core.Song.Cache
 
         private List<CONFileListing>? GetCacheCONListings(string filename)
         {
-            List<CONFileListing>? listings = null;
+            Lazy<List<CONFileListing>?> listings;
+            // Callers arrive from a Parallel.ForEach over every CON in the cache, so the read is deliberately
+            // left outside the lock - holding it across the read serializes the whole library behind one file
             lock (cacheCONListings)
             {
                 if (!cacheCONListings.TryGetValue(filename, out listings))
                 {
-                    if (File.Exists(filename))
-                    {
-                        using var filestream = new FileStream(filename, FileMode.Open, FileAccess.Read, FileShare.Read, 1);
-                        listings = CONFile.TryParseListings(filename, filestream);
-                    }
-                    cacheCONListings.Add(filename, listings);
+                    cacheCONListings.Add(filename, listings = new Lazy<List<CONFileListing>?>(
+                        () => ParseCONListings(filename), LazyThreadSafetyMode.ExecutionAndPublication));
                 }
             }
-            return listings;
+            return listings.Value;
+        }
+
+        // Every failure has to resolve to null - neither call site is guarded, so a throw would unwind through
+        // the loops in Deserialize_Quick and abandon the remainder of the cache read
+        private static List<CONFileListing>? ParseCONListings(string filename)
+        {
+            try
+            {
+                using var filestream = new FileStream(filename, FileMode.Open, FileAccess.Read, FileShare.Read, CON_HEADER_BUFFERSIZE);
+                return CONFile.TryParseListings(filename, filestream);
+            }
+            catch (FileNotFoundException)
+            {
+                return null;
+            }
+            catch (DirectoryNotFoundException)
+            {
+                return null;
+            }
+            catch (Exception ex)
+            {
+                YargLogger.LogException(ex, $"Error while reading the listings of {filename}");
+                return null;
+            }
         }
 
         private struct PackedGroupResult

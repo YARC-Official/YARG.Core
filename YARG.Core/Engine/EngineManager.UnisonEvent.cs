@@ -15,7 +15,7 @@ namespace YARG.Core.Engine
             public double                        TimeEnd             { get; }
             public uint                          Tick                { get; }
             public uint                          TickEnd             { get; }
-            public int                           PartCount           { get; private set; }
+            public int                           PartCount           => ParticipantToPhrase.Count;
             public int                           SuccessCount        { get; private set; }
             public bool                          Awarded             { get; set; }
             public Dictionary<int, UnisonPhrase> ParticipantToPhrase { get; }
@@ -26,7 +26,6 @@ namespace YARG.Core.Engine
                 TimeEnd = timeEnd;
                 Tick = tick;
                 TickEnd = tickEnd;
-                PartCount = 0;
                 SuccessCount = 0;
                 Awarded = false;
                 ParticipantToPhrase = new Dictionary<int, UnisonPhrase>();
@@ -34,20 +33,12 @@ namespace YARG.Core.Engine
 
             public void AddPlayer(EngineContainer engineContainer, UnisonPhrase sourcePhrase)
             {
-                if (!ParticipantToPhrase.TryAdd(engineContainer.EngineId, sourcePhrase))
-                {
-                    return;
-                }
-
-                PartCount++;
+                ParticipantToPhrase[engineContainer.EngineId] = sourcePhrase;
             }
 
             public void RemovePlayer(EngineContainer engineContainer)
             {
-                if (ParticipantToPhrase.Remove(engineContainer.EngineId))
-                {
-                    PartCount--;
-                }
+                ParticipantToPhrase.Remove(engineContainer.EngineId);
             }
 
             // Returns true if all players succesfully completed the unison
@@ -210,12 +201,22 @@ namespace YARG.Core.Engine
 
         private void RemovePlayerFromUnisons(EngineContainer engineContainer)
         {
-            foreach (var unisonEvent in _unisonEvents)
+            for (int i = _unisonEvents.Count - 1; i >= 0; i--)
             {
+                var unisonEvent = _unisonEvents[i];
+                if (unisonEvent.TimeEnd < engineContainer.BaseEngine.CurrentTime)
+                {
+                    // This unison has already passed, don't update it
+                    continue;
+                }
                 unisonEvent.RemovePlayer(engineContainer);
+                if (unisonEvent.PartCount == 0)
+                {
+                    _unisonEvents.RemoveAt(i);
+                }
             }
 
-            engineContainer.UnsubscribeToStarPowerPhraseHit();
+            engineContainer.UnsubscribeFromStarPowerPhraseHit();
         }
 
         /// <summary>
@@ -365,11 +366,14 @@ namespace YARG.Core.Engine
                 YargLogger.LogDebug("Attempted to award bonus SP, but it was already awarded");
                 return;
             }
-            foreach (var id in unison.ParticipantToPhrase.Keys)
+
+            foreach (var engineContainer in _allEngines)
             {
-                YargLogger.LogFormatDebug("EngineManager awarding bonus SP to participant ID {0}", id);
-                var engineContainer = _allEnginesById[id];
-                engineContainer.SendCommand(EngineCommandType.AwardUnisonBonus);
+                if (unison.ParticipantToPhrase.ContainsKey(engineContainer.EngineId))
+                {
+                    YargLogger.LogFormatDebug("EngineManager awarding bonus SP to participant ID {0}", engineContainer.EngineId);
+                    engineContainer.SendCommand(EngineCommandType.AwardUnisonBonus);
+                }
             }
             unison.Awarded = true;
             OnUnisonPhraseSuccess?.Invoke();

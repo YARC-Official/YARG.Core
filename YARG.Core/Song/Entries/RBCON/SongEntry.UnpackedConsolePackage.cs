@@ -39,9 +39,10 @@ namespace YARG.Core.Song
             return image;
         }
 
-        public override BackgroundResult? LoadBackground(bool excludeYarground = false)
+        public override BackgroundResult? LoadBackground(bool enableCensoring, bool excludeYarground = false)
         {
             string yarground = Path.Combine(_root.FullName, _subName, YARGROUND_FULLNAME);
+            string censorSuffix = enableCensoring ? "_clean" : "_explicit";
             if (File.Exists(yarground) && !excludeYarground)
             {
                 var stream = File.OpenRead(yarground);
@@ -53,6 +54,12 @@ namespace YARG.Core.Song
                 var fileBase = Path.Combine(_root.FullName, _subName, name);
                 foreach (var ext in VIDEO_EXTENSIONS)
                 {
+                    string censoredVideoFile = fileBase + censorSuffix + ext;
+                    if (File.Exists(censoredVideoFile))
+                    {
+                        var stream = File.OpenRead(censoredVideoFile);
+                        return new BackgroundResult(BackgroundType.Video, stream);
+                    }
                     string videoFile = fileBase + ext;
                     if (File.Exists(videoFile))
                     {
@@ -68,6 +75,15 @@ namespace YARG.Core.Song
                 var fileBase = Path.Combine(_root.FullName, _subName, name);
                 foreach (var ext in IMAGE_EXTENSIONS)
                 {
+                    string censoredImageFile = fileBase + censorSuffix + ext;
+                    if (File.Exists(censoredImageFile))
+                    {
+                        var image = YARGImage.Load(censoredImageFile);
+                        if (image != null)
+                        {
+                            return new BackgroundResult(image);
+                        }
+                    }
                     string imageFile = fileBase + ext;
                     if (File.Exists(imageFile))
                     {
@@ -88,6 +104,20 @@ namespace YARG.Core.Song
             if (data == null)
             {
                 string path = Path.Combine(_root.FullName, _subName, "gen", _subName + fileExtension);
+                if (File.Exists(path))
+                {
+                    data = FixedArray.LoadFile(path);
+                }
+            }
+            return data;
+        }
+
+        public override FixedArray<byte>? LoadVocData()
+        {
+            var data = LoadUpdateVocData();
+            if (data == null)
+            {
+                var path = Path.Combine(_root.FullName, _subName, _subName + ".voc");
                 if (File.Exists(path))
                 {
                     data = FixedArray.LoadFile(path);

@@ -11,6 +11,8 @@ namespace YARG.Core.Chart
 
         public string Text { get; }
 
+        public bool IsCensorable { get; }
+
         public LyricSymbolFlags Flags => _flags;
 
         public bool JoinWithNext  => (_flags & LyricSymbolFlags.JoinWithNext) != 0;
@@ -24,11 +26,12 @@ namespace YARG.Core.Chart
         // Range shifts are handled externally
         // public bool RangeShift => (_flags & LyricFlags.RangeShift) != 0;
 
-        public LyricEvent(LyricSymbolFlags flags, string text, double time, uint tick)
+        public LyricEvent(LyricSymbolFlags flags, string text, double time, uint tick, bool isCensorable = false)
             : base(time, 0, tick, 0)
         {
             _flags = flags;
             Text = text;
+            IsCensorable = isCensorable;
         }
 
         public LyricEvent(LyricSymbolFlags flags, string text, double time, double timeLength, uint tick, uint tickLength)
@@ -42,6 +45,7 @@ namespace YARG.Core.Chart
         {
             _flags = other._flags;
             Text = other.Text;
+            IsCensorable = other.IsCensorable;
         }
 
         public LyricEvent Clone()

@@ -127,13 +127,15 @@ internal sealed class TestSongEntry : SongEntry
 
     public override SongChart? LoadChart() => null;
 
-    public override StemMixer? LoadAudio(float speed, double volume, params SongStem[] ignoreStems) => null;
+    public override StemMixer? LoadAudio(float speed, double volume, bool enableCensoring, params SongStem[] ignoreStems) => null;
 
-    public override StemMixer? LoadPreviewAudio(float speed) => null;
+    public override StemMixer? LoadPreviewAudio(float speed, bool enableCensoring) => null;
 
     public override YARGImage? LoadAlbumData() => null;
 
-    public override BackgroundResult? LoadBackground(bool excludeYarground) => null;
+    public override BackgroundResult? LoadBackground(bool censoringEnabled, bool excludeYarground = false) => null;
 
     public override FixedArray<byte>? LoadMiloData() => null;
+
+    public override FixedArray<byte>? LoadVocData() => null;
 }

@@ -9,10 +9,12 @@ namespace YARG.Core.Chart.Events
             Idle,
             IdleIntense,
             IdleRealtime,
+            IdleMellow,
             Play,
             PlaySolo,
             Intense,
-            Mellow
+            Mellow,
+            End
         }
 
         public CharacterStateType Type { get; }

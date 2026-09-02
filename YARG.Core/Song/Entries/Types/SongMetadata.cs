@@ -42,6 +42,7 @@ namespace YARG.Core.Song
             VideoLoop = false,
             AlbumTrack = int.MaxValue,
             PlaylistTrack = int.MaxValue,
+            YargGuid = string.Empty,
             LoadingPhrase = string.Empty,
             LinkBandcamp = string.Empty,
             LinkBluesky = string.Empty,
@@ -88,6 +89,7 @@ namespace YARG.Core.Song
             Video = (0, -1),
             VocalScrollSpeedScalingFactor = null,
             VocalGender = VocalGender.Unspecified,
+            CleanVocals = false,
             VenueHint = string.Empty,
             VocalCharacterHint = string.Empty,
         };
@@ -116,6 +118,8 @@ namespace YARG.Core.Song
 
         public int AlbumTrack;
         public int PlaylistTrack;
+
+        public string YargGuid;
 
         public string LoadingPhrase;
 
@@ -163,6 +167,7 @@ namespace YARG.Core.Song
 
         public float? VocalScrollSpeedScalingFactor;
         public VocalGender VocalGender;
+        public bool        CleanVocals;
 
         // Venue hints
         public string VenueHint;
@@ -243,6 +248,11 @@ namespace YARG.Core.Song
             if (modifiers.Extract("playlist", out string playlist) && playlist.Length > 0)
             {
                 metadata.Playlist = playlist;
+            }
+
+            if (modifiers.Extract("yarg_guid", out string guid) && guid.Length > 0)
+            {
+                metadata.YargGuid = guid;
             }
 
             if (modifiers.Extract("loading_phrase", out string loadingPhrase))
@@ -548,6 +558,11 @@ namespace YARG.Core.Song
             if (modifiers.Extract("venue_hint", out string venueHint))
             {
                 metadata.VenueHint = venueHint;
+            }
+
+            if (modifiers.Extract("clean_vocals", out bool cleanVocals))
+            {
+                metadata.CleanVocals = cleanVocals;
             }
         }
     }

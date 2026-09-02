@@ -19,6 +19,7 @@ namespace YARG.Core.Audio
             float speed,
             double delaySeconds,
             double fadeDuration,
+            bool enableCensoring,
             CancellationToken token)
         {
             try
@@ -35,7 +36,7 @@ namespace YARG.Core.Audio
                 }
 
                 // Load the song
-                var mixer = await Task.Run(() => entry.LoadPreviewAudio(speed), token);
+                var mixer = await Task.Run(() => entry.LoadPreviewAudio(speed, enableCensoring), token);
                 if (mixer == null || token.IsCancellationRequested)
                 {
                     mixer?.Dispose();

@@ -30,9 +30,9 @@ namespace YARG.Core.Song
             base.Serialize(stream, node);
         }
 
-        public override StemMixer? LoadAudio(float speed, double volume, params SongStem[] ignoreStems)
+        public override StemMixer? LoadAudio(float speed, double volume, bool enableCensoring, params SongStem[] ignoreStems)
         {
-            bool clampStemVolume = _metadata.Source.ToLowerInvariant() == "yarg";
+            bool clampStemVolume = GlobalAudioHandler.CLAMPED_AUDIO_SOURCES.Contains(_metadata.Source.ToLowerInvariant());
             var mixer = GlobalAudioHandler.CreateMixer(ToString(), speed, volume, clampStemVolume: clampStemVolume,
                 normalize: true);
             if (mixer == null)
@@ -40,28 +40,48 @@ namespace YARG.Core.Song
                 YargLogger.LogError("Failed to create mixer!");
                 return null;
             }
-
+            var addedCleanStems = new HashSet<SongStem>();
             var subFiles = GetSubFiles();
+            if (enableCensoring)
+            {
+                foreach (var stem in IniAudio.SupportedCleanStems)
+                {
+                    var stemEnum = AudioHelpers.SupportedStems[stem];
+
+                    if (ignoreStems.Contains(stemEnum))
+                    {
+                        continue;
+                    }
+
+                    if (TryLoadStem(stem, stemEnum, subFiles, mixer))
+                    {
+                        addedCleanStems.Add(stemEnum);
+                    }
+                }
+            }
+
             foreach (var stem in IniAudio.SupportedStems)
             {
                 var stemEnum = AudioHelpers.SupportedStems[stem];
-                if (ignoreStems.Contains(stemEnum))
-                    continue;
 
-                foreach (var format in IniAudio.SupportedFormats)
+                if (ignoreStems.Contains(stemEnum) || addedCleanStems.Contains(stemEnum))
                 {
-                    var stemName = stem + format;
-                    if (subFiles.TryGetValue(stemName, out var file))
+                    continue;
+                }
+                TryLoadStem(stem, stemEnum, subFiles, mixer);
+            }
+
+            if (!enableCensoring)
+            {
+                foreach (var stem in IniAudio.SupportedExplicitStems)
+                {
+                    var stemEnum = AudioHelpers.SupportedStems[stem];
+
+                    if (ignoreStems.Contains(stemEnum))
                     {
-                        var stream = new FileStream(file, FileMode.Open, FileAccess.Read, FileShare.Read, 1);
-                        if (mixer.AddChannel(stream, stemEnum))
-                        {
-                            // No duplicates
-                            break;
-                        }
-                        stream.Dispose();
-                        YargLogger.LogFormatError("Failed to load stem file {0}", file);
+                        continue;
                     }
+                    TryLoadStem(stem, stemEnum, subFiles, mixer);
                 }
             }
 
@@ -79,9 +99,30 @@ namespace YARG.Core.Song
             return mixer;
         }
 
-        public override StemMixer? LoadPreviewAudio(float speed)
+        private static bool TryLoadStem(string stem, SongStem stemEnum, Dictionary<string, string> fileDictionary, StemMixer mixer)
         {
-            foreach (var filename in PREVIEW_FILES)
+            foreach (var format in IniAudio.SupportedFormats)
+            {
+                var stemName = stem + format;
+                if (fileDictionary.TryGetValue(stemName, out var file))
+                {
+                    var stream = new FileStream(file, FileMode.Open, FileAccess.Read, FileShare.Read, 1);
+                    if (mixer.AddChannel(stream, stemEnum))
+                    {
+                        // No duplicates
+                        return true;
+                    }
+                    stream.Dispose();
+                    YargLogger.LogFormatError("Failed to load stem file {0}", file);
+                }
+            }
+
+            return false;
+        }
+
+        public override StemMixer? LoadPreviewAudio(float speed, bool enableCensoring)
+        {
+            foreach (var filename in enableCensoring ? CLEAN_PREVIEW_FILES : PREVIEW_FILES)
             {
                 var audioFile = Path.Combine(_location, filename);
                 if (File.Exists(audioFile))
@@ -89,7 +130,7 @@ namespace YARG.Core.Song
                     return GlobalAudioHandler.LoadCustomFile(audioFile, speed, 0, true, SongStem.Preview);
                 }
             }
-            return LoadAudio(speed, 0, SongStem.Crowd);
+            return LoadAudio(speed, 0, enableCensoring, SongStem.Crowd);
         }
 
         public override YARGImage? LoadAlbumData()
@@ -120,9 +161,10 @@ namespace YARG.Core.Song
             return null;
         }
 
-        public override BackgroundResult? LoadBackground(bool excludeYarground = false)
+        public override BackgroundResult? LoadBackground(bool enableCensoring, bool excludeYarground = false)
         {
             var subFiles = GetSubFiles();
+            string censorSuffix = enableCensoring ? CLEAN_BACKGROUND_SUFFIX : EXPLICIT_BACKGROUND_SUFFIX;
             if (subFiles.TryGetValue("bg.yarground", out var file) && !excludeYarground)
             {
                 var stream = File.OpenRead(file);
@@ -139,6 +181,11 @@ namespace YARG.Core.Song
             {
                 foreach (var format in VIDEO_EXTENSIONS)
                 {
+                    if (subFiles.TryGetValue(stem + censorSuffix + format, out file))
+                    {
+                        var stream = File.OpenRead(file);
+                        return new BackgroundResult(BackgroundType.Video, stream);
+                    }
                     if (subFiles.TryGetValue(stem + format, out file))
                     {
                         var stream = File.OpenRead(file);
@@ -147,7 +194,7 @@ namespace YARG.Core.Song
                 }
             }
 
-            if (subFiles.TryGetValue(_background, out file) || TryGetRandomBackgroundImage(subFiles, out file))
+            if (subFiles.TryGetValue(_background, out file) || TryGetRandomBackgroundImage(subFiles, enableCensoring, out file))
             {
                 var image = YARGImage.Load(file!);
                 if (image != null)
@@ -165,6 +212,23 @@ namespace YARG.Core.Song
             foreach (var name in subFiles.Keys)
             {
                 if (name.EndsWith(".milo_xbox") || name.EndsWith(".milo"))
+                {
+                    if (subFiles.TryGetValue(name, out var file) && File.Exists(file))
+                    {
+                        return FixedArray.LoadFile(file);
+                    }
+                }
+            }
+
+            return null;
+        }
+        // this is included for completeness, but please do not use this
+        public override FixedArray<byte> LoadVocData()
+        {
+            var subFiles = GetSubFiles();
+            foreach (var name in subFiles.Keys)
+            {
+                if (name.EndsWith(".voc"))
                 {
                     if (subFiles.TryGetValue(name, out var file) && File.Exists(file))
                     {
