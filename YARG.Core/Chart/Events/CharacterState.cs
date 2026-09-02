@@ -13,7 +13,8 @@ namespace YARG.Core.Chart.Events
             Play,
             PlaySolo,
             Intense,
-            Mellow
+            Mellow,
+            End
         }
 
         public CharacterStateType Type { get; }
