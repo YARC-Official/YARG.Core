@@ -15,13 +15,12 @@ The lipsync system has two sources:
 
 The fallback logic is in `SongChart.AutoGeneration.GenerateMissingLipsync()`: Milo (then `.voc`) data is used when present; the generator only runs for parts that have no authored lipsync. Charts with authored lipsync are unaffected by the generator.
 
-### Lo-only visemes
-
-The generator emits only `_lo` visemes. Authored Milo data pairs most `_lo` keyframes with a matching `_hi` channel (11 of the 12 reference charts), but YARG avatars define no `_hi` expression clips and the runtime (`VRMCharacter.SetExpression`) falls back to a single generic mouth key for unknown viseme names — so emitting `_hi` today only doubles the event count with no visual effect. Revisit if avatars ship `_hi` clips (authored pairing is an exact mirror, or lo ≥ hi).
-
----
-
-## LipsyncGenerator Pipeline
+### Lo + hi viseme pairing
+Authored lipsync data emits every viseme as a pair: the `_lo` channel plus its
+`_hi` channel at a fixed 0.43x ratio, at the same timestamp. Avatars with the full
+RB expression set (custom clips named per viseme) render both clips additively, so
+emitting only `_lo` renders 30% narrower than authored. The generator pairs every
+mouth sample through `EmitMouthSample`, and full closures zero both channels.
 
 ### 1. Dictionary Initialization
 
@@ -86,7 +85,8 @@ Phoneme classification:
 | `VOWEL_PEAK_HOLD_TIME` | 0.40s | Absolute cap on the peak hold (long slots) |
 | `VOWEL_DECAY_TIME` | 0.25s | Absolute decay time from peak to the sustain/tail weight |
 | `MAX_UNVOICED_SLOT` | 2.0s | Slot cap when no vocal note end is available (phrase-final words) |
-| `CONSONANT_WEIGHT` | 0.32 | Weight for consonant shapes (authored consonant means measure ~0.28) |
+| `CONSONANT_WEIGHT` | 0.32 | Weight floor for consonant shapes (authored consonant means measure ~0.28) |
+| `HI_LO_RATIO` | 0.43 | Weight of the paired _hi viseme channel relative to _lo |
 | `VOWEL_PEAK_JITTER_MIN` | 0.8 | Per-syllable peak expression range lower bound |
 | `VOWEL_PEAK_JITTER_MAX` | 1.35 | Per-syllable peak expression range upper bound |
 | `MOUTH_GAP_CLOSE` | 1.5s | Silence length after a slot that closes the mouth |

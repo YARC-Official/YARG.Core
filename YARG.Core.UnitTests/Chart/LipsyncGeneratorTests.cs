@@ -196,13 +196,30 @@ namespace YARG.Core.UnitTests.Chart
         }
 
         [Test]
-        public void NoHiVisemesAreEverEmitted()
+        public void HiVisemesArePairedWithLo()
         {
+            // Authored lipsync data pairs every viseme with its _hi channel at a fixed ratio
+            // (hi = 0.43 x lo); avatars with the full RB expression set render both clips.
             foreach (var word in new[] { "the", "think", "off", "her", "day", "go", "boy", "my", "cat", "she", "sing", "love", "bed" })
             {
-                var visemes = GetEmittedVisemes(word);
-                Assert.That(visemes.Where(t => t.ToString().EndsWith("_hi", StringComparison.Ordinal)),
-                    Is.Empty, $"Word '{word}' emitted _hi visemes");
+                var lyric = new LyricEvent(LyricSymbolFlags.None, word, 0.0, 0);
+                var phrase = new LyricsPhrase(0.0, 1.0, 0, 480, new List<LyricEvent> { lyric });
+                var track = new LyricsTrack(new List<LyricsPhrase> { phrase });
+                var events = LipsyncGenerator.GenerateFromLyrics(track);
+
+                var loEvents = events.Where(e => e.Value > 0.01f
+                    && e.Type.ToString().EndsWith("_lo", StringComparison.Ordinal));
+                foreach (var lo in loEvents)
+                {
+                    var hiType = (LipsyncEvent.LipsyncType) System.Enum.Parse(
+                        typeof(LipsyncEvent.LipsyncType), lo.Type.ToString().Replace("_lo", "_hi"));
+                    var hi = events.FirstOrDefault(e => e.Type == hiType
+                        && System.Math.Abs(e.Time - lo.Time) < 0.001);
+                    Assert.That(hi, Is.Not.Null,
+                        $"Word '{word}': {lo.Type}@{lo.Value:0.00} has no paired {hiType}");
+                    Assert.That(hi!.Value, Is.EqualTo(lo.Value * 0.43f).Within(0.01),
+                        $"Word '{word}': {hiType} weight should be 0.43x the {lo.Type} weight");
+                }
             }
         }
     }

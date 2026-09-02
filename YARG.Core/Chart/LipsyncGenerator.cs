@@ -38,17 +38,16 @@ namespace YARG.Core.Chart
 
         // Co-articulation: the outgoing shape keeps a faint residual while the new one rises,
         // so transitions overlap like authored keyframes instead of snapping between poses
-        private const float CO_ARTICULATION_RESIDUAL = 0.08f;
-        private const double CO_ARTICULATION_FADE_FRACTION = 0.6; // Ramp fraction spent fading to the residual
+        private const double CO_ARTICULATION_FADE_FRACTION = 1.0; // Outgoing shape fades across the whole ramp
 
         // Vowel peak scales with note length (longer/held notes open fuller, like authored lipsync).
         // The vowel rides a peak-shaped envelope: peak at the syllable, decaying to a low tail —
         // authored keyframes spend most of their time at low weights and rarely reach full open.
-        private const float VOWEL_PEAK_BASE_WEIGHT = 0.50f;   // Peak weight floor for short syllables
+        private const float VOWEL_PEAK_BASE_WEIGHT = 0.58f;   // Peak weight floor for short syllables
         private const float VOWEL_PEAK_SCALE = 0.60f;         // Peak weight growth per second of note length
         private const float VOWEL_PEAK_CAP = 1.00f;           // Maximum vowel peak weight
-        private const float VOWEL_TAIL_WEIGHT = 0.42f;        // Weight the vowel decays to by the slot end (no note evidence)
-        private const float VOWEL_SUSTAIN_FLOOR = 0.58f;      // Sustain weight on long notes (authored sustains measure ~0.5)
+        private const float VOWEL_TAIL_WEIGHT = 0.50f;        // Weight the vowel decays to by the slot end (no note evidence)
+        private const float VOWEL_SUSTAIN_FLOOR = 0.72f;      // Sustain weight on long notes (authored sustains measure ~0.5)
         private const float VOWEL_PITCH_MOD = 0.12f;          // Sustain openness varies with pitch (higher = slightly more open)
         private const float VOCAL_PITCH_MIN = 36f;            // Vocal pitch range used for normalization (midi note numbers)
         private const float VOCAL_PITCH_MAX = 84f;
@@ -56,6 +55,7 @@ namespace YARG.Core.Chart
         private const double VOWEL_PEAK_HOLD_TIME = 0.40;     // Absolute cap on the peak hold (long slots)
         private const double VOWEL_DECAY_TIME = 0.25;         // Absolute decay time from peak to tail
         private const float CONSONANT_WEIGHT = 0.32f;         // Authored consonant means measure ~0.28
+        private const float HI_LO_RATIO = 0.43f;        // Every viseme pairs _hi at 0.43x its _lo weight
         private const double MOUTH_GAP_CLOSE = 1.5;     // Silence length that closes the mouth
         private const double MOUTH_CLOSE_DELAY = 0.30;  // Delay after the note before closing
         private const double MOUTH_CLOSE_TIME = 0.25;   // Mouth close ramp length
@@ -87,7 +87,53 @@ namespace YARG.Core.Chart
             LipsyncEvent.LipsyncType.Ox_lo, LipsyncEvent.LipsyncType.Roar_lo,
             LipsyncEvent.LipsyncType.Size_lo, LipsyncEvent.LipsyncType.Though_lo,
             LipsyncEvent.LipsyncType.Told_lo, LipsyncEvent.LipsyncType.Wet_lo,
+            LipsyncEvent.LipsyncType.Bump_hi, LipsyncEvent.LipsyncType.Cage_hi,
+            LipsyncEvent.LipsyncType.Church_hi, LipsyncEvent.LipsyncType.Earth_hi,
+            LipsyncEvent.LipsyncType.Eat_hi, LipsyncEvent.LipsyncType.Fave_hi,
+            LipsyncEvent.LipsyncType.If_hi, LipsyncEvent.LipsyncType.Neutral_hi,
+            LipsyncEvent.LipsyncType.New_hi, LipsyncEvent.LipsyncType.Oat_hi,
+            LipsyncEvent.LipsyncType.Ox_hi, LipsyncEvent.LipsyncType.Roar_hi,
+            LipsyncEvent.LipsyncType.Size_hi, LipsyncEvent.LipsyncType.Though_hi,
+            LipsyncEvent.LipsyncType.Told_hi, LipsyncEvent.LipsyncType.Wet_hi,
         };
+
+        /// <summary>
+        /// The _hi counterpart of a _lo viseme (authored data pairs them, _hi at
+        /// <see cref="HI_LO_RATIO"/> times the _lo weight). Returns null for non-mouth types.
+        /// </summary>
+        private static LipsyncEvent.LipsyncType? HiOf(LipsyncEvent.LipsyncType type) => type switch
+        {
+            LipsyncEvent.LipsyncType.Bump_lo => LipsyncEvent.LipsyncType.Bump_hi,
+            LipsyncEvent.LipsyncType.Cage_lo => LipsyncEvent.LipsyncType.Cage_hi,
+            LipsyncEvent.LipsyncType.Church_lo => LipsyncEvent.LipsyncType.Church_hi,
+            LipsyncEvent.LipsyncType.Earth_lo => LipsyncEvent.LipsyncType.Earth_hi,
+            LipsyncEvent.LipsyncType.Eat_lo => LipsyncEvent.LipsyncType.Eat_hi,
+            LipsyncEvent.LipsyncType.Fave_lo => LipsyncEvent.LipsyncType.Fave_hi,
+            LipsyncEvent.LipsyncType.If_lo => LipsyncEvent.LipsyncType.If_hi,
+            LipsyncEvent.LipsyncType.Neutral_lo => LipsyncEvent.LipsyncType.Neutral_hi,
+            LipsyncEvent.LipsyncType.New_lo => LipsyncEvent.LipsyncType.New_hi,
+            LipsyncEvent.LipsyncType.Oat_lo => LipsyncEvent.LipsyncType.Oat_hi,
+            LipsyncEvent.LipsyncType.Ox_lo => LipsyncEvent.LipsyncType.Ox_hi,
+            LipsyncEvent.LipsyncType.Roar_lo => LipsyncEvent.LipsyncType.Roar_hi,
+            LipsyncEvent.LipsyncType.Size_lo => LipsyncEvent.LipsyncType.Size_hi,
+            LipsyncEvent.LipsyncType.Though_lo => LipsyncEvent.LipsyncType.Though_hi,
+            LipsyncEvent.LipsyncType.Told_lo => LipsyncEvent.LipsyncType.Told_hi,
+            LipsyncEvent.LipsyncType.Wet_lo => LipsyncEvent.LipsyncType.Wet_hi,
+            _ => null,
+        };
+
+        /// <summary>
+        /// Emits one mouth sample: the viseme's _lo weight plus its paired _hi at
+        /// <see cref="HI_LO_RATIO"/> times that weight, exactly like authored lipsync data.
+        /// </summary>
+        private static void EmitMouthSample(List<LipsyncEvent> events, LipsyncEvent.LipsyncType type,
+            float weight, double time, uint tick)
+        {
+            events.Add(new LipsyncEvent(type, weight, time, tick));
+            var hi = HiOf(type);
+            if (hi.HasValue)
+                events.Add(new LipsyncEvent(hi.Value, weight * HI_LO_RATIO, time, tick));
+        }
 
         public static List<LipsyncEvent> GenerateFromLyrics(LyricsTrack lyrics)
         {
@@ -697,7 +743,7 @@ namespace YARG.Core.Chart
                     {
                         if (viseme == mouth.Type)
                             continue;
-                        events.Add(new LipsyncEvent(viseme, 0f, closeEnd, slot.Tick));
+                        EmitMouthSample(events, viseme, 0f, closeEnd, slot.Tick);
                     }
                     mouth.LastEmissionEnd = closeEnd;
                 }
@@ -722,7 +768,7 @@ namespace YARG.Core.Chart
                     {
                         float weight = Math.Clamp(baseWeight + amp
                             * (float) Math.Sin(2.0 * Math.PI * VOWEL_WOBBLE_HZ * wt), 0f, VOWEL_PEAK_CAP);
-                        events.Add(new LipsyncEvent(mouth.Type, weight, wt, slot.Tick));
+                        EmitMouthSample(events, mouth.Type, weight, wt, slot.Tick);
                         last = weight;
                     }
                     mouth.Weight = last;
@@ -746,7 +792,7 @@ namespace YARG.Core.Chart
             {
                 float weight = Math.Clamp(mouth.Weight + amp
                     * (float) Math.Sin(2.0 * Math.PI * VOWEL_WOBBLE_HZ * t), 0f, VOWEL_PEAK_CAP);
-                events.Add(new LipsyncEvent(mouth.Type, weight, t, tick));
+                EmitMouthSample(events, mouth.Type, weight, t, tick);
             }
             mouth.LastEmissionEnd = endTime;
         }
@@ -804,7 +850,7 @@ namespace YARG.Core.Chart
                 // singing (mean frame delta ~0.1) instead of holding flat between events.
                 weight = Math.Clamp(weight + wobbleAmplitude
                     * (float) Math.Sin(2.0 * Math.PI * VOWEL_WOBBLE_HZ * t + wobblePhase), 0f, VOWEL_PEAK_CAP);
-                events.Add(new LipsyncEvent(mouth.Type, weight, t, tick));
+                EmitMouthSample(events, mouth.Type, weight, t, tick);
                 lastWeight = weight;
             }
             mouth.LastEmissionEnd = stopTime;
@@ -844,8 +890,8 @@ namespace YARG.Core.Chart
             if (duration <= 0.005)
             {
                 if (fromWeight > 0.001f && fromType != toType)
-                    events.Add(new LipsyncEvent(fromType, 0f, startTime, tick));
-                events.Add(new LipsyncEvent(toType, toWeight, startTime, tick));
+                    EmitMouthSample(events, fromType, 0f, startTime, tick);
+                EmitMouthSample(events, toType, toWeight, startTime, tick);
             }
             else
             {
@@ -862,26 +908,16 @@ namespace YARG.Core.Chart
 
                     if (emitFrom)
                     {
-                        // Co-articulation: fade the outgoing shape to a small residual first, then
-                        // out, leaving both shapes faintly active mid-transition like authored data
-                        float residual = Math.Min(CO_ARTICULATION_RESIDUAL, fromWeight);
-                        float outWeight;
-                        if (t < CO_ARTICULATION_FADE_FRACTION)
-                        {
-                            float fade = t / (float) CO_ARTICULATION_FADE_FRACTION;
-                            outWeight = residual + (fromWeight - residual) * (1 - fade);
-                        }
-                        else
-                        {
-                            float fade = (float) ((t - CO_ARTICULATION_FADE_FRACTION)
-                                / (1.0 - CO_ARTICULATION_FADE_FRACTION));
-                            outWeight = residual * (1 - fade);
-                        }
-
+                        // Co-articulation: cross-fade the outgoing shape to zero across the whole
+                        // ramp. Authored data always has 2-3 visemes blending simultaneously; the
+                        // outgoing shape's fade keeps the total openness continuous.
+                        float outWeight = CO_ARTICULATION_FADE_FRACTION >= 1.0
+                            ? fromWeight * (1 - t)
+                            : fromWeight * (1 - Math.Min(1f, t / (float) CO_ARTICULATION_FADE_FRACTION));
                         if (outWeight > 0.001f || i == steps)
-                            events.Add(new LipsyncEvent(fromType, outWeight, time, tick));
+                            EmitMouthSample(events, fromType, outWeight, time, tick);
                     }
-                    events.Add(new LipsyncEvent(toType, fromWeight + (toWeight - fromWeight) * t, time, tick));
+                    EmitMouthSample(events, toType, fromWeight + (toWeight - fromWeight) * t, time, tick);
                 }
             }
 
