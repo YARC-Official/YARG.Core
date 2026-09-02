@@ -106,8 +106,14 @@ namespace YARG.Core.Chart
                 double nextPhraseStart = double.MaxValue;
                 for (int p = i + 1; p < lyrics.Phrases.Count && nextPhraseStart == double.MaxValue; p++)
                 {
-                    if (lyrics.Phrases[p].Lyrics.Count > 0)
-                        nextPhraseStart = lyrics.Phrases[p].Lyrics[0].Time;
+                    foreach (var l in lyrics.Phrases[p].Lyrics)
+                    {
+                        if (!string.IsNullOrWhiteSpace(LyricSymbols.StripForVocals(l.Text)))
+                        {
+                            nextPhraseStart = l.Time;
+                            break;
+                        }
+                    }
                 }
 
                 ProcessPhrase(events, phrase.Lyrics, phrase.Time + phrase.TimeLength, notesByTick, random,
@@ -140,8 +146,14 @@ namespace YARG.Core.Chart
                 double nextPhraseStart = double.MaxValue;
                 for (int p = i + 1; p < part.StaticLyricPhrases.Count && nextPhraseStart == double.MaxValue; p++)
                 {
-                    if (part.StaticLyricPhrases[p].Lyrics.Count > 0)
-                        nextPhraseStart = part.StaticLyricPhrases[p].Lyrics[0].Time;
+                    foreach (var l in part.StaticLyricPhrases[p].Lyrics)
+                    {
+                        if (!string.IsNullOrWhiteSpace(LyricSymbols.StripForVocals(l.Text)))
+                        {
+                            nextPhraseStart = l.Time;
+                            break;
+                        }
+                    }
                 }
 
                 ProcessPhrase(events, phrase.Lyrics, phrase.Time + phrase.TimeLength, notesByTick, random,

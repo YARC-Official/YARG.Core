@@ -76,8 +76,6 @@ Phoneme classification:
 |----------|-------|---------|
 | `ATTACK_MAX_TIME` | 0.20s | Consonant/vowel attack ramp length |
 | `CODA_MAX_TIME` | 0.15s | Final-consonant ramp length |
-| `RELEASE_TIME` | 0.20s | Mouth close ramp length |
-| `RELEASE_THRESHOLD` | 0.30s | Minimum gap before releasing the mouth |
 | `STEP_TIME` | 1/30s | Interpolation step interval (Milo-style keyframes) |
 | `MIN_SLOT_DURATION` | 0.05s | Minimum syllable slot duration |
 | `VOWEL_PEAK_BASE_WEIGHT` | 0.40 | Peak weight floor for short syllables |
@@ -121,7 +119,8 @@ t-attack                 t                       t+d
 │   └─ If diphthong: envelope to 60%, then ramp to VowelEnd at the
 │       envelope's current weight over the remaining 40%
 ├─ Coda: ramp from the tail through each final consonant up to t+d
-└─ Release (only if a gap > RELEASE_THRESHOLD follows): ramp weight to 0 over RELEASE_TIME
+└─ Closure (only if a gap ≥ MOUTH_GAP_CLOSE follows): ramp weight to 0 over
+    MOUTH_CLOSE_TIME after MOUTH_CLOSE_DELAY, then zero every mouth channel
 ```
 
 All ramps use smoothstep easing for S-curved motion. Mouth state is tracked while
