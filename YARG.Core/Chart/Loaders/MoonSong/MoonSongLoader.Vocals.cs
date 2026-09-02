@@ -309,26 +309,45 @@ namespace YARG.Core.Chart
             var mergedLyrics = new List<LyricEvent>();
             var mergedLyricIdx = 0;
 
-            for (var mainLyricIdx = 0; mainLyricIdx < mainPhrase.Lyrics.Count; mainLyricIdx++)
+            var mainPhraseLyrics = mainPhrase.Lyrics.Where(lyric => !lyric.HarmonyHidden).ToList();
+            var otherPhraseLyrics = otherPhrase.Lyrics.Where(lyric => !lyric.HarmonyHidden).ToList();
+
+            if (mainPhraseLyrics.Count == 0 && otherPhraseLyrics.Count == 0)
             {
-                var mainLyric = mainPhrase.Lyrics[mainLyricIdx];
+                YargLogger.LogFormatWarning("Both phrases at tick {0} have no visible lyrics. Returning main phrase.", mainPhrase.Tick);
+                return mainPhrase;
+            }
+
+            if (mainPhraseLyrics.Count == 0)
+            {
+                return otherPhrase;
+            }
+
+            if (otherPhraseLyrics.Count == 0)
+            {
+                return mainPhrase;
+            }
+
+            for (var mainLyricIdx = 0; mainLyricIdx < mainPhraseLyrics.Count; mainLyricIdx++)
+            {
+                var mainLyric = mainPhraseLyrics[mainLyricIdx];
 
                 // Handle any merged lyrics that happened before the current main lyric
-                while (mergedLyricIdx < otherPhrase.Lyrics.Count)
+                while (mergedLyricIdx < otherPhraseLyrics.Count)
                 {
-                    if (otherPhrase.Lyrics[mergedLyricIdx].Tick >= mainLyric.Tick)
+                    if (otherPhraseLyrics[mergedLyricIdx].Tick >= mainLyric.Tick)
                     {
                         break;
                     }
 
-                    mergedLyrics.Add(otherPhrase.Lyrics[mergedLyricIdx++]);
+                    mergedLyrics.Add(otherPhraseLyrics[mergedLyricIdx++]);
                 }
 
                 // If there's a simultaneous syllable in the merged part...
-                if (mergedLyricIdx < otherPhrase.Lyrics.Count &&
-                    otherPhrase.Lyrics[mergedLyricIdx].Tick == mainLyric.Tick)
+                if (mergedLyricIdx < otherPhraseLyrics.Count &&
+                    otherPhraseLyrics[mergedLyricIdx].Tick == mainLyric.Tick)
                 {
-                    var simultaneousMergedLyric = otherPhrase.Lyrics[mergedLyricIdx++];
+                    var simultaneousMergedLyric = otherPhraseLyrics[mergedLyricIdx++];
                     // ...and their texts match...
                     if (string.Equals(simultaneousMergedLyric.Text, mainLyric.Text, StringComparison.OrdinalIgnoreCase))
                     {
@@ -351,9 +370,9 @@ namespace YARG.Core.Chart
             }
 
             // Handle any remaining merged lyrics after the last main phrase lyric
-            while (mergedLyricIdx < otherPhrase.Lyrics.Count)
+            while (mergedLyricIdx < otherPhraseLyrics.Count)
             {
-                mergedLyrics.Add(otherPhrase.Lyrics[mergedLyricIdx++]);
+                mergedLyrics.Add(otherPhraseLyrics[mergedLyricIdx++]);
             }
 
             mainPhrase.PhraseParentNote.AddChildNote(otherPhrase.PhraseParentNote.Clone());
