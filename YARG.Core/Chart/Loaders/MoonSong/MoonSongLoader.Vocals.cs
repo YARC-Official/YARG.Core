@@ -255,51 +255,68 @@ namespace YARG.Core.Chart
 
             phrases.TrimExcess();
             // This needs to be done at the end because of carried notes.
-            phrases.ForEach(FixLyricLengths);
+            phrases.ForEach(phrase => FixLyricLengths(phrase, staticLyricPhrases));
 
             return phrases;
-        }
-
-        /// <summary>
-        /// Finds the vocal note that is associated with this lyric (on the same tick).
-        /// </summary>
-        /// <param name="lyric">The lyric to match against.</param>
-        /// <param name="notes">The list of vocal notes in the phrase.</param>
-        /// <returns>The found vocal note, or null if no match.</returns>
-        private static VocalNote? GetNoteForLyric(LyricEvent lyric, List<VocalNote> notes)
-        {
-            for (int i = 0; i < notes.Count; i++)
-            {
-                var note = notes[i];
-                if (note.Tick == lyric.Tick)
-                {
-                    return note;
-                }
-            }
-
-            return null;
         }
 
         /// <summary>
         /// Attempts to provide lengths for lyrics events in a phrase by associating them with vocal notes.
         /// </summary>
         /// <param name="phrase">The phrase containing the lyrics and vocal notes.</param>
-        private static void FixLyricLengths(VocalsPhrase phrase)
+        /// <param name="isStaticLyricsPhrase">Whether this phrase is a static lyrics phrase, which decides whether to remove unpaired lyrics.</param>
+        private static void FixLyricLengths(VocalsPhrase phrase, bool isStaticLyricsPhrase)
         {
-            for (var i = 0; i < phrase.Lyrics.Count; i++)
+            var matchedLyrics = new bool[phrase.Lyrics.Count];
+            for (var i = 0; i < phrase.PhraseParentNote.ChildNotes.Count; i++)
             {
-                var lyric = phrase.Lyrics[i];
-                var note = GetNoteForLyric(lyric, phrase.PhraseParentNote.ChildNotes);
-                if (note != null)
+                var note = phrase.PhraseParentNote.ChildNotes[i];
+                var distance = double.MaxValue;
+                int? closestLyricIndex = null;
+                for (int j = 0; j < phrase.Lyrics.Count; j++)
                 {
-                    lyric.TimeLength = note.TotalTimeEnd - note.Time;
-                    lyric.TickLength = note.TotalTickEnd - note.Tick;
+                    if (matchedLyrics[j]) continue;
+                    var lyric = phrase.Lyrics[j];
+                    // lyrics *should* be ordered by tick, but once we find a lyric with a tick greater than the last distance, we can break
+                    var newDistance = Math.Abs(note.Tick - lyric.Tick);
+                    if (newDistance < distance)
+                    {
+                        distance = newDistance;
+                        closestLyricIndex = j;
+                    }
+                    else
+                    {
+                        break;
+                    }
+                }
+                if (closestLyricIndex is not null)
+                {
+                    var closestLyric = phrase.Lyrics[closestLyricIndex.Value];
+                    matchedLyrics[closestLyricIndex.Value] = true;
+                    closestLyric.TimeLength = note.TotalTimeEnd - note.Time;
+                    closestLyric.TickLength = note.TotalTickEnd - note.Tick;
                 }
                 else
                 {
                     YargLogger.LogFormatWarning(
-                        "Could not find a note for lyric '{0}' at tick {1} in phrase at tick {2}",
-                        lyric.Text, lyric.Tick, phrase.Tick);
+                        "Could not find a lyric for note at tick {0} in phrase at tick {1}",
+                        note.Tick, phrase.Tick);
+                }
+            }
+
+            if (isStaticLyricsPhrase)
+            {
+                for (int i = 0; i < phrase.Lyrics.Count; i++)
+                {
+                    var lyric = phrase.Lyrics[i];
+                    if (!matchedLyrics[i])
+                    {
+                        YargLogger.LogFormatWarning(
+                            "Could not find a note for lyric '{0}' at tick {1} in phrase at tick {2}, removing",
+                            lyric.Text, lyric.Tick, phrase.Tick);
+                        phrase.Lyrics.RemoveAt(i);
+                        i--;
+                    }
                 }
             }
         }
