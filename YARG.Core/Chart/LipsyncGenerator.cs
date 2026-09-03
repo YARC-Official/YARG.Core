@@ -23,7 +23,8 @@ namespace YARG.Core.Chart
     /// </remarks>
     public static class LipsyncGenerator
     {
-        private const double ATTACK_MAX_TIME = 0.12;    // Consonant/vowel attack ramp length
+        private const double ATTACK_MAX_TIME = 0.18;    // Consonant/vowel attack ramp length
+        private const double ATTACK_MIN_TIME = 0.10;    // Floor so fast syllables still cross-fade
         private const double CODA_MAX_TIME = 0.15;      // Final-consonant ramp length
         private const double STEP_TIME = 1.0 / 30;      // ~30fps interpolation steps (Milo-style keyframes)
         private const double MIN_SLOT_DURATION = 0.05;  // Minimum syllable slot duration
@@ -45,7 +46,7 @@ namespace YARG.Core.Chart
         // authored keyframes spend most of their time at low weights and rarely reach full open.
         private const float VOWEL_PEAK_BASE_WEIGHT = 0.58f;   // Peak weight floor for short syllables
         private const float VOWEL_PEAK_SCALE = 0.60f;         // Peak weight growth per second of note length
-        private const float VOWEL_PEAK_CAP = 1.00f;           // Maximum vowel peak weight
+        private const float VOWEL_PEAK_CAP = 0.90f;           // Maximum vowel peak weight (lo+hi pair then sums to ~1.29, like authored)
         private const float VOWEL_TAIL_WEIGHT = 0.50f;        // Weight the vowel decays to by the slot end (no note evidence)
         private const float VOWEL_SUSTAIN_FLOOR = 0.72f;      // Sustain weight on long notes (authored sustains measure ~0.5)
         private const float VOWEL_PITCH_MOD = 0.12f;          // Sustain openness varies with pitch (higher = slightly more open)
@@ -56,6 +57,7 @@ namespace YARG.Core.Chart
         private const double VOWEL_DECAY_TIME = 0.25;         // Absolute decay time from peak to tail
         private const float CONSONANT_WEIGHT = 0.32f;         // Authored consonant means measure ~0.28
         private const float HI_LO_RATIO = 0.43f;        // Every viseme pairs _hi at 0.43x its _lo weight
+        private const float TOTAL_LO_BUDGET = 1.0f;     // Sum of all _lo weights (authored cross-fades stay ~1.0)
         private const double MOUTH_GAP_CLOSE = 1.5;     // Silence length that closes the mouth
         private const double MOUTH_CLOSE_DELAY = 0.30;  // Delay after the note before closing
         private const double MOUTH_CLOSE_TIME = 0.25;   // Mouth close ramp length
@@ -126,13 +128,34 @@ namespace YARG.Core.Chart
         /// Emits one mouth sample: the viseme's _lo weight plus its paired _hi at
         /// <see cref="HI_LO_RATIO"/> times that weight, exactly like authored lipsync data.
         /// </summary>
-        private static void EmitMouthSample(List<LipsyncEvent> events, LipsyncEvent.LipsyncType type,
-            float weight, double time, uint tick)
+        private static void EmitMouthSample(List<LipsyncEvent> events, ref MouthState mouth,
+            LipsyncEvent.LipsyncType type, float weight, double time, uint tick)
         {
+            // Keep the summed _lo weight inside the authored band: during blends the incoming
+            // shape yields to the still-fading outgoing ones instead of piling on top.
+            float others = 0f;
+            var hiSelf = HiOf(type);
+            foreach (var pair in mouth.Active)
+            {
+                if (pair.Key != type && pair.Key != hiSelf)
+                    others += pair.Value;
+            }
+            weight = Math.Min(weight, Math.Max(0f, TOTAL_LO_BUDGET - others));
+
             events.Add(new LipsyncEvent(type, weight, time, tick));
+            if (weight <= 0.001f)
+                mouth.Active.Remove(type);
+            else
+                mouth.Active[type] = weight;
             var hi = HiOf(type);
             if (hi.HasValue)
+            {
                 events.Add(new LipsyncEvent(hi.Value, weight * HI_LO_RATIO, time, tick));
+                if (weight <= 0.001f)
+                    mouth.Active.Remove(hi.Value);
+                else
+                    mouth.Active[hi.Value] = weight * HI_LO_RATIO;
+            }
         }
 
         public static List<LipsyncEvent> GenerateFromLyrics(LyricsTrack lyrics)
@@ -605,30 +628,92 @@ namespace YARG.Core.Chart
 
             int attackSegments = syll.Initial.Count + (hasVowel ? 1 : 0);
 
-            // Anticipation: place the attack BEFORE the syllable (in the gap after the previous
-            // syllable) so the mouth peaks at the lyric, like authored Milo lipsync. When singing
-            // is continuous (no gap), compress the attack into the first couple of frames instead
-            // of building up late.
-            double desiredAttack = attackSegments > 0 ? Math.Min(ATTACK_MAX_TIME, duration * 0.4) : 0;
+            // Anticipation: place the attack BEFORE the syllable so the mouth peaks at the
+            // lyric, like authored Milo lipsync. The attack keeps a minimum duration even on
+            // fast lyrics (authored cross-fades take ~0.3s regardless of note rate), which
+            // makes it overlap the previous syllable's tail; the overlap truncates that
+            // syllable's envelope so the cross-fade owns the outgoing shape.
+            double desiredAttack = attackSegments > 0
+                ? Math.Clamp(duration * 0.4, ATTACK_MIN_TIME, ATTACK_MAX_TIME)
+                : 0;
             double gap = slot.Start - mouth.LastEmissionEnd;
             double attack;
             double attackStart;
             if (attackSegments > 0 && gap > 0.005)
             {
-                attack = Math.Min(desiredAttack, gap);
+                attack = Math.Min(desiredAttack, Math.Max(gap, ATTACK_MIN_TIME));
                 attackStart = slot.Start - attack;
             }
             else if (attackSegments > 0)
             {
-                attack = Math.Min(desiredAttack, 0.07);
-                attackStart = slot.Start;
+                attack = ATTACK_MIN_TIME;
+                attackStart = Math.Max(0, slot.Start - attack);
             }
             else
             {
                 attack = 0;
                 attackStart = slot.Start;
             }
-            double coda = syll.Final.Count > 0 ? Math.Min(CODA_MAX_TIME, duration * 0.25) : 0;
+
+            // Trim the previous syllable's emission tail inside the overlap window so its
+            // envelope steps do not fight this slot's cross-fade on the outgoing channel.
+            if (attack > 0 && attackStart < mouth.LastEmissionEnd && events.Count > 0)
+            {
+                var hiType = HiOf(mouth.Type);
+                int keep = events.Count;
+                while (keep > 0)
+                {
+                    var last = events[keep - 1];
+                    if (last.Time <= attackStart || (last.Type != mouth.Type && last.Type != hiType))
+                        break;
+                    keep--;
+                }
+                if (keep < events.Count)
+                    events.RemoveRange(keep, events.Count - keep);
+            }
+
+            // Fade out every OTHER held shape across the attack: authored cross-fades keep at
+            // most ~2 visemes overlapping; stale channels would accumulate on fast lyrics.
+            if (attack > 0.005)
+            {
+                var incoming = new HashSet<LipsyncEvent.LipsyncType> { mouth.Type };
+                if (hasVowel)
+                {
+                    incoming.Add(syll.VowelMain);
+                    var vhi = HiOf(syll.VowelMain);
+                    if (vhi.HasValue) incoming.Add(vhi.Value);
+                    if (syll.VowelEnd.HasValue)
+                    {
+                        incoming.Add(syll.VowelEnd.Value);
+                        var ehi = HiOf(syll.VowelEnd.Value);
+                        if (ehi.HasValue) incoming.Add(ehi.Value);
+                    }
+                }
+                foreach (var consonant in syll.Initial)
+                {
+                    incoming.Add(consonant);
+                    var chi = HiOf(consonant);
+                    if (chi.HasValue) incoming.Add(chi.Value);
+                }
+
+                int fadeSteps = Math.Max(1, (int) Math.Ceiling(attack / STEP_TIME));
+                double fadeStep = attack / fadeSteps;
+                foreach (var pair in mouth.Active.ToArray())
+                {
+                    if (incoming.Contains(pair.Key) || pair.Value <= 0.02f)
+                        continue;
+                    for (int i = 1; i <= fadeSteps; i++)
+                    {
+                        float f = 1f - (float) i / fadeSteps;
+                        EmitMouthSample(events, ref mouth, pair.Key, pair.Value * f,
+                            attackStart + i * fadeStep, slot.Tick);
+                    }
+                }
+            }
+
+            double coda = syll.Final.Count > 0
+                ? Math.Clamp(duration * 0.25, 0.05, CODA_MAX_TIME)
+                : 0;
 
             // Never let attack + coda consume the whole slot
             if (attack + coda > duration * 0.9)
@@ -743,8 +828,9 @@ namespace YARG.Core.Chart
                     {
                         if (viseme == mouth.Type)
                             continue;
-                        EmitMouthSample(events, viseme, 0f, closeEnd, slot.Tick);
+                        EmitMouthSample(events, ref mouth, viseme, 0f, closeEnd, slot.Tick);
                     }
+                    mouth.Active.Clear();
                     mouth.LastEmissionEnd = closeEnd;
                 }
                 else
@@ -768,7 +854,7 @@ namespace YARG.Core.Chart
                     {
                         float weight = Math.Clamp(baseWeight + amp
                             * (float) Math.Sin(2.0 * Math.PI * VOWEL_WOBBLE_HZ * wt), 0f, VOWEL_PEAK_CAP);
-                        EmitMouthSample(events, mouth.Type, weight, wt, slot.Tick);
+                        EmitMouthSample(events, ref mouth, mouth.Type, weight, wt, slot.Tick);
                         last = weight;
                     }
                     mouth.Weight = last;
@@ -792,7 +878,7 @@ namespace YARG.Core.Chart
             {
                 float weight = Math.Clamp(mouth.Weight + amp
                     * (float) Math.Sin(2.0 * Math.PI * VOWEL_WOBBLE_HZ * t), 0f, VOWEL_PEAK_CAP);
-                EmitMouthSample(events, mouth.Type, weight, t, tick);
+                EmitMouthSample(events, ref mouth, mouth.Type, weight, t, tick);
             }
             mouth.LastEmissionEnd = endTime;
         }
@@ -850,7 +936,7 @@ namespace YARG.Core.Chart
                 // singing (mean frame delta ~0.1) instead of holding flat between events.
                 weight = Math.Clamp(weight + wobbleAmplitude
                     * (float) Math.Sin(2.0 * Math.PI * VOWEL_WOBBLE_HZ * t + wobblePhase), 0f, VOWEL_PEAK_CAP);
-                EmitMouthSample(events, mouth.Type, weight, t, tick);
+                EmitMouthSample(events, ref mouth, mouth.Type, weight, t, tick);
                 lastWeight = weight;
             }
             mouth.LastEmissionEnd = stopTime;
@@ -890,8 +976,8 @@ namespace YARG.Core.Chart
             if (duration <= 0.005)
             {
                 if (fromWeight > 0.001f && fromType != toType)
-                    EmitMouthSample(events, fromType, 0f, startTime, tick);
-                EmitMouthSample(events, toType, toWeight, startTime, tick);
+                    EmitMouthSample(events, ref mouth, fromType, 0f, startTime, tick);
+                EmitMouthSample(events, ref mouth, toType, toWeight, startTime, tick);
             }
             else
             {
@@ -915,9 +1001,9 @@ namespace YARG.Core.Chart
                             ? fromWeight * (1 - t)
                             : fromWeight * (1 - Math.Min(1f, t / (float) CO_ARTICULATION_FADE_FRACTION));
                         if (outWeight > 0.001f || i == steps)
-                            EmitMouthSample(events, fromType, outWeight, time, tick);
+                            EmitMouthSample(events, ref mouth, fromType, outWeight, time, tick);
                     }
-                    EmitMouthSample(events, toType, fromWeight + (toWeight - fromWeight) * t, time, tick);
+                    EmitMouthSample(events, ref mouth, toType, fromWeight + (toWeight - fromWeight) * t, time, tick);
                 }
             }
 
@@ -926,11 +1012,15 @@ namespace YARG.Core.Chart
             mouth.LastEmissionEnd = startTime + duration;
         }
 
-        private struct MouthState
+        private sealed class MouthState
         {
             public LipsyncEvent.LipsyncType Type;
             public float Weight;
             public double LastEmissionEnd;  // Time of the last emitted mouth event
+
+            // Weight currently held by every mouth channel (visemes persist until rewritten).
+            // Used to fade out ALL held shapes on each new attack, like authored cross-fades.
+            public readonly Dictionary<LipsyncEvent.LipsyncType, float> Active = new();
         }
 
         private struct Slot

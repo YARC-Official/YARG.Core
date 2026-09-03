@@ -87,6 +87,8 @@ Phoneme classification:
 | `MAX_UNVOICED_SLOT` | 2.0s | Slot cap when no vocal note end is available (phrase-final words) |
 | `CONSONANT_WEIGHT` | 0.32 | Weight floor for consonant shapes (authored consonant means measure ~0.28) |
 | `HI_LO_RATIO` | 0.43 | Weight of the paired _hi viseme channel relative to _lo |
+| `TOTAL_LO_BUDGET` | 1.0 | Sum of all _lo weights; incoming shapes yield to fading ones |
+| `ATTACK_MIN_TIME` | 0.10s | Minimum attack cross-fade duration on fast lyrics |
 | `VOWEL_PEAK_JITTER_MIN` | 0.8 | Per-syllable peak expression range lower bound |
 | `VOWEL_PEAK_JITTER_MAX` | 1.35 | Per-syllable peak expression range upper bound |
 | `MOUTH_GAP_CLOSE` | 1.5s | Silence length after a slot that closes the mouth |
@@ -105,6 +107,13 @@ Phoneme classification:
 **Vocal wobble.** While a vowel is sounding, the envelope weight is modulated by a continuous wobble (per-syllable amplitude, random phase) so the mouth animates smoothly every frame — authored singing mouths move constantly instead of holding flat between keyframes, which is what separates natural singing from a mechanical look. The wobble phase is absolute time (continuous across syllables) and also runs during short inter-syllable holds and consonant holds so nothing freezes.
 
 **Sustains.** On note-capped slots the vowel settles at a 0.55 sustain floor after the brief peak — authored long sustains keep the mouth open (~0.5 dominant weight throughout the note) and close only at the note's end. Slot ends use the note's `TotalTimeEnd`, so pitch-slide children extend the sustain through pitch changes, and the sustain weight is modulated ±0.12 by the pitch at that moment (higher pitch = slightly more open, lerped across slide segments via `PitchAtSongTime`). Slots without note evidence (lyrics-track path) decay to the 0.35 tail instead.
+
+**Fast lyrics.** Cross-fades keep a minimum duration (~0.1s) even when syllables are
+shorter, and the attack overlaps the previous syllable's tail (its envelope is trimmed
+so the cross-fade owns the outgoing shape). Every new attack also fades out all other
+held shapes, and the summed `_lo` weight is budgeted to ~1.0 so blends never pile up —
+matching authored data, where fast syllables produce continuous blends rather than
+per-syllable snaps.
 
 **Consonant attacks.** Consonants morph the mouth shape without dipping the overall openness: the consonant weight rides at or above the current vowel weight (`max(0.32, 0.9 × current)`). Authored openness never dives at consonants — it rises and falls only with the vowel — and syllable-rate dips were the main source of a jittery, teeth-grinding look.
 
