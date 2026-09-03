@@ -197,7 +197,6 @@ public class SongEntryPartTests
         var entry = CreateEntry(parts);
 
         // 6-fret instruments should NOT show as playable when only 5-fret data exists
-        // (the 5-fret instrument will be shown instead)
         Assert.That(entry.HasInstrument(Instrument.SixFretGuitar), Is.False);
         Assert.That(entry.HasInstrument(Instrument.FiveFretGuitar), Is.True);
     }
