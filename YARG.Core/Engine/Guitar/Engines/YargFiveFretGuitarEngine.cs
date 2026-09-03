@@ -8,6 +8,10 @@ namespace YARG.Core.Engine.Guitar.Engines
 {
     public class YargFiveFretGuitarEngine : GuitarEngine
     {
+        // Special value used to trigger BRE animations for open notes, since most BRE animation is
+        // driven by GuitarActions, which don't include an explicit "open strum" value
+        public const int OPEN_BRE_INPUT = int.MaxValue;
+
         protected override int WildcardMask => 1 << ((int)FiveFretGuitarFret.Wildcard - 1);
 
         public YargFiveFretGuitarEngine(InstrumentDifficulty<GuitarNote> chart, SyncTrack syncTrack,
@@ -599,12 +603,19 @@ namespace YARG.Core.Engine.Guitar.Engines
                 }
             }
 
-            // Hit the corresponding coda lanes
-            for (int i = 0; i < fretMask.Length; i++)
+            if (pressed == OPEN_MASK)
             {
-                if ((fretMask[i] & pressed) > 0)
+                coda.HitLane(time, OPEN_BRE_INPUT);
+            }
+            else
+            {
+                // Hit the corresponding coda lanes
+                for (int i = 0; i < fretMask.Length; i++)
                 {
-                    coda.HitLane(time, i);
+                    if ((fretMask[i] & pressed) > 0)
+                    {
+                        coda.HitLane(time, i);
+                    }
                 }
             }
         }
