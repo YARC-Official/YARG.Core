@@ -189,6 +189,41 @@ public class SongEntryPartTests
     }
 
     [Test]
+    public void HasInstrument_SixFretReturnsFalseWhenOnlyFiveFretDataExists()
+    {
+        var parts = AvailableParts.Default;
+        parts.FiveFretGuitar.ActivateDifficulty(Difficulty.Expert);
+
+        var entry = CreateEntry(parts);
+
+        // 6-fret instruments should NOT show as playable when only 5-fret data exists
+        // (the 5-fret instrument will be shown instead)
+        Assert.That(entry.HasInstrument(Instrument.SixFretGuitar), Is.False);
+        Assert.That(entry.HasInstrument(Instrument.FiveFretGuitar), Is.True);
+    }
+
+    [Test]
+    public void HasInstrument_SixFretReturnsTrueWhenSixFretDataExists()
+    {
+        var parts = AvailableParts.Default;
+        parts.SixFretGuitar.ActivateDifficulty(Difficulty.Expert);
+
+        var entry = CreateEntry(parts);
+
+        Assert.That(entry.HasInstrument(Instrument.SixFretGuitar), Is.True);
+    }
+
+    [Test]
+    public void HasInstrument_SixFretReturnsFalseWhenBothEmpty()
+    {
+        var parts = AvailableParts.Default;
+        var entry = CreateEntry(parts);
+
+        Assert.That(entry.HasInstrument(Instrument.SixFretGuitar), Is.False);
+        Assert.That(entry.HasInstrument(Instrument.FiveFretGuitar), Is.False);
+    }
+
+    [Test]
     public void HasDifficultyForInstrument_ThrowsForUnhandledInstrument()
     {
         var entry = new TestSongEntry();
