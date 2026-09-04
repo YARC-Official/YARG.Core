@@ -9,6 +9,7 @@ using YARG.Core.Venue;
 using System.Linq;
 using YARG.Core.Logging;
 using YARG.Core.Extensions;
+using YARG.Core.Utility;
 
 namespace YARG.Core.Song
 {
@@ -301,7 +302,12 @@ namespace YARG.Core.Song
             {
                 foreach (var file in Directory.EnumerateFiles(_location))
                 {
-                    files.Add(file[(_location.Length + 1)..].ToLower(), file);
+                    // NFC-normalized to match tag-supplied names (see
+                    // StringTransformations.NormalizeUnicode); lowercased because
+                    // LoadMiloData/LoadVocData match extensions against these keys ordinally.
+                    string key = StringTransformations.NormalizeUnicode(file[(_location.Length + 1)..])!
+                        .ToLowerInvariant();
+                    files.Add(key, file);
                 }
             }
             return files;

@@ -806,66 +806,87 @@ namespace YARG.Core.Song.Cache
         private bool ScanIniEntry(in FileCollection collection, IniEntryGroup group, string defaultPlaylist)
         {
             bool hasIni = collection.FindFile("song.ini", out var ini);
-            int i = hasIni ? 0 : 3;
-            while (i < 4)
+            var iniFile = hasIni ? ini : null;
+            for (int i = hasIni ? 0 : 3; i < 4; ++i)
             {
-                bool isUltraStar = IniSubEntry.CHART_FILE_TYPES[i].Format == ChartFormat.UltraStar;
-                bool found = collection.FindFile(IniSubEntry.CHART_FILE_TYPES[i].Filename, out var chart);
-                if (found)
+                ref readonly var chartType = ref IniSubEntry.CHART_FILE_TYPES[i];
+                if (chartType.Format == ChartFormat.UltraStar)
                 {
-                    // A chart with no audio in the folder is treated as if nothing was found here,
-                    // allowing directory traversal to continue (see ScanIniChart).
-                    if (!ScanIniChart(collection, chart, IniSubEntry.CHART_FILE_TYPES[i].Format, hasIni ? ini : null, group, defaultPlaylist))
-                    {
-                        return false;
-                    }
-                    return true;
-                }
-
-                // UltraStar charts are conventionally "Artist - Title.txt", not a fixed name --
-                // fall back to every .txt file in the folder. More than one match means more
-                // than one song sharing the folder, not an ambiguity -- scan each on its own.
-                if (isUltraStar)
-                {
+                    // UltraStar charts are conventionally "Artist - Title.txt", not a fixed
+                    // name. Multiple matches means multiple songs sharing a folder, not an
+                    // ambiguity, so each is scanned on its own.
                     var txtFiles = collection.FindAllFilesByExtension(".txt");
-                    if (txtFiles.Count == 0)
-                    {
-                        ++i;
-                        continue;
-                    }
-
+                    bool scannedAny = false;
                     foreach (var txtFile in txtFiles)
                     {
-                        ScanIniChart(collection, txtFile, ChartFormat.UltraStar, hasIni ? ini : null, group, defaultPlaylist);
+                        // Packs routinely ship a readme/licence alongside the chart; those
+                        // aren't songs and must not be reported as bad ones.
+                        if (!IsUltraStarChart(txtFile))
+                        {
+                            continue;
+                        }
+                        ScanIniChart(collection, txtFile, chartType.Format, iniFile, group, defaultPlaylist);
+                        scannedAny = true;
+                    }
+
+                    if (!scannedAny)
+                    {
+                        continue;
                     }
                     return true;
                 }
 
-                ++i;
+                if (!collection.FindFile(chartType.Filename, out var chart))
+                {
+                    continue;
+                }
+
+                // Can't play a song without any audio can you?
+                //
+                // Note though that this is purely a pre-add check.
+                // We will not invalidate an entry from cache if the user removes the audio after the fact.
+                //
+                // Returning false lets traversal continue into subdirectories.
+                if (!collection.ContainsAudio())
+                {
+                    AddToBadSongs(chart.FullName, ScanResult.NoAudio);
+                    return false;
+                }
+
+                ScanIniChart(collection, chart, chartType.Format, iniFile, group, defaultPlaylist);
+                return true;
             }
             return false;
         }
 
         /// <summary>
-        /// Scans a single discovered chart file into a song entry, on success or failure.
-        /// Returns false only when the chart was skipped outright (no audio in the folder)
-        /// rather than actually attempted.
+        /// The format requires the first non-blank line to be a '#' tag, which is enough to
+        /// tell a chart from a readme.
         /// </summary>
-        private bool ScanIniChart(in FileCollection collection, FileInfo chart, ChartFormat format, FileInfo? ini, IniEntryGroup group, string defaultPlaylist)
+        private static bool IsUltraStarChart(FileInfo file)
         {
-            // Can't play a song without any audio can you?
-            //
-            // Note though that this is purely a pre-add check.
-            // We will not invalidate an entry from cache if the user removes the audio after the fact.
-            //
-            // UltraStar's audio is named per its #AUDIO/#MP3 tag rather than a fixed stem,
-            // so this generic check can't apply to it -- ScanUltraStar validates it instead.
-            if (format != ChartFormat.UltraStar && !collection.ContainsAudio())
+            try
             {
-                AddToBadSongs(chart.FullName, ScanResult.NoAudio);
-                return false;
+                using var reader = file.OpenText();
+                string? line;
+                while ((line = reader.ReadLine()) != null)
+                {
+                    line = line.Trim();
+                    if (line.Length > 0)
+                    {
+                        return line[0] == '#';
+                    }
+                }
             }
+            catch (Exception e)
+            {
+                YargLogger.LogException(e, $"Error while probing text file {file}!");
+            }
+            return false;
+        }
 
+        private void ScanIniChart(in FileCollection collection, FileInfo chart, ChartFormat format, FileInfo? ini, IniEntryGroup group, string defaultPlaylist)
+        {
             try
             {
                 var entry = UnpackedIniEntry.ProcessNewEntry(collection.Directory, chart, format, ini, defaultPlaylist);
@@ -889,7 +910,6 @@ namespace YARG.Core.Song.Cache
                 YargLogger.LogException(e, $"Error while scanning chart file {chart}!");
                 AddToBadSongs(collection.Directory, ScanResult.IniEntryCorruption);
             }
-            return true;
         }
 
         /// <summary>
