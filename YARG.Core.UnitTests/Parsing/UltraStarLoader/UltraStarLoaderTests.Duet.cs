@@ -64,8 +64,8 @@ namespace YARG.Core.UnitTests.Parsing
         [Test]
         public void ParseDuetMetadata()
         {
-            // PARTS reflects the number of distinct voice markers actually seen
-            // (P1, P2, ...), not the raw #PARTS header value.
+            // VoiceCount reflects the voice markers actually used (P1, P2, ...), which is
+            // independent of the raw #PARTS header tag.
             var loader = LoadUltraStar(Us(
                 "#BPM:120",
                 "#PARTS:2",
@@ -75,7 +75,7 @@ namespace YARG.Core.UnitTests.Parsing
                 ": 0 4 0 Test"
             ));
 
-            Assert.That(loader.GetMetadata("PARTS"), Is.EqualTo("2"));
+            Assert.That(loader.VoiceCount, Is.EqualTo(2));
         }
 
         [Test]
@@ -258,7 +258,7 @@ namespace YARG.Core.UnitTests.Parsing
             var track = loader.LoadVocalsTrack(Instrument.Harmony);
 
             Assert.That(track.Parts, Has.Count.EqualTo(3));
-            Assert.That(loader.GetMetadata("PARTS"), Is.EqualTo("3"));
+            Assert.That(loader.VoiceCount, Is.EqualTo(3));
 
             Assert.That(track.Parts[0].NotePhrases[0].Lyrics[0].Text, Is.EqualTo("One"));
             Assert.That(track.Parts[1].NotePhrases[0].Lyrics[0].Text, Is.EqualTo("Two"));
@@ -284,7 +284,7 @@ namespace YARG.Core.UnitTests.Parsing
             var track = loader.LoadVocalsTrack(Instrument.Harmony);
 
             Assert.That(track.Parts, Has.Count.EqualTo(2));
-            Assert.That(loader.GetMetadata("PARTS"), Is.EqualTo("2"));
+            Assert.That(loader.VoiceCount, Is.EqualTo(2));
 
             var part2Lyrics = new List<string>();
             foreach (var phrase in track.Parts[1].NotePhrases)
