@@ -24,6 +24,17 @@ namespace YARG.Core.UnitTests.Parsing
         }
 
         /// <summary>
+        /// Loads all the way through to the final SongChart (via MoonSongLoader), not just
+        /// the raw UltraStarLoader -- some values (GAP in particular) only take effect once
+        /// baked into MoonSong's tick-based tempo map, so isolated loader-level assertions
+        /// can pass while the actual produced chart timing is wrong.
+        /// </summary>
+        protected static SongChart LoadUltraStarChart(string content)
+        {
+            return SongChart.FromUltraStarBytes(DefaultSettings, Encoding.UTF8.GetBytes(content));
+        }
+
+        /// <summary>
         /// Helper to create UltraStar content in a cleaner way.
         /// Example: Us("BPM:120", ": 0 4 0 Ok")
         /// </summary>

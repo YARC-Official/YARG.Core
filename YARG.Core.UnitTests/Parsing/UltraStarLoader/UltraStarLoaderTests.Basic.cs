@@ -72,6 +72,54 @@ internal class UltraStarLoaderTests_Basic : UltraStarLoaderTests
     }
 
     [Test]
+    public void GapShiftsFirstNoteByExactlyOneGapNotTwo()
+    {
+        // Regression test: the standalone UltraStarLoader.LoadSyncTrack() (see ParseGap
+        // above) encodes GAP as a negative starting time on its first TempoChange, but
+        // that value never survives into the actual chart -- MoonSongLoader.UltraStar.cs
+        // converts everything through MoonSong.AddTempo(bpm, tick), which unconditionally
+        // treats tick 0 as time 0 and discards that starting time. GAP only takes real
+        // effect via UltraStarLoader.BeatToTick's gapTicks term, which places beat 0 at a
+        // tick that maps back to exactly GAP seconds once run through MoonSong's tempo map.
+        // A second GAP-based shift anywhere else (e.g. SongOffset) would double this delay.
+        var songChart = LoadUltraStarChart(Us(
+            "#BPM:120",
+            "#GAP:2500",
+            ": 0 4 0 Hello"
+        ));
+
+        double firstNoteTime = songChart.Vocals.Parts[0].NotePhrases[0].PhraseParentNote.Time;
+        Assert.That(firstNoteTime, Is.EqualTo(2.5).Within(0.001));
+    }
+
+    [Test]
+    public void ConsecutiveBareTildeFreestyleNotesStayUnpitchedInFinalChart()
+    {
+        // Regression test: a run of syllable-less Freestyle continuation notes (bare
+        // '~', as in real UltraStar files like "AURORA - Under Stars") must stay
+        // unpitched all the way through to the final SongChart, not just on
+        // UltraStarLoader's own intermediate VocalNote objects. MoonSongLoader.Vocals.cs
+        // derives a note's final pitched/unpitched status from its associated lyric
+        // text's '#' symbol (see ProcessLyric/GetVocalNotePitch), not from the pitch
+        // value UltraStarLoader itself produces -- a syllable-less unpitched note with
+        // no lyric event at all silently reverts to a real (wrong) pitch downstream.
+        var songChart = LoadUltraStarChart(Us(
+            "#BPM:120",
+            ": 419 12 21  sta",
+            "F 432 3 23 ~",
+            "F 436 5 21 ~",
+            "F 442 8 16 ~"
+        ));
+
+        var notes = songChart.Vocals.Parts[0].NotePhrases[0].PhraseParentNote.ChildNotes;
+        Assert.That(notes, Has.Count.EqualTo(4));
+        Assert.That(notes[0].IsNonPitched, Is.False);
+        Assert.That(notes[1].IsNonPitched, Is.True);
+        Assert.That(notes[2].IsNonPitched, Is.True);
+        Assert.That(notes[3].IsNonPitched, Is.True);
+    }
+
+    [Test]
     public void ParseNotes()
     {
         var loader = LoadUltraStar(Us(
@@ -154,74 +202,25 @@ internal class UltraStarLoaderTests_Basic : UltraStarLoaderTests
         Assert.That(track.Parts[0].NotePhrases[1].Lyrics[0].Text, Is.EqualTo("World"));
     }
 
-    [Test]
-    public void ParseFreestyleNote()
+    // Freestyle (F), Rap (R) and Golden Rap (G) carry no pitch requirement per spec, but
+    // they are unpitched *lyrics* -- not Percussion, which is a separate hit-based mechanic.
+    [TestCase("F 0 4 3 Scream", TestName = "Freestyle notes are unpitched lyrics")]
+    [TestCase("R 0 4 5 RapBar", TestName = "Rap notes are unpitched lyrics")]
+    [TestCase("G 0 4 7 GoldenScream", TestName = "Golden rap notes are unpitched lyrics")]
+    public void UnpitchedNoteTypesAreLyricNotPercussion(string noteLine)
     {
-        var loader = LoadUltraStar(Us(
-            "#BPM:120",
-            "F 0 4 3 Scream"
-        ));
+        var loader = LoadUltraStar(Us("#BPM:120", noteLine));
 
         var track = loader.LoadVocalsTrack(Instrument.Vocals);
         var note = track.Parts[0].NotePhrases[0].PhraseParentNote.ChildNotes[0];
 
-        // Freestyle now keeps real MIDI pitch (like SingStar): 3 + 60 = 63
-        Assert.That(note.IsNonPitched, Is.False);
-        Assert.That(note.Pitch, Is.EqualTo(63f));
-    }
-
-    [Test]
-    public void FreestyleNoteIsNotPercussion()
-    {
-        // Bug fix: freestyle (F) notes must be VocalNoteType.Lyric, not Percussion
-        var loader = LoadUltraStar(Us(
-            "#BPM:120",
-            "F 0 4 3 Scream"
-        ));
-
-        var track = loader.LoadVocalsTrack(Instrument.Vocals);
-        var note = track.Parts[0].NotePhrases[0].PhraseParentNote.ChildNotes[0];
-
-        Assert.That(note.Type, Is.EqualTo(VocalNoteType.Lyric));
-        Assert.That(note.IsPercussion, Is.False);
-        // Freestyle keeps real MIDI pitch (like SingStar)
-        Assert.That(note.Pitch, Is.EqualTo(63f));
-    }
-
-    [Test]
-    public void RapNoteIsNotPercussion()
-    {
-        // Bug fix: rap (R) notes must be VocalNoteType.Lyric, not Percussion
-        var loader = LoadUltraStar(Us(
-            "#BPM:120",
-            "R 0 4 5 RapBar"
-        ));
-
-        var track = loader.LoadVocalsTrack(Instrument.Vocals);
-        var note = track.Parts[0].NotePhrases[0].PhraseParentNote.ChildNotes[0];
-
-        Assert.That(note.Type, Is.EqualTo(VocalNoteType.Lyric));
-        Assert.That(note.IsPercussion, Is.False);
-        // Rap keeps real MIDI pitch (like SingStar): 5 + 60 = 65
-        Assert.That(note.Pitch, Is.EqualTo(65f));
-    }
-
-    [Test]
-    public void GoldenFreestyleIsNotPercussion()
-    {
-        // Bug fix: golden freestyle (G) notes must be VocalNoteType.Lyric, not Percussion
-        var loader = LoadUltraStar(Us(
-            "#BPM:120",
-            "G 0 4 7 GoldenScream"
-        ));
-
-        var track = loader.LoadVocalsTrack(Instrument.Vocals);
-        var note = track.Parts[0].NotePhrases[0].PhraseParentNote.ChildNotes[0];
-
-        Assert.That(note.Type, Is.EqualTo(VocalNoteType.Lyric));
-        Assert.That(note.IsPercussion, Is.False);
-        // Golden freestyle keeps real MIDI pitch (like SingStar): 7 + 60 = 67
-        Assert.That(note.Pitch, Is.EqualTo(67f));
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(note.Type, Is.EqualTo(VocalNoteType.Lyric));
+            Assert.That(note.IsPercussion, Is.False);
+            Assert.That(note.IsNonPitched, Is.True);
+            Assert.That(note.Pitch, Is.EqualTo(-1f));
+        }
     }
 
     [Test]
@@ -321,11 +320,10 @@ internal class UltraStarLoaderTests_Basic : UltraStarLoaderTests
     }
 
     [Test]
-    public void GapPropagatesToSongOffsetViaScan()
+    public void GapIsExposedAsRawMetadata()
     {
-        // Loader-level: GAP is parsed and available via metadata; the
-        // ms -> SongOffset propagation itself is exercised at the scan level
-        // (see UltraStarIniEntryTests).
+        // GAP's effect on timing is covered by GapShiftsFirstNoteByExactlyOneGapNotTwo;
+        // this only checks the raw tag survives for anything reading it back.
         var loader = LoadUltraStar(Us(
             "#BPM:120",
             "#GAP:2500",

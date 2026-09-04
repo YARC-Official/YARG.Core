@@ -8,6 +8,7 @@ using YARG.Core.Extensions;
 using YARG.Core.IO;
 using YARG.Core.IO.Ini;
 using YARG.Core.Logging;
+using YARG.Core.Utility;
 
 namespace YARG.Core.Song
 {
@@ -78,8 +79,7 @@ namespace YARG.Core.Song
         protected string _background = string.Empty;
         protected string _video = string.Empty;
         protected string _cover = string.Empty;
-        // UltraStar's #AUDIO/#MP3-referenced audio file. Unused (empty) for other formats,
-        // which locate audio purely by stem-name convention instead (see IniAudio).
+        // UltraStar's #AUDIO file; other formats locate audio by stem name (see IniAudio).
         protected string _audioFile = string.Empty;
 
         public override string SortBasedLocation => _location;
@@ -577,10 +577,17 @@ namespace YARG.Core.Song
                 return ScanResult.NoName;
             }
 
-            // #AUDIO is the canonical tag; #MP3 is the legacy/synonym tag some
-            // tooling still writes (the referenced file isn't necessarily an mp3).
-            string? audioFile = loader.GetMetadata("AUDIO") ?? loader.GetMetadata("MP3");
-            if (string.IsNullOrWhiteSpace(audioFile) || !SubFileExists(entry._location, audioFile))
+            // Blank tags fall back to the default, matching SongMetadata.FillFromIni.
+            string? Tag(string key, string? fallback = null)
+            {
+                string? value = StringTransformations.NormalizeUnicode(loader.GetMetadata(key));
+                return !string.IsNullOrWhiteSpace(value) ? value : fallback;
+            }
+
+            // #AUDIO is the canonical tag; #MP3 is the legacy synonym some tooling still
+            // writes (the file isn't necessarily an mp3).
+            string? audioFile = Tag("AUDIO") ?? Tag("MP3");
+            if (audioFile == null || !SubFileExists(entry._location, audioFile))
             {
                 return ScanResult.NoAudio;
             }
@@ -588,45 +595,34 @@ namespace YARG.Core.Song
             entry._metadata = SongMetadata.Default;
 
             entry._metadata.Name = title!; // We will have returned already if title is null
-            entry._metadata.Artist = loader.GetMetadata("ARTIST") ?? SongMetadata.DEFAULT_ARTIST;
-            entry._metadata.Album = loader.GetMetadata("ALBUM") ?? SongMetadata.DEFAULT_ALBUM;
-            entry._metadata.Genre = loader.GetMetadata("GENRE") ?? string.Empty;
-            entry._metadata.Year = loader.GetMetadata("YEAR") ?? SongMetadata.DEFAULT_YEAR;
-            // #AUTHOR is the legacy/synonym tag some tooling writes in place of #CREATOR.
-            entry._metadata.Charter = loader.GetMetadata("CREATOR") ?? loader.GetMetadata("AUTHOR") ?? SongMetadata.DEFAULT_CHARTER;
-            entry._metadata.LoadingPhrase = loader.GetMetadata("COMMENT") ?? string.Empty;
+            entry._metadata.Artist = Tag("ARTIST", SongMetadata.DEFAULT_ARTIST)!;
+            entry._metadata.Album = Tag("ALBUM", SongMetadata.DEFAULT_ALBUM)!;
+            entry._metadata.Genre = Tag("GENRE", string.Empty)!;
+            entry._metadata.Year = Tag("YEAR", SongMetadata.DEFAULT_YEAR)!;
+            // #AUTHOR is the legacy synonym for #CREATOR.
+            entry._metadata.Charter = Tag("CREATOR") ?? Tag("AUTHOR", SongMetadata.DEFAULT_CHARTER)!;
+            entry._metadata.LoadingPhrase = Tag("COMMENT", string.Empty)!;
+            // #EDITION maps to Source, the same field FoF's ini "icon" key feeds. The icon
+            // lookup lives in YARG's SongSources.cs and rarely matches a USDB edition
+            // string -- don't try to "fix" that here.
+            entry._metadata.Source = Tag("EDITION", SongMetadata.DEFAULT_SOURCE)!;
 
             entry._audioFile = audioFile;
-            entry._cover = loader.GetMetadata("COVER") ?? string.Empty;
-            entry._video = loader.GetMetadata("VIDEO") ?? string.Empty;
-            entry._background = loader.GetMetadata("BACKGROUND") ?? string.Empty;
+            entry._cover = Tag("COVER", string.Empty)!;
+            entry._video = Tag("VIDEO", string.Empty)!;
+            entry._background = Tag("BACKGROUND", string.Empty)!;
 
-            if (loader.GetMetadata("GAP") is string gapStr &&
-                double.TryParse(gapStr,
-                    System.Globalization.NumberStyles.Float,
-                    System.Globalization.CultureInfo.InvariantCulture,
-                    out double gapMs))
+            // Don't map GAP to SongOffset: UltraStarLoader already bakes it into each note's
+            // tick (BeatToTick), so setting it here would apply the shift twice.
+
+            if (UltraStarLoader.TryParseNumber(loader.GetMetadata("VIDEOGAP"), out double videoGapSeconds))
             {
-                entry._metadata.SongOffset = (long) gapMs;
+                // VIDEOGAP is a seek offset into the video, not a playback delay -- which is
+                // what Video.Start means too.
+                entry._metadata.Video.Start = (long) (videoGapSeconds * SongMetadata.MILLISECOND_FACTOR);
             }
 
-            if (loader.GetMetadata("VIDEOGAP") is string videoGapStr &&
-                double.TryParse(videoGapStr,
-                    System.Globalization.NumberStyles.Float,
-                    System.Globalization.CultureInfo.InvariantCulture,
-                    out double videoGapSeconds))
-            {
-                // VIDEOGAP delays the video's start relative to the song; Video.Start is
-                // consumed as a seek offset (positive = skip ahead into the clip), so the
-                // delay semantic requires the sign flipped.
-                entry._metadata.Video.Start = -(long) (videoGapSeconds * SongMetadata.MILLISECOND_FACTOR);
-            }
-
-            if (loader.GetMetadata("PREVIEWSTART") is string previewStr &&
-                double.TryParse(previewStr,
-                    System.Globalization.NumberStyles.Float,
-                    System.Globalization.CultureInfo.InvariantCulture,
-                    out double previewMs))
+            if (UltraStarLoader.TryParseNumber(loader.GetMetadata("PREVIEWSTART"), out double previewMs))
             {
                 entry._metadata.Preview.Start = (long) previewMs;
             }
@@ -638,7 +634,8 @@ namespace YARG.Core.Song
             entry._parts.LeadVocals.ActivateDifficulty(Difficulty.Expert);
             entry._parts.LeadVocals.Intensity = 0;
 
-            if (int.TryParse(loader.GetMetadata("PARTS"), out int voiceCount) && voiceCount >= 2)
+            int voiceCount = loader.VoiceCount;
+            if (voiceCount >= 2)
             {
                 entry._parts.HarmonyVocals.SubTracks = (byte) Math.Min(voiceCount, 3);
                 entry._parts.HarmonyVocals.Intensity = 0;
@@ -667,6 +664,8 @@ namespace YARG.Core.Song
 
         /// <summary>
         /// Case-insensitive check for whether a file exists directly inside a song folder.
+        /// Both sides are NFC-normalized so a tag-supplied name matches what the filesystem
+        /// reports (see StringTransformations.NormalizeUnicode).
         /// </summary>
         protected static bool SubFileExists(string location, string filename)
         {
@@ -677,7 +676,8 @@ namespace YARG.Core.Song
 
             foreach (var file in Directory.EnumerateFiles(location))
             {
-                if (string.Equals(Path.GetFileName(file), filename, StringComparison.OrdinalIgnoreCase))
+                if (string.Equals(StringTransformations.NormalizeUnicode(Path.GetFileName(file)),
+                    filename, StringComparison.OrdinalIgnoreCase))
                 {
                     return true;
                 }

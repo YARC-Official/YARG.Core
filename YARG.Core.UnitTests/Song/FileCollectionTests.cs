@@ -140,6 +140,35 @@ public class FileCollectionTests
         }
     }
 
+    [Test]
+    public void FindAllFilesByExtension_FindsEveryMatchRegardlessOfCase()
+    {
+        string path = CreateTempDirectory();
+        try
+        {
+            File.WriteAllText(Path.Combine(path, "Artist - Title.txt"), string.Empty);
+            File.WriteAllText(Path.Combine(path, "Artist - Other Title.TXT"), string.Empty);
+            File.WriteAllText(Path.Combine(path, "notes.mid"), string.Empty);
+
+            var collection = new FileCollection(new DirectoryInfo(path));
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(collection.FindFile("notes.txt", out _), Is.False);
+                Assert.That(collection.FindAllFilesByExtension(".txt").Select(file => file.Name),
+                    Is.EquivalentTo(new[] { "Artist - Title.txt", "Artist - Other Title.TXT" }));
+                Assert.That(collection.FindAllFilesByExtension(".chart"), Is.Empty);
+            }
+        }
+        finally
+        {
+            if (Directory.Exists(path))
+            {
+                Directory.Delete(path, true);
+            }
+        }
+    }
+
     private static string CreateTempDirectory()
     {
         string path = Path.Combine(Path.GetTempPath(), $"yarg-filecollection-{Guid.NewGuid():N}");
