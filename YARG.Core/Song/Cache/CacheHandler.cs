@@ -539,6 +539,10 @@ namespace YARG.Core.Song.Cache
                     case ScanResult.NoAudio:
                         writer.WriteLine("No audio accompanying the chart file");
                         break;
+                    case ScanResult.UnsupportedAudioFormat:
+                        writer.WriteLine("The chart's audio tag points at a video file, which cannot be decoded as audio.");
+                        writer.WriteLine("To fix, extract the audio to a separate file (e.g. .ogg or .mp3) and point the tag at it.");
+                        break;
                     case ScanResult.NoName:
                         writer.WriteLine("Name metadata not provided");
                         break;
