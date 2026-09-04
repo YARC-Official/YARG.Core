@@ -60,7 +60,7 @@ namespace YARG.Core.Chart
                             continue;
                         }
 
-                        // UltraStar freestyle (F), rap (R), and golden freestyle (G) notes are
+                        // UltraStar freestyle (F), rap (R), and golden rap (G) notes are
                         // unpitched lyrical notes, NOT percussion. Keep as None so they stay
                         // VocalNoteType.Lyric downstream.
                         var flags = MoonNote.Flags.None;
@@ -135,9 +135,7 @@ namespace YARG.Core.Chart
                 moonSong.AddTimeSignature(ts.Numerator, ts.Denominator, ts.Tick);
             }
 
-            // "PARTS" holds the number of independent voices seen (P1..P3, see
-            // UltraStarLoader) rather than a fixed duet flag.
-            bool isMultiVoice = int.TryParse(loader.GetMetadata("PARTS"), out int voiceCount) && voiceCount >= 2;
+            bool isMultiVoice = loader.VoiceCount >= 2;
 
             var vocalTrack = loader.LoadVocalsTrack(isMultiVoice ? Instrument.Harmony : Instrument.Vocals);
             var soloChart = moonSong.GetChart(MoonSong.MoonInstrument.Vocals, MoonSong.Difficulty.Expert);

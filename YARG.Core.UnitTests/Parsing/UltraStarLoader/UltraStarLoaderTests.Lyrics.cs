@@ -38,8 +38,10 @@ namespace YARG.Core.UnitTests.Parsing
         }
 
         [Test]
-        public void ParseMelisma()
+        public void LeadingMelismaOnFirstNoteHasNoPreviousNoteToJoin()
         {
+            // A '~' normally hyphenates the previous note; on the very first note there
+            // isn't one, which must not crash or lose the pitch-slide marker.
             var loader = LoadUltraStar(Us(
                 "#BPM:120",
                 ": 0 4 0 ~la",
@@ -47,10 +49,10 @@ namespace YARG.Core.UnitTests.Parsing
             ));
 
             var track = loader.LoadVocalsTrack(Instrument.Vocals);
-            var notes = track.Parts[0].NotePhrases[0].PhraseParentNote.ChildNotes;
+            var lyrics = track.Parts[0].NotePhrases[0].Lyrics;
 
-            // First note should have melisma
-            Assert.That(notes[0].IsNonPitched, Is.False);
+            Assert.That(lyrics[0].Text, Is.EqualTo("la+"));
+            Assert.That(lyrics[0].JoinWithNext, Is.False);
         }
 
         [Test]
@@ -88,6 +90,76 @@ namespace YARG.Core.UnitTests.Parsing
             Assert.That(events[0].Text, Is.EqualTo("ni-"));
             Assert.That(events[0].JoinWithNext, Is.True);
             Assert.That(events[1].Text, Does.Contain("ght."));
+        }
+
+        [Test]
+        public void BareTildeOnUnpitchedNoteHasNoPitchSlideMarker()
+        {
+            // A bare '~' on a Freestyle note has no pitch to slide into/from --
+            // unpitched detection should take precedence over the pitch-slide ('+')
+            // marker a bare '~' would otherwise produce.
+            var loader = LoadUltraStar(Us(
+                "#BPM:120",
+                ": 0 4 0 Scream",
+                "F 5 4 3 ~"
+            ));
+
+            var track = loader.LoadVocalsTrack(Instrument.Vocals);
+            var notes = track.Parts[0].NotePhrases[0].PhraseParentNote.ChildNotes;
+            var lyrics = track.Parts[0].NotePhrases[0].Lyrics;
+
+            Assert.That(notes[1].IsNonPitched, Is.True);
+            Assert.That(notes[1].Pitch, Is.EqualTo(-1f));
+            // The continuation note carries no syllable, but still needs a "#"-only
+            // lyric event (no "+" pitch-slide) -- downstream conversion derives a
+            // note's final pitched/unpitched status from this text, not from Pitch.
+            Assert.That(lyrics, Has.Count.EqualTo(2));
+            Assert.That(lyrics[0].Text, Is.EqualTo("Scream"));
+            Assert.That(lyrics[1].Text, Is.EqualTo("#"));
+            Assert.That(lyrics[1].NonPitched, Is.True);
+        }
+
+        [Test]
+        public void TrailingTildeBlendsWithNextNote()
+        {
+            // "a~" followed by "round": the first note gets a decorative hyphen
+            // (matching the leading-'~' convention), and the SECOND note's raw text
+            // carries an embedded pitch-slide symbol ("+"). This loader's own
+            // LyricEvent.Flags doesn't interpret embedded symbols (only downstream's
+            // MoonSongLoader.Vocals.cs re-parses raw text for that -- see
+            // TrailingTildeStructurallyMergesIntoOneNote for the full-pipeline check).
+            var loader = LoadUltraStar(Us(
+                "#BPM:120",
+                ": 0 4 0 a~",
+                ": 5 4 2 round"
+            ));
+
+            var track = loader.LoadVocalsTrack(Instrument.Vocals);
+            var lyrics = track.Parts[0].NotePhrases[0].Lyrics;
+
+            Assert.That(lyrics, Has.Count.EqualTo(2));
+            Assert.That(lyrics[0].Text, Is.EqualTo("a-"));
+            Assert.That(lyrics[0].JoinWithNext, Is.True);
+            Assert.That(lyrics[1].Text, Is.EqualTo("round+"));
+        }
+
+        [Test]
+        public void TrailingTildeStructurallyMergesIntoOneNote()
+        {
+            // Regression test: a decorative hyphen alone (JoinWithNext) does NOT merge
+            // two notes into one bar in the actual game -- only the pitch-slide flag
+            // does (MoonSongLoader.Vocals.cs's GetVocalsPhrases only merges on
+            // LyricSymbolFlags.PitchSlide). Verify through the full SongChart pipeline
+            // that "n~"/"eed" ends up as one parent note with a child, not two notes.
+            var songChart = LoadUltraStarChart(Us(
+                "#BPM:120",
+                ": 260 4 14  n~",
+                ": 265 20 16 eed"
+            ));
+
+            var notes = songChart.Vocals.Parts[0].NotePhrases[0].PhraseParentNote.ChildNotes;
+            Assert.That(notes, Has.Count.EqualTo(1));
+            Assert.That(notes[0].ChildNotes, Has.Count.EqualTo(1));
         }
 
         [Test]
