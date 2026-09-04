@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using YARG.Core.Engine.Guitar;
 using YARG.Core.Extensions;
@@ -7,6 +8,575 @@ namespace YARG.Core.Chart
 {
     public static class InstrumentDifficultyExtensions
     {
+        /// <summary>
+        /// Converts a 5-fret guitar difficulty into a 6-fret copy suitable for six-fret gameplay.
+        ///
+        /// The 5-fret and 6-fret fret values coincide numerically (Green-Orange = Black1-White2,
+        /// Open is shared), so most notes map 1:1. However, a naive mapping can produce illegal
+        /// or unplayable 6-fret chords: two notes sharing a lane form a barre, and charting rules
+        /// forbid any other chord note in a lane to the LEFT of a barre.
+        ///
+        /// Conversion therefore walks the track sequentially, mirroring how human charters re-chart:
+        /// each chord is placed at the legal, fret-order-preserving position that best preserves
+        /// the chart's movement (scored in lane space), keeps anchor phrases hold-and-tap playable,
+        /// and avoids stacking sustains or barre hopos. See
+        /// Docs/5fret_to_6fret_conversion.md for the full description.
+        ///
+        /// Legality recap: no single note may sit in a lane to the left of a barre. Double barres
+        /// (e.g. B1W1+B2W2, optionally plus a rightmost single) are legal; a triple barre is not,
+        /// but cannot arise from 5-fret chords (it needs six notes).
+        /// </summary>
+        public static InstrumentDifficulty<GuitarNote> ConvertFiveFretToSixFret(this InstrumentDifficulty<GuitarNote> difficulty)
+        {
+            var converted = new InstrumentDifficulty<GuitarNote>(difficulty);
+
+            double previousLane = -1;
+            double previousIdentityCentroid = -1;
+            var previousPlacedFrets = new List<int>();
+            var previousIdentityFrets = new List<int>();
+            var activeSustains = new List<(uint TickEnd, int PlacedFret, int IdentityFret, GuitarNote Source)>();
+            for (int i = 0; i < converted.Notes.Count; i++)
+            {
+                // One-note lookahead: avoid placements that would push the next chart step off
+                // the highway (e.g. a rising run pinning itself at White3)
+                double? nextIdentityCentroid = i + 1 < converted.Notes.Count
+                    ? GetFrettedIdentityCentroid(converted.Notes[i + 1])
+                    : null;
+
+                (previousLane, previousIdentityCentroid) = PlaceChordLegally(converted.Notes[i],
+                    previousLane, previousIdentityCentroid, previousPlacedFrets, previousIdentityFrets,
+                    activeSustains, nextIdentityCentroid);
+            }
+            return converted;
+        }
+
+        /// <summary>Masks for the six fretted 6-fret notes (Black1 through White3).</summary>
+        private const int SIX_FRET_FRETS_MASK = 0x3F;
+
+        /// <summary>
+        /// Movement is scored in LANE space, not fret space: the 6-fret highway snakes (black row
+        /// left-to-right, then white row), so a fret-monotonic sequence visually zig-zags. Half a
+        /// lane per fret step makes rising 5-fret runs sweep across the three lanes in order.
+        /// </summary>
+        private const double LANES_PER_FRET = 0.5;
+
+        /// <summary>Weight of lane distance in the placement score; dominates fret distance.</summary>
+        private const double LANE_WEIGHT = 2.0;
+
+        /// <summary>Weight of fret distance; tie-breaks between placements sharing a lane.</summary>
+        private const double FRET_WEIGHT = 0.125;
+
+        /// <summary>
+        /// Penalty for moving a fret that the previous chord also contains. Chords sharing a 5-fret
+        /// note with an adjacent single (e.g. YB,Y,Y,YB) are anchor phrases: the player holds the
+        /// non-shared note and taps the shared one, which only works if the shared note keeps its
+        /// placed fret across the phrase.
+        /// </summary>
+        private const double SHARED_ANCHOR_PENALTY = 2.0;
+
+        /// <summary>
+        /// Penalty for striking into a lane held by a foreign sustain. This resolves by TRUNCATING
+        /// the foreign sustain (real charts cut sustains when a pattern needs the space), so the
+        /// penalty is mild — cheaper than a lane-persistence violation, but non-zero so placements
+        /// that need no cut are preferred.
+        /// </summary>
+        private const double SUSTAIN_LANE_PENALTY = 2.0;
+
+        /// <summary>
+        /// Penalty for changing the fret(s) of a lane that both this chord and the previous chord
+        /// occupy — a hopo within the lane (e.g. W2 to B2) or a barre forming/vanishing around a
+        /// held finger.
+        /// </summary>
+        private const double LANE_PERSISTENCE_PENALTY = 5.0;
+
+        private static readonly int[] SixFretLaneMasks =
+        {
+            (1 << ((int) SixFretGuitarFret.Black1 - 1)) | (1 << ((int) SixFretGuitarFret.White1 - 1)),
+            (1 << ((int) SixFretGuitarFret.Black2 - 1)) | (1 << ((int) SixFretGuitarFret.White2 - 1)),
+            (1 << ((int) SixFretGuitarFret.Black3 - 1)) | (1 << ((int) SixFretGuitarFret.White3 - 1)),
+        };
+
+        /// <summary>
+        /// Centroid of a chord's fretted members under the direct mapping, or null if the chord has
+        /// none (pure open/wildcard). Used for movement scoring and lookahead.
+        /// </summary>
+        private static double? GetFrettedIdentityCentroid(GuitarNote note)
+        {
+            double sum = 0;
+            int count = 0;
+            foreach (var member in note.AllNotes)
+            {
+                if (member.Fret is (int) FiveFretGuitarFret.Open or (int) FiveFretGuitarFret.Wildcard)
+                {
+                    continue;
+                }
+
+                sum += member.Fret;
+                count++;
+            }
+
+            return count > 0 ? sum / count : null;
+        }
+
+        private static (double placedLane, double identityCentroid) PlaceChordLegally(GuitarNote note,
+            double previousLane, double previousIdentityCentroid, List<int> previousPlacedFrets,
+            List<int> previousIdentityFrets,
+            List<(uint TickEnd, int PlacedFret, int IdentityFret, GuitarNote Source)> activeSustains,
+            double? nextIdentityCentroid)
+        {
+            // Collect fretted members; Open/Wildcard members keep their shared value and are ignored
+            // for legality (they span all lanes rather than living in one).
+            List<GuitarNote>? fretted = null;
+            foreach (var member in note.AllNotes)
+            {
+                if (member.Fret is (int) FiveFretGuitarFret.Open or (int) FiveFretGuitarFret.Wildcard)
+                {
+                    // Open/Wildcard keep their shared value; ignored for legality since they
+                    // span all lanes rather than living in one. Their NoteMask bit survives.
+                }
+                else
+                {
+                    (fretted ??= new List<GuitarNote>()).Add(member);
+                }
+            }
+
+            // No fretted members (pure open/wildcard note): identity is always legal, and the
+            // open note doesn't move the hand, so the previous placement stays the reference
+            if (fretted == null || fretted.Count == 0)
+            {
+                return (previousLane, previousIdentityCentroid);
+            }
+
+            // Members sorted by fret; candidates assign increasing 6-fret values (order-preserving)
+            var members = fretted;
+            members.Sort((a, b) => a.Fret.CompareTo(b.Fret));
+
+            // Where the direct mapping would place this chord (5-fret values coincide with 6-fret)
+            double identitySum = 0;
+            foreach (var member in members)
+            {
+                identitySum += member.Fret;
+            }
+            double identityCentroid = identitySum / members.Count;
+
+            // Ideal lane preserves the chart's own movement: the previously placed lane plus the
+            // fret step the 5-fret chart makes, scaled at half a lane per fret. Exact halves push
+            // in the direction of motion so runs sweep lane-by-lane instead of hovering.
+            double idealLane;
+            double fretStep = 0;
+            if (previousLane < 0 || previousIdentityCentroid < 0)
+            {
+                idealLane = 0;
+                foreach (var member in members)
+                {
+                    idealLane += LaneOf(member.Fret);
+                }
+                idealLane /= members.Count;
+            }
+            else
+            {
+                fretStep = identityCentroid - previousIdentityCentroid;
+                idealLane = previousLane + fretStep * LANES_PER_FRET;
+                double frac = idealLane - Math.Floor(idealLane);
+                if (Math.Abs(frac - 0.5) < 1e-9 && fretStep != 0)
+                {
+                    idealLane += 0.5 * Math.Sign(fretStep);
+                }
+            }
+
+            // Lanes of notes still sustaining across this chord must not be struck into: a second
+            // sustain line would stack onto the first. Exception: a chord that CONTINUES an active
+            // sustain (places that same 5-fret note at the same fret) may share its lane — that is
+            // the anchor-pattern realization (e.g. sustained Y, then YB chords tapping around it).
+            // When every lane is blocked by foreign sustains, the fallback pass places nearest.
+            activeSustains.RemoveAll(s => s.TickEnd <= note.Tick);
+
+            // Two DIFFERENT 5-fret chords must never map to the identical 6-fret chord — the
+            // passage would collapse into repeated shapes and the melody would be erased.
+            // Identical placement is only allowed when the 5-fret shape repeats too (a genuine
+            // chord repeat). Enforced as a pass-0 filter; the fallback pass may still repeat
+            // when nothing else is placeable.
+            bool sameShapeAsPrevious = previousIdentityFrets.Count == members.Count;
+            if (sameShapeAsPrevious)
+            {
+                for (int i = 0; i < members.Count; i++)
+                {
+                    if (members[i].Fret != previousIdentityFrets[i])
+                    {
+                        sameShapeAsPrevious = false;
+                        break;
+                    }
+                }
+            }
+
+            // Lane persistence (hopo rule): if both chords occupy the same lane, they must occupy
+            // it with the exact same fret(s). Otherwise the transition is a hopo WITHIN the lane
+            // (e.g. W2 -> B2), or a barre forming/vanishing around a held finger — all ambiguous
+            // or unplayable. A lane appearing or disappearing entirely between chords is fine.
+            int previousMask = 0;
+            foreach (var fret in previousPlacedFrets)
+            {
+                previousMask |= 1 << (fret - 1);
+            }
+
+            int previousSingleLanes = 0;
+            int previousBarreLanes = 0;
+            for (int lane = 0; lane < 3; lane++)
+            {
+                int laneCount = 0;
+                foreach (var fret in previousPlacedFrets)
+                {
+                    if (LaneOf(fret) == lane)
+                    {
+                        laneCount++;
+                    }
+                }
+
+                if (laneCount == 1)
+                {
+                    previousSingleLanes |= 1 << lane;
+                }
+                else if (laneCount > 1)
+                {
+                    previousBarreLanes |= 1 << lane;
+                }
+            }
+
+            var candidates = EnumerateIncreasingAssignments(members.Count);
+
+            // Whether the candidate strikes into a lane occupied by a sustain it does not continue
+            bool UsesForeignSustainLane(ReadOnlySpan<int> assignment, int assignmentMask)
+            {
+                foreach (var (_, placedFret, identityFret, _) in activeSustains)
+                {
+                    bool absorbed = false;
+                    for (int i = 0; i < members.Count; i++)
+                    {
+                        if (members[i].Fret == identityFret && assignment[i] == placedFret)
+                        {
+                            absorbed = true;
+                            break;
+                        }
+                    }
+
+                    if (!absorbed && (assignmentMask & SixFretLaneMasks[LaneOf(placedFret)]) != 0)
+                    {
+                        return true;
+                    }
+                }
+
+                return false;
+            }
+
+            int bestMask = 0;
+            double bestScore = double.MaxValue;
+            double bestLane = idealLane;
+            Span<int> bestAssignment = stackalloc int[members.Count];
+
+            // Legality is the only hard filter (a legal candidate always exists). Everything else
+            // is a penalty, so when a chart makes the constraints mutually exclusive (e.g. sustain
+            // walls), the placement is always the LEAST-violating one instead of greedily
+            // ignoring every rule at once.
+            foreach (var candidate in candidates)
+            {
+                int mask = 0;
+                double fretSum = 0;
+                double laneSum = 0;
+                for (int i = 0; i < candidate.Length; i++)
+                {
+                    mask |= 1 << (candidate[i] - 1);
+                    fretSum += candidate[i];
+                    laneSum += LaneOf(candidate[i]);
+                }
+
+                if (!IsLegalSixFretChord(mask)
+                    || (!sameShapeAsPrevious && RepeatsPreviousPosition(candidate, previousPlacedFrets)))
+                {
+                    continue;
+                }
+
+                int candidateLane0 = 0;
+                int candidateLane1 = 0;
+                int candidateLane2 = 0;
+                foreach (int value in candidate)
+                {
+                    switch (LaneOf(value))
+                    {
+                        case 0: candidateLane0++; break;
+                        case 1: candidateLane1++; break;
+                        default: candidateLane2++; break;
+                    }
+                }
+
+                int candidateSingleLanes = 0;
+                if (candidateLane0 == 1) candidateSingleLanes |= 1;
+                if (candidateLane1 == 1) candidateSingleLanes |= 2;
+                if (candidateLane2 == 1) candidateSingleLanes |= 4;
+
+                // Barre hopos are hard-rejected in the primary loop
+                if (((GetBarreLanes(mask) & previousSingleLanes)
+                    | (previousBarreLanes & candidateSingleLanes)) != 0)
+                {
+                    continue;
+                }
+
+                double fret = fretSum / candidate.Length;
+                double lane = laneSum / candidate.Length;
+                double score = LANE_WEIGHT * Math.Abs(lane - idealLane)
+                    + FRET_WEIGHT * Math.Abs(fret - identityCentroid);
+
+                // Striking into a lane held by a foreign sustain stacks a second sustain line
+                if (UsesForeignSustainLane(candidate, mask))
+                {
+                    score += SUSTAIN_LANE_PENALTY;
+                }
+
+                // Lane persistence: if both chords occupy the same lane, they must use the same
+                // fret(s) — otherwise the transition is a hopo within the lane (e.g. W2 -> B2).
+                // A lane appearing or disappearing entirely between chords is fine.
+                for (int checkLane = 0; checkLane < 3; checkLane++)
+                {
+                    int laneMask = SixFretLaneMasks[checkLane];
+                    if ((previousMask & laneMask) != 0 && (mask & laneMask) != 0
+                        && (mask & laneMask) != (previousMask & laneMask))
+                    {
+                        score += LANE_PERSISTENCE_PENALTY;
+                        break;
+                    }
+                }
+
+                // Anchor phrases: members shared with the previous chord keep their placed
+                // fret, so the player can hold the non-shared note and tap the shared one
+                for (int i = 0; i < members.Count; i++)
+                {
+                    int sharedIndex = previousIdentityFrets.IndexOf(members[i].Fret);
+                    if (sharedIndex >= 0 && candidate[i] != previousPlacedFrets[sharedIndex])
+                    {
+                        score += SHARED_ANCHOR_PENALTY;
+                    }
+                }
+
+                // Lookahead: penalize placements that would force the next chart step off the
+                // highway, so runs approaching an edge shift over early instead of pinning
+                if (nextIdentityCentroid is double nextIdent)
+                {
+                    double nextIdealLane = lane + (nextIdent - identityCentroid) * LANES_PER_FRET;
+                    score += Math.Max(0, nextIdealLane - 2);
+                    score += Math.Max(0, -nextIdealLane);
+                }
+
+                if (score < bestScore)
+                {
+                    bestScore = score;
+                    bestMask = mask;
+                    bestLane = lane;
+                    candidate.CopyTo(bestAssignment);
+                }
+            }
+
+            // Last-resort fallback: if the hopo hard filter rejected every candidate (pathological
+            // contexts only), place the first legal one rather than nothing at all
+            if (bestMask == 0)
+            {
+                foreach (var candidate in candidates)
+                {
+                    int mask = 0;
+                    foreach (int value in candidate)
+                    {
+                        mask |= 1 << (value - 1);
+                    }
+
+                    if (!IsLegalSixFretChord(mask))
+                    {
+                        continue;
+                    }
+
+                    bestMask = mask;
+                    double laneSum = 0;
+                    foreach (int value in candidate)
+                    {
+                        laneSum += LaneOf(value);
+                    }
+                    bestLane = laneSum / candidate.Length;
+                    candidate.CopyTo(bestAssignment);
+
+                    break;
+                }
+            }
+
+            // Truncate foreign sustains this chord strikes into: cutting a sustain short is
+            // preferable to a same-lane hopo, and matches what real charters do when a new
+            // pattern needs the space. (Absorbed sustains — the chord continuing its own
+            // sustaining note — are left alone.)
+            for (int i = activeSustains.Count - 1; i >= 0; i--)
+            {
+                var (tickEnd, placedFret, identityFret, source) = activeSustains[i];
+                if ((bestMask & SixFretLaneMasks[LaneOf(placedFret)]) == 0)
+                {
+                    continue;
+                }
+
+                bool absorbed = false;
+                for (int m = 0; m < members.Count; m++)
+                {
+                    if (members[m].Fret == identityFret && bestAssignment[m] == placedFret)
+                    {
+                        absorbed = true;
+                        break;
+                    }
+                }
+
+                if (absorbed)
+                {
+                    continue;
+                }
+
+                uint oldTickLength = source.TickLength;
+                uint newTickLength = note.Tick >= source.Tick ? 0u : source.Tick - note.Tick;
+                source.TickLength = newTickLength;
+                if (oldTickLength > 0)
+                {
+                    source.TimeLength *= (double) newTickLength / oldTickLength;
+                }
+
+                activeSustains.RemoveAt(i);
+            }
+
+            // Apply the chosen assignment
+            previousPlacedFrets.Clear();
+            previousIdentityFrets.Clear();
+            for (int i = 0; i < members.Count; i++)
+            {
+                // Record the 5-fret identity BEFORE SetSixFret overwrites it with the 6-fret value
+                int identityFret = members[i].Fret;
+                SetSixFret(members[i], bestAssignment[i]);
+                previousPlacedFrets.Add(bestAssignment[i]);
+                previousIdentityFrets.Add(identityFret);
+
+                // Track sustains so later chords avoid their lanes while they are still held
+                if (members[i].TickLength > 0)
+                {
+                    activeSustains.Add((members[i].Tick + members[i].TickLength,
+                        bestAssignment[i], identityFret, members[i]));
+                }
+            }
+
+            // Parent NoteMask: replace the fretted bits with the chosen ones, keep open-like bits
+            int openBits = note.NoteMask & ~SIX_FRET_FRETS_MASK;
+            note.NoteMask = openBits | bestMask;
+
+            return (bestLane, identityCentroid);
+        }
+
+        /// <summary>Lane index (0-2) of a fretted 6-fret value.</summary>
+        private static int LaneOf(int fret)
+        {
+            return (fret - 1) % 3;
+        }
+
+        /// <summary>Bitmask of lanes (bit 0-2) that contain a barre (both members) in the given mask.</summary>
+        private static int GetBarreLanes(int fretMask)
+        {
+            int lanes = 0;
+            for (int lane = 0; lane < 3; lane++)
+            {
+                if ((fretMask & SixFretLaneMasks[lane]) == SixFretLaneMasks[lane])
+                {
+                    lanes |= 1 << lane;
+                }
+            }
+
+            return lanes;
+        }
+
+        private static bool RepeatsPreviousPosition(ReadOnlySpan<int> candidate, List<int> previousPlacedFrets)
+        {
+            if (candidate.Length != previousPlacedFrets.Count)
+            {
+                return false;
+            }
+
+            for (int i = 0; i < candidate.Length; i++)
+            {
+                if (candidate[i] != previousPlacedFrets[i])
+                {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        private static void SetSixFret(GuitarNote member, int fret)
+        {
+            member.Fret = fret;
+            int mask = 1 << (fret - 1);
+            member.DisjointMask = (member.DisjointMask & ~SIX_FRET_FRETS_MASK) | mask;
+            if (member.IsChild)
+            {
+                member.NoteMask = (member.NoteMask & ~SIX_FRET_FRETS_MASK) | mask;
+            }
+        }
+
+        /// <summary>
+        /// Whether the given fretted-bit mask forms a legal 6-fret chord: no SINGLE note may sit
+        /// in a lane to the left of any barre (two notes sharing a lane). Notes belonging to
+        /// another barre to the left are fine, so double barres like B1W1+B2W2 (optionally plus
+        /// a rightmost single) are legal; a triple barre is not, but cannot arise from 5-fret
+        /// chords (it needs six notes).
+        /// </summary>
+        private static bool IsLegalSixFretChord(int mask)
+        {
+            int barreLanes = GetBarreLanes(mask);
+
+            for (int lane = 1; lane < SixFretLaneMasks.Length; lane++)
+            {
+                if ((barreLanes & (1 << lane)) == 0)
+                {
+                    continue;
+                }
+
+                // Barre in this lane; every lane to its left must be empty or barred too
+                for (int left = 0; left < lane; left++)
+                {
+                    int leftBits = mask & SixFretLaneMasks[left];
+                    if (leftBits != 0 && (barreLanes & (1 << left)) == 0)
+                    {
+                        return false;
+                    }
+                }
+            }
+
+            return true;
+        }
+
+        /// <summary>
+        /// Enumerates all ways to assign <paramref name="count"/> distinct 6-fret values (1-6) in
+        /// increasing order, preserving the chord's fret ordering. Returns arrays of fret values.
+        /// </summary>
+        private static List<int[]> EnumerateIncreasingAssignments(int count)
+        {
+            var results = new List<int[]>(15);
+            var current = new int[count];
+            void Build(int index, int min)
+            {
+                if (index == count)
+                {
+                    results.Add((int[]) current.Clone());
+                    return;
+                }
+
+                for (int value = min; value <= (int) SixFretGuitarFret.White3 - (count - 1 - index); value++)
+                {
+                    current[index] = value;
+                    Build(index + 1, value + 1);
+                }
+            }
+
+            Build(0, 1);
+            return results;
+        }
+
         public static void ConvertToGuitarType(this InstrumentDifficulty<GuitarNote> difficulty, GuitarNoteType type)
         {
             foreach (var note in difficulty.Notes)
