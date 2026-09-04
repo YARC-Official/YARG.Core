@@ -40,7 +40,15 @@ The converter tracks active sustains while walking the track. When a chord strik
 
 Truncation applies to any strike into the sustained column, sustained or not. Sustains that have already ended before the chord's tick are simply dropped from tracking.
 
-## 3. Where conversion runs
+## 3. Lefty flip
+
+Lefty flip mirrors the 6-fret highway, which physically swaps the black and white pad rows. To keep notes playable on the mirrored highway, every note's pads are color-flipped as well: `B1↔W1`, `B2↔W2`, `B3↔W3` (open and wildcard unchanged).
+
+The flip is applied in `SongChart.GetSixFretPlayableDifficulty` via `FlipSixFretColors` **after** the 5-fret-to-6-fret conversion, so it affects both native 6-fret charts and converted 5-fret charts. It returns a clone; the shared chart data is never mutated.
+
+Both gameplay (`SixFretGuitarPlayer.GetNotes`) and replay analysis (`ReplayAnalyzer`) pass the profile's lefty-flip flag into `GetSixFretPlayableDifficulty` — replays must resimulate the same notes gameplay used or verification fails.
+
+## 4. Where conversion runs
 
 `SongChart.GetSixFretPlayableDifficulty(instrument, difficulty)` is the single entry point:
 
@@ -51,7 +59,7 @@ Both gameplay (`SixFretGuitarPlayer.GetNotes`) and replay analysis (`ReplayAnaly
 
 Conversion happens once per song load; it is not a gameplay hot path.
 
-## 4. Notes
+## 5. Notes
 
 - The conversion is **context-free per chord**: the same 5-fret chord always maps to the same 6-fret chord, so there is a fixed lookup table.
 - The `GRYBO` substitution maps to holding **all six** frets: the five note members map in pad order to `B1 W1 B2 W2 B3` and a sixth note member is added on `W3`, so the chord is complete both visually and mechanically — the engine requires every fret to be held and scores all six notes.

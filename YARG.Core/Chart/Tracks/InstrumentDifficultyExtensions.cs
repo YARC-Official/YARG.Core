@@ -108,6 +108,42 @@ namespace YARG.Core.Chart
             return converted;
         }
 
+        /// <summary>
+        /// Returns a copy of a 6-fret difficulty with every note's pads color-flipped
+        /// (Black1↔White1, Black2↔White2, Black3↔White3). Used for lefty flip: the mirrored
+        /// highway physically swaps the two pad rows, so notes must swap rows with it.
+        /// Open and wildcard notes are unchanged.
+        /// </summary>
+        public static InstrumentDifficulty<GuitarNote> FlipSixFretColors(this InstrumentDifficulty<GuitarNote> difficulty)
+        {
+            var flipped = new InstrumentDifficulty<GuitarNote>(difficulty);
+            foreach (var note in flipped.Notes)
+            {
+                int memberMaskUnion = 0;
+                foreach (var member in note.AllNotes)
+                {
+                    if (member.Fret is >= (int) SixFretGuitarFret.Black1 and <= (int) SixFretGuitarFret.White3)
+                    {
+                        member.Fret = (member.Fret - 1 + 3) % 6 + 1;
+                    }
+
+                    member.NoteMask = FlipSixFretColorBits(member.NoteMask);
+                    member.DisjointMask = FlipSixFretColorBits(member.DisjointMask);
+                    memberMaskUnion |= member.NoteMask;
+                }
+
+                // The parent's NoteMask is the union of its members' masks
+                note.NoteMask = memberMaskUnion;
+            }
+            return flipped;
+        }
+
+        /// <summary>Swaps the black-row bits (1-3) with the white-row bits (4-6), keeping open/wildcard bits.</summary>
+        private static int FlipSixFretColorBits(int mask)
+        {
+            return ((mask & 0x38) >> 3) | ((mask & 0x07) << 3) | (mask & ~SIX_FRET_FRETS_MASK);
+        }
+
         /// <summary>Masks for the six fretted 6-fret notes (Black1 through White3).</summary>
         private const int SIX_FRET_FRETS_MASK = 0x3F;
 

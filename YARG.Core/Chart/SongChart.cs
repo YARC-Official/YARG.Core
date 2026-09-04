@@ -318,14 +318,21 @@ namespace YARG.Core.Chart
         /// </summary>
         /// <remarks>The returned difficulty may be shared chart data for six-fret instruments;
         /// clone before mutating.</remarks>
-        public InstrumentDifficulty<GuitarNote> GetSixFretPlayableDifficulty(Instrument instrument, Difficulty difficulty)
+        public InstrumentDifficulty<GuitarNote> GetSixFretPlayableDifficulty(Instrument instrument, Difficulty difficulty,
+            bool leftyFlip = false)
         {
+            InstrumentDifficulty<GuitarNote> track;
             if (instrument.IsSixFret())
             {
-                return GetSixFretTrack(instrument).GetDifficulty(difficulty);
+                track = GetSixFretTrack(instrument).GetDifficulty(difficulty);
+            }
+            else
+            {
+                track = GetFiveFretTrack(instrument).GetDifficulty(difficulty).ConvertFiveFretToSixFret();
             }
 
-            return GetFiveFretTrack(instrument).GetDifficulty(difficulty).ConvertFiveFretToSixFret();
+            // Lefty flip mirrors the highway, which swaps the black and white pad rows
+            return leftyFlip ? track.FlipSixFretColors() : track;
         }
 
         public bool TryGetFiveFretDifficulty(Instrument instrument, Difficulty difficulty, [NotNullWhen(true)] out InstrumentDifficulty<GuitarNote>? track)

@@ -242,7 +242,7 @@ namespace YARG.Core.Replays.Analyzer
                 {
                     // Must match gameplay note selection (GetSixFretPlayableDifficulty) or replays fail verification
                     var notes = _chart.GetSixFretPlayableDifficulty(frame.Profile.CurrentInstrument,
-                        frame.Profile.CurrentDifficulty).Clone();
+                        frame.Profile.CurrentDifficulty, frame.Profile.LeftyFlip).Clone();
                     profile.ApplyModifiers(notes, _chart.SyncTrack);
                     manager.Register((GuitarEngine)engine, notes, _chart, rockMeterPreset);
                     break;
@@ -320,7 +320,7 @@ namespace YARG.Core.Replays.Analyzer
                 {
                     // Must match gameplay note selection (GetSixFretPlayableDifficulty) or replays fail verification
                     var notes = _chart.GetSixFretPlayableDifficulty(profile.CurrentInstrument,
-                        profile.CurrentDifficulty).Clone();
+                        profile.CurrentDifficulty, profile.LeftyFlip).Clone();
                     profile.ApplyModifiers(notes, _chart.SyncTrack);
                     foreach (var note in notes.Notes)
                     {
