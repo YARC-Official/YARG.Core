@@ -592,6 +592,14 @@ namespace YARG.Core.Song
                 return ScanResult.NoAudio;
             }
 
+            // Charts sometimes point #AUDIO at the same video file as #VIDEO. The audio
+            // backend has no demuxer, so a video container can't be decoded -- reject here
+            // rather than admit the entry and fail at play time with no explanation.
+            if (Array.IndexOf(VIDEO_EXTENSIONS, Path.GetExtension(audioFile).ToLowerInvariant()) >= 0)
+            {
+                return ScanResult.UnsupportedAudioFormat;
+            }
+
             entry._metadata = SongMetadata.Default;
 
             entry._metadata.Name = title!; // We will have returned already if title is null
