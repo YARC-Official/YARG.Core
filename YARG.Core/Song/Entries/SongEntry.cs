@@ -143,13 +143,17 @@ namespace YARG.Core.Song
 
         public string CharterAudio       => _metadata.CharterAudio;
         public string CharterBass       => _metadata.CharterBass;
+        public string CharterBass6F     => _metadata.CharterBass6F;
         public string CharterDrums      => _metadata.CharterDrums;
         public string CharterEliteDrums => _metadata.CharterEliteDrums;
         public string CharterGuitar     => _metadata.CharterGuitar;
+        public string CharterGuitar6F   => _metadata.CharterGuitar6F;
         public string CharterKeys       => _metadata.CharterKeys;
         public string CharterLowerDiff  => _metadata.CharterLowerDiff;
         public string CharterProBass    => _metadata.CharterProBass;
         public string CharterProKeys    => _metadata.CharterProKeys;
+        public string CharterRhythm     => _metadata.CharterRhythm;
+        public string CharterRhythm6F   => _metadata.CharterRhythm6F;
         public string CharterProGuitar  => _metadata.CharterProGuitar;
         public string CharterVocals     => _metadata.CharterVocals;
         public string CharterVenue      => _metadata.CharterVenue;
@@ -427,14 +431,18 @@ namespace YARG.Core.Song
 
             stream.Write(_metadata.CharterAudio);
             stream.Write(_metadata.CharterBass);
+            stream.Write(_metadata.CharterBass6F);
             stream.Write(_metadata.CharterDrums);
             stream.Write(_metadata.CharterEliteDrums);
             stream.Write(_metadata.CharterGuitar);
+            stream.Write(_metadata.CharterGuitar6F);
             stream.Write(_metadata.CharterKeys);
             stream.Write(_metadata.CharterLowerDiff);
             stream.Write(_metadata.CharterProBass);
             stream.Write(_metadata.CharterProKeys);
             stream.Write(_metadata.CharterProGuitar);
+            stream.Write(_metadata.CharterRhythm);
+            stream.Write(_metadata.CharterRhythm6F);
             stream.Write(_metadata.CharterVenue);
             stream.Write(_metadata.CharterVocals);
 
@@ -523,14 +531,18 @@ namespace YARG.Core.Song
 
             _metadata.CharterAudio = stream.ReadString();
             _metadata.CharterBass = stream.ReadString();
+            _metadata.CharterBass6F = stream.ReadString();
             _metadata.CharterDrums = stream.ReadString();
             _metadata.CharterEliteDrums = stream.ReadString();
             _metadata.CharterGuitar = stream.ReadString();
+            _metadata.CharterGuitar6F = stream.ReadString();
             _metadata.CharterKeys = stream.ReadString();
             _metadata.CharterLowerDiff = stream.ReadString();
             _metadata.CharterProBass = stream.ReadString();
             _metadata.CharterProKeys = stream.ReadString();
             _metadata.CharterProGuitar = stream.ReadString();
+            _metadata.CharterRhythm = stream.ReadString();
+            _metadata.CharterRhythm6F = stream.ReadString();
             _metadata.CharterVenue = stream.ReadString();
             _metadata.CharterVocals = stream.ReadString();
 
