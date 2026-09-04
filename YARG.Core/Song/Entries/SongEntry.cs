@@ -50,7 +50,7 @@ namespace YARG.Core.Song
 
         protected static readonly string[] VIDEO_EXTENSIONS =
         {
-            ".mp4", ".mov", ".webm",
+            ".mp4", ".mov", ".webm", ".mkv",
         };
 
         protected static readonly string[] IMAGE_EXTENSIONS =
