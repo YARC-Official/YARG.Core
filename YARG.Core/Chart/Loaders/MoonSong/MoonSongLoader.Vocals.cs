@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.RegularExpressions;
 using MoonscraperChartEditor.Song;
 using YARG.Core.Extensions;
 using YARG.Core.Logging;
@@ -72,7 +73,7 @@ namespace YARG.Core.Chart
                 var harm3Phrases =
                     GetVocalsPhrases(_moonSong.GetChart(MoonSong.MoonInstrument.Harmony3, MoonSong.Difficulty.Expert),
                         2, true);
-                mergedPhrases = MergePhrases(staticLyricPhrases, harm3Phrases);
+                mergedPhrases = MergePhrases(staticLyricPhrases, harm3Phrases, _moonSong.syncTrack);
                 SplitStaticLyricPhrases(ref mergedPhrases, new List<uint>());
             }
 
@@ -321,8 +322,13 @@ namespace YARG.Core.Chart
             }
         }
 
-        private static VocalsPhrase MergePhrasePair(VocalsPhrase mainPhrase, VocalsPhrase otherPhrase)
+        private static VocalsPhrase MergePhrasePair(VocalsPhrase mainPhrase, VocalsPhrase otherPhrase,
+            SyncTrack syncTrack)
         {
+            // 16th note
+            var tolerance = (syncTrack.Resolution / 4) - 1;
+            var alphanumericRegex = new Regex("[^a-zA-Z0-9]", RegexOptions.Compiled);
+
             var mergedLyrics = new List<LyricEvent>();
             var mergedLyricIdx = 0;
 
@@ -352,7 +358,7 @@ namespace YARG.Core.Chart
                 // Handle any merged lyrics that happened before the current main lyric
                 while (mergedLyricIdx < otherPhraseLyrics.Count)
                 {
-                    if (otherPhraseLyrics[mergedLyricIdx].Tick >= mainLyric.Tick)
+                    if (otherPhraseLyrics[mergedLyricIdx].Tick >= mainLyric.Tick - tolerance)
                     {
                         break;
                     }
@@ -362,14 +368,25 @@ namespace YARG.Core.Chart
 
                 // If there's a simultaneous syllable in the merged part...
                 if (mergedLyricIdx < otherPhraseLyrics.Count &&
-                    otherPhraseLyrics[mergedLyricIdx].Tick == mainLyric.Tick)
+                    (otherPhraseLyrics[mergedLyricIdx].Tick - mainLyric.Tick <= tolerance ||
+                        mainLyric.Tick - otherPhraseLyrics[mergedLyricIdx].Tick <= tolerance))
                 {
                     var simultaneousMergedLyric = otherPhraseLyrics[mergedLyricIdx++];
                     // ...and their texts match...
-                    if (string.Equals(simultaneousMergedLyric.Text, mainLyric.Text, StringComparison.OrdinalIgnoreCase))
+                    if (string.Equals(alphanumericRegex.Replace(simultaneousMergedLyric.Text, ""), alphanumericRegex.Replace(mainLyric.Text, ""), StringComparison.OrdinalIgnoreCase))
                     {
-                        // ...add the longer of the two lyrics
-                        mergedLyrics.Add(simultaneousMergedLyric.TimeLength > mainLyric.TimeLength ? simultaneousMergedLyric : mainLyric);
+                        // ...make a lyric with the earliest start time, and latest end time, and add it to the merged lyrics
+                        var selectedLyric = mainLyric;
+                        if (simultaneousMergedLyric.Text[0].IsLatin1LetterLower())
+                        {
+                            selectedLyric = simultaneousMergedLyric;
+                        }
+                        selectedLyric.Time = Math.Min(simultaneousMergedLyric.Time, mainLyric.Time);
+                        selectedLyric.Tick = Math.Min(simultaneousMergedLyric.Tick, mainLyric.Tick);
+                        selectedLyric.TimeLength = Math.Max(simultaneousMergedLyric.TimeEnd, mainLyric.TimeEnd) - selectedLyric.Time;
+                        selectedLyric.TickLength = Math.Max(simultaneousMergedLyric.TickEnd, mainLyric.TickEnd) - selectedLyric.Tick;
+
+                        mergedLyrics.Add(selectedLyric);
                     }
                     // ...otherwise, if its text isn't an exact match to the main syllable...
                     else
@@ -403,8 +420,7 @@ namespace YARG.Core.Chart
                 mergedLyrics
             );
         }
-
-        private static List<VocalsPhrase> MergePhrases(List<VocalsPhrase> mainPhrases, List<VocalsPhrase> otherPhrases)
+        private static List<VocalsPhrase> MergePhrases(List<VocalsPhrase> mainPhrases, List<VocalsPhrase> otherPhrases, SyncTrack syncTrack)
         {
             var result = new List<VocalsPhrase>();
             var otherIdx = 0;
@@ -420,7 +436,7 @@ namespace YARG.Core.Chart
                 // Merge phrases at the same tick, otherwise emit main phrase alone
                 if (otherIdx < otherPhrases.Count && otherPhrases[otherIdx].Tick == mainPhrase.Tick)
                 {
-                    result.Add(MergePhrasePair(mainPhrase, otherPhrases[otherIdx++]));
+                    result.Add(MergePhrasePair(mainPhrase, otherPhrases[otherIdx++], syncTrack));
                 }
                 else
                 {
