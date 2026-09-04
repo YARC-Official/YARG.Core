@@ -88,6 +88,9 @@ public class UltraStarIniEntryTests
 
     [TestCase("whatever_the_author_named_it.mp3", TestName = "Audio resolves from the tag, not a fixed stem name")]
     [TestCase("audio.mp3", TestName = "Audio resolves when the tag happens to match a stem name")]
+    // .m4a is absent from IniAudio.SupportedFormats but decodes fine, and is what most
+    // UltraStar charts ship -- the UltraStar path must never gate on that whitelist.
+    [TestCase("audio.m4a", TestName = "Audio resolves for a format outside IniAudio.SupportedFormats")]
     public void ResolvesAudioFromTagNotFixedStemName(string audioFileName)
     {
         // A successful scan is itself the assertion: ScanUltraStar returns NoAudio when the
@@ -105,6 +108,22 @@ public class UltraStarIniEntryTests
 
         Assert.That(result.HasValue, Is.False);
         Assert.That(result.Error, Is.EqualTo(ScanResult.NoAudio));
+    }
+
+    [Test]
+    public void FailsScanWhenTaggedAudioIsAVideoFile()
+    {
+        // Charts occasionally point the audio tag at the same video file as #VIDEO. Nothing
+        // downstream can decode a video container, so the scan must reject it -- otherwise
+        // the entry reaches the library and fails at play time with nothing written to
+        // badsongs.txt to explain why.
+        WriteAudio("song.mp4");
+        string chartPath = WriteChart("song.txt", BasicChart(audio: "song.mp4"));
+
+        var result = UnpackedIniEntry.ProcessNewEntry(_songDir, new FileInfo(chartPath), ChartFormat.UltraStar, null, "");
+
+        Assert.That(result.HasValue, Is.False);
+        Assert.That(result.Error, Is.EqualTo(ScanResult.UnsupportedAudioFormat));
     }
 
     [Test]
