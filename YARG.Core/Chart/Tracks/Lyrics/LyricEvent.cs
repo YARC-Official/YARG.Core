@@ -34,6 +34,13 @@ namespace YARG.Core.Chart
             IsCensorable = isCensorable;
         }
 
+        public LyricEvent(LyricSymbolFlags flags, string text, double time, double timeLength, uint tick, uint tickLength)
+            : base(time, timeLength, tick, tickLength)
+        {
+            _flags = flags;
+            Text = text;
+        }
+
         public LyricEvent(LyricEvent other) : base(other)
         {
             _flags = other._flags;
