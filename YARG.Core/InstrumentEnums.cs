@@ -319,6 +319,7 @@ namespace YARG.Core
                     Instrument.FiveFretBass,
                     Instrument.FiveFretRhythm,
                     Instrument.FiveFretCoopGuitar,
+                    Instrument.Keys
                 },
                 _  => PossibleInstruments(gameMode)
             };
