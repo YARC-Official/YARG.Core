@@ -792,7 +792,9 @@ namespace YARG.Core.Song
                 entry._metadata.CharterProBass   = YARGDTAReader.DecodeString(dta.CharterProStrings.Value, dta.MetadataEncoding);
             }
             if (dta.LoadingPhrase != null)        { entry._metadata.LoadingPhrase = YARGDTAReader.DecodeString(dta.LoadingPhrase.Value, dta.MetadataEncoding); }
-            if (dta.Playlist != null)             { entry._metadata.Playlist      = YARGDTAReader.DecodeString(dta.Playlist.Value, dta.MetadataEncoding); }
+            // pack_name is intentionally not applied to Playlist - CacheHandler now derives
+            // the folder/playlist name from directory structure or the CON's own file name,
+            // which is more reliable than a pack_name field that many CONs omit or vary in.
             if (dta.Genre != null)
             {
                 entry._metadata.Genre    = dta.Genre;
