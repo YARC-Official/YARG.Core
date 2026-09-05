@@ -24,6 +24,20 @@ namespace YARG.Core.Engine
         // Maximum bonus for one fret press or drum hit
         public int MaxLaneScore { get; private set; }
 
+        public int MaxBonusScore
+        {
+            get
+            {
+                double duration = Math.Max(0, EndTime - StartTime);
+                double initialRechargeTime = Math.Min(StartTime, BONUS_RECHARGE_TIME);
+                int scorePerLane =
+                    (int) Math.Floor(initialRechargeTime / BONUS_RECHARGE_TIME * MaxLaneScore) +
+                    (int) Math.Floor(duration / BONUS_RECHARGE_TIME * MaxLaneScore);
+
+                return ScoringZones * scorePerLane;
+            }
+        }
+
         // The total bonus that will be awarded if the BRE is successful
         public int TotalCodaBonus { get; private set; }
 

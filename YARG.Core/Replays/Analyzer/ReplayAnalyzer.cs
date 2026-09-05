@@ -217,6 +217,7 @@ namespace YARG.Core.Replays.Analyzer
                     Frame = frames[i],
                     OriginalStats = frames[i].Stats,
                     ResultStats = engines[i].BaseStats,
+                    MaxScoreWithoutStarPower = engines[i].MaxScoreWithoutStarPower,
                     StatLog = log,
                 });
             }
