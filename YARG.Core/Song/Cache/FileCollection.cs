@@ -53,6 +53,24 @@ namespace YARG.Core.Song.Cache
             return file != null!;
         }
 
+        /// <summary>
+        /// Finds every file with the given lowercase extension, for formats whose chart
+        /// file has no fixed name.
+        /// </summary>
+        public List<FileInfo> FindAllFilesByExtension(string extension)
+        {
+            var files = new List<FileInfo>();
+            foreach (var entry in _entries)
+            {
+                // Keys are already lowercased by the constructor.
+                if (entry.Key.EndsWith(extension, StringComparison.Ordinal) && entry.Value is FileInfo candidate)
+                {
+                    files.Add(candidate);
+                }
+            }
+            return files;
+        }
+
         public bool FindDirectory(string name, out DirectoryInfo directory)
         {
             directory = null!;

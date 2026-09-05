@@ -13,14 +13,24 @@ namespace YARG.Core.Chart.Loaders.UltraStar
     {
         #region Constants
 
-        // MIDI base constant
-        // UltraStar pitch is RELATIVE
-        // MIDI 60 = C4
+        // UltraStar pitch is relative to C4 (MIDI 60).
         private const int ULTRASTAR_PITCH_BASE = 60;
+
+        // Melisma/continuation marker on a syllable. Distinct from the rest marker '-',
+        // which shares a character with LyricSymbols.LYRIC_JOIN_SYMBOL but is unrelated.
+        private const char US_MELISMA_SYMBOL = '~';
+
+        // An UltraStar beat is an eighth of the internal tick beat.
+        private const uint US_BEATS_PER_TICK_BEAT = 8;
 
         #endregion
 
         #region Fields
+
+        // Maximum number of independent voices supported. Matches YARG's harmony
+        // vocals model (HARM1-3, see VocalNote.HarmonyPart) — a P4+ marker has no
+        // slot to route into.
+        private const int MAX_VOICE_PARTS = 3;
 
         private readonly Dictionary<string, string> _metadata     = new(StringComparer.OrdinalIgnoreCase);
         private          uint                       _ticksPerBeat = 120;
@@ -33,12 +43,13 @@ namespace YARG.Core.Chart.Loaders.UltraStar
         private VenueTrack? _venueTrack;
         private LyricsTrack? _lyricsTrack;
 
-        private readonly Dictionary<int, List<UltraStarNote>> _partNotes = new()
-        {
-            [0] = new(),
-            [1] = new()
-        };
+        // (Beat, BPM) mid-song tempo changes from "B <beat> <bpm>" lines, sorted by beat once parsing completes.
+        private readonly List<(uint Beat, double Bpm)> _tempoChanges = new();
+
+        private readonly Dictionary<int, List<UltraStarNote>> _partNotes = new();
         private int _currentPart = 0;
+        // Set by a trailing '~'; the next note consumes it as its pitch-slide marker.
+        private bool _pendingPitchSlide = false;
 
         #endregion
 
@@ -46,7 +57,6 @@ namespace YARG.Core.Chart.Loaders.UltraStar
 
         private class UltraStarNote
         {
-            public int    PartIndex     { get; set; } = 0;
             public char   Type          { get; set; }
             public uint   StartBeat     { get; set; }
             public uint   DurationBeats { get; set; }
@@ -54,15 +64,26 @@ namespace YARG.Core.Chart.Loaders.UltraStar
             public string Lyric         { get; set; } = string.Empty;
 
             /// <summary>
-            /// When true, a hyphen ('-') should be appended to this note's lyric
-            /// and JoinWithNext flag set on its LyricEvent. Set when the NEXT note
-            /// in the phrase has a '~' (melisma continuation) prefix.
+            /// Hyphenates this note's lyric onto the next one (JoinWithNext). Set either by
+            /// a trailing '~' here or by a leading '~' with text on the following note.
             /// </summary>
             public bool MelismaJoin { get; set; }
 
-            public bool IsGolden    => Type == '*' || Type == 'G';
-            public bool IsUnpitched => Type == 'F' || Type == 'R' || Type == 'G';
-            public bool IsRest      => Type == '-';
+            public uint EndBeat => StartBeat + DurationBeats;
+
+            // Type rules live here so adding a note type touches one place.
+            public static bool IsNoteLineType(char type) => type is ':' or '*' or 'F' or '-' or 'R' or 'G';
+            public static bool IsGoldenType(char type)   => type is '*' or 'G';
+            public static bool IsRestType(char type)     => type == '-';
+
+            // Freestyle (F), Rap (R), Golden Rap (G) carry no pitch requirement. All three
+            // are treated as scored+unpitched; per spec Freestyle should be unscored, but
+            // YARG has no zero-score vocal category (see VocalNote.IsNonPitched).
+            public static bool IsUnpitchedType(char type) => type is 'F' or 'R' or 'G';
+
+            public bool IsGolden    => IsGoldenType(Type);
+            public bool IsUnpitched => IsUnpitchedType(Type);
+            public bool IsRest      => IsRestType(Type);
         }
 
         #endregion
@@ -74,6 +95,17 @@ namespace YARG.Core.Chart.Loaders.UltraStar
 
         public string? GetMetadata(string key)
             => _metadata.TryGetValue(key, out var v) ? v : null;
+
+        /// <summary>Voices the note body actually uses; not the #PARTS tag's value.</summary>
+        public int VoiceCount => _partNotes.Count;
+
+        /// <summary>Parses a numeric tag. US files routinely use comma decimals.</summary>
+        public static bool TryParseNumber(string? raw, out double value)
+        {
+            value = 0;
+            return raw != null
+                && double.TryParse(raw.Replace(',', '.'), NumberStyles.Float, CultureInfo.InvariantCulture, out value);
+        }
 
         #region Parsing
 
@@ -94,29 +126,61 @@ namespace YARG.Core.Chart.Loaders.UltraStar
                     }
 
                     if (line[0] == '#') { ParseMetadataLine(line); continue; }
-                    if (line == "P1")
+
+                    if (line.Length == 2 && line[0] == 'P' && char.IsDigit(line[1]))
                     {
-                        _metadata["PARTS"] = "2";
-                        _currentPart = 0;
+                        ParseVoiceMarker(line[1] - '0');
                         continue;
                     }
 
-                    if (line == "P2")
-                    {
-                        _metadata["PARTS"] = "2";
-                        _currentPart = 1;
-                        continue;
-                    }
                     if (line == "E")
                     {
                         break;
                     }
 
-                    if (line[0] is ':' or '*' or 'F' or '-' or 'R' or 'G')
+                    if (line[0] == 'B')
+                    {
+                        ParseTempoChangeLine(line);
+                        continue;
+                    }
+
+                    if (UltraStarNote.IsNoteLineType(line[0]))
                     {
                         ParseNoteLine(line);
                     }
                 }
+            }
+
+            _tempoChanges.Sort((a, b) => a.Beat.CompareTo(b.Beat));
+        }
+
+        /// <summary>
+        /// Per spec (§4.3) each P marker is an independent voice, not a "both singers" one.
+        /// </summary>
+        private void ParseVoiceMarker(int voiceNumber)
+        {
+            if (voiceNumber < 1 || voiceNumber > MAX_VOICE_PARTS)
+            {
+                YargLogger.LogFormatWarning("[UltraStar] Voice marker P{0} exceeds the {1} supported harmony parts — ignoring", voiceNumber, MAX_VOICE_PARTS);
+                return;
+            }
+
+            _currentPart = voiceNumber - 1;
+            _pendingPitchSlide = false; // a trailing '~' shouldn't bleed into a different voice
+            GetOrCreatePart(_currentPart);
+        }
+
+        private void ParseTempoChangeLine(string line)
+        {
+            var parts = line.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+            if (parts.Length < 3 || !uint.TryParse(parts[1], out uint beat))
+            {
+                return;
+            }
+
+            if (TryParseNumber(parts[2], out double bpm) && bpm > 0)
+            {
+                _tempoChanges.Add((beat, bpm));
             }
         }
 
@@ -134,16 +198,14 @@ namespace YARG.Core.Chart.Loaders.UltraStar
 
             if (key.Equals("BPM", StringComparison.OrdinalIgnoreCase))
             {
-                string norm = value.Replace(',', '.');
-                if (double.TryParse(norm, NumberStyles.Float, CultureInfo.InvariantCulture, out double bpm) && bpm > 0)
+                if (TryParseNumber(value, out double bpm) && bpm > 0)
                 {
                     _bpm = bpm;
                 }
             }
             else if (key.Equals("GAP", StringComparison.OrdinalIgnoreCase))
             {
-                string norm = value.Replace(',', '.');
-                if (double.TryParse(norm, NumberStyles.Float, CultureInfo.InvariantCulture, out double gap))
+                if (TryParseNumber(value, out double gap))
                 {
                     _gapMs = gap;
                 }
@@ -160,14 +222,13 @@ namespace YARG.Core.Chart.Loaders.UltraStar
 
             char noteType = parts[0][0];
 
-            if (noteType == '-')
+            if (UltraStarNote.IsRestType(noteType))
             {
                 if (parts.Length >= 2 && uint.TryParse(parts[1], out uint restBeat))
                 {
-                    _partNotes[_currentPart].Add(new UltraStarNote
+                    GetOrCreatePart(_currentPart).Add(new UltraStarNote
                     {
-                        PartIndex = _currentPart,
-                        Type = '-',
+                        Type = noteType,
                         StartBeat = restBeat,
                         DurationBeats = 0,
                         Pitch = 0,
@@ -190,66 +251,124 @@ namespace YARG.Core.Chart.Loaders.UltraStar
             }
 
             string lyric = parts.Length > 4 ? string.Join(" ", parts.Skip(4)) : string.Empty;
+            bool isUnpitched = UltraStarNote.IsUnpitchedType(noteType);
+            bool melismaJoin = false;
 
-            if (lyric.StartsWith("~"))
+            // Consume the previous note's trailing '~' before this note's own '~' handling
+            // can set the flag again for the note after this one. Unpitched notes have no
+            // pitch to slide into, so they take precedence over blending.
+            bool pitchSlide = _pendingPitchSlide && !isUnpitched;
+            _pendingPitchSlide = false;
+
+            if (lyric.Length > 0 && lyric[0] == US_MELISMA_SYMBOL)
             {
-                lyric = lyric.Substring(1);
-                bool hasText = lyric.Length > 0;
-                if (hasText)
-                    lyric += "+";
-                else
-                    lyric = "+";
-
-                // Only mark the previous note with MelismaJoin when the '~'
-                // carries actual text (e.g. ~ght.). A bare '~' is a silent
-                // continuation hold and should NOT add a hyphen to the
-                // previous note's lyric.
-                if (hasText)
+                lyric = lyric[1..];
+                if (lyric.Length > 0)
                 {
-                    var partNotes = _partNotes[_currentPart];
-                    for (int i = partNotes.Count - 1; i >= 0; i--)
-                    {
-                        if (!partNotes[i].IsRest)
-                        {
-                            partNotes[i].MelismaJoin = true;
-                            break;
-                        }
-                    }
+                    // A '~' with text hyphenates the previous note; a bare '~' is a silent
+                    // hold and must not.
+                    pitchSlide = true;
+                    MarkPreviousNoteMelismaJoin();
+                }
+                else if (!isUnpitched)
+                {
+                    pitchSlide = true;
                 }
             }
-
-            _partNotes[_currentPart].Add(new UltraStarNote
+            else if (lyric.Length > 0 && lyric[^1] == US_MELISMA_SYMBOL)
             {
-                PartIndex = _currentPart,
+                // Trailing '~' ("n~" then "eed"): hyphenate here, but the pitch-slide goes
+                // on the NEXT note -- MoonSongLoader.Vocals merges on the later note's flag.
+                lyric = lyric[..^1];
+                melismaJoin = true;
+                _pendingPitchSlide = true;
+            }
+
+            if (pitchSlide)
+            {
+                lyric += LyricSymbols.PITCH_SLIDE_SYMBOL;
+            }
+
+            GetOrCreatePart(_currentPart).Add(new UltraStarNote
+            {
                 Type = noteType,
                 StartBeat = startBeat,
                 DurationBeats = duration,
                 Pitch = pitch,
-                Lyric = lyric
+                Lyric = lyric,
+                MelismaJoin = melismaJoin
             });
         }
+
+        private void MarkPreviousNoteMelismaJoin()
+        {
+            var partNotes = GetOrCreatePart(_currentPart);
+            for (int i = partNotes.Count - 1; i >= 0; i--)
+            {
+                if (!partNotes[i].IsRest)
+                {
+                    partNotes[i].MelismaJoin = true;
+                    return;
+                }
+            }
+        }
+
+        private List<UltraStarNote> GetOrCreatePart(int index)
+        {
+            if (!_partNotes.TryGetValue(index, out var list))
+            {
+                list = new List<UltraStarNote>();
+                _partNotes[index] = list;
+            }
+            return list;
+        }
+
+        private List<UltraStarNote> GetPart(int index)
+            => _partNotes.TryGetValue(index, out var list) ? list : new List<UltraStarNote>();
 
         #endregion
 
         #region Beat Conversion
 
+        private uint TicksPerUltraStarBeat => _ticksPerBeat / US_BEATS_PER_TICK_BEAT;
+
+        // Ticks are a pure subdivision of beat position and don't depend on BPM,
+        // so mid-song tempo changes don't affect this conversion.
         private uint BeatToTick(uint beat)
         {
-            uint ticksPerUSBeat = _ticksPerBeat / 8;
             uint gapTicks = (uint) (_gapMs / 1000.0 * _bpm);
-            return gapTicks + (beat * ticksPerUSBeat);
+            return gapTicks + (beat * TicksPerUltraStarBeat);
         }
-        private double BeatToTime(uint beat) => beat * 60.0 / _bpm;
-        private double BeatsToSeconds(uint beats) => beats * 60.0 / _bpm;
+
+        // Walks the tempo-change segments (sorted by beat) accumulating elapsed
+        // time per segment, since each segment's beat-to-time rate differs.
+        private double BeatToTime(uint beat)
+        {
+            double time = 0.0;
+            double currentBpm = _bpm;
+            uint currentBeat = 0;
+
+            foreach (var (changeBeat, changeBpm) in _tempoChanges)
+            {
+                if (beat <= changeBeat)
+                {
+                    break;
+                }
+
+                time += (changeBeat - currentBeat) * 60.0 / currentBpm;
+                currentBeat = changeBeat;
+                currentBpm = changeBpm;
+            }
+
+            time += (beat - currentBeat) * 60.0 / currentBpm;
+            return time;
+        }
 
         #endregion
 
         #region Loading
 
-        /// <summary>
-        /// UltraStar format doesn't use global events
-        /// but this is required by the ISongLoader interface.
-        /// </summary>
+        // ISongLoader requires these; the UltraStar path uses none of them.
         public List<TextEvent> LoadGlobalEvents() => _globalEvents ??= new();
         public List<Section> LoadSections() => _sections ??= new();
         public VenueTrack LoadVenueTrack() => _venueTrack ??= new VenueTrack();
@@ -267,14 +386,24 @@ namespace YARG.Core.Chart.Loaders.UltraStar
                 return _syncTrack;
             }
 
-            // UltraStar BPM is typically 2x the real musical BPM.
-            // Halve it for the SyncTrack so beatlines and crowd clapping
-            // fire at the correct rate. Note timing via BeatToTime/BeatToTick
-            // still uses the original _bpm and remains correct because
-            // UltraStar beat positions are also in "double time".
+            // UltraStar BPM is typically 2x the real musical BPM; halve it here so beatlines
+            // and crowd clapping fire at the correct rate. Note timing keeps the raw _bpm,
+            // since UltraStar beat positions are in the same "double time".
+            double gapSeconds = _gapMs / 1000.0;
+            var tempos = new List<TempoChange> { new(_bpm / 2.0, -gapSeconds, 0u) };
+
+            // Relative to beat 0, matching the initial entry above.
+            uint tickAtBeatZero = BeatToTick(0);
+            foreach (var (beat, bpm) in _tempoChanges)
+            {
+                uint tick = BeatToTick(beat) - tickAtBeatZero;
+                double time = BeatToTime(beat) - gapSeconds;
+                tempos.Add(new TempoChange(bpm / 2.0, time, tick));
+            }
+
             _syncTrack = new SyncTrack(120,
-                new List<TempoChange> { new(_bpm / 2.0, -_gapMs / 1000.0, 0u) },
-                new List<TimeSignatureChange> { new(4, 4, -_gapMs / 1000.0, 0u, 0u, 0u, 0u, 0.0) },
+                tempos,
+                new List<TimeSignatureChange> { new(4, 4, -gapSeconds, 0u, 0u, 0u, 0u, 0.0) },
                 new List<Beatline>());
             return _syncTrack;
         }
@@ -287,7 +416,7 @@ namespace YARG.Core.Chart.Loaders.UltraStar
             }
 
             var phrases = new List<LyricsPhrase>();
-            var lyricSource = _partNotes[0];
+            var lyricSource = GetPart(0);
 
             foreach (var group in GroupNotesIntoPhrases(lyricSource))
             {
@@ -297,33 +426,17 @@ namespace YARG.Core.Chart.Loaders.UltraStar
                 }
 
                 uint startTick = BeatToTick(group[0].StartBeat);
-                uint endTick = BeatToTick(group[^1].StartBeat + group[^1].DurationBeats);
+                uint endTick = BeatToTick(group[^1].EndBeat);
                 double startTime = BeatToTime(group[0].StartBeat);
-                double endTime = BeatToTime(group[^1].StartBeat + group[^1].DurationBeats);
+                double endTime = BeatToTime(group[^1].EndBeat);
 
                 var events = new List<LyricEvent>();
                 foreach (var n in group)
                 {
-                    if (string.IsNullOrWhiteSpace(n.Lyric))
+                    if (TryCreateLyricEvent(n, BeatToTime(n.StartBeat), BeatToTick(n.StartBeat), out var lyricEvent))
                     {
-                        continue;
+                        events.Add(lyricEvent);
                     }
-
-                    // Freestyle notes get "#" appended (like SingStar)
-                    string lyric = n.IsUnpitched
-                        ? FormatLyric(n.Lyric) + LyricSymbols.NONPITCHED_SYMBOL
-                        : FormatLyric(n.Lyric);
-                    var flags = n.IsUnpitched ? LyricSymbolFlags.NonPitched : LyricSymbolFlags.None;
-
-                    // Melisma: append '-' and set JoinWithNext when next note has '~' prefix
-                    if (n.MelismaJoin)
-                    {
-                        lyric += LyricSymbols.LYRIC_JOIN_SYMBOL;
-                        flags |= LyricSymbolFlags.JoinWithNext;
-                    }
-
-                    events.Add(new LyricEvent(flags, lyric,
-                        BeatToTime(n.StartBeat), BeatToTick(n.StartBeat)));
                 }
 
                 if (events.Count > 0)
@@ -348,16 +461,23 @@ namespace YARG.Core.Chart.Loaders.UltraStar
 
             if (instrument == Instrument.Vocals)
             {
-                parts.Add(BuildVocalsPart(_partNotes[0], false));
+                parts.Add(BuildVocalsPart(GetPart(0), false, 0));
             }
             else if (instrument == Instrument.Harmony)
             {
-                bool isDuet = _metadata.TryGetValue("PARTS", out var p) && p == "2";
-
-                parts.Add(BuildVocalsPart(_partNotes[0], true));
-                if (isDuet)
+                // One VocalsPart per voice actually populated (P1..P3), in order.
+                foreach (var partIndex in _partNotes.Keys.OrderBy(k => k))
                 {
-                    parts.Add(BuildVocalsPart(_partNotes[1], true));
+                    if (_partNotes[partIndex].Count == 0)
+                    {
+                        continue;
+                    }
+                    parts.Add(BuildVocalsPart(_partNotes[partIndex], true, partIndex));
+                }
+
+                if (parts.Count == 0)
+                {
+                    parts.Add(BuildVocalsPart(GetPart(0), true, 0));
                 }
             }
 
@@ -368,48 +488,40 @@ namespace YARG.Core.Chart.Loaders.UltraStar
 
         #region Vocals Processing
 
-        private VocalsPart BuildVocalsPart(List<UltraStarNote> notes, bool isHarmony)
+        private VocalsPart BuildVocalsPart(List<UltraStarNote> notes, bool isHarmony, int partIndex)
         {
             var phrases = new List<VocalsPhrase>();
             var otherPhrases = new List<Phrase>();
-            var textEvents = new List<TextEvent>();
-
-            int harmonyIndex = isHarmony ? 1 : 0;
 
             foreach (var group in GroupNotesIntoPhrases(notes))
             {
-                if (group.Count == 0)
+                var phrase = CreateVocalsPhrase(group, partIndex);
+                if (phrase == null)
                 {
                     continue;
                 }
 
-                var phrase = CreateVocalsPhrase(group, harmonyIndex);
-                if (phrase != null)
+                phrases.Add(phrase);
+                if (phrase.PhraseParentNote.IsStarPower)
                 {
-                    phrases.Add(phrase);
-                    // If phrase have SP, add to list
-                    if (group.Any(n => n.IsGolden))
-                    {
-                        otherPhrases.Add(new Phrase(
-                            PhraseType.StarPower,
-                            phrase.Time,
-                            phrase.TimeLength,
-                            phrase.Tick,
-                            phrase.TickLength));
-                    }
+                    otherPhrases.Add(new Phrase(
+                        PhraseType.StarPower,
+                        phrase.Time,
+                        phrase.TimeLength,
+                        phrase.Tick,
+                        phrase.TickLength));
                 }
             }
 
             otherPhrases = otherPhrases.OrderBy(p => p.Tick).ToList();
 
-            return new VocalsPart(isHarmony, phrases, new List<VocalsPhrase>(), new(), otherPhrases, textEvents);
+            return new VocalsPart(isHarmony, phrases, new List<VocalsPhrase>(), new(), otherPhrases, new List<TextEvent>());
         }
 
         private List<List<UltraStarNote>> GroupNotesIntoPhrases(List<UltraStarNote> notes)
         {
-            // '-' is the main phrase separator in UltraStar.
-            // Fallback threshold (32 beats) only for files without '-'.
-            // There must be > the largest possible gap inside the phrase -
+            // '-' is the main phrase separator in UltraStar; this threshold only applies to
+            // files without any. Must exceed the largest gap legitimately found in a phrase.
             const uint FALLBACK_GAP_THRESHOLD = 32;
             bool hasDashSeparators = notes.Any(n => n.IsRest);
 
@@ -427,7 +539,7 @@ namespace YARG.Core.Chart.Loaders.UltraStar
                         currentGroup = new();
                     }
 
-                    lastEndBeat = note.StartBeat + note.DurationBeats;
+                    lastEndBeat = note.EndBeat;
                     continue;
                 }
 
@@ -441,7 +553,7 @@ namespace YARG.Core.Chart.Loaders.UltraStar
                 }
 
                 currentGroup.Add(note);
-                lastEndBeat = note.StartBeat + note.DurationBeats;
+                lastEndBeat = note.EndBeat;
             }
 
             if (currentGroup.Count > 0)
@@ -460,10 +572,10 @@ namespace YARG.Core.Chart.Loaders.UltraStar
             }
 
             uint phraseStartTick = BeatToTick(phraseNotes[0].StartBeat);
-            uint phraseEndTick = BeatToTick(phraseNotes[^1].StartBeat + phraseNotes[^1].DurationBeats);
+            uint phraseEndTick = BeatToTick(phraseNotes[^1].EndBeat);
             uint phraseTickLen = phraseEndTick - phraseStartTick;
             double phraseStartTime = BeatToTime(phraseNotes[0].StartBeat);
-            double phraseEndTime = BeatToTime(phraseNotes[^1].StartBeat + phraseNotes[^1].DurationBeats);
+            double phraseEndTime = BeatToTime(phraseNotes[^1].EndBeat);
             double phraseTimeLen = phraseEndTime - phraseStartTime;
 
             var parentNote = new VocalNote(
@@ -472,49 +584,31 @@ namespace YARG.Core.Chart.Loaders.UltraStar
                 phraseStartTick, phraseTickLen);
 
             var lyrics = new List<LyricEvent>();
-            int harmonyPart = partIndex == 0 ? 0 : 1;
+            int harmonyPart = Math.Clamp(partIndex, 0, MAX_VOICE_PARTS - 1);
 
             foreach (var uNote in phraseNotes)
             {
-                uint ticksPerUsBeat = _ticksPerBeat / 8;
                 uint noteTick = BeatToTick(uNote.StartBeat);
-                uint noteTickLen = uNote.DurationBeats * ticksPerUsBeat;
+                uint noteTickLen = uNote.DurationBeats * TicksPerUltraStarBeat;
                 double noteTime = BeatToTime(uNote.StartBeat);
-                double noteTimeLen = BeatsToSeconds(uNote.DurationBeats);
+                // end-minus-start so durations spanning a tempo change stay correct.
+                double noteTimeLen = BeatToTime(uNote.EndBeat) - noteTime;
 
-                bool isUnpitched = uNote.IsUnpitched;
+                // -1 is the unpitched sentinel (see VocalNote.IsNonPitched).
+                float midiPitch = uNote.IsUnpitched ? -1f : ToMidiPitch(uNote.Pitch);
 
-                // Pitch conversion: UltraStar relative → MIDI absolute
-                // Freestyle/rap notes keep their real pitch (like SingStar)
-                float midiPitch = ToMidiPitch(uNote.Pitch);
-
-                var childNote = new VocalNote(
+                parentNote.AddChildNote(new VocalNote(
                     midiPitch,
-                    harmonyPart,                   // harmonyPart: 0 = lead
+                    harmonyPart,
                     VocalNoteType.Lyric,
                     noteTime,
                     noteTimeLen,
                     noteTick,
-                    noteTickLen);
+                    noteTickLen));
 
-                parentNote.AddChildNote(childNote);
-
-                if (!string.IsNullOrWhiteSpace(uNote.Lyric))
+                if (TryCreateLyricEvent(uNote, noteTime, noteTick, out var lyricEvent))
                 {
-                    // Freestyle notes get "#" appended (like SingStar)
-                    string lyric = isUnpitched
-                        ? FormatLyric(uNote.Lyric) + LyricSymbols.NONPITCHED_SYMBOL
-                        : FormatLyric(uNote.Lyric);
-                    var flags = isUnpitched ? LyricSymbolFlags.NonPitched : LyricSymbolFlags.None;
-
-                    // Melisma: append '-' and set JoinWithNext when next note has '~' prefix
-                    if (uNote.MelismaJoin)
-                    {
-                        lyric += LyricSymbols.LYRIC_JOIN_SYMBOL;
-                        flags |= LyricSymbolFlags.JoinWithNext;
-                    }
-
-                    lyrics.Add(new LyricEvent(flags, lyric, noteTime, noteTimeLen, noteTick, noteTickLen));
+                    lyrics.Add(lyricEvent);
                 }
             }
 
@@ -540,17 +634,36 @@ namespace YARG.Core.Chart.Loaders.UltraStar
         #region Utilities
 
         /// <summary>
-        /// Clears lyric from UltraStar
+        /// Unpitched notes emit an event even with no syllable: MoonSongLoader.Vocals
+        /// derives non-pitched status from the lyric's '#', not from VocalNote.Pitch.
         /// </summary>
-        private static string FormatLyric(string raw)
+        private static bool TryCreateLyricEvent(UltraStarNote note, double time, uint tick, out LyricEvent lyricEvent)
         {
-            return raw.Trim();
+            lyricEvent = default!;
+            if (string.IsNullOrWhiteSpace(note.Lyric) && !note.IsUnpitched)
+            {
+                return false;
+            }
+
+            string lyric = note.Lyric.Trim();
+            var flags = LyricSymbolFlags.None;
+
+            if (note.IsUnpitched)
+            {
+                lyric += LyricSymbols.NONPITCHED_SYMBOL;
+                flags |= LyricSymbolFlags.NonPitched;
+            }
+
+            if (note.MelismaJoin)
+            {
+                lyric += LyricSymbols.LYRIC_JOIN_SYMBOL;
+                flags |= LyricSymbolFlags.JoinWithNext;
+            }
+
+            lyricEvent = new LyricEvent(flags, lyric, time, tick);
+            return true;
         }
 
-        /// <summary>
-        /// Converts UltraStar relative pitch to absolute MIDI pitch for YARG.
-        /// Clamp to the range 0-127.
-        /// </summary>
         private static int ToMidiPitch(int ultraStarPitch)
             => Math.Clamp(ultraStarPitch + ULTRASTAR_PITCH_BASE, 0, 127);
 
@@ -573,8 +686,8 @@ namespace YARG.Core.Chart.Loaders.UltraStar
                 {
                     var g = groups[gi];
                     YargLogger.LogDebug($"[UltraStar] Part {partIndex + 1} Phrase {gi}: {g.Count} notes, " +
-                        $"beats {g[0].StartBeat}–{g[^1].StartBeat + g[^1].DurationBeats}, " +
-                        $"time {BeatToTime(g[0].StartBeat):F3}s–{BeatToTime(g[^1].StartBeat + g[^1].DurationBeats):F3}s");
+                        $"beats {g[0].StartBeat}–{g[^1].EndBeat}, " +
+                        $"time {BeatToTime(g[0].StartBeat):F3}s–{BeatToTime(g[^1].EndBeat):F3}s");
 
                     foreach (var n in g)
                     {
