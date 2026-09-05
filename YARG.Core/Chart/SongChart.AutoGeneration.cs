@@ -589,34 +589,56 @@ namespace YARG.Core.Chart
         {
             bool singalongsExist = songChart.VenueTrack.Performer.Any(e => e.Type is PerformerEventType.Singalong);
 
-            if (songChart.LipsyncEventsByPart.Count >= 1 && songChart.LipsyncEventsByPart.Count >= songChart.Harmony.Parts.Count)
+            // Positional layout: part 0 is the primary singer (lead vocals when present, else the
+            // first harmony part), followed by harmony parts. Empty parts keep their position with
+            // an empty event list so CharacterManager's per-index assignment stays aligned with
+            // the singer preference.
+            var allParts = new List<VocalsPart>();
+            if (!songChart.Vocals.IsEmpty)
+                allParts.AddRange(songChart.Vocals.Parts);
+            allParts.AddRange(songChart.Harmony.Parts);
+            var nonEmptyParts = allParts.Where(part => !part.IsEmpty).ToList();
+
+            if (songChart.LipsyncEventsByPart.Count >= 1 && songChart.LipsyncEventsByPart.Count >= allParts.Count)
             {
                 // Nothing we can do with vocal parts here
                 return;
             }
-            if ((songChart.Harmony.Parts.Count(part => !part.IsEmpty) == 0 || singalongsExist) && songChart.LipsyncEventsByPart.Count == 0)
+            if ((nonEmptyParts.Count == 0 || singalongsExist) && songChart.LipsyncEventsByPart.Count == 0)
             {
-                // TODO: Remove the generation from lyrics, and just generate from vocals, so we can use the note lengths.
-                if (!songChart.Lyrics.IsEmpty)
+                if (nonEmptyParts.Count > 0)
                 {
+                    // Generate from the vocals part when it exists so we can use the note lengths
+                    // for timing (resolved TODO: previously generated from lyrics here).
+                    songChart.LipsyncEventsByPart.Add(LipsyncGenerator.GenerateFromVocalsPart(
+                        nonEmptyParts[0], nonEmptyParts));
+                    YargLogger.LogFormatDebug("Generated {0} lipsync events from vocals part", songChart.LipsyncEventsByPart[0].Count);
+                }
+                else if (!songChart.Lyrics.IsEmpty)
+                {
+                    // No vocal notes to time against; fall back to the lyrics track.
                     songChart.LipsyncEventsByPart.Add(LipsyncGenerator.GenerateFromLyrics(songChart.Lyrics));
                     YargLogger.LogFormatDebug("Generated {0} lipsync events from lyrics", songChart.LipsyncEventsByPart[0].Count);
-                }
-                else if (!songChart.Vocals.IsEmpty)
-                {
-                    // I don't know if this branch is even possible to reach
-                    songChart.LipsyncEventsByPart.Add(LipsyncGenerator.GenerateFromVocalsPart(songChart.Harmony.Parts[0]));
                 }
             }
             else if (!singalongsExist) // Only generate lipsync for vocal parts if there are no singalongs to prevent weirdness
             {
-                for (int i = 0; i < songChart.Harmony.Parts.Count; i++)
+                for (int i = 0; i < allParts.Count; i++)
                 {
                     if (songChart.LipsyncEventsByPart.Count > i)
                     {
                         continue;
                     }
-                    songChart.LipsyncEventsByPart.Add(LipsyncGenerator.GenerateFromVocalsPart(songChart.Harmony.Parts[i]));
+
+                    // Empty parts keep their position with an empty event list
+                    if (allParts[i].IsEmpty)
+                    {
+                        songChart.LipsyncEventsByPart.Add(new List<LipsyncEvent>());
+                        continue;
+                    }
+
+                    songChart.LipsyncEventsByPart.Add(LipsyncGenerator.GenerateFromVocalsPart(
+                        allParts[i], nonEmptyParts));
                     YargLogger.LogFormatDebug("Generated {0} lipsync events from vocals part {1}", songChart.LipsyncEventsByPart[i].Count, i);
                 }
             }

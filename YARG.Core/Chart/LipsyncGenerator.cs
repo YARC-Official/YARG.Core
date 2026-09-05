@@ -1,17 +1,71 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text;
 using YARG.Core.Logging;
 
 namespace YARG.Core.Chart
 {
+    /// <summary>
+    /// Generates lipsync events from lyrics for charts that don't provide their own lipsync data.
+    /// </summary>
+    /// <remarks>
+    /// Words split across multiple lyric syllables are re-joined before phoneme lookup, so the
+    /// full word is analyzed and its phonemes are distributed across the syllables. Timings use
+    /// the vocal notes' actual lengths when available, and mouth shapes are ramped in/out
+    /// smoothly instead of snapping.
+    /// </remarks>
+    /// <remarks>
+    /// Only <c>_lo</c> visemes are emitted. Authored Milo data pairs most <c>_lo</c> keyframes
+    /// with a matching <c>_hi</c> channel, but YARG avatars define no <c>_hi</c> expression
+    /// clips and the runtime falls back to a single generic mouth key for unknown viseme names,
+    /// so emitting <c>_hi</c> today only doubles the event count with no visual effect.
+    /// </remarks>
     public static class LipsyncGenerator
     {
-        private const double TRANSITION_TIME = 0.12;
-        private const double HALF_TRANSITION = TRANSITION_TIME / 2;
-        private const int TRANSITION_STEPS = 4; // 30fps * 0.12s = ~4 steps
-        // private const float VISEME_WEIGHT = 140f / 255f; // Match onyx weight
-        private const float VISEME_WEIGHT = 200f / 255f;
+        private const double ATTACK_MAX_TIME = 0.18;    // Consonant/vowel attack ramp length
+        private const double ATTACK_MIN_TIME = 0.10;    // Floor so fast syllables still cross-fade
+        private const double CODA_MAX_TIME = 0.15;      // Final-consonant ramp length
+        private const double STEP_TIME = 1.0 / 30;      // ~30fps interpolation steps (Milo-style keyframes)
+        private const double MIN_SLOT_DURATION = 0.05;  // Minimum syllable slot duration
+        private const double MAX_UNVOICED_SLOT = 2.0;   // Max slot length when no note end caps it
+
+        // Section-level brow state: authored data keeps brow/emotional channels active for most of
+        // the song (stacked, sustained from seconds to minutes), so one brow state is chosen per
+        // section of phrases and sustained across it instead of firing per-phrase blips
+        private const double BROW_SECTION_GAP = 2.0;  // Silent gap that starts a new brow section
+        private const double BROW_FADE_TIME = 0.8;    // Brow ramp in/out length
+        private const float EXPRESSION_CHANCE = 0.08f; // Chance a section uses a full-face expression
+
+        // Co-articulation: the outgoing shape keeps a faint residual while the new one rises,
+        // so transitions overlap like authored keyframes instead of snapping between poses
+        private const double CO_ARTICULATION_FADE_FRACTION = 1.0; // Outgoing shape fades across the whole ramp
+
+        // Vowel peak scales with note length (longer/held notes open fuller, like authored lipsync).
+        // The vowel rides a peak-shaped envelope: peak at the syllable, decaying to a low tail —
+        // authored keyframes spend most of their time at low weights and rarely reach full open.
+        private const float VOWEL_PEAK_BASE_WEIGHT = 0.58f;   // Peak weight floor for short syllables
+        private const float VOWEL_PEAK_SCALE = 0.60f;         // Peak weight growth per second of note length
+        private const float VOWEL_PEAK_CAP = 0.90f;           // Maximum vowel peak weight (lo+hi pair then sums to ~1.29, like authored)
+        private const float VOWEL_TAIL_WEIGHT = 0.50f;        // Weight the vowel decays to by the slot end (no note evidence)
+        private const float VOWEL_SUSTAIN_FLOOR = 0.72f;      // Sustain weight on long notes (authored sustains measure ~0.5)
+        private const float VOWEL_PITCH_MOD = 0.12f;          // Sustain openness varies with pitch (higher = slightly more open)
+        private const float VOCAL_PITCH_MIN = 36f;            // Vocal pitch range used for normalization (midi note numbers)
+        private const float VOCAL_PITCH_MAX = 84f;
+        private const double VOWEL_PEAK_HOLD_FRACTION = 0.35; // Fraction of a short slot spent at/near peak
+        private const double VOWEL_PEAK_HOLD_TIME = 0.40;     // Absolute cap on the peak hold (long slots)
+        private const double VOWEL_DECAY_TIME = 0.25;         // Absolute decay time from peak to tail
+        private const float CONSONANT_WEIGHT = 0.32f;         // Authored consonant means measure ~0.28
+        private const float HI_LO_RATIO = 0.43f;        // Every viseme pairs _hi at 0.43x its _lo weight
+        private const float TOTAL_LO_BUDGET = 1.0f;     // Sum of all _lo weights (authored cross-fades stay ~1.0)
+        private const double MOUTH_GAP_CLOSE = 1.5;     // Silence length that closes the mouth
+        private const double MOUTH_CLOSE_DELAY = 0.30;  // Delay after the note before closing
+        private const double MOUTH_CLOSE_TIME = 0.25;   // Mouth close ramp length
+        private const double MOUTH_HOLD_WOBBLE_TIME = 0.6; // Max wobble duration across a short gap
+        private const float VOWEL_PEAK_JITTER_MIN = 0.8f;   // Per-syllable peak expression range
+        private const float VOWEL_PEAK_JITTER_MAX = 1.35f;  // (kept narrow so adjacent syllables agree)
+        private const float VOWEL_WOBBLE_AMPLITUDE = 0.16f; // Continuous vocal wobble around the envelope
+        private const double VOWEL_WOBBLE_HZ = 2.2;         // Wobble rate (authored swells last ~0.4s)
 
         private static IReadOnlyDictionary<string, string[]>? _cmuDict;
 
@@ -21,306 +75,962 @@ namespace YARG.Core.Chart
             _cmuDict = CMUDict.GetDictionary();
         }
 
+        /// <summary>
+        /// All mouth viseme channels the generator can emit. Viseme weights persist until
+        /// rewritten, so full closures must zero every one of these.
+        /// </summary>
+        private static readonly LipsyncEvent.LipsyncType[] MouthVisemes =
+        {
+            LipsyncEvent.LipsyncType.Bump_lo, LipsyncEvent.LipsyncType.Cage_lo,
+            LipsyncEvent.LipsyncType.Church_lo, LipsyncEvent.LipsyncType.Earth_lo,
+            LipsyncEvent.LipsyncType.Eat_lo, LipsyncEvent.LipsyncType.Fave_lo,
+            LipsyncEvent.LipsyncType.If_lo, LipsyncEvent.LipsyncType.Neutral_lo,
+            LipsyncEvent.LipsyncType.New_lo, LipsyncEvent.LipsyncType.Oat_lo,
+            LipsyncEvent.LipsyncType.Ox_lo, LipsyncEvent.LipsyncType.Roar_lo,
+            LipsyncEvent.LipsyncType.Size_lo, LipsyncEvent.LipsyncType.Though_lo,
+            LipsyncEvent.LipsyncType.Told_lo, LipsyncEvent.LipsyncType.Wet_lo,
+            LipsyncEvent.LipsyncType.Bump_hi, LipsyncEvent.LipsyncType.Cage_hi,
+            LipsyncEvent.LipsyncType.Church_hi, LipsyncEvent.LipsyncType.Earth_hi,
+            LipsyncEvent.LipsyncType.Eat_hi, LipsyncEvent.LipsyncType.Fave_hi,
+            LipsyncEvent.LipsyncType.If_hi, LipsyncEvent.LipsyncType.Neutral_hi,
+            LipsyncEvent.LipsyncType.New_hi, LipsyncEvent.LipsyncType.Oat_hi,
+            LipsyncEvent.LipsyncType.Ox_hi, LipsyncEvent.LipsyncType.Roar_hi,
+            LipsyncEvent.LipsyncType.Size_hi, LipsyncEvent.LipsyncType.Though_hi,
+            LipsyncEvent.LipsyncType.Told_hi, LipsyncEvent.LipsyncType.Wet_hi,
+        };
+
+        /// <summary>
+        /// The _hi counterpart of a _lo viseme (authored data pairs them, _hi at
+        /// <see cref="HI_LO_RATIO"/> times the _lo weight). Returns null for non-mouth types.
+        /// </summary>
+        private static LipsyncEvent.LipsyncType? HiOf(LipsyncEvent.LipsyncType type) => type switch
+        {
+            LipsyncEvent.LipsyncType.Bump_lo => LipsyncEvent.LipsyncType.Bump_hi,
+            LipsyncEvent.LipsyncType.Cage_lo => LipsyncEvent.LipsyncType.Cage_hi,
+            LipsyncEvent.LipsyncType.Church_lo => LipsyncEvent.LipsyncType.Church_hi,
+            LipsyncEvent.LipsyncType.Earth_lo => LipsyncEvent.LipsyncType.Earth_hi,
+            LipsyncEvent.LipsyncType.Eat_lo => LipsyncEvent.LipsyncType.Eat_hi,
+            LipsyncEvent.LipsyncType.Fave_lo => LipsyncEvent.LipsyncType.Fave_hi,
+            LipsyncEvent.LipsyncType.If_lo => LipsyncEvent.LipsyncType.If_hi,
+            LipsyncEvent.LipsyncType.Neutral_lo => LipsyncEvent.LipsyncType.Neutral_hi,
+            LipsyncEvent.LipsyncType.New_lo => LipsyncEvent.LipsyncType.New_hi,
+            LipsyncEvent.LipsyncType.Oat_lo => LipsyncEvent.LipsyncType.Oat_hi,
+            LipsyncEvent.LipsyncType.Ox_lo => LipsyncEvent.LipsyncType.Ox_hi,
+            LipsyncEvent.LipsyncType.Roar_lo => LipsyncEvent.LipsyncType.Roar_hi,
+            LipsyncEvent.LipsyncType.Size_lo => LipsyncEvent.LipsyncType.Size_hi,
+            LipsyncEvent.LipsyncType.Though_lo => LipsyncEvent.LipsyncType.Though_hi,
+            LipsyncEvent.LipsyncType.Told_lo => LipsyncEvent.LipsyncType.Told_hi,
+            LipsyncEvent.LipsyncType.Wet_lo => LipsyncEvent.LipsyncType.Wet_hi,
+            _ => null,
+        };
+
+        /// <summary>
+        /// Emits one mouth sample: the viseme's _lo weight plus its paired _hi at
+        /// <see cref="HI_LO_RATIO"/> times that weight, exactly like authored lipsync data.
+        /// </summary>
+        private static void EmitMouthSample(List<LipsyncEvent> events, ref MouthState mouth,
+            LipsyncEvent.LipsyncType type, float weight, double time, uint tick)
+        {
+            // Keep the summed _lo weight inside the authored band: during blends the incoming
+            // shape yields to the still-fading outgoing ones instead of piling on top.
+            float others = 0f;
+            var hiSelf = HiOf(type);
+            foreach (var pair in mouth.Active)
+            {
+                if (pair.Key != type && pair.Key != hiSelf)
+                    others += pair.Value;
+            }
+            weight = Math.Min(weight, Math.Max(0f, TOTAL_LO_BUDGET - others));
+
+            events.Add(new LipsyncEvent(type, weight, time, tick));
+            if (weight <= 0.001f)
+                mouth.Active.Remove(type);
+            else
+                mouth.Active[type] = weight;
+            var hi = HiOf(type);
+            if (hi.HasValue)
+            {
+                events.Add(new LipsyncEvent(hi.Value, weight * HI_LO_RATIO, time, tick));
+                if (weight <= 0.001f)
+                    mouth.Active.Remove(hi.Value);
+                else
+                    mouth.Active[hi.Value] = weight * HI_LO_RATIO;
+            }
+        }
+
         public static List<LipsyncEvent> GenerateFromLyrics(LyricsTrack lyrics)
         {
-            var events = new List<LipsyncEvent>();
-            var defaultViseme = LipsyncEvent.LipsyncType.Neutral_lo;
+            var notesByTick = new Dictionary<uint, VocalNote>();
 
+            var events = new List<LipsyncEvent>();
             var random = new Random();
             var nextBlinkTime = 2.0 + random.NextDouble() * 3.0; // First blink between 2-5s
-            var nextExpressionTime = 4.0 + random.NextDouble() * 4.0; // First expression between 4-8s
+            var mouth = new MouthState();
 
-            foreach (var phrase in lyrics.Phrases)
+            EmitBrowStates(events, lyrics.Phrases, random);
+
+            for (int i = 0; i < lyrics.Phrases.Count; i++)
             {
+                var phrase = lyrics.Phrases[i];
                 if (phrase.Lyrics.Count == 0)
                     continue;
 
-                // Add expression at phrase start occasionally
-                if (phrase.Time > nextExpressionTime && random.NextDouble() > 0.5)
+                double nextPhraseStart = double.MaxValue;
+                for (int p = i + 1; p < lyrics.Phrases.Count && nextPhraseStart == double.MaxValue; p++)
                 {
-                    AddRandomExpression(events, phrase.Time, phrase.TimeLength, random);
-                    nextExpressionTime = phrase.Time + phrase.TimeLength + 3.0 + random.NextDouble() * 5.0;
+                    foreach (var l in lyrics.Phrases[p].Lyrics)
+                    {
+                        if (!string.IsNullOrWhiteSpace(LyricSymbols.StripForVocals(l.Text)))
+                        {
+                            nextPhraseStart = l.Time;
+                            break;
+                        }
+                    }
                 }
 
-                for (int i = 0; i < phrase.Lyrics.Count; i++)
-                {
-                    var lyric = phrase.Lyrics[i];
-
-                    var text = LyricSymbols.StripForVocals(lyric.Text);
-                    if (string.IsNullOrWhiteSpace(text))
-                        continue;
-
-                    // Add blinks if enough time has passed
-                    while (nextBlinkTime < lyric.Time)
-                    {
-                        events.Add(new LipsyncEvent(LipsyncEvent.LipsyncType.Blink, 1.0f, nextBlinkTime, 0));
-                        events.Add(new LipsyncEvent(LipsyncEvent.LipsyncType.Blink, 0f, nextBlinkTime + 0.15, 0));
-                        nextBlinkTime += 2.0 + random.NextDouble() * 4.0; // Next blink in 2-6s
-                    }
-
-                    var syllable = GetSyllableForLyric(text);
-
-                    YargLogger.LogFormatTrace("Lyric '{0}' at tick {1} -> Initial: [{2}], Vowel: {3}, VowelEnd: {4}, Final: [{5}]",
-                        (object)text, (object)lyric.Tick,
-                        (object)string.Join(", ", syllable.Initial),
-                        (object)syllable.VowelMain,
-                        (object)(syllable.VowelEnd?.ToString() ?? "none"),
-                        (object)string.Join(", ", syllable.Final));
-
-                    var endTime = i < phrase.Lyrics.Count - 1
-                        ? phrase.Lyrics[i + 1].Time
-                        : phrase.Time + phrase.TimeLength;
-
-                    var duration = endTime - lyric.Time;
-                    var initialBack = Math.Min(HALF_TRANSITION, duration / 2);
-                    var finalFront = Math.Min(HALF_TRANSITION, duration / 2);
-
-                    var startTime = lyric.Time;
-                    var eventCountBefore = events.Count;
-
-                    // Transition to initial consonants or vowel
-                    if (syllable.Initial.Count > 0)
-                    {
-                        AddTransition(events, startTime, initialBack,
-                            defaultViseme, syllable.Initial, lyric.Tick);
-                        startTime += initialBack;
-                    }
-
-                    // Hold vowel (with diphthong if present)
-                    var vowelDuration = duration - initialBack - finalFront;
-                    if (syllable.VowelEnd.HasValue)
-                    {
-                        // Diphthong: transition from main to end vowel
-                        AddDiphthong(events, startTime, vowelDuration,
-                            syllable.VowelMain, syllable.VowelEnd.Value, lyric.Tick);
-                    }
-                    else
-                    {
-                        events.Add(new LipsyncEvent(syllable.VowelMain, VISEME_WEIGHT, startTime, lyric.Tick));
-                    }
-                    startTime += vowelDuration;
-
-                    // Transition through final consonants then close
-                    if (syllable.Final.Count > 0)
-                    {
-                        AddTransition(events, startTime, finalFront,
-                            syllable.VowelEnd ?? syllable.VowelMain, syllable.Final, lyric.Tick);
-                        startTime += finalFront;
-                    }
-
-                    // Close mouth - reset all visemes used in this syllable
-                    var usedVisemes = new HashSet<LipsyncEvent.LipsyncType>();
-                    usedVisemes.UnionWith(syllable.Initial);
-                    usedVisemes.Add(syllable.VowelMain);
-                    if (syllable.VowelEnd.HasValue)
-                        usedVisemes.Add(syllable.VowelEnd.Value);
-                    usedVisemes.UnionWith(syllable.Final);
-
-                    foreach (var viseme in usedVisemes)
-                    {
-                        events.Add(new LipsyncEvent(viseme, 0f, startTime, lyric.Tick));
-                    }
-
-                    var eventCount = events.Count - eventCountBefore;
-                    YargLogger.LogFormatTrace("  Generated {0} lipsync events for lyric '{1}'",
-                        (object)eventCount, (object)text);
-                }
+                ProcessPhrase(events, phrase.Lyrics, phrase.Time + phrase.TimeLength, notesByTick, random,
+                    ref nextBlinkTime, ref mouth, nextPhraseStart);
             }
 
             return events.OrderBy(e => e.Time).ToList();
         }
 
-        //TODO: This should really take into account vocal note length if an associated note exists
-        public static List<LipsyncEvent> GenerateFromVocalsPart(VocalsPart part)
+        public static List<LipsyncEvent> GenerateFromVocalsPart(VocalsPart part,
+            IEnumerable<VocalsPart>? noteSources = null)
         {
-            var events = new List<LipsyncEvent>();
-            var defaultViseme = LipsyncEvent.LipsyncType.Neutral_lo;
+            // Merge note ends across all harmony parts: a word is vocalized as long as any part
+            // sustains it, even if this part's own charting cut the note short.
+            var notesByTick = BuildNoteMap(noteSources ?? new[] { part });
 
+            var events = new List<LipsyncEvent>();
             var random = new Random();
             var nextBlinkTime = 2.0 + random.NextDouble() * 3.0; // First blink between 2-5s
-            var nextExpressionTime = 4.0 + random.NextDouble() * 4.0; // First expression between 4-8s
+            var mouth = new MouthState();
 
-            foreach (var phrase in part.StaticLyricPhrases)
+            EmitBrowStates(events, part.StaticLyricPhrases, random);
+
+            for (int i = 0; i < part.StaticLyricPhrases.Count; i++)
             {
+                var phrase = part.StaticLyricPhrases[i];
                 if (phrase.Lyrics.Count == 0)
                     continue;
 
-                // Add expression at phrase start occasionally
-                if (phrase.Time > nextExpressionTime && random.NextDouble() > 0.5)
+                double nextPhraseStart = double.MaxValue;
+                for (int p = i + 1; p < part.StaticLyricPhrases.Count && nextPhraseStart == double.MaxValue; p++)
                 {
-                    AddRandomExpression(events, phrase.Time, phrase.TimeLength, random);
-                    nextExpressionTime = phrase.Time + phrase.TimeLength + 3.0 + random.NextDouble() * 5.0;
+                    foreach (var l in part.StaticLyricPhrases[p].Lyrics)
+                    {
+                        if (!string.IsNullOrWhiteSpace(LyricSymbols.StripForVocals(l.Text)))
+                        {
+                            nextPhraseStart = l.Time;
+                            break;
+                        }
+                    }
                 }
 
-                for (int i = 0; i < phrase.Lyrics.Count; i++)
-                {
-                    var lyric = phrase.Lyrics[i];
-
-                    var text = LyricSymbols.StripForVocals(lyric.Text);
-                    if (string.IsNullOrWhiteSpace(text))
-                        continue;
-
-                    // Add blinks if enough time has passed
-                    while (nextBlinkTime < lyric.Time)
-                    {
-                        events.Add(new LipsyncEvent(LipsyncEvent.LipsyncType.Blink, 1.0f, nextBlinkTime, 0));
-                        events.Add(new LipsyncEvent(LipsyncEvent.LipsyncType.Blink, 0f, nextBlinkTime + 0.15, 0));
-                        nextBlinkTime += 2.0 + random.NextDouble() * 4.0; // Next blink in 2-6s
-                    }
-
-                    var syllable = GetSyllableForLyric(text);
-
-                    YargLogger.LogFormatTrace("Lyric '{0}' at tick {1} -> Initial: [{2}], Vowel: {3}, VowelEnd: {4}, Final: [{5}]",
-                        (object)text, (object)lyric.Tick,
-                        (object)string.Join(", ", syllable.Initial),
-                        (object)syllable.VowelMain,
-                        (object)(syllable.VowelEnd?.ToString() ?? "none"),
-                        (object)string.Join(", ", syllable.Final));
-
-                    var endTime = i < phrase.Lyrics.Count - 1
-                        ? phrase.Lyrics[i + 1].Time
-                        : phrase.Time + phrase.TimeLength;
-
-                    var duration = endTime - lyric.Time;
-                    var initialBack = Math.Min(HALF_TRANSITION, duration / 2);
-                    var finalFront = Math.Min(HALF_TRANSITION, duration / 2);
-
-                    var startTime = lyric.Time;
-                    var eventCountBefore = events.Count;
-
-                    // Transition to initial consonants or vowel
-                    if (syllable.Initial.Count > 0)
-                    {
-                        AddTransition(events, startTime, initialBack,
-                            defaultViseme, syllable.Initial, lyric.Tick);
-                        startTime += initialBack;
-                    }
-
-                    // Hold vowel (with diphthong if present)
-                    var vowelDuration = duration - initialBack - finalFront;
-                    if (syllable.VowelEnd.HasValue)
-                    {
-                        // Diphthong: transition from main to end vowel
-                        AddDiphthong(events, startTime, vowelDuration,
-                            syllable.VowelMain, syllable.VowelEnd.Value, lyric.Tick);
-                    }
-                    else
-                    {
-                        events.Add(new LipsyncEvent(syllable.VowelMain, VISEME_WEIGHT, startTime, lyric.Tick));
-                    }
-                    startTime += vowelDuration;
-
-                    // Transition through final consonants then close
-                    if (syllable.Final.Count > 0)
-                    {
-                        AddTransition(events, startTime, finalFront,
-                            syllable.VowelEnd ?? syllable.VowelMain, syllable.Final, lyric.Tick);
-                        startTime += finalFront;
-                    }
-
-                    // Close mouth - reset all visemes used in this syllable
-                    var usedVisemes = new HashSet<LipsyncEvent.LipsyncType>();
-                    usedVisemes.UnionWith(syllable.Initial);
-                    usedVisemes.Add(syllable.VowelMain);
-                    if (syllable.VowelEnd.HasValue)
-                        usedVisemes.Add(syllable.VowelEnd.Value);
-                    usedVisemes.UnionWith(syllable.Final);
-
-                    foreach (var viseme in usedVisemes)
-                    {
-                        events.Add(new LipsyncEvent(viseme, 0f, startTime, lyric.Tick));
-                    }
-
-                    var eventCount = events.Count - eventCountBefore;
-                    YargLogger.LogFormatTrace("  Generated {0} lipsync events for lyric '{1}'",
-                        (object)eventCount, (object)text);
-                }
+                ProcessPhrase(events, phrase.Lyrics, phrase.Time + phrase.TimeLength, notesByTick, random,
+                    ref nextBlinkTime, ref mouth, nextPhraseStart);
             }
 
             return events.OrderBy(e => e.Time).ToList();
         }
 
-        private static void AddRandomExpression(List<LipsyncEvent> events, double time, double duration, Random random)
+        /// <summary>
+        /// Maps lyric ticks to their associated vocal notes, merged across all harmony parts. A
+        /// word is vocalized as long as any part sustains it, even if this part's own charting cut
+        /// the note short. The note carries its slide children, so pitch can be tracked through
+        /// sustains and TotalTimeEnd covers pitch changes.
+        /// </summary>
+        private static Dictionary<uint, VocalNote> BuildNoteMap(IEnumerable<VocalsPart> parts)
         {
-            var expressions = new[]
+            var notesByLyricTick = new Dictionary<uint, VocalNote>();
+            foreach (var part in parts)
             {
-                LipsyncEvent.LipsyncType.Brow_up,
-                LipsyncEvent.LipsyncType.Brow_down,
-                LipsyncEvent.LipsyncType.exp_rocker_smile_mellow_01,
-                LipsyncEvent.LipsyncType.exp_rocker_teethgrit_happy_01,
-                LipsyncEvent.LipsyncType.exp_dramatic_happy_eyesopen_01,
-            };
+                foreach (var phrase in part.NotePhrases)
+                {
+                    var lyrics = phrase.Lyrics;
+                    var notes = phrase.PhraseParentNote.ChildNotes;
 
-            var expression = expressions[random.Next(expressions.Length)];
-            var intensity = 0.3f + (float)random.NextDouble() * 0.4f; // 0.3 to 0.7
-            var expressionDuration = Math.Min(duration * 0.6, 1.5); // Max 1.5s or 60% of phrase
+                    // Pair by tick: lyric-less notes (e.g. unflagged slides) must not shift the
+                    // index alignment between lyrics and notes.
+                    var noteByTick = new Dictionary<uint, VocalNote>();
+                    foreach (var note in notes)
+                        noteByTick[note.Tick] = note;
 
-            events.Add(new LipsyncEvent(expression, intensity, time, 0));
-            events.Add(new LipsyncEvent(expression, 0f, time + expressionDuration, 0));
+                    foreach (var lyric in lyrics)
+                    {
+                        if (!noteByTick.TryGetValue(lyric.Tick, out var note))
+                            continue;
+
+                        if (!notesByLyricTick.TryGetValue(lyric.Tick, out var existing) || note.TotalTimeEnd > existing.TotalTimeEnd)
+                            notesByLyricTick[lyric.Tick] = note;
+                    }
+                }
+            }
+            return notesByLyricTick;
         }
 
-        private static void AddTransition(List<LipsyncEvent> events, double startTime, double duration,
-            LipsyncEvent.LipsyncType from, List<LipsyncEvent.LipsyncType> toSequence, uint tick)
+        /// <summary>
+        /// Sustained brow state machine: groups lyric phrases into sections (separated by silent
+        /// gaps longer than <see cref="BROW_SECTION_GAP"/>) and emits one brow state per section,
+        /// ramped in/out slowly and held across the section's phrases and internal gaps.
+        /// </summary>
+        private static void EmitBrowStates(List<LipsyncEvent> events, List<LyricsPhrase> phrases,
+            Random random)
         {
-            if (toSequence.Count == 0) return;
-
-            var segmentDuration = duration / (toSequence.Count + 1);
-            var currentTime = startTime;
-            var current = from;
-
-            foreach (var target in toSequence)
+            var spans = new List<(double Start, double End)>(phrases.Count);
+            foreach (var phrase in phrases)
             {
-                AddSmoothTransition(events, currentTime, segmentDuration, current, target, tick);
-                currentTime += segmentDuration;
-                current = target;
+                if (phrase.Lyrics.Count > 0)
+                    spans.Add((phrase.Time, phrase.Time + phrase.TimeLength));
+            }
+            EmitBrowSections(events, spans, random);
+        }
+
+        private static void EmitBrowStates(List<LipsyncEvent> events, List<VocalsPhrase> phrases,
+            Random random)
+        {
+            var spans = new List<(double Start, double End)>(phrases.Count);
+            foreach (var phrase in phrases)
+            {
+                if (phrase.Lyrics.Count > 0)
+                    spans.Add((phrase.Time, phrase.Time + phrase.TimeLength));
+            }
+            EmitBrowSections(events, spans, random);
+        }
+
+        private static void EmitBrowSections(List<LipsyncEvent> events,
+            List<(double Start, double End)> spans, Random random)
+        {
+            // Precondition: spans are time-ordered (phrase lists from the chart are)
+            int i = 0;
+            while (i < spans.Count)
+            {
+                double start = spans[i].Start;
+                double end = spans[i].End;
+                int j = i + 1;
+                while (j < spans.Count && spans[j].Start - end <= BROW_SECTION_GAP)
+                {
+                    end = Math.Max(end, spans[j].End);
+                    j++;
+                }
+
+                EmitBrowSection(events, start, end, random);
+                i = j;
             }
         }
 
-        private static void AddSmoothTransition(List<LipsyncEvent> events, double startTime, double duration,
-            LipsyncEvent.LipsyncType from, LipsyncEvent.LipsyncType to, uint tick)
+        private static void EmitBrowSection(List<LipsyncEvent> events, double start, double end,
+            Random random)
+        {
+            if (end - start < 0.1)
+                return;
+
+            var primary = PickBrowType(random, LipsyncEvent.LipsyncType.Neutral_lo);
+            EmitBrowChannel(events, primary, 0.3f + (float) random.NextDouble() * 0.4f, start, end);
+
+            // Authored data often stacks a faint second brow channel under the primary one
+            if (random.NextDouble() < 0.4)
+            {
+                var secondary = PickBrowType(random, primary);
+                EmitBrowChannel(events, secondary,
+                    0.1f + (float) random.NextDouble() * 0.15f, start, end);
+            }
+        }
+
+        private static void EmitBrowChannel(List<LipsyncEvent> events, LipsyncEvent.LipsyncType type,
+            float intensity, double start, double end)
+        {
+            double fade = Math.Min(BROW_FADE_TIME, (end - start) * 0.25);
+
+            // Ease the brow in and out instead of snapping between face poses
+            EmitRamp(events, type, 0f, intensity, start, fade);
+            EmitRamp(events, type, intensity, intensity, start + fade,
+                Math.Max(0, end - start - fade * 2));
+            EmitRamp(events, type, intensity, 0f, end - fade, fade);
+        }
+
+        private static readonly (LipsyncEvent.LipsyncType Type, float Weight)[] BrowPalette =
+        {
+            // Weights roughly follow authored segment counts across the reference charts
+            (LipsyncEvent.LipsyncType.Brow_down, 5f),
+            (LipsyncEvent.LipsyncType.Brow_pouty, 5f),
+            (LipsyncEvent.LipsyncType.Brow_aggressive, 5f),
+            (LipsyncEvent.LipsyncType.Brow_up, 2f),
+            (LipsyncEvent.LipsyncType.Squint, 1.5f),
+            (LipsyncEvent.LipsyncType.Brow_dramatic, 1f),
+        };
+
+        private static LipsyncEvent.LipsyncType PickBrowType(Random random,
+            LipsyncEvent.LipsyncType exclude)
+        {
+            // Rare full-face expression instead of a brow, like authored data
+            if (exclude == LipsyncEvent.LipsyncType.Neutral_lo
+                && random.NextDouble() < EXPRESSION_CHANCE)
+            {
+                return LipsyncEvent.LipsyncType.exp_rocker_smile_intense_01;
+            }
+
+            float total = 0;
+            foreach (var entry in BrowPalette)
+            {
+                if (entry.Type != exclude)
+                    total += entry.Weight;
+            }
+
+            float roll = (float) (random.NextDouble() * total);
+            foreach (var entry in BrowPalette)
+            {
+                if (entry.Type == exclude)
+                    continue;
+
+                roll -= entry.Weight;
+                if (roll <= 0)
+                    return entry.Type;
+            }
+
+            return LipsyncEvent.LipsyncType.Brow_down;
+        }
+
+        /// <summary>
+        /// Emits a dense per-frame ramp for a non-viseme expression, like authored Milo keyframes.
+        /// </summary>
+        private static void EmitRamp(List<LipsyncEvent> events, LipsyncEvent.LipsyncType type,
+            float fromWeight, float toWeight, double startTime, double duration)
         {
             if (duration <= 0)
-            {
-                events.Add(new LipsyncEvent(to, VISEME_WEIGHT, startTime, tick));
                 return;
-            }
 
-            var stepDuration = duration / TRANSITION_STEPS;
-            for (int i = 0; i < TRANSITION_STEPS; i++)
+            int steps = Math.Max(1, (int) Math.Ceiling(duration / STEP_TIME));
+            double stepDur = duration / steps;
+            for (int i = 0; i <= steps; i++)
             {
-                var t = (float)i / TRANSITION_STEPS;
-                var time = startTime + i * stepDuration;
-
-                // Linear interpolation between visemes
-                events.Add(new LipsyncEvent(from, VISEME_WEIGHT * (1 - t), time, tick));
-                events.Add(new LipsyncEvent(to, VISEME_WEIGHT * t, time, tick));
-            }
-            events.Add(new LipsyncEvent(to, VISEME_WEIGHT, startTime + duration, tick));
-        }
-
-        private static void AddDiphthong(List<LipsyncEvent> events, double startTime, double duration,
-            LipsyncEvent.LipsyncType main, LipsyncEvent.LipsyncType end, uint tick)
-        {
-            var transitionStart = startTime + duration * 0.6; // Start transition 60% through
-            var transitionDuration = duration * 0.4;
-
-            events.Add(new LipsyncEvent(main, VISEME_WEIGHT, startTime, tick));
-
-            var stepDuration = transitionDuration / TRANSITION_STEPS;
-            for (int i = 1; i <= TRANSITION_STEPS; i++)
-            {
-                var t = (float)i / TRANSITION_STEPS;
-                t = EaseInExpo(t); // Use exponential easing for diphthongs
-                var time = transitionStart + i * stepDuration;
-
-                events.Add(new LipsyncEvent(main, VISEME_WEIGHT * (1 - t), time, tick));
-                events.Add(new LipsyncEvent(end, VISEME_WEIGHT * t, time, tick));
+                float rawT = (float) i / steps;
+                float t = rawT * rawT * (3 - 2 * rawT); // Smoothstep easing
+                events.Add(new LipsyncEvent(type, fromWeight + (toWeight - fromWeight) * t,
+                    startTime + i * stepDur, 0));
             }
         }
 
-        private static float EaseInExpo(float t)
+        private static void ProcessPhrase(List<LipsyncEvent> events, List<LyricEvent> lyrics,
+            double phraseEnd, Dictionary<uint, VocalNote> notesByTick, Random random,
+            ref double nextBlinkTime, ref MouthState mouth, double nextPhraseStart)
         {
-            return t == 0 ? 0 : (float)Math.Pow(2, 10 * t - 10);
+            int count = lyrics.Count;
+            int i = 0;
+            while (i < count)
+            {
+                var text = LyricSymbols.StripForVocals(lyrics[i].Text);
+                if (string.IsNullOrWhiteSpace(text))
+                {
+                    i++;
+                    continue;
+                }
+
+                // Add blinks if enough time has passed
+                while (nextBlinkTime < lyrics[i].Time)
+                {
+                    // Fast but smooth blink (~0.15s total, like authored animation)
+                    EmitRamp(events, LipsyncEvent.LipsyncType.Blink, 0f, 1f, nextBlinkTime, 0.05);
+                    EmitRamp(events, LipsyncEvent.LipsyncType.Blink, 1f, 0f, nextBlinkTime + 0.05, 0.10);
+                    nextBlinkTime += 2.0 + random.NextDouble() * 4.0; // Next blink in 2-6s
+                }
+
+                // Collect the full word: joined syllables plus trailing slide-gap extensions
+                var wordLyrics = new List<LyricEvent>();
+                var wordTexts = new List<string>();
+                bool lastRealJoins = true;
+                int j = i;
+                while (j < count && lastRealJoins)
+                {
+                    var wordText = LyricSymbols.StripForVocals(lyrics[j].Text);
+                    wordLyrics.Add(lyrics[j]);
+                    wordTexts.Add(wordText);
+
+                    if (!string.IsNullOrWhiteSpace(wordText))
+                        lastRealJoins = lyrics[j].JoinOrHyphenateWithNext;
+                    j++;
+                }
+
+                GenerateWord(events, wordLyrics, wordTexts, j, lyrics, phraseEnd, nextPhraseStart,
+                    notesByTick, random, ref mouth);
+                i = j;
+            }
+        }
+
+        private static void GenerateWord(List<LipsyncEvent> events, List<LyricEvent> wordLyrics,
+            List<string> wordTexts, int flatIndexAfterWord, List<LyricEvent> allLyrics,
+            double phraseEnd, double nextPhraseStart, Dictionary<uint, VocalNote> notesByTick,
+            Random random, ref MouthState mouth)
+        {
+            var wordText = string.Concat(wordTexts);
+            var syllables = GetSyllablesForWord(wordText);
+            if (syllables.Count == 0)
+                return;
+
+            YargLogger.LogFormatTrace("Lipsync word '{0}' at {1:F3}s -> {2} syllable(s)",
+                wordText, wordLyrics[0].Time, syllables.Count);
+
+            // Slide-gap fragments immediately after the word extend its audible length: they mark
+            // the sung continuation (pitch slides) even when no vocal notes exist for them.
+            double extensionEnd = -1;
+            int k = flatIndexAfterWord;
+            while (k < allLyrics.Count && string.IsNullOrWhiteSpace(LyricSymbols.StripForVocals(allLyrics[k].Text)))
+            {
+                // Use the slide fragment's own time as the minimum sung extent, or its note end
+                // when the vocals part does have a note for it.
+                double candidate = allLyrics[k].Time;
+                if (notesByTick.TryGetValue(allLyrics[k].Tick, out var gapNote) && gapNote.TotalTimeEnd > candidate)
+                    candidate = gapNote.TotalTimeEnd;
+                if (candidate > extensionEnd)
+                    extensionEnd = candidate;
+                k++;
+            }
+
+            double nextWordStart = k < allLyrics.Count ? allLyrics[k].Time : nextPhraseStart;
+
+            // Real (non-empty) syllable fragments
+            var realIndices = new List<int>();
+            for (int w = 0; w < wordLyrics.Count; w++)
+            {
+                if (!string.IsNullOrWhiteSpace(wordTexts[w]))
+                    realIndices.Add(w);
+            }
+            if (realIndices.Count == 0)
+                return;
+
+            int fragCount = realIndices.Count;
+            int syllCount = syllables.Count;
+
+            bool noteCapped = false;
+            VocalNote? slotNote = null;
+
+            // Computes the audible end of the syllable slot for real fragment index fi
+            double SlotEnd(int fi)
+            {
+                noteCapped = false;
+                slotNote = null;
+                var frag = wordLyrics[realIndices[fi]];
+                double nextStart = fi + 1 < fragCount
+                    ? wordLyrics[realIndices[fi + 1]].Time
+                    : nextWordStart;
+                double slotEnd = nextStart;
+
+                // Cap the slot at the vocal note's end: the closing consonants belong to the
+                // sung portion of the word, not to the silence after it. For legato lines where
+                // the note runs into the next lyric, the next lyric wins. Slide-gap fragments
+                // extend the audible length past the note end when the word keeps being sung.
+                // TotalTimeEnd covers pitch-slide children, so sustains that change pitch hold.
+                double audibleEnd = -1;
+                if (notesByTick.TryGetValue(frag.Tick, out var note) && note.TotalTimeEnd > frag.Time)
+                {
+                    audibleEnd = note.TotalTimeEnd;
+                    slotNote = note;
+                }
+                if (fi == fragCount - 1)
+                    audibleEnd = Math.Max(audibleEnd, extensionEnd);
+
+                if (audibleEnd > 0)
+                {
+                    noteCapped = true;
+                    slotEnd = Math.Min(slotEnd, Math.Max(audibleEnd, frag.Time + MIN_SLOT_DURATION));
+                }
+                else
+                {
+                    // No vocal note to time against (lyrics-track generation on charts without
+                    // vocal notes): a phrase-final word would otherwise stretch its slot to the
+                    // phrase end — seconds past the sung word — holding the mouth open through
+                    // the silence. Cap it like an actual sung word length.
+                    slotEnd = Math.Min(slotEnd, frag.Time + MAX_UNVOICED_SLOT);
+                }
+
+                slotEnd = Math.Max(slotEnd, frag.Time + MIN_SLOT_DURATION);
+                return Math.Min(slotEnd, phraseEnd);
+            }
+
+            var slots = new List<Slot>();
+            if (syllCount >= fragCount)
+            {
+                // Distribute syllables across the fragments
+                for (int fi = 0; fi < fragCount; fi++)
+                {
+                    int firstSyll = (int) Math.Round(fi * (double) syllCount / fragCount);
+                    int lastSyll = (int) Math.Round((fi + 1) * (double) syllCount / fragCount);
+                    int owned = Math.Max(1, lastSyll - firstSyll);
+
+                    double start = wordLyrics[realIndices[fi]].Time;
+                    double end = SlotEnd(fi);
+                    double step = (end - start) / owned;
+
+                    for (int s = 0; s < owned && firstSyll + s < syllCount; s++)
+                    {
+                        slots.Add(new Slot
+                        {
+                            Syllable = syllables[firstSyll + s],
+                            Start = start + s * step,
+                            End = start + (s + 1) * step,
+                            Tick = wordLyrics[realIndices[fi]].Tick,
+                            NoteCapped = noteCapped,
+                            Note = slotNote,
+                        });
+                    }
+                }
+            }
+            else
+            {
+                // More fragments than syllables: reuse the nearest syllable
+                for (int fi = 0; fi < fragCount; fi++)
+                {
+                    int syllIndex = syllCount == 1
+                        ? 0
+                        : Math.Clamp((int) Math.Round(fi * (double) (syllCount - 1) / (fragCount - 1)), 0, syllCount - 1);
+                    slots.Add(new Slot
+                    {
+                        Syllable = syllables[syllIndex],
+                        Start = wordLyrics[realIndices[fi]].Time,
+                        End = SlotEnd(fi),
+                        Tick = wordLyrics[realIndices[fi]].Tick,
+                        NoteCapped = noteCapped,
+                        Note = slotNote,
+                    });
+                }
+            }
+
+            for (int i = 0; i < slots.Count; i++)
+            {
+                double nextSlotStart = i + 1 < slots.Count ? slots[i + 1].Start : nextWordStart;
+                var slot = slots[i];
+                EmitSyllableSlot(events, ref mouth, in slot, nextSlotStart, random);
+            }
+
+        }
+
+        private static void EmitSyllableSlot(List<LipsyncEvent> events, ref MouthState mouth, in Slot slot,
+            double nextStart, Random random)
+        {
+            double duration = slot.End - slot.Start;
+            if (duration <= 0.01)
+                return;
+
+            var syll = slot.Syllable;
+            bool hasVowel = syll.VowelMain != LipsyncEvent.LipsyncType.Neutral_lo || syll.VowelEnd.HasValue;
+
+            // Vowel openness scales with the sung note's length (longer notes peak fuller, like
+            // authored lipsync); consonants sit at a partial weight
+            float peakDur = slot.Note is { } note ? (float) note.TotalTimeLength : (float) duration;
+            // Per-syllable expression jitter: authored peaks vary widely (p10 0.4, p90 ~1.0)
+            // regardless of note length, driven by vocal energy the chart does not record.
+            float peakJitter = VOWEL_PEAK_JITTER_MIN + (float) random.NextDouble()
+                * (VOWEL_PEAK_JITTER_MAX - VOWEL_PEAK_JITTER_MIN);
+            float vowelPeak = hasVowel
+                ? Math.Min(VOWEL_PEAK_CAP, (VOWEL_PEAK_BASE_WEIGHT + peakDur * VOWEL_PEAK_SCALE) * peakJitter)
+                : 0f;
+
+            int attackSegments = syll.Initial.Count + (hasVowel ? 1 : 0);
+
+            // Anticipation: place the attack BEFORE the syllable so the mouth peaks at the
+            // lyric, like authored Milo lipsync. The attack keeps a minimum duration even on
+            // fast lyrics (authored cross-fades take ~0.3s regardless of note rate), which
+            // makes it overlap the previous syllable's tail; the overlap truncates that
+            // syllable's envelope so the cross-fade owns the outgoing shape.
+            double desiredAttack = attackSegments > 0
+                ? Math.Clamp(duration * 0.4, ATTACK_MIN_TIME, ATTACK_MAX_TIME)
+                : 0;
+            double gap = slot.Start - mouth.LastEmissionEnd;
+            double attack;
+            double attackStart;
+            if (attackSegments > 0 && gap > 0.005)
+            {
+                attack = Math.Min(desiredAttack, Math.Max(gap, ATTACK_MIN_TIME));
+                attackStart = slot.Start - attack;
+            }
+            else if (attackSegments > 0)
+            {
+                attack = ATTACK_MIN_TIME;
+                attackStart = Math.Max(0, slot.Start - attack);
+            }
+            else
+            {
+                attack = 0;
+                attackStart = slot.Start;
+            }
+
+            // Trim the previous syllable's emission tail inside the overlap window so its
+            // envelope steps do not fight this slot's cross-fade on the outgoing channel.
+            if (attack > 0 && attackStart < mouth.LastEmissionEnd && events.Count > 0)
+            {
+                var hiType = HiOf(mouth.Type);
+                int keep = events.Count;
+                while (keep > 0)
+                {
+                    var last = events[keep - 1];
+                    if (last.Time <= attackStart || (last.Type != mouth.Type && last.Type != hiType))
+                        break;
+                    keep--;
+                }
+                if (keep < events.Count)
+                    events.RemoveRange(keep, events.Count - keep);
+            }
+
+            // Fade out every OTHER held shape across the attack: authored cross-fades keep at
+            // most ~2 visemes overlapping; stale channels would accumulate on fast lyrics.
+            if (attack > 0.005)
+            {
+                var incoming = new HashSet<LipsyncEvent.LipsyncType> { mouth.Type };
+                if (hasVowel)
+                {
+                    incoming.Add(syll.VowelMain);
+                    var vhi = HiOf(syll.VowelMain);
+                    if (vhi.HasValue) incoming.Add(vhi.Value);
+                    if (syll.VowelEnd.HasValue)
+                    {
+                        incoming.Add(syll.VowelEnd.Value);
+                        var ehi = HiOf(syll.VowelEnd.Value);
+                        if (ehi.HasValue) incoming.Add(ehi.Value);
+                    }
+                }
+                foreach (var consonant in syll.Initial)
+                {
+                    incoming.Add(consonant);
+                    var chi = HiOf(consonant);
+                    if (chi.HasValue) incoming.Add(chi.Value);
+                }
+
+                int fadeSteps = Math.Max(1, (int) Math.Ceiling(attack / STEP_TIME));
+                double fadeStep = attack / fadeSteps;
+                foreach (var pair in mouth.Active.ToArray())
+                {
+                    if (incoming.Contains(pair.Key) || pair.Value <= 0.02f)
+                        continue;
+                    for (int i = 1; i <= fadeSteps; i++)
+                    {
+                        float f = 1f - (float) i / fadeSteps;
+                        EmitMouthSample(events, ref mouth, pair.Key, pair.Value * f,
+                            attackStart + i * fadeStep, slot.Tick);
+                    }
+                }
+            }
+
+            double coda = syll.Final.Count > 0
+                ? Math.Clamp(duration * 0.25, 0.05, CODA_MAX_TIME)
+                : 0;
+
+            // Never let attack + coda consume the whole slot
+            if (attack + coda > duration * 0.9)
+            {
+                double scale = duration * 0.9 / (attack + coda);
+                attack *= scale;
+                coda *= scale;
+            }
+
+            // A bilabial consonant (M/B/P) requires closed lips: ramp the previously held
+            // vowel down quickly (but not instantly) so the closed shape is not masked by the
+            // still-open channel.
+            if (syll.Initial.Count > 0 && syll.Initial[0] == LipsyncEvent.LipsyncType.Bump_lo && mouth.Weight > 0f)
+            {
+                RampTo(events, ref mouth, mouth.Type, 0f, attackStart, Math.Min(0.07, attack), slot.Tick);
+            }
+
+            // Attack: ramp through initial consonants, then into the vowel, peaking at the slot start
+            double t = attackStart;
+            if (attackSegments > 0)
+            {
+                double seg = attack / attackSegments;
+                foreach (var consonant in syll.Initial)
+                {
+                    // Consonants morph the shape without dipping the overall openness: authored
+                    // openness never dives at consonants, it only rises/falls with the vowel.
+                    float consonantWeight = Math.Max(CONSONANT_WEIGHT, mouth.Weight * 0.9f);
+                    RampTo(events, ref mouth, consonant, consonantWeight, t, seg, slot.Tick);
+                    t += seg;
+                }
+
+                if (hasVowel)
+                {
+                    RampTo(events, ref mouth, syll.VowelMain, vowelPeak, t, seg, slot.Tick);
+                    t += seg;
+                }
+            }
+
+            // With a pre-roll the vowel already peaks at the slot start.
+            double holdStart = Math.Max(t, slot.Start);
+            double holdEnd = slot.End - coda;
+            if (hasVowel)
+            {
+                // Vowel rides a peak-shaped envelope, decaying toward the tail weight by the slot
+                // end like authored vowels. With a pre-roll the peak already sits at the lyric.
+                // A note-capped slot is a real sung sustain: settle at the sustain floor so the
+                // mouth stays open while the note is held (authored sustains measure ~0.5 all
+                // the way through). Without note evidence, close soon.
+                float tailWeight = slot.NoteCapped ? VOWEL_SUSTAIN_FLOOR : VOWEL_TAIL_WEIGHT;
+                // Wobble amplitude varies per syllable (authored wobble is strongest on big
+                // open syllables, nearly absent on quiet ones). The phase is absolute time so
+                // the wave stays continuous across syllable boundaries.
+                float wobbleAmplitude = VOWEL_WOBBLE_AMPLITUDE * (0.5f + (float) random.NextDouble());
+                double wobblePhase = 0.0;
+                if (syll.VowelEnd.HasValue)
+                {
+                    // Diphthong: hold the main vowel 60%, then glide to its end shape over 40%
+                    double transitionStart = holdStart + (holdEnd - holdStart) * 0.6;
+                    float glideWeight = EmitVowelEnvelope(events, ref mouth, vowelPeak, tailWeight,
+                        holdStart, transitionStart, holdEnd, slot.Tick, slot.Note, wobbleAmplitude, wobblePhase);
+                    mouth.Weight = glideWeight;
+                    RampTo(events, ref mouth, syll.VowelEnd.Value, glideWeight, transitionStart,
+                        holdEnd - transitionStart, slot.Tick);
+                }
+                else
+                {
+                    mouth.Weight = EmitVowelEnvelope(events, ref mouth, vowelPeak, tailWeight,
+                        holdStart, holdEnd, holdEnd, slot.Tick, slot.Note, wobbleAmplitude, wobblePhase);
+                }
+            }
+            else
+            {
+                // Consonant-only syllable: hold the current shape
+                EmitHold(events, ref mouth, holdStart, holdEnd, slot.Tick);
+            }
+
+            // Coda: ramp through final consonants up to the slot end
+            if (coda > 0)
+            {
+                double codaSeg = coda / syll.Final.Count;
+                double ct = slot.End - coda;
+
+                // Word-final bilabial (M/B/P): closed lips, so ramp the held vowel down quickly
+                if (syll.Final.Contains(LipsyncEvent.LipsyncType.Bump_lo) && mouth.Weight > CONSONANT_WEIGHT)
+                {
+                    RampTo(events, ref mouth, mouth.Type, 0f, ct, Math.Min(0.07, codaSeg), slot.Tick);
+                }
+
+                foreach (var consonant in syll.Final)
+                {
+                    float consonantWeight = Math.Max(CONSONANT_WEIGHT, mouth.Weight * 0.9f);
+                    RampTo(events, ref mouth, consonant, consonantWeight, ct, codaSeg, slot.Tick);
+                    ct += codaSeg;
+                }
+            }
+
+            // Inter-syllable policy: the mouth keeps its shape across short gaps (viseme
+            // weights persist like authored lipsync, so no events are needed). It closes only
+            // when the silence is long enough that the singer stops vocalizing; the next
+            // syllable's attack reopens it.
+            double gapToNext = nextStart - slot.End;
+            if (gapToNext >= MOUTH_GAP_CLOSE)
+            {
+                // Close every mouth channel: all previously used channels must return to zero
+                // or stale weights would keep the mouth open through the silence.
+                double closeStart = slot.End + MOUTH_CLOSE_DELAY;
+                double closeEnd = closeStart + MOUTH_CLOSE_TIME;
+                if (closeEnd < nextStart)
+                {
+                    RampTo(events, ref mouth, mouth.Type, 0f, closeStart, MOUTH_CLOSE_TIME, slot.Tick);
+                    foreach (var viseme in MouthVisemes)
+                    {
+                        if (viseme == mouth.Type)
+                            continue;
+                        EmitMouthSample(events, ref mouth, viseme, 0f, closeEnd, slot.Tick);
+                    }
+                    mouth.Active.Clear();
+                    mouth.LastEmissionEnd = closeEnd;
+                }
+                else
+                {
+                    // Gap too short for a graceful close; the next syllable handles it
+                    mouth.LastEmissionEnd = slot.End;
+                }
+            }
+            else
+            {
+                // Keep the mouth alive through short gaps: continue the wobble around the
+                // current weight (authored mouths never freeze between syllables). Stop short
+                // of the next slot so its attack ramp can take over cleanly.
+                double wobbleEnd = Math.Min(nextStart - ATTACK_MAX_TIME, slot.End + MOUTH_HOLD_WOBBLE_TIME);
+                if (wobbleEnd - slot.End > STEP_TIME && mouth.Weight > 0.001f)
+                {
+                    float amp = VOWEL_WOBBLE_AMPLITUDE * 0.75f;
+                    float baseWeight = mouth.Weight;
+                    float last = baseWeight;
+                    for (double wt = slot.End; wt < wobbleEnd; wt += STEP_TIME)
+                    {
+                        float weight = Math.Clamp(baseWeight + amp
+                            * (float) Math.Sin(2.0 * Math.PI * VOWEL_WOBBLE_HZ * wt), 0f, VOWEL_PEAK_CAP);
+                        EmitMouthSample(events, ref mouth, mouth.Type, weight, wt, slot.Tick);
+                        last = weight;
+                    }
+                    mouth.Weight = last;
+                }
+                mouth.LastEmissionEnd = slot.End;
+            }
+        }
+
+        /// <summary>
+        /// Re-emits the current mouth state every ~30fps frame during a hold, like authored Milo keyframes.
+        /// </summary>
+        private static void EmitHold(List<LipsyncEvent> events, ref MouthState mouth,
+            double startTime, double endTime, uint tick)
+        {
+            if (mouth.Weight <= 0.001f)
+                return;
+
+            // Gentle wobble so consonant holds are not flat freezes
+            float amp = VOWEL_WOBBLE_AMPLITUDE * 0.5f;
+            for (double t = startTime; t < endTime; t += STEP_TIME)
+            {
+                float weight = Math.Clamp(mouth.Weight + amp
+                    * (float) Math.Sin(2.0 * Math.PI * VOWEL_WOBBLE_HZ * t), 0f, VOWEL_PEAK_CAP);
+                EmitMouthSample(events, ref mouth, mouth.Type, weight, t, tick);
+            }
+            mouth.LastEmissionEnd = endTime;
+        }
+
+        /// <summary>
+        /// Emits the vowel hold as a peak-shaped envelope sampled every ~30fps frame: peak weight
+        /// at the start of the hold (the attack already peaks at the lyric), sustained briefly,
+        /// then decaying to a low tail like authored Milo vowels. Weight decays relative to
+        /// <paramref name="endTime"/>, so a diphthong glide that cuts the hold short leaves the
+        /// envelope mid-decay. Returns the weight at <paramref name="stopTime"/>.
+        /// </summary>
+        private static float EmitVowelEnvelope(List<LipsyncEvent> events, ref MouthState mouth,
+            float peakWeight, float tailWeight, double startTime, double stopTime, double endTime, uint tick,
+            VocalNote? note, float wobbleAmplitude, double wobblePhase)
+        {
+            if (mouth.Weight <= 0.001f || stopTime <= startTime)
+                return mouth.Weight;
+
+            // The attack ramp's final key already sits at the hold start with the same shape;
+            // skip a duplicate leading frame.
+            bool skipFirst = Math.Abs(startTime - mouth.LastEmissionEnd) < 0.001;
+
+            // The peak is sustained briefly and decays on an ABSOLUTE timescale (not proportional
+            // to the slot): a long vocal note must settle near-closed like authored vowels instead
+            // of holding a wide-open pose for seconds.
+            double slotLen = endTime - startTime;
+            double holdEnd = startTime + Math.Min(VOWEL_PEAK_HOLD_TIME, slotLen * VOWEL_PEAK_HOLD_FRACTION);
+            double decayEnd = Math.Min(holdEnd + VOWEL_DECAY_TIME, endTime);
+
+            float lastWeight = peakWeight;
+            int steps = (int) Math.Ceiling((stopTime - startTime) / STEP_TIME);
+            for (int i = 0; i < steps; i++)
+            {
+                if (i == 0 && skipFirst)
+                    continue;
+
+                double t = startTime + i * STEP_TIME;
+                float weight;
+                if (t <= holdEnd)
+                {
+                    weight = peakWeight;
+                }
+                else if (t < decayEnd)
+                {
+                    double raw = (t - holdEnd) / (decayEnd - holdEnd);
+                    double ease = raw * raw * (3.0 - 2.0 * raw); // Smoothstep decay
+                    weight = peakWeight + (tailWeight - peakWeight) * (float) ease;
+                }
+                else
+                {
+                    weight = SustainWeight(note, t, tailWeight);
+                }
+
+                // Continuous vocal wobble: authored mouths animate smoothly every frame while
+                // singing (mean frame delta ~0.1) instead of holding flat between events.
+                weight = Math.Clamp(weight + wobbleAmplitude
+                    * (float) Math.Sin(2.0 * Math.PI * VOWEL_WOBBLE_HZ * t + wobblePhase), 0f, VOWEL_PEAK_CAP);
+                EmitMouthSample(events, ref mouth, mouth.Type, weight, t, tick);
+                lastWeight = weight;
+            }
+            mouth.LastEmissionEnd = stopTime;
+            return lastWeight;
+        }
+
+        /// <summary>
+        /// Sustain weight for the note at time <paramref name="t"/>: the sustain floor, opened or
+        /// closed slightly as the pitch changes (higher pitch = slightly more open). Notes without
+        /// a usable pitch hold the plain floor.
+        /// </summary>
+        private static float SustainWeight(VocalNote? note, double t, float floor)
+        {
+            if (note is null || note.IsNonPitched || note.IsPercussion || note.IsPhrase)
+                return floor;
+
+            float pitch = note.PitchAtSongTime(t);
+            if (pitch < VOCAL_PITCH_MIN)
+                return floor;
+
+            float norm = Math.Clamp((pitch - VOCAL_PITCH_MIN) / (VOCAL_PITCH_MAX - VOCAL_PITCH_MIN), 0f, 1f);
+            return Math.Clamp(floor + (norm - 0.5f) * 2f * VOWEL_PITCH_MOD, 0f, VOWEL_PEAK_CAP);
+        }
+
+        /// <summary>
+        /// Ramps the mouth from its current shape to a new shape, emitting interpolation steps.
+        /// </summary>
+        private static void RampTo(List<LipsyncEvent> events, ref MouthState mouth,
+            LipsyncEvent.LipsyncType toType, float toWeight, double startTime, double duration, uint tick)
+        {
+            var fromType = mouth.Type;
+            var fromWeight = mouth.Weight;
+
+            if (fromType == toType && Math.Abs(fromWeight - toWeight) < 0.001f)
+                return;
+
+            if (duration <= 0.005)
+            {
+                if (fromWeight > 0.001f && fromType != toType)
+                    EmitMouthSample(events, ref mouth, fromType, 0f, startTime, tick);
+                EmitMouthSample(events, ref mouth, toType, toWeight, startTime, tick);
+            }
+            else
+            {
+                int steps = Math.Max(1, (int) Math.Ceiling(duration / STEP_TIME));
+                double stepDur = duration / steps;
+                bool emitFrom = fromWeight > 0.001f && fromType != toType;
+
+                for (int i = 0; i <= steps; i++)
+                {
+                    float rawT = (float) i / steps;
+                    // Smoothstep easing for S-curved motion, like authored lipsync ramps
+                    float t = rawT * rawT * (3 - 2 * rawT);
+                    double time = startTime + i * stepDur;
+
+                    if (emitFrom)
+                    {
+                        // Co-articulation: cross-fade the outgoing shape to zero across the whole
+                        // ramp. Authored data always has 2-3 visemes blending simultaneously; the
+                        // outgoing shape's fade keeps the total openness continuous.
+                        float outWeight = CO_ARTICULATION_FADE_FRACTION >= 1.0
+                            ? fromWeight * (1 - t)
+                            : fromWeight * (1 - Math.Min(1f, t / (float) CO_ARTICULATION_FADE_FRACTION));
+                        if (outWeight > 0.001f || i == steps)
+                            EmitMouthSample(events, ref mouth, fromType, outWeight, time, tick);
+                    }
+                    EmitMouthSample(events, ref mouth, toType, fromWeight + (toWeight - fromWeight) * t, time, tick);
+                }
+            }
+
+            mouth.Type = toType;
+            mouth.Weight = toWeight;
+            mouth.LastEmissionEnd = startTime + duration;
+        }
+
+        private sealed class MouthState
+        {
+            public LipsyncEvent.LipsyncType Type;
+            public float Weight;
+            public double LastEmissionEnd;  // Time of the last emitted mouth event
+
+            // Weight currently held by every mouth channel (visemes persist until rewritten).
+            // Used to fade out ALL held shapes on each new attack, like authored cross-fades.
+            public readonly Dictionary<LipsyncEvent.LipsyncType, float> Active = new();
+        }
+
+        private struct Slot
+        {
+            public Syllable Syllable;
+            public double Start;
+            public double End;
+            public uint Tick;
+            public bool NoteCapped; // Slot end came from a vocal note's end (a real sung sustain)
+            public VocalNote? Note; // The vocal note backing this slot (for pitch-aware sustains)
         }
 
         private struct Syllable
@@ -331,88 +1041,122 @@ namespace YARG.Core.Chart
             public List<LipsyncEvent.LipsyncType> Final;
         }
 
-        private static Syllable GetSyllableForLyric(string text)
+        private static Syllable NewSyllable() => new()
         {
-            var syllable = new Syllable
-            {
-                Initial = new List<LipsyncEvent.LipsyncType>(),
-                VowelMain = LipsyncEvent.LipsyncType.Neutral_lo,
-                VowelEnd = null,
-                Final = new List<LipsyncEvent.LipsyncType>()
-            };
+            Initial = new List<LipsyncEvent.LipsyncType>(),
+            VowelMain = LipsyncEvent.LipsyncType.Neutral_lo,
+            VowelEnd = null,
+            Final = new List<LipsyncEvent.LipsyncType>(),
+        };
 
-            if (string.IsNullOrWhiteSpace(text))
-                return syllable;
-
-            var clean = text.ToLowerInvariant()
-                .Replace("-", "").Replace("=", "").Replace("#", "").Replace("!", "")
-                .Replace("^", "").Replace("$", "").Trim();
-
+        /// <summary>
+        /// Splits a full word into syllables and converts them to visemes.
+        /// </summary>
+        private static List<Syllable> GetSyllablesForWord(string text)
+        {
+            var clean = CleanLyricText(text);
             if (clean.Length == 0)
-                return syllable;
+                return new List<Syllable>();
 
-            // Try CMU dictionary
             if (TryGetPhonemes(clean, out var phonemes) && phonemes.Length > 0)
             {
-                return PhonemesToSyllable(phonemes);
+                var syllables = SplitWordPhonemes(phonemes);
+                if (syllables.Count > 0)
+                    return syllables;
             }
 
             // Fallback to simple mapping
-            return SimpleSyllable(clean);
+            return new List<Syllable> { SimpleSyllable(clean) };
         }
 
-        private static Syllable PhonemesToSyllable(string[] phonemes)
+        private static string CleanLyricText(string text)
         {
-            var syllable = new Syllable
+            var sb = new StringBuilder(text.Length);
+            foreach (var c in text)
             {
-                Initial = new List<LipsyncEvent.LipsyncType>(),
-                VowelMain = LipsyncEvent.LipsyncType.Neutral_lo,
-                VowelEnd = null,
-                Final = new List<LipsyncEvent.LipsyncType>()
-            };
+                switch (c)
+                {
+                    case LyricSymbols.LYRIC_JOIN_SYMBOL:
+                    case LyricSymbols.LYRIC_JOIN_HYPHEN_SYMBOL:
+                    case LyricSymbols.PITCH_SLIDE_SYMBOL:
+                    case LyricSymbols.NONPITCHED_SYMBOL:
+                    case LyricSymbols.NONPITCHED_LENIENT_SYMBOL:
+                    case LyricSymbols.NONPITCHED_UNKNOWN_SYMBOL:
+                    case LyricSymbols.HARMONY_HIDE_SYMBOL:
+                    case LyricSymbols.JOINED_SYLLABLE_SYMBOL:
+                    case LyricSymbols.SPACE_ESCAPE_SYMBOL:
+                    case ' ':
+                    case '!':
+                        break;
+                    default:
+                        sb.Append(char.ToLowerInvariant(c));
+                        break;
+                }
+            }
+            return sb.ToString();
+        }
 
-            bool foundVowel = false;
-
-            YargLogger.LogFormatTrace("  Phonemes: [{0}]", string.Join(", ", phonemes));
+        private static List<Syllable> SplitWordPhonemes(string[] phonemes)
+        {
+            var syllables = new List<Syllable>();
+            var current = NewSyllable();
+            bool hasVowel = false;
 
             foreach (var phoneme in phonemes)
             {
                 var (viseme, isDiphthong, diphthongEnd) = PhonemeToViseme(phoneme);
-
                 if (viseme == LipsyncEvent.LipsyncType.Neutral_lo)
                     continue;
 
                 if (IsVowelPhoneme(phoneme))
                 {
-                    if (!foundVowel)
+                    if (hasVowel)
                     {
-                        syllable.VowelMain = viseme;
-                        if (isDiphthong)
-                            syllable.VowelEnd = diphthongEnd;
-                        foundVowel = true;
+                        // Consonants between vowels begin the next syllable (maximum onset)
+                        var next = NewSyllable();
+                        next.Initial.AddRange(current.Final);
+                        current.Final.Clear();
+                        syllables.Add(current);
+                        current = next;
                     }
+
+                    current.VowelMain = viseme;
+                    if (isDiphthong)
+                        current.VowelEnd = diphthongEnd;
+                    hasVowel = true;
                 }
                 else
                 {
-                    if (!foundVowel)
-                        syllable.Initial.Add(viseme);
+                    if (!hasVowel)
+                        current.Initial.Add(viseme);
                     else
-                        syllable.Final.Add(viseme);
+                        current.Final.Add(viseme);
                 }
             }
 
-            return syllable;
+            if (hasVowel)
+            {
+                syllables.Add(current);
+            }
+            else if (syllables.Count > 0)
+            {
+                // Trailing vowel-less cluster: fold into the last syllable
+                syllables[^1].Final.AddRange(current.Initial);
+            }
+            else if (current.Initial.Count > 0)
+            {
+                // Vowel-less word: emit the consonants as a single consonant-only syllable
+                var syll = NewSyllable();
+                syll.Final.AddRange(current.Initial);
+                syllables.Add(syll);
+            }
+
+            return syllables;
         }
 
         private static Syllable SimpleSyllable(string text)
         {
-            var syllable = new Syllable
-            {
-                Initial = new List<LipsyncEvent.LipsyncType>(),
-                VowelMain = LipsyncEvent.LipsyncType.If_lo,
-                VowelEnd = null,
-                Final = new List<LipsyncEvent.LipsyncType>()
-            };
+            var syllable = NewSyllable();
 
             var vowels = text.Where(c => "aeiou".Contains(c)).ToArray();
             if (vowels.Length > 0)
@@ -456,31 +1200,37 @@ namespace YARG.Core.Chart
             return phoneme switch
             {
                 // Vowels
+                // Mapping verified against handmade Milo lipsync data from 12 Rock Band charts
+                // (per-phoneme lift analysis over ~3.2k CMU-resolved lyric-word windows)
                 "AA" => (LipsyncEvent.LipsyncType.Ox_lo, false, null),
                 "AE" => (LipsyncEvent.LipsyncType.Cage_lo, false, null),
                 "AH" => (LipsyncEvent.LipsyncType.If_lo, false, null),
-                "AO" => (LipsyncEvent.LipsyncType.Earth_lo, false, null),
-                "EH" => (LipsyncEvent.LipsyncType.Cage_lo, false, null),
-                "ER" => (LipsyncEvent.LipsyncType.Church_lo, false, null),
+                "AO" => (LipsyncEvent.LipsyncType.Ox_lo, false, null),
+                "EH" => (LipsyncEvent.LipsyncType.If_lo, false, null),
+                "ER" => (LipsyncEvent.LipsyncType.Earth_lo, false, null),
                 "IH" => (LipsyncEvent.LipsyncType.If_lo, false, null),
                 "IY" => (LipsyncEvent.LipsyncType.Eat_lo, false, null),
                 "UH" => (LipsyncEvent.LipsyncType.Though_lo, false, null),
                 "UW" => (LipsyncEvent.LipsyncType.Wet_lo, false, null),
 
                 // Diphthongs
-                "AY" => (LipsyncEvent.LipsyncType.Ox_lo, true, LipsyncEvent.LipsyncType.If_lo),
-                "EY" => (LipsyncEvent.LipsyncType.Cage_lo, true, LipsyncEvent.LipsyncType.If_lo),
-                "OW" => (LipsyncEvent.LipsyncType.Oat_lo, true, LipsyncEvent.LipsyncType.Wet_lo),
+                "AY" => (LipsyncEvent.LipsyncType.Eat_lo, true, LipsyncEvent.LipsyncType.If_lo),
+                "EY" => (LipsyncEvent.LipsyncType.Ox_lo, true, LipsyncEvent.LipsyncType.If_lo),
+                "OW" => (LipsyncEvent.LipsyncType.Ox_lo, false, null),
                 "AW" => (LipsyncEvent.LipsyncType.Ox_lo, true, LipsyncEvent.LipsyncType.Wet_lo),
-                "OY" => (LipsyncEvent.LipsyncType.Oat_lo, true, LipsyncEvent.LipsyncType.If_lo),
+                "OY" => (LipsyncEvent.LipsyncType.Ox_lo, true, LipsyncEvent.LipsyncType.Eat_lo),
 
                 // Consonants
                 "B" or "P" or "M" => (LipsyncEvent.LipsyncType.Bump_lo, false, null),
                 "F" or "V" => (LipsyncEvent.LipsyncType.Fave_lo, false, null),
-                "TH" or "DH" => (LipsyncEvent.LipsyncType.Told_lo, false, null),
+                "TH" or "DH" => (LipsyncEvent.LipsyncType.Though_lo, false, null),
                 "S" or "Z" => (LipsyncEvent.LipsyncType.Size_lo, false, null),
-                "T" or "D" or "N" or "L" => (LipsyncEvent.LipsyncType.Told_lo, false, null),
-                "SH" or "ZH" or "CH" or "JH" => (LipsyncEvent.LipsyncType.Told_lo, false, null),
+                "T" or "D" => (LipsyncEvent.LipsyncType.Told_lo, false, null),
+                "N" => (LipsyncEvent.LipsyncType.New_lo, false, null),
+                "L" => (LipsyncEvent.LipsyncType.Told_lo, false, null),
+                "NG" => (LipsyncEvent.LipsyncType.New_lo, false, null),
+                "K" or "G" => (LipsyncEvent.LipsyncType.Cage_lo, false, null),
+                "SH" or "ZH" or "CH" or "JH" => (LipsyncEvent.LipsyncType.Church_lo, false, null),
                 "R" => (LipsyncEvent.LipsyncType.Roar_lo, false, null),
                 "W" => (LipsyncEvent.LipsyncType.Wet_lo, false, null),
                 "Y" => (LipsyncEvent.LipsyncType.Eat_lo, false, null),
