@@ -302,7 +302,10 @@ namespace YARG.Core.Chart
             return instrument switch
             {
                 Instrument.Vocals => Vocals,
+                // PartyVocals uses the harmony track when available; falls back to
+                // solo vocals for songs with no harmony parts (effectively HARM1-only).
                 Instrument.Harmony => Harmony,
+                Instrument.PartyVocals => Harmony.Parts[0].NotePhrases.Count > 0 ? Harmony : Vocals,
                 _ => throw new ArgumentException($"Instrument {instrument} is not a vocals instrument!")
             };
         }
