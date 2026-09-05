@@ -111,6 +111,7 @@ public class InstrumentEnumExtensionsTests
             Instrument.FiveFretBass,
             Instrument.FiveFretRhythm,
             Instrument.FiveFretCoopGuitar,
+            Instrument.Keys,
         }));
     }
 
