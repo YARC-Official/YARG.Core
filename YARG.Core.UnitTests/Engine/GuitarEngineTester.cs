@@ -36,6 +36,70 @@ public class GuitarEngineTester : EngineTester
             Is.False);
     }
 
+    [Test]
+    public void Anchoring_HeldHigherFret_IsInvalid()
+    {
+        var engine = CreateFiveFretAnchorEngine();
+
+        // Holding Orange alongside the target Blue note (or vice versa) was wrongly
+        // valid before the mask-vs-index comparison fix (MSB index was compared to
+        // the raw mask). Call sites pass anchorButtons = heldMask ^ targetMask.
+        Assert.That(engine.IsAnchoringValidFor(Mask(GuitarAction.OrangeFret), Mask(GuitarAction.BlueFret)),
+            Is.False);
+        Assert.That(engine.IsAnchoringValidFor(Mask(GuitarAction.BlueFret) | Mask(GuitarAction.OrangeFret), Mask(GuitarAction.OrangeFret)),
+            Is.False);
+    }
+
+    [Test]
+    public void Anchoring_HeldLowerFrets_IsValid()
+    {
+        var engine = CreateFiveFretAnchorEngine();
+
+        // Holding the target fret plus lower frets: anchorButtons is the extra held frets
+        Assert.That(engine.IsAnchoringValidFor(Mask(GuitarAction.GreenFret), Mask(GuitarAction.BlueFret)),
+            Is.True);
+        Assert.That(engine.IsAnchoringValidFor(
+            Mask(GuitarAction.GreenFret) | Mask(GuitarAction.RedFret) | Mask(GuitarAction.YellowFret),
+            Mask(GuitarAction.BlueFret)), Is.True);
+        Assert.That(engine.IsAnchoringValidFor(
+            Mask(GuitarAction.GreenFret) | Mask(GuitarAction.RedFret) | Mask(GuitarAction.YellowFret) | Mask(GuitarAction.BlueFret),
+            Mask(GuitarAction.OrangeFret)), Is.True);
+    }
+
+    [Test]
+    public void Anchoring_NoExtraFretsHeld_IsValid()
+    {
+        var engine = CreateFiveFretAnchorEngine();
+
+        // Holding exactly the target fret: anchorButtons = held ^ target = 0
+        Assert.That(engine.IsAnchoringValidFor(0, Mask(GuitarAction.OrangeFret)), Is.True);
+    }
+
+    private static TestFiveFretGuitarEngine CreateFiveFretAnchorEngine()
+    {
+        var notes = new InstrumentDifficulty<GuitarNote>(Instrument.FiveFretGuitar, Difficulty.Expert,
+            [], new(), new());
+        var engineParams = new GuitarEngineParameters(
+            CreateHitWindowSettings(),
+            4,
+            0,
+            0,
+            StarMultiplierThresholds,
+            SoloBonusStarMultiplierThresholds,
+            0.1,
+            0.1,
+            0.1,
+            false,
+            true,
+            false,
+            false,
+            true);
+
+        return new TestFiveFretGuitarEngine(notes, CreateSyncTrack(), engineParams);
+    }
+
+    private static int Mask(GuitarAction action) => 1 << (int) action;
+
     private static (TestFiveFretGuitarEngine Engine, InstrumentDifficulty<GuitarNote> Notes) CreateTrillProximityEngine()
     {
         var firstNote = CreateNote(FiveFretGuitarFret.Green, NoteFlags.None, 0.0, 0);
@@ -76,6 +140,11 @@ public class GuitarEngineTester : EngineTester
             CurrentTime = currentTime;
             NoteIndex = noteIndex;
             return IsGhostInTrillLeniencyWindow(inputNote);
+        }
+
+        public bool IsAnchoringValidFor(int anchorButtons, int targetFretValue)
+        {
+            return IsAnchoringValid(anchorButtons, targetFretValue);
         }
     }
 

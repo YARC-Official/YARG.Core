@@ -569,8 +569,10 @@ namespace YARG.Core.Engine.Guitar.Engines
                 return true;
             }
 
-            // For 5-fret, bit position == fret number, MSB gives highest anchor fret
-            return GetMostSignificantBit(anchorButtons) < targetFretValue;
+            // For 5-fret, bit position == fret number, MSB gives highest anchor fret.
+            // Compare bit positions on both sides: targetFretValue is a mask, so compare
+            // against its MSB index rather than the raw mask value.
+            return GetMostSignificantBit(anchorButtons) < GetMostSignificantBit(targetFretValue);
         }
 
         private void HandleCodaFretChange(double time)
