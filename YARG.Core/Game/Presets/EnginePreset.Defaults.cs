@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 
 namespace YARG.Core.Game
 {
@@ -9,6 +9,18 @@ namespace YARG.Core.Game
         public static EnginePreset Casual = new("Casual", true)
         {
             FiveFretGuitar =
+            {
+                AntiGhosting = false,
+                InfiniteFrontEnd = true,
+                StrumLeniency = 0.06,
+                StrumLeniencySmall = 0.03,
+                HitWindow =
+                {
+                    LaneAutohitWindow = 0.200,
+                    LaneProximityProtectionWindow = 0.100
+                }
+            },
+            SixFretGuitar =
             {
                 AntiGhosting = false,
                 InfiniteFrontEnd = true,
@@ -60,6 +72,22 @@ namespace YARG.Core.Game
                     LaneProximityProtectionWindow = 0.080
                 }
             },
+            SixFretGuitar =
+            {
+                StrumLeniency = 0.04,
+                StrumLeniencySmall = 0.02,
+                HitWindow =
+                {
+                    MaxWindow = 0.12,
+                    MinWindow = 0.04,
+                    IsDynamic = true,
+                    DynamicScale = 1,
+                    DynamicSlope = 0.93,
+                    DynamicGamma = 1.5,
+                    LaneAutohitWindow = 0.160,
+                    LaneProximityProtectionWindow = 0.080
+                }
+            },
             Drums =
             {
                 HitWindow =
@@ -87,6 +115,10 @@ namespace YARG.Core.Game
         public static EnginePreset SoloTaps = new("Solo Taps", true)
         {
             FiveFretGuitar =
+            {
+                SoloTaps = true
+            },
+            SixFretGuitar =
             {
                 SoloTaps = true
             }

@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Text;
 using YARG.Core.Chart;
@@ -238,6 +238,15 @@ namespace YARG.Core.Replays.Analyzer
                     manager.Register((GuitarEngine)engine, notes, _chart, rockMeterPreset);
                     break;
                 }
+                case GameMode.SixFretGuitar:
+                {
+                    // Must match gameplay note selection (GetSixFretPlayableDifficulty) or replays fail verification
+                    var notes = _chart.GetSixFretPlayableDifficulty(frame.Profile.CurrentInstrument,
+                        frame.Profile.CurrentDifficulty, frame.Profile.LeftyFlip).Clone();
+                    profile.ApplyModifiers(notes, _chart.SyncTrack);
+                    manager.Register((GuitarEngine)engine, notes, _chart, rockMeterPreset);
+                    break;
+                }
                 case GameMode.FourLaneDrums:
                 case GameMode.FiveLaneDrums:
                 case GameMode.EliteDrums:
@@ -302,6 +311,26 @@ namespace YARG.Core.Replays.Analyzer
 
                     // Create engine
                     return new YargFiveFretGuitarEngine(
+                        notes,
+                        _chart.SyncTrack,
+                        (GuitarEngineParameters) parameters,
+                        profile.IsBot);
+                }
+                case GameMode.SixFretGuitar:
+                {
+                    // Must match gameplay note selection (GetSixFretPlayableDifficulty) or replays fail verification
+                    var notes = _chart.GetSixFretPlayableDifficulty(profile.CurrentInstrument,
+                        profile.CurrentDifficulty, profile.LeftyFlip).Clone();
+                    profile.ApplyModifiers(notes, _chart.SyncTrack);
+                    foreach (var note in notes.Notes)
+                    {
+                        foreach (var subNote in note.AllNotes)
+                        {
+                            subNote.ResetNoteState();
+                        }
+                    }
+
+                    return new YargSixFretGuitarEngine(
                         notes,
                         _chart.SyncTrack,
                         (GuitarEngineParameters) parameters,

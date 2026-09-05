@@ -267,7 +267,7 @@ namespace YARG.Core.Song
 
         private Dictionary<string, string> GetSubFiles()
         {
-            Dictionary<string, string> files = new();
+            Dictionary<string, string> files = new(StringComparer.OrdinalIgnoreCase);
             if (Directory.Exists(_location))
             {
                 foreach (var file in Directory.EnumerateFiles(_location))
