@@ -183,80 +183,42 @@ namespace YARG.Core.Engine.Guitar.Engines
                 return false;
             }
 
-            // Fret numbers (1-3) of the highest fret held in each state.
-            // We must iterate all bits to find the highest fret number, because in 6-fret
-            // the highest bit position does not always correspond to the highest fret number
-            // (e.g. B3 is bit 2 but W1 is bit 3; B3 is fret 3, W1 is fret 1).
-            int currentBitPosition = GetHighestFretBitPosition(currentFrets);
-            int lastBitPosition = GetHighestFretBitPosition(lastFrets);
-
-            if (currentBitPosition < 0 || lastBitPosition < 0)
-            {
-                return false;
-            }
-
-            int currentFretNumber = GetFretNumberFromBitPosition(currentBitPosition);
-            int previousFretNumber = GetFretNumberFromBitPosition(lastBitPosition);
-
-            // Hammer-on: fret number increases (e.g. fret 1 → fret 2)
-            bool isHammerOn = currentFretNumber > previousFretNumber;
-
-            // Vertical transition: same fret number, different row (e.g. B1→W1, B2→W2)
-            bool isVerticalTransition = currentFretNumber == previousFretNumber;
-
             // Note's exact fret mask (no interchangeable equivalents — every fret is distinct)
             int noteFretMask = note.NoteMask & FRET_BUTTON_MASK;
-            if (noteFretMask == 0)
-            {
-                return false; // Open/wildcard notes are not subject to ghost checks
-            }
 
-            // The note's own fret is held — this is not a wrong-fret press. This is the press
-            // half of a standard pull-off gesture (press the target, release the origin a
-            // moment later): the hit is simply deferred until the origin is released, which
-            // GHL registers as long as it happens within the hit window. Must not be a ghost.
-            if ((currentFrets & noteFretMask) != 0)
+            // Open/wildcard notes are not subject to ghost checks. A press of the note's own
+            // fret is not a ghost either: it is the press half of a pull-off gesture (the hit
+            // defers to the origin release within the hit window), not a wrong-fret input.
+            if (noteFretMask == 0 || (currentFrets & noteFretMask) != 0)
             {
                 return false;
             }
 
-            // Hammer-on check: the note's exact fret must be among the held frets.
-            // If not, the player hammered on to a wrong fret → ghost.
-            if (isHammerOn && (currentFrets & noteFretMask) == 0)
+            // From here on, the pressed fret is guaranteed to NOT be the note's fret.
+            //
+            // Highest fret number (1-3) held in each state. Bit positions must be iterated
+            // because bit order (B1,B2,B3,W1,W2,W3) does not match fret number order (1,2,3,1,2,3).
+            int currentBitPosition = GetHighestFretBitPosition(currentFrets);
+            int lastBitPosition = GetHighestFretBitPosition(lastFrets);
+            int currentFretNumber = GetFretNumberFromBitPosition(currentBitPosition);
+            int lastFretNumber = GetFretNumberFromBitPosition(lastBitPosition);
+
+            // Hammer-on to a wrong fret: pressed a fret with a higher number than anything
+            // held before, and it is not the note's fret
+            if (currentFretNumber > lastFretNumber)
             {
-                if (!IsGhostInTrillLeniencyWindow(currentBitPosition))
-                {
-                    return true;
-                }
+                return !IsGhostInTrillLeniencyWindow(currentBitPosition);
             }
 
-            // Origin-held check (single notes only): the originating fret (same fret
-            // number as the previous highest held) must be released before the note can
-            // be hit. If it is still held AND the note's own fret is not held, the player
-            // pressed a wrong fret → ghost. (A press of the note's own fret with the
-            // origin still held was already handled by the note-held exemption above.)
-            if (isVerticalTransition && !note.IsChord)
+            // Same number as before, note's fret not held: the previous highest-number fret
+            // is still held (a press never releases anything), so this is a wrong-fret press
+            // — e.g. pressing the wrong row on a vertical transition. Chords are exempt.
+            if (currentFretNumber == lastFretNumber && !note.IsChord)
             {
-                int commonFrets = currentFrets & lastFrets;
-                if (commonFrets != 0)
-                {
-                    // noteFretBit is the bit position of the note's fret
-                    int noteFretBit = GetMostSignificantBit(noteFretMask) - 1;
-                    for (int i = 0; i < 6; i++)
-                    {
-                        if ((commonFrets & (1 << i)) != 0)
-                        {
-                            int heldFretNumber = GetFretNumberFromBitPosition(i);
-                            if (heldFretNumber == currentFretNumber && i != noteFretBit)
-                            {
-                                // Originating fret (same number, different row) still held → ghost
-                                return true;
-                            }
-                        }
-                    }
-                }
+                return true;
             }
 
+            // Lower number than before: pull-off direction, valid anchor preparation
             return false;
         }
 
