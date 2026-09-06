@@ -36,8 +36,10 @@ namespace YARG.Core.Engine.Guitar.Engines
     /// </para>
     /// <para>
     /// <b>Vertical HOPO (same fret number, different row, e.g. B1→W1 or B2→W2):</b>
-    /// always treated as a pull-off. The originating fret must be released —
-    /// if it is still held, the input is a ghost.
+    /// always treated as a pull-off. The originating fret must be released before the
+    /// note can be hit — the hit registers at the release (within the hit window).
+    /// Pressing the note's own fret while the origin is still held is not ghosted;
+    /// only wrong-fret presses with the origin held are.
     /// </para>
     /// <para>
     /// <b>Chords:</b> HOPO chords and barres require exact button presses.
@@ -209,6 +211,15 @@ namespace YARG.Core.Engine.Guitar.Engines
                 return false; // Open/wildcard notes are not subject to ghost checks
             }
 
+            // The note's own fret is held — this is not a wrong-fret press. This is the press
+            // half of a standard pull-off gesture (press the target, release the origin a
+            // moment later): the hit is simply deferred until the origin is released, which
+            // GHL registers as long as it happens within the hit window. Must not be a ghost.
+            if ((currentFrets & noteFretMask) != 0)
+            {
+                return false;
+            }
+
             // Hammer-on check: the note's exact fret must be among the held frets.
             // If not, the player hammered on to a wrong fret → ghost.
             if (isHammerOn && (currentFrets & noteFretMask) == 0)
@@ -219,9 +230,11 @@ namespace YARG.Core.Engine.Guitar.Engines
                 }
             }
 
-            // Vertical transition check (single notes only): the originating fret
-            // (same number, different row) must be released. If it is still held,
-            // the input is a ghost.
+            // Origin-held check (single notes only): the originating fret (same fret
+            // number as the previous highest held) must be released before the note can
+            // be hit. If it is still held AND the note's own fret is not held, the player
+            // pressed a wrong fret → ghost. (A press of the note's own fret with the
+            // origin still held was already handled by the note-held exemption above.)
             if (isVerticalTransition && !note.IsChord)
             {
                 int commonFrets = currentFrets & lastFrets;
