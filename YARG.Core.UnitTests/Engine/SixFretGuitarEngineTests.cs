@@ -410,7 +410,7 @@ public class SixFretGuitarEngineTests : EngineTester
     }
 
     [Test]
-    public void Ghost_Vertical_B1_To_W1_WithoutRelease()
+    public void Ghost_Vertical_B1_To_W1_OriginHeldAtPress_IsNotGhost()
     {
         var notes = new[]
         {
@@ -420,11 +420,13 @@ public class SixFretGuitarEngineTests : EngineTester
         LinkNotes(notes);
         var engine = CreateSixFretEngine(notes);
 
-        // Previous: held B1. Now: held B1 + W1, B1 not released
+        // Previous: held B1. Now: held B1 + W1, B1 not released.
+        // Standard pull-off gesture: press the target, release the origin right after.
+        // The press is not a ghost; the hit is deferred until the origin is released.
         engine.SetButtonState(effectiveMask: Mask(GuitarAction.Black1Fret, GuitarAction.White1Fret), lastMask: Mask(GuitarAction.Black1Fret), isFretPress: true);
         engine.ClockToNote(1);
 
-        Assert.That(engine.IsGhostInput(notes[1]), Is.True);
+        Assert.That(engine.IsGhostInput(notes[1]), Is.False);
     }
 
     [Test]
@@ -446,7 +448,7 @@ public class SixFretGuitarEngineTests : EngineTester
     }
 
     [Test]
-    public void Ghost_Vertical_B2_To_W2_WithoutRelease()
+    public void Ghost_Vertical_B2_To_W2_OriginHeldAtPress_IsNotGhost()
     {
         var notes = new[]
         {
@@ -459,11 +461,11 @@ public class SixFretGuitarEngineTests : EngineTester
         engine.SetButtonState(effectiveMask: Mask(GuitarAction.Black2Fret, GuitarAction.White2Fret), lastMask: Mask(GuitarAction.Black2Fret), isFretPress: true);
         engine.ClockToNote(1);
 
-        Assert.That(engine.IsGhostInput(notes[1]), Is.True);
+        Assert.That(engine.IsGhostInput(notes[1]), Is.False);
     }
 
     [Test]
-    public void Ghost_Vertical_W2_To_B2_WithoutRelease()
+    public void Ghost_Vertical_W2_To_B2_OriginHeldAtPress_IsNotGhost()
     {
         var notes = new[]
         {
@@ -476,11 +478,11 @@ public class SixFretGuitarEngineTests : EngineTester
         engine.SetButtonState(effectiveMask: Mask(GuitarAction.Black2Fret, GuitarAction.White2Fret), lastMask: Mask(GuitarAction.White2Fret), isFretPress: true);
         engine.ClockToNote(1);
 
-        Assert.That(engine.IsGhostInput(notes[1]), Is.True);
+        Assert.That(engine.IsGhostInput(notes[1]), Is.False);
     }
 
     [Test]
-    public void Ghost_Vertical_W3_To_B3_WithoutRelease()
+    public void Ghost_Vertical_W3_To_B3_OriginHeldAtPress_IsNotGhost()
     {
         var notes = new[]
         {
@@ -493,7 +495,7 @@ public class SixFretGuitarEngineTests : EngineTester
         engine.SetButtonState(effectiveMask: Mask(GuitarAction.Black3Fret, GuitarAction.White3Fret), lastMask: Mask(GuitarAction.White3Fret), isFretPress: true);
         engine.ClockToNote(1);
 
-        Assert.That(engine.IsGhostInput(notes[1]), Is.True);
+        Assert.That(engine.IsGhostInput(notes[1]), Is.False);
     }
 
     [Test]
@@ -576,6 +578,65 @@ public class SixFretGuitarEngineTests : EngineTester
         engine.ClockToNote(1);
 
         Assert.That(engine.IsGhostInput(notes[1]), Is.False);
+    }
+
+    [Test]
+    public void Ghost_PullOff_W2_To_W1_OriginHeldAtPress_IsNotGhost()
+    {
+        // Regression: the press half of a same-row pull-off (W2→W1) with the origin
+        // still held was wrongly ghosted. The origin-held state makes the highest
+        // held fret number equal in both states, which used to route this into the
+        // origin-held branch even though the note's own fret WAS held.
+        var notes = new[]
+        {
+            CreateSixFretNote(SixFretGuitarFret.White2, GuitarNoteType.Strum),
+            CreateSixFretNote(SixFretGuitarFret.White1, GuitarNoteType.Hopo),
+        };
+        LinkNotes(notes);
+        var engine = CreateSixFretEngine(notes);
+
+        engine.SetButtonState(effectiveMask: Mask(GuitarAction.White1Fret, GuitarAction.White2Fret), lastMask: Mask(GuitarAction.White2Fret), isFretPress: true);
+        engine.ClockToNote(1);
+
+        Assert.That(engine.IsGhostInput(notes[1]), Is.False);
+    }
+
+    [Test]
+    public void Ghost_PullOff_B3_To_B2_OriginHeldAtPress_IsNotGhost()
+    {
+        // Same regression for the black row
+        var notes = new[]
+        {
+            CreateSixFretNote(SixFretGuitarFret.Black3, GuitarNoteType.Strum),
+            CreateSixFretNote(SixFretGuitarFret.Black2, GuitarNoteType.Hopo),
+        };
+        LinkNotes(notes);
+        var engine = CreateSixFretEngine(notes);
+
+        engine.SetButtonState(effectiveMask: Mask(GuitarAction.Black2Fret, GuitarAction.Black3Fret), lastMask: Mask(GuitarAction.Black3Fret), isFretPress: true);
+        engine.ClockToNote(1);
+
+        Assert.That(engine.IsGhostInput(notes[1]), Is.False);
+    }
+
+    [Test]
+    public void Ghost_PullOff_W2_To_W1_WrongFretWithOriginHeld_IsGhost()
+    {
+        // Pressing a fret that is NOT the note while the origin is still held
+        // remains a ghost (the note-held exemption must not mask wrong-fret presses)
+        var notes = new[]
+        {
+            CreateSixFretNote(SixFretGuitarFret.White2, GuitarNoteType.Strum),
+            CreateSixFretNote(SixFretGuitarFret.White1, GuitarNoteType.Hopo),
+        };
+        LinkNotes(notes);
+        var engine = CreateSixFretEngine(notes);
+
+        // W2 origin still held, player presses B1 instead of W1
+        engine.SetButtonState(effectiveMask: Mask(GuitarAction.Black1Fret, GuitarAction.White2Fret), lastMask: Mask(GuitarAction.White2Fret), isFretPress: true);
+        engine.ClockToNote(1);
+
+        Assert.That(engine.IsGhostInput(notes[1]), Is.True);
     }
 
     #endregion
