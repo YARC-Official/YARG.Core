@@ -12,37 +12,28 @@ namespace YARG.Core.Game
         {
             #region Frets
 
-            public Color BlackFret  = Color.Black;
-            public Color WhiteFret  = Color.White;
+            // There is only one type of fret on six-fret, so all frets share a top color.
+            // The inner color stays split black/white: it highlights which half of
+            // the fret pad is currently pressed.
+            public Color Fret           = Color.Gray;
+            public Color BlackFretInner = Color.Black;
+            public Color WhiteFretInner = Color.White;
 
             /// <summary>
-            /// Gets the fret color for a specific note index.
+            /// Gets the fret color for a specific fret index.
             /// Black frets: 0=Black1, 1=Black2, 2=Black3.
             /// White frets: 3=White1, 4=White2, 5=White3.
-            /// Open: 6.
+            /// All frets share a single color.
             /// </summary>
             public Color GetFretColor(int index)
             {
-                return index switch
-                {
-                    (int) SixFretGuitarFret.Black1 => BlackFret,
-                    (int) SixFretGuitarFret.Black2 => BlackFret,
-                    (int) SixFretGuitarFret.Black3 => BlackFret,
-                    (int) SixFretGuitarFret.White1 => WhiteFret,
-                    (int) SixFretGuitarFret.White2 => WhiteFret,
-                    (int) SixFretGuitarFret.White3 => WhiteFret,
-                    _ => default
-                };
+                return Fret;
             }
 
-            public Color BlackFretInner  = Color.Black;
-            public Color WhiteFretInner  = Color.White;
-
             /// <summary>
-            /// Gets the inner fret color for a specific note index.
+            /// Gets the inner fret color for a specific fret index.
             /// Black frets: 0=Black1, 1=Black2, 2=Black3.
             /// White frets: 3=White1, 4=White2, 5=White3.
-            /// Open: 6.
             /// </summary>
             public Color GetFretInnerColor(int index)
             {
@@ -173,9 +164,7 @@ namespace YARG.Core.Game
 
             public void Serialize(BinaryWriter writer)
             {
-                writer.Write(BlackFret);
-                writer.Write(WhiteFret);
-
+                writer.Write(Fret);
                 writer.Write(BlackFretInner);
                 writer.Write(WhiteFretInner);
 
@@ -191,9 +180,7 @@ namespace YARG.Core.Game
 
             public void Deserialize(BinaryReader reader, int version = 0)
             {
-                BlackFret = reader.ReadColor();
-                WhiteFret = reader.ReadColor();
-
+                Fret = reader.ReadColor();
                 BlackFretInner = reader.ReadColor();
                 WhiteFretInner = reader.ReadColor();
 
