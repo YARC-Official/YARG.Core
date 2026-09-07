@@ -2,7 +2,6 @@ using System.Drawing;
 using System.IO;
 using YARG.Core.Chart;
 using YARG.Core.Extensions;
-using YARG.Core.Input;
 using YARG.Core.Utility;
 
 namespace YARG.Core.Game
@@ -32,7 +31,6 @@ namespace YARG.Core.Game
                     (int) SixFretGuitarFret.White1 => WhiteFret,
                     (int) SixFretGuitarFret.White2 => WhiteFret,
                     (int) SixFretGuitarFret.White3 => WhiteFret,
-                    (int) SixFretGuitarFret.Open => WhiteFret,
                     _ => default
                 };
             }
@@ -56,13 +54,13 @@ namespace YARG.Core.Game
                     (int) SixFretGuitarFret.White1 => WhiteFretInner,
                     (int) SixFretGuitarFret.White2 => WhiteFretInner,
                     (int) SixFretGuitarFret.White3 => WhiteFretInner,
-                    (int) SixFretGuitarFret.Open => WhiteFretInner,
                     _ => default
                 };
             }
 
             public Color BlackParticles  = Color.Black;
             public Color WhiteParticles  = Color.White;
+            public Color OpenParticles   = Color.White;
 
             /// <summary>
             /// Gets the particle color for a specific note index.
@@ -80,7 +78,7 @@ namespace YARG.Core.Game
                     (int) SixFretGuitarFret.White1 => WhiteParticles,
                     (int) SixFretGuitarFret.White2 => WhiteParticles,
                     (int) SixFretGuitarFret.White3 => WhiteParticles,
-                    (int) SixFretGuitarFret.Open => WhiteParticles,
+                    (int) SixFretGuitarFret.Open => OpenParticles,
                     _ => default
                 };
             }
@@ -91,6 +89,13 @@ namespace YARG.Core.Game
 
             public Color BlackNote  = Color.Black;
             public Color WhiteNote  = Color.White;
+            public Color OpenNote   = Color.White;
+
+            // Open HOPO/Tap notes have a dedicated color (mirrors 5-fret's OpenHopoNote).
+            // The Open model's EmissionAddition may wash the color to white; the
+            // dedicated field lets users control it independently of OpenNote.
+            public Color OpenHopoNote          = Color.White;
+            public Color OpenHopoNoteStarPower = Color.White;
 
             /// <summary>
             /// Gets the note color for a specific note index.
@@ -108,13 +113,14 @@ namespace YARG.Core.Game
                     (int) SixFretGuitarFret.White2 => WhiteNote,
                     (int) SixFretGuitarFret.White3 => WhiteNote,
                     (int) SixFretGuitarFret.Wildcard => DefaultWildcard,
-                    (int) SixFretGuitarFret.Open => WhiteNote,
+                    (int) SixFretGuitarFret.Open => OpenNote,
                     _ => default
                 };
             }
 
             public Color BlackNoteStarPower = Color.Black;
             public Color WhiteNoteStarPower = Color.White;
+            public Color OpenNoteStarPower  = Color.White;
 
             /// <summary>
             /// Gets the Star Power note color for a specific note index.
@@ -132,7 +138,7 @@ namespace YARG.Core.Game
                     (int) SixFretGuitarFret.White2 => WhiteNoteStarPower,
                     (int) SixFretGuitarFret.White3 => WhiteNoteStarPower,
                     (int) SixFretGuitarFret.Wildcard => DefaultWildcardStarpower,
-                    (int) SixFretGuitarFret.Open => WhiteNoteStarPower,
+                    (int) SixFretGuitarFret.Open => OpenNoteStarPower,
                     _ => default
                 };
             }
@@ -199,6 +205,10 @@ namespace YARG.Core.Game
 
                 BlackNoteStarPower = reader.ReadColor();
                 WhiteNoteStarPower = reader.ReadColor();
+
+                // Note: the Open* color fields are intentionally NOT binary-serialized
+                // (replay format compatibility, no version bump). They persist through
+                // the JSON preset files instead.
             }
 
             #endregion
