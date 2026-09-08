@@ -13,8 +13,8 @@ namespace YARG.Core.Game
         {
             #region Frets
 
-            public Color BlackFret  = Color.Black;
-            public Color WhiteFret  = Color.White;
+            public Color BlackFret  = DefaultGHLBlack;
+            public Color WhiteFret  = DefaultGHLWhite;
 
             /// <summary>
             /// Gets the fret color for a specific note index.
@@ -37,8 +37,8 @@ namespace YARG.Core.Game
                 };
             }
 
-            public Color BlackFretInner  = Color.Black;
-            public Color WhiteFretInner  = Color.White;
+            public Color BlackFretInner  = DefaultGHLBlack;
+            public Color WhiteFretInner  = DefaultGHLWhite;
 
             /// <summary>
             /// Gets the inner fret color for a specific note index.
@@ -61,8 +61,8 @@ namespace YARG.Core.Game
                 };
             }
 
-            public Color BlackParticles  = Color.Black;
-            public Color WhiteParticles  = Color.White;
+            public Color BlackParticles  = DefaultGHLBlack;
+            public Color WhiteParticles  = DefaultGHLWhite;
 
             /// <summary>
             /// Gets the particle color for a specific note index.
@@ -89,8 +89,8 @@ namespace YARG.Core.Game
 
             #region Notes
 
-            public Color BlackNote  = Color.Black;
-            public Color WhiteNote  = Color.White;
+            public Color BlackNote  = DefaultGHLBlack;
+            public Color WhiteNote  = DefaultGHLWhite;
 
             /// <summary>
             /// Gets the note color for a specific note index.
@@ -113,8 +113,8 @@ namespace YARG.Core.Game
                 };
             }
 
-            public Color BlackNoteStarPower = Color.Black;
-            public Color WhiteNoteStarPower = Color.White;
+            public Color BlackNoteStarPower = DefaultGHLBlack;
+            public Color WhiteNoteStarPower = DefaultGHLWhite;
 
             /// <summary>
             /// Gets the Star Power note color for a specific note index.
