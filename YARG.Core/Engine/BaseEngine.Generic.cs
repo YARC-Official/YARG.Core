@@ -841,13 +841,10 @@ namespace YARG.Core.Engine
         {
             EngineStats.PendingScore = 0;
 
-            bool isStarPowerSustainActiveRightNow = false;
             for (int i = 0; i < ActiveSustains.Count; i++)
             {
                 ref var sustain = ref ActiveSustains[i];
                 var note = sustain.Note;
-
-                isStarPowerSustainActiveRightNow |= note.IsStarPower;
 
                 // If we're close enough to the end of the sustain, finish it
                 // Provides leniency for sustains with no gap (and just in general)
@@ -871,7 +868,7 @@ namespace YARG.Core.Engine
 
                 if(!CanSustainHold(note))
                 {
-                    // Currently beind held by sustain drop leniency
+                    // Currently being held by sustain drop leniency
                     if (sustain.IsLeniencyHeld)
                     {
                         if (CurrentTime >= sustain.LeniencyDropTime + EngineParameters.SustainDropLeniency * EngineParameters.SongSpeed)
@@ -920,7 +917,6 @@ namespace YARG.Core.Engine
                         {
                             sustainPoints /= 2;
                         }
-
                         EngineStats.SustainScore += sustainPoints;
                     }
                     else
@@ -941,6 +937,55 @@ namespace YARG.Core.Engine
                     EndSustain(i, dropped, isEndOfSustain);
                     i--;
                 }
+            }
+
+            UpdateStars();
+        }
+        /// <summary>
+        /// This method is called when star power ends to commit the SP score for any sustains
+        /// that have not yet finished scoring.
+        /// </summary>
+        protected virtual void CommitPartialSustainStarPowerScore()
+        {
+            for (int i = 0; i < ActiveSustains.Count; i++)
+            {
+                ref var sustain = ref ActiveSustains[i];
+                var note = sustain.Note;
+
+                // If the sustain has finished scoring, then the score has already been committed and we can skip it
+                if (sustain.HasFinishedScoring)
+                {
+                    continue;
+                }
+
+                bool isBurst;
+
+                // Sustain is too short for a burst
+                if (SustainBurstThreshold > note.TickLength)
+                {
+                    isBurst = CurrentTick >= note.Tick;
+                }
+                else
+                {
+                    isBurst = CurrentTick >= note.TickEnd - SustainBurstThreshold;
+                }
+
+                bool isEndOfSustain = CurrentTick >= note.TickEnd;
+
+                uint sustainTick = isBurst || isEndOfSustain ? note.TickEnd : CurrentTick;
+
+                double finalScore = CalculateSustainPoints(ref sustain, sustainTick);
+                var points = (int) Math.Ceiling(finalScore);
+
+                ulong timeAsUlong = UnsafeExtensions.DoubleToUInt64Bits(CurrentTime);
+                ulong baseScoreAsUlong = UnsafeExtensions.DoubleToUInt64Bits(sustain.BaseScore);
+                YargLogger.LogFormatTrace("Added {0} points for end of SP in sustain at {1} (0x{2}). Base Score/Tick: {3} (0x{4}), {5}", points, CurrentTime, timeAsUlong.ToString("X"), sustain.BaseScore, baseScoreAsUlong.ToString("X"), sustain.BaseTick);
+
+                // This is called BEFORE star power is actually disabled, so the multiplier is still doubled.
+                int sustainPoints = points * (EngineStats.ScoreMultiplier / 2);
+                EngineStats.StarPowerScore += sustainPoints;
+                EngineStats.CommittedScore += sustainPoints;
+                EngineStats.BandBonusScore += EngineStats.BandBonusMultiplier * sustainPoints;
             }
 
             UpdateStars();
@@ -1028,6 +1073,7 @@ namespace YARG.Core.Engine
 
             if (BaseStats is { IsStarPowerActive: true, StarPowerTickAmount: 0 })
             {
+                CommitPartialSustainStarPowerScore();
                 ReleaseStarPower();
             }
 
