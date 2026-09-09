@@ -841,13 +841,10 @@ namespace YARG.Core.Engine
         {
             EngineStats.PendingScore = 0;
 
-            bool isStarPowerSustainActiveRightNow = false;
             for (int i = 0; i < ActiveSustains.Count; i++)
             {
                 ref var sustain = ref ActiveSustains[i];
                 var note = sustain.Note;
-
-                isStarPowerSustainActiveRightNow |= note.IsStarPower;
 
                 // If we're close enough to the end of the sustain, finish it
                 // Provides leniency for sustains with no gap (and just in general)
@@ -871,7 +868,7 @@ namespace YARG.Core.Engine
 
                 if(!CanSustainHold(note))
                 {
-                    // Currently beind held by sustain drop leniency
+                    // Currently being held by sustain drop leniency
                     if (sustain.IsLeniencyHeld)
                     {
                         if (CurrentTime >= sustain.LeniencyDropTime + EngineParameters.SustainDropLeniency * EngineParameters.SongSpeed)
@@ -911,8 +908,7 @@ namespace YARG.Core.Engine
 
                         AddScore(points);
                         ulong timeAsUlong = UnsafeExtensions.DoubleToUInt64Bits(CurrentTime);
-                        ulong baseScoreAsUlong = UnsafeExtensions.DoubleToUInt64Bits(sustain.BaseScore);
-                        YargLogger.LogFormatTrace("Added {0} points for end of sustain at {1} (0x{2}). Base Score/Tick: {3} (0x{4}), {5}", points, CurrentTime, timeAsUlong.ToString("X"), sustain.BaseScore, baseScoreAsUlong.ToString("X"), sustain.BaseTick);
+                        YargLogger.LogFormatTrace("Added {0} points for end of sustain at {1} (0x{2}). Base Tick: {3}", points, CurrentTime, timeAsUlong.ToString("X"), sustain.BaseTick);
 
                         // SustainPoints must include the multiplier, but NOT the star power multiplier
                         int sustainPoints = points * EngineStats.ScoreMultiplier;
@@ -920,7 +916,6 @@ namespace YARG.Core.Engine
                         {
                             sustainPoints /= 2;
                         }
-
                         EngineStats.SustainScore += sustainPoints;
                     }
                     else
@@ -1248,7 +1243,7 @@ namespace YARG.Core.Engine
 
         protected override void RebaseSustains(uint baseTick)
         {
-            EngineStats.PendingScore = 0;
+            int totalSustainScore = 0;
             for (int i = 0; i < ActiveSustains.Count; i++)
             {
                 ref var sustain = ref ActiveSustains[i];
@@ -1262,11 +1257,19 @@ namespace YARG.Core.Engine
                     continue;
                 }
 
+                if (baseTick == sustain.BaseTick)
+                {
+                    continue;
+                }
+
                 double sustainScore = CalculateSustainPoints(ref sustain, baseTick);
+                totalSustainScore += (int) Math.Ceiling(sustainScore);
 
                 sustain.BaseTick = Math.Clamp(baseTick, sustain.Note.Tick, sustain.Note.TickEnd);
-                sustain.BaseScore = sustainScore;
-                EngineStats.PendingScore += (int) sustainScore;
+            }
+            if (totalSustainScore > 0)
+            {
+                AddScore(totalSustainScore);
             }
         }
 
@@ -1360,7 +1363,7 @@ namespace YARG.Core.Engine
             // Sustain points are awarded at a constant rate regardless of tempo
             // double deltaScore = CalculateBeatProgress(scoreTick, sustain.BaseTick, POINTS_PER_BEAT);
             double deltaScore = (scoreTick - sustain.BaseTick) / TicksPerSustainPoint;
-            return sustain.BaseScore + deltaScore;
+            return deltaScore;
         }
 
         protected void AdvanceToNextNote(TNoteType note)
