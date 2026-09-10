@@ -165,15 +165,19 @@ namespace YARG.Core.Game
             public void Serialize(BinaryWriter writer)
             {
                 writer.Write(Fret);
+
                 writer.Write(BlackFretInner);
                 writer.Write(WhiteFretInner);
 
+                writer.Write(OpenParticles);
                 writer.Write(BlackParticles);
                 writer.Write(WhiteParticles);
 
+                writer.Write(OpenNote);
                 writer.Write(BlackNote);
                 writer.Write(WhiteNote);
 
+                writer.Write(OpenNoteStarPower);
                 writer.Write(BlackNoteStarPower);
                 writer.Write(WhiteNoteStarPower);
             }
@@ -181,21 +185,21 @@ namespace YARG.Core.Game
             public void Deserialize(BinaryReader reader, int version = 0)
             {
                 Fret = reader.ReadColor();
+
                 BlackFretInner = reader.ReadColor();
                 WhiteFretInner = reader.ReadColor();
 
+                OpenParticles = reader.ReadColor();
                 BlackParticles = reader.ReadColor();
                 WhiteParticles = reader.ReadColor();
 
+                OpenNote = reader.ReadColor();
                 BlackNote = reader.ReadColor();
                 WhiteNote = reader.ReadColor();
 
+                OpenNoteStarPower = reader.ReadColor();
                 BlackNoteStarPower = reader.ReadColor();
                 WhiteNoteStarPower = reader.ReadColor();
-
-                // Note: the Open* color fields are intentionally NOT binary-serialized
-                // (replay format compatibility, no version bump). They persist through
-                // the JSON preset files instead.
             }
 
             #endregion
