@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
@@ -269,6 +269,7 @@ namespace YARG.Core.Chart
         private static void FixLyricLengths(VocalsPhrase phrase, bool isStaticLyricsPhrase)
         {
             var matchedLyrics = new bool[phrase.Lyrics.Count];
+            var unmatchedNoteCount = 0;
             for (var i = 0; i < phrase.PhraseParentNote.ChildNotes.Count; i++)
             {
                 var note = phrase.PhraseParentNote.ChildNotes[i];
@@ -276,7 +277,11 @@ namespace YARG.Core.Chart
                 int? closestLyricIndex = null;
                 for (int j = 0; j < phrase.Lyrics.Count; j++)
                 {
-                    if (matchedLyrics[j]) continue;
+                    if (matchedLyrics[j])
+                    {
+                        continue;
+                    }
+
                     var lyric = phrase.Lyrics[j];
                     // lyrics *should* be ordered by tick, but once we find a lyric with a tick greater than the last distance, we can break
                     var newDistance = Math.Abs(note.Tick - lyric.Tick);
@@ -299,10 +304,15 @@ namespace YARG.Core.Chart
                 }
                 else
                 {
-                    YargLogger.LogFormatWarning(
-                        "Could not find a lyric for note at tick {0} in phrase at tick {1}",
-                        note.Tick, phrase.Tick);
+                    unmatchedNoteCount++;
                 }
+            }
+
+            if (unmatchedNoteCount > 0)
+            {
+                YargLogger.LogFormatInfo(
+                    "Could not find a lyric for {0} note(s) in phrase at tick {1}",
+                    unmatchedNoteCount, phrase.Tick);
             }
 
             if (isStaticLyricsPhrase)
