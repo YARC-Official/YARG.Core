@@ -77,6 +77,7 @@ Phoneme classification:
 | `CODA_MAX_TIME` | 0.15s | Final-consonant ramp length |
 | `STEP_TIME` | 1/30s | Interpolation step interval (Milo-style keyframes) |
 | `MIN_SLOT_DURATION` | 0.05s | Minimum syllable slot duration |
+| `FAST_SYLLABLE_TIME` | 0.30s | Slots this short use additive consonant blends instead of full shape morphs |
 | `VOWEL_PEAK_BASE_WEIGHT` | 0.50 | Peak weight floor for short syllables |
 | `VOWEL_PEAK_SCALE` | 0.60/s | Peak weight growth per second of note length |
 | `VOWEL_PEAK_CAP` | 1.00 | Maximum vowel peak weight |
@@ -98,9 +99,11 @@ Phoneme classification:
 | `VOWEL_WOBBLE_HZ` | 2.2 | Wobble rate (authored swells last ~0.4s) |
 | `CO_ARTICULATION_RESIDUAL` | 0.08 | Faint weight the outgoing viseme keeps mid-ramp |
 
-**Vowel peak envelope.** The vowel rides a peak-shaped envelope instead of a flat hold: the attack ramps up to the syllable's peak weight (scaling with the sung note's length), the peak is sustained briefly, then it decays to the sustain/tail weight within ~0.6s. On note-capped slots it settles at the 0.55 sustain floor (staying open through the sung note); on slots without note evidence it decays to the 0.35 tail (both also carrying the wobble). Each syllable's peak is multiplied by a per-syllable expression jitter (0.55–1.75): authored peak openness varies widely (p10 ≈ 0.4, p90 ≈ 1.0) regardless of note length, driven by vocal energy the chart does not record. This matches authored word-peak distributions (p10 0.38, p50 0.60, p90 0.96, max 1.00).
+**Vowel peak envelope.** The vowel rides a peak-shaped envelope instead of a flat hold: the attack ramps up to the syllable's peak weight (scaling with the sung note's length), the peak is sustained briefly, then it decays to the sustain/tail weight within ~0.6s. On note-capped slots it settles at the 0.55 sustain floor (staying open through the sung note); on slots without note evidence it decays to the 0.35 tail (both also carrying the wobble). When the decay cannot complete before the slot ends (fast syllables), the peak is held instead — a truncated decay reads as a dip-and-rebound pumping at the syllable rate, while authored fast lyrics are continuous blends whose transition is owned by the next attack. Each syllable's peak is multiplied by a per-syllable expression jitter (0.55–1.75): authored peak openness varies widely (p10 ≈ 0.4, p90 ≈ 1.0) regardless of note length, driven by vocal energy the chart does not record. This matches authored word-peak distributions (p10 0.38, p50 0.60, p90 0.96, max 1.00).
 
 **Co-articulation.** During any viseme ramp, the outgoing shape fades to a faint residual (0.08, clamped to the outgoing weight) over the first 60% of the ramp and then out by the end — two mouth shapes are briefly active together, like authored keyframes.
+
+**Fast syllables (additive blends).** On slots shorter than `FAST_SYLLABLE_TIME` (0.3s), consonants are not given a full shape morph: morphing away the held open vowel (fading it to the 0.08 residual) snaps the mouth aperture shut every syllable, which reads as chatter/teeth-grinding at syllable rates. Instead the consonant lands as a light additive blend on its own channel (clamped by the `_lo` budget to roughly `1.0 − vowel`) while the vowel keeps its weight, and melts back out during the vowel segment (`FadeChannelOut`). Bilabials (M/B/P) keep the full morph because their closed-lips shape is the point. The coda does the same on fast slots; the next attack fades the coda blend out with the other held shapes.
 
 **Operating band.** While singing, the mouth should spend roughly a third of its time wide open (≥0.75) and swing between ~0.3 and ~1.0 — authored singers open wide most of the time; a mid-band mouth reads as timid or teeth-grinding. The constants above are tuned so the singing-time openness distribution matches authored charts (median ~0.65, p75 ~0.77).
 
@@ -110,10 +113,11 @@ Phoneme classification:
 
 **Fast lyrics.** Cross-fades keep a minimum duration (~0.1s) even when syllables are
 shorter, and the attack overlaps the previous syllable's tail (its envelope is trimmed
-so the cross-fade owns the outgoing shape). Every new attack also fades out all other
-held shapes, and the summed `_lo` weight is budgeted to ~1.0 so blends never pile up —
-matching authored data, where fast syllables produce continuous blends rather than
-per-syllable snaps.
+so the cross-fade owns the outgoing shape; the trim skips blink/brow events emitted in
+between so the outgoing envelope can't survive the overlap and double the summed weight).
+Every new attack also fades out all other held shapes, and the summed `_lo` weight is
+budgeted to ~1.0 so blends never pile up — matching authored data, where fast syllables
+produce continuous blends rather than per-syllable snaps.
 
 **Consonant attacks.** Consonants morph the mouth shape without dipping the overall openness: the consonant weight rides at or above the current vowel weight (`max(0.32, 0.9 × current)`). Authored openness never dives at consonants — it rises and falls only with the vowel — and syllable-rate dips were the main source of a jittery, teeth-grinding look.
 
@@ -121,7 +125,10 @@ per-syllable snaps.
 
 **Timing sources:** when a vocals part is available, each syllable uses its vocal note's
 actual end time (including pitch-slide children) instead of holding open until the next
-lyric. Otherwise slots run until the next fragment's start time.
+lyric. When no note matches the lyric's exact tick but the loader paired the lyric with a
+nearby note and recorded its length (`LyricEvent.TimeLength` from static lyric shifts),
+that length times the slot; pitch modulation falls back to the sustain floor there.
+Otherwise slots run until the next fragment's start time.
 
 **Timeline for a syllable slot `[t, t+d]`:**
 

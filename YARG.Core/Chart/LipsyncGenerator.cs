@@ -29,6 +29,7 @@ namespace YARG.Core.Chart
         private const double STEP_TIME = 1.0 / 30;      // ~30fps interpolation steps (Milo-style keyframes)
         private const double MIN_SLOT_DURATION = 0.05;  // Minimum syllable slot duration
         private const double MAX_UNVOICED_SLOT = 2.0;   // Max slot length when no note end caps it
+        private const double FAST_SYLLABLE_TIME = 0.30; // Slots this short blend consonants additively (authored fast lyrics are continuous blends)
 
         // Section-level brow state: authored data keeps brow/emotional channels active for most of
         // the song (stacked, sustained from seconds to minutes), so one brow state is chosen per
@@ -527,6 +528,13 @@ namespace YARG.Core.Chart
                     audibleEnd = note.TotalTimeEnd;
                     slotNote = note;
                 }
+                else if (frag.TimeLength > 0)
+                {
+                    // No note at this exact tick, but the loader paired this lyric with a nearby
+                    // note and recorded its length (Static lyric shifts). Time it like a sung
+                    // word; pitch modulation falls back to the sustain floor.
+                    audibleEnd = frag.Time + frag.TimeLength;
+                }
                 if (fi == fragCount - 1)
                     audibleEnd = Math.Max(audibleEnd, extensionEnd);
 
@@ -657,19 +665,22 @@ namespace YARG.Core.Chart
 
             // Trim the previous syllable's emission tail inside the overlap window so its
             // envelope steps do not fight this slot's cross-fade on the outgoing channel.
+            // Blink/brow ramps emitted in between belong to other channels — skip over them
+            // (breaking on them would strand the outgoing envelope and double the summed
+            // weight once the overlapped attack rewrites it).
             if (attack > 0 && attackStart < mouth.LastEmissionEnd && events.Count > 0)
             {
                 var hiType = HiOf(mouth.Type);
-                int keep = events.Count;
-                while (keep > 0)
+                var removed = new List<int>();
+                for (int i = events.Count - 1; i >= 0 && events[i].Time > attackStart; i--)
                 {
-                    var last = events[keep - 1];
-                    if (last.Time <= attackStart || (last.Type != mouth.Type && last.Type != hiType))
-                        break;
-                    keep--;
+                    var last = events[i];
+                    if (last.Type == mouth.Type || last.Type == hiType)
+                        removed.Add(i);
                 }
-                if (keep < events.Count)
-                    events.RemoveRange(keep, events.Count - keep);
+                // Remove in descending index order so the indices stay valid
+                foreach (var idx in removed)
+                    events.RemoveAt(idx);
             }
 
             // Fade out every OTHER held shape across the attack: authored cross-fades keep at
@@ -733,11 +744,25 @@ namespace YARG.Core.Chart
 
             // Attack: ramp through initial consonants, then into the vowel, peaking at the slot start
             double t = attackStart;
+            bool fastBlend = duration < FAST_SYLLABLE_TIME;
             if (attackSegments > 0)
             {
                 double seg = attack / attackSegments;
                 foreach (var consonant in syll.Initial)
                 {
+                    if (fastBlend && consonant != LipsyncEvent.LipsyncType.Bump_lo)
+                    {
+                        // Fast lyrics: land the consonant as a light additive blend on its own
+                        // channel while the open vowel keeps its weight. A full shape morph
+                        // fades the vowel to the co-articulation residual, snapping the mouth
+                        // aperture shut every syllable — the main source of a chattering look
+                        // on fast lines (authored fast syllables are continuous blends).
+                        EmitMouthSample(events, ref mouth, consonant,
+                            Math.Min(CONSONANT_WEIGHT, mouth.Weight * 0.5f), t, slot.Tick);
+                        t += seg;
+                        continue;
+                    }
+
                     // Consonants morph the shape without dipping the overall openness: authored
                     // openness never dives at consonants, it only rises/falls with the vowel.
                     float consonantWeight = Math.Max(CONSONANT_WEIGHT, mouth.Weight * 0.9f);
@@ -749,6 +774,18 @@ namespace YARG.Core.Chart
                 {
                     RampTo(events, ref mouth, syll.VowelMain, vowelPeak, t, seg, slot.Tick);
                     t += seg;
+
+                    // Melt the additive consonant blends back out during the vowel so they do
+                    // not sit on the shape for the whole slot.
+                    if (fastBlend)
+                    {
+                        foreach (var consonant in syll.Initial)
+                        {
+                            if (consonant == LipsyncEvent.LipsyncType.Bump_lo)
+                                continue;
+                            FadeChannelOut(events, ref mouth, consonant, t, seg, slot.Tick);
+                        }
+                    }
                 }
             }
 
@@ -804,6 +841,17 @@ namespace YARG.Core.Chart
 
                 foreach (var consonant in syll.Final)
                 {
+                    if (fastBlend && consonant != LipsyncEvent.LipsyncType.Bump_lo)
+                    {
+                        // Same additive blend as the attack: the open vowel keeps its weight
+                        // and the final consonant lands on its own channel at a partial weight
+                        // (the next attack fades it out).
+                        EmitMouthSample(events, ref mouth, consonant,
+                            Math.Min(CONSONANT_WEIGHT, mouth.Weight * 0.5f), ct, slot.Tick);
+                        ct += codaSeg;
+                        continue;
+                    }
+
                     float consonantWeight = Math.Max(CONSONANT_WEIGHT, mouth.Weight * 0.9f);
                     RampTo(events, ref mouth, consonant, consonantWeight, ct, codaSeg, slot.Tick);
                     ct += codaSeg;
@@ -906,7 +954,20 @@ namespace YARG.Core.Chart
             // of holding a wide-open pose for seconds.
             double slotLen = endTime - startTime;
             double holdEnd = startTime + Math.Min(VOWEL_PEAK_HOLD_TIME, slotLen * VOWEL_PEAK_HOLD_FRACTION);
-            double decayEnd = Math.Min(holdEnd + VOWEL_DECAY_TIME, endTime);
+            double decayEnd;
+            if (endTime - holdEnd < VOWEL_DECAY_TIME)
+            {
+                // Fast syllables: a decay that cannot complete before the slot ends reads as a
+                // dip-and-rebound pumping at the syllable rate. Authored fast lyrics are
+                // continuous blends — the mouth holds open and the next attack owns the
+                // transition, so hold the peak instead of decaying.
+                holdEnd = endTime;
+                decayEnd = endTime;
+            }
+            else
+            {
+                decayEnd = Math.Min(holdEnd + VOWEL_DECAY_TIME, endTime);
+            }
 
             float lastWeight = peakWeight;
             int steps = (int) Math.Ceiling((stopTime - startTime) / STEP_TIME);
@@ -1010,6 +1071,27 @@ namespace YARG.Core.Chart
             mouth.Type = toType;
             mouth.Weight = toWeight;
             mouth.LastEmissionEnd = startTime + duration;
+        }
+
+        /// <summary>
+        /// Fades a single additive channel out to zero over <paramref name="duration"/>, leaving
+        /// the currently held shape (<see cref="MouthState.Type"/>) untouched.
+        /// </summary>
+        private static void FadeChannelOut(List<LipsyncEvent> events, ref MouthState mouth,
+            LipsyncEvent.LipsyncType type, double startTime, double duration, uint tick)
+        {
+            if (!mouth.Active.TryGetValue(type, out var fromWeight) || fromWeight <= 0.001f || duration <= 0.005)
+            {
+                if (fromWeight > 0.001f)
+                    EmitMouthSample(events, ref mouth, type, 0f, startTime, tick);
+                return;
+            }
+
+            int steps = Math.Max(1, (int) Math.Ceiling(duration / STEP_TIME));
+            double stepDur = duration / steps;
+            for (int i = 1; i <= steps; i++)
+                EmitMouthSample(events, ref mouth, type, fromWeight * (1f - (float) i / steps),
+                    startTime + i * stepDur, tick);
         }
 
         private sealed class MouthState
