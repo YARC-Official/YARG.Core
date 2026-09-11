@@ -3,7 +3,7 @@
     public class SoloSection
     {
 
-        public int NoteCount { get; }
+        public int NoteCount { get; private set; }
 
         public int NotesHit { get; set; }
 
@@ -19,5 +19,9 @@
             NoteCount = noteCount;
         }
 
+        public void UpdateNoteCount(int noteCount)
+        {
+            NoteCount = noteCount;
+        }
     }
 }

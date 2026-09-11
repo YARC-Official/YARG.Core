@@ -37,6 +37,8 @@ namespace YARG.Core.Chart
             }
         }
 
+        public bool HasDifficulty(Difficulty difficulty) => _difficulties.ContainsKey(difficulty);
+
         public InstrumentTrack(Instrument instrument)
         {
             Instrument = instrument;

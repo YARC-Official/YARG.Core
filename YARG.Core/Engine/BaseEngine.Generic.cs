@@ -47,15 +47,17 @@ namespace YARG.Core.Engine
 
         public readonly TEngineStats EngineStats;
 
-        protected readonly InstrumentDifficulty<TNoteType> Chart;
+        protected InstrumentDifficulty<TNoteType> Chart;
 
-        protected readonly List<TNoteType> Notes;
-        protected readonly TEngineParams   EngineParameters;
+        protected List<TNoteType> Notes;
+        protected TEngineParams   EngineParameters;
 
         public override BaseEngineParameters BaseParameters => EngineParameters;
         public override BaseStats            BaseStats      => EngineStats;
 
         protected virtual int WildcardMask => -1;
+
+        public override int NoteCount => Notes.Count;
 
         protected BaseEngine(InstrumentDifficulty<TNoteType> chart, SyncTrack syncTrack,
             TEngineParams engineParameters, bool isChordSeparate, bool isBot)
@@ -71,6 +73,63 @@ namespace YARG.Core.Engine
             Reset();
 
             EngineStats.ScoreMultiplier = 1;
+
+            TicksPerSustainPoint = SyncTrack.Resolution / (double) POINTS_PER_BEAT;
+            SustainBurstThreshold = SyncTrack.Resolution / SUSTAIN_BURST_FRACTION;
+
+            SetInitialStats();
+        }
+
+        /// <summary>
+        /// Replaces the chart in use by this engine so difficulty can be changed during gameplay.<br/>
+        /// <br/>
+        /// WARNING: The new chart must be a different difficulty of the original chart, don't go passing in an arbitrary chart.<br/>
+        /// </summary>
+        /// <param name="chart"></param>
+        public void ReplaceChart(InstrumentDifficulty<TNoteType> chart)
+        {
+            Chart = chart;
+            Notes = chart.Notes;
+
+            Solos = Solos.Splice(GetSoloSections(), CurrentTick);
+            Codas = Codas.Splice(GetCodaSections(), CurrentTick);
+
+            if (IsSoloActive)
+            {
+                // We must update the note count of the current solo
+                var soloNoteCount = 0;
+                var solo = Solos[CurrentSoloIndex];
+
+                var foundStart = false;
+
+                for (int i = 0; i < Notes.Count; i++)
+                {
+                    if (!foundStart && Notes[i].IsSoloStart && Notes[i].Tick == solo.StartTick)
+                    {
+                        foundStart = true;
+                    }
+
+                    if (!foundStart)
+                    {
+                        continue;
+                    }
+
+                    soloNoteCount += GetNumberOfNotes(Notes[i]);
+
+                    if (Notes[i].IsSoloEnd)
+                    {
+                        break;
+                    }
+                }
+
+                solo.UpdateNoteCount(soloNoteCount);
+            }
+
+            SetInitialStats(IsSoloActive);
+        }
+
+        private void SetInitialStats(bool replacing = false)
+        {
             if (TreatChordAsSeparate)
             {
                 foreach (var note in Notes)
@@ -103,18 +162,19 @@ namespace YARG.Core.Engine
 
             EngineStats.TotalStarPowerPhrases = Chart.Phrases.Count((phrase) => phrase.Type == PhraseType.StarPower);
 
-            TicksPerSustainPoint = SyncTrack.Resolution / (double) POINTS_PER_BEAT;
-            SustainBurstThreshold = SyncTrack.Resolution / SUSTAIN_BURST_FRACTION;
-
             // This method should only rely on the `Notes` property (which is assigned above).
             // ReSharper disable once VirtualMemberCallInConstructor
             (BaseScore, BaseNoteScore) = CalculateChartScores();
 
-            Solos = GetSoloSections();
-            Codas = GetCodaSections();
+            if (!replacing)
+            {
+                Solos = GetSoloSections();
+                Codas = GetCodaSections();
+            }
+
             EngineStats.MaxSoloBonusPoints = CalculateTotalSoloBonus();
 
-            StarScoreThresholds = PopulateStarScoreThresholds(engineParameters.StarMultiplierThresholds, engineParameters.SoloBonusStarMultiplierThresholds, BaseScore, EngineStats.MaxSoloBonusPoints);
+            StarScoreThresholds = PopulateStarScoreThresholds(EngineParameters.StarMultiplierThresholds, EngineParameters.SoloBonusStarMultiplierThresholds, BaseScore, EngineStats.MaxSoloBonusPoints);
         }
 
         public static int[] PopulateStarScoreThresholds(float[] multiplierThresholds, float[] soloBonusMultiplierThresholds, int baseScore, int soloScore)
@@ -752,7 +812,7 @@ namespace YARG.Core.Engine
 
                 if (!prevNote.WasHit && !prevNote.WasMissed)
                 {
-                    YargLogger.LogFormatTrace("Missed note (Index: {0}) ({1}) due to note skip at {2}", NoteIndex, prevNote.IsParent ? "Parent" : "Child", CurrentTime);
+                    YargLogger.LogFormatWarning("Missed note (Index: {0}) ({1}) due to note skip at {2}", NoteIndex, prevNote.IsParent ? "Parent" : "Child", CurrentTime);
                     MissNote(prevNote);
                 }
 
@@ -765,7 +825,7 @@ namespace YARG.Core.Engine
                             continue;
                         }
 
-                        YargLogger.LogFormatTrace("Missed note (Index: {0}) ({1}) due to note skip at {2}", NoteIndex, child.IsParent ? "Parent" : "Child", CurrentTime);
+                        YargLogger.LogFormatWarning("Missed note (Index: {0}) ({1}) due to note skip at {2}", NoteIndex, child.IsParent ? "Parent" : "Child", CurrentTime);
                         MissNote(child);
                     }
                 }
