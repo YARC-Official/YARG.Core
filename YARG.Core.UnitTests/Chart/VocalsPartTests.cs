@@ -29,6 +29,7 @@ public class VocalsTrackTests
             new VocalsPart(false,
                 CreateVocalPhrases(100, 200),
                 CreateVocalPhrases(100, 200),
+                CreateVocalPhrases(100, 200),
                 CreatePhrases(100, 200),
                 CreateTextEvents(100, 200))
         ], []);
@@ -49,6 +50,7 @@ public class VocalsTrackTests
     {
         var track = new VocalsTrack(Instrument.Vocals, [
             new VocalsPart(false,
+                [CreateVocalPhraseWithChildEvents(90, 100)],
                 [CreateVocalPhraseWithChildEvents(90, 100)],
                 [CreateVocalPhraseWithChildEvents(90, 100)],
                 [],
@@ -72,6 +74,8 @@ public class VocalsTrackTests
         var track = new VocalsTrack(Instrument.Vocals, [
             new VocalsPart(false,
                 [CreateVocalPhraseWithChildEvents(80, 200), CreateVocalPhraseWithChildEvents(70, 90, 100), CreateVocalPhraseWithChildEvents(90, 191)],
+                [CreateVocalPhraseWithChildEvents(80, 200), CreateVocalPhraseWithChildEvents(70, 90, 100), CreateVocalPhraseWithChildEvents(90, 191)],
+
                 [CreateVocalPhraseWithChildEvents(80, 200), CreateVocalPhraseWithChildEvents(70, 90, 100), CreateVocalPhraseWithChildEvents(90, 191)],
                 [],
                 [])
@@ -160,7 +164,7 @@ public class VocalsTrackTests
         slideNote.AddChildNote(new VocalNote(64, 0, VocalNoteType.Lyric, 1.3, 0.1, 130, 10));
 
         var phrase = new VocalsPhrase(1.0, 0.4, 100, 40, parentNote, []);
-        return new VocalsPart(false, [phrase], [], [], []);
+        return new VocalsPart(false, [phrase], [], [], [], []);
     }
 
     private static VocalsTrack CreateVocalsTrack()
@@ -168,6 +172,7 @@ public class VocalsTrackTests
         return new VocalsTrack(Instrument.Vocals, [
             new VocalsPart(false,
                 CreateVocalPhrases(50, 100, 150),
+                CreateVocalPhrases(75, 125, 175),
                 CreateVocalPhrases(75, 125, 175),
                 CreatePhrases(25, 125, 225),
                 CreateTextEvents(99, 100, 199, 200))

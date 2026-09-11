@@ -72,14 +72,18 @@ namespace YARG.Core.Song
             CreditWrittenBy = string.Empty,
             CharterAudio = string.Empty,
             CharterBass = string.Empty,
+            CharterBass6F = string.Empty,
             CharterDrums = string.Empty,
             CharterEliteDrums = string.Empty,
             CharterGuitar = string.Empty,
+            CharterGuitar6F = string.Empty,
             CharterKeys = string.Empty,
             CharterLowerDiff = string.Empty,
             CharterProBass = string.Empty,
             CharterProKeys = string.Empty,
             CharterProGuitar = string.Empty,
+            CharterRhythm = string.Empty,
+            CharterRhythm6F = string.Empty,
             CharterVenue = string.Empty,
             CharterVocals = string.Empty,
             SongLength = 0,
@@ -154,16 +158,20 @@ namespace YARG.Core.Song
 
         public string CharterAudio;
         public string CharterBass;
+        public string CharterBass6F;
         public string CharterDrums;
         public string CharterEliteDrums;
         public string CharterGuitar;
+        public string CharterGuitar6F;
         public string CharterKeys;
         public string CharterLowerDiff;
         public string CharterProBass;
         public string CharterProKeys;
         public string CharterProGuitar;
-        public string CharterVocals;
+        public string CharterRhythm;
+        public string CharterRhythm6F;
         public string CharterVenue;
+        public string CharterVocals;
 
         public float? VocalScrollSpeedScalingFactor;
         public VocalGender VocalGender;
@@ -395,6 +403,11 @@ namespace YARG.Core.Song
                 metadata.CharterBass = charterBass;
             }
 
+            if (modifiers.Extract("charter_bass_6f", out string charterBass6F))
+            {
+                metadata.CharterBass6F = charterBass6F;
+            }
+
             if (modifiers.Extract("charter_drums", out string charterDrums))
             {
                 metadata.CharterDrums = charterDrums;
@@ -408,6 +421,11 @@ namespace YARG.Core.Song
             if (modifiers.Extract("charter_guitar", out string charterGuitar))
             {
                 metadata.CharterGuitar = charterGuitar;
+            }
+
+            if (modifiers.Extract("charter_guitar_6f", out string charterGuitar6F))
+            {
+                metadata.CharterGuitar6F = charterGuitar6F;
             }
 
             if (modifiers.Extract("charter_keys", out string charterKeys))
@@ -433,6 +451,16 @@ namespace YARG.Core.Song
             if (modifiers.Extract("charter_pro_guitar", out string charterProGuitar))
             {
                 metadata.CharterProGuitar = charterProGuitar;
+            }
+
+            if (modifiers.Extract("charter_rhythm", out string charterRhythm))
+            {
+                metadata.CharterRhythm = charterRhythm;
+            }
+
+            if (modifiers.Extract("charter_rhythm_6f", out string charterRhythm6F))
+            {
+                metadata.CharterRhythm6F = charterRhythm6F;
             }
 
             if (modifiers.Extract("charter_vocals", out string charterVocals))

@@ -18,6 +18,28 @@ public class InstrumentEnumExtensionsTests
         Assert.That(instrument.ToNativeGameMode(), Is.EqualTo(expectedGameMode));
     }
 
+    [TestCase(Instrument.SixFretGuitar, Instrument.FiveFretGuitar)]
+    [TestCase(Instrument.SixFretBass, Instrument.FiveFretBass)]
+    [TestCase(Instrument.SixFretRhythm, Instrument.FiveFretRhythm)]
+    [TestCase(Instrument.SixFretCoopGuitar, Instrument.FiveFretCoopGuitar)]
+    [TestCase(Instrument.FiveFretGuitar, Instrument.FiveFretGuitar)]
+    [TestCase(Instrument.FiveLaneDrums, Instrument.FiveLaneDrums)]
+    public void ToFiveFretEquivalent_ReturnsExpectedInstrument(Instrument sixFret, Instrument expected)
+    {
+        Assert.That(sixFret.ToFiveFretEquivalent(), Is.EqualTo(expected));
+    }
+
+    [TestCase(Instrument.SixFretGuitar, true)]
+    [TestCase(Instrument.SixFretBass, true)]
+    [TestCase(Instrument.SixFretRhythm, true)]
+    [TestCase(Instrument.SixFretCoopGuitar, true)]
+    [TestCase(Instrument.FiveFretGuitar, false)]
+    [TestCase(Instrument.FiveLaneDrums, false)]
+    public void IsSixFret_ReturnsExpected(Instrument instrument, bool expected)
+    {
+        Assert.That(instrument.IsSixFret(), Is.EqualTo(expected));
+    }
+
     [Test]
     public void ToNativeGameMode_ThrowsForUnhandledInstrument()
     {
@@ -70,6 +92,43 @@ public class InstrumentEnumExtensionsTests
         var forSong = GameMode.Vocals.PossibleInstrumentsForSong(entry);
 
         Assert.That(forSong, Is.EqualTo(possible));
+    }
+
+    [Test]
+    public void PossibleInstrumentsForSong_SixFretIncludesFiveFretInstruments()
+    {
+        var entry = new TestSongEntry();
+
+        var instruments = GameMode.SixFretGuitar.PossibleInstrumentsForSong(entry);
+
+        Assert.That(instruments, Is.EqualTo(new[]
+        {
+            Instrument.SixFretGuitar,
+            Instrument.SixFretBass,
+            Instrument.SixFretRhythm,
+            Instrument.SixFretCoopGuitar,
+            Instrument.FiveFretGuitar,
+            Instrument.FiveFretBass,
+            Instrument.FiveFretRhythm,
+            Instrument.FiveFretCoopGuitar,
+            Instrument.Keys,
+        }));
+    }
+
+    [Test]
+    public void PossibleInstrumentsForSong_SixFretIncludesFiveFretInstrumentsEvenWhenSongOnlyHasFiveFret()
+    {
+        var parts = AvailableParts.Default;
+        parts.FiveFretGuitar.ActivateDifficulty(Difficulty.Expert);
+
+        var entry = new TestSongEntry();
+        entry.SetParts(parts);
+
+        var instruments = GameMode.SixFretGuitar.PossibleInstrumentsForSong(entry);
+
+        // Both 6-fret and 5-fret instruments should be listed as possible
+        Assert.That(instruments, Contains.Item(Instrument.SixFretGuitar));
+        Assert.That(instruments, Contains.Item(Instrument.FiveFretGuitar));
     }
 
     [Test]

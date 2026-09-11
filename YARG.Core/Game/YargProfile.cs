@@ -383,6 +383,7 @@ namespace YARG.Core.Game
             switch (GameMode)
             {
                 case GameMode.FiveFretGuitar:
+                case GameMode.SixFretGuitar:
                     if (track is not InstrumentDifficulty<GuitarNote> guitarTrack)
                     {
                         throw new InvalidOperationException("Cannot apply guitar modifiers to non-guitar track " +
