@@ -926,7 +926,7 @@ namespace YARG.Core.Engine
 
                         // It's ok to use multiplier here because PendingScore is only temporary to show the correct
                         // score on the UI.
-                        EngineStats.PendingScore += sustainPoints * EngineStats.ScoreMultiplier;
+                        EngineStats.PendingScore += sustainPoints * (EngineStats.ScoreMultiplier + EngineStats.BandBonusMultiplier);
                     }
                 }
 
