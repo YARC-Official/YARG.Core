@@ -16,8 +16,8 @@ namespace YARG.Core.Game
             // The inner color stays split black/white: it highlights which half of
             // the fret pad is currently pressed.
             public Color Fret           = Color.Gray;
-            public Color BlackFretInner = Color.Black;
-            public Color WhiteFretInner = Color.White;
+            public Color BlackFretInner = DefaultGHLBlack;
+            public Color WhiteFretInner = DefaultGHLWhite;
 
             /// <summary>
             /// Gets the fret color for a specific fret index.
@@ -49,9 +49,9 @@ namespace YARG.Core.Game
                 };
             }
 
-            public Color BlackParticles  = Color.Black;
-            public Color WhiteParticles  = Color.White;
-            public Color OpenParticles   = Color.White;
+            public Color BlackParticles  = DefaultGHLBlack;
+            public Color WhiteParticles  = DefaultGHLWhite;
+            public Color OpenParticles   = DefaultGHLWhite;
 
             /// <summary>
             /// Gets the particle color for a specific note index.
@@ -78,15 +78,15 @@ namespace YARG.Core.Game
 
             #region Notes
 
-            public Color BlackNote  = Color.Black;
-            public Color WhiteNote  = Color.White;
-            public Color OpenNote   = Color.White;
+            public Color BlackNote  = DefaultGHLBlack;
+            public Color WhiteNote  = DefaultGHLWhite;
+            public Color OpenNote  = DefaultGHLWhite;
 
             // Open HOPO/Tap notes have a dedicated color (mirrors 5-fret's OpenHopoNote).
             // The Open model's EmissionAddition may wash the color to white; the
             // dedicated field lets users control it independently of OpenNote.
-            public Color OpenHopoNote          = Color.White;
-            public Color OpenHopoNoteStarPower = Color.White;
+            public Color OpenHopoNote          = DefaultGHLWhite;
+            public Color OpenHopoNoteStarPower = DefaultGHLWhite;
 
             /// <summary>
             /// Gets the note color for a specific note index.
@@ -109,9 +109,9 @@ namespace YARG.Core.Game
                 };
             }
 
-            public Color BlackNoteStarPower = Color.Black;
-            public Color WhiteNoteStarPower = Color.White;
-            public Color OpenNoteStarPower  = Color.White;
+            public Color BlackNoteStarPower = DefaultGHLBlack;
+            public Color WhiteNoteStarPower = DefaultGHLWhite;
+            public Color OpenNoteStarPower  = DefaultGHLWhite;
 
             /// <summary>
             /// Gets the Star Power note color for a specific note index.

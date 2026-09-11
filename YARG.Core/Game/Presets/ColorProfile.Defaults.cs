@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using System.Drawing;
 using YARG.Core.Game.Settings;
 
@@ -24,6 +24,12 @@ namespace YARG.Core.Game
         public static readonly Color DefaultSilver = Color.FromArgb(0xFF, 0x20, 0x20, 0x20); // #202020
         [SettingType(SettingType.Ignore)]
         public static readonly Color DefaultWildcard = Color.FromArgb(0xFF, 0xA0, 0xD0, 0x10); // #A0D010 (only lightness really matters)
+
+
+        [SettingType(SettingType.Ignore)]
+        public static readonly Color DefaultGHLBlack = Color.FromArgb(0xFF, 45, 45, 45);
+        [SettingType(SettingType.Ignore)]
+        public static readonly Color DefaultGHLWhite = Color.FromArgb(0xFF, 189, 189, 189);
 
         // Values bright enough to look good on silver frets make silver notes look white like SP notes,
         // so silver gets separate fret and note colors
