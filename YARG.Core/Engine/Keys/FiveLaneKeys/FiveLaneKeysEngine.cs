@@ -182,36 +182,17 @@ namespace YARG.Core.Engine.Keys
 
                 // Get the current multiplier given the current combo
                 multiplier = Math.Min((combo / 10) + 1, BaseParameters.MaxMultiplier);
-                double scoreForNote = POINTS_PER_NOTE * (1 + note.ChildNotes.Count);
-
-                foreach (var child in note.AllNotes)
+                double pointsForNote = POINTS_PER_NOTE * (1 + note.ChildNotes.Count);
+                baseScore += multiplier * pointsForNote;
+                noteScore += pointsForNote;
+                foreach (var chordNote in note.AllNotes)
                 {
-                    scoreForNote += (int) Math.Ceiling(child.TickLength / TicksPerSustainPoint);
+                    int pointsForSustain = (int) Math.Ceiling(chordNote.TickLength / TicksPerSustainPoint);
+                    baseScore += multiplier * pointsForSustain;
+                    noteScore += pointsForSustain;
                 }
-                baseScore += multiplier * scoreForNote;
-                noteScore += scoreForNote;
 
-                double pointsForSustain = Math.Ceiling(note.TickLength / TicksPerSustainPoint);
-                baseScore += multiplier * pointsForSustain;
-                noteScore += pointsForSustain;
-                combo++;
-                // If a note is disjoint, each sustain is counted separately.
-                if (note.IsDisjoint)
-                {
-                    foreach (var child in note.ChildNotes)
-                    {
-                        HashSet<uint> seenNoteTicks = new();
-                        double pointsForDisjoint = Math.Ceiling(child.TickLength / TicksPerSustainPoint);
-                        baseScore += multiplier * pointsForDisjoint;
-                        noteScore += pointsForDisjoint;
-                        // Only increment combo if we haven't already seen a note in that tick
-                        if (!seenNoteTicks.Contains(child.Tick))
-                        {
-                            combo++;
-                            seenNoteTicks.Add(child.Tick);
-                        }
-                    }
-                }
+                // Keys combo increments per chord, not per note.
                 combo++;
             }
 

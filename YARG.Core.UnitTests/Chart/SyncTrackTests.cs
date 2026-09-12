@@ -712,4 +712,21 @@ public class SyncTrackTests
             }
         });
     }
+
+    [Test]
+    public void FindMinTimeForMeasureTick_UnreachableTarget_DoesNotHang()
+    {
+        // Regression: the high-side doubling search must terminate when the target
+        // measure tick is unreachable (beyond the track end, or no time signatures).
+        // Star power end times can exceed the track's final measure when a full bar
+        // is banked near the end of a chart.
+        var syncTrack = new SyncTrack(480);
+        syncTrack.Tempos.Add(new TempoChange(120, 0, 0));
+
+        Assert.DoesNotThrow(() =>
+        {
+            double time = syncTrack.FindMinTimeForMeasureTick(100_000);
+            Assert.That(time, Is.GreaterThanOrEqualTo(0));
+        });
+    }
 }
