@@ -283,7 +283,12 @@ namespace YARG.Core.IO
             exp_banger_teethgrit_01,
             exp_banger_slackjawed_01,
             exp_banger_roar_01,
-            exp_banger_oohface_01
+            exp_banger_oohface_01,
+            // Not actually visemes, but they are in the lipsync data
+            singalong,
+            guitar_singalong,
+            bass_singalong,
+            drum_singalong
             // ReSharper restore InconsistentNaming
         }
 
