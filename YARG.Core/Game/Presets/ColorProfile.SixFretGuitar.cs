@@ -2,7 +2,6 @@ using System.Drawing;
 using System.IO;
 using YARG.Core.Chart;
 using YARG.Core.Extensions;
-using YARG.Core.Input;
 using YARG.Core.Utility;
 
 namespace YARG.Core.Game
@@ -13,38 +12,28 @@ namespace YARG.Core.Game
         {
             #region Frets
 
-            public Color BlackFret  = DefaultGHLBlack;
-            public Color WhiteFret  = DefaultGHLWhite;
+            // There is only one type of fret on six-fret, so all frets share a top color.
+            // The inner color stays split black/white: it highlights which half of
+            // the fret pad is currently pressed.
+            public Color Fret           = Color.Gray;
+            public Color BlackFretInner = DefaultGHLBlack;
+            public Color WhiteFretInner = DefaultGHLWhite;
 
             /// <summary>
-            /// Gets the fret color for a specific note index.
+            /// Gets the fret color for a specific fret index.
             /// Black frets: 0=Black1, 1=Black2, 2=Black3.
             /// White frets: 3=White1, 4=White2, 5=White3.
-            /// Open: 6.
+            /// All frets share a single color.
             /// </summary>
             public Color GetFretColor(int index)
             {
-                return index switch
-                {
-                    (int) SixFretGuitarFret.Black1 => BlackFret,
-                    (int) SixFretGuitarFret.Black2 => BlackFret,
-                    (int) SixFretGuitarFret.Black3 => BlackFret,
-                    (int) SixFretGuitarFret.White1 => WhiteFret,
-                    (int) SixFretGuitarFret.White2 => WhiteFret,
-                    (int) SixFretGuitarFret.White3 => WhiteFret,
-                    (int) SixFretGuitarFret.Open => WhiteFret,
-                    _ => default
-                };
+                return Fret;
             }
 
-            public Color BlackFretInner  = DefaultGHLBlack;
-            public Color WhiteFretInner  = DefaultGHLWhite;
-
             /// <summary>
-            /// Gets the inner fret color for a specific note index.
+            /// Gets the inner fret color for a specific fret index.
             /// Black frets: 0=Black1, 1=Black2, 2=Black3.
             /// White frets: 3=White1, 4=White2, 5=White3.
-            /// Open: 6.
             /// </summary>
             public Color GetFretInnerColor(int index)
             {
@@ -56,13 +45,13 @@ namespace YARG.Core.Game
                     (int) SixFretGuitarFret.White1 => WhiteFretInner,
                     (int) SixFretGuitarFret.White2 => WhiteFretInner,
                     (int) SixFretGuitarFret.White3 => WhiteFretInner,
-                    (int) SixFretGuitarFret.Open => WhiteFretInner,
                     _ => default
                 };
             }
 
             public Color BlackParticles  = DefaultGHLBlack;
             public Color WhiteParticles  = DefaultGHLWhite;
+            public Color OpenParticles   = DefaultGHLWhite;
 
             /// <summary>
             /// Gets the particle color for a specific note index.
@@ -80,7 +69,7 @@ namespace YARG.Core.Game
                     (int) SixFretGuitarFret.White1 => WhiteParticles,
                     (int) SixFretGuitarFret.White2 => WhiteParticles,
                     (int) SixFretGuitarFret.White3 => WhiteParticles,
-                    (int) SixFretGuitarFret.Open => WhiteParticles,
+                    (int) SixFretGuitarFret.Open => OpenParticles,
                     _ => default
                 };
             }
@@ -91,6 +80,13 @@ namespace YARG.Core.Game
 
             public Color BlackNote  = DefaultGHLBlack;
             public Color WhiteNote  = DefaultGHLWhite;
+            public Color OpenNote  = DefaultGHLWhite;
+
+            // Open HOPO/Tap notes have a dedicated color (mirrors 5-fret's OpenHopoNote).
+            // The Open model's EmissionAddition may wash the color to white; the
+            // dedicated field lets users control it independently of OpenNote.
+            public Color OpenHopoNote          = DefaultGHLWhite;
+            public Color OpenHopoNoteStarPower = DefaultGHLWhite;
 
             /// <summary>
             /// Gets the note color for a specific note index.
@@ -108,13 +104,14 @@ namespace YARG.Core.Game
                     (int) SixFretGuitarFret.White2 => WhiteNote,
                     (int) SixFretGuitarFret.White3 => WhiteNote,
                     (int) SixFretGuitarFret.Wildcard => DefaultWildcard,
-                    (int) SixFretGuitarFret.Open => WhiteNote,
+                    (int) SixFretGuitarFret.Open => OpenNote,
                     _ => default
                 };
             }
 
             public Color BlackNoteStarPower = DefaultGHLBlack;
             public Color WhiteNoteStarPower = DefaultGHLWhite;
+            public Color OpenNoteStarPower  = DefaultGHLWhite;
 
             /// <summary>
             /// Gets the Star Power note color for a specific note index.
@@ -132,7 +129,7 @@ namespace YARG.Core.Game
                     (int) SixFretGuitarFret.White2 => WhiteNoteStarPower,
                     (int) SixFretGuitarFret.White3 => WhiteNoteStarPower,
                     (int) SixFretGuitarFret.Wildcard => DefaultWildcardStarpower,
-                    (int) SixFretGuitarFret.Open => WhiteNoteStarPower,
+                    (int) SixFretGuitarFret.Open => OpenNoteStarPower,
                     _ => default
                 };
             }
@@ -167,36 +164,40 @@ namespace YARG.Core.Game
 
             public void Serialize(BinaryWriter writer)
             {
-                writer.Write(BlackFret);
-                writer.Write(WhiteFret);
+                writer.Write(Fret);
 
                 writer.Write(BlackFretInner);
                 writer.Write(WhiteFretInner);
 
+                writer.Write(OpenParticles);
                 writer.Write(BlackParticles);
                 writer.Write(WhiteParticles);
 
+                writer.Write(OpenNote);
                 writer.Write(BlackNote);
                 writer.Write(WhiteNote);
 
+                writer.Write(OpenNoteStarPower);
                 writer.Write(BlackNoteStarPower);
                 writer.Write(WhiteNoteStarPower);
             }
 
             public void Deserialize(BinaryReader reader, int version = 0)
             {
-                BlackFret = reader.ReadColor();
-                WhiteFret = reader.ReadColor();
+                Fret = reader.ReadColor();
 
                 BlackFretInner = reader.ReadColor();
                 WhiteFretInner = reader.ReadColor();
 
+                OpenParticles = reader.ReadColor();
                 BlackParticles = reader.ReadColor();
                 WhiteParticles = reader.ReadColor();
 
+                OpenNote = reader.ReadColor();
                 BlackNote = reader.ReadColor();
                 WhiteNote = reader.ReadColor();
 
+                OpenNoteStarPower = reader.ReadColor();
                 BlackNoteStarPower = reader.ReadColor();
                 WhiteNoteStarPower = reader.ReadColor();
             }
