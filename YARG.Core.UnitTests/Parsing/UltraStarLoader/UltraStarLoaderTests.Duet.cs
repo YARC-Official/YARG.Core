@@ -1,4 +1,5 @@
-﻿using System.Text;
+﻿using System.Collections.Generic;
+using System.Text;
 using NUnit.Framework;
 using YARG.Core.Chart;
 
@@ -63,14 +64,18 @@ namespace YARG.Core.UnitTests.Parsing
         [Test]
         public void ParseDuetMetadata()
         {
+            // VoiceCount reflects the voice markers actually used (P1, P2, ...), which is
+            // independent of the raw #PARTS header tag.
             var loader = LoadUltraStar(Us(
                 "#BPM:120",
                 "#PARTS:2",
                 "P1",
+                ": 0 4 0 Test",
+                "P2",
                 ": 0 4 0 Test"
             ));
 
-            Assert.That(loader.GetMetadata("PARTS"), Is.EqualTo("2"));
+            Assert.That(loader.VoiceCount, Is.EqualTo(2));
         }
 
         [Test]
@@ -235,6 +240,63 @@ namespace YARG.Core.UnitTests.Parsing
             var harmonyTrack = songChart.Harmony;
             Assert.That(harmonyTrack.Parts[0].NotePhrases, Has.Count.EqualTo(1));
             Assert.That(harmonyTrack.Parts[1].NotePhrases, Has.Count.EqualTo(1));
+        }
+
+        [Test]
+        public void ThirdVoiceViaP3GetsItsOwnVocalsPart()
+        {
+            var loader = LoadUltraStar(Us(
+                "#BPM:120",
+                "P1",
+                ": 0 4 0 One",
+                "P2",
+                ": 0 4 4 Two",
+                "P3",
+                ": 0 4 7 Three"
+            ));
+
+            var track = loader.LoadVocalsTrack(Instrument.Harmony);
+
+            Assert.That(track.Parts, Has.Count.EqualTo(3));
+            Assert.That(loader.VoiceCount, Is.EqualTo(3));
+
+            Assert.That(track.Parts[0].NotePhrases[0].Lyrics[0].Text, Is.EqualTo("One"));
+            Assert.That(track.Parts[1].NotePhrases[0].Lyrics[0].Text, Is.EqualTo("Two"));
+            Assert.That(track.Parts[2].NotePhrases[0].Lyrics[0].Text, Is.EqualTo("Three"));
+        }
+
+        [Test]
+        public void FourthVoiceMarkerIsIgnoredNotCrashed()
+        {
+            // P4 exceeds YARG's 3-slot harmony model (see VocalNote.HarmonyPart) --
+            // it should be logged and ignored, not routed or crash the parser. Notes
+            // after it keep going to whichever voice was active beforehand (P2 here).
+            var loader = LoadUltraStar(Us(
+                "#BPM:120",
+                "P1",
+                ": 0 4 0 One",
+                "P2",
+                ": 0 4 4 Two",
+                "P4",
+                ": 5 4 7 StillTwo"
+            ));
+
+            var track = loader.LoadVocalsTrack(Instrument.Harmony);
+
+            Assert.That(track.Parts, Has.Count.EqualTo(2));
+            Assert.That(loader.VoiceCount, Is.EqualTo(2));
+
+            var part2Lyrics = new List<string>();
+            foreach (var phrase in track.Parts[1].NotePhrases)
+            {
+                foreach (var lyric in phrase.Lyrics)
+                {
+                    part2Lyrics.Add(lyric.Text);
+                }
+            }
+
+            Assert.That(part2Lyrics, Contains.Item("Two"));
+            Assert.That(part2Lyrics, Contains.Item("StillTwo"));
         }
     }
 }
