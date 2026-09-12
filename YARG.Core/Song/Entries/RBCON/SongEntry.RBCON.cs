@@ -30,7 +30,7 @@ namespace YARG.Core.Song
     {
         private const long NOTE_SNAP_THRESHOLD = 10;
         public const int UNENCRYPTED_MOGG = 0xA;
-        private const int YARG_MOGG = 0xF0;
+        internal const int YARG_MOGG = 0xF0;
         public const string SONGUPDATES_DTA = "songs_updates.dta";
         private const float DEFAULT_VOCAL_SCROLL_SPEED = 2300f;
 
@@ -371,68 +371,7 @@ namespace YARG.Core.Song
 
             entry._parsedYear = entry._metadata.Year;
 
-            unsafe
-            {
-                var usedIndices = stackalloc bool[pans.Length];
-                float[] CalculateStemValues(int[] indices)
-                {
-                    float[] values = new float[2 * indices.Length];
-                    for (int i = 0; i < indices.Length; i++)
-                    {
-                        float theta = (pans[indices[i]] + 1) * ((float) Math.PI / 4);
-                        float volRatio = (float) Math.Pow(10, volumes[indices[i]] / 20);
-                        values[2 * i] = volRatio * (float) Math.Cos(theta);
-                        values[2 * i + 1] = volRatio * (float) Math.Sin(theta);
-                        usedIndices[indices[i]] = true;
-                    }
-                    return values;
-                }
-
-                if (entry._indices.Drums.Length > 0)
-                {
-                    entry._panning.Drums = CalculateStemValues(entry._indices.Drums);
-                }
-
-                if (entry._indices.Bass.Length > 0)
-                {
-                    entry._panning.Bass = CalculateStemValues(entry._indices.Bass);
-                }
-
-                if (entry._indices.Guitar.Length > 0)
-                {
-                    entry._panning.Guitar = CalculateStemValues(entry._indices.Guitar);
-                }
-
-                if (entry._indices.Keys.Length > 0)
-                {
-                    entry._panning.Keys = CalculateStemValues(entry._indices.Keys);
-                }
-
-                if (entry._indices.Vocals.Length > 0)
-                {
-                    entry._panning.Vocals = CalculateStemValues(entry._indices.Vocals);
-                }
-
-                if (entry._indices.Crowd.Length > 0)
-                {
-                    entry._panning.Crowd = CalculateStemValues(entry._indices.Crowd);
-                }
-
-                var leftover = new List<int>(pans.Length);
-                for (int i = 0; i < pans.Length; i++)
-                {
-                    if (!usedIndices[i])
-                    {
-                        leftover.Add(i);
-                    }
-                }
-
-                if (leftover.Count > 0)
-                {
-                    entry._indices.Track = leftover.ToArray();
-                    entry._panning.Track = CalculateStemValues(entry._indices.Track);
-                }
-            }
+            RBAudioCalculator.Calculate(pans, volumes, ref entry._indices, ref entry._panning);
 
             if (entry._rbIntensities.FourLaneDrums > -1)
             {
