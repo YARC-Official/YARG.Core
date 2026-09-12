@@ -47,6 +47,36 @@ namespace YARG.Core.IO.Ini
         private Dictionary<string, double>? _doubles; 
         private Dictionary<string, (long, long)>? _int64Arrays; 
 
+        /// <summary>
+        /// Sets a modifier directly from an already-parsed value, bypassing the text-container
+        /// based <see cref="Add"/> parsing path. Used to feed modifiers in from non-ini sources
+        /// (e.g. a DTA file) that need to flow through the same downstream consumers
+        /// (<see cref="IniSubEntry.ScanChart"/>, <see cref="SongMetadata.FillFromIni"/>) as an ini.
+        /// </summary>
+        internal void SetString(string key, string value)
+        {
+            _strings ??= new Dictionary<string, string>();
+            _strings[key] = value;
+        }
+
+        internal void SetInt64(string key, long value)
+        {
+            _int64s ??= new Dictionary<string, long>();
+            _int64s[key] = value;
+        }
+
+        internal void SetInt32(string key, int value)
+        {
+            _int32s ??= new Dictionary<string, int>();
+            _int32s[key] = value;
+        }
+
+        internal void SetInt64Array(string key, long value1, long value2)
+        {
+            _int64Arrays ??= new Dictionary<string, (long, long)>();
+            _int64Arrays[key] = (value1, value2);
+        }
+
         public bool Contains(string key)
         {
             static bool DictContains<T>(Dictionary<string, T>? dict, string key)

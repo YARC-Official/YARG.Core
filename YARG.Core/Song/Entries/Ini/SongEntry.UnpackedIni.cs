@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using YARG.Core.Song.Cache;
@@ -32,7 +32,16 @@ namespace YARG.Core.Song
 
         public override StemMixer? LoadAudio(float speed, double volume, bool enableCensoring, params SongStem[] ignoreStems)
         {
+            var subFiles = GetSubFiles();
             bool clampStemVolume = GlobalAudioHandler.CLAMPED_AUDIO_SOURCES.Contains(_metadata.Source.ToLowerInvariant());
+
+            // Prefer a raw multi-channel .mogg (+ its channel-map sidecar) over split
+            // stem files, when both are present.
+            var moggMixer = TryLoadMoggAudio(subFiles, speed, volume, clampStemVolume, ignoreStems);
+            if (moggMixer != null)
+            {
+                return moggMixer;
+            }
             var mixer = GlobalAudioHandler.CreateMixer(ToString(), speed, volume, clampStemVolume: clampStemVolume,
                 normalize: true);
             if (mixer == null)
@@ -41,7 +50,6 @@ namespace YARG.Core.Song
                 return null;
             }
             var addedCleanStems = new HashSet<SongStem>();
-            var subFiles = GetSubFiles();
             if (enableCensoring)
             {
                 foreach (var stem in IniAudio.SupportedCleanStems)
@@ -99,6 +107,56 @@ namespace YARG.Core.Song
             return mixer;
         }
 
+        /// <summary>
+        /// Looks for a ".mogg" file and a ".dta" channel map in the song folder and, if both are
+        /// found, builds a mixer directly from the raw multi-channel mogg instead of split stem
+        /// files. The two aren't required to share a name - different rippers/extractors name
+        /// their dta after the song, the mogg, or nothing in particular. Returns null (without
+        /// logging as an error) if no mogg is present, so the caller can fall back to split stems.
+        /// </summary>
+        private StemMixer? TryLoadMoggAudio(Dictionary<string, string> subFiles, float speed, double volume,
+            bool clampStemVolume, SongStem[] ignoreStems)
+        {
+            string? moggPath = null;
+            foreach (var name in subFiles.Keys)
+            {
+                if (name.EndsWith(".mogg"))
+                {
+                    moggPath = subFiles[name];
+                    break;
+                }
+            }
+            if (moggPath == null)
+            {
+                return null;
+            }
+
+            string? dtaPath = null;
+            foreach (var name in subFiles.Keys)
+            {
+                if (name.EndsWith(".dta"))
+                {
+                    dtaPath = subFiles[name];
+                    break;
+                }
+            }
+            if (dtaPath == null)
+            {
+                YargLogger.LogFormatWarning("Found {0} but no .dta channel map alongside it - falling back to split stems", moggPath);
+                return null;
+            }
+
+            using var dtaBytes = FixedArray.LoadFile(dtaPath);
+            if (!MoggAudioLoader.TryParseChannelMap(dtaBytes, out var indices, out var panning))
+            {
+                return null;
+            }
+
+            var stream = new FileStream(moggPath, FileMode.Open, FileAccess.Read, FileShare.Read, 1);
+            return MoggAudioLoader.BuildMixer(stream, ToString(), speed, volume, clampStemVolume,
+                in indices, in panning, ignoreStems);
+        }
+
         private static bool TryLoadStem(string stem, SongStem stemEnum, Dictionary<string, string> fileDictionary, StemMixer mixer)
         {
             foreach (var format in IniAudio.SupportedFormats)
@@ -136,6 +194,15 @@ namespace YARG.Core.Song
         public override YARGImage? LoadAlbumData()
         {
             var subFiles = GetSubFiles();
+
+            // Prefer a raw DXT texture extracted straight from a CON pack over a
+            // re-encoded/converted image, when both are available.
+            var dxtImage = TryLoadDXTAlbumArt(subFiles);
+            if (dxtImage != null)
+            {
+                return dxtImage;
+            }
+
             if (!string.IsNullOrEmpty(_cover) && subFiles.TryGetValue(_cover, out var cover))
             {
                 var image = YARGImage.Load(cover);
@@ -156,6 +223,27 @@ namespace YARG.Core.Song
                         return image;
                     }
                     YargLogger.LogFormatError("Image at {0} failed to load", file);
+                }
+            }
+            return null;
+        }
+
+        /// <summary>
+        /// Looks for a raw ".png_xbox" or ".png_ps3" texture in the song folder.
+        /// Both formats are self-describing (dimensions/DXT variant live in the
+        /// file's own header), so unlike the mogg case, no sidecar is needed.
+        /// </summary>
+        private static YARGImage? TryLoadDXTAlbumArt(Dictionary<string, string> subFiles)
+        {
+            foreach (var name in subFiles.Keys)
+            {
+                if (name.EndsWith(".png_xbox"))
+                {
+                    return YARGImage.LoadDXT(subFiles[name]);
+                }
+                if (name.EndsWith(".png_ps3"))
+                {
+                    return YARGImage.LoadPS3DXT(subFiles[name]);
                 }
             }
             return null;
@@ -284,7 +372,7 @@ namespace YARG.Core.Song
             _iniLastWrite = iniLastWrite;
         }
 
-        public static ScanExpected<UnpackedIniEntry> ProcessNewEntry(string directory, FileInfo chartInfo, ChartFormat format, FileInfo? iniFile, string defaultPlaylist)
+        public static ScanExpected<UnpackedIniEntry> ProcessNewEntry(string directory, FileInfo chartInfo, ChartFormat format, FileInfo? iniFile, FileInfo? dtaFile, string defaultPlaylist)
         {
             IniModifierCollection iniModifiers;
             DateTime? iniLastWrite = default;
@@ -292,6 +380,11 @@ namespace YARG.Core.Song
             {
                 iniModifiers = SongIniHandler.ReadSongIniFile(iniFile.FullName);
                 iniLastWrite = AbridgedFileInfo.NormalizedLastWrite(iniFile);
+            }
+            // No song.ini - fall back to a raw metadata dta (e.g. extracted straight from a CON pack)
+            else if (dtaFile != null && TryParseDTAModifiers(dtaFile, out var dtaModifiers))
+            {
+                iniModifiers = dtaModifiers;
             }
             else
             {
@@ -305,6 +398,32 @@ namespace YARG.Core.Song
 
             var result = ScanChart(entry, file, iniModifiers);
             return result == ScanResult.Success ? entry : new ScanUnexpected(result);
+        }
+
+        private static bool TryParseDTAModifiers(FileInfo dtaFile, out IniModifierCollection modifiers)
+        {
+            modifiers = new IniModifierCollection();
+            try
+            {
+                using var dtaBytes = FixedArray.LoadFile(dtaFile.FullName);
+                var container = YARGDTAReader.Create(dtaBytes);
+                if (!YARGDTAReader.StartNode(ref container))
+                {
+                    return false;
+                }
+
+                string name = YARGDTAReader.GetNameOfNode(ref container, true);
+                var dta = DTAEntry.Create(name, container);
+                YARGDTAReader.EndNode(ref container);
+
+                modifiers = DTAMetadataAdapter.BuildModifiers(name, dta);
+                return true;
+            }
+            catch (Exception e)
+            {
+                YargLogger.LogException(e, $"Error while parsing metadata dta {dtaFile.FullName}!");
+                return false;
+            }
         }
 
         public static UnpackedIniEntry? TryDeserialize(string baseDirectory, ref FixedArrayStream stream, CacheReadStrings strings)

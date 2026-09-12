@@ -53,6 +53,25 @@ namespace YARG.Core.Song.Cache
             return file != null!;
         }
 
+        /// <summary>
+        /// Finds the first file whose name ends with the given extension (e.g. ".dta"),
+        /// regardless of the rest of the filename. Used for metadata sources that don't
+        /// follow a fixed naming convention across different rippers/extractors.
+        /// </summary>
+        public bool FindFileByExtension(string extension, out FileInfo file)
+        {
+            file = null!;
+            foreach (var entry in _entries)
+            {
+                if (entry.Value is FileInfo fi && entry.Key.EndsWith(extension, StringComparison.Ordinal))
+                {
+                    file = fi;
+                    return true;
+                }
+            }
+            return false;
+        }
+
         public bool FindDirectory(string name, out DirectoryInfo directory)
         {
             directory = null!;
