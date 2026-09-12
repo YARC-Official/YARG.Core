@@ -623,6 +623,22 @@ namespace YARG.Core.Song.Cache
                 }
                 return new PlaylistTracker(_fullDirectoryFlag, playlist);
             }
+
+            /// <summary>
+            /// Returns the accumulated directory-based playlist, if any was found.
+            /// Used by packed CON scanning to fall back to the CON's own file name
+            /// instead of "Unknown Playlist" when no meaningful directory exists.
+            /// </summary>
+            public bool TryGetPlaylist(out string playlist)
+            {
+                if (!string.IsNullOrEmpty(_playlist))
+                {
+                    playlist = _playlist!;
+                    return true;
+                }
+                playlist = string.Empty;
+                return false;
+            }
         }
 
         /// <summary>
@@ -775,7 +791,13 @@ namespace YARG.Core.Song.Cache
                     }
                     else
                     {
-                        var result = CreateCONGroup(info, tracker.Playlist);
+                        // Loose multisong CON packs rarely sit in a meaningfully-named
+                        // directory, so fall back to the pack's own file name rather
+                        // than dumping every unnamed pack into "Unknown Playlist"
+                        string playlist = tracker.TryGetPlaylist(out var directoryPlaylist)
+                            ? directoryPlaylist
+                            : GetConDisplayName(info.Name);
+                        var result = CreateCONGroup(info, playlist);
                         if (result.Upgrades != null)
                         {
                             // Ensures any con entries pulled from cache are removed for re-evaluation
@@ -1293,7 +1315,10 @@ namespace YARG.Core.Song.Cache
 
             FindOrMarkFile(filename);
 
-            string defaultPlaylist = ConstructPlaylist(filename, baseGroup.Directory, fullDirectoryPlaylists);
+            // Upgrade CONs are always packed files, so fall back to the file's own
+            // name rather than "Unknown Playlist" when it has no real directory
+            string defaultPlaylist = ConstructPlaylist(filename, baseGroup.Directory, fullDirectoryPlaylists,
+                GetConDisplayName(filename));
             var result = CreateCONGroup(info, defaultPlaylist);
             if (result.Upgrades != null && result.Upgrades.Root.LastWriteTime == conLastWrite)
             {
@@ -1406,7 +1431,6 @@ namespace YARG.Core.Song.Cache
             }
 
             var lastWriteTime = DateTime.FromBinary(stream.Read<long>(Endianness.Little));
-            string defaultPlaylist = ConstructPlaylist(location, baseGroup.Directory, fullDirectoryPlaylists);
 
             CONEntryGroup? group = null;
             if (stream.ReadBoolean())
@@ -1422,6 +1446,9 @@ namespace YARG.Core.Song.Cache
                     if (info.Exists)
                     {
                         FindOrMarkFile(location);
+                        // Packed CON: fall back to the file's own name, not "Unknown Playlist"
+                        string defaultPlaylist = ConstructPlaylist(location, baseGroup.Directory, fullDirectoryPlaylists,
+                            GetConDisplayName(location));
                         group = CreateCONGroup(info, defaultPlaylist).Entries;
                     }
                 }
@@ -1432,6 +1459,9 @@ namespace YARG.Core.Song.Cache
                 if (dtaInfo.Exists)
                 {
                     FindOrMarkDirectory(location);
+                    // Unpacked/ex-CON: behavior unchanged for now (see PR notes)
+                    string defaultPlaylist = ConstructPlaylist(location, baseGroup.Directory, fullDirectoryPlaylists,
+                        "Unknown Playlist");
                     if (UnpackedConsolePackageEntryGroup.Create(location, dtaInfo, defaultPlaylist, out var unpacked))
                     {
                         lock (conEntryGroups)
@@ -1657,13 +1687,18 @@ namespace YARG.Core.Song.Cache
         /// </summary>
         /// <param name="filename">The path for the current file</param>
         /// <param name="baseDirectory">One of the base directories provided by the user</param>
+        /// <param name="unknownFallback">
+        /// What to return when no meaningful directory exists (e.g. the file sits
+        /// directly in a base directory). Callers pick this so packed CONs can fall
+        /// back to their own file name instead of a generic "Unknown Playlist".
+        /// </param>
         /// <returns>The default playlist to potentially use</returns>
-        private string ConstructPlaylist(string filename, string baseDirectory, bool fullDirectoryPlaylists)
+        private string ConstructPlaylist(string filename, string baseDirectory, bool fullDirectoryPlaylists, string unknownFallback)
         {
             string directory = Path.GetDirectoryName(filename);
             if (directory.Length == baseDirectory.Length)
             {
-                return "Unknown Playlist";
+                return unknownFallback;
             }
 
             if (!fullDirectoryPlaylists)
@@ -1671,6 +1706,24 @@ namespace YARG.Core.Song.Cache
                 return Path.GetFileName(directory);
             }
             return directory[(baseDirectory.Length + 1)..];
+        }
+
+        /// <summary>
+        /// Returns a CON pack's display name for use as a folder/playlist fallback.
+        /// Many packed CONs have no real extension (e.g. "13.A RB1 DLC 01"), so
+        /// Path.GetFileNameWithoutExtension would wrongly treat a mid-name dot as
+        /// the extension separator and truncate the name. Only a genuine trailing
+        /// ".con" is stripped; everything else is left exactly as named.
+        /// </summary>
+        private static string GetConDisplayName(string conPath)
+        {
+            string name = Path.GetFileName(conPath);
+            const string conExtension = ".con";
+            if (name.EndsWith(conExtension, StringComparison.OrdinalIgnoreCase))
+            {
+                name = name[..^conExtension.Length];
+            }
+            return name;
         }
         #endregion
     }
