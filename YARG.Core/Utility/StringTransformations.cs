@@ -30,6 +30,14 @@ namespace YARG.Core.Utility
             "los ", // Los fabulosos cadillacs, Los enanitos verdes,
         };
 
+        /// <summary>
+        /// Normalizes to composed form (NFC) so strings from different sources compare equal.
+        /// Filenames need this: macOS' filesystem APIs return decomposed (NFD) names for
+        /// accented characters, while the tags naming those files are composed.
+        /// </summary>
+        public static string? NormalizeUnicode(string? text)
+            => text?.Normalize(NormalizationForm.FormC);
+
         public static string RemoveDiacritics(string? text)
         {
             if (text == null)
