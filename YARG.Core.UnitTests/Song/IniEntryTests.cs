@@ -180,7 +180,7 @@ public class IniEntryTests
 
         // TODO: We should probably be creating a test entry, not an actual entry, because it really doesn't like doing certain things in a test environment. But for now, this works.
         var result = UnpackedIniEntry.ProcessNewEntry(songDirectory, new FileInfo(midiPath), ChartFormat.Mid,
-            new FileInfo(iniPath), "");
+            new FileInfo(iniPath), null, "");
         Assert.That(result.HasValue, Is.True, $"Expected ini creation to succeed, but got {result.Error}.");
         return result.Value;
     }

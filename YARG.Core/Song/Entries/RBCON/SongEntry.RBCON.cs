@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -30,7 +30,7 @@ namespace YARG.Core.Song
     {
         private const long NOTE_SNAP_THRESHOLD = 10;
         public const int UNENCRYPTED_MOGG = 0xA;
-        private const int YARG_MOGG = 0xF0;
+        internal const int YARG_MOGG = 0xF0;
         public const string SONGUPDATES_DTA = "songs_updates.dta";
         private const float DEFAULT_VOCAL_SCROLL_SPEED = 2300f;
 
@@ -178,10 +178,7 @@ namespace YARG.Core.Song
             }
         }
 
-        private static bool IsSupportedMoggVersion(int version)
-        {
-            return version is UNENCRYPTED_MOGG or YARG_MOGG;
-        }
+        private static bool IsSupportedMoggVersion(int version) => MoggAudioLoader.IsSupportedVersion(version);
 
         public override StemMixer? LoadAudio(float speed, double volume, bool enableCensoring, params SongStem[] ignoreStems)
         {
@@ -191,94 +188,9 @@ namespace YARG.Core.Song
                 return null;
             }
 
-            int version = stream.Read<int>(Endianness.Little);
-            if (!IsSupportedMoggVersion(version))
-            {
-                YargLogger.LogError("Original unencrypted mogg replaced by an encrypted mogg!");
-                stream.Dispose();
-                return null;
-            }
-
-            int start = stream.Read<int>(Endianness.Little);
-            stream.Seek(start, SeekOrigin.Begin);
-
             bool clampStemVolume = GlobalAudioHandler.CLAMPED_AUDIO_SOURCES.Contains(_metadata.Source.ToLowerInvariant());
-            var mixer = GlobalAudioHandler.CreateMixer(ToString(), speed, volume, clampStemVolume: clampStemVolume,
-                normalize: true);
-            if (mixer == null)
-            {
-                YargLogger.LogError("Mogg failed to load!");
-                stream.Dispose();
-                return null;
-            }
-
-
-            var stemInfos = new List<StemInfo>();
-
-            if (_indices.Drums.Length > 0 && !ignoreStems.Contains(SongStem.Drums1))
-            {
-                switch (_indices.Drums.Length)
-                {
-                    //drum (0 1): stereo kit --> (0 1)
-                    case 1:
-                    case 2:
-                        stemInfos.Add(new StemInfo(SongStem.Drums1, _indices.Drums, _panning.Drums));
-                        break;
-                    //drum (0 1 2): mono kick, stereo snare/kit --> (0) (1 2)
-                    case 3:
-                        stemInfos.Add(new StemInfo(SongStem.Drums1, _indices.Drums[0..1], _panning.Drums[0..2]));
-                        stemInfos.Add(new StemInfo(SongStem.Drums2, _indices.Drums[1..3], _panning.Drums[2..6]));
-                        break;
-                    //drum (0 1 2 3): mono kick, mono snare, stereo kit --> (0) (1) (2 3)
-                    case 4:
-                        stemInfos.Add(new StemInfo(SongStem.Drums1, _indices.Drums[0..1], _panning.Drums[0..2]));
-                        stemInfos.Add(new StemInfo(SongStem.Drums2, _indices.Drums[1..2], _panning.Drums[2..4]));
-                        stemInfos.Add(new StemInfo(SongStem.Drums3, _indices.Drums[2..4], _panning.Drums[4..8]));
-                        break;
-                    //drum (0 1 2 3 4): mono kick, stereo snare, stereo kit --> (0) (1 2) (3 4)
-                    case 5:
-                        stemInfos.Add(new StemInfo(SongStem.Drums1, _indices.Drums[0..1], _panning.Drums[0..2]));
-                        stemInfos.Add(new StemInfo(SongStem.Drums2, _indices.Drums[1..3], _panning.Drums[2..6]));
-                        stemInfos.Add(new StemInfo(SongStem.Drums3, _indices.Drums[3..5], _panning.Drums[6..10]));
-                        break;
-                    //drum (0 1 2 3 4 5): stereo kick, stereo snare, stereo kit --> (0 1) (2 3) (4 5)
-                    case 6:
-                        stemInfos.Add(new StemInfo(SongStem.Drums1, _indices.Drums[0..2], _panning.Drums[0..4]));
-                        stemInfos.Add(new StemInfo(SongStem.Drums2, _indices.Drums[2..4], _panning.Drums[4..8]));
-                        stemInfos.Add(new StemInfo(SongStem.Drums3, _indices.Drums[4..6], _panning.Drums[8..12]));
-                        break;
-                }
-            }
-
-            if (_indices.Bass.Length > 0 && !ignoreStems.Contains(SongStem.Bass))
-                stemInfos.Add(new StemInfo(SongStem.Bass, _indices.Bass, _panning.Bass));
-
-            if (_indices.Guitar.Length > 0 && !ignoreStems.Contains(SongStem.Guitar))
-                stemInfos.Add(new StemInfo(SongStem.Guitar, _indices.Guitar, _panning.Guitar));
-
-            if (_indices.Keys.Length > 0 && !ignoreStems.Contains(SongStem.Keys))
-                stemInfos.Add(new StemInfo(SongStem.Keys, _indices.Keys, _panning.Keys));
-
-            if (_indices.Vocals.Length > 0 && !ignoreStems.Contains(SongStem.Vocals))
-                stemInfos.Add(new StemInfo(SongStem.Vocals, _indices.Vocals, _panning.Vocals));
-
-            if (_indices.Track.Length > 0 && !ignoreStems.Contains(SongStem.Song))
-                stemInfos.Add(new StemInfo(SongStem.Song, _indices.Track, _panning.Track));
-
-            if (_indices.Crowd.Length > 0 && !ignoreStems.Contains(SongStem.Crowd))
-                stemInfos.Add(new StemInfo(SongStem.Crowd, _indices.Crowd, _panning.Crowd));
-
-            mixer.AddChannels(stream, stemInfos.ToArray());
-
-            if (mixer.Channels.Count == 0)
-            {
-                YargLogger.LogError("Failed to add any stems!");
-                stream.Dispose();
-                mixer.Dispose();
-                return null;
-            }
-            YargLogger.LogFormatInfo("Loaded {0} stems", mixer.Channels.Count);
-            return mixer;
+            return MoggAudioLoader.BuildMixer(stream, ToString(), speed, volume, clampStemVolume,
+                in _indices, in _panning, ignoreStems);
         }
 
         public override StemMixer? LoadPreviewAudio(float speed, bool enableCensoring)
@@ -371,68 +283,7 @@ namespace YARG.Core.Song
 
             entry._parsedYear = entry._metadata.Year;
 
-            unsafe
-            {
-                var usedIndices = stackalloc bool[pans.Length];
-                float[] CalculateStemValues(int[] indices)
-                {
-                    float[] values = new float[2 * indices.Length];
-                    for (int i = 0; i < indices.Length; i++)
-                    {
-                        float theta = (pans[indices[i]] + 1) * ((float) Math.PI / 4);
-                        float volRatio = (float) Math.Pow(10, volumes[indices[i]] / 20);
-                        values[2 * i] = volRatio * (float) Math.Cos(theta);
-                        values[2 * i + 1] = volRatio * (float) Math.Sin(theta);
-                        usedIndices[indices[i]] = true;
-                    }
-                    return values;
-                }
-
-                if (entry._indices.Drums.Length > 0)
-                {
-                    entry._panning.Drums = CalculateStemValues(entry._indices.Drums);
-                }
-
-                if (entry._indices.Bass.Length > 0)
-                {
-                    entry._panning.Bass = CalculateStemValues(entry._indices.Bass);
-                }
-
-                if (entry._indices.Guitar.Length > 0)
-                {
-                    entry._panning.Guitar = CalculateStemValues(entry._indices.Guitar);
-                }
-
-                if (entry._indices.Keys.Length > 0)
-                {
-                    entry._panning.Keys = CalculateStemValues(entry._indices.Keys);
-                }
-
-                if (entry._indices.Vocals.Length > 0)
-                {
-                    entry._panning.Vocals = CalculateStemValues(entry._indices.Vocals);
-                }
-
-                if (entry._indices.Crowd.Length > 0)
-                {
-                    entry._panning.Crowd = CalculateStemValues(entry._indices.Crowd);
-                }
-
-                var leftover = new List<int>(pans.Length);
-                for (int i = 0; i < pans.Length; i++)
-                {
-                    if (!usedIndices[i])
-                    {
-                        leftover.Add(i);
-                    }
-                }
-
-                if (leftover.Count > 0)
-                {
-                    entry._indices.Track = leftover.ToArray();
-                    entry._panning.Track = CalculateStemValues(entry._indices.Track);
-                }
-            }
+            RBAudioCalculator.Calculate(pans, volumes, ref entry._indices, ref entry._panning);
 
             if (entry._rbIntensities.FourLaneDrums > -1)
             {
@@ -776,47 +627,18 @@ namespace YARG.Core.Song
 
         private static void ParseDTA(RBCONEntry entry, in DTAEntry dta, ref string? location, ref float[]? volumes, ref float[]? pans, ref float[]? cores)
         {
-            if (dta.Name != null)                 { entry._metadata.Name          = YARGDTAReader.DecodeString(dta.Name.Value, dta.MetadataEncoding); }
-            if (dta.Artist != null)               { entry._metadata.Artist        = YARGDTAReader.DecodeString(dta.Artist.Value, dta.MetadataEncoding); }
-            if (dta.CoveredBy != null)            { entry._metadata.CoveredBy     = YARGDTAReader.DecodeString(dta.CoveredBy.Value, dta.MetadataEncoding); }
-            if (dta.Album != null)                { entry._metadata.Album         = YARGDTAReader.DecodeString(dta.Album.Value, dta.MetadataEncoding); }
-            if (dta.Charter != null)              { entry._metadata.Charter       = YARGDTAReader.DecodeString(dta.Charter.Value, dta.MetadataEncoding); }
-            if (dta.CharterKeys != null)
-            {
-                entry._metadata.CharterKeys    = YARGDTAReader.DecodeString(dta.CharterKeys.Value, dta.MetadataEncoding);
-                entry._metadata.CharterProKeys = YARGDTAReader.DecodeString(dta.CharterKeys.Value, dta.MetadataEncoding);
-            }
-            if (dta.CharterProStrings != null)
-            {
-                entry._metadata.CharterProGuitar = YARGDTAReader.DecodeString(dta.CharterProStrings.Value, dta.MetadataEncoding);
-                entry._metadata.CharterProBass   = YARGDTAReader.DecodeString(dta.CharterProStrings.Value, dta.MetadataEncoding);
-            }
-            if (dta.LoadingPhrase != null)        { entry._metadata.LoadingPhrase = YARGDTAReader.DecodeString(dta.LoadingPhrase.Value, dta.MetadataEncoding); }
-            if (dta.Playlist != null)             { entry._metadata.Playlist      = YARGDTAReader.DecodeString(dta.Playlist.Value, dta.MetadataEncoding); }
-            if (dta.Genre != null)
-            {
-                entry._metadata.Genre    = dta.Genre;
-                entry._metadata.Subgenre = string.Empty;
-            }
-            if (dta.Subgenre != null)             { entry._metadata.Subgenre      = dta.Subgenre.Replace("subgenre_", ""); }
+            SongMetadata.FillFromDTA(ref entry._metadata, in dta);
+
             if (dta.YearAsNumber != null)
             {
                 entry._yearAsNumber = dta.YearAsNumber.Value;
-                entry._metadata.Year = entry._yearAsNumber.ToString("D4");
             }
-            if (dta.YearSecondaryAsNumber != null)
-            {
-                entry._metadata.YearSecondary = dta.YearSecondaryAsNumber.Value.ToString("D4");
-            }
+
             if (dta.Source != null)
             {
                 if (!entry._nodeName.StartsWith("UGC_", StringComparison.OrdinalIgnoreCase) && (dta.Source == "ugc" || dta.Source == "ugc_plus" || (dta.Source == "rb2" && dta.UGC.HasValue && dta.UGC.Value)))
                 {
                     entry._metadata.Source = "customs";
-                }
-                else
-                {
-                    entry._metadata.Source = dta.Source;
                 }
 
                 if (dta.Source == "beatles")
@@ -826,12 +648,7 @@ namespace YARG.Core.Song
                     entry._metadata.VocalGender = VocalGender.Male;
                 }
             }
-            if (dta.SongLength != null)           { entry._metadata.SongLength    = dta.SongLength.Value; }
-            if (dta.IsMaster != null)             { entry._metadata.IsMaster      = dta.IsMaster.Value; }
-            if (dta.AlbumTrack != null)           { entry._metadata.AlbumTrack    = dta.AlbumTrack.Value; }
-            if (dta.Preview != null)              { entry._metadata.Preview       = dta.Preview.Value; }
             if (dta.HopoThreshold != null)        { entry._settings.HopoThreshold = dta.HopoThreshold.Value; }
-            if (dta.SongRating != null)           { entry._metadata.SongRating    = dta.SongRating.Value; }
             if (dta.VocalSongScrollSpeed != null) {
                 entry._rbMetadata.VocalSongScrollSpeed = dta.VocalSongScrollSpeed.Value;
 
