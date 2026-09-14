@@ -72,7 +72,7 @@ namespace YARG.Core.Engine
 
         public class UnisonPhrase : Phrase
         {
-            public int NoteCount { get; }
+            public int NoteCount { get; set; }
             public UnisonPhrase(double time, double timeLength, uint tick, uint tickLength, int noteCount) : base(PhraseType.StarPower, time, timeLength, tick, tickLength)
             {
                 NoteCount = noteCount;

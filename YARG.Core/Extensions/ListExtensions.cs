@@ -111,6 +111,47 @@ namespace YARG.Core.Extensions
             return newList;
         }
 
+        public static void UpdateNoteCount<TNote>(this List<EngineManager.UnisonPhrase> list, List<TNote> oldNotes, List<TNote> newNotes, bool includeChildNotesInNoteCount, uint tick) where TNote : Note<TNote>
+        {
+            var currentOldNoteIndex = 0;
+            var currentNewNoteIndex = 0;
+            foreach (var unisonPhrase in list)
+            {
+                if (unisonPhrase.TickEnd < tick)
+                {
+                    // Who cares, this unison phrase is in the past
+                    continue;
+                }
+                var noteDelta = 0;
+                while (currentOldNoteIndex < oldNotes.Count &&
+                    oldNotes[currentOldNoteIndex].Tick < unisonPhrase.Tick)
+                {
+                    currentOldNoteIndex++;
+                }
+                while (currentNewNoteIndex < newNotes.Count &&
+                    newNotes[currentNewNoteIndex].Tick < unisonPhrase.Tick)
+                {
+                    currentNewNoteIndex++;
+                }
+
+                while (currentOldNoteIndex < oldNotes.Count &&
+                    oldNotes[currentOldNoteIndex].Tick < unisonPhrase.TickEnd && oldNotes[currentOldNoteIndex].Tick >= tick)
+                {
+                    // Subtract notes from the old list that are after the current tick and before the end of the unison phrase
+                    noteDelta -= includeChildNotesInNoteCount ? oldNotes[currentOldNoteIndex].ChildNotes.Count + 1 : 1;
+                    currentOldNoteIndex++;
+                }
+                while (currentNewNoteIndex < newNotes.Count &&
+                    newNotes[currentNewNoteIndex].Tick < unisonPhrase.TickEnd && newNotes[currentNewNoteIndex].Tick >= tick)
+                {
+                    // Add notes from the new list that are after the current tick and before the end of the unison phrase
+                    noteDelta += includeChildNotesInNoteCount ? newNotes[currentNewNoteIndex].ChildNotes.Count + 1 : 1;
+                    currentNewNoteIndex++;
+                }
+                unisonPhrase.NoteCount += noteDelta;
+            }
+        }
+
         public static List<CodaSection> Splice(this List<CodaSection> list, List<CodaSection> other, double time)
         {
             var newList = new List<CodaSection>();
