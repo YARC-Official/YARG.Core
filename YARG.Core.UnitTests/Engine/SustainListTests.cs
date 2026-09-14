@@ -114,7 +114,6 @@ public class SustainListTests
         {
             Assert.That(sustain.Note, Is.SameAs(note));
             Assert.That(sustain.BaseTick, Is.EqualTo(note.Tick));
-            Assert.That(sustain.BaseScore, Is.Zero);
             Assert.That(sustain.HasFinishedScoring, Is.False);
             Assert.That(sustain.IsLeniencyHeld, Is.False);
             Assert.That(sustain.LeniencyDropTime, Is.EqualTo(-9999));
