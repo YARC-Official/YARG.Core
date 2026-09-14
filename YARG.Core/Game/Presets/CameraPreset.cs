@@ -9,11 +9,11 @@ namespace YARG.Core.Game
         public float FieldOfView = 55f;
 
         [SettingType(SettingType.Slider)]
-        [SettingRange(0f, 4f)]
+        [SettingRange(-40f, 40f)]
         public float PositionY = 2.66f;
 
         [SettingType(SettingType.Slider)]
-        [SettingRange(0f, 12f)]
+        [SettingRange(-40f, 40f)]
         public float PositionZ = 1.14f;
 
         [SettingType(SettingType.Slider)]
@@ -27,6 +27,13 @@ namespace YARG.Core.Game
         [SettingType(SettingType.Slider)]
         [SettingRange(-3f, 3f)]
         public float CurveFactor = 0.5f;
+
+        [SettingType(SettingType.Toggle)]
+        public bool Orthographic = false;
+
+        [SettingType(SettingType.Slider)]
+        [SettingRange(0.1f, 10f)]
+        public float OrthographicSize = 2f;
 
         public CameraPreset(string name, bool defaultPreset = false) : base(name, defaultPreset)
         {
@@ -42,6 +49,8 @@ namespace YARG.Core.Game
                 Rotation = Rotation,
                 FadeLength = FadeLength,
                 CurveFactor = CurveFactor,
+                Orthographic = Orthographic,
+                OrthographicSize = OrthographicSize,
             };
         }
     }
