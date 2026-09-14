@@ -11,6 +11,8 @@ namespace YARG.Core.Replays.Analyzer
         public BaseStats OriginalStats;
         public BaseStats ResultStats;
 
+        public int MaxScoreWithoutStarPower;
+
         public int ScoreDifference;
 
         public string StatLog;
