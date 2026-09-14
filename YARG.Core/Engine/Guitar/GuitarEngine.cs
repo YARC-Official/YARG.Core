@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
 using YARG.Core.Chart;
 using YARG.Core.Input;
 using YARG.Core.Logging;
@@ -275,21 +274,13 @@ namespace YARG.Core.Engine.Guitar
 
             AddScore(note);
 
-            if (note.IsDisjoint)
+            // Every sustained chord member gets its own sustain, disjoint or not.
+            foreach (var chordNote in note.AllNotes)
             {
-                foreach (var chordNote in note.AllNotes)
+                if (chordNote.IsSustain)
                 {
-                    if (!chordNote.IsSustain)
-                    {
-                        continue;
-                    }
-
                     StartSustain(chordNote);
                 }
-            }
-            else if (note.IsSustain)
-            {
-                StartSustain(note);
             }
 
             WasNoteGhosted = false;
@@ -416,26 +407,16 @@ namespace YARG.Core.Engine.Guitar
                 baseScore += multiplier * pointsForNote;
                 noteScore += pointsForNote;
 
-                double pointsForSustain = Math.Ceiling(note.TickLength / TicksPerSustainPoint);
-                baseScore += multiplier * pointsForSustain;
-                noteScore += pointsForSustain;
                 combo++;
-                // If a note is disjoint, each sustain is counted separately.
-                if (note.IsDisjoint)
+                // Disjoint chords are hit with a single strum, so they do not
+                // increment combo beyond the single increment above.
+                // Every sustained chord member scores its own sustain (AllNotes[0]
+                // is the parent itself), disjoint or not.
+                foreach (var chordNote in note.AllNotes)
                 {
-                    HashSet<uint> seenNoteTicks = new();
-                    foreach (var child in note.ChildNotes)
-                    {
-                        double pointsForDisjoint = Math.Ceiling(child.TickLength / TicksPerSustainPoint);
-                        baseScore += multiplier * pointsForDisjoint;
-                        noteScore += pointsForDisjoint;
-                        // Only increment combo if we haven't already seen a note in that tick
-                        if (!seenNoteTicks.Contains(child.Tick))
-                        {
-                            combo++;
-                            seenNoteTicks.Add(child.Tick);
-                        }
-                    }
+                    double pointsForSustain = Math.Ceiling(chordNote.TickLength / TicksPerSustainPoint);
+                    baseScore += multiplier * pointsForSustain;
+                    noteScore += pointsForSustain;
                 }
             }
 

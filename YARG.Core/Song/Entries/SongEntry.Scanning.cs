@@ -6,7 +6,7 @@ namespace YARG.Core.Song
 {
     public abstract partial class SongEntry
     {
-        private protected static ScanExpected<long> ParseMidi(FixedArray<byte> file, ref AvailableParts parts, ref DrumsType drumsType)
+        internal static ScanExpected<long> ParseMidi(FixedArray<byte> file, ref AvailableParts parts, ref DrumsType drumsType)
         {
             var midiFile = YARGMidiFile.Load(file);
             if (midiFile.Resolution == 0)
