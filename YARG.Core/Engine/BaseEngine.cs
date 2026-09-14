@@ -64,6 +64,7 @@ namespace YARG.Core.Engine
         private readonly List<EngineFrameUpdate> _scheduledUpdates = new();
 
         public int NoteIndex { get; protected set; }
+        public abstract int NoteCount { get; }
 
         public double CurrentTime { get; protected set; }
         public double LastUpdateTime { get; protected set; }

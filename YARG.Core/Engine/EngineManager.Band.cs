@@ -136,5 +136,11 @@ namespace YARG.Core.Engine
 
             Stars = _currentStarIndex + progress;
         }
+
+        public void ResetStars()
+        {
+            _currentStarIndex = 0;
+            UpdateStars();
+        }
     }
 }
