@@ -246,6 +246,12 @@ namespace YARG.Core
                     Instrument.SixFretBass,
                     Instrument.SixFretRhythm,
                     Instrument.SixFretCoopGuitar,
+                    // 5F is playable on 6F through the magical power of conversions
+                    Instrument.FiveFretGuitar,
+                    Instrument.FiveFretBass,
+                    Instrument.FiveFretRhythm,
+                    Instrument.FiveFretCoopGuitar,
+                    Instrument.Keys,
                 },
                 GameMode.FourLaneDrums => new[]
                 {
