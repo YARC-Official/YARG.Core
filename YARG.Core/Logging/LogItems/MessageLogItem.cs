@@ -1,4 +1,4 @@
-using System.Collections.Concurrent;
+﻿using System.Collections.Concurrent;
 using Cysharp.Text;
 
 namespace YARG.Core.Logging
