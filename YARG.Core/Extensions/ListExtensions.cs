@@ -66,7 +66,7 @@ namespace YARG.Core.Extensions
                 newList[0].PreviousNote = null;
             }
 
-            for (var i = 1; i < newList.Count - 1; i++)
+            for (var i = 0; i < newList.Count - 1; i++)
             {
                 newList[i].NextNote = newList[i + 1];
                 newList[i + 1].PreviousNote = newList[i];
