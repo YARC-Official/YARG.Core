@@ -58,19 +58,42 @@ public class UltraStarIniEntryTests
         Assert.That(ScanFolderForNames(), Is.EqualTo(new[] { "First Song", "Second Song" }));
     }
 
-    [Test]
-    public void StrayTextFilesAreNotTreatedAsCharts()
+    [TestCase("readme.txt", TestName = "readme.txt is skipped by the denylist")]
+    [TestCase("README.txt", TestName = "README.txt is skipped case-insensitively")]
+    [TestCase("License.txt", TestName = "License.txt is skipped by the denylist")]
+    [TestCase("LICENCE.txt", TestName = "LICENCE.txt (British spelling) is skipped by the denylist")]
+    [TestCase("COPYING.txt", TestName = "COPYING.txt is skipped by the denylist")]
+    [TestCase("CHANGELOG.txt", TestName = "CHANGELOG.txt is skipped by the denylist")]
+    [TestCase("info.txt", TestName = "An unrecognized name still falls back to the content check")]
+    public void StrayTextFilesAreNotTreatedAsCharts(string strayFileName)
     {
-        // Packs routinely ship a readme/licence next to the chart; those must neither
-        // scan as songs nor be reported as bad ones.
+        // Packs routinely ship a readme/licence/etc. next to the chart; those must neither
+        // scan as songs nor be reported as bad ones -- whether skipped by the denylist (no
+        // file I/O) or, for a name the denylist doesn't recognize, by the content-sniff
+        // fallback that still runs for anything not on it.
         WriteChart("Artist - Song.txt", BasicChart());
         WriteAudio("audio.mp3");
-        File.WriteAllText(Path.Combine(_songDir, "readme.txt"), "Thanks for downloading!\nEnjoy.\n");
+        File.WriteAllText(Path.Combine(_songDir, strayFileName), "Thanks for downloading!\nEnjoy.\n");
 
         string badSongsPath = Path.Combine(_root, "badsongs.txt");
         Assert.That(ScanFolderForNames(badSongsPath), Is.EqualTo(new[] { "Test Song" }));
-        Assert.That(File.Exists(badSongsPath) && File.ReadAllText(badSongsPath).Contains("readme"), Is.False,
-            "A stray readme.txt should not be reported as a bad song.");
+        bool reportedAsBad = File.Exists(badSongsPath) &&
+            File.ReadAllText(badSongsPath).IndexOf(strayFileName, StringComparison.OrdinalIgnoreCase) >= 0;
+        Assert.That(reportedAsBad, Is.False, $"A stray {strayFileName} should not be reported as a bad song.");
+    }
+
+    [Test]
+    public void DenylistedNameIsSkippedEvenWithChartLikeContent()
+    {
+        // Distinguishes the denylist from the content-sniff fallback: this file is named
+        // "readme.txt" (denylisted) but its content alone would pass IsUltraStarChart (a
+        // leading '#' tag). It must still be skipped -- the denylist check runs first and
+        // short-circuits before the content is ever read.
+        WriteChart("Artist - Song.txt", BasicChart());
+        WriteAudio("audio.mp3");
+        WriteChart("readme.txt", BasicChart(title: "Should Not Scan"));
+
+        Assert.That(ScanFolderForNames(), Is.EqualTo(new[] { "Test Song" }));
     }
 
     [Test]
@@ -104,7 +127,7 @@ public class UltraStarIniEntryTests
         // Deliberately do not create the "audio.mp3" the chart references.
         string chartPath = WriteChart("song.txt", BasicChart());
 
-        var result = UnpackedIniEntry.ProcessNewEntry(_songDir, new FileInfo(chartPath), ChartFormat.UltraStar, null, "");
+        var result = UnpackedIniEntry.ProcessNewEntry(_songDir, new FileInfo(chartPath), ChartFormat.UltraStar, null, "", BuildCollection());
 
         Assert.That(result.HasValue, Is.False);
         Assert.That(result.Error, Is.EqualTo(ScanResult.NoAudio));
@@ -120,7 +143,7 @@ public class UltraStarIniEntryTests
         WriteAudio("song.mp4");
         string chartPath = WriteChart("song.txt", BasicChart(audio: "song.mp4"));
 
-        var result = UnpackedIniEntry.ProcessNewEntry(_songDir, new FileInfo(chartPath), ChartFormat.UltraStar, null, "");
+        var result = UnpackedIniEntry.ProcessNewEntry(_songDir, new FileInfo(chartPath), ChartFormat.UltraStar, null, "", BuildCollection());
 
         Assert.That(result.HasValue, Is.False);
         Assert.That(result.Error, Is.EqualTo(ScanResult.UnsupportedAudioFormat));
@@ -137,8 +160,23 @@ public class UltraStarIniEntryTests
         WriteAudio(audio);
         string chartPath = WriteChart("song.txt", BasicChart(audio: COMPOSED_NAME + ".mp3"));
 
-        var result = UnpackedIniEntry.ProcessNewEntry(_songDir, new FileInfo(chartPath), ChartFormat.UltraStar, null, "");
+        var result = UnpackedIniEntry.ProcessNewEntry(_songDir, new FileInfo(chartPath), ChartFormat.UltraStar, null, "", BuildCollection());
         Assert.That(result.HasValue, Is.True, $"Expected UltraStar scan to succeed, but got {result.Error}.");
+    }
+
+    [Test]
+    public void ResolvesAudioAcrossUnicodeNormalizationFormsDuringFullScan()
+    {
+        // Same NFC/NFD mismatch as ResolvesAudioAcrossUnicodeNormalizationForms, but
+        // through a full CacheHandler.RunScan, so the collection ScanUltraStar reuses
+        // (see its FindFile call) is the one CacheHandler itself built while walking the
+        // library, not one this test constructed by hand for the direct-ProcessNewEntry
+        // calls elsewhere in this file.
+        string audio = DECOMPOSED_NAME + ".mp3";
+        WriteAudio(audio);
+        WriteChart("song.txt", BasicChart(audio: COMPOSED_NAME + ".mp3"));
+
+        Assert.That(ScanFolderForNames(), Is.EqualTo(new[] { "Test Song" }));
     }
 
     [Test]
@@ -214,10 +252,17 @@ public class UltraStarIniEntryTests
             WriteAudio(file);
         }
 
-        var result = UnpackedIniEntry.ProcessNewEntry(_songDir, new FileInfo(chartPath), ChartFormat.UltraStar, null, "");
+        var result = UnpackedIniEntry.ProcessNewEntry(_songDir, new FileInfo(chartPath), ChartFormat.UltraStar, null, "", BuildCollection());
         Assert.That(result.HasValue, Is.True, $"Expected UltraStar scan to succeed, but got {result.Error}.");
         return result.Value;
     }
+
+    /// <summary>
+    /// A real scan always has a FileCollection in hand (see CacheHandler.ScanIniChart);
+    /// building one here keeps these direct-ProcessNewEntry tests exercising the same
+    /// path instead of a test-only nullable fallback.
+    /// </summary>
+    private FileCollection BuildCollection() => new(new DirectoryInfo(_songDir));
 
     private string WriteChart(string fileName, string content)
     {
