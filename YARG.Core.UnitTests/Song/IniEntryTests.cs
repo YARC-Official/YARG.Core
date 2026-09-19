@@ -1,6 +1,7 @@
 using NUnit.Framework;
 using YARG.Core.Extensions;
 using YARG.Core.Song;
+using YARG.Core.Song.Cache;
 using YARG.Core.Venue;
 using ChartFormat = YARG.Core.Song.ChartFormat;
 
@@ -179,8 +180,9 @@ public class IniEntryTests
         File.WriteAllText(iniPath, iniText);
 
         // TODO: We should probably be creating a test entry, not an actual entry, because it really doesn't like doing certain things in a test environment. But for now, this works.
+        var collection = new FileCollection(new DirectoryInfo(songDirectory));
         var result = UnpackedIniEntry.ProcessNewEntry(songDirectory, new FileInfo(midiPath), ChartFormat.Mid,
-            new FileInfo(iniPath), "");
+            new FileInfo(iniPath), "", collection);
         Assert.That(result.HasValue, Is.True, $"Expected ini creation to succeed, but got {result.Error}.");
         return result.Value;
     }

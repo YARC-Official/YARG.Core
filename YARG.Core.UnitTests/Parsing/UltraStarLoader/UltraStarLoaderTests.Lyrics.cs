@@ -144,6 +144,47 @@ namespace YARG.Core.UnitTests.Parsing
         }
 
         [Test]
+        public void RestBreaksPendingPitchSlideAcrossPhrases()
+        {
+            // Regression test: a trailing '~' sets a pending pitch-slide for whatever note
+            // comes next, but a rest between them ends the phrase -- the flag must not
+            // survive past the rest into the note that starts the next phrase (same rule
+            // ParseVoiceMarker already applies across voices).
+            var loader = LoadUltraStar(Us(
+                "#BPM:120",
+                ": 0 4 0 word~",
+                "- 10",
+                ": 20 4 0 next"
+            ));
+
+            var track = loader.LoadVocalsTrack(Instrument.Vocals);
+            var secondPhraseLyrics = track.Parts[0].NotePhrases[1].Lyrics;
+
+            Assert.That(secondPhraseLyrics[0].Text, Is.EqualTo("next"));
+        }
+
+        [Test]
+        public void LeadingMelismaAfterRestDoesNotJoinAcrossPhrases()
+        {
+            // Regression test: MarkPreviousNoteMelismaJoin must only look at the
+            // immediately preceding note, not walk back across a rest to the nearest real
+            // note -- a rest breaks the phrase, so a leading '~' right after one must not
+            // hyphenate onto whatever real note happened to precede that rest.
+            var loader = LoadUltraStar(Us(
+                "#BPM:120",
+                ": 0 4 0 Hello",
+                "- 10",
+                ": 20 4 0 ~world"
+            ));
+
+            var track = loader.LoadVocalsTrack(Instrument.Vocals);
+            var firstPhraseLyrics = track.Parts[0].NotePhrases[0].Lyrics;
+
+            Assert.That(firstPhraseLyrics[0].Text, Is.EqualTo("Hello"));
+            Assert.That(firstPhraseLyrics[0].JoinWithNext, Is.False);
+        }
+
+        [Test]
         public void TrailingTildeStructurallyMergesIntoOneNote()
         {
             // Regression test: a decorative hyphen alone (JoinWithNext) does NOT merge

@@ -319,7 +319,7 @@ namespace YARG.Core.Song
             _iniLastWrite = iniLastWrite;
         }
 
-        public static ScanExpected<UnpackedIniEntry> ProcessNewEntry(string directory, FileInfo chartInfo, ChartFormat format, FileInfo? iniFile, string defaultPlaylist)
+        public static ScanExpected<UnpackedIniEntry> ProcessNewEntry(string directory, FileInfo chartInfo, ChartFormat format, FileInfo? iniFile, string defaultPlaylist, FileCollection collection)
         {
             IniModifierCollection iniModifiers;
             DateTime? iniLastWrite = default;
@@ -338,7 +338,7 @@ namespace YARG.Core.Song
 
             using var file = FixedArray.LoadFile(chartInfo.FullName);
 
-            var result = ScanChart(entry, file, iniModifiers);
+            var result = ScanChart(entry, file, iniModifiers, collection);
             return result == ScanResult.Success ? entry : new ScanUnexpected(result);
         }
 
