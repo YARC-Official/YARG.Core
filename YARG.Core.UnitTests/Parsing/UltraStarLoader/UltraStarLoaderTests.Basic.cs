@@ -320,6 +320,40 @@ internal class UltraStarLoaderTests_Basic : UltraStarLoaderTests
     }
 
     [Test]
+    public void MidSongTempoChangeStaysAlignedWithNotesWhenGapIsNonZero()
+    {
+        // Regression test: LoadSyncTrack must place a tempo change at the same absolute
+        // tick BeatToTick gives its corresponding note (gapTicks included), or a #GAP + B
+        // combination puts the tempo change into effect gapTicks too early relative to the
+        // notes it's supposed to align with. A GAP is a pure time shift, so it must move
+        // every note -- including ones after the tempo change -- by exactly the same
+        // amount; comparing with/without GAP catches a misalignment without hand-deriving
+        // MoonSong's internal tick-to-time formula.
+        string Chart(string gapTag) => Us(
+            "#BPM:120",
+            gapTag,
+            ": 0 4 0 Before",
+            "- 5",
+            "B 20 240",
+            ": 20 4 0 AtChange",
+            "- 25",
+            ": 30 4 0 After"
+        );
+
+        double NoteTime(string chart, int phraseIndex) =>
+            LoadUltraStarChart(chart).Vocals.Parts[0].NotePhrases[phraseIndex].PhraseParentNote.Time;
+
+        double atChangeNoGap = NoteTime(Chart(""), 1);
+        double afterNoGap = NoteTime(Chart(""), 2);
+
+        double atChangeWithGap = NoteTime(Chart("#GAP:2500"), 1);
+        double afterWithGap = NoteTime(Chart("#GAP:2500"), 2);
+
+        Assert.That(atChangeWithGap - atChangeNoGap, Is.EqualTo(2.5).Within(0.001));
+        Assert.That(afterWithGap - afterNoGap, Is.EqualTo(2.5).Within(0.001));
+    }
+
+    [Test]
     public void GapIsExposedAsRawMetadata()
     {
         // GAP's effect on timing is covered by GapShiftsFirstNoteByExactlyOneGapNotTwo;

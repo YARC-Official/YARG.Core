@@ -2,6 +2,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.IO;
+using YARG.Core.Utility;
 
 namespace YARG.Core.Song.Cache
 {
@@ -28,7 +29,10 @@ namespace YARG.Core.Song.Cache
 
             foreach (var entry in directory.EnumerateFileSystemInfos("*", OPTIONS))
             {
-                string name = entry.Name.ToLowerInvariant();
+                // NFC-normalized so a tag-supplied name (composed) matches what the
+                // filesystem reports for an accented file (composed or decomposed
+                // depending on OS -- see StringTransformations.NormalizeUnicode).
+                string name = StringTransformations.NormalizeUnicode(entry.Name)!.ToLowerInvariant();
                 if (!_entries.TryAdd(name, entry))
                 {
                     dupes.Add(name);
