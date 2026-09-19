@@ -224,6 +224,9 @@ namespace YARG.Core.Chart.Loaders.UltraStar
 
             if (UltraStarNote.IsRestType(noteType))
             {
+                // A rest breaks the phrase; a pending trailing '~' from before it must not
+                // bleed into whatever note follows (same rule as ParseVoiceMarker's reset).
+                _pendingPitchSlide = false;
                 if (parts.Length >= 2 && uint.TryParse(parts[1], out uint restBeat))
                 {
                     GetOrCreatePart(_currentPart).Add(new UltraStarNote
@@ -302,14 +305,13 @@ namespace YARG.Core.Chart.Loaders.UltraStar
 
         private void MarkPreviousNoteMelismaJoin()
         {
+            // Only the immediately preceding entry, not the nearest non-rest note -- a rest
+            // breaks the phrase, so a leading '~' right after one must not hyphenate onto
+            // whatever real note happened to precede that rest.
             var partNotes = GetOrCreatePart(_currentPart);
-            for (int i = partNotes.Count - 1; i >= 0; i--)
+            if (partNotes.Count > 0 && !partNotes[^1].IsRest)
             {
-                if (!partNotes[i].IsRest)
-                {
-                    partNotes[i].MelismaJoin = true;
-                    return;
-                }
+                partNotes[^1].MelismaJoin = true;
             }
         }
 
@@ -392,11 +394,14 @@ namespace YARG.Core.Chart.Loaders.UltraStar
             double gapSeconds = _gapMs / 1000.0;
             var tempos = new List<TempoChange> { new(_bpm / 2.0, -gapSeconds, 0u) };
 
-            // Relative to beat 0, matching the initial entry above.
-            uint tickAtBeatZero = BeatToTick(0);
+            // Use the same absolute tick space notes get from BeatToTick (gapTicks and
+            // all) -- MoonSongLoader.UltraStar.cs feeds these ticks straight into
+            // MoonSong.AddTempo, which notes are placed in too. Rebasing to "relative to
+            // beat 0" here would cancel out gapTicks and land every tempo change GAP-ticks
+            // early relative to the notes it's supposed to align with.
             foreach (var (beat, bpm) in _tempoChanges)
             {
-                uint tick = BeatToTick(beat) - tickAtBeatZero;
+                uint tick = BeatToTick(beat);
                 double time = BeatToTime(beat) - gapSeconds;
                 tempos.Add(new TempoChange(bpm / 2.0, time, tick));
             }

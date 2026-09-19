@@ -817,15 +817,17 @@ namespace YARG.Core.Song.Cache
                 if (chartType.Format == ChartFormat.UltraStar)
                 {
                     // UltraStar charts are conventionally "Artist - Title.txt", not a fixed
-                    // name. Multiple matches means multiple songs sharing a folder, not an
+                    // name. Multiple matches means multiple variants of a song sharing a folder, not an
                     // ambiguity, so each is scanned on its own.
                     var txtFiles = collection.FindAllFilesByExtension(".txt");
                     bool scannedAny = false;
                     foreach (var txtFile in txtFiles)
                     {
-                        // Packs routinely ship a readme/licence alongside the chart; those
-                        // aren't songs and must not be reported as bad ones.
-                        if (!IsUltraStarChart(txtFile))
+                        // Packs occasionally ship a readme/license alongside the chart; those aren't songs
+                        // and should be ignored. The denylist skips the common case with no file I/O; anything else
+                        // still goes through the content check, so no non-chart .txt with an unrecognized name
+                        // can slip through as a "bad song."
+                        if (IsCommonNonChartFileName(txtFile) || !IsUltraStarChart(txtFile))
                         {
                             continue;
                         }
@@ -863,6 +865,20 @@ namespace YARG.Core.Song.Cache
             return false;
         }
 
+        // Plain-text accompaniment files that are never a chart. A pure string comparison
+        // against a fixed list, not the song title or folder name -- unlike matching
+        // against those, this can't misfire on a case/spelling/Unicode mismatch, since it
+        // never looks at anything user- or tag-supplied.
+        private static readonly HashSet<string> NON_CHART_TEXT_FILE_NAMES = new(StringComparer.OrdinalIgnoreCase)
+        {
+            "readme", "license", "licence", "copying", "changelog",
+        };
+
+        private static bool IsCommonNonChartFileName(FileInfo file)
+        {
+            return NON_CHART_TEXT_FILE_NAMES.Contains(Path.GetFileNameWithoutExtension(file.Name));
+        }
+
         /// <summary>
         /// The format requires the first non-blank line to be a '#' tag, which is enough to
         /// tell a chart from a readme.
@@ -893,7 +909,7 @@ namespace YARG.Core.Song.Cache
         {
             try
             {
-                var entry = UnpackedIniEntry.ProcessNewEntry(collection.Directory, chart, format, ini, defaultPlaylist);
+                var entry = UnpackedIniEntry.ProcessNewEntry(collection.Directory, chart, format, ini, defaultPlaylist, collection);
                 if (entry)
                 {
                     AddEntry(entry.Value);

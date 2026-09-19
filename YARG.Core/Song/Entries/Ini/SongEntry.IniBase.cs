@@ -8,6 +8,7 @@ using YARG.Core.Extensions;
 using YARG.Core.IO;
 using YARG.Core.IO.Ini;
 using YARG.Core.Logging;
+using YARG.Core.Song.Cache;
 using YARG.Core.Utility;
 
 namespace YARG.Core.Song
@@ -159,7 +160,7 @@ namespace YARG.Core.Song
             _chartFileName = chartFileName ?? CHART_FILE_TYPES[(int) chartFormat].Filename;
         }
 
-        protected internal static ScanResult ScanChart(IniSubEntry entry, FixedArray<byte> file, IniModifierCollection modifiers)
+        protected internal static ScanResult ScanChart(IniSubEntry entry, FixedArray<byte> file, IniModifierCollection modifiers, FileCollection? collection = null)
         {
             var drums_type = DrumsType.FourOrFive;
             if (modifiers.Extract("five_lane_drums", out bool fiveLaneDrums))
@@ -169,7 +170,7 @@ namespace YARG.Core.Song
 
             if (entry._chartFormat == ChartFormat.UltraStar)
             {
-                return ScanUltraStar(entry, file);
+                return ScanUltraStar(entry, file, collection);
             }
 
             ScanExpected<long> resolution;
@@ -567,7 +568,7 @@ namespace YARG.Core.Song
             return true;
         }
 
-        private static ScanResult ScanUltraStar(IniSubEntry entry, FixedArray<byte> file)
+        private static ScanResult ScanUltraStar(IniSubEntry entry, FixedArray<byte> file, FileCollection? collection = null)
         {
             var loader = new UltraStarLoader(file);
 
@@ -587,7 +588,12 @@ namespace YARG.Core.Song
             // #AUDIO is the canonical tag; #MP3 is the legacy synonym some tooling still
             // writes (the file isn't necessarily an mp3).
             string? audioFile = Tag("AUDIO") ?? Tag("MP3");
-            if (audioFile == null || !SubFileExists(entry._location, audioFile))
+            if (audioFile == null)
+            {
+                return ScanResult.NoAudio;
+            }
+
+            if (!collection!.Value.FindFile(StringTransformations.NormalizeUnicode(audioFile)!.ToLowerInvariant(), out _))
             {
                 return ScanResult.NoAudio;
             }
@@ -668,29 +674,6 @@ namespace YARG.Core.Song
             }
 
             return ScanResult.Success;
-        }
-
-        /// <summary>
-        /// Case-insensitive check for whether a file exists directly inside a song folder.
-        /// Both sides are NFC-normalized so a tag-supplied name matches what the filesystem
-        /// reports (see StringTransformations.NormalizeUnicode).
-        /// </summary>
-        protected static bool SubFileExists(string location, string filename)
-        {
-            if (string.IsNullOrEmpty(filename) || !Directory.Exists(location))
-            {
-                return false;
-            }
-
-            foreach (var file in Directory.EnumerateFiles(location))
-            {
-                if (string.Equals(StringTransformations.NormalizeUnicode(Path.GetFileName(file)),
-                    filename, StringComparison.OrdinalIgnoreCase))
-                {
-                    return true;
-                }
-            }
-            return false;
         }
 
         private static void SetIntensities(IniModifierCollection modifiers, ref AvailableParts parts)
