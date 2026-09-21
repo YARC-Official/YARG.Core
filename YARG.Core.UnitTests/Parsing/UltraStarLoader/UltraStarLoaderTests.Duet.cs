@@ -193,10 +193,10 @@ namespace YARG.Core.UnitTests.Parsing
                 "#PARTS:2",
                 "P1",
                 ": 0 4 0 Hello",
-                ": 5 4 0 World",
+                ": 5 4 0  World",
                 "P2",
                 ": 0 4 2 Hi",
-                ": 5 4 2 There"
+                ": 5 4 2  There"
             );
             var settings = ParseSettings.Default;
             var songChart = SongChart.FromUltraStarBytes(settings, Encoding.UTF8.GetBytes(content));
@@ -266,6 +266,29 @@ namespace YARG.Core.UnitTests.Parsing
         }
 
         [Test]
+        public void SpacedVoiceMarkersAreRecognized()
+        {
+            // "P 1" is at least as common as the compact "P1" in real files; if it isn't
+            // recognized it falls through as an unknown line and every voice silently ends
+            // up merged into a single part.
+            var loader = LoadUltraStar(Us(
+                "#BPM:120",
+                "#PARTS:2",
+                "P 1",
+                ": 0 4 0 Hello",
+                "P 2",
+                ": 0 4 2 Hi"
+            ));
+
+            var track = loader.LoadVocalsTrack(Instrument.Harmony);
+
+            Assert.That(loader.VoiceCount, Is.EqualTo(2));
+            Assert.That(track.Parts, Has.Count.EqualTo(2));
+            Assert.That(track.Parts[0].NotePhrases[0].Lyrics[0].Text, Is.EqualTo("Hello"));
+            Assert.That(track.Parts[1].NotePhrases[0].Lyrics[0].Text, Is.EqualTo("Hi"));
+        }
+
+        [Test]
         public void FourthVoiceMarkerIsIgnoredNotCrashed()
         {
             // P4 exceeds YARG's 3-slot harmony model (see VocalNote.HarmonyPart) --
@@ -278,7 +301,7 @@ namespace YARG.Core.UnitTests.Parsing
                 "P2",
                 ": 0 4 4 Two",
                 "P4",
-                ": 5 4 7 StillTwo"
+                ": 5 4 7  StillTwo"
             ));
 
             var track = loader.LoadVocalsTrack(Instrument.Harmony);
