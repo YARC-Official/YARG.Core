@@ -242,7 +242,11 @@ namespace YARG.Core.Chart.Loaders.UltraStar
 
         private void ParseNoteLine(string line)
         {
-            var parts = line.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+            // Bounded to 5: only the type/beat/duration/pitch fields are read out of `parts`
+            // below -- anything past them is lyric text, which ExtractRawNoteText re-reads
+            // from `line` directly to preserve its whitespace, so there's no need to also
+            // tokenize (and allocate an array entry per word of) the lyric here.
+            var parts = line.Split(' ', 5, StringSplitOptions.RemoveEmptyEntries);
             if (parts.Length < 1)
             {
                 return;
@@ -460,6 +464,18 @@ namespace YARG.Core.Chart.Loaders.UltraStar
             return time;
         }
 
+        // Derives a note group's (tick, time) span from its first and last notes -- shared
+        // by LoadLyrics and CreateVocalsPhrase, which both group notes into phrases.
+        private (uint StartTick, uint TickLength, double StartTime, double TimeLength) GetPhraseSpan(
+            UltraStarNote first, UltraStarNote last)
+        {
+            uint startTick = BeatToTick(first.StartBeat);
+            uint endTick = BeatToTick(last.EndBeat);
+            double startTime = BeatToTime(first.StartBeat);
+            double endTime = BeatToTime(last.EndBeat);
+            return (startTick, endTick - startTick, startTime, endTime - startTime);
+        }
+
         #endregion
 
         #region Loading
@@ -524,10 +540,7 @@ namespace YARG.Core.Chart.Loaders.UltraStar
                     continue;
                 }
 
-                uint startTick = BeatToTick(group[0].StartBeat);
-                uint endTick = BeatToTick(group[^1].EndBeat);
-                double startTime = BeatToTime(group[0].StartBeat);
-                double endTime = BeatToTime(group[^1].EndBeat);
+                var span = GetPhraseSpan(group[0], group[^1]);
 
                 var events = new List<LyricEvent>();
                 foreach (var n in group)
@@ -540,8 +553,8 @@ namespace YARG.Core.Chart.Loaders.UltraStar
 
                 if (events.Count > 0)
                 {
-                    phrases.Add(new LyricsPhrase(startTime, endTime - startTime,
-                        startTick, endTick - startTick, events));
+                    phrases.Add(new LyricsPhrase(span.StartTime, span.TimeLength,
+                        span.StartTick, span.TickLength, events));
                 }
             }
 
@@ -670,17 +683,12 @@ namespace YARG.Core.Chart.Loaders.UltraStar
                 return null;
             }
 
-            uint phraseStartTick = BeatToTick(phraseNotes[0].StartBeat);
-            uint phraseEndTick = BeatToTick(phraseNotes[^1].EndBeat);
-            uint phraseTickLen = phraseEndTick - phraseStartTick;
-            double phraseStartTime = BeatToTime(phraseNotes[0].StartBeat);
-            double phraseEndTime = BeatToTime(phraseNotes[^1].EndBeat);
-            double phraseTimeLen = phraseEndTime - phraseStartTime;
+            var span = GetPhraseSpan(phraseNotes[0], phraseNotes[^1]);
 
             var parentNote = new VocalNote(
                 NoteFlags.None, false,
-                phraseStartTime, phraseTimeLen,
-                phraseStartTick, phraseTickLen);
+                span.StartTime, span.TimeLength,
+                span.StartTick, span.TickLength);
 
             var lyrics = new List<LyricEvent>();
             int harmonyPart = Math.Clamp(partIndex, 0, MAX_VOICE_PARTS - 1);
@@ -718,13 +726,13 @@ namespace YARG.Core.Chart.Loaders.UltraStar
 
             if (parentNote.ChildNotes.Count == 0)
             {
-                YargLogger.LogWarning($"[UltraStar] Phrase at tick {phraseStartTick} has 0 child notes — skipping");
+                YargLogger.LogWarning($"[UltraStar] Phrase at tick {span.StartTick} has 0 child notes — skipping");
                 return null;
             }
 
             return new VocalsPhrase(
-                phraseStartTime, phraseTimeLen,
-                phraseStartTick, phraseTickLen,
+                span.StartTime, span.TimeLength,
+                span.StartTick, span.TickLength,
                 parentNote, lyrics);
         }
 
