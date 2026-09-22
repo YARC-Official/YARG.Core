@@ -269,9 +269,14 @@ namespace YARG.Core.Chart
         {
             var matchedLyrics = new bool[phrase.Lyrics.Count];
             var unmatchedNoteCount = 0;
-            for (var i = 0; i < phrase.PhraseParentNote.ChildNotes.Count; i++)
+            // A pitch-slide chain (e.g. UltraStar's "n~"/"eed") is flattened one level deep
+            // under its lead note (see GetVocalsPhrases), each still carrying its own lyric
+            // event -- walk each lead note's full chain via AllNotes, not just the phrase's
+            // top-level notes, or a slid-in syllable's lyric never gets matched and static
+            // lyrics mode deletes it below.
+            foreach (var topLevelNote in phrase.PhraseParentNote.ChildNotes)
+            foreach (var note in topLevelNote.AllNotes)
             {
-                var note = phrase.PhraseParentNote.ChildNotes[i];
                 var distance = double.MaxValue;
                 int? closestLyricIndex = null;
                 for (int j = 0; j < phrase.Lyrics.Count; j++)
