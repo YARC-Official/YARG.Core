@@ -35,8 +35,15 @@ namespace YARG.Core.Utility
         /// Filenames need this: macOS' filesystem APIs return decomposed (NFD) names for
         /// accented characters, while the tags naming those files are composed.
         /// </summary>
+        /// <remarks>
+        /// Called once per filesystem entry during a full library scan, so the already-
+        /// normalized (typically plain-ASCII) common case is checked first -- IsNormalized
+        /// is far cheaper than actually rebuilding the string via Normalize.
+        /// </remarks>
         public static string? NormalizeUnicode(string? text)
-            => text?.Normalize(NormalizationForm.FormC);
+            => text == null || text.IsNormalized(NormalizationForm.FormC)
+                ? text
+                : text.Normalize(NormalizationForm.FormC);
 
         public static string RemoveDiacritics(string? text)
         {
