@@ -186,6 +186,8 @@ namespace YARG.Core.IO.Ini
                 { "vocal_gender",                         new("vocal_gender", ModifierType.String) },
                 { "vocal_scroll_speed",                   new("vocal_scroll_speed", ModifierType.Int16) },
 
+                { "yarg_guid",                            new("yarg_guid", ModifierType.String) },
+
                 { "year",                                 new("year", ModifierType.String) },
             };
 
