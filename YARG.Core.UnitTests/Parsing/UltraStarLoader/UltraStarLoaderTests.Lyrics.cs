@@ -370,6 +370,51 @@ namespace YARG.Core.UnitTests.Parsing
         }
 
         [Test]
+        public void StaticLyricsModeKeepsBothSyllablesOfAPitchSlideJoinedWord()
+        {
+            // Regression test: "n~" / "eed" ("need") must keep BOTH syllables in static
+            // lyrics mode, not just "n". FixLyricLengths matches lyric events to notes by
+            // walking phrase.PhraseParentNote.ChildNotes; a pitch-slide-joined note like
+            // "eed" is folded in one level deeper (as a child of "n", not a phrase-level
+            // sibling -- same structural merge as the bare-hold case above), so it must
+            // still be visited or its lyric is never marked matched and static lyrics mode
+            // (unlike gameplay's NotePhrases) deletes anything unmatched.
+            var songChart = LoadUltraStarChart(Us(
+                "#BPM:120",
+                ": 0 4 0  times",
+                ": 5 4 0  of",
+                ": 10 2 0  n~",
+                ": 13 4 0 eed"
+            ));
+
+            var phrase = songChart.Vocals.Parts[0].StaticLyricPhrases[0];
+
+            Assert.That(phrase.Lyrics.Select(l => l.Text), Is.EqualTo(new[] { "times", "of", "n-", "eed" }));
+        }
+
+        [Test]
+        public void StaticLyricsModeKeepsFullTextOfAThreeHoldChain()
+        {
+            // Same AURORA case as ThreeConsecutiveHoldsStructurallyMergeAndGlueTextWithNoGap
+            // above, but checked against StaticLyricPhrases instead of NotePhrases -- here
+            // "ars" is the only real syllable riding a slide-merged note (the three holds
+            // in between carry no lyric text of their own), so this pins that "ars"
+            // specifically survives, not just any matched note.
+            var songChart = LoadUltraStarChart(Us(
+                "#BPM:120",
+                ": 419 12 21  sta",
+                ": 432 3 23 ~",
+                ": 436 5 21 ~",
+                ": 442 6 16 ~",
+                ": 452 42 21 ars"
+            ));
+
+            var phrase = songChart.Vocals.Parts[0].StaticLyricPhrases[0];
+
+            Assert.That(phrase.Lyrics.Select(l => l.Text), Is.EqualTo(new[] { "sta-", "ars" }));
+        }
+
+        [Test]
         public void SingleHoldMergesNoteBeforeAndAfterWhenGlued()
         {
             // General case (not just the 3-hold chain above): a lone bare '~' hold blends
