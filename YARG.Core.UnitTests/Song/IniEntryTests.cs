@@ -8,6 +8,65 @@ namespace YARG.Core.UnitTests.Song;
 
 public class IniEntryTests
 {
+    [Test]
+    public void CreateIniEntry_ParsesReleaseDate()
+    {
+        const string songName = "testsong";
+        string root = CreateTempDirectory();
+        try
+        {
+            var ini = $"{CreateBasicIni()}\ndate_released = 2008-10-07\n";
+            var entry = CreateIniEntry(root, songName, ini);
+
+            Assert.That(entry.ReleaseDate, Is.EqualTo(new DateTime(2008, 10, 7)));
+        }
+        finally
+        {
+            if (Directory.Exists(root))
+                Directory.Delete(root, true);
+        }
+    }
+
+    [TestCase("2008-10")]
+    [TestCase("10/07/2008")]
+    [TestCase("not-a-date")]
+    public void CreateIniEntry_IgnoresInvalidReleaseDate(string value)
+    {
+        const string songName = "testsong";
+        string root = CreateTempDirectory();
+        try
+        {
+            var ini = $"{CreateBasicIni()}\ndate_released = {value}\n";
+            var entry = CreateIniEntry(root, songName, ini);
+
+            Assert.That(entry.ReleaseDate, Is.Null);
+        }
+        finally
+        {
+            if (Directory.Exists(root))
+                Directory.Delete(root, true);
+        }
+    }
+
+    [Test]
+    public void CreateIniEntry_IgnoresUnsupportedReleasedDateAlias()
+    {
+        const string songName = "testsong";
+        string root = CreateTempDirectory();
+        try
+        {
+            var ini = $"{CreateBasicIni()}\nreleased_date = 2008-10-07\n";
+            var entry = CreateIniEntry(root, songName, ini);
+
+            Assert.That(entry.ReleaseDate, Is.Null);
+        }
+        finally
+        {
+            if (Directory.Exists(root))
+                Directory.Delete(root, true);
+        }
+    }
+
     [TestCase("_clean", true, TestName = "Loads clean video when censoring enabled")]
     [TestCase("_explicit", false, TestName = "Loads explicit video when censoring disabled")]
     public void LoadBackground_LoadsSpecificVideo_BasedOnCensorship(string suffix, bool censoringEnabled)
