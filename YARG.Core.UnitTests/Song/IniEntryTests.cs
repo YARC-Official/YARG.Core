@@ -67,6 +67,29 @@ public class IniEntryTests
         }
     }
 
+    [TestCase(0, VocalGender.Female)]
+    [TestCase(1, VocalGender.Male)]
+    [TestCase(2, VocalGender.Nonbinary)]
+    [TestCase(3, VocalGender.Other)]
+    [TestCase(4, VocalGender.Unspecified)]
+    public void CreateIniEntry_MapsNumericVocalGender(int iniValue, VocalGender expected)
+    {
+        const string songName = "testsong";
+        string root = CreateTempDirectory();
+        try
+        {
+            var ini = $"{CreateBasicIni()}\nvocal_gender = {iniValue}\n";
+            var entry = CreateIniEntry(root, songName, ini);
+
+            Assert.That(entry.VocalGender, Is.EqualTo(expected));
+        }
+        finally
+        {
+            if (Directory.Exists(root))
+                Directory.Delete(root, true);
+        }
+    }
+
     [TestCase("_clean", true, TestName = "Loads clean video when censoring enabled")]
     [TestCase("_explicit", false, TestName = "Loads explicit video when censoring disabled")]
     public void LoadBackground_LoadsSpecificVideo_BasedOnCensorship(string suffix, bool censoringEnabled)

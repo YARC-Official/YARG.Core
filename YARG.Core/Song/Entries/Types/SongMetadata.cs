@@ -583,7 +583,20 @@ namespace YARG.Core.Song
 
             if (modifiers.Extract("vocal_gender", out string vocalGender))
             {
-                if (Enum.TryParse<VocalGender>(vocalGender, true, out var genderValue))
+                // The numeric song.ini values use the community-spec ordering,
+                // which differs from the internal enum's historical ordering.
+                if (int.TryParse(vocalGender, out int numericGender))
+                {
+                    metadata.VocalGender = numericGender switch
+                    {
+                        0 => VocalGender.Female,
+                        1 => VocalGender.Male,
+                        2 => VocalGender.Nonbinary,
+                        3 => VocalGender.Other,
+                        _ => VocalGender.Unspecified,
+                    };
+                }
+                else if (Enum.TryParse<VocalGender>(vocalGender, true, out var genderValue))
                 {
                     metadata.VocalGender = genderValue;
                 }
