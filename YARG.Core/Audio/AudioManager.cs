@@ -93,6 +93,13 @@ namespace YARG.Core.Audio
 
         protected internal abstract OutputChannel? CreateOutputChannel(int channelId);
 
+        /// <summary>
+        ///     Creates a live push stream at the given format and registers it with the router so it
+        ///     follows output device changes. Implementations that cannot stream live audio throw
+        ///     <see cref="NotSupportedException" />.
+        /// </summary>
+        public abstract PushStream CreatePushStream(int sampleRate, int channelCount);
+
         protected internal abstract List<(int id, string name)> GetAllOutputDevices();
 
         protected internal abstract int GetOutputChannelCount();

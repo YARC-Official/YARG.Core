@@ -188,6 +188,9 @@ public class PreviewContextTests
 
         public override void LoadVenueSample(string name, byte[] sampleData, OutputChannel? outputChannel = null) { }
         public override void ClearVenueSamples() { }
+
+        public override PushStream CreatePushStream(int sampleRate, int channelCount) =>
+            throw new System.NotSupportedException("test audio manager does not stream live audio");
         protected internal override void PlayMetronomeSoundEffectToChannel(MetronomeSample sample,
             MetronomePitch pitch, int channelId) { }
 
