@@ -8,6 +8,11 @@ using System.Linq;
 
 namespace YARG.Core.Chart.Hashing
 {
+    /// <summary>
+    /// Writes a CHNF/20260801 BTrack and its TrackHash.
+    /// Sections 1–9 follow https://rhinestone-guide-ff8.notion.site/BTrack-Specification-38d2fadb443280a9b0b2ce54efee14af
+    /// Vocal sections are a YARG extension in the unknown-section range.
+    /// </summary>
     public static class BTrackHasher
     {
         // Constant (identifies “CHNF” file type)
@@ -87,7 +92,6 @@ namespace YARG.Core.Chart.Hashing
             result = default;
 
             List<Phrase> phrases;
-            List<TextEvent> textEvents;
             List<RangeShift> rangeShiftEvents;
             List<(long Tick, long Length, BTrackNoteType Type, BTrackNoteFlags Flags)> notes;
             switch (instrument)
@@ -102,7 +106,6 @@ namespace YARG.Core.Chart.Hashing
                         return false;
                     }
                     phrases = guitarDifficulty.Phrases;
-                    textEvents = guitarDifficulty.TextEvents;
                     rangeShiftEvents = guitarDifficulty.RangeShiftEvents;
                     notes = NormalizeGuitarNotes(guitarDifficulty.Notes, TryMapFiveFretNote);
                     break;
@@ -116,7 +119,6 @@ namespace YARG.Core.Chart.Hashing
                         return false;
                     }
                     phrases = sixFretDifficulty.Phrases;
-                    textEvents = sixFretDifficulty.TextEvents;
                     rangeShiftEvents = sixFretDifficulty.RangeShiftEvents;
                     notes = NormalizeGuitarNotes(sixFretDifficulty.Notes, TryMapSixFretNote);
                     break;
@@ -129,7 +131,6 @@ namespace YARG.Core.Chart.Hashing
                         return false;
                     }
                     phrases = drumDifficulty.Phrases;
-                    textEvents = drumDifficulty.TextEvents;
                     rangeShiftEvents = drumDifficulty.RangeShiftEvents;
                     notes = NormalizeDrumNotes(instrument, drumDifficulty.Notes);
                     break;
@@ -146,10 +147,10 @@ namespace YARG.Core.Chart.Hashing
                 chart.SyncTrack,
                 ResolveOverlaps(PruneEmptyPhrases(GetPhrases(phrases, PhraseType.StarPower), notes),
                     phrase => phrase.Tick, phrase => phrase.Length, (_, tick, length) => (tick, length)),
-                ResolveOverlaps(PruneEmptyPhrases(GetPhrases(phrases, PhraseType.Solo), notes),
+                ResolveOverlaps(PruneEmptyPhrases(GetPhrases(phrases, PhraseType.Solo, chart.SoloSectionLengthIncludesTerminalTick), notes),
                     phrase => phrase.Tick, phrase => phrase.Length, (_, tick, length) => (tick, length)),
                 PruneEmptyFlexLanes(GetFlexLanes(phrases), notes),
-                GetDrumFreestyles(phrases, textEvents),
+                GetDrumFreestyles(phrases, chart.GlobalEvents),
                 GetRangeShifts(rangeShiftEvents),
                 notes);
             return true;
@@ -167,13 +168,17 @@ namespace YARG.Core.Chart.Hashing
             var track = chart.GetVocalsTrack(instrument);
             var notes = new List<(long Tick, long Length, BTrackVocalNoteKind Kind, uint Pitch, uint Part)>();
             var phrases = new List<(long Tick, long Length, bool IsPercussion)>();
-            var starPowerPhrases = new List<Phrase>();
+            var starPower = new List<(long Tick, long Length)>();
 
             foreach (var part in track.Parts)
             {
-                starPowerPhrases.AddRange(part.OtherPhrases);
                 foreach (var phrase in part.NotePhrases)
                 {
+                    if (phrase.IsStarPower)
+                    {
+                        starPower.Add(((long) phrase.Tick, (long) phrase.TickLength));
+                    }
+
                     phrases.Add(((long) phrase.Tick, (long) phrase.TickLength, phrase.IsPercussion));
                     foreach (var child in phrase.PhraseParentNote.ChildNotes)
                     {
@@ -197,7 +202,7 @@ namespace YARG.Core.Chart.Hashing
             result = WriteVocalBTrack(
                 chart.SyncTrack,
                 ResolveOverlaps(
-                    PruneEmptyVocalRanges(GetPhrases(starPowerPhrases, PhraseType.StarPower), notes),
+                    PruneEmptyVocalRanges(DedupRanges(starPower), notes),
                     phrase => phrase.Tick, phrase => phrase.Length, (_, tick, length) => (tick, length)),
                 ResolveOverlaps(
                     PruneEmptyVocalPhrases(DedupVocalPhrases(phrases), notes),
@@ -510,13 +515,13 @@ namespace YARG.Core.Chart.Hashing
             return flags | selected;
         }
 
-        private static List<(long Tick, long Length)> GetPhrases(List<Phrase> phrases, PhraseType type)
+        private static List<(long Tick, long Length)> GetPhrases(List<Phrase> phrases, PhraseType type, bool includeTerminalTick = false)
         {
+            var extraTick = type == PhraseType.Solo && includeTerminalTick ? 1 : 0;
             return phrases
                 .Where(phrase => phrase.Type == type)
                 .GroupBy(phrase => phrase.Tick)
-                .Select(group => (Tick: (long) group.Key, Length: (long) group.Max(phrase =>
-                    phrase.TickLength + (type == PhraseType.Solo ? 1 : 0))))
+                .Select(group => (Tick: (long) group.Key, Length: (long) group.Max(phrase => phrase.TickLength) + extraTick))
                 .OrderBy(phrase => phrase.Tick)
                 .ToList();
         }
@@ -532,26 +537,45 @@ namespace YARG.Core.Chart.Hashing
                 .ToList();
         }
 
-        private static List<(long Tick, long Length, bool IsCoda)> GetDrumFreestyles(List<Phrase> phrases, List<TextEvent> textEvents)
+        private static List<(long Tick, long Length, bool IsCoda)> GetDrumFreestyles(List<Phrase> phrases, List<TextEvent> globalEvents)
         {
+            var codaTick = FirstCodaTick(globalEvents);
             return phrases
-                .Where(phrase => phrase.Type == PhraseType.DrumFill)
+                .Where(phrase => phrase.IsDrumFreestyle)
                 .Select(phrase => (
                     Tick: (long) phrase.Tick,
                     Length: (long) phrase.TickLength,
-                    IsCoda: HasCodaOnOrBefore(phrases, textEvents, phrase.Tick)))
+                    IsCoda: codaTick is uint start && phrase.Tick >= start))
                 .OrderBy(phrase => phrase.Tick)
                 .ToList();
         }
 
-        private static bool HasCodaOnOrBefore(List<Phrase> phrases, List<TextEvent> textEvents, uint tick)
+        private static uint? FirstCodaTick(List<TextEvent> globalEvents)
         {
-            if (phrases.Any(phrase => phrase.Type == PhraseType.Coda && phrase.Tick <= tick))
+            uint? codaTick = null;
+            foreach (var textEvent in globalEvents)
             {
-                return true;
+                if (!IsCodaEvent(textEvent.Text))
+                {
+                    continue;
+                }
+
+                if (codaTick is null || textEvent.Tick < codaTick)
+                {
+                    codaTick = textEvent.Tick;
+                }
             }
 
-            return textEvents.Any(textEvent => textEvent.Tick <= tick && IsCodaEvent(textEvent.Text));
+            return codaTick;
+        }
+
+        private static List<(long Tick, long Length)> DedupRanges(List<(long Tick, long Length)> ranges)
+        {
+            return ranges
+                .GroupBy(range => range.Tick)
+                .Select(group => (Tick: group.Key, Length: group.Max(range => range.Length)))
+                .OrderBy(range => range.Tick)
+                .ToList();
         }
 
         private static bool IsCodaEvent(string text)

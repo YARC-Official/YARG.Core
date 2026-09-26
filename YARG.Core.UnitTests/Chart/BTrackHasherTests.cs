@@ -300,15 +300,14 @@ public class BTrackHasherTests
     [Test]
     public void CalculateTrackHash_Vocals_OmitsEmptyPhrasesAndStarPower()
     {
+        var empty = CreateVocalPhrase(0, 120, false);
+        empty.PhraseParentNote.Flags = NoteFlags.StarPower;
+        var sung = CreateVocalPhrase(120, 120, false, new VocalNote(60, 0, VocalNoteType.Lyric, 0, 0.1, 120, 60));
+        sung.PhraseParentNote.Flags = NoteFlags.StarPower;
+
         var chart = new SongChart(480);
         chart.Vocals = new VocalsTrack(Instrument.Vocals, [
-            new VocalsPart(false, [
-                CreateVocalPhrase(0, 120, false),
-                CreateVocalPhrase(120, 120, false, new VocalNote(60, 0, VocalNoteType.Lyric, 0, 0.1, 120, 60)),
-            ], [], [], [
-                new Phrase(PhraseType.StarPower, 0, 0.1, 0, 120),
-                new Phrase(PhraseType.StarPower, 0, 0.1, 120, 120),
-            ], [])
+            new VocalsPart(false, [empty, sung], [], [], [], [])
         ], []);
 
         var parsed = Parse(Hash(chart, Instrument.Vocals).BTrack);

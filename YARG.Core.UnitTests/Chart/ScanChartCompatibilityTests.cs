@@ -163,6 +163,87 @@ public class ScanChartCompatibilityTests
     }
 
     [Test]
+    public void MidiGuitar_Solo_DoesNotAddTerminalTick()
+    {
+        var midi = new MidiFile(
+            new TrackChunk(new SetTempoEvent(TempoChange.BpmToMicroSeconds(120))),
+            new TrackChunk(
+                new SequenceTrackNameEvent("PART GUITAR"),
+                NoteOn(0, 103),
+                NoteOn(0, 96),
+                NoteOff(240, 96),
+                NoteOff(0, 103)))
+        {
+            TimeDivision = new TicksPerQuarterNoteTimeDivision(480),
+        };
+
+        var chart = SongChart.FromMidi(ParseSettings.Default_Midi, midi);
+        var result = Hash(chart, Instrument.FiveFretGuitar, Difficulty.Expert);
+
+        Assert.That(ReadSectionPhrases(result.BTrack, 5), Is.EqualTo(new List<(long Tick, long Length)>
+        {
+            (0, 240),
+        }));
+        AssertHashMatchesStrippedFile(result);
+    }
+
+    [Test]
+    public void MidiDrums_CodaFill_StaysFreestyleAndMarksCoda()
+    {
+        var midi = new MidiFile(
+            new TrackChunk(new SetTempoEvent(TempoChange.BpmToMicroSeconds(120))),
+            new TrackChunk(
+                new SequenceTrackNameEvent("EVENTS"),
+                new Melanchall.DryWetMidi.Core.TextEvent("[coda]") { DeltaTime = 100 }),
+            new TrackChunk(
+                new SequenceTrackNameEvent("PART DRUMS"),
+                NoteOn(0, 120),
+                NoteOff(80, 120),
+                NoteOn(20, 120),
+                NoteOff(40, 120)))
+        {
+            TimeDivision = new TicksPerQuarterNoteTimeDivision(480),
+        };
+
+        var chart = SongChart.FromMidi(ParseSettings.Default_Midi, midi);
+        var result = Hash(chart, Instrument.FourLaneDrums, Difficulty.Expert);
+
+        Assert.That(ReadDrumFreestyles(result.BTrack), Is.EqualTo(new List<(long Tick, long Length, byte IsCoda)>
+        {
+            (0, 80, 0),
+            (100, 40, 1),
+        }));
+        AssertHashMatchesStrippedFile(result);
+    }
+
+    [Test]
+    public void MidiVocals_StarPowerBeforePhrase_UsesScoringPhrase()
+    {
+        var midi = new MidiFile(
+            new TrackChunk(new SetTempoEvent(TempoChange.BpmToMicroSeconds(120))),
+            new TrackChunk(
+                new SequenceTrackNameEvent("PART VOCALS"),
+                NoteOn(0, 116),
+                NoteOn(50, 105),
+                NoteOn(0, 60),
+                NoteOff(100, 60),
+                NoteOff(0, 105),
+                NoteOff(50, 116)))
+        {
+            TimeDivision = new TicksPerQuarterNoteTimeDivision(480),
+        };
+
+        var chart = SongChart.FromMidi(ParseSettings.Default_Midi, midi);
+        var result = Hash(chart, Instrument.Vocals, Difficulty.Expert);
+
+        Assert.That(ReadSectionPhrases(result.BTrack, 0x59410001), Is.EqualTo(new List<(long Tick, long Length)>
+        {
+            (50, 100),
+        }));
+        AssertHashMatchesStrippedFile(result);
+    }
+
+    [Test]
     public void MidiVocals_PhrasePitchAndStarPower_UsesYargSections()
     {
         var midi = new MidiFile(
@@ -318,6 +399,20 @@ public class ScanChartCompatibilityTests
             }
             return notes;
         }) ?? new List<(long Tick, long Length, uint Kind, uint Pitch, uint Part)>();
+    }
+
+    private static List<(long Tick, long Length, byte IsCoda)> ReadDrumFreestyles(byte[] bTrack)
+    {
+        return ReadSection(bTrack, 7, reader =>
+        {
+            var phrases = new List<(long Tick, long Length, byte IsCoda)>();
+            var count = reader.ReadUInt32();
+            for (var i = 0; i < count; i++)
+            {
+                phrases.Add((reader.ReadInt64(), reader.ReadInt64(), reader.ReadByte()));
+            }
+            return phrases;
+        }) ?? new List<(long Tick, long Length, byte IsCoda)>();
     }
 
     private static List<(long Tick, long Length)> ReadSectionPhrases(byte[] bTrack, ulong sectionId)
