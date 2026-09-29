@@ -244,7 +244,7 @@ namespace YARG.Core.Song
             }
 
             if (modifiers.Extract("date_released", out string releaseDate) &&
-                DateTime.TryParseExact(releaseDate, "yyyy-MM-dd", CultureInfo.InvariantCulture,
+                DateTime.TryParseExact(releaseDate, new[] { "yyyy-MM-dd", "yyyy-MM" }, CultureInfo.InvariantCulture,
                     DateTimeStyles.None, out var parsedReleaseDate))
             {
                 metadata.ReleaseDate = parsedReleaseDate.Date;

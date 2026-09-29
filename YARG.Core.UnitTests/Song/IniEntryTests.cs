@@ -8,17 +8,18 @@ namespace YARG.Core.UnitTests.Song;
 
 public class IniEntryTests
 {
-    [Test]
-    public void CreateIniEntry_ParsesReleaseDate()
+    [TestCase("2008-10-07", 2008, 10, 7)]
+    [TestCase("2008-10", 2008, 10, 1)]
+    public void CreateIniEntry_ParsesReleaseDate(string value, int year, int month, int day)
     {
         const string songName = "testsong";
         string root = CreateTempDirectory();
         try
         {
-            var ini = $"{CreateBasicIni()}\ndate_released = 2008-10-07\n";
+            var ini = $"{CreateBasicIni()}\ndate_released = {value}\n";
             var entry = CreateIniEntry(root, songName, ini);
 
-            Assert.That(entry.ReleaseDate, Is.EqualTo(new DateTime(2008, 10, 7)));
+            Assert.That(entry.ReleaseDate, Is.EqualTo(new DateTime(year, month, day)));
         }
         finally
         {
@@ -27,8 +28,8 @@ public class IniEntryTests
         }
     }
 
-    [TestCase("2008-10")]
     [TestCase("10/07/2008")]
+    [TestCase("2008-13")]
     [TestCase("not-a-date")]
     public void CreateIniEntry_IgnoresInvalidReleaseDate(string value)
     {
