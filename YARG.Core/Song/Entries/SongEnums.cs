@@ -18,8 +18,8 @@
 
     public enum VocalGender : byte
     {
-        Male,
         Female,
+        Male,
         Nonbinary,
         Other,
         Unspecified,

@@ -583,8 +583,7 @@ namespace YARG.Core.Song
 
             if (modifiers.Extract("vocal_gender", out string vocalGender))
             {
-                // The numeric song.ini values use the community-spec ordering,
-                // which differs from the internal enum's historical ordering.
+                // Numeric song.ini values use the documented VocalGender ordering.
                 if (int.TryParse(vocalGender, out int numericGender))
                 {
                     metadata.VocalGender = numericGender switch

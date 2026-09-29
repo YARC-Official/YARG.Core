@@ -67,6 +67,16 @@ public class IniEntryTests
         }
     }
 
+    [TestCase(VocalGender.Female, 0)]
+    [TestCase(VocalGender.Male, 1)]
+    [TestCase(VocalGender.Nonbinary, 2)]
+    [TestCase(VocalGender.Other, 3)]
+    [TestCase(VocalGender.Unspecified, 4)]
+    public void VocalGender_UsesDocumentedNumericValue(VocalGender gender, int expected)
+    {
+        Assert.That((int) gender, Is.EqualTo(expected));
+    }
+
     [TestCase(0, VocalGender.Female)]
     [TestCase(1, VocalGender.Male)]
     [TestCase(2, VocalGender.Nonbinary)]
