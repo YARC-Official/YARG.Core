@@ -28,8 +28,78 @@ namespace YARG.Core.Song
             base.Serialize(stream, indices);
         }
 
+        public override bool TryExportFullMix(string destinationWithoutExtension, out string exportedPath)
+        {
+            exportedPath = string.Empty;
+            using var sngFile = SngFile.TryLoadFromFile(_location, false);
+            if (!sngFile.IsLoaded)
+            {
+                return false;
+            }
+
+            string? bestName = null;
+            long bestLength = DemucsStemFiles.PlaceholderMaxBytes;
+            foreach (var format in IniAudio.SupportedFormats)
+            {
+                string name = "song" + format;
+                if (!sngFile.TryGetListing(name, out var listing) || listing.Length <= bestLength)
+                {
+                    continue;
+                }
+
+                bestName = name;
+                bestLength = listing.Length;
+                exportedPath = destinationWithoutExtension + format;
+            }
+
+            if (bestName == null || !sngFile.TryGetListing(bestName, out var bestListing))
+            {
+                exportedPath = string.Empty;
+                return false;
+            }
+
+            using var data = sngFile.LoadAllBytes(in bestListing);
+            using (var output = File.Create(exportedPath))
+            {
+                output.Write(data.ReadOnlySpan);
+            }
+
+            return true;
+        }
+
+        public override bool TryInstallDemucsStems(string vocalsPath, string bassPath, string drumsPath, string otherPath)
+        {
+            return DemucsStemFiles.InstallSidecar(DemucsStemFiles.GetSidecarDirectory(_location), vocalsPath, bassPath, drumsPath, otherPath);
+        }
+
+        protected override StemSeparation ComputeStemSeparation()
+        {
+            string sidecar = DemucsStemFiles.GetSidecarDirectory(_location);
+            if (DemucsStemFiles.HasMarker(sidecar))
+            {
+                return StemSeparation.Demucs;
+            }
+
+            using var sngFile = SngFile.TryLoadFromFile(_location, false);
+            if (!sngFile.IsLoaded)
+            {
+                return StemSeparation.Present;
+            }
+
+            return sngFile.Listings != null && DemucsStemFiles.ArchiveMissesCoreStems(sngFile.Listings)
+                ? StemSeparation.Missing
+                : StemSeparation.Present;
+        }
+
         public override StemMixer? LoadAudio(float speed, double volume, bool enableCensoring, params SongStem[] ignoreStems)
         {
+            bool clampStemVolume = GlobalAudioHandler.CLAMPED_AUDIO_SOURCES.Contains(_metadata.Source.ToLowerInvariant());
+            if (DemucsStemFiles.TryLoadMixer(DemucsStemFiles.GetSidecarDirectory(_location), ToString(), speed, volume,
+                clampStemVolume, ignoreStems, out var demucsMixer))
+            {
+                return demucsMixer;
+            }
+
             using var sngFile = SngFile.TryLoadFromFile(_location, false);
             if (!sngFile.IsLoaded)
             {
@@ -42,6 +112,13 @@ namespace YARG.Core.Song
 
         public override StemMixer? LoadPreviewAudio(float speed, bool enableCensoring)
         {
+            bool clampStemVolume = GlobalAudioHandler.CLAMPED_AUDIO_SOURCES.Contains(_metadata.Source.ToLowerInvariant());
+            if (DemucsStemFiles.TryLoadMixer(DemucsStemFiles.GetSidecarDirectory(_location), ToString(), speed, 0,
+                clampStemVolume, Array.Empty<SongStem>(), out var demucsMixer))
+            {
+                return demucsMixer;
+            }
+
             using var sngFile = SngFile.TryLoadFromFile(_location, false);
             if (!sngFile.IsLoaded)
             {

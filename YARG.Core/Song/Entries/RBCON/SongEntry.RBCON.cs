@@ -183,8 +183,120 @@ namespace YARG.Core.Song
             return version is UNENCRYPTED_MOGG or YARG_MOGG;
         }
 
+        public override bool TryExportFullMix(string destinationWithoutExtension, out string exportedPath)
+        {
+            exportedPath = string.Empty;
+            var stream = GetMoggStream();
+            if (stream == null)
+            {
+                return false;
+            }
+
+            try
+            {
+                int version = stream.Read<int>(Endianness.Little);
+                if (!IsSupportedMoggVersion(version))
+                {
+                    return false;
+                }
+
+                int start = stream.Read<int>(Endianness.Little);
+                stream.Seek(start, SeekOrigin.Begin);
+                exportedPath = destinationWithoutExtension + ".ogg";
+                using (var output = File.Create(exportedPath))
+                {
+                    stream.CopyTo(output);
+                    return output.Length > DemucsStemFiles.PlaceholderMaxBytes;
+                }
+            }
+            catch (Exception ex)
+            {
+                YargLogger.LogException(ex, "Failed to export the song mix from the CON");
+                exportedPath = string.Empty;
+                return false;
+            }
+            finally
+            {
+                stream.Dispose();
+            }
+        }
+
+        public override bool TryGetSongStemChannels(out int[] channels)
+        {
+            channels = _indices.Track;
+            return channels.Length > 0;
+        }
+
+        public override bool TryInstallDemucsStems(string vocalsPath, string bassPath, string drumsPath, string otherPath)
+        {
+            return DemucsStemFiles.InstallSidecar(DemucsStemFiles.GetSidecarDirectory(ActualLocation), vocalsPath, bassPath, drumsPath, otherPath);
+        }
+
+        public override bool NeedsStemSilenceProbe()
+        {
+            if (_stemSilenceKnown || _stemSeparation == StemSeparation.Demucs)
+            {
+                return false;
+            }
+
+            return _indices.Vocals.Length > 0 || _indices.Bass.Length > 0 || _indices.Drums.Length > 0;
+        }
+
+        public override bool TryOpenOggAudio(out Stream audio, out int[] drumChannels, out int[] bassChannels, out int[] vocalChannels)
+        {
+            drumChannels = _indices.Drums;
+            bassChannels = _indices.Bass;
+            vocalChannels = _indices.Vocals;
+            audio = null!;
+
+            var stream = GetMoggStream();
+            if (stream == null)
+            {
+                return false;
+            }
+
+            try
+            {
+                int version = stream.Read<int>(Endianness.Little);
+                if (!IsSupportedMoggVersion(version))
+                {
+                    stream.Dispose();
+                    return false;
+                }
+
+                int start = stream.Read<int>(Endianness.Little);
+                stream.Seek(start, SeekOrigin.Begin);
+                audio = stream;
+                return true;
+            }
+            catch (Exception ex)
+            {
+                YargLogger.LogException(ex, "Failed to open CON audio for a stem check");
+                stream.Dispose();
+                return false;
+            }
+        }
+
+        protected override StemSeparation ComputeStemSeparation()
+        {
+            if (DemucsStemFiles.HasMarker(DemucsStemFiles.GetSidecarDirectory(ActualLocation)))
+            {
+                return StemSeparation.Demucs;
+            }
+
+            bool missing = _indices.Vocals.Length == 0 && _indices.Bass.Length == 0 && _indices.Drums.Length == 0;
+            return missing ? StemSeparation.Missing : StemSeparation.Present;
+        }
+
         public override StemMixer? LoadAudio(float speed, double volume, bool enableCensoring, params SongStem[] ignoreStems)
         {
+            bool clampStemVolume = GlobalAudioHandler.CLAMPED_AUDIO_SOURCES.Contains(_metadata.Source.ToLowerInvariant());
+            if (DemucsStemFiles.TryLoadMixer(DemucsStemFiles.GetSidecarDirectory(ActualLocation), ToString(), speed, volume,
+                clampStemVolume, ignoreStems, out var demucsMixer))
+            {
+                return demucsMixer;
+            }
+
             var stream = GetMoggStream();
             if (stream == null)
             {
@@ -202,7 +314,6 @@ namespace YARG.Core.Song
             int start = stream.Read<int>(Endianness.Little);
             stream.Seek(start, SeekOrigin.Begin);
 
-            bool clampStemVolume = GlobalAudioHandler.CLAMPED_AUDIO_SOURCES.Contains(_metadata.Source.ToLowerInvariant());
             var mixer = GlobalAudioHandler.CreateMixer(ToString(), speed, volume, clampStemVolume: clampStemVolume,
                 normalize: true);
             if (mixer == null)
