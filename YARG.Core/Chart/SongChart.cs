@@ -17,6 +17,8 @@ namespace YARG.Core.Chart
     {
         public uint Resolution => SyncTrack.Resolution;
 
+        internal bool SoloSectionLengthIncludesTerminalTick { get; }
+
         public float VocalScrollSpeed { get; set; }
 
         public List<TextEvent> GlobalEvents { get; set; } = new();
@@ -117,11 +119,13 @@ namespace YARG.Core.Chart
         // To explicitly allow creation without going through a file
         public SongChart(uint resolution)
         {
-            SyncTrack = new(resolution);
+            SyncTrack = new SyncTrack(resolution);
         }
 
         internal SongChart(ISongLoader loader)
         {
+            SoloSectionLengthIncludesTerminalTick = loader is MoonSongLoader moon
+                && moon.SoloSectionLengthIncludesTerminalTick;
             GlobalEvents = loader.LoadGlobalEvents();
             SyncTrack = loader.LoadSyncTrack();
             VenueTrack = loader.LoadVenueTrack();

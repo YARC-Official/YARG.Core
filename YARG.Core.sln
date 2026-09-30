@@ -13,6 +13,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ReplayCli", "ReplayCli\Repl
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "YARG.Core.Benchmarks", "YARG.Core.Benchmarks\YARG.Core.Benchmarks.csproj", "{D26697B2-1739-4327-9B34-1501FE0E619F}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ChartDump", "ChartDump\ChartDump.csproj", "{235E26BD-1BB6-4367-AC76-52BFE1FCB32B}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -127,6 +129,26 @@ Global
 		{D26697B2-1739-4327-9B34-1501FE0E619F}.Release|x64.Build.0 = Release|Any CPU
 		{D26697B2-1739-4327-9B34-1501FE0E619F}.Release|x86.ActiveCfg = Release|Any CPU
 		{D26697B2-1739-4327-9B34-1501FE0E619F}.Release|x86.Build.0 = Release|Any CPU
+		{235E26BD-1BB6-4367-AC76-52BFE1FCB32B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{235E26BD-1BB6-4367-AC76-52BFE1FCB32B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{235E26BD-1BB6-4367-AC76-52BFE1FCB32B}.Debug|ARM.ActiveCfg = Debug|Any CPU
+		{235E26BD-1BB6-4367-AC76-52BFE1FCB32B}.Debug|ARM.Build.0 = Debug|Any CPU
+		{235E26BD-1BB6-4367-AC76-52BFE1FCB32B}.Debug|ARM64.ActiveCfg = Debug|Any CPU
+		{235E26BD-1BB6-4367-AC76-52BFE1FCB32B}.Debug|ARM64.Build.0 = Debug|Any CPU
+		{235E26BD-1BB6-4367-AC76-52BFE1FCB32B}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{235E26BD-1BB6-4367-AC76-52BFE1FCB32B}.Debug|x64.Build.0 = Debug|Any CPU
+		{235E26BD-1BB6-4367-AC76-52BFE1FCB32B}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{235E26BD-1BB6-4367-AC76-52BFE1FCB32B}.Debug|x86.Build.0 = Debug|Any CPU
+		{235E26BD-1BB6-4367-AC76-52BFE1FCB32B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{235E26BD-1BB6-4367-AC76-52BFE1FCB32B}.Release|Any CPU.Build.0 = Release|Any CPU
+		{235E26BD-1BB6-4367-AC76-52BFE1FCB32B}.Release|ARM.ActiveCfg = Release|Any CPU
+		{235E26BD-1BB6-4367-AC76-52BFE1FCB32B}.Release|ARM.Build.0 = Release|Any CPU
+		{235E26BD-1BB6-4367-AC76-52BFE1FCB32B}.Release|ARM64.ActiveCfg = Release|Any CPU
+		{235E26BD-1BB6-4367-AC76-52BFE1FCB32B}.Release|ARM64.Build.0 = Release|Any CPU
+		{235E26BD-1BB6-4367-AC76-52BFE1FCB32B}.Release|x64.ActiveCfg = Release|Any CPU
+		{235E26BD-1BB6-4367-AC76-52BFE1FCB32B}.Release|x64.Build.0 = Release|Any CPU
+		{235E26BD-1BB6-4367-AC76-52BFE1FCB32B}.Release|x86.ActiveCfg = Release|Any CPU
+		{235E26BD-1BB6-4367-AC76-52BFE1FCB32B}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

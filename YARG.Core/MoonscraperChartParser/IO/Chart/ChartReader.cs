@@ -40,6 +40,20 @@ namespace MoonscraperChartEditor.Song.IO
             public uint length;
         }
 
+        private readonly struct ChartLine
+        {
+            public readonly uint Tick;
+            public readonly int Order;
+            public readonly string Line;
+
+            public ChartLine(uint tick, int order, string line)
+            {
+                Tick = tick;
+                Order = order;
+                Line = line;
+            }
+        }
+
         private struct NoteProcessParams
         {
             public MoonChart                chart;
@@ -105,6 +119,27 @@ namespace MoonscraperChartEditor.Song.IO
             {
                 throw new Exception("Could not open file!", e);
             }
+        }
+
+        private static bool TryParseTick(ReadOnlySpan<char> text, out uint tick)
+        {
+            tick = 0;
+            if (text.IsEmpty)
+            {
+                return false;
+            }
+
+            foreach (char character in text)
+            {
+                if (character is < '0' or > '9')
+                {
+                    return false;
+                }
+
+                tick = tick * 10 + (uint) (character - '0');
+            }
+
+            return true;
         }
 
         private const uint DEFAULT_RESOLUTION = 192;
@@ -444,20 +479,47 @@ namespace MoonscraperChartEditor.Song.IO
 
             try
             {
-                uint prevTick = 0;
-                // Load notes, collect flags
+                var sortedLines = new List<ChartLine>();
+                int order = 0;
                 foreach (var line in sectionLines)
+                {
+                    var trimmed = line.Trim();
+                    if (trimmed.IsEmpty) continue;
+
+                    try
+                    {
+                        var tickText = trimmed.SplitOnceTrimmed('=', out _);
+                        if (!TryParseTick(tickText, out var tick))
+                        {
+                            throw new Exception("Invalid tick value");
+                        }
+
+                        sortedLines.Add(new ChartLine(tick, order++, trimmed.ToString()));
+                    }
+                    catch (Exception e)
+                    {
+                        YargLogger.LogException(e, $"Error parsing .chart line '{trimmed.ToString()}'!");
+                    }
+                }
+
+                sortedLines.Sort((left, right) =>
+                {
+                    int tickCompare = left.Tick.CompareTo(right.Tick);
+                    return tickCompare != 0 ? tickCompare : left.Order.CompareTo(right.Order);
+                });
+
+                // Load notes, collect flags
+                foreach (var sortedLine in sortedLines)
                 {
                     try
                     {
+                        var line = sortedLine.Line;
+
                         // Split on the equals sign
                         var tickText = line.SplitOnceTrimmed('=', out var remaining);
 
                         // Get tick
-                        uint tick = (uint) FastInt32Parse(tickText);
-
-                        if (prevTick > tick) throw new Exception("Tick value not in ascending order");
-                        prevTick = tick;
+                        uint tick = sortedLine.Tick;
 
                         // Get event type
                         char typeCode = remaining.GetNextWord(out remaining)[0];
@@ -526,7 +588,7 @@ namespace MoonscraperChartEditor.Song.IO
                     }
                     catch (Exception e)
                     {
-                        YargLogger.LogException(e, $"Error parsing .chart line '{line.ToString()}'!");
+                        YargLogger.LogException(e, $"Error parsing .chart line '{sortedLine.Line}'!");
                     }
                 }
 

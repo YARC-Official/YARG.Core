@@ -55,15 +55,23 @@ namespace YARG.Core.Chart
     {
         public PhraseType Type { get; }
 
-        public Phrase(PhraseType type, double time, double timeLength, uint tick, uint tickLength)
+        /// <summary>
+        /// Drum fill, including one rewritten to a big rock ending because it sits in a coda.
+        /// Gameplay still sees <see cref="PhraseType.BigRockEnding"/> for the rewritten phrase.
+        /// </summary>
+        public bool IsDrumFreestyle { get; }
+
+        public Phrase(PhraseType type, double time, double timeLength, uint tick, uint tickLength, bool isDrumFreestyle = false)
             : base(time, timeLength, tick, tickLength)
         {
             Type = type;
+            IsDrumFreestyle = isDrumFreestyle || type == PhraseType.DrumFill;
         }
 
         public Phrase(Phrase other) : base(other)
         {
             Type = other.Type;
+            IsDrumFreestyle = other.IsDrumFreestyle;
         }
 
         public Phrase Clone()

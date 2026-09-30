@@ -473,6 +473,7 @@ namespace MoonscraperChartEditor.Song.IO
                     if (phrase.type == MoonPhrase.Type.ProDrums_Activation
                         && codaRanges.Any(range => phrase.tick >= range.start && phrase.tick <= range.end))
                     {
+                        phrase.ConvertedFromDrumFill = true;
                         phrase.type = MoonPhrase.Type.BigRockEnding;
                     }
                 }
