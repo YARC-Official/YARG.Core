@@ -65,6 +65,31 @@ public class UnpackedCONTimestampTests
         }
     }
 
+    [Test]
+    public void UnpackedRBProUpgrade_LoadsMidiCreatedAfterLastWrite()
+    {
+        string upgradesDirectory = Path.Combine(_library, "songs_upgrades");
+        Directory.CreateDirectory(upgradesDirectory);
+        string dtaPath = Path.Combine(upgradesDirectory, RBProUpgrade.UPGRADES_DTA);
+        File.WriteAllText(dtaPath, $"({NODE_NAME} (rank (real_guitar 1)))");
+
+        string midiPath = Path.Combine(upgradesDirectory, NODE_NAME + RBProUpgrade.UPGRADES_MIDI_EXT);
+        File.WriteAllBytes(midiPath, File.ReadAllBytes(GetTestMidiPath()));
+        SetCreatedAfterWritten(midiPath);
+
+        var collection = new FileCollection(new DirectoryInfo(upgradesDirectory));
+        Assert.That(UnpackedCONUpgradeGroup.Create(in collection, new FileInfo(dtaPath), out var group), Is.True);
+        try
+        {
+            using var midi = group.Upgrades[NODE_NAME].Upgrade.LoadUpgradeMidi();
+            Assert.That(midi, Is.Not.Null);
+        }
+        finally
+        {
+            group.Dispose();
+        }
+    }
+
     private string CreateUnpackedCon()
     {
         string songsDirectory = Path.Combine(_library, "unpacked", "songs");
@@ -75,15 +100,20 @@ public class UnpackedCONTimestampTests
 
         string midiPath = Path.Combine(songDirectory, NODE_NAME + ".mid");
         File.WriteAllBytes(midiPath, File.ReadAllBytes(GetTestMidiPath()));
-        File.SetLastWriteTime(midiPath, new DateTime(2020, 1, 1, 0, 0, 0, DateTimeKind.Local));
-        File.SetCreationTime(midiPath, new DateTime(2021, 1, 1, 0, 0, 0, DateTimeKind.Local));
+        SetCreatedAfterWritten(midiPath);
+        return songsDirectory;
+    }
 
-        var info = new FileInfo(midiPath);
+    private static void SetCreatedAfterWritten(string path)
+    {
+        File.SetLastWriteTime(path, new DateTime(2020, 1, 1, 0, 0, 0, DateTimeKind.Local));
+        File.SetCreationTime(path, new DateTime(2021, 1, 1, 0, 0, 0, DateTimeKind.Local));
+
+        var info = new FileInfo(path);
         if (info.CreationTime <= info.LastWriteTime)
         {
             Assert.Ignore("This file system cannot set a creation time later than the last write time.");
         }
-        return songsDirectory;
     }
 
     private FixedArrayStream SerializeScannedEntry<TEntry>(out FixedArray<byte> data)
