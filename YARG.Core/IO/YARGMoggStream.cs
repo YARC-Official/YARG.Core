@@ -1,5 +1,6 @@
 ﻿using System;
 using System.IO;
+using YARG.Core.Extensions;
 
 namespace YARG.Core.IO
 {
@@ -52,7 +53,7 @@ namespace YARG.Core.IO
             _length = _fileStream.Length - MATRIXSIZE;
 
             // Get the encryption matrix
-            _fileStream.Read(_baseEncryptionMatrix);
+            _fileStream.ReadFully(_baseEncryptionMatrix);
 
             // Using `value % 255`, a value of 255 at index 0 would become zero
             if (_baseEncryptionMatrix[0] == 255)
