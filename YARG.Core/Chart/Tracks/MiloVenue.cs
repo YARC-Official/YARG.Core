@@ -25,7 +25,7 @@ namespace YARG.Core.Chart
         public List<PerformerEvent> PerformerEvents { get; } = new();
         public List<List<LipsyncEvent>> LipsyncEventsByPart { get; } = new();
         public Performer[] SingerPreference { get; private set; } = Array.Empty<Performer>();
-        public MiloAnimation.MiloAnimationGenre AnimationGenre { get; private set; } = MiloAnimation.MiloAnimationGenre.Rock;
+        public MiloAnimation.MiloAnimationGenre AnimationGenre { get; private set; } = MiloAnimation.MiloAnimationGenre.None;
 
         private List<MiloAnimationEvent> _rawEvents = new();
 
