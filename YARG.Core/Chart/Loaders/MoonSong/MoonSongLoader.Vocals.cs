@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text;
 using System.Text.RegularExpressions;
 using MoonscraperChartEditor.Song;
 using YARG.Core.Extensions;
@@ -89,8 +90,6 @@ namespace YARG.Core.Chart
 
             return new(isHarmony, notePhrases, staticLyricPhrases, mergedPhrases, otherPhrases, textEvents);
         }
-
-
         private List<VocalsPhrase> GetVocalsPhrases(MoonChart moonChart, int harmonyPart, bool staticLyricPhrases)
         {
             var phrases = new List<VocalsPhrase>();
@@ -332,6 +331,50 @@ namespace YARG.Core.Chart
             }
         }
 
+        private readonly struct LyricWord
+        {
+            public          uint   Tick       => Syllables.Count > 0 ? Syllables[0].Tick : 0;
+            public          uint   TickEnd    => Syllables.Count > 0 ? Syllables[^1].TickEnd : 0;
+            public          double Time       => Syllables.Count > 0 ? Syllables[0].Time : 0;
+            public          double TimeEnd    => Syllables.Count > 0 ? Syllables[^1].TimeEnd : 0;
+            public readonly string Text;
+
+            public readonly List<LyricEvent> Syllables;
+
+            private LyricWord(List<LyricEvent> events)
+            {
+                var sb = new StringBuilder();
+                foreach (var ev in events)
+                {
+                    sb.Append(ev.Text);
+                }
+                Text = sb.ToString();
+                Syllables = new List<LyricEvent>();
+                Syllables.AddRange(events);
+            }
+
+            public static List<LyricWord> FromLyricEvents(List<LyricEvent> events)
+            {
+                var words = new List<LyricWord>();
+                var currentWord = new List<LyricEvent>();
+                foreach (var ev in events)
+                {
+                    currentWord.Add(ev);
+                    if (!ev.JoinOrHyphenateWithNext)
+                    {
+                        words.Add(new LyricWord(currentWord));
+                        currentWord.Clear();
+                    }
+                }
+
+                if (currentWord.Count > 0)
+                {
+                    words.Add(new LyricWord(currentWord));
+                }
+                return words;
+            }
+        }
+
         private static VocalsPhrase MergePhrasePair(VocalsPhrase mainPhrase, VocalsPhrase otherPhrase,
             SyncTrack syncTrack)
         {
@@ -340,83 +383,99 @@ namespace YARG.Core.Chart
             var alphanumericRegex = new Regex("[^a-zA-Z0-9]", RegexOptions.Compiled);
 
             var mergedLyrics = new List<LyricEvent>();
-            var mergedLyricIdx = 0;
+            var otherWordIdx = 0;
 
-            var mainPhraseLyrics = mainPhrase.Lyrics.Where(lyric => !lyric.HarmonyHidden).ToList();
-            var otherPhraseLyrics = otherPhrase.Lyrics.Where(lyric => !lyric.HarmonyHidden).ToList();
+            var mainPhraseWords = LyricWord.FromLyricEvents(mainPhrase.Lyrics.Where(lyric => !lyric.HarmonyHidden).ToList());
+            var otherPhraseWords = LyricWord.FromLyricEvents(otherPhrase.Lyrics.Where(lyric => !lyric.HarmonyHidden).ToList());
 
-            if (mainPhraseLyrics.Count == 0 && otherPhraseLyrics.Count == 0)
+            if (mainPhraseWords.Count == 0 && otherPhraseWords.Count == 0)
             {
                 YargLogger.LogFormatWarning("Both phrases at tick {0} have no visible lyrics. Returning main phrase.", mainPhrase.Tick);
                 return mainPhrase;
             }
 
-            if (mainPhraseLyrics.Count == 0)
+            if (mainPhraseWords.Count == 0)
             {
                 return otherPhrase;
             }
 
-            if (otherPhraseLyrics.Count == 0)
+            if (otherPhraseWords.Count == 0)
             {
                 return mainPhrase;
             }
 
-            for (var mainLyricIdx = 0; mainLyricIdx < mainPhraseLyrics.Count; mainLyricIdx++)
+            bool lastPlacedWasMain = true;
+
+            for (var mainWordIdx = 0; mainWordIdx < mainPhraseWords.Count; mainWordIdx++)
             {
-                var mainLyric = mainPhraseLyrics[mainLyricIdx];
+                var mainWord = mainPhraseWords[mainWordIdx];
 
                 // Handle any merged lyrics that happened before the current main lyric
-                while (mergedLyricIdx < otherPhraseLyrics.Count)
+                while (otherWordIdx < otherPhraseWords.Count)
                 {
-                    if (otherPhraseLyrics[mergedLyricIdx].Tick >= mainLyric.Tick - tolerance)
+                    if (otherPhraseWords[otherWordIdx].Tick >= mainWord.Tick - tolerance)
                     {
                         break;
                     }
 
-                    mergedLyrics.Add(otherPhraseLyrics[mergedLyricIdx++]);
+                    lastPlacedWasMain = false;
+                    mergedLyrics.AddRange(otherPhraseWords[otherWordIdx++].Syllables);
                 }
 
                 // If there's a simultaneous syllable in the merged part...
-                if (mergedLyricIdx < otherPhraseLyrics.Count &&
-                    (otherPhraseLyrics[mergedLyricIdx].Tick - mainLyric.Tick <= tolerance ||
-                        mainLyric.Tick - otherPhraseLyrics[mergedLyricIdx].Tick <= tolerance))
+                if (otherWordIdx < otherPhraseWords.Count &&
+                    (otherPhraseWords[otherWordIdx].Tick - mainWord.Tick <= tolerance ||
+                        mainWord.Tick - otherPhraseWords[otherWordIdx].Tick <= tolerance))
                 {
-                    var simultaneousMergedLyric = otherPhraseLyrics[mergedLyricIdx++];
+                    var simultaneousMergedWord = otherPhraseWords[otherWordIdx++];
                     // ...and their texts match...
-                    if (string.Equals(alphanumericRegex.Replace(simultaneousMergedLyric.Text, ""), alphanumericRegex.Replace(mainLyric.Text, ""), StringComparison.OrdinalIgnoreCase))
+                    if (string.Equals(alphanumericRegex.Replace(simultaneousMergedWord.Text, ""), alphanumericRegex.Replace(mainWord.Text, ""), StringComparison.OrdinalIgnoreCase))
                     {
                         // ...make a lyric with the earliest start time, and latest end time, and add it to the merged lyrics
-                        var selectedLyric = mainLyric;
-                        if (simultaneousMergedLyric.Text[0].IsLatin1LetterLower())
+                        var selectedWord = mainWord;
+                        lastPlacedWasMain = true;
+                        if (simultaneousMergedWord.Text[0].IsLatin1LetterLower())
                         {
-                            selectedLyric = simultaneousMergedLyric;
+                            lastPlacedWasMain = false;
+                            selectedWord = simultaneousMergedWord;
                         }
-                        selectedLyric.Time = Math.Min(simultaneousMergedLyric.Time, mainLyric.Time);
-                        selectedLyric.Tick = Math.Min(simultaneousMergedLyric.Tick, mainLyric.Tick);
-                        selectedLyric.TimeLength = Math.Max(simultaneousMergedLyric.TimeEnd, mainLyric.TimeEnd) - selectedLyric.Time;
-                        selectedLyric.TickLength = Math.Max(simultaneousMergedLyric.TickEnd, mainLyric.TickEnd) - selectedLyric.Tick;
+                        selectedWord.Syllables[0].Time = Math.Min(simultaneousMergedWord.Time, mainWord.Time);
+                        selectedWord.Syllables[0].Tick = Math.Min(simultaneousMergedWord.Tick, mainWord.Tick);
+                        selectedWord.Syllables[^1].TimeLength = Math.Max(simultaneousMergedWord.TimeEnd, mainWord.TimeEnd) - selectedWord.Syllables[^1].Time;
+                        selectedWord.Syllables[^1].TickLength = Math.Max(simultaneousMergedWord.TickEnd, mainWord.TickEnd) - selectedWord.Syllables[^1].Tick;
 
-                        mergedLyrics.Add(selectedLyric);
+                        mergedLyrics.AddRange(selectedWord.Syllables);
                     }
                     // ...otherwise, if its text isn't an exact match to the main syllable...
                     else
                     {
-                        // ...add it immediately after the main syllable
-                        mergedLyrics.Add(mainLyric);
-                        mergedLyrics.Add(simultaneousMergedLyric);
+                        // ...add it immediately after the main syllable, in whichever order would be clearest
+                        if (lastPlacedWasMain)
+                        {
+                            mergedLyrics.AddRange(mainWord.Syllables);
+                            mergedLyrics.AddRange(simultaneousMergedWord.Syllables);
+                            lastPlacedWasMain = false;
+                        }
+                        else
+                        {
+                            mergedLyrics.AddRange(simultaneousMergedWord.Syllables);
+                            mergedLyrics.AddRange(mainWord.Syllables);
+                            lastPlacedWasMain = true;
+                        }
                     }
                 }
                 else
                 {
                     // ...if there is not a simultaneous syllable, add the main lyric
-                    mergedLyrics.Add(mainLyric);
+                    mergedLyrics.AddRange(mainWord.Syllables);
+                    lastPlacedWasMain = true;
                 }
             }
 
             // Handle any remaining merged lyrics after the last main phrase lyric
-            while (mergedLyricIdx < otherPhraseLyrics.Count)
+            while (otherWordIdx < otherPhraseWords.Count)
             {
-                mergedLyrics.Add(otherPhraseLyrics[mergedLyricIdx++]);
+                mergedLyrics.AddRange(otherPhraseWords[otherWordIdx++].Syllables);
             }
 
             mainPhrase.PhraseParentNote.AddChildNote(otherPhrase.PhraseParentNote.Clone());
@@ -501,7 +560,6 @@ namespace YARG.Core.Chart
                     finalPhrases.AddRange(SplitPhraseByCharacterCount(timeSplitPhrase));
                 }
             }
-
             finalPhrases.RemoveAll(phrase => phrase.Lyrics.Count == 0);
             phrases = finalPhrases;
         }
@@ -555,7 +613,6 @@ namespace YARG.Core.Chart
 
         private static List<VocalsPhrase> SplitPhraseByTime(VocalsPhrase phrase)
         {
-            const double minTimeForGap = 0.6f;
 
             if (phrase.Lyrics.Count == 0)
             {
@@ -570,17 +627,16 @@ namespace YARG.Core.Chart
             var sliceStartTick = phrase.Tick;
             int sliceStartIndex = 0;
 
-            LyricEvent previousLyric = phrase.Lyrics[0];
+            var previousLyric = phrase.Lyrics[0];
             for (int i = 1; i < phrase.Lyrics.Count; i++)
             {
                 var lyric = phrase.Lyrics[i];
 
-                if (lyric.Time - previousLyric.TimeEnd > minTimeForGap && !previousLyric.JoinOrHyphenateWithNext)
+                if (lyric.Time >= previousLyric.TimeEnd + StaticLyricConstants.SMALL_GAP_THRESHOLD && !previousLyric.JoinOrHyphenateWithNext)
                 {
                     int count = i - sliceStartIndex;
                     resultPhrases.Add(CreateSubPhraseByIndex(phrase, sliceStartIndex, count, sliceStartTime,
-                        sliceStartTick, lyric.Time, lyric.Tick));
-
+                        sliceStartTick, previousLyric.TimeEnd, previousLyric.TickEnd));
                     sliceStartTime = lyric.Time;
                     sliceStartTick = lyric.Tick;
                     sliceStartIndex = i;
@@ -599,7 +655,7 @@ namespace YARG.Core.Chart
 
             int finalCount = phrase.Lyrics.Count - sliceStartIndex;
             resultPhrases.Add(CreateSubPhraseByIndex(phrase, sliceStartIndex, finalCount, sliceStartTime,
-                sliceStartTick, phrase.TimeEnd, phrase.TickEnd));
+                sliceStartTick, phrase.Lyrics[^1].TimeEnd, phrase.Lyrics[^1].TickEnd));
 
             return resultPhrases;
         }
@@ -652,10 +708,10 @@ namespace YARG.Core.Chart
                     int count = (i + 1) - sliceStartIndex;
 
                     resultPhrases.Add(CreateSubPhraseByIndex(phrase, sliceStartIndex, count, sliceStartTime,
-                        sliceStartTick, nextLyric.Time, nextLyric.Tick));
+                        sliceStartTick, lyric.TimeEnd, lyric.TickEnd));
 
-                    sliceStartTime = nextLyric.Time;
-                    sliceStartTick = nextLyric.Tick;
+                    sliceStartTime = lyric.TimeEnd;
+                    sliceStartTick = lyric.TickEnd;
                     sliceStartIndex = i + 1;
                     currentChunkLength = 0;
                 }
