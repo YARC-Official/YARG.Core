@@ -320,6 +320,11 @@ namespace YARG.Core.Song
         }
 
         public static ScanExpected<UnpackedIniEntry> ProcessNewEntry(string directory, FileInfo chartInfo, ChartFormat format, FileInfo? iniFile, string defaultPlaylist, FileCollection collection)
+            => ProcessNewEntry(directory, chartInfo, null, format, iniFile, defaultPlaylist, collection);
+
+        /// <param name="chartData">The chart's bytes if the caller already read them (UltraStar
+        /// discovery does, to classify the file); otherwise the file is read here.</param>
+        internal static ScanExpected<UnpackedIniEntry> ProcessNewEntry(string directory, FileInfo chartInfo, FixedArray<byte>? chartData, ChartFormat format, FileInfo? iniFile, string defaultPlaylist, FileCollection collection)
         {
             IniModifierCollection iniModifiers;
             DateTime? iniLastWrite = default;
@@ -336,7 +341,8 @@ namespace YARG.Core.Song
             var entry = new UnpackedIniEntry(directory, AbridgedFileInfo.NormalizedLastWrite(chartInfo), in iniLastWrite, format, chartInfo.Name);
             entry._metadata.Playlist = defaultPlaylist;
 
-            using var file = FixedArray.LoadFile(chartInfo.FullName);
+            using var ownedFile = chartData == null ? FixedArray.LoadFile(chartInfo.FullName) : null;
+            var file = chartData ?? ownedFile!;
 
             var result = ScanChart(entry, file, iniModifiers, collection);
             return result == ScanResult.Success ? entry : new ScanUnexpected(result);

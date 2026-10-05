@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using YARG.Core.Audio;
 using YARG.Core.Chart;
 using YARG.Core.Chart.Loaders.UltraStar;
 using YARG.Core.Extensions;
@@ -85,6 +86,12 @@ namespace YARG.Core.Song
 
         public override string SortBasedLocation => _location;
         public override string ActualLocation => _location;
+
+        // The cache reader needs these to tell UltraStar entries apart: their folders can
+        // hold several charts (see CacheHandler.ReadIniDirectory).
+        internal ChartFormat Format => _chartFormat;
+        internal string ChartFileName => _chartFileName;
+
         public override DateTime GetLastWriteTime() { return _chartLastWrite; }
 
         protected abstract FixedArray<byte>? GetChartData(string filename);
@@ -119,7 +126,7 @@ namespace YARG.Core.Song
 
             if (_chartFormat == ChartFormat.UltraStar)
             {
-                return SongChart.FromUltraStarBytes(in parseSettings, data.ReadOnlySpan);
+                return SongChart.FromUltraStar(in parseSettings, data);
             }
 
             using var stream = data.ToReferenceStream();
@@ -570,9 +577,10 @@ namespace YARG.Core.Song
 
         private static ScanResult ScanUltraStar(IniSubEntry entry, FixedArray<byte> file, FileCollection? collection = null)
         {
-            var loader = new UltraStarLoader(file);
+            // Only the tags and voice count are needed here, not the notes.
+            var header = UltraStarLoader.ScanHeader(file);
 
-            string? title = loader.GetMetadata("TITLE");
+            string? title = header.GetMetadata("TITLE");
             if (string.IsNullOrWhiteSpace(title))
             {
                 return ScanResult.NoName;
@@ -581,7 +589,7 @@ namespace YARG.Core.Song
             // Blank tags fall back to the default, matching SongMetadata.FillFromIni.
             string? Tag(string key, string? fallback = null)
             {
-                string? value = StringTransformations.NormalizeUnicode(loader.GetMetadata(key));
+                string? value = StringTransformations.NormalizeUnicode(header.GetMetadata(key));
                 return !string.IsNullOrWhiteSpace(value) ? value : fallback;
             }
 
@@ -593,7 +601,7 @@ namespace YARG.Core.Song
                 return ScanResult.NoAudio;
             }
 
-            if (!collection!.Value.FindFile(StringTransformations.NormalizeUnicode(audioFile)!.ToLowerInvariant(), out _))
+            if (!collection!.Value.FindFile(FileCollection.ToKey(audioFile), out var audioInfo))
             {
                 return ScanResult.NoAudio;
             }
@@ -629,16 +637,17 @@ namespace YARG.Core.Song
             // Don't map GAP to SongOffset: UltraStarLoader already bakes it into each note's
             // tick (BeatToTick), so setting it here would apply the shift twice.
 
-            if (UltraStarLoader.TryParseNumber(loader.GetMetadata("VIDEOGAP"), out double videoGapSeconds))
+            if (UltraStarLoader.TryParseNumber(header.GetMetadata("VIDEOGAP"), out double videoGapSeconds))
             {
                 // VIDEOGAP is a seek offset into the video, not a playback delay -- which is
                 // what Video.Start means too.
                 entry._metadata.Video.Start = (long) (videoGapSeconds * SongMetadata.MILLISECOND_FACTOR);
             }
 
-            if (UltraStarLoader.TryParseNumber(loader.GetMetadata("PREVIEWSTART"), out double previewMs))
+            // Seconds, like VIDEOGAP -- not milliseconds.
+            if (UltraStarLoader.TryParseNumber(header.GetMetadata("PREVIEWSTART"), out double previewSeconds))
             {
-                entry._metadata.Preview.Start = (long) previewMs;
+                entry._metadata.Preview.Start = (long) (previewSeconds * SongMetadata.MILLISECOND_FACTOR);
             }
 
             entry._parts.LeadVocals.Difficulties = DifficultyMask.None;
@@ -648,7 +657,7 @@ namespace YARG.Core.Song
             entry._parts.LeadVocals.ActivateDifficulty(Difficulty.Expert);
             entry._parts.LeadVocals.Intensity = 0;
 
-            int voiceCount = loader.VoiceCount;
+            int voiceCount = header.VoiceCount;
             if (voiceCount >= 2)
             {
                 entry._parts.HarmonyVocals.SubTracks = (byte) Math.Min(voiceCount, 3);
@@ -666,10 +675,21 @@ namespace YARG.Core.Song
 
             if (entry._metadata.SongLength <= 0)
             {
-                using var mixer = entry.LoadAudio(0, 0, false);
-                if (mixer != null)
+                // US has no length tag, so the length comes from the audio. Most containers
+                // record it exactly, which is far cheaper than opening a full mixer per song.
+                // Anything that doesn't -- or a folder whose duplicate names make the audio
+                // lookup throw -- keeps the mixer path, so it fails exactly as it always has.
+                if (!collection.Value.ContainedDupes && AudioLengthReader.TryGetExactLength(audioInfo.FullName, out double seconds))
                 {
-                    entry._metadata.SongLength = (long) (mixer.Length * SongMetadata.MILLISECOND_FACTOR);
+                    entry._metadata.SongLength = (long) (seconds * SongMetadata.MILLISECOND_FACTOR);
+                }
+                else
+                {
+                    using var mixer = entry.LoadAudio(0, 0, false);
+                    if (mixer != null)
+                    {
+                        entry._metadata.SongLength = (long) (mixer.Length * SongMetadata.MILLISECOND_FACTOR);
+                    }
                 }
             }
 

@@ -4,6 +4,7 @@ using System.Linq;
 using MoonscraperChartEditor.Song;
 using YARG.Core.Chart.Loaders.UltraStar;
 using YARG.Core.IO;
+using YARG.Core.Parsing;
 
 namespace YARG.Core.Chart
 {
@@ -14,17 +15,19 @@ namespace YARG.Core.Chart
         public static MoonSongLoader LoadUltraStar(ParseSettings settings, string filePath)
         {
             using var fixedArray = FixedArray.LoadFile(filePath);
-            var ultraStarLoader = new UltraStarLoader(fixedArray);
-            var moonSong = ConvertUltraStarToMoonSong(ultraStarLoader);
-
-            return new MoonSongLoader(moonSong, settings);
+            return LoadUltraStar(settings, fixedArray);
         }
 
         public static MoonSongLoader LoadUltraStar(ParseSettings settings, byte[] bytes)
         {
             using var ms = new MemoryStream(bytes);
             using var fixedArray = FixedArray.Read(ms, bytes.Length);
-            var ultraStarLoader = new UltraStarLoader(fixedArray);
+            return LoadUltraStar(settings, fixedArray);
+        }
+
+        internal static MoonSongLoader LoadUltraStar(ParseSettings settings, FixedArray<byte> file)
+        {
+            var ultraStarLoader = new UltraStarLoader(file);
             var moonSong = ConvertUltraStarToMoonSong(ultraStarLoader);
 
             return new MoonSongLoader(moonSong, settings);
@@ -118,6 +121,25 @@ namespace YARG.Core.Chart
             }
         }
 
+        /// <summary>
+        /// SongChart.Lyrics (and the lipsync generated from it) is built from song-level text
+        /// events, which a .mid fills from its vocals track (see MidReader) -- add the same
+        /// events here, from the part the solo Vocals chart shows.
+        /// </summary>
+        private static void AddSongLyrics(MoonSong song, VocalsPart part)
+        {
+            foreach (var phrase in part.NotePhrases)
+            {
+                var parent = phrase.PhraseParentNote;
+                song.InsertText(new MoonText(TextEvents.LYRIC_PHRASE_START, parent.Tick));
+                foreach (var lyric in phrase.Lyrics)
+                {
+                    song.InsertText(new MoonText(TextEvents.LYRIC_PREFIX_WITH_SPACE + lyric.Text, lyric.Tick));
+                }
+                song.InsertText(new MoonText(TextEvents.LYRIC_PHRASE_END, parent.Tick + parent.TickLength));
+            }
+        }
+
         private static MoonSong ConvertUltraStarToMoonSong(UltraStarLoader loader)
         {
             const uint RESOLUTION = 120;
@@ -148,6 +170,7 @@ namespace YARG.Core.Chart
                     ? new List<VocalsPart> { vocalTrack.Parts[0] }
                     : vocalTrack.Parts;
                 AddPartToChart(soloParts, soloChart);
+                AddSongLyrics(moonSong, vocalTrack.Parts[0]);
             }
 
             if (isMultiVoice)

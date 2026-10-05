@@ -5,6 +5,43 @@ namespace YARG.Core.UnitTests.Parsing
     internal class UltraStarLoaderTests_Lyrics : UltraStarLoaderTests
     {
         [Test]
+        public void SongLyricsTrackMatchesTheVocals()
+        {
+            // SongChart.Lyrics (also what lipsync is generated from) was always empty for US,
+            // since only the vocals charts were filled.
+            var songChart = LoadUltraStarChart(Us(
+                "#BPM:120",
+                ": 0 4 0  times",
+                ": 5 4 0  of",
+                ": 10 2 0  n~",
+                ": 13 4 0 eed",
+                "- 20",
+                ": 24 4 0  again"
+            ));
+
+            var phrases = songChart.Lyrics.Phrases;
+            Assert.That(phrases, Has.Count.EqualTo(2));
+            Assert.That(phrases[0].Lyrics.Select(l => l.Text), Is.EqualTo(new[] { "times", "of", "n", "eed" }));
+            Assert.That(phrases[0].Lyrics[2].JoinWithNext, Is.True);
+            Assert.That(phrases[1].Lyrics.Select(l => l.Text), Is.EqualTo(new[] { "again" }));
+        }
+
+        [Test]
+        public void SongLyricsTrackUsesTheFirstVoiceOfADuet()
+        {
+            var songChart = LoadUltraStarChart(Us(
+                "#BPM:120",
+                "P1",
+                ": 0 4 0  one",
+                "P2",
+                ": 0 4 2  two"
+            ));
+
+            var lyrics = songChart.Lyrics.Phrases.SelectMany(p => p.Lyrics).Select(l => l.Text);
+            Assert.That(lyrics, Is.EqualTo(new[] { "one" }));
+        }
+
+        [Test]
         public void ParseBasicLyrics()
         {
             var loader = LoadUltraStar(Us(
