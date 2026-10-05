@@ -274,22 +274,23 @@ namespace MoonscraperChartEditor.Song
         /// <summary>
         /// Ignores the note's forced flag when determining whether it would be a hopo or not
         /// </summary>
-        public bool IsNaturalHopo(uint hopoThreshold)
+        public bool IsNaturalHopo(uint hopoThreshold, bool usesMidiNaturalHopoSubsetException = false)
         {
             // Checking state in this order is important
             return !isChord &&
                 previous != null &&
-                (previous.isChord || rawNote != previous.rawNote) &&
+                (!previous.isChord ? rawNote != previous.rawNote :
+                    !usesMidiNaturalHopoSubsetException || (previous.mask & (1 << rawNote)) == 0) &&
                 tick - previous.tick <= hopoThreshold;
         }
 
         /// <summary>
         /// Would this note be a hopo or not? (Ignores whether the note's tap flag is set or not.)
         /// </summary>
-        public bool IsHopo(uint hopoThreshold)
+        public bool IsHopo(uint hopoThreshold, bool usesMidiNaturalHopoSubsetException = false)
         {
             // F + F || T + T = strum
-            return IsNaturalHopo(hopoThreshold) != forced;
+            return IsNaturalHopo(hopoThreshold, usesMidiNaturalHopoSubsetException) != forced;
         }
 
         /// <summary>
@@ -337,13 +338,13 @@ namespace MoonscraperChartEditor.Song
         /// <summary>
         /// Live calculation of what Note_Type this note would currently be.
         /// </summary>
-        public MoonNoteType GetGuitarNoteType(uint hopoThreshold)
+        public MoonNoteType GetGuitarNoteType(uint hopoThreshold, bool usesMidiNaturalHopoSubsetException = false)
         {
             if ((flags & Flags.Tap) != 0)
             {
                 return MoonNoteType.Tap;
             }
-            return IsHopo(hopoThreshold) ? MoonNoteType.Hopo : MoonNoteType.Strum;
+            return IsHopo(hopoThreshold, usesMidiNaturalHopoSubsetException) ? MoonNoteType.Hopo : MoonNoteType.Strum;
         }
 
         public MoonNoteType GetDrumsNoteType()

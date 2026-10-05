@@ -279,9 +279,19 @@ namespace YARG.Core.Replays.Analyzer
                 }
                 case GameMode.Vocals:
                 {
+                    var multiTrack = _chart.GetVocalsTrack(profile.CurrentInstrument);
+
+                    if (profile.CurrentInstrument == Instrument.PartyVocals)
+                    {
+                        // Free Harmonies: register with modified primary chart (HARM1)
+                        var primaryPart = multiTrack.Parts[0].Clone();
+                        profile.ApplyVocalModifiers(primaryPart);
+                        manager.Register((VocalsEngine)engine, primaryPart.CloneAsInstrumentDifficulty(), _chart, rockMeterPreset);
+                        break;
+                    }
+
                     // Get the notes
-                    var notes = _chart.GetVocalsTrack(profile.CurrentInstrument)
-                        .Parts[profile.HarmonyIndex].Clone();
+                    var notes = multiTrack.Parts[profile.HarmonyIndex].Clone();
                     profile.ApplyVocalModifiers(notes);
                     manager.Register((VocalsEngine)engine, notes.CloneAsInstrumentDifficulty(), _chart, rockMeterPreset);
                     break;
@@ -406,9 +416,31 @@ namespace YARG.Core.Replays.Analyzer
                 }
                 case GameMode.Vocals:
                 {
+                    var multiTrack = _chart.GetVocalsTrack(profile.CurrentInstrument);
+
+                    if (profile.CurrentInstrument == Instrument.PartyVocals)
+                    {
+                        // Free Harmonies: clone and modify ALL parts so vocal modifiers
+                        // apply to every HARM line, matching live gameplay behavior.
+                        var modifiedParts = new List<VocalsPart>();
+                        foreach (var part in multiTrack.Parts)
+                        {
+                            var cloned = part.Clone();
+                            profile.ApplyVocalModifiers(cloned);
+                            modifiedParts.Add(cloned);
+                        }
+                        return new PartyVocalsCoordinatorEngine(
+                            PartyVocalsCoordinatorEngine.BuildMergedTrack(
+                                modifiedParts, modifiedParts[0].CloneAsInstrumentDifficulty()),
+                            modifiedParts,
+                            _chart.SyncTrack,
+                            (VocalsEngineParameters) parameters,
+                            profile.IsBot,
+                            micCount: 1);
+                    }
+
                     // Get the notes
-                    var notes = _chart.GetVocalsTrack(profile.CurrentInstrument)
-                        .Parts[profile.HarmonyIndex].Clone();
+                    var notes = multiTrack.Parts[profile.HarmonyIndex].Clone();
                     profile.ApplyVocalModifiers(notes);
 
                     // Create engine

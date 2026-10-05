@@ -9,6 +9,9 @@ internal sealed class TestSongEntry : SongEntry
 {
     private string _sortBasedLocation = "test-location";
     private string _actualLocation = "test-location";
+    private SongChart? _chart;
+
+    public int LoadChartCallCount { get; private set; }
 
     public override EntryType SubType => EntryType.Ini;
 
@@ -19,6 +22,16 @@ internal sealed class TestSongEntry : SongEntry
     public void SetParts(AvailableParts parts)
     {
         _parts = parts;
+    }
+
+    public void SetHash(HashWrapper hash)
+    {
+        _hash = hash;
+    }
+
+    public void SetChart(SongChart? chart)
+    {
+        _chart = chart;
     }
 
     public void SetMetadata(
@@ -123,9 +136,19 @@ internal sealed class TestSongEntry : SongEntry
         return IsValid(in parts);
     }
 
+    public static ScanExpected<long> ParseMidiForTest(FixedArray<byte> file, ref AvailableParts parts,
+        ref DrumsType drumsType)
+    {
+        return ParseMidi(file, ref parts, ref drumsType);
+    }
+
     public override DateTime GetLastWriteTime() => DateTime.UnixEpoch;
 
-    public override SongChart? LoadChart() => null;
+    public override SongChart? LoadChart()
+    {
+        LoadChartCallCount++;
+        return _chart;
+    }
 
     public override StemMixer? LoadAudio(float speed, double volume, bool enableCensoring, params SongStem[] ignoreStems) => null;
 

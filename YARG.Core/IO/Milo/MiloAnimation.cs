@@ -9,10 +9,11 @@ namespace YARG.Core.IO
     {
         public enum MiloAnimationGenre
         {
-            Metal,
-            Goth,
-            Rock,
-            Punk
+            None,
+            Banger,
+            Dramatic,
+            Rocker,
+            Spazz
         }
 
         private const    string           MILO_ANIMATION_FILE = "song.anim";
@@ -31,17 +32,17 @@ namespace YARG.Core.IO
             const int offset = 0x1C;
             if (_bandSongPref.Length < offset + 4)
             {
-                return MiloAnimationGenre.Rock;
+                return MiloAnimationGenre.None;
             }
             var length = _bandSongPref[offset];
             var genre = Encoding.UTF8.GetString(_bandSongPref.Slice(offset + 1, length).ToArray());
             return genre.ToLower() switch
             {
-                "banger"   => MiloAnimationGenre.Metal,
-                "dramatic" => MiloAnimationGenre.Goth,
-                "rocker"   => MiloAnimationGenre.Rock,
-                "spazz"    => MiloAnimationGenre.Punk,
-                _          => MiloAnimationGenre.Rock // Fallback
+                "banger"   => MiloAnimationGenre.Banger,
+                "dramatic" => MiloAnimationGenre.Dramatic,
+                "rocker"   => MiloAnimationGenre.Rocker,
+                "spazz"    => MiloAnimationGenre.Spazz,
+                _          => MiloAnimationGenre.None
             };
         }
 

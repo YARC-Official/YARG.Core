@@ -17,6 +17,8 @@ namespace YARG.Core.Chart
     {
         public uint Resolution => SyncTrack.Resolution;
 
+        internal bool SoloSectionLengthIncludesTerminalTick { get; }
+
         public float VocalScrollSpeed { get; set; }
 
         public List<TextEvent> GlobalEvents { get; set; } = new();
@@ -117,11 +119,13 @@ namespace YARG.Core.Chart
         // To explicitly allow creation without going through a file
         public SongChart(uint resolution)
         {
-            SyncTrack = new(resolution);
+            SyncTrack = new SyncTrack(resolution);
         }
 
         internal SongChart(ISongLoader loader)
         {
+            SoloSectionLengthIncludesTerminalTick = loader is MoonSongLoader moon
+                && moon.SoloSectionLengthIncludesTerminalTick;
             GlobalEvents = loader.LoadGlobalEvents();
             SyncTrack = loader.LoadSyncTrack();
             VenueTrack = loader.LoadVenueTrack();
@@ -302,7 +306,10 @@ namespace YARG.Core.Chart
             return instrument switch
             {
                 Instrument.Vocals => Vocals,
+                // PartyVocals uses the harmony track when available; falls back to
+                // solo vocals for songs with no harmony parts (effectively HARM1-only).
                 Instrument.Harmony => Harmony,
+                Instrument.PartyVocals => Harmony.Parts[0].NotePhrases.Count > 0 ? Harmony : Vocals,
                 _ => throw new ArgumentException($"Instrument {instrument} is not a vocals instrument!")
             };
         }

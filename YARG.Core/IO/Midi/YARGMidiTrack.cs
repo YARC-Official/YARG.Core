@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Runtime.CompilerServices;
+using System.Text;
 
 namespace YARG.Core.IO
 {
@@ -92,18 +93,28 @@ namespace YARG.Core.IO
         public bool FindTrackName(out TextSpan trackname)
         {
             trackname = TextSpan.Empty;
+            var recognizedTrackName = TextSpan.Empty;
             var stats = default(MidiStats);
             while (ParseEvent(ref stats) && _tickPosition == 0)
             {
                 if (stats.Type == MidiEventType.Text_TrackName)
                 {
                     var ev = ExtractTextOrSysEx();
-                    if (!trackname.IsEmpty && !trackname.SequenceEqual(in ev))
+                    if (trackname.IsEmpty)
                     {
-                        return false;
+                        trackname = ev;
                     }
-                    trackname = ev;
+                    if (recognizedTrackName.IsEmpty &&
+                        TRACKNAMES.ContainsKey(ev.GetString(Encoding.ASCII)))
+                    {
+                        recognizedTrackName = ev;
+                    }
                 }
+            }
+
+            if (!recognizedTrackName.IsEmpty)
+            {
+                trackname = recognizedTrackName;
             }
 
             _trackPosition = 0;

@@ -339,7 +339,7 @@ namespace YARG.Core.Chart.Loaders.UltraStar
 
         public VocalsTrack LoadVocalsTrack(Instrument instrument)
         {
-            if (instrument != Instrument.Vocals && instrument != Instrument.Harmony)
+            if (instrument != Instrument.Vocals && instrument != Instrument.Harmony && instrument != Instrument.PartyVocals)
             {
                 throw new ArgumentException("UltraStar only supports Vocals and HarmonyVocals.", nameof(instrument));
             }
@@ -350,7 +350,7 @@ namespace YARG.Core.Chart.Loaders.UltraStar
             {
                 parts.Add(BuildVocalsPart(_partNotes[0], false));
             }
-            else if (instrument == Instrument.Harmony)
+            else if (instrument == Instrument.Harmony || instrument == Instrument.PartyVocals)
             {
                 bool isDuet = _metadata.TryGetValue("PARTS", out var p) && p == "2";
 
