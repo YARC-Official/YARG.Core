@@ -316,18 +316,24 @@ namespace YARG.Core.Chart
 
             if (isStaticLyricsPhrase)
             {
+                // Compacted in one pass: matchedLyrics is indexed by each lyric's original
+                // position, so removing lyrics one at a time while still reading it would check
+                // the wrong flags and drop every lyric after the first unmatched one.
+                int kept = 0;
                 for (int i = 0; i < phrase.Lyrics.Count; i++)
                 {
                     var lyric = phrase.Lyrics[i];
-                    if (!matchedLyrics[i])
+                    if (matchedLyrics[i])
                     {
-                        YargLogger.LogFormatWarning(
-                            "Could not find a note for lyric '{0}' at tick {1} in phrase at tick {2}, removing",
-                            lyric.Text, lyric.Tick, phrase.Tick);
-                        phrase.Lyrics.RemoveAt(i);
-                        i--;
+                        phrase.Lyrics[kept++] = lyric;
+                        continue;
                     }
+
+                    YargLogger.LogFormatWarning(
+                        "Could not find a note for lyric '{0}' at tick {1} in phrase at tick {2}, removing",
+                        lyric.Text, lyric.Tick, phrase.Tick);
                 }
+                phrase.Lyrics.RemoveRange(kept, phrase.Lyrics.Count - kept);
             }
         }
 
