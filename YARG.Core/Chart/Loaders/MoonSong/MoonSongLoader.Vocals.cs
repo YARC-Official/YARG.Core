@@ -310,8 +310,8 @@ namespace YARG.Core.Chart
             if (unmatchedNoteCount > 0)
             {
                 YargLogger.LogFormatInfo(
-                    "Could not find a lyric for {0} note(s) in phrase at tick {1}",
-                    unmatchedNoteCount, phrase.Tick);
+                    "Could not find an associated lyric for {0}/{1} notes in phrase at time {2}",
+                    unmatchedNoteCount, phrase.Lyrics.Count, phrase.Time);
             }
 
             if (isStaticLyricsPhrase)
@@ -326,13 +326,16 @@ namespace YARG.Core.Chart
                     if (matchedLyrics[i])
                     {
                         phrase.Lyrics[kept++] = lyric;
-                        continue;
                     }
-
-                    YargLogger.LogFormatWarning(
-                        "Could not find a note for lyric '{0}' at tick {1} in phrase at tick {2}, removing",
-                        lyric.Text, lyric.Tick, phrase.Tick);
                 }
+
+                if (kept < phrase.Lyrics.Count)
+                {
+                    YargLogger.LogFormatInfo(
+                        "Could not find an associated note for {0}/{1} lyrics in phrase at time {2}",
+                        phrase.Lyrics.Count - kept, phrase.Lyrics.Count, phrase.Time);
+                }
+
                 phrase.Lyrics.RemoveRange(kept, phrase.Lyrics.Count - kept);
             }
         }
