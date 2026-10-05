@@ -4,6 +4,7 @@ using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
 using YARG.Core.Audio;
+using YARG.Core.Chart.Loaders.UltraStar;
 using YARG.Core.Extensions;
 using YARG.Core.IO;
 using YARG.Core.Logging;
@@ -35,7 +36,7 @@ namespace YARG.Core.Song.Cache
         /// if multiple cache version changes happen in a single day).
         /// </summary>
         /// <remarks>Change whenever the song cache needs to be cleared and regenerated, e.g. when the new data is added to the cache.</remarks>
-        private const int CACHE_VERSION = 26_09_04_01;
+        private const int CACHE_VERSION = 26_10_05_01;
 
         public static ScanProgressTracker Progress => _progress;
         private static ScanProgressTracker _progress;
@@ -184,6 +185,10 @@ namespace YARG.Core.Song.Cache
         private readonly Dictionary<string, CONModification> conModifications = new();
 
         private readonly HashSet<string> preScannedPaths = new();
+        // UltraStar folders can hold several charts, so loading one from the cache can't mark
+        // the whole folder as done -- a sibling that was edited or added would never be
+        // scanned. Instead these are the chart names already loaded, per directory.
+        private readonly Dictionary<string, HashSet<string>> cachedUltraStarCharts = new();
         private readonly SortedDictionary<string, ScanResult> badSongs = new();
         #endregion
 
@@ -811,11 +816,19 @@ namespace YARG.Core.Song.Cache
         {
             bool hasIni = collection.FindFile("song.ini", out var ini);
             var iniFile = hasIni ? ini : null;
-            for (int i = hasIni ? 0 : 3; i < 4; ++i)
+            // A song.ini marks an FoF/RB-style folder: only its fixed-name charts are
+            // considered. UltraStar (the last slot) is only searched for in folders without
+            // one, so ini folders never pay for .txt discovery or probing.
+            for (int i = hasIni ? 0 : 3; i < (hasIni ? 3 : 4); ++i)
             {
                 ref readonly var chartType = ref IniSubEntry.CHART_FILE_TYPES[i];
                 if (chartType.Format == ChartFormat.UltraStar)
                 {
+                    if (!collection.ContainsTextFiles)
+                    {
+                        continue;
+                    }
+
                     // UltraStar charts are conventionally "Artist - Title.txt", not a fixed
                     // name. Multiple matches means multiple variants of a song sharing a folder, not an
                     // ambiguity, so each is scanned on its own.
@@ -827,11 +840,27 @@ namespace YARG.Core.Song.Cache
                         // and should be ignored. The denylist skips the common case with no file I/O; anything else
                         // still goes through the content check, so no non-chart .txt with an unrecognized name
                         // can slip through as a "bad song."
-                        if (IsCommonNonChartFileName(txtFile) || !IsUltraStarChart(txtFile))
+                        if (IsCommonNonChartFileName(txtFile))
                         {
                             continue;
                         }
-                        ScanIniChart(collection, txtFile, chartType.Format, iniFile, group, defaultPlaylist);
+
+                        // Already loaded from the cache, but still a song in this folder.
+                        if (IsCachedUltraStarChart(collection.Directory, txtFile))
+                        {
+                            scannedAny = true;
+                            continue;
+                        }
+
+                        using var chartData = LoadUltraStarChart(txtFile, out bool readFailed);
+                        if (chartData == null && !readFailed)
+                        {
+                            continue;
+                        }
+
+                        // On a read failure chartData is null, so ScanIniChart reads the file
+                        // itself and reports whatever goes wrong exactly as for any other chart.
+                        ScanIniChart(collection, txtFile, chartType.Format, iniFile, group, defaultPlaylist, chartData);
                         scannedAny = true;
                     }
 
@@ -874,42 +903,86 @@ namespace YARG.Core.Song.Cache
             "readme", "license", "licence", "copying", "changelog",
         };
 
+        private void MarkCachedUltraStarChart(string directory, string chartFileName)
+        {
+            lock (cachedUltraStarCharts)
+            {
+                if (!cachedUltraStarCharts.TryGetValue(directory, out var names))
+                {
+                    names = new HashSet<string>();
+                    cachedUltraStarCharts.Add(directory, names);
+                }
+                names.Add(FileCollection.ToKey(chartFileName));
+            }
+        }
+
+        private bool IsCachedUltraStarChart(string directory, FileInfo chart)
+        {
+            lock (cachedUltraStarCharts)
+            {
+                return cachedUltraStarCharts.TryGetValue(directory, out var names) && names.Contains(FileCollection.ToKey(chart.Name));
+            }
+        }
+
         private static bool IsCommonNonChartFileName(FileInfo file)
         {
             return NON_CHART_TEXT_FILE_NAMES.Contains(Path.GetFileNameWithoutExtension(file.Name));
         }
 
         /// <summary>
-        /// The format requires the first non-blank line to be a '#' tag, which is enough to
-        /// tell a chart from a readme.
+        /// Reads a candidate .txt once, returning its bytes if it's an UltraStar chart (see
+        /// <see cref="UltraStarLoader.ClassifyTextFile"/>), so the scan doesn't open it again.
+        /// A file that can't be opened is skipped, as before. One that opens but can't be
+        /// read sets <paramref name="readFailed"/> so the caller still reports it.
         /// </summary>
-        private static bool IsUltraStarChart(FileInfo file)
+        private static FixedArray<byte>? LoadUltraStarChart(FileInfo file, out bool readFailed)
         {
+            readFailed = false;
+            FileStream stream;
             try
             {
-                using var reader = file.OpenText();
-                string? line;
-                while ((line = reader.ReadLine()) != null)
-                {
-                    line = line.Trim();
-                    if (line.Length > 0)
-                    {
-                        return line[0] == '#';
-                    }
-                }
+                stream = new FileStream(file.FullName, FileMode.Open, FileAccess.Read, FileShare.Read, 1);
             }
             catch (Exception e)
             {
                 YargLogger.LogException(e, $"Error while probing text file {file}!");
+                return null;
             }
-            return false;
+
+            using (stream)
+            {
+                try
+                {
+                    // Classifying usually reads just the first line, so a large stray .txt is
+                    // never loaded in full.
+                    var kind = UltraStarLoader.ClassifyTextFile(stream);
+                    if (kind == UltraStarFileKind.Chart)
+                    {
+                        stream.Position = 0;
+                        return FixedArray.Read(stream, stream.Length);
+                    }
+
+                    if (kind == UltraStarFileKind.NonChartText)
+                    {
+                        YargLogger.LogFormatDebug("Skipping {0}: it starts with '#' but has no UltraStar tags or notes", file.FullName);
+                    }
+                }
+                catch (Exception e)
+                {
+                    YargLogger.LogException(e, $"Error while reading text file {file}!");
+                    readFailed = true;
+                }
+            }
+            return null;
         }
 
-        private void ScanIniChart(in FileCollection collection, FileInfo chart, ChartFormat format, FileInfo? ini, IniEntryGroup group, string defaultPlaylist)
+        private void ScanIniChart(in FileCollection collection, FileInfo chart, ChartFormat format, FileInfo? ini, IniEntryGroup group, string defaultPlaylist, FixedArray<byte>? chartData = null)
         {
             try
             {
-                var entry = UnpackedIniEntry.ProcessNewEntry(collection.Directory, chart, format, ini, defaultPlaylist, collection);
+                var entry = chartData != null
+                    ? UnpackedIniEntry.ProcessNewEntry(collection.Directory, chart, chartData, format, ini, defaultPlaylist, collection)
+                    : UnpackedIniEntry.ProcessNewEntry(collection.Directory, chart, format, ini, defaultPlaylist, collection);
                 if (entry)
                 {
                     AddEntry(entry.Value);
@@ -1447,7 +1520,14 @@ namespace YARG.Core.Song.Cache
                     var entry = UnpackedIniEntry.TryDeserialize(directory, ref node.Slice, strings);
                     if (entry != null)
                     {
-                        FindOrMarkDirectory(entry.ActualLocation);
+                        if (entry.Format == ChartFormat.UltraStar)
+                        {
+                            MarkCachedUltraStarChart(entry.ActualLocation, entry.ChartFileName);
+                        }
+                        else
+                        {
+                            FindOrMarkDirectory(entry.ActualLocation);
+                        }
                         AddEntry(entry);
                         baseGroup.AddEntry(entry);
                     }
