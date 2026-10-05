@@ -24,6 +24,9 @@ namespace YARG.Core.Game
         public Guid Id;
         public string Name;
 
+        [NonSerialized]
+        public YARGImage? Avatar;
+
         public bool IsBot;
 
         public GameMode GameMode;
