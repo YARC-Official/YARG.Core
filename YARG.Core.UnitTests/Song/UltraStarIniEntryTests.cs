@@ -97,6 +97,132 @@ public class UltraStarIniEntryTests
     }
 
     [Test]
+    public void SongLengthComesFromTheAudioHeader()
+    {
+        // 1.5 s of 8 kHz mono 8-bit PCM. The test audio backend can't open anything, so a
+        // non-zero length can only have come from the file's own header.
+        var fmt = new byte[] { 1, 0, 1, 0, 0x40, 0x1F, 0, 0, 0x40, 0x1F, 0, 0, 1, 0, 8, 0 };
+        var data = new byte[12000];
+        using var wav = new MemoryStream();
+        using (var writer = new BinaryWriter(wav, System.Text.Encoding.ASCII, true))
+        {
+            writer.Write("RIFF".ToCharArray());
+            writer.Write(4 + 8 + fmt.Length + 8 + data.Length);
+            writer.Write("WAVEfmt ".ToCharArray());
+            writer.Write(fmt.Length);
+            writer.Write(fmt);
+            writer.Write("data".ToCharArray());
+            writer.Write(data.Length);
+            writer.Write(data);
+        }
+        string chartPath = WriteChart("song.txt", BasicChart(audio: "audio.wav"));
+        File.WriteAllBytes(Path.Combine(_songDir, "audio.wav"), wav.ToArray());
+
+        var result = UnpackedIniEntry.ProcessNewEntry(_songDir, new FileInfo(chartPath), ChartFormat.UltraStar, null, "", BuildCollection());
+
+        Assert.That(result.HasValue, Is.True, $"Expected UltraStar scan to succeed, but got {result.Error}.");
+        Assert.That(result.Value.SongLengthMilliseconds, Is.EqualTo(1500));
+    }
+
+    [Test]
+    public void SongLengthFallsBackToTheAudioBackendWithoutAUsableHeader()
+    {
+        // A one-byte "audio file" has no header to read, so the backend is asked as before --
+        // and the test backend reports nothing.
+        var entry = Scan(chart: BasicChart());
+        Assert.That(entry.SongLengthMilliseconds, Is.EqualTo(0));
+    }
+
+    [Test]
+    public void RescanPicksUpAChartAddedNextToACachedOne()
+    {
+        // ScanFolderForNames shares one songcache.bin, so the second scan loads "First Song"
+        // from the cache -- which must not hide a variant added to the same folder since.
+        WriteChart("Artist - First.txt", BasicChart(title: "First Song", audio: "first.mp3"));
+        WriteAudio("first.mp3");
+        Assert.That(ScanFolderForNames(), Is.EqualTo(new[] { "First Song" }));
+
+        WriteChart("Artist - Second.txt", BasicChart(title: "Second Song", audio: "second.mp3"));
+        WriteAudio("second.mp3");
+        Assert.That(ScanFolderForNames(), Is.EqualTo(new[] { "First Song", "Second Song" }));
+    }
+
+    [Test]
+    public void RescanPicksUpAnEditedChartNextToACachedOne()
+    {
+        WriteChart("Artist - First.txt", BasicChart(title: "First Song", audio: "first.mp3"));
+        WriteAudio("first.mp3");
+        string second = WriteChart("Artist - Second.txt", BasicChart(title: "Second Song", audio: "second.mp3"));
+        WriteAudio("second.mp3");
+        Assert.That(ScanFolderForNames(), Is.EqualTo(new[] { "First Song", "Second Song" }));
+
+        File.WriteAllText(second, BasicChart(title: "Second Song (Edited)", audio: "second.mp3"));
+        File.SetLastWriteTimeUtc(second, DateTime.UtcNow.AddMinutes(1));
+        Assert.That(ScanFolderForNames(), Is.EqualTo(new[] { "First Song", "Second Song (Edited)" }));
+    }
+
+    [Test]
+    public void MarkdownNotesInAPackFolderDoNotHideItsSongs()
+    {
+        // A pack's own notes file starting with a Markdown heading used to read as a broken
+        // chart: it was reported as a bad song and stopped traversal into the pack's
+        // subfolders, losing every song in them.
+        File.WriteAllText(Path.Combine(_songDir, "info.txt"), "# Pack notes\nThanks for downloading!\n");
+        string inner = Path.Combine(_songDir, "Artist - Song");
+        Directory.CreateDirectory(inner);
+        File.WriteAllText(Path.Combine(inner, "Artist - Song.txt"), BasicChart());
+        File.WriteAllBytes(Path.Combine(inner, "audio.mp3"), new byte[] { 0x00 });
+
+        string badSongsPath = Path.Combine(_root, "badsongs.txt");
+        Assert.That(ScanFolderForNames(badSongsPath), Is.EqualTo(new[] { "Test Song" }));
+        bool reportedAsBad = File.Exists(badSongsPath) && File.ReadAllText(badSongsPath).Contains("info.txt");
+        Assert.That(reportedAsBad, Is.False);
+    }
+
+    [Test]
+    public void BrokenChartIsStillReportedAsABadSong()
+    {
+        // Has notes but no TITLE: a real chart that fails, so it must stay loud.
+        File.WriteAllText(Path.Combine(_songDir, "Artist - Song.txt"), "#ARTIST:Someone\n#MP3:audio.mp3\n: 0 4 0 Hello\nE\n");
+        WriteAudio("audio.mp3");
+
+        string badSongsPath = Path.Combine(_root, "badsongs.txt");
+        Assert.That(ScanFolderForNames(badSongsPath), Is.Empty);
+        Assert.That(File.ReadAllText(badSongsPath), Does.Contain("Artist - Song.txt"));
+    }
+
+    [Test]
+    public void FolderWithSongIniIsNeverScannedAsUltraStar()
+    {
+        // A song.ini marks an FoF/RB-style folder; only its fixed-name charts are looked
+        // for, so a valid UltraStar .txt beside it is neither scanned nor reported.
+        WriteChart("Artist - Song.txt", BasicChart());
+        WriteAudio("audio.mp3");
+        File.WriteAllText(Path.Combine(_songDir, "song.ini"), "[song]\nname = Ini Song\n");
+
+        string badSongsPath = Path.Combine(_root, "badsongs.txt");
+        Assert.That(ScanFolderForNames(badSongsPath), Is.Empty);
+        bool reportedAsBad = File.Exists(badSongsPath) && File.ReadAllText(badSongsPath).Contains("Artist - Song.txt");
+        Assert.That(reportedAsBad, Is.False);
+    }
+
+    [TestCase("Artist - Song.txt", true, TestName = "ContainsTextFiles is set for a .txt file")]
+    [TestCase("Artist - Song.TXT", true, TestName = "ContainsTextFiles matches the extension case-insensitively")]
+    [TestCase("audio.mp3", false, TestName = "ContainsTextFiles is clear without any .txt")]
+    public void FileCollectionRecordsWhetherAnyTextFileExists(string fileName, bool expected)
+    {
+        File.WriteAllBytes(Path.Combine(_songDir, fileName), new byte[] { 0x00 });
+        Assert.That(BuildCollection().ContainsTextFiles, Is.EqualTo(expected));
+    }
+
+    [Test]
+    public void FileCollectionIgnoresADirectoryNamedLikeATextFile()
+    {
+        Directory.CreateDirectory(Path.Combine(_songDir, "notes.txt"));
+        Assert.That(BuildCollection().ContainsTextFiles, Is.False);
+    }
+
+    [Test]
     public void ResolvesVideoFromTagRatherThanFixedStemName()
     {
         // LoadBackground opens the video file directly (no image decoding needed), so this
@@ -212,6 +338,16 @@ public class UltraStarIniEntryTests
     {
         var entry = Scan(chart: BasicChart(extraTags: $"#VIDEOGAP:{tagValue}"));
         Assert.That(entry.VideoStartTimeMilliseconds, Is.EqualTo(expectedMs));
+    }
+
+    // PREVIEWSTART is in seconds per the spec (every real file writes e.g. "47.16"); read as
+    // milliseconds, previews would start at ~0:00.
+    [TestCase("47.16", 47160, TestName = "PREVIEWSTART seconds convert to milliseconds")]
+    [TestCase("47,16", 47160, TestName = "PREVIEWSTART accepts comma decimals")]
+    public void PreviewStartConvertsSecondsToMilliseconds(string tagValue, long expectedMs)
+    {
+        var entry = Scan(chart: BasicChart(extraTags: $"#PREVIEWSTART:{tagValue}"));
+        Assert.That(entry.PreviewStartMilliseconds, Is.EqualTo(expectedMs));
     }
 
     [TestCase("#COMMENT:Sing loud!", "Sing loud!", TestName = "COMMENT maps to the loading phrase")]

@@ -139,40 +139,26 @@ namespace YARG.Core.Chart.Loaders.UltraStar
                     // Trimming it here, before ParseNoteLine ever sees it, would destroy
                     // that signal. No other line kind has such trailing content.
                     string trimmedLine = line.Trim();
-                    if (string.IsNullOrEmpty(trimmedLine))
-                    {
-                        continue;
-                    }
-
-                    if (trimmedLine[0] == '#') { ParseMetadataLine(trimmedLine); continue; }
-
-                    // Voice markers appear both as "P1" and as "P 1"; the spaced form is
-                    // the more common of the two in the wild. Rejecting it would silently
-                    // merge every voice of those files into one part.
-                    if (trimmedLine[0] == 'P')
-                    {
-                        string voice = trimmedLine[1..].TrimStart();
-                        if (voice.Length == 1 && char.IsDigit(voice[0]))
-                        {
-                            ParseVoiceMarker(voice[0] - '0');
-                            continue;
-                        }
-                    }
-
-                    if (trimmedLine == "E")
+                    var kind = ClassifyLine(trimmedLine.AsSpan(), out int voiceNumber);
+                    if (kind == LineKind.End)
                     {
                         break;
                     }
 
-                    if (trimmedLine[0] == 'B')
+                    switch (kind)
                     {
-                        ParseTempoChangeLine(trimmedLine);
-                        continue;
-                    }
-
-                    if (UltraStarNote.IsNoteLineType(trimmedLine[0]))
-                    {
-                        ParseNoteLine(line.TrimStart());
+                        case LineKind.Metadata:
+                            ParseMetadataLine(trimmedLine);
+                            break;
+                        case LineKind.VoiceMarker:
+                            ParseVoiceMarker(voiceNumber);
+                            break;
+                        case LineKind.TempoChange:
+                            ParseTempoChangeLine(trimmedLine);
+                            break;
+                        case LineKind.Note:
+                            ParseNoteLine(line.TrimStart());
+                            break;
                     }
                 }
             }
@@ -180,14 +166,106 @@ namespace YARG.Core.Chart.Loaders.UltraStar
             _tempoChanges.Sort((a, b) => a.Beat.CompareTo(b.Beat));
         }
 
+        private enum LineKind { Blank, Metadata, VoiceMarker, End, TempoChange, Note, Ignored }
+
+        // The line rules shared by the full parser and ScanHeader -- keep them in one place so
+        // a library scan always reads a file exactly the way loading it would.
+        private static LineKind ClassifyLine(ReadOnlySpan<char> trimmedLine, out int voiceNumber)
+        {
+            voiceNumber = 0;
+            if (trimmedLine.IsEmpty)
+            {
+                return LineKind.Blank;
+            }
+
+            char first = trimmedLine[0];
+            if (first == '#')
+            {
+                return LineKind.Metadata;
+            }
+
+            // Voice markers appear both as "P1" and as "P 1"; the spaced form is the more
+            // common of the two in the wild. Rejecting it would silently merge every voice of
+            // those files into one part.
+            if (first == 'P')
+            {
+                var voice = trimmedLine[1..].TrimStart();
+                if (voice.Length == 1 && char.IsDigit(voice[0]))
+                {
+                    voiceNumber = voice[0] - '0';
+                    return LineKind.VoiceMarker;
+                }
+            }
+
+            if (trimmedLine.Length == 1 && first == 'E')
+            {
+                return LineKind.End;
+            }
+
+            if (first == 'B')
+            {
+                return LineKind.TempoChange;
+            }
+
+            return UltraStarNote.IsNoteLineType(first) ? LineKind.Note : LineKind.Ignored;
+        }
+
+        private static bool TryParseMetadataLine(ReadOnlySpan<char> trimmedLine, out string key, out string value)
+        {
+            int colon = trimmedLine.IndexOf(':');
+            if (colon <= 1 || colon >= trimmedLine.Length - 1)
+            {
+                key = value = string.Empty;
+                return false;
+            }
+
+            key = trimmedLine[1..colon].Trim().ToString();
+            value = trimmedLine[(colon + 1)..].Trim().TrimEnd(',').ToString();
+            return true;
+        }
+
+        private static bool IsSupportedVoice(int voiceNumber)
+        {
+            if (voiceNumber >= 1 && voiceNumber <= MAX_VOICE_PARTS)
+            {
+                return true;
+            }
+
+            YargLogger.LogFormatWarning("[UltraStar] Voice marker P{0} exceeds the {1} supported harmony parts — ignoring", voiceNumber, MAX_VOICE_PARTS);
+            return false;
+        }
+
+        // Bounded to 5: only the type/beat/duration/pitch fields are read out of the result
+        // -- anything past them is lyric text, which ExtractRawNoteText re-reads from the line
+        // directly to preserve its whitespace, so there's no need to also tokenize (and
+        // allocate an array entry per word of) the lyric here.
+        private static string[] SplitNoteFields(string noteLine)
+            => noteLine.Split(' ', 5, StringSplitOptions.RemoveEmptyEntries);
+
+        private static bool TryParseRestBeat(string[] fields, out uint beat)
+        {
+            beat = 0;
+            return fields.Length >= 2 && uint.TryParse(fields[1], out beat);
+        }
+
+        private static bool TryParseNoteFields(string[] fields, out uint startBeat, out uint duration, out int pitch)
+        {
+            startBeat = 0;
+            duration = 0;
+            pitch = 0;
+            return fields.Length >= 4
+                && uint.TryParse(fields[1], out startBeat)
+                && uint.TryParse(fields[2], out duration)
+                && int.TryParse(fields[3], out pitch);
+        }
+
         /// <summary>
         /// Per spec (§4.3) each P marker is an independent voice, not a "both singers" one.
         /// </summary>
         private void ParseVoiceMarker(int voiceNumber)
         {
-            if (voiceNumber < 1 || voiceNumber > MAX_VOICE_PARTS)
+            if (!IsSupportedVoice(voiceNumber))
             {
-                YargLogger.LogFormatWarning("[UltraStar] Voice marker P{0} exceeds the {1} supported harmony parts — ignoring", voiceNumber, MAX_VOICE_PARTS);
                 return;
             }
 
@@ -214,14 +292,11 @@ namespace YARG.Core.Chart.Loaders.UltraStar
 
         private void ParseMetadataLine(string line)
         {
-            int colon = line.IndexOf(':');
-            if (colon <= 1 || colon >= line.Length - 1)
+            if (!TryParseMetadataLine(line.AsSpan(), out string key, out string value))
             {
                 return;
             }
 
-            string key = line[1..colon].Trim();
-            string value = line[(colon + 1)..].Trim().TrimEnd(',');
             _metadata[key] = value;
 
             if (key.Equals("BPM", StringComparison.OrdinalIgnoreCase))
@@ -242,11 +317,7 @@ namespace YARG.Core.Chart.Loaders.UltraStar
 
         private void ParseNoteLine(string line)
         {
-            // Bounded to 5: only the type/beat/duration/pitch fields are read out of `parts`
-            // below -- anything past them is lyric text, which ExtractRawNoteText re-reads
-            // from `line` directly to preserve its whitespace, so there's no need to also
-            // tokenize (and allocate an array entry per word of) the lyric here.
-            var parts = line.Split(' ', 5, StringSplitOptions.RemoveEmptyEntries);
+            var parts = SplitNoteFields(line);
             if (parts.Length < 1)
             {
                 return;
@@ -260,7 +331,7 @@ namespace YARG.Core.Chart.Loaders.UltraStar
                 // bleed into whatever note follows (same rule as ParseVoiceMarker's reset).
                 _pendingPitchSlide = false;
                 _previousHadTrailingSpace = true;
-                if (parts.Length >= 2 && uint.TryParse(parts[1], out uint restBeat))
+                if (TryParseRestBeat(parts, out uint restBeat))
                 {
                     GetOrCreatePart(_currentPart).Add(new UltraStarNote
                     {
@@ -274,14 +345,7 @@ namespace YARG.Core.Chart.Loaders.UltraStar
                 return;
             }
 
-            if (parts.Length < 4)
-            {
-                return;
-            }
-
-            if (!uint.TryParse(parts[1], out uint startBeat) ||
-                !uint.TryParse(parts[2], out uint duration) ||
-                !int.TryParse(parts[3], out int pitch))
+            if (!TryParseNoteFields(parts, out uint startBeat, out uint duration, out int pitch))
             {
                 return;
             }
