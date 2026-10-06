@@ -9,7 +9,6 @@ using YARG.Core.Venue;
 using System.Linq;
 using YARG.Core.Logging;
 using YARG.Core.Extensions;
-using YARG.Core.Utility;
 
 namespace YARG.Core.Song
 {
@@ -22,9 +21,8 @@ namespace YARG.Core.Song
         internal override void Serialize(MemoryStream stream, CacheWriteIndices node)
         {
             stream.WriteByte((byte) _chartFormat);
-            // Written here (not via the shared IniSubEntry fields) since the actual chart
-            // filename must be known before the file-existence check on cache reload, which
-            // happens ahead of the rest of IniSubEntry's deserialized fields.
+            // Here, not with IniSubEntry's fields: cache reload checks the chart file exists
+            // before it reads those.
             stream.Write(_chartFileName);
             stream.Write(_chartLastWrite.ToBinary(), Endianness.Little);
             stream.Write(_iniLastWrite.HasValue);
@@ -302,12 +300,8 @@ namespace YARG.Core.Song
             {
                 foreach (var file in Directory.EnumerateFiles(_location))
                 {
-                    // NFC-normalized to match tag-supplied names (see
-                    // StringTransformations.NormalizeUnicode); lowercased because
-                    // LoadMiloData/LoadVocData match extensions against these keys ordinally.
-                    string key = StringTransformations.NormalizeUnicode(file[(_location.Length + 1)..])!
-                        .ToLowerInvariant();
-                    files.Add(key, file);
+                    // Lowercase keys: LoadMiloData/LoadVocData match extensions against them ordinally.
+                    files.Add(FileCollection.ToKey(file[(_location.Length + 1)..]), file);
                 }
             }
             return files;
@@ -319,12 +313,9 @@ namespace YARG.Core.Song
             _iniLastWrite = iniLastWrite;
         }
 
-        public static ScanExpected<UnpackedIniEntry> ProcessNewEntry(string directory, FileInfo chartInfo, ChartFormat format, FileInfo? iniFile, string defaultPlaylist, FileCollection collection)
-            => ProcessNewEntry(directory, chartInfo, null, format, iniFile, defaultPlaylist, collection);
-
-        /// <param name="chartData">The chart's bytes if the caller already read them (UltraStar
-        /// discovery does, to classify the file); otherwise the file is read here.</param>
-        internal static ScanExpected<UnpackedIniEntry> ProcessNewEntry(string directory, FileInfo chartInfo, FixedArray<byte>? chartData, ChartFormat format, FileInfo? iniFile, string defaultPlaylist, FileCollection collection)
+        /// <param name="chartData">The chart's bytes if the caller already read them;
+        /// otherwise the file is read here.</param>
+        public static ScanExpected<UnpackedIniEntry> ProcessNewEntry(string directory, FileInfo chartInfo, ChartFormat format, FileInfo? iniFile, string defaultPlaylist, FileCollection collection, FixedArray<byte>? chartData = null)
         {
             IniModifierCollection iniModifiers;
             DateTime? iniLastWrite = default;

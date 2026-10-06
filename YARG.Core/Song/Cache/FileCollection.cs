@@ -11,8 +11,7 @@ namespace YARG.Core.Song.Cache
         private readonly Dictionary<string, FileSystemInfo> _entries;
         public readonly string Directory;
         public readonly bool ContainedDupes;
-        // Lets UltraStar discovery skip folders with no .txt at all without walking or
-        // allocating anything -- most folders in a non-UltraStar library.
+        // Lets UltraStar discovery skip the many folders with no .txt for free.
         public readonly bool ContainsTextFiles;
 
         // Attribute maps to Remote Storage files (ex. oneDrive) that are not locally present

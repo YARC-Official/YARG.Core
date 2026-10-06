@@ -32,15 +32,11 @@ namespace YARG.Core.Utility
 
         /// <summary>
         /// Normalizes to composed form (NFC) so strings from different sources compare equal.
-        /// Filenames need this: macOS' filesystem APIs return decomposed (NFD) names for
-        /// accented characters, while the tags naming those files are composed.
+        /// Filenames need this: macOS returns decomposed (NFD) names for accented characters,
+        /// while the tags naming those files are composed.
         /// </summary>
-        /// <remarks>
-        /// Called once per filesystem entry during a full library scan, so the already-
-        /// normalized (typically plain-ASCII) common case is checked first -- IsNormalized
-        /// is far cheaper than actually rebuilding the string via Normalize.
-        /// </remarks>
-        public static string? NormalizeUnicode(string? text)
+        /// <remarks>Runs on every file in a library scan, so it skips the cheap already-normalized case.</remarks>
+        internal static string? NormalizeUnicode(string? text)
             => text == null || text.IsNormalized(NormalizationForm.FormC)
                 ? text
                 : text.Normalize(NormalizationForm.FormC);

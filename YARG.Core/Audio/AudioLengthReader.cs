@@ -239,69 +239,70 @@ namespace YARG.Core.Audio
         private static bool TryWav(Stream stream, long start, out double seconds)
         {
             seconds = 0;
-            Span<byte> chunk = stackalloc byte[16];
-            long end = stream.Length;
+            Span<byte> fmt = stackalloc byte[16];
             long position = start + 12;
-            uint byteRate = 0;
-            ushort format = 0;
-            while (position + 8 <= end && ReadAt(stream, position, chunk.Slice(0, 8)))
+            if (!FindChunk(stream, ref position, "fmt ", false, out long fmtBody, out uint fmtSize)
+                || fmtSize < 16 || !ReadAt(stream, fmtBody, fmt)
+                || !FindChunk(stream, ref position, "data", false, out long dataBody, out uint dataSize))
             {
-                uint size = BinaryPrimitives.ReadUInt32LittleEndian(chunk.Slice(4));
-                long body = position + 8;
-                if (Matches(chunk.Slice(0, 4), "fmt "))
-                {
-                    if (size < 16 || !ReadAt(stream, body, chunk))
-                    {
-                        return false;
-                    }
-                    format = BinaryPrimitives.ReadUInt16LittleEndian(chunk);
-                    byteRate = BinaryPrimitives.ReadUInt32LittleEndian(chunk.Slice(8));
-                }
-                else if (Matches(chunk.Slice(0, 4), "data"))
-                {
-                    // Only uncompressed PCM/float has a fixed byte rate; a streamed file (size
-                    // unknown) can claim more data than it holds.
-                    const ushort PCM = 1, FLOAT = 3, EXTENSIBLE = 0xFFFE;
-                    if (byteRate == 0 || (format != PCM && format != FLOAT && format != EXTENSIBLE) || size > end - body)
-                    {
-                        return false;
-                    }
-                    seconds = (double) size / byteRate;
-                    return true;
-                }
-                position = body + size + (size & 1);
+                return false;
             }
-            return false;
+
+            ushort format = BinaryPrimitives.ReadUInt16LittleEndian(fmt);
+            uint byteRate = BinaryPrimitives.ReadUInt32LittleEndian(fmt.Slice(8));
+
+            // Only uncompressed PCM/float has a fixed byte rate; a streamed file (size
+            // unknown) can claim more data than it holds.
+            const ushort PCM = 1, FLOAT = 3, EXTENSIBLE = 0xFFFE;
+            if (byteRate == 0 || (format != PCM && format != FLOAT && format != EXTENSIBLE) || dataSize > stream.Length - dataBody)
+            {
+                return false;
+            }
+            seconds = (double) dataSize / byteRate;
+            return true;
         }
 
         private static bool TryAiff(Stream stream, long start, out double seconds)
         {
             seconds = 0;
-            Span<byte> chunk = stackalloc byte[18];
-            long end = stream.Length;
+            // COMM: channels (2), sample frames (4), sample size (2), sample rate (80-bit float)
+            Span<byte> comm = stackalloc byte[18];
             long position = start + 12;
-            while (position + 8 <= end && ReadAt(stream, position, chunk.Slice(0, 8)))
+            if (!FindChunk(stream, ref position, "COMM", true, out long body, out uint size)
+                || size < 18 || !ReadAt(stream, body, comm))
             {
-                uint size = BinaryPrimitives.ReadUInt32BigEndian(chunk.Slice(4));
-                long body = position + 8;
-                if (Matches(chunk.Slice(0, 4), "COMM"))
+                return false;
+            }
+
+            uint frames = BinaryPrimitives.ReadUInt32BigEndian(comm.Slice(2));
+            double rate = ReadExtended(comm.Slice(8, 10));
+            if (!(rate > 0))
+            {
+                return false;
+            }
+            seconds = frames / rate;
+            return true;
+        }
+
+        // Walks RIFF (little-endian) or IFF (big-endian) chunks from `position` to the first
+        // one named `id`, leaving `position` just past it.
+        private static bool FindChunk(Stream stream, ref long position, string id, bool bigEndian, out long body, out uint size)
+        {
+            Span<byte> header = stackalloc byte[8];
+            while (position + 8 <= stream.Length && ReadAt(stream, position, header))
+            {
+                size = bigEndian
+                    ? BinaryPrimitives.ReadUInt32BigEndian(header.Slice(4))
+                    : BinaryPrimitives.ReadUInt32LittleEndian(header.Slice(4));
+                body = position + 8;
+                position = body + size + (size & 1);
+                if (Matches(header.Slice(0, 4), id))
                 {
-                    // channels (2), sample frames (4), sample size (2), sample rate (80-bit float)
-                    if (size < 18 || !ReadAt(stream, body, chunk))
-                    {
-                        return false;
-                    }
-                    uint frames = BinaryPrimitives.ReadUInt32BigEndian(chunk.Slice(2));
-                    double rate = ReadExtended(chunk.Slice(8, 10));
-                    if (!(rate > 0))
-                    {
-                        return false;
-                    }
-                    seconds = frames / rate;
                     return true;
                 }
-                position = body + size + (size & 1);
             }
+            body = 0;
+            size = 0;
             return false;
         }
 
@@ -407,6 +408,8 @@ namespace YARG.Core.Audio
         {
             seconds = 0;
             Span<byte> buffer = stackalloc byte[18];
+            uint frames;
+            uint headerBytes;
             long xingStart = frameStart + 4 + frame.SideInfoSize;
             if (ReadAt(stream, xingStart, buffer.Slice(0, 8))
                 && (Matches(buffer.Slice(0, 4), "Xing") || Matches(buffer.Slice(0, 4), "Info")))
@@ -417,32 +420,28 @@ namespace YARG.Core.Audio
                 {
                     return false;
                 }
-                uint frames = BinaryPrimitives.ReadUInt32BigEndian(buffer);
-                uint headerBytes = BinaryPrimitives.ReadUInt32BigEndian(buffer.Slice(4));
-                if (!HeaderMatchesFile(stream, frameStart, frames, headerBytes, frame))
-                {
-                    return false;
-                }
-                // Every frame, as a prescan would count them -- encoder delay/padding (LAME tag)
-                // is deliberately not trimmed, since that depends on the decoder.
-                seconds = (double) frames * frame.SamplesPerFrame / frame.SampleRate;
-                return true;
+                frames = BinaryPrimitives.ReadUInt32BigEndian(buffer);
+                headerBytes = BinaryPrimitives.ReadUInt32BigEndian(buffer.Slice(4));
+            }
+            // VBRI: "VBRI", version (2), delay (2), quality (2), bytes (4), frames (4)
+            else if (ReadAt(stream, frameStart + 4 + 32, buffer) && Matches(buffer.Slice(0, 4), "VBRI"))
+            {
+                headerBytes = BinaryPrimitives.ReadUInt32BigEndian(buffer.Slice(10));
+                frames = BinaryPrimitives.ReadUInt32BigEndian(buffer.Slice(14));
+            }
+            else
+            {
+                return false;
             }
 
-            // VBRI: "VBRI", version (2), delay (2), quality (2), bytes (4), frames (4)
-            long vbriStart = frameStart + 4 + 32;
-            if (ReadAt(stream, vbriStart, buffer.Slice(0, 18)) && Matches(buffer.Slice(0, 4), "VBRI"))
+            if (!HeaderMatchesFile(stream, frameStart, frames, headerBytes, frame))
             {
-                uint headerBytes = BinaryPrimitives.ReadUInt32BigEndian(buffer.Slice(10));
-                uint frames = BinaryPrimitives.ReadUInt32BigEndian(buffer.Slice(14));
-                if (!HeaderMatchesFile(stream, frameStart, frames, headerBytes, frame))
-                {
-                    return false;
-                }
-                seconds = (double) frames * frame.SamplesPerFrame / frame.SampleRate;
-                return true;
+                return false;
             }
-            return false;
+            // Every frame, as a prescan would count them. Encoder delay/padding (LAME tag) is
+            // deliberately not trimmed, since that depends on the decoder.
+            seconds = (double) frames * frame.SamplesPerFrame / frame.SampleRate;
+            return true;
         }
 
         // The longest the header's byte count may disagree with the file before its frame

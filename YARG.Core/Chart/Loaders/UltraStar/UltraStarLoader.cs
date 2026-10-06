@@ -23,14 +23,13 @@ namespace YARG.Core.Chart.Loaders.UltraStar
         // An UltraStar beat is an eighth of the internal tick beat.
         private const uint US_BEATS_PER_TICK_BEAT = 8;
 
+        // YARG's harmony model has three parts (HARM1-3, see VocalNote.HarmonyPart), so a
+        // P4+ marker has no part to route into.
+        private const int MAX_VOICE_PARTS = 3;
+
         #endregion
 
         #region Fields
-
-        // Maximum number of independent voices supported. Matches YARG's harmony
-        // vocals model (HARM1-3, see VocalNote.HarmonyPart) — a P4+ marker has no
-        // slot to route into.
-        private const int MAX_VOICE_PARTS = 3;
 
         private readonly Dictionary<string, string> _metadata     = new(StringComparer.OrdinalIgnoreCase);
         private          uint                       _ticksPerBeat = 120;
@@ -50,10 +49,8 @@ namespace YARG.Core.Chart.Loaders.UltraStar
         private int _currentPart = 0;
         // Set by a trailing '~'; the next note consumes it as its pitch-slide marker.
         private bool _pendingPitchSlide = false;
-        // Whether the most recently parsed note's raw lyric text ended with the format's
-        // extra word-boundary space (or there is no previous note yet) -- if false, and the
-        // next note also has no extra leading space, the two glue into one word (see
-        // ParseNoteLine).
+        // Whether the previous note's lyric ended with the word-boundary space (true before
+        // the first note). Without that space on either side, two syllables glue into one word.
         private bool _previousHadTrailingSpace = true;
 
         #endregion
@@ -69,34 +66,28 @@ namespace YARG.Core.Chart.Loaders.UltraStar
             public string Lyric         { get; set; } = string.Empty;
 
             /// <summary>
-            /// Glues this note's lyric directly onto the next one, with no space and no
-            /// visible hyphen (LyricSymbolFlags.JoinWithNext). Set by a trailing '~', by a
-            /// leading '~' with text on the following note, or by the absence of the
-            /// format's word-boundary space (see ParseNoteLine's leading/trailing-space
-            /// handling) on either side.
+            /// Glues this lyric onto the next one with no space (LyricSymbolFlags.JoinWithNext).
+            /// Set by a trailing '~', or when neither side of the boundary has the format's
+            /// word-boundary space.
             /// </summary>
             public bool JoinWithNext { get; set; }
 
             /// <summary>
-            /// True for a bare '~' continuation (pitched, no syllable text): it still emits
-            /// a pitch-slide-only LyricEvent ("+", no letters), so a word-join must walk
-            /// past it to reach the actual previous syllable (see MarkPreviousNoteJoinWithNext).
+            /// A bare '~' hold: pitched, but with no syllable of its own, so a word-join walks
+            /// past it to the real previous syllable (see MarkPreviousNoteJoinWithNext).
             /// </summary>
             public bool IsSilentHold { get; set; }
 
             public uint EndBeat => StartBeat + DurationBeats;
 
-            // Type rules live here so adding a note type touches one place.
             public static bool IsNoteLineType(char type) => type is ':' or '*' or 'F' or '-' or 'R' or 'G';
-            public static bool IsGoldenType(char type)   => type is '*' or 'G';
             public static bool IsRestType(char type)     => type == '-';
 
-            // Freestyle (F), Rap (R), Golden Rap (G) carry no pitch requirement. All three
-            // are treated as scored+unpitched; per spec Freestyle should be unscored, but
-            // YARG has no zero-score vocal category (see VocalNote.IsNonPitched).
+            // Freestyle (F), Rap (R) and Golden Rap (G) have no pitch. All three score as
+            // unpitched: YARG has no unscored vocal category for Freestyle (see VocalNote.IsNonPitched).
             public static bool IsUnpitchedType(char type) => type is 'F' or 'R' or 'G';
 
-            public bool IsGolden    => IsGoldenType(Type);
+            public bool IsGolden    => Type is '*' or 'G';
             public bool IsUnpitched => IsUnpitchedType(Type);
             public bool IsRest      => IsRestType(Type);
         }
@@ -126,50 +117,75 @@ namespace YARG.Core.Chart.Loaders.UltraStar
 
         private void ParseUltraStarFile(FixedArray<byte> file)
         {
-            unsafe
+            var text = DecodeText(file).AsSpan();
+            while (TryReadLine(ref text, out var line))
             {
-                using var stream = new UnmanagedMemoryStream(file.Ptr, file.Length);
-                using var reader = new StreamReader(stream, Encoding.UTF8);
-                string? line;
-
-                while ((line = reader.ReadLine()) != null)
+                var trimmed = line.Trim();
+                var kind = ClassifyLine(trimmed, out int voiceNumber);
+                if (kind == LineKind.End)
                 {
-                    // Only left-trim for note lines: a trailing space is a legal, meaningful
-                    // part of the note-text field signaling a word boundary.
-                    // Trimming it here, before ParseNoteLine ever sees it, would destroy
-                    // that signal. No other line kind has such trailing content.
-                    string trimmedLine = line.Trim();
-                    var kind = ClassifyLine(trimmedLine.AsSpan(), out int voiceNumber);
-                    if (kind == LineKind.End)
-                    {
-                        break;
-                    }
+                    break;
+                }
 
-                    switch (kind)
-                    {
-                        case LineKind.Metadata:
-                            ParseMetadataLine(trimmedLine);
-                            break;
-                        case LineKind.VoiceMarker:
-                            ParseVoiceMarker(voiceNumber);
-                            break;
-                        case LineKind.TempoChange:
-                            ParseTempoChangeLine(trimmedLine);
-                            break;
-                        case LineKind.Note:
-                            ParseNoteLine(line.TrimStart());
-                            break;
-                    }
+                switch (kind)
+                {
+                    case LineKind.Metadata:
+                        ParseMetadataLine(trimmed);
+                        break;
+                    case LineKind.VoiceMarker:
+                        ParseVoiceMarker(voiceNumber);
+                        break;
+                    case LineKind.TempoChange:
+                        ParseTempoChangeLine(trimmed);
+                        break;
+                    case LineKind.Note:
+                        // Untrimmed: a trailing space in the lyric marks a word boundary.
+                        ParseNoteLine(line);
+                        break;
                 }
             }
 
             _tempoChanges.Sort((a, b) => a.Beat.CompareTo(b.Beat));
         }
 
+        // UTF-8 unless a BOM says otherwise. ScanHeader and the full parser must decode alike.
+        private static string DecodeText(FixedArray<byte> file)
+        {
+            using var reader = new StreamReader(file.ToReferenceStream(), Encoding.UTF8);
+            return reader.ReadToEnd();
+        }
+
+        // Splits on "\r", "\n" or "\r\n", like StreamReader.ReadLine.
+        private static bool TryReadLine(ref ReadOnlySpan<char> text, out ReadOnlySpan<char> line)
+        {
+            if (text.IsEmpty)
+            {
+                line = default;
+                return false;
+            }
+
+            int end = text.IndexOfAny('\r', '\n');
+            if (end < 0)
+            {
+                line = text;
+                text = ReadOnlySpan<char>.Empty;
+                return true;
+            }
+
+            line = text[..end];
+            int next = end + 1;
+            if (text[end] == '\r' && next < text.Length && text[next] == '\n')
+            {
+                next++;
+            }
+            text = text[next..];
+            return true;
+        }
+
         private enum LineKind { Blank, Metadata, VoiceMarker, End, TempoChange, Note, Ignored }
 
-        // The line rules shared by the full parser and ScanHeader -- keep them in one place so
-        // a library scan always reads a file exactly the way loading it would.
+        // Shared by the full parser and ScanHeader, so a library scan reads a file exactly
+        // the way loading it would.
         private static LineKind ClassifyLine(ReadOnlySpan<char> trimmedLine, out int voiceNumber)
         {
             voiceNumber = 0;
@@ -184,9 +200,8 @@ namespace YARG.Core.Chart.Loaders.UltraStar
                 return LineKind.Metadata;
             }
 
-            // Voice markers appear both as "P1" and as "P 1"; the spaced form is the more
-            // common of the two in the wild. Rejecting it would silently merge every voice of
-            // those files into one part.
+            // Voice markers appear as both "P1" and "P 1", and the spaced form is the more
+            // common one. Rejecting it would merge every voice of those files into one part.
             if (first == 'P')
             {
                 var voice = trimmedLine[1..].TrimStart();
@@ -224,6 +239,64 @@ namespace YARG.Core.Chart.Loaders.UltraStar
             return true;
         }
 
+        /// <summary>
+        /// Splits a note or rest line, "type beat [duration pitch text]". Fields are separated
+        /// by spaces only. The text is everything after the single space that follows the
+        /// pitch, with its own leading and trailing spaces kept: an extra space there marks a
+        /// word boundary. A rest needs only its beat.
+        /// </summary>
+        /// <returns>
+        /// Whether the line has every field its type needs. <paramref name="type"/> is set either way.
+        /// </returns>
+        private static bool TryParseNoteLine(ReadOnlySpan<char> line, out char type, out uint startBeat,
+            out uint duration, out int pitch, out ReadOnlySpan<char> text)
+        {
+            duration = 0;
+            pitch = 0;
+            text = ReadOnlySpan<char>.Empty;
+
+            var remaining = line.TrimStart();
+            var typeField = NextField(ref remaining);
+            type = typeField.IsEmpty ? '\0' : typeField[0];
+            if (!uint.TryParse(NextField(ref remaining), out startBeat))
+            {
+                return false;
+            }
+
+            if (UltraStarNote.IsRestType(type))
+            {
+                return true;
+            }
+
+            if (!uint.TryParse(NextField(ref remaining), out duration) || !int.TryParse(NextField(ref remaining), out pitch))
+            {
+                return false;
+            }
+
+            text = !remaining.IsEmpty && remaining[0] == ' ' ? remaining[1..] : remaining;
+            return true;
+        }
+
+        // The next space-separated field, leaving `line` at the space that follows it.
+        private static ReadOnlySpan<char> NextField(ref ReadOnlySpan<char> line)
+        {
+            int start = 0;
+            while (start < line.Length && line[start] == ' ')
+            {
+                start++;
+            }
+
+            int end = start;
+            while (end < line.Length && line[end] != ' ')
+            {
+                end++;
+            }
+
+            var field = line[start..end];
+            line = line[end..];
+            return field;
+        }
+
         private static bool IsSupportedVoice(int voiceNumber)
         {
             if (voiceNumber >= 1 && voiceNumber <= MAX_VOICE_PARTS)
@@ -233,30 +306,6 @@ namespace YARG.Core.Chart.Loaders.UltraStar
 
             YargLogger.LogFormatWarning("[UltraStar] Voice marker P{0} exceeds the {1} supported harmony parts — ignoring", voiceNumber, MAX_VOICE_PARTS);
             return false;
-        }
-
-        // Bounded to 5: only the type/beat/duration/pitch fields are read out of the result
-        // -- anything past them is lyric text, which ExtractRawNoteText re-reads from the line
-        // directly to preserve its whitespace, so there's no need to also tokenize (and
-        // allocate an array entry per word of) the lyric here.
-        private static string[] SplitNoteFields(string noteLine)
-            => noteLine.Split(' ', 5, StringSplitOptions.RemoveEmptyEntries);
-
-        private static bool TryParseRestBeat(string[] fields, out uint beat)
-        {
-            beat = 0;
-            return fields.Length >= 2 && uint.TryParse(fields[1], out beat);
-        }
-
-        private static bool TryParseNoteFields(string[] fields, out uint startBeat, out uint duration, out int pitch)
-        {
-            startBeat = 0;
-            duration = 0;
-            pitch = 0;
-            return fields.Length >= 4
-                && uint.TryParse(fields[1], out startBeat)
-                && uint.TryParse(fields[2], out duration)
-                && int.TryParse(fields[3], out pitch);
         }
 
         /// <summary>
@@ -276,23 +325,19 @@ namespace YARG.Core.Chart.Loaders.UltraStar
             GetOrCreatePart(_currentPart);
         }
 
-        private void ParseTempoChangeLine(string line)
+        private void ParseTempoChangeLine(ReadOnlySpan<char> line)
         {
-            var parts = line.Split(' ', StringSplitOptions.RemoveEmptyEntries);
-            if (parts.Length < 3 || !uint.TryParse(parts[1], out uint beat))
-            {
-                return;
-            }
-
-            if (TryParseNumber(parts[2], out double bpm) && bpm > 0)
+            NextField(ref line); // "B"
+            if (uint.TryParse(NextField(ref line), out uint beat)
+                && TryParseNumber(NextField(ref line).ToString(), out double bpm) && bpm > 0)
             {
                 _tempoChanges.Add((beat, bpm));
             }
         }
 
-        private void ParseMetadataLine(string line)
+        private void ParseMetadataLine(ReadOnlySpan<char> line)
         {
-            if (!TryParseMetadataLine(line.AsSpan(), out string key, out string value))
+            if (!TryParseMetadataLine(line, out string key, out string value))
             {
                 return;
             }
@@ -315,55 +360,42 @@ namespace YARG.Core.Chart.Loaders.UltraStar
             }
         }
 
-        private void ParseNoteLine(string line)
+        private void ParseNoteLine(ReadOnlySpan<char> line)
         {
-            var parts = SplitNoteFields(line);
-            if (parts.Length < 1)
-            {
-                return;
-            }
-
-            char noteType = parts[0][0];
+            bool parsed = TryParseNoteLine(line, out char noteType, out uint startBeat, out uint duration, out int pitch, out var rawText);
 
             if (UltraStarNote.IsRestType(noteType))
             {
-                // A rest breaks the phrase; a pending trailing '~' or word-join from before it must not
-                // bleed into whatever note follows (same rule as ParseVoiceMarker's reset).
+                // A rest breaks the phrase, even one whose beat doesn't parse: a pending '~' or
+                // word-join must not carry over to the note after it.
                 _pendingPitchSlide = false;
                 _previousHadTrailingSpace = true;
-                if (TryParseRestBeat(parts, out uint restBeat))
+                if (parsed)
                 {
                     GetOrCreatePart(_currentPart).Add(new UltraStarNote
                     {
                         Type = noteType,
-                        StartBeat = restBeat,
-                        DurationBeats = 0,
-                        Pitch = 0,
-                        Lyric = string.Empty
+                        StartBeat = startBeat,
                     });
                 }
                 return;
             }
 
-            if (!TryParseNoteFields(parts, out uint startBeat, out uint duration, out int pitch))
+            if (!parsed)
             {
                 return;
             }
 
-            // Locate the note-text field in the ORIGINAL line (not `parts`, which has
-            // already collapsed every run of spaces) so its own leading/trailing whitespace
-            // survives. The format uses an extra space on either side of the single
-            // mandatory separator to signal a word boundary; its absence means the
-            // syllable glues directly onto its neighbor with no separator at all.
-            string rawText = ExtractRawNoteText(line);
-            bool hasLeadingSpace = rawText.Length > 0 && rawText[0] == ' ';
-            bool hasTrailingSpace = rawText.Length > 0 && rawText[^1] == ' ';
-            string lyric = rawText.Trim();
+            // An extra space on either side of the lyric marks a word boundary. Without one
+            // on either side, this syllable glues onto the previous one with no separator.
+            bool hasLeadingSpace = !rawText.IsEmpty && rawText[0] == ' ';
+            bool hasTrailingSpace = !rawText.IsEmpty && rawText[^1] == ' ';
+            bool gluedToPrevious = !hasLeadingSpace && !_previousHadTrailingSpace;
+            string lyric = rawText.Trim().ToString();
 
-            // '+' is YARG's pitch-slide marker but ordinary text in UltraStar. Left alone, a
-            // trailing '+'' would be read downstream as a request to merge this note into the
-            // previous one (LyricSymbols.GetLyricFlags), and StripForVocals would delete it
-            // from the display either way -- so spell it out to keep the lyric intact.
+            // '+' is ordinary text in UltraStar but YARG's pitch-slide marker: left in, it would
+            // merge this note into the previous one (LyricSymbols.GetLyricFlags) and vanish
+            // from the display (StripForVocals). Spell it out instead.
             if (lyric.IndexOf(LyricSymbols.PITCH_SLIDE_SYMBOL) >= 0)
             {
                 lyric = lyric.Replace(LyricSymbols.PITCH_SLIDE_SYMBOL.ToString(), "plus");
@@ -373,14 +405,10 @@ namespace YARG.Core.Chart.Loaders.UltraStar
             bool joinWithNext = false;
             bool isSilentHold = false;
 
-            // The format's extra space on either side of the mandatory separator marks a word
-            // boundary (can be a trailing or leading space). A '~' means "this pitch continues",
-            // which is only meaningful inside, a word, so no form of '~' may slide across this boundary.
-            bool gluedToPrevious = !hasLeadingSpace && !_previousHadTrailingSpace;
-
-            // Consume the previous note's trailing '~' before this note's own '~' handling
-            // can set the flag again for the note after this one. Unpitched notes have no
-            // pitch to slide into, so they take precedence over blending.
+            // A '~' means "this pitch continues", which only makes sense inside a word, so no
+            // form of it slides across a word boundary. Unpitched notes have no pitch to
+            // slide into. Consume the previous note's trailing '~' before this note's own '~'
+            // can set it again for the next note.
             bool pitchSlide = _pendingPitchSlide && !isUnpitched && gluedToPrevious;
             _pendingPitchSlide = false;
 
@@ -389,15 +417,14 @@ namespace YARG.Core.Chart.Loaders.UltraStar
                 lyric = lyric[1..];
                 if (lyric.Length > 0)
                 {
-                    // A leading '~' blends this syllable back into the previous one; the
-                    // word-boundary join itself is handled by the whitespace check below.
+                    // A leading '~' blends this syllable back into the previous one.
                     pitchSlide = gluedToPrevious;
                 }
                 else if (!isUnpitched)
                 {
-                    // A bare hold has no syllable of its own, so a space before it marks
-                    // no word boundary and it always continues the note before it. Its
-                    // forward blend is gated when the next note is parsed.
+                    // A bare hold has no syllable, so a space before it marks no word boundary:
+                    // it always continues the previous note. Whether it blends forward is
+                    // decided when the next note is parsed.
                     pitchSlide = true;
                     isSilentHold = true;
                     _pendingPitchSlide = true;
@@ -405,14 +432,13 @@ namespace YARG.Core.Chart.Loaders.UltraStar
             }
             else if (lyric.Length > 0 && lyric[^1] == US_MELISMA_SYMBOL)
             {
-                // Trailing '~' ("n~" then "eed"): hyphenate here, but the pitch-slide goes
-                // on the NEXT note -- MoonSongLoader.Vocals merges on the later note's flag.
+                // Trailing '~' ("n~" then "eed"): hyphenate here, but the pitch slide goes on
+                // the NEXT note, since MoonSongLoader.Vocals merges on the later note's flag.
                 lyric = lyric[..^1];
                 joinWithNext = true;
                 _pendingPitchSlide = true;
             }
 
-            // Glued to the previous syllable means no space and no hyphen between them.
             if (lyric.Length > 0 && gluedToPrevious)
             {
                 MarkPreviousNoteJoinWithNext();
@@ -436,31 +462,10 @@ namespace YARG.Core.Chart.Loaders.UltraStar
             });
         }
 
-        /// <summary>
-        /// Returns the note-text field exactly as written, past the single mandatory
-        /// separator following the pitch column -- unlike `line.Split(' ', ...)`, this does
-        /// not collapse the field's own meaningful leading/trailing whitespace.
-        /// </summary>
-        private static string ExtractRawNoteText(string line)
-        {
-            int idx = 0;
-            for (int token = 0; token < 4; token++)
-            {
-                while (idx < line.Length && line[idx] == ' ') idx++;
-                while (idx < line.Length && line[idx] != ' ') idx++;
-            }
-            if (idx < line.Length && line[idx] == ' ')
-            {
-                idx++;
-            }
-            return idx < line.Length ? line[idx..] : string.Empty;
-        }
-
         private void MarkPreviousNoteJoinWithNext()
         {
-            // Walk past a bare '~' hold (no real syllable, so a join can't attach there) to
-            // find the actual previous syllable; a rest still breaks the phrase outright and
-            // stops the search -- it must never be joined across.
+            // Walk past bare '~' holds, which have no syllable to join, to the real previous
+            // syllable. Never join across a rest.
             var partNotes = GetOrCreatePart(_currentPart);
             for (int i = partNotes.Count - 1; i >= 0; i--)
             {
