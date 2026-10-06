@@ -25,6 +25,10 @@ namespace YARG.Core.IO
 
         public        ImageFormat Format { get; private set; }
 
+        public        bool        IsDisposed { get; private set; }
+
+        public unsafe bool        IsValid => !IsDisposed && Data != null;
+
         public static YARGImage? Load(string path)
         {
             using var bytes = FixedArray.LoadFile(path);
@@ -95,6 +99,7 @@ namespace YARG.Core.IO
                     _handle.Dispose();
                 }
                 Data = null;
+                IsDisposed = true;
             }
         }
 
