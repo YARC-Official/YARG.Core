@@ -452,6 +452,7 @@ namespace YARG.Core.Song
             stream.Write(_settings.HopoThreshold, Endianness.Little);
             stream.Write(_settings.SustainCutoffThreshold, Endianness.Little);
             stream.Write(_settings.OverdiveMidiNote, Endianness.Little);
+            stream.Write(_settings.TuningOffsetCents, Endianness.Little);
         }
 
         protected SongEntry() { }
@@ -552,6 +553,7 @@ namespace YARG.Core.Song
             _settings.HopoThreshold = stream.Read<long>(Endianness.Little);
             _settings.SustainCutoffThreshold = stream.Read<long>(Endianness.Little);
             _settings.OverdiveMidiNote = stream.Read<int>(Endianness.Little);
+            _settings.TuningOffsetCents = stream.Read<int>(Endianness.Little);
 
             SetSortStrings();
         }
