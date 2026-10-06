@@ -814,64 +814,16 @@ namespace YARG.Core.Song.Cache
         /// <returns>Whether files pertaining to an unpacked ini entry were discovered</returns>
         private bool ScanIniEntry(in FileCollection collection, IniEntryGroup group, string defaultPlaylist)
         {
-            bool hasIni = collection.FindFile("song.ini", out var ini);
-            var iniFile = hasIni ? ini : null;
-            // A song.ini marks an FoF/RB-style folder: only its fixed-name charts are
-            // considered. UltraStar (the last slot) is only searched for in folders without
-            // one, so ini folders never pay for .txt discovery or probing.
-            for (int i = hasIni ? 0 : 3; i < (hasIni ? 3 : 4); ++i)
+            // A song.ini marks an FoF/RB-style folder, which only has fixed-name charts.
+            // UltraStar charts are only looked for in folders without one.
+            if (!collection.FindFile("song.ini", out var ini))
             {
-                ref readonly var chartType = ref IniSubEntry.CHART_FILE_TYPES[i];
-                if (chartType.Format == ChartFormat.UltraStar)
-                {
-                    if (!collection.ContainsTextFiles)
-                    {
-                        continue;
-                    }
+                return ScanUltraStarCharts(collection, group, defaultPlaylist);
+            }
 
-                    // UltraStar charts are conventionally "Artist - Title.txt", not a fixed
-                    // name. Multiple matches means multiple variants of a song sharing a folder, not an
-                    // ambiguity, so each is scanned on its own.
-                    var txtFiles = collection.FindAllFilesByExtension(".txt");
-                    bool scannedAny = false;
-                    foreach (var txtFile in txtFiles)
-                    {
-                        // Packs occasionally ship a readme/license alongside the chart; those aren't songs
-                        // and should be ignored. The denylist skips the common case with no file I/O; anything else
-                        // still goes through the content check, so no non-chart .txt with an unrecognized name
-                        // can slip through as a "bad song."
-                        if (IsCommonNonChartFileName(txtFile))
-                        {
-                            continue;
-                        }
-
-                        // Already loaded from the cache, but still a song in this folder.
-                        if (IsCachedUltraStarChart(collection.Directory, txtFile))
-                        {
-                            scannedAny = true;
-                            continue;
-                        }
-
-                        using var chartData = LoadUltraStarChart(txtFile, out bool readFailed);
-                        if (chartData == null && !readFailed)
-                        {
-                            continue;
-                        }
-
-                        // On a read failure chartData is null, so ScanIniChart reads the file
-                        // itself and reports whatever goes wrong exactly as for any other chart.
-                        ScanIniChart(collection, txtFile, chartType.Format, iniFile, group, defaultPlaylist, chartData);
-                        scannedAny = true;
-                    }
-
-                    if (!scannedAny)
-                    {
-                        continue;
-                    }
-                    return true;
-                }
-
-                if (!collection.FindFile(chartType.Filename, out var chart))
+            foreach (var (filename, format) in IniSubEntry.CHART_FILE_TYPES)
+            {
+                if (format == ChartFormat.UltraStar || !collection.FindFile(filename, out var chart))
                 {
                     continue;
                 }
@@ -880,24 +832,64 @@ namespace YARG.Core.Song.Cache
                 //
                 // Note though that this is purely a pre-add check.
                 // We will not invalidate an entry from cache if the user removes the audio after the fact.
-                //
-                // Returning false lets traversal continue into subdirectories.
                 if (!collection.ContainsAudio())
                 {
                     AddToBadSongs(chart.FullName, ScanResult.NoAudio);
                     return false;
                 }
 
-                ScanIniChart(collection, chart, chartType.Format, iniFile, group, defaultPlaylist);
+                ScanIniChart(collection, chart, format, ini, group, defaultPlaylist);
                 return true;
             }
             return false;
         }
 
-        // Plain-text accompaniment files that are never a chart. A pure string comparison
-        // against a fixed list, not the song title or folder name -- unlike matching
-        // against those, this can't misfire on a case/spelling/Unicode mismatch, since it
-        // never looks at anything user- or tag-supplied.
+        /// <summary>
+        /// Scans every UltraStar chart in a folder. They have no fixed name (usually
+        /// "Artist - Title.txt"), and a folder can hold several, each its own song.
+        /// </summary>
+        /// <returns>Whether the folder has any chart, including ones already loaded from the cache</returns>
+        private bool ScanUltraStarCharts(in FileCollection collection, IniEntryGroup group, string defaultPlaylist)
+        {
+            if (!collection.ContainsTextFiles)
+            {
+                return false;
+            }
+
+            bool foundAny = false;
+            foreach (var txtFile in collection.FindAllFilesByExtension(".txt"))
+            {
+                // Skips readmes and licenses without opening them; any other non-chart .txt is
+                // caught by the content check.
+                if (NON_CHART_TEXT_FILE_NAMES.Contains(Path.GetFileNameWithoutExtension(txtFile.Name)))
+                {
+                    continue;
+                }
+
+                if (IsCachedUltraStarChart(collection.Directory, txtFile))
+                {
+                    foundAny = true;
+                    continue;
+                }
+
+                if (!TryReadUltraStarChart(txtFile, out var chartData))
+                {
+                    continue;
+                }
+
+                using (chartData)
+                {
+                    // Null data means the read failed: ScanIniChart reads the file itself and
+                    // reports the error like any other chart's.
+                    ScanIniChart(collection, txtFile, ChartFormat.UltraStar, null, group, defaultPlaylist, chartData);
+                }
+                foundAny = true;
+            }
+            return foundAny;
+        }
+
+        // Matched by file name only, never against tag-supplied names such as the title, so
+        // it can't misfire on a case, spelling or Unicode-form mismatch.
         private static readonly HashSet<string> NON_CHART_TEXT_FILE_NAMES = new(StringComparer.OrdinalIgnoreCase)
         {
             "readme", "license", "licence", "copying", "changelog",
@@ -924,20 +916,17 @@ namespace YARG.Core.Song.Cache
             }
         }
 
-        private static bool IsCommonNonChartFileName(FileInfo file)
-        {
-            return NON_CHART_TEXT_FILE_NAMES.Contains(Path.GetFileNameWithoutExtension(file.Name));
-        }
-
         /// <summary>
-        /// Reads a candidate .txt once, returning its bytes if it's an UltraStar chart (see
-        /// <see cref="UltraStarLoader.ClassifyTextFile"/>), so the scan doesn't open it again.
-        /// A file that can't be opened is skipped, as before. One that opens but can't be
-        /// read sets <paramref name="readFailed"/> so the caller still reports it.
+        /// Reads a candidate .txt once, keeping its bytes if it's an UltraStar chart (see
+        /// <see cref="UltraStarLoader.ClassifyTextFile"/>) so the scan doesn't open it twice.
         /// </summary>
-        private static FixedArray<byte>? LoadUltraStarChart(FileInfo file, out bool readFailed)
+        /// <returns>
+        /// False to skip the file: it isn't a chart, or it can't be opened. True with null
+        /// <paramref name="data"/> if it opened but couldn't be read, so the error still gets reported.
+        /// </returns>
+        private static bool TryReadUltraStarChart(FileInfo file, out FixedArray<byte>? data)
         {
-            readFailed = false;
+            data = null;
             FileStream stream;
             try
             {
@@ -946,43 +935,39 @@ namespace YARG.Core.Song.Cache
             catch (Exception e)
             {
                 YargLogger.LogException(e, $"Error while probing text file {file}!");
-                return null;
+                return false;
             }
 
             using (stream)
             {
                 try
                 {
-                    // Classifying usually reads just the first line, so a large stray .txt is
-                    // never loaded in full.
-                    var kind = UltraStarLoader.ClassifyTextFile(stream);
-                    if (kind == UltraStarFileKind.Chart)
+                    // Usually reads just the first line, so a large stray .txt is never loaded in full.
+                    switch (UltraStarLoader.ClassifyTextFile(stream))
                     {
-                        stream.Position = 0;
-                        return FixedArray.Read(stream, stream.Length);
+                        case UltraStarFileKind.Chart:
+                            stream.Position = 0;
+                            data = FixedArray.Read(stream, stream.Length);
+                            return true;
+                        case UltraStarFileKind.NonChartText:
+                            YargLogger.LogFormatDebug("Skipping {0}: it starts with '#' but has no UltraStar tags or notes", file.FullName);
+                            break;
                     }
-
-                    if (kind == UltraStarFileKind.NonChartText)
-                    {
-                        YargLogger.LogFormatDebug("Skipping {0}: it starts with '#' but has no UltraStar tags or notes", file.FullName);
-                    }
+                    return false;
                 }
                 catch (Exception e)
                 {
                     YargLogger.LogException(e, $"Error while reading text file {file}!");
-                    readFailed = true;
+                    return true;
                 }
             }
-            return null;
         }
 
         private void ScanIniChart(in FileCollection collection, FileInfo chart, ChartFormat format, FileInfo? ini, IniEntryGroup group, string defaultPlaylist, FixedArray<byte>? chartData = null)
         {
             try
             {
-                var entry = chartData != null
-                    ? UnpackedIniEntry.ProcessNewEntry(collection.Directory, chart, chartData, format, ini, defaultPlaylist, collection)
-                    : UnpackedIniEntry.ProcessNewEntry(collection.Directory, chart, format, ini, defaultPlaylist, collection);
+                var entry = UnpackedIniEntry.ProcessNewEntry(collection.Directory, chart, format, ini, defaultPlaylist, collection, chartData);
                 if (entry)
                 {
                     AddEntry(entry.Value);

@@ -67,10 +67,8 @@ public class UltraStarIniEntryTests
     [TestCase("info.txt", TestName = "An unrecognized name still falls back to the content check")]
     public void StrayTextFilesAreNotTreatedAsCharts(string strayFileName)
     {
-        // Packs routinely ship a readme/licence/etc. next to the chart; those must neither
-        // scan as songs nor be reported as bad ones -- whether skipped by the denylist (no
-        // file I/O) or, for a name the denylist doesn't recognize, by the content-sniff
-        // fallback that still runs for anything not on it.
+        // Neither a scanned song nor a bad one, whether the name denylist or the content
+        // check catches it.
         WriteChart("Artist - Song.txt", BasicChart());
         WriteAudio("audio.mp3");
         File.WriteAllText(Path.Combine(_songDir, strayFileName), "Thanks for downloading!\nEnjoy.\n");
@@ -85,10 +83,7 @@ public class UltraStarIniEntryTests
     [Test]
     public void DenylistedNameIsSkippedEvenWithChartLikeContent()
     {
-        // Distinguishes the denylist from the content-sniff fallback: this file is named
-        // "readme.txt" (denylisted) but its content alone would pass IsUltraStarChart (a
-        // leading '#' tag). It must still be skipped -- the denylist check runs first and
-        // short-circuits before the content is ever read.
+        // The denylist runs before the content check, so chart-like content doesn't matter.
         WriteChart("Artist - Song.txt", BasicChart());
         WriteAudio("audio.mp3");
         WriteChart("readme.txt", BasicChart(title: "Should Not Scan"));
@@ -118,7 +113,7 @@ public class UltraStarIniEntryTests
         string chartPath = WriteChart("song.txt", BasicChart(audio: "audio.wav"));
         File.WriteAllBytes(Path.Combine(_songDir, "audio.wav"), wav.ToArray());
 
-        var result = UnpackedIniEntry.ProcessNewEntry(_songDir, new FileInfo(chartPath), ChartFormat.UltraStar, null, "", BuildCollection());
+        var result = TryScan(chartPath);
 
         Assert.That(result.HasValue, Is.True, $"Expected UltraStar scan to succeed, but got {result.Error}.");
         Assert.That(result.Value.SongLengthMilliseconds, Is.EqualTo(1500));
@@ -164,9 +159,8 @@ public class UltraStarIniEntryTests
     [Test]
     public void MarkdownNotesInAPackFolderDoNotHideItsSongs()
     {
-        // A pack's own notes file starting with a Markdown heading used to read as a broken
-        // chart: it was reported as a bad song and stopped traversal into the pack's
-        // subfolders, losing every song in them.
+        // A notes file starting with a Markdown heading must not read as a broken chart: that
+        // would report it and stop traversal into the pack's subfolders.
         File.WriteAllText(Path.Combine(_songDir, "info.txt"), "# Pack notes\nThanks for downloading!\n");
         string inner = Path.Combine(_songDir, "Artist - Song");
         Directory.CreateDirectory(inner);
@@ -206,28 +200,11 @@ public class UltraStarIniEntryTests
         Assert.That(reportedAsBad, Is.False);
     }
 
-    [TestCase("Artist - Song.txt", true, TestName = "ContainsTextFiles is set for a .txt file")]
-    [TestCase("Artist - Song.TXT", true, TestName = "ContainsTextFiles matches the extension case-insensitively")]
-    [TestCase("audio.mp3", false, TestName = "ContainsTextFiles is clear without any .txt")]
-    public void FileCollectionRecordsWhetherAnyTextFileExists(string fileName, bool expected)
-    {
-        File.WriteAllBytes(Path.Combine(_songDir, fileName), new byte[] { 0x00 });
-        Assert.That(BuildCollection().ContainsTextFiles, Is.EqualTo(expected));
-    }
-
-    [Test]
-    public void FileCollectionIgnoresADirectoryNamedLikeATextFile()
-    {
-        Directory.CreateDirectory(Path.Combine(_songDir, "notes.txt"));
-        Assert.That(BuildCollection().ContainsTextFiles, Is.False);
-    }
-
     [Test]
     public void ResolvesVideoFromTagRatherThanFixedStemName()
     {
-        // LoadBackground opens the video file directly (no image decoding needed), so this
-        // exercises tag-driven resolution without a real media fixture. Cover/background
-        // use the same GetSubFiles() lookup but need a decodable image to assert on.
+        // A video needs no decoding to load, unlike the cover and background images, which
+        // share the same lookup.
         var entry = Scan(chart: BasicChart(extraTags: "#VIDEO:clip.mp4"), extraFiles: "clip.mp4");
 
         using var background = entry.LoadBackground(false);
@@ -237,13 +214,11 @@ public class UltraStarIniEntryTests
 
     [TestCase("whatever_the_author_named_it.mp3", TestName = "Audio resolves from the tag, not a fixed stem name")]
     [TestCase("audio.mp3", TestName = "Audio resolves when the tag happens to match a stem name")]
-    // .m4a is absent from IniAudio.SupportedFormats but decodes fine, and is what most
-    // UltraStar charts ship -- the UltraStar path must never gate on that whitelist.
+    // Most UltraStar charts ship .m4a, which IniAudio.SupportedFormats lacks but decodes fine.
     [TestCase("audio.m4a", TestName = "Audio resolves for a format outside IniAudio.SupportedFormats")]
     public void ResolvesAudioFromTagNotFixedStemName(string audioFileName)
     {
-        // A successful scan is itself the assertion: ScanUltraStar returns NoAudio when the
-        // tagged file can't be found (see FailsScanWhenTaggedAudioFileIsMissing).
+        // Scan asserts success, and a missing audio file fails it with NoAudio.
         Assert.That(Scan(chart: BasicChart(audio: audioFileName), audio: audioFileName), Is.Not.Null);
     }
 
@@ -253,7 +228,7 @@ public class UltraStarIniEntryTests
         // Deliberately do not create the "audio.mp3" the chart references.
         string chartPath = WriteChart("song.txt", BasicChart());
 
-        var result = UnpackedIniEntry.ProcessNewEntry(_songDir, new FileInfo(chartPath), ChartFormat.UltraStar, null, "", BuildCollection());
+        var result = TryScan(chartPath);
 
         Assert.That(result.HasValue, Is.False);
         Assert.That(result.Error, Is.EqualTo(ScanResult.NoAudio));
@@ -262,14 +237,11 @@ public class UltraStarIniEntryTests
     [Test]
     public void FailsScanWhenTaggedAudioIsAVideoFile()
     {
-        // Charts occasionally point the audio tag at the same video file as #VIDEO. Nothing
-        // downstream can decode a video container, so the scan must reject it -- otherwise
-        // the entry reaches the library and fails at play time with nothing written to
-        // badsongs.txt to explain why.
+        // A video container can't be decoded as audio, so it must fail loudly at scan time.
         WriteAudio("song.mp4");
         string chartPath = WriteChart("song.txt", BasicChart(audio: "song.mp4"));
 
-        var result = UnpackedIniEntry.ProcessNewEntry(_songDir, new FileInfo(chartPath), ChartFormat.UltraStar, null, "", BuildCollection());
+        var result = TryScan(chartPath);
 
         Assert.That(result.HasValue, Is.False);
         Assert.That(result.Error, Is.EqualTo(ScanResult.UnsupportedAudioFormat));
@@ -278,26 +250,21 @@ public class UltraStarIniEntryTests
     [Test]
     public void ResolvesAudioAcrossUnicodeNormalizationForms()
     {
-        // macOS' filesystem APIs return decomposed names for accented files, while chart
-        // tags are typically composed. Both must resolve to the same file.
+        // macOS returns decomposed names for accented files; chart tags are usually composed.
         Assert.That(COMPOSED_NAME, Is.Not.EqualTo(DECOMPOSED_NAME), "Sanity check: forms must differ byte-for-byte.");
 
         string audio = DECOMPOSED_NAME + ".mp3";
         WriteAudio(audio);
         string chartPath = WriteChart("song.txt", BasicChart(audio: COMPOSED_NAME + ".mp3"));
 
-        var result = UnpackedIniEntry.ProcessNewEntry(_songDir, new FileInfo(chartPath), ChartFormat.UltraStar, null, "", BuildCollection());
+        var result = TryScan(chartPath);
         Assert.That(result.HasValue, Is.True, $"Expected UltraStar scan to succeed, but got {result.Error}.");
     }
 
     [Test]
     public void ResolvesAudioAcrossUnicodeNormalizationFormsDuringFullScan()
     {
-        // Same NFC/NFD mismatch as ResolvesAudioAcrossUnicodeNormalizationForms, but
-        // through a full CacheHandler.RunScan, so the collection ScanUltraStar reuses
-        // (see its FindFile call) is the one CacheHandler itself built while walking the
-        // library, not one this test constructed by hand for the direct-ProcessNewEntry
-        // calls elsewhere in this file.
+        // As above, but with the FileCollection a real library scan builds.
         string audio = DECOMPOSED_NAME + ".mp3";
         WriteAudio(audio);
         WriteChart("song.txt", BasicChart(audio: COMPOSED_NAME + ".mp3"));
@@ -308,8 +275,7 @@ public class UltraStarIniEntryTests
     [Test]
     public void ResolvesVideoAcrossUnicodeNormalizationForms()
     {
-        // Same NFC/NFD mismatch as the audio case, but through GetSubFiles() rather than
-        // the scan-time existence check -- a separate code path.
+        // Loading media resolves names through GetSubFiles, not the scan's FileCollection.
         var entry = Scan(chart: BasicChart(extraTags: $"#VIDEO:{COMPOSED_NAME}.mp4"),
             extraFiles: DECOMPOSED_NAME + ".mp4");
 
@@ -321,16 +287,12 @@ public class UltraStarIniEntryTests
     [Test]
     public void GapDoesNotAlsoSetSongOffset()
     {
-        // GAP is already baked into the chart's own note ticks by UltraStarLoader (see
-        // UltraStarLoaderTests.Basic.cs's GapShiftsFirstNoteByExactlyOneGapNotTwo) --
-        // SongOffset must stay untouched, or playback gets delayed by 2x GAP.
+        // The note ticks already include GAP, so a SongOffset would apply it twice.
         var entry = Scan(chart: BasicChart(extraTags: "#GAP:2500"));
         Assert.That(entry.SongOffsetMilliseconds, Is.EqualTo(0));
     }
 
-    // VIDEOGAP is a seek offset into the video, not a playback delay -- which is what
-    // Video.Start means too, so it maps across without a sign flip. US files routinely
-    // use comma decimals.
+    // VIDEOGAP and Video.Start are both a seek offset into the video, so no sign flip.
     [TestCase("1.5", 1500, TestName = "VIDEOGAP seconds convert to milliseconds")]
     [TestCase("1,5", 1500, TestName = "VIDEOGAP accepts comma decimals")]
     [TestCase("80.2", 80200, TestName = "VIDEOGAP handles a long skip into the video")]
@@ -340,8 +302,7 @@ public class UltraStarIniEntryTests
         Assert.That(entry.VideoStartTimeMilliseconds, Is.EqualTo(expectedMs));
     }
 
-    // PREVIEWSTART is in seconds per the spec (every real file writes e.g. "47.16"); read as
-    // milliseconds, previews would start at ~0:00.
+    // PREVIEWSTART is in seconds, like "47.16".
     [TestCase("47.16", 47160, TestName = "PREVIEWSTART seconds convert to milliseconds")]
     [TestCase("47,16", 47160, TestName = "PREVIEWSTART accepts comma decimals")]
     public void PreviewStartConvertsSecondsToMilliseconds(string tagValue, long expectedMs)
@@ -366,8 +327,7 @@ public class UltraStarIniEntryTests
         Assert.That(entry.Charter.Original, Is.EqualTo(expected));
     }
 
-    // #EDITION is US's closest equivalent to FoF's ini "icon" key, which feeds the
-    // game/pack icon in the library UI.
+    // #EDITION is the closest equivalent to FoF's ini "icon" key.
     [TestCase("#EDITION:SingStar Party", "SingStar Party", TestName = "EDITION maps to Source")]
     [TestCase("", SongMetadata.DEFAULT_SOURCE, TestName = "Source defaults without EDITION")]
     [TestCase("#EDITION:", SongMetadata.DEFAULT_SOURCE, TestName = "A blank EDITION does not clobber the default")]
@@ -388,17 +348,14 @@ public class UltraStarIniEntryTests
             WriteAudio(file);
         }
 
-        var result = UnpackedIniEntry.ProcessNewEntry(_songDir, new FileInfo(chartPath), ChartFormat.UltraStar, null, "", BuildCollection());
+        var result = TryScan(chartPath);
         Assert.That(result.HasValue, Is.True, $"Expected UltraStar scan to succeed, but got {result.Error}.");
         return result.Value;
     }
 
-    /// <summary>
-    /// A real scan always has a FileCollection in hand (see CacheHandler.ScanIniChart);
-    /// building one here keeps these direct-ProcessNewEntry tests exercising the same
-    /// path instead of a test-only nullable fallback.
-    /// </summary>
-    private FileCollection BuildCollection() => new(new DirectoryInfo(_songDir));
+    private ScanExpected<UnpackedIniEntry> TryScan(string chartPath)
+        => UnpackedIniEntry.ProcessNewEntry(_songDir, new FileInfo(chartPath), ChartFormat.UltraStar, null, "",
+            new FileCollection(new DirectoryInfo(_songDir)));
 
     private string WriteChart(string fileName, string content)
     {

@@ -74,14 +74,9 @@ internal class UltraStarLoaderTests_Basic : UltraStarLoaderTests
     [Test]
     public void GapShiftsFirstNoteByExactlyOneGapNotTwo()
     {
-        // Regression test: the standalone UltraStarLoader.LoadSyncTrack() (see ParseGap
-        // above) encodes GAP as a negative starting time on its first TempoChange, but
-        // that value never survives into the actual chart -- MoonSongLoader.UltraStar.cs
-        // converts everything through MoonSong.AddTempo(bpm, tick), which unconditionally
-        // treats tick 0 as time 0 and discards that starting time. GAP only takes real
-        // effect via UltraStarLoader.BeatToTick's gapTicks term, which places beat 0 at a
-        // tick that maps back to exactly GAP seconds once run through MoonSong's tempo map.
-        // A second GAP-based shift anywhere else (e.g. SongOffset) would double this delay.
+        // In the final chart GAP takes effect only through BeatToTick (MoonSong.AddTempo
+        // drops LoadSyncTrack's negative start time), so any second GAP shift, such as
+        // SongOffset, would double it.
         var songChart = LoadUltraStarChart(Us(
             "#BPM:120",
             "#GAP:2500",
@@ -95,14 +90,8 @@ internal class UltraStarLoaderTests_Basic : UltraStarLoaderTests
     [Test]
     public void ConsecutiveBareTildeFreestyleNotesStayUnpitchedInFinalChart()
     {
-        // Regression test: a run of syllable-less Freestyle continuation notes (bare
-        // '~', as in real UltraStar files like "AURORA - Under Stars") must stay
-        // unpitched all the way through to the final SongChart, not just on
-        // UltraStarLoader's own intermediate VocalNote objects. MoonSongLoader.Vocals.cs
-        // derives a note's final pitched/unpitched status from its associated lyric
-        // text's '#' symbol (see ProcessLyric/GetVocalNotePitch), not from the pitch
-        // value UltraStarLoader itself produces -- a syllable-less unpitched note with
-        // no lyric event at all silently reverts to a real (wrong) pitch downstream.
+        // MoonSongLoader.Vocals decides whether a note is pitched from its lyric's '#', not
+        // from VocalNote.Pitch, so a syllable-less unpitched note still needs a lyric event.
         var songChart = LoadUltraStarChart(Us(
             "#BPM:120",
             ": 419 12 21  sta",
@@ -322,13 +311,9 @@ internal class UltraStarLoaderTests_Basic : UltraStarLoaderTests
     [Test]
     public void MidSongTempoChangeStaysAlignedWithNotesWhenGapIsNonZero()
     {
-        // Regression test: LoadSyncTrack must place a tempo change at the same absolute
-        // tick BeatToTick gives its corresponding note (gapTicks included), or a #GAP + B
-        // combination puts the tempo change into effect gapTicks too early relative to the
-        // notes it's supposed to align with. A GAP is a pure time shift, so it must move
-        // every note -- including ones after the tempo change -- by exactly the same
-        // amount; comparing with/without GAP catches a misalignment without hand-deriving
-        // MoonSong's internal tick-to-time formula.
+        // GAP is a pure time shift, so it must move every note by the same amount, including
+        // ones after a tempo change. That holds only if LoadSyncTrack puts tempo changes in
+        // the same tick space as BeatToTick, GAP included.
         string Chart(string gapTag) => Us(
             "#BPM:120",
             gapTag,
@@ -356,8 +341,7 @@ internal class UltraStarLoaderTests_Basic : UltraStarLoaderTests
     [Test]
     public void GapIsExposedAsRawMetadata()
     {
-        // GAP's effect on timing is covered by GapShiftsFirstNoteByExactlyOneGapNotTwo;
-        // this only checks the raw tag survives for anything reading it back.
+        // Timing is covered by GapShiftsFirstNoteByExactlyOneGapNotTwo; this checks the raw tag.
         var loader = LoadUltraStar(Us(
             "#BPM:120",
             "#GAP:2500",

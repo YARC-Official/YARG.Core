@@ -74,9 +74,7 @@ namespace YARG.Core.Song
         protected readonly string _location;
         protected readonly DateTime _chartLastWrite;
         protected readonly ChartFormat _chartFormat;
-        // The chart file's actual on-disk name. Equal to CHART_FILE_TYPES[format].Filename
-        // for every format except UltraStar, whose .txt is conventionally named
-        // "Artist - Title.txt" rather than a fixed name.
+        // CHART_FILE_TYPES[format].Filename, except for UltraStar, whose charts have no fixed name.
         protected readonly string _chartFileName;
         protected string _background = string.Empty;
         protected string _video = string.Empty;
@@ -87,8 +85,7 @@ namespace YARG.Core.Song
         public override string SortBasedLocation => _location;
         public override string ActualLocation => _location;
 
-        // The cache reader needs these to tell UltraStar entries apart: their folders can
-        // hold several charts (see CacheHandler.ReadIniDirectory).
+        // An UltraStar folder can hold several charts, so the cache reader tells them apart by name.
         internal ChartFormat Format => _chartFormat;
         internal string ChartFileName => _chartFileName;
 
@@ -593,8 +590,7 @@ namespace YARG.Core.Song
                 return !string.IsNullOrWhiteSpace(value) ? value : fallback;
             }
 
-            // #AUDIO is the canonical tag; #MP3 is the legacy synonym some tooling still
-            // writes (the file isn't necessarily an mp3).
+            // #MP3 is the legacy name for #AUDIO; the file needn't be an mp3.
             string? audioFile = Tag("AUDIO") ?? Tag("MP3");
             if (audioFile == null)
             {
@@ -606,9 +602,8 @@ namespace YARG.Core.Song
                 return ScanResult.NoAudio;
             }
 
-            // Charts sometimes point #AUDIO at the same video file as #VIDEO. The audio
-            // backend has no demuxer, so a video container can't be decoded -- reject here
-            // rather than admit the entry and fail at play time with no explanation.
+            // Some charts point #AUDIO at their video. The audio backend can't demux a video
+            // container, so fail the scan here instead of failing silently at play time.
             if (Array.IndexOf(VIDEO_EXTENSIONS, Path.GetExtension(audioFile).ToLowerInvariant()) >= 0)
             {
                 return ScanResult.UnsupportedAudioFormat;
@@ -624,9 +619,8 @@ namespace YARG.Core.Song
             // #AUTHOR is the legacy synonym for #CREATOR.
             entry._metadata.Charter = Tag("CREATOR") ?? Tag("AUTHOR", SongMetadata.DEFAULT_CHARTER)!;
             entry._metadata.LoadingPhrase = Tag("COMMENT", string.Empty)!;
-            // #EDITION maps to Source, the same field FoF's ini "icon" key feeds. The icon
-            // lookup lives in YARG's SongSources.cs and rarely matches a USDB edition
-            // string -- don't try to "fix" that here.
+            // #EDITION maps to Source, like FoF's ini "icon" key. YARG's SongSources.cs rarely
+            // has an icon for a USDB edition string; that's expected, not a bug to fix here.
             entry._metadata.Source = Tag("EDITION", SongMetadata.DEFAULT_SOURCE)!;
 
             entry._audioFile = audioFile;
@@ -639,8 +633,7 @@ namespace YARG.Core.Song
 
             if (UltraStarLoader.TryParseNumber(header.GetMetadata("VIDEOGAP"), out double videoGapSeconds))
             {
-                // VIDEOGAP is a seek offset into the video, not a playback delay -- which is
-                // what Video.Start means too.
+                // VIDEOGAP is a seek offset into the video, as Video.Start is.
                 entry._metadata.Video.Start = (long) (videoGapSeconds * SongMetadata.MILLISECOND_FACTOR);
             }
 
@@ -675,10 +668,9 @@ namespace YARG.Core.Song
 
             if (entry._metadata.SongLength <= 0)
             {
-                // US has no length tag, so the length comes from the audio. Most containers
-                // record it exactly, which is far cheaper than opening a full mixer per song.
-                // Anything that doesn't -- or a folder whose duplicate names make the audio
-                // lookup throw -- keeps the mixer path, so it fails exactly as it always has.
+                // US has no length tag, so read it from the audio file's header, which is far
+                // cheaper than a mixer. Without an exact header length, or in a folder with
+                // duplicate names (where the audio lookup throws), use the mixer as before.
                 if (!collection.Value.ContainedDupes && AudioLengthReader.TryGetExactLength(audioInfo.FullName, out double seconds))
                 {
                     entry._metadata.SongLength = (long) (seconds * SongMetadata.MILLISECOND_FACTOR);

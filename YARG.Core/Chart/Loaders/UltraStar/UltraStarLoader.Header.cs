@@ -36,16 +36,12 @@ namespace YARG.Core.Chart.Loaders.UltraStar
     internal partial class UltraStarLoader
     {
         /// <summary>
-        /// Whether a .txt is an UltraStar chart. A '#' first line has always been the test,
-        /// but on its own it also matches Markdown notes packs ship with. So a '#' line that
-        /// isn't a tag only counts when the file also has a note line the parser would accept
-        /// -- a genuinely broken chart still scans (and reports its error), while a notes file
-        /// no longer reads as a bad song.
+        /// Whether a .txt is an UltraStar chart: its first non-blank line starts with '#'. A
+        /// Markdown heading does too, so a '#' line that isn't a tag only counts when the file
+        /// also has a note line the parser accepts. A broken chart still scans and reports
+        /// its error.
         /// </summary>
-        /// <remarks>
-        /// Reads only as far as it needs -- normally just the first line -- and leaves the
-        /// stream open, wherever reading stopped.
-        /// </remarks>
+        /// <remarks>Reads only as far as it needs (usually one line) and leaves the stream open.</remarks>
         internal static UltraStarFileKind ClassifyTextFile(Stream stream)
         {
             // Same decoding as the loader (UTF-8 default, BOM detection).
@@ -73,9 +69,8 @@ namespace YARG.Core.Chart.Loaders.UltraStar
 
                 while ((line = reader.ReadLine()) != null)
                 {
-                    var trimmed = line.AsSpan().Trim();
-                    if (ClassifyLine(trimmed, out _) == LineKind.Note && !UltraStarNote.IsRestType(trimmed[0])
-                        && TryParseNoteFields(SplitNoteFields(line.TrimStart()), out _, out _, out _))
+                    if (ClassifyLine(line.AsSpan().Trim(), out _) == LineKind.Note
+                        && TryParseNoteLine(line, out char type, out _, out _, out _, out _) && !UltraStarNote.IsRestType(type))
                     {
                         return UltraStarFileKind.Chart;
                     }
@@ -121,7 +116,7 @@ namespace YARG.Core.Chart.Loaders.UltraStar
             // One bit per voice part (P1..P3) that the full parser would create.
             int partMask = 0;
 
-            var text = DecodeLikeLoader(file).AsSpan();
+            var text = DecodeText(file).AsSpan();
             while (TryReadLine(ref text, out var line))
             {
                 var trimmed = line.Trim();
@@ -147,18 +142,10 @@ namespace YARG.Core.Chart.Loaders.UltraStar
                         }
                         break;
                     case LineKind.Note:
-                        // A note or rest line only creates its voice's part if it parses -- the
-                        // same check ParseNoteLine makes before adding the note.
-                        if ((partMask & (1 << currentPart)) == 0)
+                        // Like ParseNoteLine, only a note or rest that parses creates its voice.
+                        if ((partMask & (1 << currentPart)) == 0 && TryParseNoteLine(line, out _, out _, out _, out _, out _))
                         {
-                            var fields = SplitNoteFields(line.TrimStart().ToString());
-                            bool parses = fields.Length >= 1 && (UltraStarNote.IsRestType(fields[0][0])
-                                ? TryParseRestBeat(fields, out _)
-                                : TryParseNoteFields(fields, out _, out _, out _));
-                            if (parses)
-                            {
-                                partMask |= 1 << currentPart;
-                            }
+                            partMask |= 1 << currentPart;
                         }
                         break;
                 }
@@ -166,41 +153,6 @@ namespace YARG.Core.Chart.Loaders.UltraStar
 
             int voiceCount = (partMask & 1) + ((partMask >> 1) & 1) + ((partMask >> 2) & 1);
             return new UltraStarHeader(metadata, voiceCount);
-        }
-
-        // Same reader setup as ParseUltraStarFile (UTF-8 default, BOM detection), so both
-        // see identical characters.
-        private static string DecodeLikeLoader(FixedArray<byte> file)
-        {
-            using var reader = new StreamReader(file.ToReferenceStream(), Encoding.UTF8);
-            return reader.ReadToEnd();
-        }
-
-        // Splits on "\r", "\n" or "\r\n", like StreamReader.ReadLine.
-        private static bool TryReadLine(ref ReadOnlySpan<char> text, out ReadOnlySpan<char> line)
-        {
-            if (text.IsEmpty)
-            {
-                line = default;
-                return false;
-            }
-
-            int end = text.IndexOfAny('\r', '\n');
-            if (end < 0)
-            {
-                line = text;
-                text = ReadOnlySpan<char>.Empty;
-                return true;
-            }
-
-            line = text[..end];
-            int next = end + 1;
-            if (text[end] == '\r' && next < text.Length && text[next] == '\n')
-            {
-                next++;
-            }
-            text = text[next..];
-            return true;
         }
     }
 }
