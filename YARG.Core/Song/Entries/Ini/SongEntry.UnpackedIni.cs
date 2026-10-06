@@ -127,6 +127,42 @@ namespace YARG.Core.Song
             return mixer;
         }
 
+        /// <summary>
+        /// What the scan's LoadAudio(0, 0, false) mixer would report -- the longest of the
+        /// stems it loads, each in the first supported format present (see TryLoadStem) --
+        /// read from those files' headers instead. Only when every one of them records its
+        /// exact length (see AudioLengthReader); otherwise the scan measures through the mixer.
+        /// </summary>
+        protected override bool TryGetExactAudioLength(out double seconds)
+        {
+            seconds = 0;
+            var subFiles = GetSubFiles();
+            bool foundAny = false;
+            // LoadAudio's order with censoring off: the regular stems, then the explicit ones.
+            foreach (var stems in new[] { IniAudio.SupportedStems, IniAudio.SupportedExplicitStems })
+            {
+                foreach (var stem in stems)
+                {
+                    foreach (var format in IniAudio.SupportedFormats)
+                    {
+                        if (!subFiles.TryGetValue(stem + format, out var file))
+                        {
+                            continue;
+                        }
+
+                        if (!AudioLengthReader.TryGetExactLength(file, out double stemSeconds))
+                        {
+                            return false;
+                        }
+                        seconds = Math.Max(seconds, stemSeconds);
+                        foundAny = true;
+                        break;
+                    }
+                }
+            }
+            return foundAny;
+        }
+
         private static bool TryLoadStem(string stem, SongStem stemEnum, Dictionary<string, string> fileDictionary, StemMixer mixer)
         {
             foreach (var format in IniAudio.SupportedFormats)
