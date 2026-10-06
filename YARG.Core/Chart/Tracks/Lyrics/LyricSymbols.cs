@@ -133,6 +133,13 @@ namespace YARG.Core.Chart
         private static readonly Dictionary<string, string> LYRICS_STRIP_REPLACEMENTS
             = CreateStripReplacements(LYRICS_STRIP_SYMBOLS, LYRICS_SYMBOL_REPLACEMENTS);
 
+        // Every character the strip passes below act on. Nearly every lyric contains none of
+        // them, and then there's nothing to build -- the lyric is returned as-is.
+        private static readonly char[] VOCALS_STRIP_CHARS
+            = VOCALS_STRIP_SYMBOLS.Concat(VOCALS_SYMBOL_REPLACEMENTS.Keys).ToArray();
+        private static readonly char[] LYRICS_STRIP_CHARS
+            = LYRICS_STRIP_SYMBOLS.Concat(LYRICS_SYMBOL_REPLACEMENTS.Keys).Append('<').ToArray();
+
         private static Dictionary<string, string> CreateStripReplacements(
             HashSet<char> strip, Dictionary<char, char> replace)
         {
@@ -212,6 +219,10 @@ namespace YARG.Core.Chart
         public static string StripForVocals(string lyric)
         {
             lyric = RichTextUtils.StripRichTextTags(lyric);
+            if (lyric.IndexOfAny(VOCALS_STRIP_CHARS) < 0)
+            {
+                return lyric;
+            }
 
             var lyricBuffer = new StringBuilder(lyric);
             foreach (var (symbol, replacement) in VOCALS_STRIP_REPLACEMENTS)
@@ -226,6 +237,10 @@ namespace YARG.Core.Chart
         {
             lyric = RichTextUtils.StripRichTextTags(lyric, ~LYRICS_ALLOWED_TAGS);
             lyric = RichTextUtils.ReplaceColorNames(lyric);
+            if (lyric.IndexOfAny(LYRICS_STRIP_CHARS) < 0)
+            {
+                return lyric;
+            }
 
             var lyricBuffer = new StringBuilder();
             var segmentBuffer = new StringBuilder();
