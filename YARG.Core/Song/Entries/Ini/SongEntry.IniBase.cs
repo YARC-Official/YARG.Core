@@ -102,6 +102,16 @@ namespace YARG.Core.Song
         /// wasn't merged (<see cref="_harmonyChartFileName"/> is empty) or the file is gone.</summary>
         protected virtual FixedArray<byte>? GetHarmonyChartData() => null;
 
+        /// <summary>
+        /// The song's length read straight from its audio files' headers, when that gives the
+        /// same answer as measuring it through a mixer; false sends the scan to the mixer.
+        /// </summary>
+        protected virtual bool TryGetExactAudioLength(out double seconds)
+        {
+            seconds = 0;
+            return false;
+        }
+
         internal override void Serialize(MemoryStream stream, CacheWriteIndices indices)
         {
             base.Serialize(stream, indices);
@@ -327,10 +337,17 @@ namespace YARG.Core.Song
 
             if (entry._metadata.SongLength <= 0)
             {
-                using var mixer = entry.LoadAudio(0, 0, false);
-                if (mixer != null)
+                if (entry.TryGetExactAudioLength(out double seconds))
                 {
-                    entry._metadata.SongLength = (long) (mixer.Length * SongMetadata.MILLISECOND_FACTOR);
+                    entry._metadata.SongLength = (long) (seconds * SongMetadata.MILLISECOND_FACTOR);
+                }
+                else
+                {
+                    using var mixer = entry.LoadAudio(0, 0, false);
+                    if (mixer != null)
+                    {
+                        entry._metadata.SongLength = (long) (mixer.Length * SongMetadata.MILLISECOND_FACTOR);
+                    }
                 }
             }
             return ScanResult.Success;
