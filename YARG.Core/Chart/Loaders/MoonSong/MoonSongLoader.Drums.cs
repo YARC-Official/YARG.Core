@@ -52,8 +52,13 @@ namespace YARG.Core.Chart
             // No native chart. Do we have an Elite Drums chart to fall back on?
             if (eliteDrumsFallback is not null)
             {
-                // Generate downcharts if we haven't already
-                _downCharts ??= DownchartEliteDrumsTrack(eliteDrumsFallback);
+                // Generate downcharts if we haven't already. A null result (no notes to
+                // downchart) is cached too, so the three drum tracks don't each redo it.
+                if (!_downChartsGenerated)
+                {
+                    _downCharts = DownchartEliteDrumsTrack(eliteDrumsFallback);
+                    _downChartsGenerated = true;
+                }
 
                 if (_downCharts is not null)
                 {

@@ -143,13 +143,48 @@ namespace YARG.Core.Song
             return mixer;
         }
 
-        /// <summary>UltraStar only, for now: its one #AUDIO file is the whole mix.</summary>
+        /// <summary>
+        /// What the scan's LoadAudio(0, 0, false) mixer would report, read from the audio
+        /// files' headers instead. UltraStar: its one #AUDIO file is the whole mix. Otherwise
+        /// the longest of the stems LoadAudio loads, each in the first supported format present
+        /// (see TryLoadStem). Only when every one of them records its exact length (see
+        /// AudioLengthReader); otherwise the scan measures through the mixer.
+        /// </summary>
         protected override bool TryGetExactAudioLength(FileCollection? files, out double seconds)
         {
             seconds = 0;
-            return _chartFormat == ChartFormat.UltraStar && files is { } collection
-                && collection.FindFile(FileCollection.ToKey(_audioFile), out var audio)
-                && AudioLengthReader.TryGetExactLength(audio.FullName, out seconds);
+            if (_chartFormat == ChartFormat.UltraStar)
+            {
+                return files is { } collection
+                    && collection.FindFile(FileCollection.ToKey(_audioFile), out var audio)
+                    && AudioLengthReader.TryGetExactLength(audio.FullName, out seconds);
+            }
+
+            var subFiles = GetSubFiles();
+            bool foundAny = false;
+            // LoadAudio's order with censoring off: the regular stems, then the explicit ones.
+            foreach (var stems in new[] { IniAudio.SupportedStems, IniAudio.SupportedExplicitStems })
+            {
+                foreach (var stem in stems)
+                {
+                    foreach (var format in IniAudio.SupportedFormats)
+                    {
+                        if (!subFiles.TryGetValue(stem + format, out var file))
+                        {
+                            continue;
+                        }
+
+                        if (!AudioLengthReader.TryGetExactLength(file, out double stemSeconds))
+                        {
+                            return false;
+                        }
+                        seconds = Math.Max(seconds, stemSeconds);
+                        foundAny = true;
+                        break;
+                    }
+                }
+            }
+            return foundAny;
         }
 
         private static bool TryLoadStem(string stem, SongStem stemEnum, Dictionary<string, string> fileDictionary, StemMixer mixer)
