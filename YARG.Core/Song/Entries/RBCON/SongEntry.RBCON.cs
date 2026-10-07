@@ -87,7 +87,6 @@ namespace YARG.Core.Song
             stream.Write(_rbMetadata.AnimTempo,            Endianness.Little);
             stream.Write(_rbMetadata.VocalSongScrollSpeed, Endianness.Little);
             stream.Write(_rbMetadata.VocalTonicNote,       Endianness.Little);
-            stream.Write(_rbMetadata.TuningOffsetCents,    Endianness.Little);
             stream.Write(_rbMetadata.VenueVersion,         Endianness.Little);
 
             stream.Write(_rbMetadata.SongID);
@@ -313,7 +312,6 @@ namespace YARG.Core.Song
             _rbMetadata.AnimTempo            = stream.Read<uint>(Endianness.Little);
             _rbMetadata.VocalSongScrollSpeed = stream.Read<uint>(Endianness.Little);
             _rbMetadata.VocalTonicNote       = stream.Read<uint>(Endianness.Little);
-            _rbMetadata.TuningOffsetCents    = stream.Read<int> (Endianness.Little);
             _rbMetadata.VenueVersion         = stream.Read<uint>(Endianness.Little);
 
             _rbMetadata.SongID              = stream.ReadString();
@@ -852,7 +850,7 @@ namespace YARG.Core.Song
             if (dta.SongTonality != null)         { entry._rbMetadata.SongTonality         = dta.SongTonality.Value; }
             if (dta.Soloes != null)               { entry._rbMetadata.Soloes               = dta.Soloes; }
             if (dta.AnimTempo != null)            { entry._rbMetadata.AnimTempo            = dta.AnimTempo.Value; }
-            if (dta.TuningOffsetCents != null)    { entry._rbMetadata.TuningOffsetCents    = dta.TuningOffsetCents.Value; }
+            if (dta.TuningOffsetCents != null)    { entry._settings.TuningOffsetCents      = dta.TuningOffsetCents.Value; }
             if (dta.RealGuitarTuning != null)     { entry._rbMetadata.RealGuitarTuning     = dta.RealGuitarTuning; }
             if (dta.RealBassTuning != null)       { entry._rbMetadata.RealBassTuning       = dta.RealBassTuning; }
 

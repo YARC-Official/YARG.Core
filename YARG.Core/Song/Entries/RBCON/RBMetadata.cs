@@ -36,7 +36,6 @@ namespace YARG.Core.Song
             VocalSongScrollSpeed = 0,
             VocalTonicNote = 0,
             VenueVersion = 0,
-            TuningOffsetCents = 0,
             RbVocalGender = RbVocalGender.Unspecified,
             SongTonality = SongTonality.Unspecified,
             Soloes = Array.Empty<string>(),
@@ -54,7 +53,6 @@ namespace YARG.Core.Song
         public uint VocalSongScrollSpeed;
         public uint VocalTonicNote;
         public uint VenueVersion;
-        public int  TuningOffsetCents;
 
         public RbVocalGender RbVocalGender;
         public SongTonality SongTonality;
