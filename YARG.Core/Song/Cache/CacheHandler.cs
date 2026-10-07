@@ -37,6 +37,12 @@ namespace YARG.Core.Song.Cache
         /// <remarks>Change whenever the song cache needs to be cleared and regenerated, e.g. when the new data is added to the cache.</remarks>
         private const int CACHE_VERSION = 26_09_04_00;
 
+        /// <summary>
+        /// Marker file looked up case-insensitively. When present, files in that directory are skipped
+        /// while child directories continue to be scanned.
+        /// </summary>
+        internal const string YARG_IGNORE_FILENAME = ".yargignore";
+
         public static ScanProgressTracker Progress => _progress;
         private static ScanProgressTracker _progress;
 
@@ -630,6 +636,7 @@ namespace YARG.Core.Song.Cache
         /// is to be used for CON updates, upgrades, or extracted CON song entries.
         /// If none of those, this will further traverse through any of the subdirectories present in this directory
         /// and process all the subfiles for potential CONs or SNGs.
+        /// A <c>.YARGignore</c> file skips this directory only; sub-directories will still scanned.
         /// </summary>
         /// <param name="directory">The directory instance to load and scan through</param>
         /// <param name="group">The group aligning to one of the base directories provided by the user</param>
@@ -692,6 +699,19 @@ namespace YARG.Core.Song.Cache
                 if (collection.ContainedDupes)
                 {
                     AddToBadSongs(collection.Directory, ScanResult.DuplicateFilesFound);
+                }
+
+                if (collection.FindFile(YARG_IGNORE_FILENAME, out _))
+                {
+                    var ignoredTracker = tracker.Append(directory.Name);
+                    Parallel.ForEach(collection, entry =>
+                    {
+                        if (entry.Value is DirectoryInfo child)
+                        {
+                            ScanDirectory(child, group, ignoredTracker);
+                        }
+                    });
+                    return;
                 }
 
                 if (directory.Name == "songs_upgrades")
