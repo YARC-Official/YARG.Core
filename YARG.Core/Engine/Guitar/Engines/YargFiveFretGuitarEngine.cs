@@ -12,6 +12,10 @@ namespace YARG.Core.Engine.Guitar.Engines
         // driven by GuitarActions, which don't include an explicit "open strum" value
         public const int OPEN_BRE_INPUT = int.MaxValue;
 
+        // The fret mask of the note the bot last pressed, without any extended sustain bits
+        // OR'd in. The bot's held-button mask is rebuilt from this on every update.
+        private byte _botBaseMask = OPEN_MASK;
+
         protected override int WildcardMask => 1 << ((int)FiveFretGuitarFret.Wildcard - 1);
 
         public YargFiveFretGuitarEngine(InstrumentDifficulty<GuitarNote> chart, SyncTrack syncTrack,
@@ -20,37 +24,56 @@ namespace YARG.Core.Engine.Guitar.Engines
         {
         }
 
+        public override void Reset(bool keepCurrentButtons = false)
+        {
+            base.Reset(keepCurrentButtons);
+
+            // Match the (possibly kept) button mask so the next mask rebuild does not
+            // resurrect frets from a previous run of the engine.
+            _botBaseMask = EffectiveButtonMask;
+        }
+
         protected override void UpdateBot(double time)
         {
-            if (!IsBot || NoteIndex >= Notes.Count)
+            if (!IsBot)
             {
                 return;
             }
 
-            IsStarPowerInputActive = CanStarPowerActivate && !IsStarPowerInputActive;
-
-            var note = Notes[NoteIndex];
-
-            if (time < note.Time)
+            if (NoteIndex < Notes.Count)
             {
-                return;
+                IsStarPowerInputActive = CanStarPowerActivate && !IsStarPowerInputActive;
+
+                var note = Notes[NoteIndex];
+
+                if (time >= note.Time)
+                {
+                    LastButtonMask = EffectiveButtonMask;
+                    _botBaseMask = (byte) note.NoteMask;
+                    EffectiveButtonMask = _botBaseMask;
+
+                    YargLogger.LogFormatTrace("[Bot] Set button mask to: {0}", EffectiveButtonMask);
+
+                    if (IsCodaActive)
+                    {
+                        HandleCodaFretChange(time);
+                    }
+
+                    HasTapped = EffectiveButtonMask != LastButtonMask;
+                    IsFretPress = true;
+                    HasStrummed = false;
+                    StrumLeniencyTimer.Start(time);
+                }
             }
 
-            LastButtonMask = EffectiveButtonMask;
-            EffectiveButtonMask = (byte) note.NoteMask;
-
-            YargLogger.LogFormatTrace("[Bot] Set button mask to: {0}", EffectiveButtonMask);
-
-            if (IsCodaActive)
-            {
-                HandleCodaFretChange(time);
-            }
-
-            HasTapped = EffectiveButtonMask != LastButtonMask;
-            IsFretPress = true;
-            HasStrummed = false;
-            StrumLeniencyTimer.Start(time);
-
+            // Rebuild the bot's held frets on every update: the last pressed note, plus the
+            // frets of extended sustains that are still active. Previously the mask was only
+            // rewritten on a new note press, so the fret of a sustain that ended in between
+            // was held down until the bot's next note. That stale fret matches neither a
+            // still-held overlapping sustain nor a valid anchor (in six-fret, a fret of the
+            // same fret number from the other row never is), which dropped the sustain the
+            // moment the previous one ended - exactly where a real player would let go.
+            byte mask = _botBaseMask;
             foreach (var sustain in ActiveSustains)
             {
                 var sustainNote = sustain.Note;
@@ -62,17 +85,15 @@ namespace YARG.Core.Engine.Guitar.Engines
 
                 if (sustainNote.IsDisjoint)
                 {
-                    EffectiveButtonMask |= (byte) sustainNote.DisjointMask;
-
-                    YargLogger.LogFormatTrace("[Bot] Added Disjoint Sustain Mask {0} to button mask. {1}", sustainNote.DisjointMask, EffectiveButtonMask);
+                    mask |= (byte) sustainNote.DisjointMask;
                 }
                 else
                 {
-                    EffectiveButtonMask |= (byte) sustainNote.NoteMask;
-
-                    YargLogger.LogFormatTrace("[Bot] Added Sustain Mask {0} to button mask. {1}", sustainNote.NoteMask, EffectiveButtonMask);
+                    mask |= (byte) sustainNote.NoteMask;
                 }
             }
+
+            EffectiveButtonMask = mask;
         }
 
         protected override void MutateStateWithInput(GameInput gameInput)
