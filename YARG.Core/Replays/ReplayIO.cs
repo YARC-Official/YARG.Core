@@ -34,7 +34,7 @@ namespace YARG.Core.Replays
         /// DATA_MIN - The lowest version where a replay can be loaded and played back. <br/>
         /// CURRENT - The current version of the replay format. Increase whenever new metadata is added to the replay format. <br/>
         /// </summary>
-        public static readonly (int OLD_MIN, int METADATA_MIN, int DATA_MIN, int CURRENT) REPLAY_VERSIONS = (4, 6, 9, 18);
+        public static readonly (int OLD_MIN, int METADATA_MIN, int DATA_MIN, int CURRENT) REPLAY_VERSIONS = (4, 6, 9, 19);
         /// <remarks>
         /// Increase this whenever the engine is functionally changed in any way,
         /// to where a replay may no longer simulate accurately what was originally performed.
