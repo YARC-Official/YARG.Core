@@ -24,6 +24,7 @@ namespace YARG.Core.Song
         InvalidResolution_Upgrade,
 
         NoAudio,
+        UnsupportedAudioFormat,
         PathTooLong,
         MultipleMidiTrackNames,
         MultipleMidiTrackNames_Update,

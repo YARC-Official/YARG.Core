@@ -4,6 +4,7 @@ using System.Linq;
 using MoonscraperChartEditor.Song;
 using YARG.Core.Chart.Loaders.UltraStar;
 using YARG.Core.IO;
+using YARG.Core.Parsing;
 
 namespace YARG.Core.Chart
 {
@@ -14,17 +15,19 @@ namespace YARG.Core.Chart
         public static MoonSongLoader LoadUltraStar(ParseSettings settings, string filePath)
         {
             using var fixedArray = FixedArray.LoadFile(filePath);
-            var ultraStarLoader = new UltraStarLoader(fixedArray);
-            var moonSong = ConvertUltraStarToMoonSong(ultraStarLoader);
-
-            return new MoonSongLoader(moonSong, settings);
+            return LoadUltraStar(settings, fixedArray);
         }
 
         public static MoonSongLoader LoadUltraStar(ParseSettings settings, byte[] bytes)
         {
             using var ms = new MemoryStream(bytes);
             using var fixedArray = FixedArray.Read(ms, bytes.Length);
-            var ultraStarLoader = new UltraStarLoader(fixedArray);
+            return LoadUltraStar(settings, fixedArray);
+        }
+
+        internal static MoonSongLoader LoadUltraStar(ParseSettings settings, FixedArray<byte> file)
+        {
+            var ultraStarLoader = new UltraStarLoader(file);
             var moonSong = ConvertUltraStarToMoonSong(ultraStarLoader);
 
             return new MoonSongLoader(moonSong, settings);
@@ -60,7 +63,7 @@ namespace YARG.Core.Chart
                             continue;
                         }
 
-                        // UltraStar freestyle (F), rap (R), and golden freestyle (G) notes are
+                        // UltraStar freestyle (F), rap (R), and golden rap (G) notes are
                         // unpitched lyrical notes, NOT percussion. Keep as None so they stay
                         // VocalNoteType.Lyric downstream.
                         var flags = MoonNote.Flags.None;
@@ -118,6 +121,25 @@ namespace YARG.Core.Chart
             }
         }
 
+        /// <summary>
+        /// SongChart.Lyrics (and the lipsync generated from it) is built from song-level text
+        /// events, which a .mid fills from its vocals track (see MidReader) -- add the same
+        /// events here, from the part the solo Vocals chart shows.
+        /// </summary>
+        private static void AddSongLyrics(MoonSong song, VocalsPart part)
+        {
+            foreach (var phrase in part.NotePhrases)
+            {
+                var parent = phrase.PhraseParentNote;
+                song.InsertText(new MoonText(TextEvents.LYRIC_PHRASE_START, parent.Tick));
+                foreach (var lyric in phrase.Lyrics)
+                {
+                    song.InsertText(new MoonText(TextEvents.LYRIC_PREFIX_WITH_SPACE + lyric.Text, lyric.Tick));
+                }
+                song.InsertText(new MoonText(TextEvents.LYRIC_PHRASE_END, parent.Tick + parent.TickLength));
+            }
+        }
+
         private static MoonSong ConvertUltraStarToMoonSong(UltraStarLoader loader)
         {
             const uint RESOLUTION = 120;
@@ -135,28 +157,36 @@ namespace YARG.Core.Chart
                 moonSong.AddTimeSignature(ts.Numerator, ts.Denominator, ts.Tick);
             }
 
-            bool isDuet = loader.GetMetadata("PARTS") == "2";
+            bool isMultiVoice = loader.VoiceCount >= 2;
 
-            var vocalTrack = loader.LoadVocalsTrack(isDuet ? Instrument.Harmony : Instrument.Vocals);
+            var vocalTrack = loader.LoadVocalsTrack(isMultiVoice ? Instrument.Harmony : Instrument.Vocals);
             var soloChart = moonSong.GetChart(MoonSong.MoonInstrument.Vocals, MoonSong.Difficulty.Expert);
 
             if (vocalTrack.Parts.Count > 0)
             {
-                // For duet, only show first part in solo Vocals chart.
-                // Both parts are still available separately in Harmony1/Harmony2.
-                var soloParts = isDuet
+                // For multi-voice songs, only show first part in solo Vocals chart.
+                // All parts are still available separately in Harmony1/2/3.
+                var soloParts = isMultiVoice
                     ? new List<VocalsPart> { vocalTrack.Parts[0] }
                     : vocalTrack.Parts;
                 AddPartToChart(soloParts, soloChart);
+                AddSongLyrics(moonSong, vocalTrack.Parts[0]);
             }
 
-            if (isDuet && vocalTrack.Parts.Count >= 2)
+            if (isMultiVoice)
             {
-                var chartH1 = moonSong.GetChart(MoonSong.MoonInstrument.Harmony1, MoonSong.Difficulty.Expert);
-                AddPartToChart(new[] { vocalTrack.Parts[0] }, chartH1);
+                var harmonyInstruments = new[]
+                {
+                    MoonSong.MoonInstrument.Harmony1,
+                    MoonSong.MoonInstrument.Harmony2,
+                    MoonSong.MoonInstrument.Harmony3,
+                };
 
-                var chartH2 = moonSong.GetChart(MoonSong.MoonInstrument.Harmony2, MoonSong.Difficulty.Expert);
-                AddPartToChart(new[] { vocalTrack.Parts[1] }, chartH2);
+                for (int i = 0; i < vocalTrack.Parts.Count && i < harmonyInstruments.Length; i++)
+                {
+                    var chart = moonSong.GetChart(harmonyInstruments[i], MoonSong.Difficulty.Expert);
+                    AddPartToChart(new[] { vocalTrack.Parts[i] }, chart);
+                }
             }
 
             return moonSong;

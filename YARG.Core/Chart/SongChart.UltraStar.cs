@@ -23,5 +23,12 @@ namespace YARG.Core.Chart
             var loader = MoonSongLoader.LoadUltraStar(settings, data.ToArray());
             return new SongChart(loader);
         }
+
+        /// <summary>Loads from bytes the caller already holds, without copying them.</summary>
+        internal static SongChart FromUltraStar(in ParseSettings settings, FixedArray<byte> data)
+        {
+            var loader = MoonSongLoader.LoadUltraStar(settings, data);
+            return new SongChart(loader);
+        }
     }
 }
