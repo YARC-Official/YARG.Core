@@ -118,6 +118,8 @@ namespace YARG.Core.UnitTests.Parsing
             TestName = "A rest drops a pending trailing ~")]
         [TestCase(": 0 4 0 Hello\n- 10\n: 20 4 0 ~world", "Hello / world",
             TestName = "A leading ~ after a rest does not join across it")]
+        [TestCase(": 0 4 0 out\n-10\n: 20 4 2 side", "out / side",
+            TestName = "A rest written without a space still breaks the phrase")]
         [TestCase(": 0 4 0 out\n: 5 4 2 side", "out-* | side",
             TestName = "No extra space glues syllables into one word")]
         [TestCase(": 0 4 0 Mad\n: 5 4 2  world", "Mad | world",
@@ -132,6 +134,16 @@ namespace YARG.Core.UnitTests.Parsing
             TestName = "A ~ join walks past a bare hold")]
         [TestCase(": 0 4 0 la\n: 5 4 0 ~", "la | +",
             TestName = "A bare hold emits a pitch-slide lyric event")]
+        [TestCase(": 0 4 0 la\nF 5 4 0 ~ght", "la-* | ght#",
+            TestName = "A leading ~ on an unpitched note joins but does not slide")]
+        [TestCase(": 0 4 0 a~\nF 5 4 0 round", "a-* | round#",
+            TestName = "A trailing ~ does not slide into an unpitched note")]
+        [TestCase(": 0 4 0 sta\nF 5 4 0 ~\n: 10 4 0 ~", "sta | #",
+            TestName = "A pitched hold does not slide out of an unpitched hold")]
+        [TestCase(": 0 4 0  sta\n: 5 2 0 ~\nF 8 2 0 ~\n: 11 4 0 ~ars", "sta-* | + | # | ars",
+            TestName = "A join walks past an unpitched hold, which nothing slides out of")]
+        [TestCase("F 0 4 0  sta~\n: 5 4 0 ~\n: 10 4 0 ars", "sta#-* | ars+",
+            TestName = "A trailing ~ on an unpitched note hyphenates but does not slide")]
         public void LoaderLyrics(string body, string expected)
         {
             var track = LoadUltraStar("#BPM:120\n" + body).LoadVocalsTrack(Instrument.Vocals);
@@ -183,6 +195,17 @@ namespace YARG.Core.UnitTests.Parsing
             TestName = "A syllable without a source hyphen gets the join hyphen")]
         [TestCase(": 0 4 0  \"A\n: 5 2 0  +\n: 8 4 0  they", "A | plus | they", "0,0,0",
             TestName = "A literal + is spelled out and merges nothing")]
+        [TestCase(": 0 4 0 la\n- 10\n: 20 4 0 ~\n: 25 4 0  yeah", "la / yeah", "0 / 0,0",
+            TestName = "A bare hold starting a phrase does not slide into the previous phrase")]
+        [TestCase(": 0 4 0 la\n- 10\n: 20 4 0 ~ght", "la / ght", "0 / 0",
+            TestName = "A leading ~ starting a phrase does not slide into the previous phrase")]
+        [TestCase(": 0 4 0 la\n: 100 4 0 ~\n: 105 4 0  yeah", "la / yeah", "0 / 0,0",
+            TestName = "A hold after a long gap with no rest does not slide across the implied phrase break")]
+        // From "AURORA - Under Stars Funky": freestyle notes inside slide chains.
+        [TestCase(": 415 3 19 der\n: 419 12 21  sta\n: 432 3 23 ~\n: 436 5 21 ~\nF 443 2 16 ~\n: 452 42 21 ~ars", "der | sta-* | ars", "0,2,0,0",
+            TestName = "Nothing slides out of an unpitched hold inside a chain")]
+        [TestCase("* 620 7 14 Under\nF 628 16 14  sta~\n* 645 36 19 ~\n* 682 26 18 ~\n* 713 22 23 ~\n* 740 20 14 ars", "Under | sta-* | ars", "0,0,3",
+            TestName = "Nothing slides out of an unpitched trailing ~")]
         public void ChartLyricsAndNoteGroups(string body, string expectedLyrics, string expectedGroups)
         {
             var part = LoadUltraStarChart("#BPM:120\n" + body).Vocals.Parts[0];

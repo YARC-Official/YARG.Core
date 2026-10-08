@@ -25,6 +25,7 @@ namespace YARG.Core.Song
 
         NoAudio,
         UnsupportedAudioFormat,
+        NegativeGap,
         PathTooLong,
         MultipleMidiTrackNames,
         MultipleMidiTrackNames_Update,

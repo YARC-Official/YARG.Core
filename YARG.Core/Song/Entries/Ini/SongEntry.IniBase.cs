@@ -583,6 +583,12 @@ namespace YARG.Core.Song
                 return ScanResult.NoName;
             }
 
+            // Notes before the audio starts would need negative ticks, which don't exist.
+            if (UltraStarLoader.TryParseNumber(header.GetMetadata("GAP"), out double gapMs) && gapMs < 0)
+            {
+                return ScanResult.NegativeGap;
+            }
+
             // Blank tags fall back to the default, matching SongMetadata.FillFromIni.
             string? Tag(string key, string? fallback = null)
             {

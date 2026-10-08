@@ -47,11 +47,6 @@ namespace YARG.Core.Chart.Loaders.UltraStar
 
         private readonly Dictionary<int, List<UltraStarNote>> _partNotes = new();
         private int _currentPart = 0;
-        // Set by a trailing '~'; the next note consumes it as its pitch-slide marker.
-        private bool _pendingPitchSlide = false;
-        // Whether the previous note's lyric ended with the word-boundary space (true before
-        // the first note). Without that space on either side, two syllables glue into one word.
-        private bool _previousHadTrailingSpace = true;
 
         #endregion
 
@@ -65,18 +60,21 @@ namespace YARG.Core.Chart.Loaders.UltraStar
             public int    Pitch         { get; set; }
             public string Lyric         { get; set; } = string.Empty;
 
-            /// <summary>
-            /// Glues this lyric onto the next one with no space (LyricSymbolFlags.JoinWithNext).
-            /// Set by a trailing '~', or when neither side of the boundary has the format's
-            /// word-boundary space.
-            /// </summary>
-            public bool JoinWithNext { get; set; }
+            // The lyric field as written, which ResolvePhrase turns into joins and slides: an
+            // extra space on either side marks a word boundary, and '~' means "this pitch continues".
+            public bool LeadingSpace  { get; set; }
+            public bool TrailingSpace { get; set; }
+            public bool LeadingTilde  { get; set; }
+            public bool TrailingTilde { get; set; }
+
+            /// <summary>A bare '~': no syllable of its own, so a word-join walks past it.</summary>
+            public bool IsSilentHold { get; set; }
 
             /// <summary>
-            /// A bare '~' hold: pitched, but with no syllable of its own, so a word-join walks
-            /// past it to the real previous syllable (see MarkPreviousNoteJoinWithNext).
+            /// Glues this lyric onto the next one with no space (LyricSymbolFlags.JoinWithNext).
+            /// Set by ResolvePhrase.
             /// </summary>
-            public bool IsSilentHold { get; set; }
+            public bool JoinWithNext { get; set; }
 
             public uint EndBeat => StartBeat + DurationBeats;
 
@@ -146,6 +144,14 @@ namespace YARG.Core.Chart.Loaders.UltraStar
             }
 
             _tempoChanges.Sort((a, b) => a.Beat.CompareTo(b.Beat));
+
+            foreach (var notes in _partNotes.Values)
+            {
+                foreach (var phrase in GroupNotesIntoPhrases(notes))
+                {
+                    ResolvePhrase(phrase);
+                }
+            }
         }
 
         // UTF-8 unless a BOM says otherwise. ScanHeader and the full parser must decode alike.
@@ -243,7 +249,7 @@ namespace YARG.Core.Chart.Loaders.UltraStar
         /// Splits a note or rest line, "type beat [duration pitch text]". Fields are separated
         /// by spaces only. The text is everything after the single space that follows the
         /// pitch, with its own leading and trailing spaces kept: an extra space there marks a
-        /// word boundary. A rest needs only its beat.
+        /// word boundary. A rest needs only its beat, which some files write without the space ("-26").
         /// </summary>
         /// <returns>
         /// Whether the line has every field its type needs. <paramref name="type"/> is set either way.
@@ -258,7 +264,8 @@ namespace YARG.Core.Chart.Loaders.UltraStar
             var remaining = line.TrimStart();
             var typeField = NextField(ref remaining);
             type = typeField.IsEmpty ? '\0' : typeField[0];
-            if (!uint.TryParse(NextField(ref remaining), out startBeat))
+            var beatField = UltraStarNote.IsRestType(type) && typeField.Length > 1 ? typeField[1..] : NextField(ref remaining);
+            if (!uint.TryParse(beatField, out startBeat))
             {
                 return false;
             }
@@ -319,9 +326,6 @@ namespace YARG.Core.Chart.Loaders.UltraStar
             }
 
             _currentPart = voiceNumber - 1;
-            // A trailing '~' or word-join shouldn't bleed into a different voice.
-            _pendingPitchSlide = false;
-            _previousHadTrailingSpace = true;
             GetOrCreatePart(_currentPart);
         }
 
@@ -362,123 +366,103 @@ namespace YARG.Core.Chart.Loaders.UltraStar
 
         private void ParseNoteLine(ReadOnlySpan<char> line)
         {
-            bool parsed = TryParseNoteLine(line, out char noteType, out uint startBeat, out uint duration, out int pitch, out var rawText);
-
-            if (UltraStarNote.IsRestType(noteType))
-            {
-                // A rest breaks the phrase, even one whose beat doesn't parse: a pending '~' or
-                // word-join must not carry over to the note after it.
-                _pendingPitchSlide = false;
-                _previousHadTrailingSpace = true;
-                if (parsed)
-                {
-                    GetOrCreatePart(_currentPart).Add(new UltraStarNote
-                    {
-                        Type = noteType,
-                        StartBeat = startBeat,
-                    });
-                }
-                return;
-            }
-
-            if (!parsed)
+            if (!TryParseNoteLine(line, out char noteType, out uint startBeat, out uint duration, out int pitch, out var rawText))
             {
                 return;
             }
 
-            // An extra space on either side of the lyric marks a word boundary. Without one
-            // on either side, this syllable glues onto the previous one with no separator.
-            bool hasLeadingSpace = !rawText.IsEmpty && rawText[0] == ' ';
-            bool hasTrailingSpace = !rawText.IsEmpty && rawText[^1] == ' ';
-            bool gluedToPrevious = !hasLeadingSpace && !_previousHadTrailingSpace;
-            string lyric = rawText.Trim().ToString();
-
-            // '+' is ordinary text in UltraStar but YARG's pitch-slide marker: left in, it would
-            // merge this note into the previous one (LyricSymbols.GetLyricFlags) and vanish
-            // from the display (StripForVocals). Spell it out instead.
-            if (lyric.IndexOf(LyricSymbols.PITCH_SLIDE_SYMBOL) >= 0)
-            {
-                lyric = lyric.Replace(LyricSymbols.PITCH_SLIDE_SYMBOL.ToString(), "plus");
-            }
-
-            bool isUnpitched = UltraStarNote.IsUnpitchedType(noteType);
-            bool joinWithNext = false;
-            bool isSilentHold = false;
-
-            // A '~' means "this pitch continues", which only makes sense inside a word, so no
-            // form of it slides across a word boundary. Unpitched notes have no pitch to
-            // slide into. Consume the previous note's trailing '~' before this note's own '~'
-            // can set it again for the next note.
-            bool pitchSlide = _pendingPitchSlide && !isUnpitched && gluedToPrevious;
-            _pendingPitchSlide = false;
-
-            if (lyric.Length > 0 && lyric[0] == US_MELISMA_SYMBOL)
-            {
-                lyric = lyric[1..];
-                if (lyric.Length > 0)
-                {
-                    // A leading '~' blends this syllable back into the previous one.
-                    pitchSlide = gluedToPrevious;
-                }
-                else if (!isUnpitched)
-                {
-                    // A bare hold has no syllable, so a space before it marks no word boundary:
-                    // it always continues the previous note. Whether it blends forward is
-                    // decided when the next note is parsed.
-                    pitchSlide = true;
-                    isSilentHold = true;
-                    _pendingPitchSlide = true;
-                }
-            }
-            else if (lyric.Length > 0 && lyric[^1] == US_MELISMA_SYMBOL)
-            {
-                // Trailing '~' ("n~" then "eed"): hyphenate here, but the pitch slide goes on
-                // the NEXT note, since MoonSongLoader.Vocals merges on the later note's flag.
-                lyric = lyric[..^1];
-                joinWithNext = true;
-                _pendingPitchSlide = true;
-            }
-
-            if (lyric.Length > 0 && gluedToPrevious)
-            {
-                MarkPreviousNoteJoinWithNext();
-            }
-            _previousHadTrailingSpace = hasTrailingSpace;
-
-            if (pitchSlide)
-            {
-                lyric += LyricSymbols.PITCH_SLIDE_SYMBOL;
-            }
-
-            GetOrCreatePart(_currentPart).Add(new UltraStarNote
+            var note = new UltraStarNote
             {
                 Type = noteType,
                 StartBeat = startBeat,
                 DurationBeats = duration,
                 Pitch = pitch,
-                Lyric = lyric,
-                JoinWithNext = joinWithNext,
-                IsSilentHold = isSilentHold
-            });
+            };
+
+            if (!note.IsRest)
+            {
+                note.LeadingSpace = !rawText.IsEmpty && rawText[0] == ' ';
+                note.TrailingSpace = !rawText.IsEmpty && rawText[^1] == ' ';
+                string lyric = rawText.Trim().ToString();
+
+                // '+' is ordinary text in UltraStar but YARG's pitch-slide marker: left in, it would
+                // merge this note into the previous one (LyricSymbols.GetLyricFlags) and vanish
+                // from the display (StripForVocals). Spell it out instead.
+                lyric = lyric.Replace(LyricSymbols.PITCH_SLIDE_SYMBOL.ToString(), "plus");
+
+                note.LeadingTilde = lyric.Length > 0 && lyric[0] == US_MELISMA_SYMBOL;
+                note.TrailingTilde = !note.LeadingTilde && lyric.Length > 0 && lyric[^1] == US_MELISMA_SYMBOL;
+                if (note.LeadingTilde)
+                {
+                    lyric = lyric[1..];
+                }
+                else if (note.TrailingTilde)
+                {
+                    lyric = lyric[..^1];
+                }
+
+                note.Lyric = lyric;
+                note.IsSilentHold = note.LeadingTilde && lyric.Length == 0;
+            }
+
+            GetOrCreatePart(_currentPart).Add(note);
         }
 
-        private void MarkPreviousNoteJoinWithNext()
+        /// <summary>
+        /// Decides a phrase's word joins and pitch slides from each note's neighbors. A phrase is
+        /// the unit: nothing joins or slides across a phrase boundary.
+        /// </summary>
+        private static void ResolvePhrase(List<UltraStarNote> phrase)
         {
-            // Walk past bare '~' holds, which have no syllable to join, to the real previous
-            // syllable. Never join across a rest.
-            var partNotes = GetOrCreatePart(_currentPart);
-            for (int i = partNotes.Count - 1; i >= 0; i--)
+            // A trailing '~' or a bare hold passes its slide on to the next note.
+            bool pendingSlide = false;
+
+            for (int i = 0; i < phrase.Count; i++)
             {
-                if (partNotes[i].IsRest)
+                var note = phrase[i];
+                var previous = i > 0 ? phrase[i - 1] : null;
+
+                // No extra space on either side of the boundary glues two syllables into one word.
+                bool glued = previous != null && !note.LeadingSpace && !previous.TrailingSpace;
+
+                // A slide merges a note into the one before it, so both must be pitched. On an
+                // unpitched note '~' still joins words, it just doesn't slide.
+                bool canSlide = previous != null && !note.IsUnpitched && !previous.IsUnpitched;
+
+                // A '~' means "this pitch continues", which only makes sense inside a word, so no
+                // form of it slides across a word boundary. A bare hold has no syllable, so a
+                // space before it marks no boundary: it always continues the previous note.
+                bool slide = note.LeadingTilde
+                    ? (note.IsSilentHold || glued) && canSlide
+                    : pendingSlide && glued && canSlide;
+                pendingSlide = (note.IsSilentHold || note.TrailingTilde) && !note.IsUnpitched;
+
+                // Trailing '~' ("n~" then "eed"): hyphenate here, but the slide goes on the NEXT
+                // note, since MoonSongLoader.Vocals merges on the later note's flag.
+                note.JoinWithNext = note.TrailingTilde;
+
+                if (glued && note.Lyric.Length > 0)
                 {
+                    JoinWithPreviousSyllable(phrase, i);
+                }
+
+                if (slide)
+                {
+                    note.Lyric += LyricSymbols.PITCH_SLIDE_SYMBOL;
+                }
+            }
+        }
+
+        // Skips bare holds, which have no syllable to join, back to the real previous syllable.
+        private static void JoinWithPreviousSyllable(List<UltraStarNote> phrase, int index)
+        {
+            for (int i = index - 1; i >= 0; i--)
+            {
+                if (!phrase[i].IsSilentHold)
+                {
+                    phrase[i].JoinWithNext = true;
                     return;
                 }
-                if (partNotes[i].IsSilentHold)
-                {
-                    continue;
-                }
-                partNotes[i].JoinWithNext = true;
-                return;
             }
         }
 
@@ -699,7 +683,7 @@ namespace YARG.Core.Chart.Loaders.UltraStar
             return new VocalsPart(isHarmony, phrases, new List<VocalsPhrase>(), new(), otherPhrases, new List<TextEvent>());
         }
 
-        private List<List<UltraStarNote>> GroupNotesIntoPhrases(List<UltraStarNote> notes)
+        private static List<List<UltraStarNote>> GroupNotesIntoPhrases(List<UltraStarNote> notes)
         {
             // '-' is the main phrase separator in UltraStar; this threshold only applies to
             // files without any. Must exceed the largest gap reasonably found in a phrase.

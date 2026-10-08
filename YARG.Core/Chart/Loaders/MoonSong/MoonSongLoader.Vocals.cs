@@ -275,43 +275,44 @@ namespace YARG.Core.Chart
             // top-level notes, or a slid-in syllable's lyric never gets matched and static
             // lyrics mode deletes it below.
             foreach (var topLevelNote in phrase.PhraseParentNote.ChildNotes)
-            foreach (var note in topLevelNote.AllNotes)
             {
-                var distance = double.MaxValue;
-                int? closestLyricIndex = null;
-                for (int j = 0; j < phrase.Lyrics.Count; j++)
+                foreach (var note in topLevelNote.AllNotes)
                 {
-                    if (matchedLyrics[j])
+                    var distance = double.MaxValue;
+                    int? closestLyricIndex = null;
+                    for (int j = 0; j < phrase.Lyrics.Count; j++)
                     {
-                        continue;
-                    }
+                        if (matchedLyrics[j])
+                        {
+                            continue;
+                        }
 
-                    var lyric = phrase.Lyrics[j];
-                    // lyrics *should* be ordered by tick, but once we find a lyric with a tick greater than the last distance, we can break
-                    var newDistance = Math.Abs(note.Tick - lyric.Tick);
-                    if (newDistance < distance)
+                        var lyric = phrase.Lyrics[j];
+                        // lyrics *should* be ordered by tick, but once we find a lyric with a tick greater than the last distance, we can break
+                        var newDistance = Math.Abs(note.Tick - lyric.Tick);
+                        if (newDistance < distance)
+                        {
+                            distance = newDistance;
+                            closestLyricIndex = j;
+                        }
+                        else
+                        {
+                            break;
+                        }
+                    }
+                    if (closestLyricIndex is not null)
                     {
-                        distance = newDistance;
-                        closestLyricIndex = j;
+                        var closestLyric = phrase.Lyrics[closestLyricIndex.Value];
+                        matchedLyrics[closestLyricIndex.Value] = true;
+                        closestLyric.TimeLength = note.TotalTimeEnd - note.Time;
+                        closestLyric.TickLength = note.TotalTickEnd - note.Tick;
                     }
                     else
                     {
-                        break;
+                        unmatchedNoteCount++;
                     }
                 }
-                if (closestLyricIndex is not null)
-                {
-                    var closestLyric = phrase.Lyrics[closestLyricIndex.Value];
-                    matchedLyrics[closestLyricIndex.Value] = true;
-                    closestLyric.TimeLength = note.TotalTimeEnd - note.Time;
-                    closestLyric.TickLength = note.TotalTickEnd - note.Tick;
-                }
-                else
-                {
-                    unmatchedNoteCount++;
-                }
             }
-
             if (unmatchedNoteCount > 0)
             {
                 YargLogger.LogFormatInfo(
