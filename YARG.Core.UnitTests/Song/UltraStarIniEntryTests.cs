@@ -292,6 +292,36 @@ public class UltraStarIniEntryTests
         Assert.That(entry.SongOffsetMilliseconds, Is.EqualTo(0));
     }
 
+    [TestCase("-500", TestName = "A negative GAP fails the scan")]
+    [TestCase("-0,5", TestName = "A negative GAP with a comma decimal fails the scan")]
+    public void FailsScanWithANegativeGap(string gap)
+    {
+        WriteAudio("audio.mp3");
+        string chartPath = WriteChart("song.txt", BasicChart(extraTags: $"#GAP:{gap}"));
+
+        var result = TryScan(chartPath);
+
+        Assert.That(result.HasValue, Is.False);
+        Assert.That(result.Error, Is.EqualTo(ScanResult.NegativeGap));
+    }
+
+    [Test]
+    public void ZeroGapWithAMinusSignStillScans()
+    {
+        Assert.That(Scan(chart: BasicChart(extraTags: "#GAP:-0")).SongOffsetMilliseconds, Is.EqualTo(0));
+    }
+
+    [Test]
+    public void NegativeGapIsReportedInBadSongs()
+    {
+        WriteChart("Artist - Song.txt", BasicChart(extraTags: "#GAP:-500"));
+        WriteAudio("audio.mp3");
+
+        string badSongsPath = Path.Combine(_root, "badsongs.txt");
+        Assert.That(ScanFolderForNames(badSongsPath), Is.Empty);
+        Assert.That(File.ReadAllText(badSongsPath), Does.Contain("Artist - Song.txt").And.Contain("#GAP is negative"));
+    }
+
     // VIDEOGAP and Video.Start are both a seek offset into the video, so no sign flip.
     [TestCase("1.5", 1500, TestName = "VIDEOGAP seconds convert to milliseconds")]
     [TestCase("1,5", 1500, TestName = "VIDEOGAP accepts comma decimals")]
