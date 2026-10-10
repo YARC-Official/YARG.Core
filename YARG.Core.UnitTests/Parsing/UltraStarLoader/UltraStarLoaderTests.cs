@@ -31,7 +31,8 @@ namespace YARG.Core.UnitTests.Parsing
         /// </summary>
         protected static SongChart LoadUltraStarChart(string content)
         {
-            return SongChart.FromUltraStarBytes(DefaultSettings, Encoding.UTF8.GetBytes(content));
+            using var file = CreateUltraStarFile(content);
+            return SongChart.FromUltraStar(DefaultSettings, file);
         }
 
         /// <summary>

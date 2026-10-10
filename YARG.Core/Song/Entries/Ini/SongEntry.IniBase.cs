@@ -583,11 +583,12 @@ namespace YARG.Core.Song
                 return ScanResult.NoName;
             }
 
-            // Notes before the audio starts would need negative ticks, which don't exist.
-            if (UltraStarLoader.TryParseNumber(header.GetMetadata("GAP"), out double gapMs) && gapMs < 0)
+            if (header.VoiceCount == 0)
             {
-                return ScanResult.NegativeGap;
+                return ScanResult.NoNotes;
             }
+
+            UltraStarLoader.TryParseNumber(header.GetMetadata("GAP"), out double gapMs);
 
             // Blank tags fall back to the default, matching SongMetadata.FillFromIni.
             string? Tag(string key, string? fallback = null)
@@ -603,7 +604,13 @@ namespace YARG.Core.Song
                 return ScanResult.NoAudio;
             }
 
-            if (!collection!.Value.FindFile(FileCollection.ToKey(audioFile), out var audioInfo))
+            if (collection is not { } files)
+            {
+                YargLogger.LogError("[UltraStar] UltraStar is only supported in unpacked folders");
+                return ScanResult.NoAudio;
+            }
+
+            if (!files.FindFile(FileCollection.ToKey(audioFile), out var audioInfo))
             {
                 return ScanResult.NoAudio;
             }
@@ -616,6 +623,13 @@ namespace YARG.Core.Song
             }
 
             entry._metadata = SongMetadata.Default;
+
+            if (gapMs < 0)
+            {
+                // SongRunner computes song time as audio position minus SongOffset, so a
+                // negative GAP (audio starts before the first note) is exactly SongOffset = GAP.
+                entry._metadata.SongOffset = (long) gapMs;
+            }
 
             entry._metadata.Name = title!; // We will have returned already if title is null
             entry._metadata.Artist = Tag("ARTIST", SongMetadata.DEFAULT_ARTIST)!;
@@ -634,8 +648,9 @@ namespace YARG.Core.Song
             entry._video = Tag("VIDEO", string.Empty)!;
             entry._background = Tag("BACKGROUND", string.Empty)!;
 
-            // Don't map GAP to SongOffset: UltraStarLoader already bakes it into each note's
-            // tick (BeatToTick), so setting it here would apply the shift twice.
+            // Don't map a positive GAP to SongOffset: UltraStarLoader already bakes it into
+            // each note's tick, so setting it here would apply the shift twice. A negative
+            // GAP is set above, since the loader clamps negative gaps to 0 ticks.
 
             if (UltraStarLoader.TryParseNumber(header.GetMetadata("VIDEOGAP"), out double videoGapSeconds))
             {
@@ -677,7 +692,7 @@ namespace YARG.Core.Song
                 // US has no length tag, so read it from the audio file's header, which is far
                 // cheaper than a mixer. Without an exact header length, or in a folder with
                 // duplicate names (where the audio lookup throws), use the mixer as before.
-                if (!collection.Value.ContainedDupes && AudioLengthReader.TryGetExactLength(audioInfo.FullName, out double seconds))
+                if (!files.ContainedDupes && AudioLengthReader.TryGetExactLength(audioInfo.FullName, out double seconds))
                 {
                     entry._metadata.SongLength = (long) (seconds * SongMetadata.MILLISECOND_FACTOR);
                 }
