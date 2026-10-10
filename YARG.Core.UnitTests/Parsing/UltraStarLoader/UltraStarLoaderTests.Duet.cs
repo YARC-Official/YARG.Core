@@ -1,5 +1,4 @@
-﻿using System.Text;
-using NUnit.Framework;
+﻿using NUnit.Framework;
 using YARG.Core.Chart;
 
 namespace YARG.Core.UnitTests.Parsing
@@ -63,14 +62,18 @@ namespace YARG.Core.UnitTests.Parsing
         [Test]
         public void ParseDuetMetadata()
         {
+            // VoiceCount reflects the voice markers actually used (P1, P2, ...), which is
+            // independent of the raw #PARTS header tag.
             var loader = LoadUltraStar(Us(
                 "#BPM:120",
                 "#PARTS:2",
                 "P1",
+                ": 0 4 0 Test",
+                "P2",
                 ": 0 4 0 Test"
             ));
 
-            Assert.That(loader.GetMetadata("PARTS"), Is.EqualTo("2"));
+            Assert.That(loader.VoiceCount, Is.EqualTo(2));
         }
 
         [Test]
@@ -188,13 +191,12 @@ namespace YARG.Core.UnitTests.Parsing
                 "#PARTS:2",
                 "P1",
                 ": 0 4 0 Hello",
-                ": 5 4 0 World",
+                ": 5 4 0  World",
                 "P2",
                 ": 0 4 2 Hi",
-                ": 5 4 2 There"
+                ": 5 4 2  There"
             );
-            var settings = ParseSettings.Default;
-            var songChart = SongChart.FromUltraStarBytes(settings, Encoding.UTF8.GetBytes(content));
+            var songChart = LoadUltraStarChart(content);
 
             // Solo Vocals should only have P1 notes (Hello, World)
             var vocalsTrack = songChart.Vocals;
@@ -227,14 +229,71 @@ namespace YARG.Core.UnitTests.Parsing
                 "P2",
                 ": 0 4 2 Hi"
             );
-            var settings = ParseSettings.Default;
-            var songChart = SongChart.FromUltraStarBytes(settings, Encoding.UTF8.GetBytes(content));
+            var songChart = LoadUltraStarChart(content);
 
             // Harmony track loads 3 parts from MoonSong (HARM1, HARM2, HARM3)
             // For UltraStar duet, HARM3 is empty
             var harmonyTrack = songChart.Harmony;
             Assert.That(harmonyTrack.Parts[0].NotePhrases, Has.Count.EqualTo(1));
             Assert.That(harmonyTrack.Parts[1].NotePhrases, Has.Count.EqualTo(1));
+        }
+
+        [Test]
+        public void ThirdVoiceViaP3GetsItsOwnVocalsPart()
+        {
+            var loader = LoadUltraStar(Us(
+                "#BPM:120",
+                "P1",
+                ": 0 4 0 One",
+                "P2",
+                ": 0 4 4 Two",
+                "P3",
+                ": 0 4 7 Three"
+            ));
+
+            var track = loader.LoadVocalsTrack(Instrument.Harmony);
+
+            Assert.That(loader.VoiceCount, Is.EqualTo(3));
+            Assert.That(track.Parts.Select(DescribeLyrics), Is.EqualTo(new[] { "One", "Two", "Three" }));
+        }
+
+        [Test]
+        public void SpacedVoiceMarkersAreRecognized()
+        {
+            // "P 1" is at least as common as "P1"; missing it would merge every voice into one.
+            var loader = LoadUltraStar(Us(
+                "#BPM:120",
+                "#PARTS:2",
+                "P 1",
+                ": 0 4 0 Hello",
+                "P 2",
+                ": 0 4 2 Hi"
+            ));
+
+            var track = loader.LoadVocalsTrack(Instrument.Harmony);
+
+            Assert.That(loader.VoiceCount, Is.EqualTo(2));
+            Assert.That(track.Parts.Select(DescribeLyrics), Is.EqualTo(new[] { "Hello", "Hi" }));
+        }
+
+        [Test]
+        public void FourthVoiceMarkerIsIgnoredNotCrashed()
+        {
+            // P4 has no harmony part, so it's ignored and its notes stay in the active voice.
+            var loader = LoadUltraStar(Us(
+                "#BPM:120",
+                "P1",
+                ": 0 4 0 One",
+                "P2",
+                ": 0 4 4 Two",
+                "P4",
+                ": 5 4 7  StillTwo"
+            ));
+
+            var track = loader.LoadVocalsTrack(Instrument.Harmony);
+
+            Assert.That(loader.VoiceCount, Is.EqualTo(2));
+            Assert.That(track.Parts.Select(DescribeLyrics), Is.EqualTo(new[] { "One", "Two | StillTwo" }));
         }
     }
 }
