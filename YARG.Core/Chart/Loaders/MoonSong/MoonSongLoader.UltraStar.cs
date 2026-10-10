@@ -1,5 +1,4 @@
 ﻿using System.Collections.Generic;
-using System.IO;
 using System.Linq;
 using MoonscraperChartEditor.Song;
 using YARG.Core.Chart.Loaders.UltraStar;
@@ -12,25 +11,12 @@ namespace YARG.Core.Chart
     {
         #region Loading
 
-        public static MoonSongLoader LoadUltraStar(ParseSettings settings, string filePath)
-        {
-            using var fixedArray = FixedArray.LoadFile(filePath);
-            return LoadUltraStar(settings, fixedArray);
-        }
-
-        public static MoonSongLoader LoadUltraStar(ParseSettings settings, byte[] bytes)
-        {
-            using var ms = new MemoryStream(bytes);
-            using var fixedArray = FixedArray.Read(ms, bytes.Length);
-            return LoadUltraStar(settings, fixedArray);
-        }
-
         internal static MoonSongLoader LoadUltraStar(ParseSettings settings, FixedArray<byte> file)
         {
             var ultraStarLoader = new UltraStarLoader(file);
             var moonSong = ConvertUltraStarToMoonSong(ultraStarLoader);
 
-            return new MoonSongLoader(moonSong, settings);
+            return new MoonSongLoader(moonSong, settings) { _isUltraStar = true };
         }
 
         #endregion

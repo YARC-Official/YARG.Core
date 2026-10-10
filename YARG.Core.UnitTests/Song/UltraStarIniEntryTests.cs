@@ -1,4 +1,5 @@
 using NUnit.Framework;
+using YARG.Core;
 using YARG.Core.Audio;
 using YARG.Core.Song;
 using YARG.Core.Song.Cache;
@@ -186,6 +187,61 @@ public class UltraStarIniEntryTests
     }
 
     [Test]
+    public void NoNotesAtAllFailsTheScan()
+    {
+        // TITLE present, but no note line anywhere -- VoiceCount == 0.
+        WriteAudio("audio.mp3");
+        string chartPath = WriteChart("song.txt", "#TITLE:Test Song\n#ARTIST:Test Artist\n#MP3:audio.mp3\n#BPM:120\nE\n");
+
+        var result = TryScan(chartPath);
+
+        Assert.That(result.HasValue, Is.False);
+        Assert.That(result.Error, Is.EqualTo(ScanResult.NoNotes));
+    }
+
+    [Test]
+    public void TagOnlyTextFileDoesNotHideASubfolderSong()
+    {
+        // A tag-only .txt with no notes is NonChartText, not Chart, so it must not stop
+        // traversal into a sibling subfolder.
+        File.WriteAllText(Path.Combine(_songDir, "tags.txt"), "#TITLE:No Notes\n#ARTIST:Nobody\n");
+        string inner = Path.Combine(_songDir, "Artist - Song");
+        Directory.CreateDirectory(inner);
+        File.WriteAllText(Path.Combine(inner, "Artist - Song.txt"), BasicChart());
+        File.WriteAllBytes(Path.Combine(inner, "audio.mp3"), new byte[] { 0x00 });
+
+        string badSongsPath = Path.Combine(_root, "badsongs.txt");
+        Assert.That(ScanFolderForNames(badSongsPath), Is.EqualTo(new[] { "Test Song" }));
+        bool reportedAsBad = File.Exists(badSongsPath) && File.ReadAllText(badSongsPath).Contains("tags.txt");
+        Assert.That(reportedAsBad, Is.False);
+    }
+
+    [Test]
+    public void P1PlusP3MapsToTwoCompactedHarmonySubTracks()
+    {
+        // VoiceCount (and hence SubTracks) is the count of populated voices, compacted --
+        // P1+P3 is 2 voices, not 3.
+        string chart =
+            "#TITLE:Test Song\n" +
+            "#ARTIST:Test Artist\n" +
+            "#MP3:audio.mp3\n" +
+            "#BPM:120\n" +
+            "P1\n" +
+            ": 0 4 0 One\n" +
+            "P3\n" +
+            ": 0 4 0 Two\n" +
+            "E\n";
+
+        var entry = Scan(chart: chart);
+
+        // PartValues.SubTracks shares its byte with Difficulties, so check the sub-track bits
+        // through the indexer rather than the raw value.
+        Assert.That(entry.VocalsCount, Is.EqualTo(2));
+        Assert.That(entry[Instrument.Harmony][1], Is.True, "Harmony2 bit should be set for the second populated voice");
+        Assert.That(entry[Instrument.Harmony][2], Is.False, "Harmony3 bit should be unset -- only 2 voices are populated");
+    }
+
+    [Test]
     public void FolderWithSongIniIsNeverScannedAsUltraStar()
     {
         // A song.ini marks an FoF/RB-style folder; only its fixed-name charts are looked
@@ -248,6 +304,20 @@ public class UltraStarIniEntryTests
     }
 
     [Test]
+    public void FailsScanWhenTaggedAudioIsAMkvFile()
+    {
+        // .mkv stays in VIDEO_EXTENSIONS for ini/sng background discovery, so #AUDIO
+        // pointing at one must still fail the same way as any other video container.
+        WriteAudio("song.mkv");
+        string chartPath = WriteChart("song.txt", BasicChart(audio: "song.mkv"));
+
+        var result = TryScan(chartPath);
+
+        Assert.That(result.HasValue, Is.False);
+        Assert.That(result.Error, Is.EqualTo(ScanResult.UnsupportedAudioFormat));
+    }
+
+    [Test]
     public void ResolvesAudioAcrossUnicodeNormalizationForms()
     {
         // macOS returns decomposed names for accented files; chart tags are usually composed.
@@ -292,17 +362,14 @@ public class UltraStarIniEntryTests
         Assert.That(entry.SongOffsetMilliseconds, Is.EqualTo(0));
     }
 
-    [TestCase("-500", TestName = "A negative GAP fails the scan")]
-    [TestCase("-0,5", TestName = "A negative GAP with a comma decimal fails the scan")]
-    public void FailsScanWithANegativeGap(string gap)
+    // SongRunner computes song time as audio position minus SongOffset, so a negative GAP
+    // (audio starts before the first note) maps straight onto SongOffset.
+    [TestCase("-500", -500L, TestName = "A negative GAP sets SongOffset")]
+    [TestCase("-0,5", 0L, TestName = "A negative GAP with a comma decimal sets SongOffset")]
+    public void NegativeGapSetsSongOffset(string gap, long expectedOffsetMs)
     {
-        WriteAudio("audio.mp3");
-        string chartPath = WriteChart("song.txt", BasicChart(extraTags: $"#GAP:{gap}"));
-
-        var result = TryScan(chartPath);
-
-        Assert.That(result.HasValue, Is.False);
-        Assert.That(result.Error, Is.EqualTo(ScanResult.NegativeGap));
+        var entry = Scan(chart: BasicChart(extraTags: $"#GAP:{gap}"));
+        Assert.That(entry.SongOffsetMilliseconds, Is.EqualTo(expectedOffsetMs));
     }
 
     [Test]
@@ -312,14 +379,15 @@ public class UltraStarIniEntryTests
     }
 
     [Test]
-    public void NegativeGapIsReportedInBadSongs()
+    public void NegativeGapIsNotReportedInBadSongs()
     {
         WriteChart("Artist - Song.txt", BasicChart(extraTags: "#GAP:-500"));
         WriteAudio("audio.mp3");
 
         string badSongsPath = Path.Combine(_root, "badsongs.txt");
-        Assert.That(ScanFolderForNames(badSongsPath), Is.Empty);
-        Assert.That(File.ReadAllText(badSongsPath), Does.Contain("Artist - Song.txt").And.Contain("#GAP is negative"));
+        Assert.That(ScanFolderForNames(badSongsPath), Is.EqualTo(new[] { "Test Song" }));
+        bool reportedAsBad = File.Exists(badSongsPath) && File.ReadAllText(badSongsPath).Contains("Artist - Song.txt");
+        Assert.That(reportedAsBad, Is.False);
     }
 
     // VIDEOGAP and Video.Start are both a seek offset into the video, so no sign flip.
