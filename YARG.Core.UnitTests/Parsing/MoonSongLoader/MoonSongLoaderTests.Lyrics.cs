@@ -1,6 +1,8 @@
 ﻿using MoonscraperChartEditor.Song;
 using NUnit.Framework;
+using YARG.Core;
 using YARG.Core.Chart;
+using YARG.Core.Parsing;
 
 namespace YARG.Core.UnitTests.Parsing
 {
@@ -214,6 +216,39 @@ namespace YARG.Core.UnitTests.Parsing
                 Assert.That(lyrics.Phrases[1].Lyrics[0].Text, Is.EqualTo("phrase2"));
                 Assert.That(lyrics.Phrases[1].Lyrics[1].Text, Is.EqualTo("phrase2again"));
             }
+        }
+
+        [Test]
+        public void PitchSlideChildDoesNotStealALaterSyllablesLyric()
+        {
+            // A bare "+" lyric (pitch slide) is stripped by ProcessLyric and never stored as
+            // its own LyricEvent -- a .mid slide note merges into the previous note's chain
+            // (GetVocalsPhrases) but must not be considered when matching lyrics to notes, or
+            // it steals a later syllable's lyric length (see FixLyricLengths, which only walks
+            // slide children via AllNotes for UltraStar).
+            var song = CreateSong();
+            var chart = song.GetChart(MoonSong.MoonInstrument.Vocals, MoonSong.Difficulty.Expert);
+
+            chart.Add(new MoonPhrase(TICKS(0), TICKS(6), MoonPhrase.Type.Vocals_ScoringPhrase));
+
+            chart.Add(new MoonText(TextEvents.LYRIC_PREFIX_WITH_SPACE + "a", TICKS(0)));
+            chart.Add(new MoonText(TextEvents.LYRIC_PREFIX_WITH_SPACE + "+", TICKS(1)));
+            chart.Add(new MoonText(TextEvents.LYRIC_PREFIX_WITH_SPACE + "b", TICKS(2)));
+            chart.Add(new MoonText(TextEvents.LYRIC_PREFIX_WITH_SPACE + "c", TICKS(4)));
+
+            chart.Add(new MoonNote(TICKS(0), 60, TICKS(1)));
+            // Pitch-slide child: merges into the "a" note's chain, has no lyric of its own.
+            chart.Add(new MoonNote(TICKS(1), 60, TICKS(1)));
+            chart.Add(new MoonNote(TICKS(2), 62, TICKS(2)));
+            chart.Add(new MoonNote(TICKS(4), 64, TICKS(2)));
+
+            var loader = new MoonSongLoader(song, ParseSettings.Default);
+            var phrase = loader.LoadVocalsTrack(Instrument.Vocals).Parts[0].NotePhrases[0];
+
+            var bLyric = phrase.Lyrics.First(l => l.Text == "b");
+            var cLyric = phrase.Lyrics.First(l => l.Text == "c");
+            Assert.That(bLyric.TickLength, Is.EqualTo(TICKS(2)));
+            Assert.That(cLyric.TickLength, Is.EqualTo(TICKS(2)));
         }
     }
 }

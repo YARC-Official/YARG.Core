@@ -1,5 +1,4 @@
-﻿using System.Text;
-using NUnit.Framework;
+﻿using NUnit.Framework;
 using YARG.Core.Chart;
 
 namespace YARG.Core.UnitTests.Parsing
@@ -197,8 +196,7 @@ namespace YARG.Core.UnitTests.Parsing
                 ": 0 4 2 Hi",
                 ": 5 4 2  There"
             );
-            var settings = ParseSettings.Default;
-            var songChart = SongChart.FromUltraStarBytes(settings, Encoding.UTF8.GetBytes(content));
+            var songChart = LoadUltraStarChart(content);
 
             // Solo Vocals should only have P1 notes (Hello, World)
             var vocalsTrack = songChart.Vocals;
@@ -231,8 +229,7 @@ namespace YARG.Core.UnitTests.Parsing
                 "P2",
                 ": 0 4 2 Hi"
             );
-            var settings = ParseSettings.Default;
-            var songChart = SongChart.FromUltraStarBytes(settings, Encoding.UTF8.GetBytes(content));
+            var songChart = LoadUltraStarChart(content);
 
             // Harmony track loads 3 parts from MoonSong (HARM1, HARM2, HARM3)
             // For UltraStar duet, HARM3 is empty

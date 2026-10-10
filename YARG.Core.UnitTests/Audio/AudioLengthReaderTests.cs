@@ -82,8 +82,12 @@ public class AudioLengthReaderTests
     // ---- Ogg ----
 
     private static byte[] OggPage(uint serial, ulong granule, byte[] body)
-        => Concat(Ascii("OggS"), new byte[] { 0, 0 }, U64Le(granule), U32Le(serial), U32Le(0), U32Le(0),
-            new[] { (byte) 1, (byte) body.Length }, body);
+    {
+        // Lacing values: 255 per full segment, then the remainder (a final 0 if it divides evenly).
+        var lacing = Enumerable.Repeat((byte) 255, body.Length / 255).Append((byte) (body.Length % 255)).ToArray();
+        return Concat(Ascii("OggS"), new byte[] { 0, 0 }, U64Le(granule), U32Le(serial), U32Le(0), U32Le(0),
+            new[] { (byte) lacing.Length }, lacing, body);
+    }
 
     private static byte[] VorbisId(uint rate)
         => Concat(new byte[] { 1 }, Ascii("vorbis"), U32Le(0), new byte[] { 2 }, U32Le(rate), new byte[16]);
@@ -149,13 +153,11 @@ public class AudioLengthReaderTests
     }
 
     [Test]
-    public void Aiff()
+    public void AiffFallsBack()
     {
-        // 8000 Hz as an 80-bit extended float: exponent 16383 + 12, mantissa 8000 << 51.
-        var rate = Concat(U16Be(16383 + 12), U64Be(8000UL << 51));
-        var comm = Concat(U16Be(1), U32Be(12000), U16Be(8), rate);
+        var comm = Concat(U16Be(1), U32Be(12000), U16Be(8), U16Be(16383 + 12), U64Be(8000UL << 51));
         var body = Concat(Ascii("AIFF"), Ascii("COMM"), U32Be((uint) comm.Length), comm);
-        Assert.That(Length(Concat(Ascii("FORM"), U32Be((uint) body.Length), body)), Is.EqualTo(1.5).Within(1e-9));
+        Assert.That(HasLength(Concat(Ascii("FORM"), U32Be((uint) body.Length), body)), Is.False);
     }
 
     [Test]
@@ -200,11 +202,27 @@ public class AudioLengthReaderTests
     }
 
     [Test]
-    public void Mp3WithVbriHeader()
+    public void Mp3WithVbriHeaderFallsBack()
     {
         var vbri = Concat(Ascii("VBRI"), U16Be(1), U16Be(0), U16Be(75), U32Be(4096), U32Be(1000));
-        var file = Mp3(MPEG1_FRAME_HEADER, 32, vbri, 4096);
+        Assert.That(HasLength(Mp3(MPEG1_FRAME_HEADER, 32, vbri, 4096)), Is.False);
+    }
+
+    [Test]
+    public void Mp3WhoseFirstFrameIsPastTheFirstReadIsStillFound()
+    {
+        // Padding between the ID3v2 tag and the first frame pushes the sync beyond the first 4 KB read.
+        var prefix = Concat(Id3v2(300), new byte[6000]);
+        var file = Mp3(MPEG1_FRAME_HEADER, 32, Xing("Xing", 1000, 4096), 4096, prefix);
         Assert.That(Length(file), Is.EqualTo(1000.0 * 1152 / 44100).Within(1e-9));
+    }
+
+    [Test]
+    public void Mp3WithAnApeTagFallsBack()
+    {
+        // The trailing tag makes the header's byte count disagree with the file.
+        var ape = Concat(Ascii("APETAGEX"), new byte[24 + 4096]);
+        Assert.That(HasLength(Mp3(MPEG1_FRAME_HEADER, 32, Xing("Xing", 1000, 4096), 4096, suffix: ape)), Is.False);
     }
 
     [Test]
@@ -234,6 +252,21 @@ public class AudioLengthReaderTests
     {
         var file = Concat(OggPage(9, 0, OpusHead(312)), OggPage(9, 48000UL * 5 + 312, new byte[20]));
         Assert.That(Length(file), Is.EqualTo(5.0).Within(1e-9));
+    }
+
+    [Test]
+    public void OggWhoseLastPageIsLargerThanTheFirstReadIsStillFound()
+    {
+        var file = Concat(OggPage(7, 0, VorbisId(44100)), OggPage(7, 44100UL * 12, new byte[6000]));
+        Assert.That(Length(file), Is.EqualTo(12.0).Within(1e-9));
+    }
+
+    [Test]
+    public void OggWithTrailingBytesFallsBack()
+    {
+        // The last page must end the file; anything after it could be a false capture pattern.
+        var file = Concat(OggPage(7, 0, VorbisId(44100)), OggPage(7, 44100UL * 12, new byte[20]), new byte[16]);
+        Assert.That(HasLength(file), Is.False);
     }
 
     [Test]
