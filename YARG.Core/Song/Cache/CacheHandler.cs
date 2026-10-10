@@ -548,10 +548,6 @@ namespace YARG.Core.Song.Cache
                         writer.WriteLine("The chart's audio tag points at a video file, which cannot be decoded as audio.");
                         writer.WriteLine("To fix, extract the audio to a separate file (e.g. .ogg or .mp3) and point the tag at it.");
                         break;
-                    case ScanResult.NegativeGap:
-                        writer.WriteLine("The chart's #GAP is negative, which the UltraStar format doesn't allow.");
-                        writer.WriteLine("To fix, set #GAP >= 0 and alter the note start time to compensate.");
-                        break;
                     case ScanResult.NoName:
                         writer.WriteLine("Name metadata not provided");
                         break;
@@ -954,7 +950,7 @@ namespace YARG.Core.Song.Cache
                             data = FixedArray.Read(stream, stream.Length);
                             return true;
                         case UltraStarFileKind.NonChartText:
-                            YargLogger.LogFormatDebug("Skipping {0}: it starts with '#' but has no UltraStar tags or notes", file.FullName);
+                            YargLogger.LogFormatDebug("Skipping {0}: it starts with '#' but isn't a tagged chart with notes", file.FullName);
                             break;
                     }
                     return false;

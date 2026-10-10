@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
@@ -9,7 +9,7 @@ using YARG.Core.Logging;
 
 namespace YARG.Core.Chart.Loaders.UltraStar
 {
-    internal partial class UltraStarLoader : ISongLoader
+    internal partial class UltraStarLoader
     {
         #region Constants
 
@@ -36,17 +36,20 @@ namespace YARG.Core.Chart.Loaders.UltraStar
         private          double                     _bpm          = 120.0;
         private          double                     _gapMs        = 0.0;
 
-        private List<TextEvent>? _globalEvents;
-        private List<Section>? _sections;
         private SyncTrack? _syncTrack;
-        private VenueTrack? _venueTrack;
-        private LyricsTrack? _lyricsTrack;
 
         // (Beat, BPM) mid-song tempo changes from "B <beat> <bpm>" lines, sorted by beat once parsing completes.
         private readonly List<(uint Beat, double Bpm)> _tempoChanges = new();
 
         private readonly Dictionary<int, List<UltraStarNote>> _partNotes = new();
         private int _currentPart = 0;
+
+        // One bit per voice part (P1..P3) with at least one parsed non-rest note.
+        private int _populatedVoices;
+        private bool _sawFirstLine;
+
+        /// <summary>Whether the first non-blank line of the file is a '#KEY:' tag.</summary>
+        internal bool StartsWithTag { get; private set; }
 
         #endregion
 
@@ -94,14 +97,55 @@ namespace YARG.Core.Chart.Loaders.UltraStar
 
         public UltraStarLoader(FixedArray<byte> file)
         {
-            ParseUltraStarFile(file);
+            RunSpanDriver(file, LineProcessMode.Full);
+
+            _tempoChanges.Sort((a, b) => a.Beat.CompareTo(b.Beat));
+            foreach (var notes in _partNotes.Values)
+            {
+                foreach (var phrase in GroupNotesIntoPhrases(notes))
+                {
+                    ResolvePhrase(phrase);
+                }
+            }
         }
+
+        // Used internally for the Header and Classify modes, which need none of the full
+        // parser's constructor-time post-processing.
+        private UltraStarLoader() { }
 
         public string? GetMetadata(string key)
             => _metadata.TryGetValue(key, out var v) ? v : null;
 
-        /// <summary>Voices the note body actually uses; not the #PARTS tag's value.</summary>
-        public int VoiceCount => _partNotes.Count;
+        /// <summary>Populated voice part indices (P1..P3, as 0..2), in ascending order.</summary>
+        public List<int> Voices
+        {
+            get
+            {
+                var voices = new List<int>();
+                for (int i = 0; i < MAX_VOICE_PARTS; i++)
+                {
+                    if ((_populatedVoices & (1 << i)) != 0)
+                    {
+                        voices.Add(i);
+                    }
+                }
+                return voices;
+            }
+        }
+
+        /// <summary>Voices with at least one parsed non-rest note; not the #PARTS tag's value.</summary>
+        public int VoiceCount => CountBits(_populatedVoices);
+
+        private static int CountBits(int mask)
+        {
+            int count = 0;
+            while (mask != 0)
+            {
+                count += mask & 1;
+                mask >>= 1;
+            }
+            return count;
+        }
 
         /// <summary>Parses a numeric tag. US files routinely use comma decimals.</summary>
         public static bool TryParseNumber(string? raw, out double value)
@@ -113,52 +157,94 @@ namespace YARG.Core.Chart.Loaders.UltraStar
 
         #region Parsing
 
-        private void ParseUltraStarFile(FixedArray<byte> file)
+        private enum LineProcessMode { Full, Header, Classify }
+
+        // Both the span driver (Full/Header) and the stream driver (Classify) feed lines
+        // through this one handler, so a library scan always agrees with a full load.
+        private void RunSpanDriver(FixedArray<byte> file, LineProcessMode mode)
         {
             var text = DecodeText(file).AsSpan();
             while (TryReadLine(ref text, out var line))
             {
-                var trimmed = line.Trim();
-                var kind = ClassifyLine(trimmed, out int voiceNumber);
-                if (kind == LineKind.End)
+                if (!ProcessLine(line, mode))
                 {
                     break;
                 }
+            }
+        }
 
-                switch (kind)
-                {
-                    case LineKind.Metadata:
-                        ParseMetadataLine(trimmed);
-                        break;
-                    case LineKind.VoiceMarker:
-                        ParseVoiceMarker(voiceNumber);
-                        break;
-                    case LineKind.TempoChange:
+        /// <returns>False once reading should stop: on "E", or in Classify mode as soon as a voice is populated.</returns>
+        private bool ProcessLine(ReadOnlySpan<char> line, LineProcessMode mode)
+        {
+            var trimmed = line.Trim();
+            if (!_sawFirstLine && !trimmed.IsEmpty)
+            {
+                _sawFirstLine = true;
+                StartsWithTag = IsTagLine(trimmed);
+            }
+
+            var kind = ClassifyLine(trimmed, out int voiceNumber);
+            switch (kind)
+            {
+                case LineKind.End:
+                    return false;
+
+                case LineKind.Metadata:
+                    if (TryParseMetadataLine(trimmed, out string key, out string value))
+                    {
+                        _metadata[key] = value;
+                        if (mode == LineProcessMode.Full)
+                        {
+                            ApplyMetadataValue(key, value);
+                        }
+                    }
+                    break;
+
+                case LineKind.VoiceMarker:
+                    // Per spec (§4.3) each P marker is an independent voice, not a "both singers" one.
+                    if (IsSupportedVoice(voiceNumber))
+                    {
+                        _currentPart = voiceNumber - 1;
+                    }
+                    break;
+
+                case LineKind.TempoChange:
+                    if (mode == LineProcessMode.Full)
+                    {
                         ParseTempoChangeLine(trimmed);
-                        break;
-                    case LineKind.Note:
-                        // Untrimmed: a trailing space in the lyric marks a word boundary.
+                    }
+                    break;
+
+                case LineKind.Note:
+                    if (mode == LineProcessMode.Full)
+                    {
                         ParseNoteLine(line);
                         break;
-                }
+                    }
+
+                    // Header/Classify only need to know a voice is populated, not its notes --
+                    // and never need a second note once that's already known.
+                    bool alreadyPopulated = (_populatedVoices & (1 << _currentPart)) != 0;
+                    if (!alreadyPopulated && TryParseNoteLine(line, out char type, out _, out _, out _, out _)
+                        && !UltraStarNote.IsRestType(type))
+                    {
+                        _populatedVoices |= 1 << _currentPart;
+                        if (mode == LineProcessMode.Classify)
+                        {
+                            return false;
+                        }
+                    }
+                    break;
             }
 
-            _tempoChanges.Sort((a, b) => a.Beat.CompareTo(b.Beat));
-
-            foreach (var notes in _partNotes.Values)
-            {
-                foreach (var phrase in GroupNotesIntoPhrases(notes))
-                {
-                    ResolvePhrase(phrase);
-                }
-            }
+            return true;
         }
 
         // UTF-8 unless a BOM says otherwise. ScanHeader and the full parser must decode alike.
         private static string DecodeText(FixedArray<byte> file)
         {
             using var reader = new StreamReader(file.ToReferenceStream(), Encoding.UTF8);
-            return reader.ReadToEnd();
+            return reader.ReadToEnd().Replace('\t', ' ');
         }
 
         // Splits on "\r", "\n" or "\r\n", like StreamReader.ReadLine.
@@ -315,20 +401,6 @@ namespace YARG.Core.Chart.Loaders.UltraStar
             return false;
         }
 
-        /// <summary>
-        /// Per spec (§4.3) each P marker is an independent voice, not a "both singers" one.
-        /// </summary>
-        private void ParseVoiceMarker(int voiceNumber)
-        {
-            if (!IsSupportedVoice(voiceNumber))
-            {
-                return;
-            }
-
-            _currentPart = voiceNumber - 1;
-            GetOrCreatePart(_currentPart);
-        }
-
         private void ParseTempoChangeLine(ReadOnlySpan<char> line)
         {
             NextField(ref line); // "B"
@@ -339,15 +411,8 @@ namespace YARG.Core.Chart.Loaders.UltraStar
             }
         }
 
-        private void ParseMetadataLine(ReadOnlySpan<char> line)
+        private void ApplyMetadataValue(string key, string value)
         {
-            if (!TryParseMetadataLine(line, out string key, out string value))
-            {
-                return;
-            }
-
-            _metadata[key] = value;
-
             if (key.Equals("BPM", StringComparison.OrdinalIgnoreCase))
             {
                 if (TryParseNumber(value, out double bpm) && bpm > 0)
@@ -359,7 +424,8 @@ namespace YARG.Core.Chart.Loaders.UltraStar
             {
                 if (TryParseNumber(value, out double gap))
                 {
-                    _gapMs = gap;
+                    // Notes before the audio starts would need negative ticks, which don't exist.
+                    _gapMs = Math.Max(0, gap);
                 }
             }
         }
@@ -387,8 +453,9 @@ namespace YARG.Core.Chart.Loaders.UltraStar
 
                 // '+' is ordinary text in UltraStar but YARG's pitch-slide marker: left in, it would
                 // merge this note into the previous one (LyricSymbols.GetLyricFlags) and vanish
-                // from the display (StripForVocals). Spell it out instead.
-                lyric = lyric.Replace(LyricSymbols.PITCH_SLIDE_SYMBOL.ToString(), "plus");
+                // from the display (StripForVocals). Spell it out with the fullwidth form instead,
+                // which renders visibly distinct from an actual slide marker.
+                lyric = lyric.Replace(LyricSymbols.PITCH_SLIDE_SYMBOL, '＋');
 
                 note.LeadingTilde = lyric.Length > 0 && lyric[0] == US_MELISMA_SYMBOL;
                 note.TrailingTilde = !note.LeadingTilde && lyric.Length > 0 && lyric[^1] == US_MELISMA_SYMBOL;
@@ -403,6 +470,8 @@ namespace YARG.Core.Chart.Loaders.UltraStar
 
                 note.Lyric = lyric;
                 note.IsSilentHold = note.LeadingTilde && lyric.Length == 0;
+
+                _populatedVoices |= 1 << _currentPart;
             }
 
             GetOrCreatePart(_currentPart).Add(note);
@@ -476,9 +545,6 @@ namespace YARG.Core.Chart.Loaders.UltraStar
             return list;
         }
 
-        private List<UltraStarNote> GetPart(int index)
-            => _partNotes.TryGetValue(index, out var list) ? list : new List<UltraStarNote>();
-
         #endregion
 
         #region Beat Conversion
@@ -493,56 +559,13 @@ namespace YARG.Core.Chart.Loaders.UltraStar
             return gapTicks + (beat * TicksPerUltraStarBeat);
         }
 
-        // Walks the tempo-change segments (sorted by beat) accumulating elapsed
-        // time per segment, since each segment's beat-to-time rate differs.
-        private double BeatToTime(uint beat)
-        {
-            double time = 0.0;
-            double currentBpm = _bpm;
-            uint currentBeat = 0;
-
-            foreach (var (changeBeat, changeBpm) in _tempoChanges)
-            {
-                if (beat <= changeBeat)
-                {
-                    break;
-                }
-
-                time += (changeBeat - currentBeat) * 60.0 / currentBpm;
-                currentBeat = changeBeat;
-                currentBpm = changeBpm;
-            }
-
-            time += (beat - currentBeat) * 60.0 / currentBpm;
-            return time;
-        }
-
-        // Derives a note group's (tick, time) span from its first and last notes -- shared
-        // by LoadLyrics and CreateVocalsPhrase, which both group notes into phrases.
-        private (uint StartTick, uint TickLength, double StartTime, double TimeLength) GetPhraseSpan(
-            UltraStarNote first, UltraStarNote last)
-        {
-            uint startTick = BeatToTick(first.StartBeat);
-            uint endTick = BeatToTick(last.EndBeat);
-            double startTime = BeatToTime(first.StartBeat);
-            double endTime = BeatToTime(last.EndBeat);
-            return (startTick, endTick - startTick, startTime, endTime - startTime);
-        }
+        // The only source of a beat's time: the tempo map, not a parallel formula. Keeps the
+        // loader's own notion of time identical to what SongChart ends up with.
+        private double BeatToTime(uint beat) => LoadSyncTrack().TickToTime(BeatToTick(beat));
 
         #endregion
 
         #region Loading
-
-        // ISongLoader requires these; the UltraStar path uses none of them.
-        public List<TextEvent> LoadGlobalEvents() => _globalEvents ??= new();
-        public List<Section> LoadSections() => _sections ??= new();
-        public VenueTrack LoadVenueTrack() => _venueTrack ??= new VenueTrack();
-
-        public InstrumentTrack<GuitarNote> LoadGuitarTrack(Instrument i) => throw new NotSupportedException();
-        public InstrumentTrack<ProGuitarNote> LoadProGuitarTrack(Instrument i) => throw new NotSupportedException();
-        public InstrumentTrack<ProKeysNote> LoadProKeysTrack(Instrument i) => throw new NotSupportedException();
-        public InstrumentTrack<DrumNote> LoadDrumsTrack(Instrument i, InstrumentTrack<EliteDrumNote>? e) => throw new NotSupportedException();
-        public InstrumentTrack<EliteDrumNote> LoadEliteDrumsTrack(Instrument i) => throw new NotSupportedException();
 
         public SyncTrack LoadSyncTrack()
         {
@@ -554,65 +577,29 @@ namespace YARG.Core.Chart.Loaders.UltraStar
             // UltraStar BPM is typically 2x the real musical BPM; halve it here so beatlines
             // and crowd clapping fire at the correct rate. Note timing keeps the raw _bpm,
             // since UltraStar beat positions are in the same "double time".
-            double gapSeconds = _gapMs / 1000.0;
-            var tempos = new List<TempoChange> { new(_bpm / 2.0, -gapSeconds, 0u) };
+            double time = 0.0;
+            uint tick = 0;
+            double halvedBpm = _bpm / 2.0;
+            var tempos = new List<TempoChange> { new(halvedBpm, time, tick) };
 
-            // Use the same absolute tick space notes get from BeatToTick (gapTicks and
-            // all) -- MoonSongLoader.UltraStar.cs feeds these ticks straight into
-            // MoonSong.AddTempo, which notes are placed in too. Rebasing to "relative to
-            // beat 0" here would cancel out gapTicks and land every tempo change GAP-ticks
-            // early relative to the notes it's supposed to align with.
+            // Use the same absolute tick space notes get from BeatToTick (gapTicks and all) --
+            // MoonSongLoader.UltraStar.cs feeds these ticks straight into MoonSong.AddTempo,
+            // which notes are placed in too. GAP therefore lives only in ticks: tempo 0 sits
+            // at time 0, exactly like MoonSong's own tick 0.
             foreach (var (beat, bpm) in _tempoChanges)
             {
-                uint tick = BeatToTick(beat);
-                double time = BeatToTime(beat) - gapSeconds;
-                tempos.Add(new TempoChange(bpm / 2.0, time, tick));
+                uint newTick = BeatToTick(beat);
+                time += (newTick - tick) / (double) _ticksPerBeat * (60.0 / halvedBpm);
+                tick = newTick;
+                halvedBpm = bpm / 2.0;
+                tempos.Add(new TempoChange(halvedBpm, time, tick));
             }
 
-            _syncTrack = new SyncTrack(120,
+            _syncTrack = new SyncTrack(_ticksPerBeat,
                 tempos,
-                new List<TimeSignatureChange> { new(4, 4, -gapSeconds, 0u, 0u, 0u, 0u, 0.0) },
+                new List<TimeSignatureChange> { new(4, 4, 0.0, 0u, 0u, 0u, 0u, 0.0) },
                 new List<Beatline>());
             return _syncTrack;
-        }
-
-        public LyricsTrack LoadLyrics()
-        {
-            if (_lyricsTrack != null)
-            {
-                return _lyricsTrack;
-            }
-
-            var phrases = new List<LyricsPhrase>();
-            var lyricSource = GetPart(0);
-
-            foreach (var group in GroupNotesIntoPhrases(lyricSource))
-            {
-                if (group.Count == 0)
-                {
-                    continue;
-                }
-
-                var span = GetPhraseSpan(group[0], group[^1]);
-
-                var events = new List<LyricEvent>();
-                foreach (var n in group)
-                {
-                    if (TryCreateLyricEvent(n, BeatToTime(n.StartBeat), BeatToTick(n.StartBeat), out var lyricEvent))
-                    {
-                        events.Add(lyricEvent);
-                    }
-                }
-
-                if (events.Count > 0)
-                {
-                    phrases.Add(new LyricsPhrase(span.StartTime, span.TimeLength,
-                        span.StartTick, span.TickLength, events));
-                }
-            }
-
-            _lyricsTrack = new LyricsTrack(phrases);
-            return _lyricsTrack;
         }
 
         public VocalsTrack LoadVocalsTrack(Instrument instrument)
@@ -622,27 +609,24 @@ namespace YARG.Core.Chart.Loaders.UltraStar
                 throw new ArgumentException("UltraStar only supports Vocals and HarmonyVocals.", nameof(instrument));
             }
 
+            var voices = Voices;
             var parts = new List<VocalsPart>();
 
-            if (instrument == Instrument.Vocals)
+            if (voices.Count > 0)
             {
-                parts.Add(BuildVocalsPart(GetPart(0), false, 0));
-            }
-            else if (instrument == Instrument.Harmony || instrument == Instrument.PartyVocals)
-            {
-                // One VocalsPart per voice actually populated (P1..P3), in order.
-                foreach (var partIndex in _partNotes.Keys.OrderBy(k => k))
+                if (instrument == Instrument.Vocals)
                 {
-                    if (_partNotes[partIndex].Count == 0)
-                    {
-                        continue;
-                    }
-                    parts.Add(BuildVocalsPart(_partNotes[partIndex], true, partIndex));
+                    parts.Add(BuildVocalsPart(_partNotes[voices[0]], false, 0));
                 }
-
-                if (parts.Count == 0)
+                else
                 {
-                    parts.Add(BuildVocalsPart(GetPart(0), true, 0));
+                    // One VocalsPart per voice actually populated (P1..P3), in order. Harmony
+                    // part i is built from the voice at position i in that list, not the raw P
+                    // number -- so P1+P3 maps to Harmony1+Harmony2.
+                    for (int i = 0; i < voices.Count; i++)
+                    {
+                        parts.Add(BuildVocalsPart(_partNotes[voices[i]], true, i));
+                    }
                 }
             }
 
@@ -736,12 +720,17 @@ namespace YARG.Core.Chart.Loaders.UltraStar
                 return null;
             }
 
-            var span = GetPhraseSpan(phraseNotes[0], phraseNotes[^1]);
+            var firstNote = phraseNotes[0];
+            var lastNote = phraseNotes[^1];
+            uint startTick = BeatToTick(firstNote.StartBeat);
+            uint endTick = BeatToTick(lastNote.EndBeat);
+            double startTime = BeatToTime(firstNote.StartBeat);
+            double endTime = BeatToTime(lastNote.EndBeat);
 
             var parentNote = new VocalNote(
                 NoteFlags.None, false,
-                span.StartTime, span.TimeLength,
-                span.StartTick, span.TickLength);
+                startTime, endTime - startTime,
+                startTick, endTick - startTick);
 
             var lyrics = new List<LyricEvent>();
             int harmonyPart = Math.Clamp(partIndex, 0, MAX_VOICE_PARTS - 1);
@@ -779,13 +768,13 @@ namespace YARG.Core.Chart.Loaders.UltraStar
 
             if (parentNote.ChildNotes.Count == 0)
             {
-                YargLogger.LogWarning($"[UltraStar] Phrase at tick {span.StartTick} has 0 child notes — skipping");
+                YargLogger.LogWarning($"[UltraStar] Phrase at tick {startTick} has 0 child notes — skipping");
                 return null;
             }
 
             return new VocalsPhrase(
-                span.StartTime, span.TimeLength,
-                span.StartTick, span.TickLength,
+                startTime, endTime - startTime,
+                startTick, endTick - startTick,
                 parentNote, lyrics);
         }
 
@@ -838,40 +827,6 @@ namespace YARG.Core.Chart.Loaders.UltraStar
 
         private static int ToMidiPitch(int ultraStarPitch)
             => Math.Clamp(ultraStarPitch + ULTRASTAR_PITCH_BASE, 0, 127);
-
-        public void DumpToLog()
-        {
-            int totalNotes = _partNotes.Values.Sum(list => list.Count);
-            YargLogger.LogDebug($"[UltraStar] BPM={_bpm} GAP={_gapMs}ms TOTAL_NOTES={totalNotes}");
-
-            foreach (var kvp in _partNotes.OrderBy(k => k.Key))
-            {
-                int partIndex = kvp.Key;
-                var notes = kvp.Value;
-
-                YargLogger.LogDebug($"[UltraStar] Part {partIndex + 1}: notes={notes.Count}");
-
-                var groups = GroupNotesIntoPhrases(notes);
-                YargLogger.LogDebug($"[UltraStar] Part {partIndex + 1}: phrase groups={groups.Count}");
-
-                for (int gi = 0; gi < groups.Count; gi++)
-                {
-                    var g = groups[gi];
-                    YargLogger.LogDebug($"[UltraStar] Part {partIndex + 1} Phrase {gi}: {g.Count} notes, " +
-                        $"beats {g[0].StartBeat}–{g[^1].EndBeat}, " +
-                        $"time {BeatToTime(g[0].StartBeat):F3}s–{BeatToTime(g[^1].EndBeat):F3}s");
-
-                    foreach (var n in g)
-                    {
-                        string midiText = n.IsRest || n.IsUnpitched ? "n/a" : ToMidiPitch(n.Pitch).ToString();
-
-                        YargLogger.LogDebug($"[UltraStar]   P{partIndex + 1} {n.Type} beat={n.StartBeat} dur={n.DurationBeats} " +
-                            $"pitch={n.Pitch}→midi={midiText} tick={BeatToTick(n.StartBeat)} " +
-                            $"time={BeatToTime(n.StartBeat):F3}s lyric='{n.Lyric}'");
-                    }
-                }
-            }
-        }
 
         #endregion
     }

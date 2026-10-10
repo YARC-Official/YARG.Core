@@ -1,4 +1,5 @@
 using System;
+using System.Buffers;
 using System.Buffers.Binary;
 using System.IO;
 
@@ -11,9 +12,9 @@ namespace YARG.Core.Audio
     /// </summary>
     /// <remarks>
     /// Returns false whenever the header can't give an exact answer -- callers then fall back
-    /// to the backend. That covers MP3s without a Xing/Info/VBRI length header (a VBR file's
+    /// to the backend. That covers MP3s without a Xing/Info length header (a VBR file's
     /// length would only be an estimate), chained Ogg streams (the tail page only knows its
-    /// own chain), and anything unrecognized, such as .mogg.
+    /// own chain), and anything unrecognized, such as AIFF or .mogg.
     /// </remarks>
     internal static class AudioLengthReader
     {
@@ -22,6 +23,9 @@ namespace YARG.Core.Audio
         private const int OGG_TAIL_BYTES = 65307 + 1024;
         // How far past an ID3v2 tag to look for the first MPEG frame (some encoders pad).
         private const int MP3_SYNC_SEARCH_BYTES = 64 * 1024;
+        // The first read of a search window. The MP3 sync and the final Ogg page are almost
+        // always within it, so the full window is read only when they aren't.
+        private const int FIRST_READ_BYTES = 4096;
 
         public static bool TryGetExactLength(string path, out double seconds)
         {
@@ -59,10 +63,6 @@ namespace YARG.Core.Audio
                 else if (Matches(magic.Slice(0, 4), "RIFF") && Matches(magic.Slice(8, 4), "WAVE"))
                 {
                     found = TryWav(stream, start, out seconds);
-                }
-                else if (Matches(magic.Slice(0, 4), "FORM") && (Matches(magic.Slice(8, 4), "AIFF") || Matches(magic.Slice(8, 4), "AIFC")))
-                {
-                    found = TryAiff(stream, start, out seconds);
                 }
                 else if (Matches(magic.Slice(0, 4), "fLaC"))
                 {
@@ -234,16 +234,16 @@ namespace YARG.Core.Audio
 
         #endregion
 
-        #region WAV / AIFF / FLAC
+        #region WAV / FLAC
 
         private static bool TryWav(Stream stream, long start, out double seconds)
         {
             seconds = 0;
             Span<byte> fmt = stackalloc byte[16];
             long position = start + 12;
-            if (!FindChunk(stream, ref position, "fmt ", false, out long fmtBody, out uint fmtSize)
+            if (!FindChunk(stream, ref position, "fmt ", out long fmtBody, out uint fmtSize)
                 || fmtSize < 16 || !ReadAt(stream, fmtBody, fmt)
-                || !FindChunk(stream, ref position, "data", false, out long dataBody, out uint dataSize))
+                || !FindChunk(stream, ref position, "data", out long dataBody, out uint dataSize))
             {
                 return false;
             }
@@ -262,38 +262,13 @@ namespace YARG.Core.Audio
             return true;
         }
 
-        private static bool TryAiff(Stream stream, long start, out double seconds)
-        {
-            seconds = 0;
-            // COMM: channels (2), sample frames (4), sample size (2), sample rate (80-bit float)
-            Span<byte> comm = stackalloc byte[18];
-            long position = start + 12;
-            if (!FindChunk(stream, ref position, "COMM", true, out long body, out uint size)
-                || size < 18 || !ReadAt(stream, body, comm))
-            {
-                return false;
-            }
-
-            uint frames = BinaryPrimitives.ReadUInt32BigEndian(comm.Slice(2));
-            double rate = ReadExtended(comm.Slice(8, 10));
-            if (!(rate > 0))
-            {
-                return false;
-            }
-            seconds = frames / rate;
-            return true;
-        }
-
-        // Walks RIFF (little-endian) or IFF (big-endian) chunks from `position` to the first
-        // one named `id`, leaving `position` just past it.
-        private static bool FindChunk(Stream stream, ref long position, string id, bool bigEndian, out long body, out uint size)
+        // Walks RIFF chunks from `position` to the first one named `id`, leaving `position` just past it.
+        private static bool FindChunk(Stream stream, ref long position, string id, out long body, out uint size)
         {
             Span<byte> header = stackalloc byte[8];
             while (position + 8 <= stream.Length && ReadAt(stream, position, header))
             {
-                size = bigEndian
-                    ? BinaryPrimitives.ReadUInt32BigEndian(header.Slice(4))
-                    : BinaryPrimitives.ReadUInt32LittleEndian(header.Slice(4));
+                size = BinaryPrimitives.ReadUInt32LittleEndian(header.Slice(4));
                 body = position + 8;
                 position = body + size + (size & 1);
                 if (Matches(header.Slice(0, 4), id))
@@ -304,20 +279,6 @@ namespace YARG.Core.Audio
             body = 0;
             size = 0;
             return false;
-        }
-
-        // IEEE 754 80-bit extended: sign + 15-bit exponent, then a 64-bit mantissa with an
-        // explicit integer bit.
-        private static double ReadExtended(ReadOnlySpan<byte> bytes)
-        {
-            int exponent = ((bytes[0] & 0x7F) << 8) | bytes[1];
-            ulong mantissa = BinaryPrimitives.ReadUInt64BigEndian(bytes.Slice(2));
-            if (exponent == 0 && mantissa == 0)
-            {
-                return 0;
-            }
-            double value = mantissa * Math.Pow(2, exponent - 16383 - 63);
-            return (bytes[0] & 0x80) != 0 ? -value : value;
         }
 
         private static bool TryFlac(Stream stream, long start, out double seconds)
@@ -352,23 +313,47 @@ namespace YARG.Core.Audio
         private static bool TryMp3(Stream stream, long start, out double seconds)
         {
             seconds = 0;
-            long limit = Math.Min(stream.Length, start + MP3_SYNC_SEARCH_BYTES);
-            var window = new byte[(int) Math.Max(0, limit - start)];
-            if (window.Length < 4 || !ReadAt(stream, start, window))
+            int window = (int) Math.Min(Math.Max(0, stream.Length - start), MP3_SYNC_SEARCH_BYTES);
+            if (window < 4)
             {
                 return false;
             }
 
-            for (int i = 0; i + 4 <= window.Length; i++)
+            var buffer = ArrayPool<byte>.Shared.Rent(window);
+            try
             {
-                if (TryParseFrameHeader(window.AsSpan(i), out var frame))
+                int read = Math.Min(window, FIRST_READ_BYTES);
+                if (!ReadAt(stream, start, buffer.AsSpan(0, read)))
                 {
-                    // Only the first frame can carry the length header; if it doesn't, the
-                    // length is unknown without scanning every frame.
-                    return TryXingOrVbri(stream, start + i, frame, out seconds);
+                    return false;
+                }
+
+                int searched = 0;
+                while (true)
+                {
+                    for (int i = searched; i + 4 <= read; i++)
+                    {
+                        if (TryParseFrameHeader(buffer.AsSpan(i, 4), out var frame))
+                        {
+                            // Only the first frame can carry the length header; if it doesn't,
+                            // the length is unknown without scanning every frame.
+                            return TryXingHeader(stream, start + i, frame, out seconds);
+                        }
+                    }
+
+                    if (read == window || !ReadAt(stream, start + read, buffer.AsSpan(read, window - read)))
+                    {
+                        return false;
+                    }
+                    // Resume where the last pass stopped: a header may straddle the old end.
+                    searched = read - 3;
+                    read = window;
                 }
             }
-            return false;
+            finally
+            {
+                ArrayPool<byte>.Shared.Return(buffer);
+            }
         }
 
         private struct Mp3Frame
@@ -404,35 +389,21 @@ namespace YARG.Core.Audio
             return true;
         }
 
-        private static bool TryXingOrVbri(Stream stream, long frameStart, Mp3Frame frame, out double seconds)
+        // Xing/Info: tag (4), flags (4), then frames (4) and bytes (4) when their flags are set.
+        private static bool TryXingHeader(Stream stream, long frameStart, Mp3Frame frame, out double seconds)
         {
             seconds = 0;
-            Span<byte> buffer = stackalloc byte[18];
-            uint frames;
-            uint headerBytes;
-            long xingStart = frameStart + 4 + frame.SideInfoSize;
-            if (ReadAt(stream, xingStart, buffer.Slice(0, 8))
-                && (Matches(buffer.Slice(0, 4), "Xing") || Matches(buffer.Slice(0, 4), "Info")))
-            {
-                uint flags = BinaryPrimitives.ReadUInt32BigEndian(buffer.Slice(4));
-                const uint FRAMES = 1, BYTES = 2;
-                if ((flags & FRAMES) == 0 || (flags & BYTES) == 0 || !ReadAt(stream, xingStart + 8, buffer.Slice(0, 8)))
-                {
-                    return false;
-                }
-                frames = BinaryPrimitives.ReadUInt32BigEndian(buffer);
-                headerBytes = BinaryPrimitives.ReadUInt32BigEndian(buffer.Slice(4));
-            }
-            // VBRI: "VBRI", version (2), delay (2), quality (2), bytes (4), frames (4)
-            else if (ReadAt(stream, frameStart + 4 + 32, buffer) && Matches(buffer.Slice(0, 4), "VBRI"))
-            {
-                headerBytes = BinaryPrimitives.ReadUInt32BigEndian(buffer.Slice(10));
-                frames = BinaryPrimitives.ReadUInt32BigEndian(buffer.Slice(14));
-            }
-            else
+            Span<byte> buffer = stackalloc byte[16];
+            const uint FRAMES = 1, BYTES = 2;
+            if (!ReadAt(stream, frameStart + 4 + frame.SideInfoSize, buffer)
+                || !(Matches(buffer.Slice(0, 4), "Xing") || Matches(buffer.Slice(0, 4), "Info"))
+                || (BinaryPrimitives.ReadUInt32BigEndian(buffer.Slice(4)) & (FRAMES | BYTES)) != (FRAMES | BYTES))
             {
                 return false;
             }
+
+            uint frames = BinaryPrimitives.ReadUInt32BigEndian(buffer.Slice(8));
+            uint headerBytes = BinaryPrimitives.ReadUInt32BigEndian(buffer.Slice(12));
 
             if (!HeaderMatchesFile(stream, frameStart, frames, headerBytes, frame))
             {
@@ -468,25 +439,13 @@ namespace YARG.Core.Audio
             return Math.Abs(headerBytes - audioBytes) <= bytesPerSecond * MP3_MAX_BYTE_MISMATCH_SECONDS;
         }
 
-        // Where the audio ends: before an ID3v1 tag and/or an APEv2 tag at the end of the file.
+        // Where the audio ends: before an ID3v1 tag, if any. Any other trailing tag (e.g. APEv2)
+        // makes the byte count disagree, so the caller falls back.
         private static long TrailingTagStart(Stream stream)
         {
+            Span<byte> tag = stackalloc byte[3];
             long end = stream.Length;
-            Span<byte> footer = stackalloc byte[32];
-            if (ReadAt(stream, end - 128, footer.Slice(0, 3)) && Matches(footer.Slice(0, 3), "TAG"))
-            {
-                end -= 128;
-            }
-
-            // APEv2 footer: "APETAGEX", version (4), size (4, excludes the header), items (4),
-            // flags (4, bit 31 = a header is present), reserved (8)
-            if (ReadAt(stream, end - 32, footer) && Matches(footer.Slice(0, 8), "APETAGEX"))
-            {
-                uint size = BinaryPrimitives.ReadUInt32LittleEndian(footer.Slice(12));
-                uint flags = BinaryPrimitives.ReadUInt32LittleEndian(footer.Slice(20));
-                end -= size + ((flags & 0x80000000) != 0 ? 32 : 0);
-            }
-            return end;
+            return ReadAt(stream, end - 128, tag) && Matches(tag, "TAG") ? end - 128 : end;
         }
 
         #endregion
@@ -544,17 +503,34 @@ namespace YARG.Core.Audio
 
         private static bool TryLastPage(Stream stream, long start, out uint serial, out ulong granule)
         {
+            long available = stream.Length - start;
+            return TryLastPage(stream, (int) Math.Min(available, FIRST_READ_BYTES), out serial, out granule)
+                || (available > FIRST_READ_BYTES
+                    && TryLastPage(stream, (int) Math.Min(available, OGG_TAIL_BYTES), out serial, out granule));
+        }
+
+        // Searches the file's last `tailLength` bytes for the final page: the last capture
+        // pattern whose page ends exactly at the end of the file.
+        private static bool TryLastPage(Stream stream, int tailLength, out uint serial, out ulong granule)
+        {
             serial = 0;
             granule = 0;
-            long end = stream.Length;
-            long tailStart = Math.Max(start, end - OGG_TAIL_BYTES);
-            var tail = new byte[(int) (end - tailStart)];
-            if (!ReadAt(stream, tailStart, tail))
+            var buffer = ArrayPool<byte>.Shared.Rent(tailLength);
+            try
             {
-                return false;
+                var tail = buffer.AsSpan(0, tailLength);
+                return ReadAt(stream, stream.Length - tailLength, tail) && TryFindLastPage(tail, out serial, out granule);
             }
+            finally
+            {
+                ArrayPool<byte>.Shared.Return(buffer);
+            }
+        }
 
-            // The last capture pattern whose page fits before the end of the file.
+        private static bool TryFindLastPage(ReadOnlySpan<byte> tail, out uint serial, out ulong granule)
+        {
+            serial = 0;
+            granule = 0;
             for (int i = tail.Length - 27; i >= 0; i--)
             {
                 if (tail[i] != (byte) 'O' || tail[i + 1] != (byte) 'g' || tail[i + 2] != (byte) 'g' || tail[i + 3] != (byte) 'S' || tail[i + 4] != 0)
@@ -572,13 +548,13 @@ namespace YARG.Core.Audio
                 {
                     bodySize += tail[i + 27 + s];
                 }
-                if (i + 27 + segments + bodySize > tail.Length)
+                if (i + 27 + segments + bodySize != tail.Length)
                 {
                     continue;
                 }
 
-                granule = BinaryPrimitives.ReadUInt64LittleEndian(tail.AsSpan(i + 6));
-                serial = BinaryPrimitives.ReadUInt32LittleEndian(tail.AsSpan(i + 14));
+                granule = BinaryPrimitives.ReadUInt64LittleEndian(tail.Slice(i + 6));
+                serial = BinaryPrimitives.ReadUInt32LittleEndian(tail.Slice(i + 14));
                 return true;
             }
             return false;

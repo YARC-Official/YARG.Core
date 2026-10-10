@@ -1,4 +1,5 @@
-﻿using NUnit.Framework;
+﻿using System.Linq;
+using NUnit.Framework;
 using YARG.Core.Chart;
 
 namespace YARG.Core.UnitTests.Parsing;
@@ -55,7 +56,8 @@ internal class UltraStarLoaderTests_Basic : UltraStarLoaderTests
         ));
 
         var syncTrack = loader.LoadSyncTrack();
-        Assert.That(syncTrack.Tempos[0].Time, Is.EqualTo(-1.0).Within(0.001));
+        // GAP lives only in ticks, not in the sync track's start time.
+        Assert.That(syncTrack.Tempos[0].Time, Is.EqualTo(0.0).Within(0.001));
     }
 
     [Test]
@@ -68,7 +70,7 @@ internal class UltraStarLoaderTests_Basic : UltraStarLoaderTests
         ));
 
         var syncTrack = loader.LoadSyncTrack();
-        Assert.That(syncTrack.Tempos[0].Time, Is.EqualTo(-1.5005).Within(0.001));
+        Assert.That(syncTrack.Tempos[0].Time, Is.EqualTo(0.0).Within(0.001));
     }
 
     [Test]
@@ -267,8 +269,9 @@ internal class UltraStarLoaderTests_Basic : UltraStarLoaderTests
     [Test]
     public void MidSongTempoChangeAffectsNoteTiming()
     {
-        // At 120 BPM, beat 20 lands at 10s. After "B 20 240" (double tempo),
-        // each beat afterward takes half as long.
+        // At 120 BPM, an UltraStar beat is 15 ticks at 120 ticks/quarter-note, i.e. 0.125s,
+        // so beat 20 lands at 2.5s. After "B 20 240" (double tempo), each beat afterward
+        // takes half as long.
         var loader = LoadUltraStar(Us(
             "#BPM:120",
             ": 0 4 0 Before",
@@ -283,10 +286,10 @@ internal class UltraStarLoaderTests_Basic : UltraStarLoaderTests
         var atChangeNote = track.Parts[0].NotePhrases[1].PhraseParentNote.ChildNotes[0];
         var afterNote = track.Parts[0].NotePhrases[2].PhraseParentNote.ChildNotes[0];
 
-        // Beat 20 at 120 BPM = 10s (tempo hasn't changed yet at this exact beat).
-        Assert.That(atChangeNote.Time, Is.EqualTo(10.0).Within(0.001));
-        // Beats 20-30 occur entirely after the change, at 240 BPM (0.25s/beat): 10 * 0.25 = 2.5s.
-        Assert.That(afterNote.Time, Is.EqualTo(12.5).Within(0.001));
+        // Beat 20 at 120 BPM = 2.5s (tempo hasn't changed yet at this exact beat).
+        Assert.That(atChangeNote.Time, Is.EqualTo(2.5).Within(0.001));
+        // Beats 20-30 occur entirely after the change, at 240 BPM (0.0625s/beat): 2.5 + 10 * 0.0625 = 3.125s.
+        Assert.That(afterNote.Time, Is.EqualTo(3.125).Within(0.001));
     }
 
     [Test]
@@ -305,7 +308,7 @@ internal class UltraStarLoaderTests_Basic : UltraStarLoaderTests
         Assert.That(syncTrack.Tempos, Has.Count.EqualTo(2));
         // Halved for the SyncTrack, same as the initial tempo.
         Assert.That(syncTrack.Tempos[1].BeatsPerMinute, Is.EqualTo(120f));
-        Assert.That(syncTrack.Tempos[1].Time, Is.EqualTo(10.0).Within(0.001));
+        Assert.That(syncTrack.Tempos[1].Time, Is.EqualTo(2.5).Within(0.001));
     }
 
     [Test]
@@ -349,5 +352,51 @@ internal class UltraStarLoaderTests_Basic : UltraStarLoaderTests
         ));
 
         Assert.That(loader.GetMetadata("GAP"), Is.EqualTo("2500"));
+    }
+
+    [Test]
+    public void NegativeGapClampsToZeroTicks()
+    {
+        var loader = LoadUltraStar(Us(
+            "#BPM:120",
+            "#GAP:-1000",
+            ": 20 4 0 Test"
+        ));
+
+        var track = loader.LoadVocalsTrack(Instrument.Vocals);
+        var firstNote = track.Parts[0].NotePhrases[0].PhraseParentNote.ChildNotes[0];
+
+        // A negative GAP can't push a note's tick below 0, so it's clamped out entirely.
+        Assert.That(firstNote.Tick, Is.EqualTo(20u * 15));
+    }
+
+    [Test]
+    public void LoaderTimesMatchSongChartTimes()
+    {
+        // One timing model: the loader's own Time values and the ticks SongChart ends up
+        // with (via MoonSong's tempo map) must never drift apart.
+        string chart = Us(
+            "#BPM:120",
+            "#GAP:1000",
+            ": 0 4 0 Before",
+            "- 5",
+            "B 20 240",
+            ": 20 4 0 AtChange",
+            "- 25",
+            ": 30 4 0 After"
+        );
+
+        var loader = LoadUltraStar(chart);
+        var loaderTrack = loader.LoadVocalsTrack(Instrument.Vocals);
+        var loaderNotes = loaderTrack.Parts[0].NotePhrases
+            .Select(p => p.PhraseParentNote.ChildNotes[0].Time)
+            .ToList();
+
+        var songChart = LoadUltraStarChart(chart);
+        var chartNotes = songChart.Vocals.Parts[0].NotePhrases
+            .Select(p => p.PhraseParentNote.ChildNotes[0].Time)
+            .ToList();
+
+        Assert.That(chartNotes, Is.EqualTo(loaderNotes).Within(0.001));
     }
 }

@@ -91,17 +91,19 @@ namespace YARG.Core.UnitTests.Parsing
         [Test]
         public void MelismaJoinInLyricsTrack()
         {
-            var loader = LoadUltraStar(Us(
+            // SongChart.Lyrics is built from AddSongLyrics, not a dedicated loader track.
+            var songChart = LoadUltraStarChart(Us(
                 "#BPM:120",
                 ": 0 4 0 ni",
                 ": 5 4 2 ~ght."
             ));
 
-            var lyricsTrack = loader.LoadLyrics();
-            var events = lyricsTrack.Phrases[0].Lyrics;
+            var events = songChart.Lyrics.Phrases[0].Lyrics;
 
             Assert.That(events, Has.Count.EqualTo(2));
-            Assert.That(events[0].Text, Is.EqualTo("ni-"));
+            // The lyrics track (unlike Vocals) strips the join hyphen from the display text,
+            // but keeps the JoinWithNext flag.
+            Assert.That(events[0].Text, Is.EqualTo("ni"));
             Assert.That(events[0].JoinWithNext, Is.True);
             Assert.That(events[1].Text, Does.Contain("ght."));
         }
@@ -144,6 +146,10 @@ namespace YARG.Core.UnitTests.Parsing
             TestName = "A join walks past an unpitched hold, which nothing slides out of")]
         [TestCase("F 0 4 0  sta~\n: 5 4 0 ~\n: 10 4 0 ars", "sta#-* | ars+",
             TestName = "A trailing ~ on an unpitched note hyphenates but does not slide")]
+        [TestCase(": 0 4 67 feed-\n: 5 4 67 back", "feed-* | back",
+            TestName = "An existing hyphen is not doubled by a word join")]
+        [TestCase(": 0 4 0  \"A\n: 5 2 0  +", "\"A | ＋",
+            TestName = "A literal + is spelled out as the fullwidth form")]
         public void LoaderLyrics(string body, string expected)
         {
             var track = LoadUltraStar("#BPM:120\n" + body).LoadVocalsTrack(Instrument.Vocals);
@@ -193,7 +199,7 @@ namespace YARG.Core.UnitTests.Parsing
             TestName = "A source hyphen is not doubled behind a pitch-slide marker")]
         [TestCase(": 0 4 67  out\n: 5 4 67 side", "out-* | side", "0,0",
             TestName = "A syllable without a source hyphen gets the join hyphen")]
-        [TestCase(": 0 4 0  \"A\n: 5 2 0  +\n: 8 4 0  they", "A | plus | they", "0,0,0",
+        [TestCase(": 0 4 0  \"A\n: 5 2 0  +\n: 8 4 0  they", "A | ＋ | they", "0,0,0",
             TestName = "A literal + is spelled out and merges nothing")]
         [TestCase(": 0 4 0 la\n- 10\n: 20 4 0 ~\n: 25 4 0  yeah", "la / yeah", "0 / 0,0",
             TestName = "A bare hold starting a phrase does not slide into the previous phrase")]
@@ -294,16 +300,14 @@ namespace YARG.Core.UnitTests.Parsing
         [Test]
         public void ParseLyricsTrack()
         {
-            var loader = LoadUltraStar(Us(
+            var songChart = LoadUltraStarChart(Us(
                 "#BPM:120",
                 ": 0 4 0 Hello",
                 ": 5 4 2 World"
             ));
 
-            var lyricsTrack = loader.LoadLyrics();
-
-            Assert.That(lyricsTrack.Phrases, Has.Count.EqualTo(1));
-            Assert.That(lyricsTrack.Phrases[0].Lyrics, Has.Count.EqualTo(2));
+            Assert.That(songChart.Lyrics.Phrases, Has.Count.EqualTo(1));
+            Assert.That(songChart.Lyrics.Phrases[0].Lyrics, Has.Count.EqualTo(2));
         }
 
         [Test]
