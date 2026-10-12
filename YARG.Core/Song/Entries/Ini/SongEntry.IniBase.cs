@@ -76,6 +76,10 @@ namespace YARG.Core.Song
         protected readonly ChartFormat _chartFormat;
         // CHART_FILE_TYPES[format].Filename, except for UltraStar, whose charts have no fixed name.
         protected readonly string _chartFileName;
+        // Set only when this entry merges a solo UltraStar chart with a duet sharing its
+        // audio (see CacheHandler.ScanUltraStarCharts): empty when there's no harmony file.
+        protected readonly string _harmonyChartFileName = string.Empty;
+        protected readonly DateTime _harmonyChartLastWrite;
         protected string _background = string.Empty;
         protected string _video = string.Empty;
         protected string _cover = string.Empty;
@@ -88,10 +92,15 @@ namespace YARG.Core.Song
         // An UltraStar folder can hold several charts, so the cache reader tells them apart by name.
         internal ChartFormat Format => _chartFormat;
         internal string ChartFileName => _chartFileName;
+        internal string HarmonyChartFileName => _harmonyChartFileName;
 
         public override DateTime GetLastWriteTime() { return _chartLastWrite; }
 
         protected abstract FixedArray<byte>? GetChartData(string filename);
+
+        /// <summary>The duet file's bytes for a merged UltraStar entry, or null if this entry
+        /// wasn't merged (<see cref="_harmonyChartFileName"/> is empty) or the file is gone.</summary>
+        protected virtual FixedArray<byte>? GetHarmonyChartData() => null;
 
         internal override void Serialize(MemoryStream stream, CacheWriteIndices indices)
         {
@@ -123,7 +132,17 @@ namespace YARG.Core.Song
 
             if (_chartFormat == ChartFormat.UltraStar)
             {
-                return SongChart.FromUltraStar(in parseSettings, data);
+                if (_harmonyChartFileName.Length == 0)
+                {
+                    return SongChart.FromUltraStar(in parseSettings, data);
+                }
+
+                using var harmonyData = GetHarmonyChartData();
+                if (harmonyData == null)
+                {
+                    return null;
+                }
+                return SongChart.FromUltraStar(in parseSettings, data, harmonyData);
             }
 
             using var stream = data.ToReferenceStream();
@@ -156,15 +175,23 @@ namespace YARG.Core.Song
             (_parsedYear, _yearAsNumber) = ParseYear(_metadata.Year);
         }
 
-        protected IniSubEntry(string location, in DateTime chartLastWrite, ChartFormat chartFormat, string? chartFileName = null)
+        protected IniSubEntry(string location, in DateTime chartLastWrite, ChartFormat chartFormat, string? chartFileName = null,
+            string? harmonyChartFileName = null, DateTime? harmonyChartLastWrite = null)
         {
             _location = location;
             _chartLastWrite = chartLastWrite;
             _chartFormat = chartFormat;
             _chartFileName = chartFileName ?? CHART_FILE_TYPES[(int) chartFormat].Filename;
+            _harmonyChartFileName = harmonyChartFileName ?? string.Empty;
+            _harmonyChartLastWrite = harmonyChartLastWrite ?? default;
         }
 
-        protected internal static ScanResult ScanChart(IniSubEntry entry, FixedArray<byte> file, IniModifierCollection modifiers, FileCollection? collection = null)
+        /// <param name="header">The solo/standalone file's already-scanned header, if the
+        /// caller has one (see CacheHandler.ScanUltraStarCharts), so <paramref name="file"/>
+        /// isn't parsed a second time. Ignored outside UltraStar.</param>
+        /// <param name="harmonyHeader">As <paramref name="header"/>, for <paramref name="harmonyFile"/>.</param>
+        protected internal static ScanResult ScanChart(IniSubEntry entry, FixedArray<byte> file, IniModifierCollection modifiers, FileCollection? collection = null,
+            FixedArray<byte>? harmonyFile = null, UltraStarHeader? header = null, UltraStarHeader? harmonyHeader = null)
         {
             var drums_type = DrumsType.FourOrFive;
             if (modifiers.Extract("five_lane_drums", out bool fiveLaneDrums))
@@ -174,7 +201,7 @@ namespace YARG.Core.Song
 
             if (entry._chartFormat == ChartFormat.UltraStar)
             {
-                return ScanUltraStar(entry, file, collection);
+                return ScanUltraStar(entry, file, collection, harmonyFile, header, harmonyHeader);
             }
 
             ScanExpected<long> resolution;
@@ -572,10 +599,20 @@ namespace YARG.Core.Song
             return true;
         }
 
-        private static ScanResult ScanUltraStar(IniSubEntry entry, FixedArray<byte> file, FileCollection? collection = null)
+        /// <param name="harmonyFile">
+        /// A duet file sharing this one's audio (see CacheHandler.ScanUltraStarCharts). When
+        /// present, <paramref name="file"/> is the solo chart: all metadata and LeadVocals
+        /// come from it, while HarmonyVocals.SubTracks comes from the duet's voice count.
+        /// </param>
+        /// <param name="header">The already-scanned header for <paramref name="file"/>, if the
+        /// caller has one, so it isn't parsed a second time.</param>
+        /// <param name="harmonyHeader">As <paramref name="header"/>, for <paramref name="harmonyFile"/>.</param>
+        private static ScanResult ScanUltraStar(IniSubEntry entry, FixedArray<byte> file, FileCollection? collection = null, FixedArray<byte>? harmonyFile = null,
+            UltraStarHeader? preScannedHeader = null, UltraStarHeader? preScannedHarmonyHeader = null)
         {
             // Only the tags and voice count are needed here, not the notes.
-            var header = UltraStarLoader.ScanHeader(file);
+            var header = preScannedHeader ?? UltraStarLoader.ScanHeader(file);
+            var harmonyHeader = preScannedHarmonyHeader ?? (harmonyFile is { } harmonyData ? UltraStarLoader.ScanHeader(harmonyData) : (UltraStarHeader?) null);
 
             string? title = header.GetMetadata("TITLE");
             if (string.IsNullOrWhiteSpace(title))
@@ -671,7 +708,9 @@ namespace YARG.Core.Song
             entry._parts.LeadVocals.ActivateDifficulty(Difficulty.Expert);
             entry._parts.LeadVocals.Intensity = 0;
 
-            int voiceCount = header.VoiceCount;
+            // HarmonyVocals.SubTracks comes from the duet file when merged, not the solo one
+            // (whose own VoiceCount is always 1, by the pairing rule in ScanUltraStarCharts).
+            int voiceCount = harmonyHeader?.VoiceCount ?? header.VoiceCount;
             if (voiceCount >= 2)
             {
                 entry._parts.HarmonyVocals.SubTracks = (byte) Math.Min(voiceCount, 3);
@@ -683,7 +722,9 @@ namespace YARG.Core.Song
                 entry._parts.HarmonyVocals.SubTracks = 0;
             }
 
-            entry._hash = HashWrapper.Hash(file.ReadOnlySpan);
+            // Editing either file changes the hash, so replays against a merged entry stay
+            // tied to both of its charts, not just the solo one.
+            entry._hash = harmonyFile is { } harmony ? HashCombined(file, harmony) : HashWrapper.Hash(file.ReadOnlySpan);
             (entry._parsedYear, entry._yearAsNumber) = ParseYear(entry._metadata.Year);
             entry.SetSortStrings();
 
@@ -707,6 +748,15 @@ namespace YARG.Core.Song
             }
 
             return ScanResult.Success;
+        }
+
+        // Hashes both files' bytes as one buffer, so a merged entry's hash depends on either.
+        private static HashWrapper HashCombined(FixedArray<byte> solo, FixedArray<byte> duet)
+        {
+            var combined = new byte[solo.Length + duet.Length];
+            solo.ReadOnlySpan.CopyTo(combined);
+            duet.ReadOnlySpan.CopyTo(combined.AsSpan(solo.Length));
+            return HashWrapper.Hash(combined);
         }
 
         private static void SetIntensities(IniModifierCollection modifiers, ref AvailableParts parts)

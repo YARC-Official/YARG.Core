@@ -35,6 +35,15 @@ namespace YARG.Core.UnitTests.Parsing
             return SongChart.FromUltraStar(DefaultSettings, file);
         }
 
+        /// <summary>As above, but merging a solo chart with a duet file sharing its audio,
+        /// the way CacheHandler.ScanUltraStarCharts pairs them into one entry.</summary>
+        protected static SongChart LoadMergedUltraStarChart(string soloContent, string duetContent)
+        {
+            using var solo = CreateUltraStarFile(soloContent);
+            using var duet = CreateUltraStarFile(duetContent);
+            return SongChart.FromUltraStar(DefaultSettings, solo, duet);
+        }
+
         /// <summary>
         /// A part's lyrics as one comparable string: lyrics joined by " | ", phrases by " / ",
         /// and a trailing '*' on each lyric with JoinWithNext.
