@@ -276,7 +276,7 @@ namespace YARG.Core.Chart
                     unmatchedNoteCount++;
                 }
 
-                if (!_isUltraStar)
+                if (!_matchSlideChildrenByExactTick)
                 {
                     continue;
                 }
