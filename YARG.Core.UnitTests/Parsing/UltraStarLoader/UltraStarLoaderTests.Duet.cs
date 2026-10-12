@@ -295,5 +295,59 @@ namespace YARG.Core.UnitTests.Parsing
             Assert.That(loader.VoiceCount, Is.EqualTo(2));
             Assert.That(track.Parts.Select(DescribeLyrics), Is.EqualTo(new[] { "One", "Two | StillTwo" }));
         }
+
+        private static string DescribeStaticLyrics(List<VocalsPhrase> phrases)
+            => DescribeLyrics(phrases.Select(phrase => phrase.Lyrics));
+
+        [Test]
+        public void DuetSecondVoiceHasStaticLyrics()
+        {
+            // The harmony static-lyrics lanes read HARM2's static and merged phrases, not its
+            // scoring phrases, so P2 must produce those too.
+            var harmony = LoadUltraStarChart(Us(
+                "#BPM:120",
+                "#PARTS:2",
+                "P1",
+                ": 0 2 0 Watch",
+                ": 3 2 0  out",
+                "- 6",
+                ": 8 2 0  you",
+                "P2",
+                ": 4 2 2 Burn",
+                ": 7 2 2 ing",
+                "- 10",
+                ": 12 2 2  down"
+            )).Harmony;
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(DescribeStaticLyrics(harmony.Parts[0].StaticLyricPhrases), Is.EqualTo("Watch | out / you"));
+                Assert.That(DescribeStaticLyrics(harmony.Parts[1].StaticLyricPhrases), Is.EqualTo("Burn-* | ing / down"));
+                Assert.That(DescribeStaticLyrics(harmony.Parts[1].MergedStaticLyricPhrases), Is.EqualTo("Burn-* | ing / down"));
+                // Each line still yields exactly one scoring phrase alongside its static one
+                Assert.That(harmony.Parts[1].NotePhrases, Has.Count.EqualTo(2));
+            }
+        }
+
+        [Test]
+        public void ThirdVoiceStaticLyricsAreMergedIntoSecondLane()
+        {
+            var harmony = LoadUltraStarChart(Us(
+                "#BPM:120",
+                "P1",
+                ": 0 4 0 One",
+                "P2",
+                ": 0 4 4 Two",
+                "P3",
+                ": 20 4 7 Three"
+            )).Harmony;
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(DescribeStaticLyrics(harmony.Parts[1].StaticLyricPhrases), Is.EqualTo("Two"));
+                Assert.That(DescribeStaticLyrics(harmony.Parts[2].StaticLyricPhrases), Is.EqualTo("Three"));
+                Assert.That(DescribeStaticLyrics(harmony.Parts[1].MergedStaticLyricPhrases), Is.EqualTo("Two / Three"));
+            }
+        }
     }
 }
