@@ -330,6 +330,71 @@ namespace YARG.Core.UnitTests.Parsing
         }
 
         [Test]
+        public void MergedHarmonyMatchesStandaloneDuetWhenTemposMatch()
+        {
+            // Equal BPM and GAP: the duet's own ticks already line up with the solo file's,
+            // so merging must not shift anything.
+            string solo = Us("#BPM:120", "#MP3:audio.mp3", ": 0 4 0 Lead");
+            string duet = Us(
+                "#BPM:120", "#MP3:audio.mp3",
+                "P1",
+                ": 5 4 0 Hi",
+                "P2",
+                ": 5 4 2 There");
+
+            var merged = LoadMergedUltraStarChart(solo, duet);
+            var standalone = LoadUltraStarChart(duet);
+
+            uint mergedTick = merged.Harmony.Parts[0].NotePhrases[0].PhraseParentNote.Tick;
+            uint standaloneTick = standalone.Harmony.Parts[0].NotePhrases[0].PhraseParentNote.Tick;
+            Assert.That(mergedTick, Is.EqualTo(standaloneTick));
+            // Beat 5 at a 120-tick resolution (15 ticks per UltraStar beat).
+            Assert.That(mergedTick, Is.EqualTo(75u));
+        }
+
+        [Test]
+        public void MergedHarmonyIsRetimedWhenDuetHasADifferentBpm()
+        {
+            // The duet is written at double the solo's BPM with its beats doubled to match,
+            // a real USDB pattern -- both describe the same note at real time 1s, so after
+            // retiming onto the solo's tempo (BPM 120) that note must land on tick 120.
+            string solo = Us("#BPM:120", "#MP3:audio.mp3", ": 0 4 0 Lead");
+            string duet = Us(
+                "#BPM:240", "#MP3:audio.mp3",
+                "P1",
+                ": 16 4 0 Hi",
+                "P2",
+                ": 16 4 2 There");
+
+            var merged = LoadMergedUltraStarChart(solo, duet);
+
+            uint mergedTick = merged.Harmony.Parts[0].NotePhrases[0].PhraseParentNote.Tick;
+            Assert.That(mergedTick, Is.EqualTo(120u));
+        }
+
+        [Test]
+        public void MergedHarmonyAccountsForDifferingNegativeGap()
+        {
+            // A negative GAP only ever becomes SongOffset (see ScanUltraStar); it's clamped
+            // to tick 0 in the loader itself, so a different negative GAP between the two
+            // files has to be reapplied here as a time shift, even though their BPM matches.
+            string solo = Us("#BPM:120", "#GAP:-500", "#MP3:audio.mp3", ": 0 4 0 Lead");
+            string duet = Us(
+                "#BPM:120", "#GAP:-1000", "#MP3:audio.mp3",
+                "P1",
+                ": 10 4 0 Hi",
+                "P2",
+                ": 10 4 2 There");
+
+            var merged = LoadMergedUltraStarChart(solo, duet);
+
+            uint mergedTick = merged.Harmony.Parts[0].NotePhrases[0].PhraseParentNote.Tick;
+            // Duet's own tick for beat 10 is 150; the 500ms (half-beat-at-60bpm => 60 tick)
+            // GAP gap between the two files shifts it back to 90.
+            Assert.That(mergedTick, Is.EqualTo(90u));
+        }
+
+        [Test]
         public void ThirdVoiceStaticLyricsAreMergedIntoSecondLane()
         {
             var harmony = LoadUltraStarChart(Us(

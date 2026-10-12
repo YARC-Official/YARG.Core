@@ -242,6 +242,115 @@ public class UltraStarIniEntryTests
     }
 
     [Test]
+    public void SoloPlusDuetSharingAudioMergeIntoOneEntry()
+    {
+        // The USDB-style pair: a solo file and a "[DUET]" file for the same song, sharing
+        // the same #MP3. They should become one entry with both Lead and Harmony vocals,
+        // named after the solo file.
+        WriteChart("Artist - Song.txt", BasicChart(title: "Solo Title", audio: "audio.mp3"));
+        WriteChart("Artist - Song [DUET].txt", DuetChart(title: "Duet Title", audio: "audio.mp3"));
+        WriteAudio("audio.mp3");
+
+        var names = ScanFolderForNames();
+        Assert.That(names, Is.EqualTo(new[] { "Solo Title" }));
+    }
+
+    [Test]
+    public void MergedEntryHasLeadAndTwoHarmonySubTracks()
+    {
+        WriteChart("Artist - Song.txt", BasicChart(title: "Solo Title", audio: "audio.mp3"));
+        WriteChart("Artist - Song [DUET].txt", DuetChart(title: "Duet Title", audio: "audio.mp3"));
+        WriteAudio("audio.mp3");
+
+        var cache = RunFullScan();
+        var entry = SoleEntry(cache);
+
+        Assert.That(entry[Instrument.Vocals][0], Is.True);
+        // 2 populated voices in the duet file, same as P1PlusP3MapsToTwoCompactedHarmonySubTracks.
+        Assert.That(entry.VocalsCount, Is.EqualTo(2));
+    }
+
+    [Test]
+    public void MergedEntryHashChangesWhenEitherFileIsEdited()
+    {
+        string solo = WriteChart("Artist - Song.txt", BasicChart(title: "Solo Title", audio: "audio.mp3"));
+        string duet = WriteChart("Artist - Song [DUET].txt", DuetChart(title: "Duet Title", audio: "audio.mp3"));
+        WriteAudio("audio.mp3");
+
+        var originalHash = SoleEntry(RunFullScan()).Hash;
+
+        File.WriteAllText(duet, DuetChart(title: "Duet Title", audio: "audio.mp3", extraTags: "#COMMENT:Edited"));
+        File.SetLastWriteTimeUtc(duet, DateTime.UtcNow.AddMinutes(1));
+        var hashAfterDuetEdit = SoleEntry(RunFullScan()).Hash;
+        Assert.That(hashAfterDuetEdit, Is.Not.EqualTo(originalHash));
+
+        File.WriteAllText(solo, BasicChart(title: "Solo Title", audio: "audio.mp3", extraTags: "#COMMENT:Edited"));
+        File.SetLastWriteTimeUtc(solo, DateTime.UtcNow.AddMinutes(2));
+        var hashAfterSoloEdit = SoleEntry(RunFullScan()).Hash;
+        Assert.That(hashAfterSoloEdit, Is.Not.EqualTo(hashAfterDuetEdit));
+    }
+
+    [Test]
+    public void TwoSolosSharingAudioStayAsSeparateEntries()
+    {
+        // Ambiguous: neither file is "the" duet, so no merge should happen.
+        WriteChart("Artist - SongA.txt", BasicChart(title: "Song A", audio: "audio.mp3"));
+        WriteChart("Artist - SongB.txt", BasicChart(title: "Song B", audio: "audio.mp3"));
+        WriteAudio("audio.mp3");
+
+        Assert.That(ScanFolderForNames(), Is.EqualTo(new[] { "Song A", "Song B" }));
+    }
+
+    [Test]
+    public void TwoDuetsSharingAudioStayAsSeparateEntries()
+    {
+        WriteChart("Artist - SongA.txt", DuetChart(title: "Song A", audio: "audio.mp3"));
+        WriteChart("Artist - SongB.txt", DuetChart(title: "Song B", audio: "audio.mp3"));
+        WriteAudio("audio.mp3");
+
+        Assert.That(ScanFolderForNames(), Is.EqualTo(new[] { "Song A", "Song B" }));
+    }
+
+    [Test]
+    public void SoloPlusDuetWithDifferentAudioStayAsSeparateEntries()
+    {
+        WriteChart("Artist - Solo.txt", BasicChart(title: "Solo Title", audio: "solo.mp3"));
+        WriteChart("Artist - Duet.txt", DuetChart(title: "Duet Title", audio: "duet.mp3"));
+        WriteAudio("solo.mp3");
+        WriteAudio("duet.mp3");
+
+        Assert.That(ScanFolderForNames(), Is.EqualTo(new[] { "Duet Title", "Solo Title" }));
+    }
+
+    [Test]
+    public void DeletingTheDuetFileLeavesTheSoloEntryAlone()
+    {
+        WriteChart("Artist - Song.txt", BasicChart(title: "Solo Title", audio: "audio.mp3"));
+        string duet = WriteChart("Artist - Song [DUET].txt", DuetChart(title: "Duet Title", audio: "audio.mp3"));
+        WriteAudio("audio.mp3");
+        Assert.That(ScanFolderForNames(), Is.EqualTo(new[] { "Solo Title" }));
+
+        File.Delete(duet);
+        Assert.That(ScanFolderForNames(), Is.EqualTo(new[] { "Solo Title" }));
+    }
+
+    [Test]
+    public void AddingADuetAfterTheSoloWasCachedMergesOnTheNextScan()
+    {
+        WriteChart("Artist - Song.txt", BasicChart(title: "Solo Title", audio: "audio.mp3"));
+        WriteAudio("audio.mp3");
+        Assert.That(ScanFolderForNames(), Is.EqualTo(new[] { "Solo Title" }));
+
+        WriteChart("Artist - Song [DUET].txt", DuetChart(title: "Duet Title", audio: "audio.mp3"));
+        // Adding the duet changes the folder's mtime, which invalidates the cached solo
+        // entry (see TryDeserialize) and forces this folder to be rescanned and re-paired.
+        Assert.That(ScanFolderForNames(), Is.EqualTo(new[] { "Solo Title" }));
+
+        var cache = RunFullScan();
+        Assert.That(SoleEntry(cache).VocalsCount, Is.EqualTo(2));
+    }
+
+    [Test]
     public void FolderWithSongIniIsNeverScannedAsUltraStar()
     {
         // A song.ini marks an FoF/RB-style folder; only its fixed-name charts are looked
@@ -467,19 +576,26 @@ public class UltraStarIniEntryTests
 
     /// <summary>Runs a full library scan over the song folder and returns the entry names.</summary>
     private string[] ScanFolderForNames(string? badSongsPath = null)
-    {
-        var cache = CacheHandler.RunScan(false,
+        => RunFullScan(badSongsPath).Entries.Values
+            .SelectMany(list => list)
+            .Select(entry => entry.Name.Original)
+            .OrderBy(name => name)
+            .ToArray();
+
+    /// <summary>
+    /// Runs a full library scan, reusing the same cache file across calls within a test --
+    /// like <see cref="ScanFolderForNames"/>, but returning the cache itself for tests that
+    /// need to inspect the resulting entry, not just its name.
+    /// </summary>
+    private SongCache RunFullScan(string? badSongsPath = null)
+        => CacheHandler.RunScan(false,
             Path.Combine(_root, "songcache.bin"),
             badSongsPath ?? Path.Combine(_root, "badsongs.txt"),
             false,
             new List<string> { _songDir });
 
-        return cache.Entries.Values
-            .SelectMany(list => list)
-            .Select(entry => entry.Name.Original)
-            .OrderBy(name => name)
-            .ToArray();
-    }
+    private static SongEntry SoleEntry(SongCache cache)
+        => cache.Entries.Values.SelectMany(list => list).Single();
 
     private static string BasicChart(string title = "Test Song", string audio = "audio.mp3", string extraTags = "")
     {
@@ -490,6 +606,22 @@ public class UltraStarIniEntryTests
                "#BPM:120\n" +
                tags +
                ": 0 4 0 Hello\n" +
+               "E\n";
+    }
+
+    /// <summary>A multi-voice (P1+P2) chart, the shape a USDB "[DUET]" file has.</summary>
+    private static string DuetChart(string title = "Test Song (Duet)", string audio = "audio.mp3", string extraTags = "")
+    {
+        string tags = extraTags.Length > 0 ? extraTags.TrimEnd('\n') + "\n" : string.Empty;
+        return $"#TITLE:{title}\n" +
+               "#ARTIST:Test Artist\n" +
+               $"#MP3:{audio}\n" +
+               "#BPM:120\n" +
+               tags +
+               "P1\n" +
+               ": 0 4 0 Hello\n" +
+               "P2\n" +
+               ": 0 4 2 Hi\n" +
                "E\n";
     }
 }
