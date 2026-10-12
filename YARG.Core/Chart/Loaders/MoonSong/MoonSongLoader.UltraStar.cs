@@ -16,7 +16,7 @@ namespace YARG.Core.Chart
             var ultraStarLoader = new UltraStarLoader(file);
             var moonSong = ConvertUltraStarToMoonSong(ultraStarLoader);
 
-            return new MoonSongLoader(moonSong, settings) { _isUltraStar = true };
+            return new MoonSongLoader(moonSong, settings) { _matchSlideChildrenByExactTick = true };
         }
 
         #endregion

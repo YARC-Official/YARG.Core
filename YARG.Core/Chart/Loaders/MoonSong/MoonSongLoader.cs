@@ -31,7 +31,7 @@ namespace YARG.Core.Chart
 
         // Set only by LoadUltraStar. Gates the AllNotes slide-child walk in FixLyricLengths,
         // which only UltraStar's flattened pitch-slide chains need (see MoonSongLoader.Vocals.cs).
-        private bool _isUltraStar;
+        private bool _matchSlideChildrenByExactTick;
 
         public bool SoloSectionLengthIncludesTerminalTick => _inclusiveSoloBoundary;
 
