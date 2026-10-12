@@ -36,6 +36,8 @@ namespace YARG.Core.Chart
                     var parent = phrase.PhraseParentNote;
 
                     allPhrases.Add(new MoonPhrase(parent.Tick, parent.TickLength, MoonPhrase.Type.Vocals_ScoringPhrase));
+                    // HARM2/3 static (and merged) lyrics are built from these, as with a .mid phrase note
+                    allPhrases.Add(new MoonPhrase(parent.Tick, parent.TickLength, MoonPhrase.Type.Vocals_StaticLyricPhrase));
 
                     foreach (var lyric in phrase.Lyrics)
                     {
@@ -65,7 +67,7 @@ namespace YARG.Core.Chart
 
             var lyricPhrases = allPhrases
                 .Where(p => p.type == MoonPhrase.Type.Vocals_ScoringPhrase || p.type == MoonPhrase.Type.Vocals_StaticLyricPhrase)
-                .GroupBy(p => p.tick)
+                .GroupBy(p => new { p.tick, p.type })
                 .Select(g => g.OrderByDescending(p => p.length).First());
             allPhrasesList.AddRange(lyricPhrases);
 
