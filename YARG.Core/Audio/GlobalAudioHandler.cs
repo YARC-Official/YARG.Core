@@ -741,5 +741,17 @@ namespace YARG.Core.Audio
                 return _instance.ReinitializeOutput();
             }
         }
+
+        public static PushStream CreatePushStream(int sampleRate, int channelCount)
+        {
+            lock (_instanceLock)
+            {
+                if (_instance == null)
+                {
+                    throw new NotInitializedException();
+                }
+                return _instance.CreatePushStream(sampleRate, channelCount);
+            }
+        }
     }
 }
