@@ -620,12 +620,23 @@ namespace YARG.Core.Chart.Loaders.UltraStar
                 }
                 else
                 {
+                    // With 2+ voices, HARM1-3 scoring phrases share one set of cut points so
+                    // overlapping phrases across parts line up (see ComputeSharedPhraseCuts).
+                    // A single populated voice has nothing to share bounds with.
+                    List<uint>? cuts = null;
+                    List<(uint Start, uint End)>? windowBounds = null;
+                    if (voices.Count > 1)
+                    {
+                        cuts = ComputeSharedPhraseCuts(voices);
+                        windowBounds = ComputeSharedWindowBounds(voices, cuts);
+                    }
+
                     // One VocalsPart per voice actually populated (P1..P3), in order. Harmony
                     // part i is built from the voice at position i in that list, not the raw P
                     // number -- so P1+P3 maps to Harmony1+Harmony2.
                     for (int i = 0; i < voices.Count; i++)
                     {
-                        parts.Add(BuildVocalsPart(_partNotes[voices[i]], true, i));
+                        parts.Add(BuildVocalsPart(_partNotes[voices[i]], true, i, cuts, windowBounds));
                     }
                 }
             }
@@ -637,14 +648,58 @@ namespace YARG.Core.Chart.Loaders.UltraStar
 
         #region Vocals Processing
 
-        private VocalsPart BuildVocalsPart(List<UltraStarNote> notes, bool isHarmony, int partIndex)
+        private VocalsPart BuildVocalsPart(List<UltraStarNote> notes, bool isHarmony, int partIndex,
+            List<uint>? sharedCuts = null, List<(uint Start, uint End)>? sharedWindowBounds = null)
         {
             var phrases = new List<VocalsPhrase>();
+            var staticLyricPhrases = new List<VocalsPhrase>();
             var otherPhrases = new List<Phrase>();
 
-            foreach (var group in GroupNotesIntoPhrases(notes))
+            // Scoring groups: either this voice's own lines (solo, or a lone harmony voice),
+            // or its notes split into the shared windows so overlapping HARM1-3 phrases line
+            // up (see ComputeSharedPhraseCuts). Either way, the display lines below always
+            // come from this voice's own lines, so a shared window split never breaks a line
+            // up on screen.
+            List<(List<UltraStarNote> Group, (uint Start, uint End)? Bounds)> scoringGroups;
+            if (sharedCuts != null && sharedWindowBounds != null)
             {
-                var phrase = CreateVocalsPhrase(group, partIndex);
+                foreach (var line in GroupNotesIntoPhrases(notes))
+                {
+                    var staticPhrase = CreateVocalsPhrase(line, partIndex);
+                    if (staticPhrase != null)
+                    {
+                        staticLyricPhrases.Add(staticPhrase);
+                    }
+                }
+
+                var byWindow = new SortedDictionary<int, List<UltraStarNote>>();
+                foreach (var note in notes.Where(n => !n.IsRest).OrderBy(n => n.StartBeat))
+                {
+                    int window = WindowIndex(sharedCuts, note.StartBeat);
+                    if (!byWindow.TryGetValue(window, out var group))
+                    {
+                        group = new List<UltraStarNote>();
+                        byWindow[window] = group;
+                    }
+                    group.Add(note);
+                }
+
+                scoringGroups = byWindow
+                    .Select(kv => (kv.Value, ((uint Start, uint End)?) sharedWindowBounds[kv.Key]))
+                    .ToList();
+            }
+            else
+            {
+                scoringGroups = GroupNotesIntoPhrases(notes)
+                    .Select(line => (line, ((uint Start, uint End)?) null))
+                    .ToList();
+            }
+
+            foreach (var (group, bounds) in scoringGroups)
+            {
+                var phrase = bounds is { } b
+                    ? CreateVocalsPhrase(group, partIndex, b.Start, b.End)
+                    : CreateVocalsPhrase(group, partIndex);
                 if (phrase == null)
                 {
                     continue;
@@ -664,7 +719,135 @@ namespace YARG.Core.Chart.Loaders.UltraStar
 
             otherPhrases = otherPhrases.OrderBy(p => p.Tick).ToList();
 
-            return new VocalsPart(isHarmony, phrases, new List<VocalsPhrase>(), new(), otherPhrases, new List<TextEvent>());
+            return new VocalsPart(isHarmony, phrases, staticLyricPhrases, new(), otherPhrases, new List<TextEvent>());
+        }
+
+        /// <summary>
+        /// One shared list of cut beats for every populated voice, so HARM1-3 scoring phrases
+        /// line up across parts instead of each voice cutting on its own '-' rests:
+        /// - One cut per gap between consecutive lines of the primary voice (the lowest
+        ///   populated one), found by walking back from the next line's start past any note
+        ///   that straddles it. If that walk would reach into the previous line, there is no
+        ///   clean cut: cut at the next line's start anyway and let the straddler hang over.
+        ///   The primary voice's own lines therefore never merge.
+        /// - One extra cut at each other voice's line start that falls outside every primary
+        ///   line (e.g. a line sung in the primary voice's rest).
+        /// </summary>
+        private List<uint> ComputeSharedPhraseCuts(List<int> voices)
+        {
+            var primaryLines = GroupNotesIntoPhrases(_partNotes[voices[0]])
+                .Select(line => (Start: line[0].StartBeat, End: line[^1].EndBeat))
+                .ToList();
+
+            var allNotes = voices
+                .SelectMany(v => _partNotes[v])
+                .Where(n => !n.IsRest)
+                .Select(n => (n.StartBeat, n.EndBeat))
+                .ToList();
+
+            var cuts = new SortedSet<uint>();
+
+            for (int i = 1; i < primaryLines.Count; i++)
+            {
+                uint prevEnd = primaryLines[i - 1].End;
+                uint nextStart = primaryLines[i].Start;
+                cuts.Add(FindCleanCut(allNotes, prevEnd, nextStart));
+            }
+
+            foreach (int voice in voices.Skip(1))
+            {
+                foreach (var line in GroupNotesIntoPhrases(_partNotes[voice]))
+                {
+                    uint start = line[0].StartBeat;
+                    bool insidePrimaryLine = primaryLines.Any(p => start >= p.Start && start < p.End);
+                    if (!insidePrimaryLine)
+                    {
+                        cuts.Add(start);
+                    }
+                }
+            }
+
+            return cuts.ToList();
+        }
+
+        // Walks back from nextStart to the latest beat no note strictly straddles. Gives up
+        // (falls back to nextStart) if that walk would reach prevEnd or earlier -- there's no
+        // clean cut in the gap, so the straddling note is left to hang over the boundary.
+        private static uint FindCleanCut(List<(uint StartBeat, uint EndBeat)> allNotes, uint prevEnd, uint nextStart)
+        {
+            uint b = nextStart;
+            while (true)
+            {
+                var straddler = FindStraddlingNote(allNotes, b);
+                if (straddler == null)
+                {
+                    return b;
+                }
+
+                b = straddler.Value.StartBeat;
+                if (b < prevEnd)
+                {
+                    return nextStart;
+                }
+            }
+        }
+
+        // The straddling note with the earliest start, if any: one with StartBeat < beat < EndBeat.
+        private static (uint StartBeat, uint EndBeat)? FindStraddlingNote(List<(uint StartBeat, uint EndBeat)> allNotes, uint beat)
+        {
+            (uint StartBeat, uint EndBeat)? best = null;
+            foreach (var note in allNotes)
+            {
+                if (note.StartBeat < beat && beat < note.EndBeat && (best == null || note.StartBeat < best.Value.StartBeat))
+                {
+                    best = note;
+                }
+            }
+            return best;
+        }
+
+        /// <summary>
+        /// Shared bounds per window (as cut by <see cref="ComputeSharedPhraseCuts"/>): the
+        /// earliest start and latest end among all voices' notes that start in that window,
+        /// the end capped at the next window's start so windows never overlap. Every voice
+        /// with notes in a window uses these same bounds for its phrase there.
+        /// </summary>
+        private List<(uint Start, uint End)> ComputeSharedWindowBounds(List<int> voices, List<uint> cuts)
+        {
+            var bounds = new (uint Start, uint End)?[cuts.Count + 1];
+
+            foreach (var note in voices.SelectMany(v => _partNotes[v]).Where(n => !n.IsRest))
+            {
+                int window = WindowIndex(cuts, note.StartBeat);
+                var current = bounds[window];
+                bounds[window] = current is { } c
+                    ? (Math.Min(c.Start, note.StartBeat), Math.Max(c.End, note.EndBeat))
+                    : (note.StartBeat, note.EndBeat);
+            }
+
+            var result = new List<(uint Start, uint End)>(bounds.Length);
+            for (int window = 0; window < bounds.Length; window++)
+            {
+                var (start, end) = bounds[window] ?? (0u, 0u);
+                if (window < cuts.Count)
+                {
+                    end = Math.Min(end, cuts[window]);
+                }
+                result.Add((start, end));
+            }
+            return result;
+        }
+
+        // Window i spans [cuts[i-1], cuts[i]), with the first window unbounded below and the
+        // last unbounded above.
+        private static int WindowIndex(List<uint> cuts, uint beat)
+        {
+            int window = 0;
+            while (window < cuts.Count && cuts[window] <= beat)
+            {
+                window++;
+            }
+            return window;
         }
 
         private static List<List<UltraStarNote>> GroupNotesIntoPhrases(List<UltraStarNote> notes)
@@ -713,19 +896,24 @@ namespace YARG.Core.Chart.Loaders.UltraStar
             return groups;
         }
 
-        private VocalsPhrase? CreateVocalsPhrase(List<UltraStarNote> phraseNotes, int partIndex)
+        // startBeat/endBeat default to the phrase's own first/last note. A shared-window
+        // caller passes both explicitly, so the phrase's bounds come from the window instead
+        // -- a note that runs past endBeat still gets its own full-length child note (see the
+        // loop below), so it hangs over as a carried note rather than being clamped.
+        private VocalsPhrase? CreateVocalsPhrase(List<UltraStarNote> phraseNotes, int partIndex,
+            uint? startBeat = null, uint? endBeat = null)
         {
             if (phraseNotes.Count == 0)
             {
                 return null;
             }
 
-            var firstNote = phraseNotes[0];
-            var lastNote = phraseNotes[^1];
-            uint startTick = BeatToTick(firstNote.StartBeat);
-            uint endTick = BeatToTick(lastNote.EndBeat);
-            double startTime = BeatToTime(firstNote.StartBeat);
-            double endTime = BeatToTime(lastNote.EndBeat);
+            uint firstBeat = startBeat ?? phraseNotes[0].StartBeat;
+            uint lastBeat = endBeat ?? phraseNotes[^1].EndBeat;
+            uint startTick = BeatToTick(firstBeat);
+            uint endTick = BeatToTick(lastBeat);
+            double startTime = BeatToTime(firstBeat);
+            double endTime = BeatToTime(lastBeat);
 
             var parentNote = new VocalNote(
                 NoteFlags.None, false,
