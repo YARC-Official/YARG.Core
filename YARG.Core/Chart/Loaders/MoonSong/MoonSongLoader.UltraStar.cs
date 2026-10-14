@@ -38,14 +38,24 @@ namespace YARG.Core.Chart
 
             foreach (var part in parts)
             {
+                // Harmony with 2+ voices builds its own static-lyric phrases from each
+                // voice's own lines (see UltraStarLoader.BuildVocalsPart), so HARM2/3 keep
+                // whole display lines even where scoring is cut to a shared window. A lone
+                // voice has none, so falls back to the scoring phrases, as before.
+                var staticLyricPhrases = part.StaticLyricPhrases.Count > 0 ? part.StaticLyricPhrases : part.NotePhrases;
+                foreach (var phrase in staticLyricPhrases)
+                {
+                    var (lyricPhraseTick, lyricPhraseLength) = RemapTickRange(
+                        phrase.PhraseParentNote.Tick, phrase.PhraseParentNote.TickLength, remapTick);
+                    allPhrases.Add(new MoonPhrase(lyricPhraseTick, lyricPhraseLength, MoonPhrase.Type.Vocals_StaticLyricPhrase));
+                }
+
                 foreach (var phrase in part.NotePhrases)
                 {
                     var parent = phrase.PhraseParentNote;
                     var (phraseTick, phraseLength) = RemapTickRange(parent.Tick, parent.TickLength, remapTick);
 
                     allPhrases.Add(new MoonPhrase(phraseTick, phraseLength, MoonPhrase.Type.Vocals_ScoringPhrase));
-                    // HARM2/3 static (and merged) lyrics are built from these, as with a .mid phrase note
-                    allPhrases.Add(new MoonPhrase(phraseTick, phraseLength, MoonPhrase.Type.Vocals_StaticLyricPhrase));
 
                     foreach (var lyric in phrase.Lyrics)
                     {
