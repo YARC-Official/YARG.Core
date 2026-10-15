@@ -29,6 +29,7 @@ namespace YARG.Core.Chart
             ProKeysFlags = _proKeysFlags = proKeysFlags;
 
             NoteMask = GetKeyMask(Key);
+            DisjointMask = GetKeyMask(Key);
         }
 
         public ProKeysNote(ProKeysNote other) : base(other)
