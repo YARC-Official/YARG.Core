@@ -111,6 +111,7 @@ namespace YARG.Core.Engine
 
         public bool HasFinishedScoring;
         public bool IsLeniencyHeld;
+        public bool IsReleaseHeld;
 
         public double LeniencyDropTime;
 
@@ -122,6 +123,7 @@ namespace YARG.Core.Engine
 
             HasFinishedScoring = false;
             IsLeniencyHeld = false;
+            IsReleaseHeld = false;
 
             LeniencyDropTime = -9999;
         }

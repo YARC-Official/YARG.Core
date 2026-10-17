@@ -31,6 +31,7 @@ namespace YARG.Core.Engine.Keys.Engines
         public override void Reset(bool keepCurrentButtons = false)
         {
             base.Reset(keepCurrentButtons);
+            ActiveSustains.Clear();
             ResetReleaseHitState();
         }
 
@@ -270,6 +271,29 @@ namespace YARG.Core.Engine.Keys.Engines
                 Overhit(KeyHitThisUpdate.Value);
                 KeyHitThisUpdate = null;
             }
+        }
+
+        protected override bool WasHitByRelease(GuitarNote note)
+        {
+            if (!EngineParameters.ReleaseKeysCanHitNotes || !IsNoteInWindow(note.ParentOrSelf))
+            {
+                return false;
+            }
+
+            if (!note.ParentOrSelf.IsChord)
+            {
+                return KeyReleasedThisUpdate == (int)note.FiveLaneKeysAction;
+            }
+
+            var parentNote = note.ParentOrSelf;
+            if (_chordModeNote != parentNote || _chordInputMode != ChordInputMode.Release)
+            {
+                return false;
+            }
+
+            double hitWindow = EngineParameters.HitWindow.CalculateHitWindow(GetAverageNoteDistance(parentNote));
+            double frontEnd = EngineParameters.HitWindow.GetFrontEnd(hitWindow);
+            return IsKeyReleaseInTime(note, frontEnd);
         }
 
         private void UpdateChordInputMode(GuitarNote parentNote)
