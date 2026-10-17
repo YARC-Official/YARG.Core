@@ -11,10 +11,38 @@ namespace YARG.Core.Engine.Keys.Engines
     public class YargFiveLaneKeysEngine : FiveLaneKeysEngine
     {
         private KeyPressedTimes[] _keyPressedTimes = new KeyPressedTimes[7];
+        private readonly double[] _keyReleaseTimes = new double[7];
+        private GuitarNote? _chordModeNote;
+        private ChordInputMode _chordInputMode;
+
+        private enum ChordInputMode
+        {
+            None,
+            Press,
+            Release,
+        }
 
         public YargFiveLaneKeysEngine(InstrumentDifficulty<GuitarNote> chart, SyncTrack syncTrack,
             KeysEngineParameters engineParameters, bool isBot) : base(chart, syncTrack, engineParameters, isBot)
         {
+            ResetReleaseHitState();
+        }
+
+        public override void Reset(bool keepCurrentButtons = false)
+        {
+            base.Reset(keepCurrentButtons);
+            ResetReleaseHitState();
+        }
+
+        private void ResetReleaseHitState()
+        {
+            for (int i = 0; i < _keyReleaseTimes.Length; i++)
+            {
+                _keyReleaseTimes[i] = DEFAULT_PRESS_TIME;
+            }
+
+            _chordModeNote = null;
+            _chordInputMode = ChordInputMode.None;
         }
 
         protected override void MutateStateWithInput(GameInput gameInput)
@@ -54,6 +82,7 @@ namespace YARG.Core.Engine.Keys.Engines
                 else
                 {
                     KeyReleasedThisUpdate = fiveLaneKeyIndex;
+                    _keyReleaseTimes[fiveLaneKeyIndex] = gameInput.Time;
                 }
 
                 PreviousKeyMask = KeyMask;
@@ -89,9 +118,15 @@ namespace YARG.Core.Engine.Keys.Engines
         protected override void CheckForNoteHit()
         {
             var parentNote = Notes[NoteIndex];
+            if (_chordModeNote != parentNote)
+            {
+                _chordModeNote = parentNote;
+                _chordInputMode = ChordInputMode.None;
+            }
 
             // Miss out the back end
-            if (!IsNoteInWindow(parentNote, out bool missed))
+            bool isInWindow = IsNoteInWindow(parentNote, out bool missed);
+            if (!isInWindow)
             {
                 if (missed)
                 {
@@ -124,6 +159,8 @@ namespace YARG.Core.Engine.Keys.Engines
                 double frontEnd = EngineParameters.HitWindow.GetFrontEnd(hitWindow);
                 double backEnd = EngineParameters.HitWindow.GetBackEnd(hitWindow);
 
+                UpdateChordInputMode(parentNote);
+
                 // Hit whole note
                 if (CanNoteBeHit(parentNote))
                 {
@@ -146,8 +183,12 @@ namespace YARG.Core.Engine.Keys.Engines
                             YargLogger.LogFormatTrace("Ending chord staggering at {0}", CurrentTime);
                             foreach (var note in parentNote.AllNotes)
                             {
-                                // This key in the chord was held by the time chord staggering ended, so it can be hit
-                                if ((KeyMask & note.DisjointMask) == note.DisjointMask && IsKeyInTime(note, frontEnd))
+                                // Hit each chord lane using the input mode selected for this chord attempt.
+                                bool canHit = _chordInputMode == ChordInputMode.Release
+                                    ? IsKeyReleaseInTime(note, frontEnd)
+                                    : (KeyMask & note.DisjointMask) == note.DisjointMask && IsKeyInTime(note, frontEnd);
+
+                                if (canHit)
                                 {
                                     HitNote(note);
                                     YargLogger.LogFormatTrace("Hit staggered note {0} in chord", (int)note.FiveLaneKeysAction);
@@ -173,8 +214,12 @@ namespace YARG.Core.Engine.Keys.Engines
                         {
                             foreach (var note in parentNote.AllNotes)
                             {
-                                // Go to next note if the key hit does not match the note's key
-                                if (KeyHitThisUpdate != (int)note.FiveLaneKeysAction)
+                                // Go to next note if the current input does not match the note's key and mode.
+                                bool matchingPress = _chordInputMode != ChordInputMode.Release &&
+                                    KeyHitThisUpdate == (int)note.FiveLaneKeysAction;
+                                bool matchingRelease = _chordInputMode == ChordInputMode.Release &&
+                                    KeyReleasedThisUpdate == (int)note.FiveLaneKeysAction;
+                                if (!matchingPress && !matchingRelease)
                                 {
                                     continue;
                                 }
@@ -201,12 +246,22 @@ namespace YARG.Core.Engine.Keys.Engines
                                     }
                                 }
 
-                                KeyHitThisUpdate = null;
+                                if (matchingPress)
+                                {
+                                    KeyHitThisUpdate = null;
+                                }
                                 break;
                             }
                         }
                     }
                 }
+            }
+
+            // A matching press cannot contribute to a release-mode chord, but it is not an overhit.
+            if (isInWindow && _chordInputMode == ChordInputMode.Release && parentNote.IsChord &&
+                KeyHitThisUpdate is int pressedLane && IsChordLane(parentNote, pressedLane))
+            {
+                KeyHitThisUpdate = null;
             }
 
             // If no note was hit but the user hit a key, then over hit
@@ -215,6 +270,55 @@ namespace YARG.Core.Engine.Keys.Engines
                 Overhit(KeyHitThisUpdate.Value);
                 KeyHitThisUpdate = null;
             }
+        }
+
+        private void UpdateChordInputMode(GuitarNote parentNote)
+        {
+            if (_chordModeNote != parentNote)
+            {
+                _chordModeNote = parentNote;
+                _chordInputMode = ChordInputMode.None;
+            }
+
+            if (!parentNote.IsChord || _chordInputMode != ChordInputMode.None)
+            {
+                return;
+            }
+
+            if (KeyHitThisUpdate is int pressedLane && IsChordLane(parentNote, pressedLane))
+            {
+                _chordInputMode = ChordInputMode.Press;
+            }
+            else if (EngineParameters.ReleaseKeysCanHitNotes && CanReleaseHitChord(parentNote) &&
+                KeyReleasedThisUpdate is int releasedLane && IsChordLane(parentNote, releasedLane))
+            {
+                _chordInputMode = ChordInputMode.Release;
+            }
+        }
+
+        private static bool CanReleaseHitChord(GuitarNote note)
+        {
+            var previousNote = note.PreviousNote;
+            return note.IsChord && previousNote is { IsChord: true } && previousNote.NoteMask == note.NoteMask;
+        }
+
+        private static bool IsChordLane(GuitarNote note, int lane)
+        {
+            foreach (var chordNote in note.AllNotes)
+            {
+                if ((int)chordNote.FiveLaneKeysAction == lane)
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        private bool IsKeyReleaseInTime(GuitarNote note, double frontEnd)
+        {
+            int lane = (int)note.FiveLaneKeysAction;
+            return _keyReleaseTimes[lane] > note.Time + frontEnd;
         }
 
         protected override bool CanNoteBeHit(GuitarNote note)
@@ -229,7 +333,27 @@ namespace YARG.Core.Engine.Keys.Engines
                 return true;
             }
 
-            if ((KeyMask & note.NoteMask) == note.NoteMask)
+            if (note.IsChord && _chordModeNote == note && _chordInputMode == ChordInputMode.Release)
+            {
+                foreach (var childNote in note.AllNotes)
+                {
+                    if (!IsKeyReleaseInTime(childNote, frontEnd))
+                    {
+                        return false;
+                    }
+                }
+
+                return true;
+            }
+
+            int hitMask = KeyMask;
+            if (!note.IsChord && EngineParameters.ReleaseKeysCanHitNotes &&
+                KeyReleasedThisUpdate is int releasedLane)
+            {
+                hitMask |= 1 << releasedLane;
+            }
+
+            if ((hitMask & note.NoteMask) == note.NoteMask)
             {
                 foreach (var childNote in note.AllNotes)
                 {
