@@ -17,7 +17,8 @@ namespace YARG.Core.Engine
         /// <summary>
         /// Score that is currently pending addition (e.g. from active sustains).
         /// These points are recalculated every update, and only get added once their
-        /// final condition has been met.
+        /// final condition has been met. <br/>
+        /// Pending score exists only for the purpose of display, it is not used for any final score calculations.
         /// </summary>
         /// <remarks>
         /// These points are still earned, but their total value is not final yet.
