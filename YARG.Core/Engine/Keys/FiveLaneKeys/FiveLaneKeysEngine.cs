@@ -35,10 +35,40 @@ namespace YARG.Core.Engine.Keys
             GetWaitCountdowns(Notes);
         }
 
+        protected virtual bool WasHitByRelease(GuitarNote note) => false;
+
         protected override bool CanSustainHold(GuitarNote note)
         {
             return (KeyMask & note.DisjointMask) != 0 ||
                 (KeyMask > 0 && note.FiveLaneKeysAction is FiveLaneKeysAction.Wildcard);
+        }
+
+        protected override bool CanSustainHold(in ActiveSustain<GuitarNote> sustain)
+        {
+            return sustain.IsReleaseHeld || CanSustainHold(sustain.Note);
+        }
+
+        private void StartSustain(GuitarNote note, bool isReleaseHeld)
+        {
+            int startingSustainCount = ActiveSustains.Count;
+            StartSustain(note);
+
+            if (!isReleaseHeld)
+            {
+                return;
+            }
+
+            for (int i = startingSustainCount; i < ActiveSustains.Count; i++)
+            {
+                ref var sustain = ref ActiveSustains[i];
+                if (!ReferenceEquals(sustain.Note, note))
+                {
+                    continue;
+                }
+
+                sustain.IsReleaseHeld = true;
+                break;
+            }
         }
 
         protected override void HitNote(GuitarNote note)
@@ -101,7 +131,8 @@ namespace YARG.Core.Engine.Keys
 
             if (note.IsSustain)
             {
-                StartSustain(note);
+                bool isReleaseHeld = EngineParameters.ReleaseKeysCanHitNotes && WasHitByRelease(note);
+                StartSustain(note, isReleaseHeld);
             }
 
             OnNoteHit?.Invoke(NoteIndex, note);
