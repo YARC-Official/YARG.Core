@@ -331,6 +331,195 @@ public class MidReaderProcessListsTests
         }));
     }
 
+    [Test]
+    public void OverlappingNotesOfOneNumber_EndTheLatestNoteFirstAndTrimSustains()
+    {
+        var green = MidIOHelper.GUITAR_DIFF_START_LOOKUP[Difficulty.Expert];
+        var midi = MakeMidi(MakeTrack(MidIOHelper.GUITAR_TRACK,
+            Note(0, 576, green),
+            Note(192, 384, green)));
+
+        var notes = MidReader.ReadMidi(midi).GetChart(MoonInstrument.Guitar, Difficulty.Expert).notes;
+
+        Assert.That(notes.Select(note => (note.tick, note.length)), Is.EqualTo(new[] { (0u, 192u), (192u, 384u) }));
+    }
+
+    [Test]
+    public void NoteOnBeforeNoteOffOnOneTick_ReadsBothNotes()
+    {
+        var green = MidIOHelper.GUITAR_DIFF_START_LOOKUP[Difficulty.Expert];
+        var midi = MakeMidi(MakeTrackInFileOrder(MidIOHelper.GUITAR_TRACK,
+            NoteOn(0, green),
+            NoteOn(192, green),
+            NoteOff(192, green),
+            NoteOff(384, green)));
+
+        var notes = MidReader.ReadMidi(midi).GetChart(MoonInstrument.Guitar, Difficulty.Expert).notes;
+
+        Assert.That(notes.Select(note => (note.tick, note.length)), Is.EqualTo(new[] { (0u, 192u), (192u, 192u) }));
+    }
+
+    [Test]
+    public void TwoNoteOnsOfOneNumberOnOneTick_KeepTheLongerNote()
+    {
+        var green = MidIOHelper.GUITAR_DIFF_START_LOOKUP[Difficulty.Expert];
+        var midi = MakeMidi(MakeTrack(MidIOHelper.GUITAR_TRACK,
+            Note(0, 100, green),
+            Note(0, 300, green)));
+
+        var notes = MidReader.ReadMidi(midi).GetChart(MoonInstrument.Guitar, Difficulty.Expert).notes;
+
+        Assert.That(notes.Select(note => (note.tick, note.length)), Is.EqualTo(new[] { (0u, 300u) }));
+    }
+
+    [Test]
+    public void OpenNoteChordFollowedByAnOpenNote_TrimsEveryNoteOfTheChord()
+    {
+        var green = MidIOHelper.GUITAR_DIFF_START_LOOKUP[Difficulty.Expert];
+        var midi = MakeMidi(MakeTrack(MidIOHelper.GUITAR_TRACK,
+            PhaseShiftOpen(0, start: true),
+            PhaseShiftOpen(10, start: false),
+            Note(0, 300, green),
+            Note(0, 300, green + 1),
+            PhaseShiftOpen(192, start: true),
+            PhaseShiftOpen(202, start: false),
+            Note(192, 400, green)));
+
+        var notes = MidReader.ReadMidi(midi).GetChart(MoonInstrument.Guitar, Difficulty.Expert).notes;
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(notes, Has.All.Matches<MoonNote>(note => note.guitarFret == GuitarFret.Open));
+            Assert.That(notes.Select(note => (note.tick, note.length)), Is.EqualTo(new[] { (0u, 192u), (0u, 192u), (192u, 208u) }));
+        }
+    }
+
+    // The sustain cutoff at this resolution is 64 ticks, so a 30 and a 60 tick note are the same length
+    [TestCase(480, 60, false, 480u)]
+    [TestCase(60, 480, true, 480u)]
+    [TestCase(480, 480, true, 480u)]
+    [TestCase(30, 60, true, 0u)]
+    public void KickAndDoubleKickOnOneTick_KeepTheLongerOrTheDoubleKick(int kickLength, int doubleKickLength,
+        bool keepsDoubleKick, uint keptLength)
+    {
+        var kick = MidIOHelper.DRUMS_DIFF_START_LOOKUP[Difficulty.Expert];
+        var midi = MakeMidi(MakeTrack(MidIOHelper.DRUMS_TRACK,
+            Note(0, kickLength, kick),
+            Note(0, doubleKickLength, kick - 1)));
+
+        var notes = MidReader.ReadMidi(midi).GetChart(MoonInstrument.Drums, Difficulty.Expert).notes;
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(notes, Has.Count.EqualTo(1));
+            Assert.That(notes[0].drumPad, Is.EqualTo(DrumPad.Kick));
+            Assert.That(notes[0].length, Is.EqualTo(keptLength));
+            Assert.That((notes[0].flags & Flags.DoubleKick) != 0, Is.EqualTo(keepsDoubleKick));
+        }
+    }
+
+    [Test]
+    public void OverlappingStarPowerPhrases_AreTrimmedAsSustains()
+    {
+        var midi = MakeMidi(MakeTrack(MidIOHelper.GUITAR_TRACK,
+            Note(0, 576, MidIOHelper.STARPOWER_NOTE),
+            Note(192, 384, MidIOHelper.STARPOWER_NOTE)));
+
+        var phrases = MidReader.ReadMidi(midi).GetChart(MoonInstrument.Guitar, Difficulty.Expert).specialPhrases;
+
+        Assert.That(phrases.Select(phrase => (phrase.type, phrase.tick, phrase.length)), Is.EqualTo(new[]
+        {
+            (MoonPhrase.Type.Starpower, 0u, 192u),
+            (MoonPhrase.Type.Starpower, 192u, 384u),
+        }));
+    }
+
+    [Test]
+    public void DrumFillsWithNoteOnBeforeNoteOffOnOneTick_ReadAsBothFills()
+    {
+        var midi = MakeMidi(MakeTrackInFileOrder(MidIOHelper.DRUMS_TRACK,
+            NoteOn(0, MidIOHelper.DRUM_FILL_NOTE_0),
+            NoteOn(192, MidIOHelper.DRUM_FILL_NOTE_0),
+            NoteOff(192, MidIOHelper.DRUM_FILL_NOTE_0),
+            NoteOff(384, MidIOHelper.DRUM_FILL_NOTE_0)));
+
+        var phrases = MidReader.ReadMidi(midi).GetChart(MoonInstrument.Drums, Difficulty.Expert).specialPhrases;
+
+        Assert.That(phrases.Select(phrase => (phrase.type, phrase.tick, phrase.length)), Is.EqualTo(new[]
+        {
+            (MoonPhrase.Type.ProDrums_Activation, 0u, 192u),
+            (MoonPhrase.Type.ProDrums_Activation, 192u, 192u),
+        }));
+    }
+
+    [Test]
+    public void OverlappingVocalPhrasesOfTwoPlayers_AreBothKept()
+    {
+        var midi = MakeMidi(MakeTrack(MidIOHelper.VOCALS_TRACK,
+            Note(0, 480, MidIOHelper.LYRICS_PHRASE_1),
+            Note(2, 478, MidIOHelper.LYRICS_PHRASE_2)));
+
+        var phrases = MidReader.ReadMidi(midi).GetChart(MoonInstrument.Vocals, Difficulty.Expert).specialPhrases;
+
+        Assert.That(phrases.Where(phrase => phrase.type == MoonPhrase.Type.Vocals_ScoringPhrase)
+            .Select(phrase => (phrase.tick, phrase.length)), Is.EqualTo(new[] { (0u, 480u), (2u, 476u) }));
+    }
+
+    [Test]
+    public void OverlappingLanes_KeepTheirOverlap()
+    {
+        var midi = MakeMidi(MakeTrack(MidIOHelper.DRUMS_TRACK,
+            Note(0, 576, MidIOHelper.TREMOLO_LANE_NOTE),
+            Note(192, 384, MidIOHelper.TREMOLO_LANE_NOTE)));
+
+        var phrases = MidReader.ReadMidi(midi).GetChart(MoonInstrument.Drums, Difficulty.Expert).specialPhrases;
+
+        Assert.That(phrases.Select(phrase => (phrase.type, phrase.tick, phrase.length)), Is.EqualTo(new[]
+        {
+            (MoonPhrase.Type.TremoloLane, 0u, 576u),
+            (MoonPhrase.Type.TremoloLane, 192u, 192u),
+        }));
+    }
+
+    [Test]
+    public void TwoSoloPhrasesOnOneTick_KeepTheLonger()
+    {
+        var midi = MakeMidi(MakeTrack(MidIOHelper.DRUMS_TRACK,
+            Note(0, 100, MidIOHelper.SOLO_NOTE),
+            Note(0, 300, MidIOHelper.SOLO_NOTE)));
+
+        var phrases = MidReader.ReadMidi(midi).GetChart(MoonInstrument.Drums, Difficulty.Expert).specialPhrases;
+
+        Assert.That(phrases.Select(phrase => (phrase.type, phrase.tick, phrase.length)), Is.EqualTo(new[]
+        {
+            (MoonPhrase.Type.Solo, 0u, 300u),
+        }));
+    }
+
+    [Test]
+    public void OverlappingTomMarkersOfOneColor_MarkEveryNoteUnderEitherAsATom()
+    {
+        var yellow = MidIOHelper.DRUMS_DIFF_START_LOOKUP[Difficulty.Expert] + 2;
+        var yellowTom = MidIOHelper.PAD_TO_CYMBAL_LOOKUP[DrumPad.Yellow];
+        var midi = MakeMidi(MakeTrack(MidIOHelper.DRUMS_TRACK,
+            Note(0, 10, yellow),
+            Note(192, 202, yellow),
+            Note(384, 394, yellow),
+            Note(0, 480, yellowTom),
+            Note(96, 288, yellowTom)));
+
+        var notes = MidReader.ReadMidi(midi).GetChart(MoonInstrument.Drums, Difficulty.Expert).notes;
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(notes, Has.Count.EqualTo(3));
+            foreach (var note in notes)
+            {
+                AssertDoesNotHaveFlag(note, Flags.ProDrums_Cymbal);
+            }
+        }
+    }
+
     private static MidiFile MakeMidi(params TrackChunk[] tracks)
     {
         var midi = new MidiFile(MakeSyncTrack())
@@ -378,24 +567,49 @@ public class MidReaderProcessListsTests
         }));
     }
 
+    private static TimedMidiEvent PhaseShiftOpen(long tick, bool start)
+    {
+        return new TimedMidiEvent(tick, new NormalSysExEvent(new byte[]
+        {
+            0x50,
+            0x53,
+            0x00,
+            0x00,
+            0x03,
+            0x01,
+            (byte) (start ? 0x01 : 0x00),
+            0xF7,
+        }));
+    }
+
     private static TimedMidiEvent[] Note(long startTick, long endTick, int noteNumber,
         int velocity = MidIOHelper.VELOCITY, int channel = 0)
     {
         return new[]
         {
-            new TimedMidiEvent(startTick, new NoteOnEvent
-            {
-                NoteNumber = S(noteNumber),
-                Velocity = S(velocity),
-                Channel = F(channel),
-            }),
-            new TimedMidiEvent(endTick, new NoteOffEvent
-            {
-                NoteNumber = S(noteNumber),
-                Velocity = S(0),
-                Channel = F(channel),
-            }),
+            NoteOn(startTick, noteNumber, velocity, channel),
+            NoteOff(endTick, noteNumber, channel),
         };
+    }
+
+    private static TimedMidiEvent NoteOn(long tick, int noteNumber, int velocity = MidIOHelper.VELOCITY, int channel = 0)
+    {
+        return new TimedMidiEvent(tick, new NoteOnEvent
+        {
+            NoteNumber = S(noteNumber),
+            Velocity = S(velocity),
+            Channel = F(channel),
+        });
+    }
+
+    private static TimedMidiEvent NoteOff(long tick, int noteNumber, int channel = 0)
+    {
+        return new TimedMidiEvent(tick, new NoteOffEvent
+        {
+            NoteNumber = S(noteNumber),
+            Velocity = S(0),
+            Channel = F(channel),
+        });
     }
 
     private static TrackChunk MakeTrack(string trackName, params object[] eventItems)
@@ -405,21 +619,25 @@ public class MidReaderProcessListsTests
 
     private static TrackChunk MakeTrack(string trackName, IEnumerable<TimedMidiEvent> events)
     {
-        var ordered = events
+        return MakeTrackInFileOrder(trackName, events
             .OrderBy(item => item.Tick)
             .ThenBy(item => EventPriority(item.Event))
             .ThenBy(item => item.Event is NoteEvent note ? (int) note.NoteNumber : 0)
-            .ToArray();
+            .ToArray());
+    }
 
+    // Keeps the events in the order given, such as a note-on before a note-off at one tick
+    private static TrackChunk MakeTrackInFileOrder(string trackName, params TimedMidiEvent[] events)
+    {
         long previousTick = 0;
-        foreach (var (tick, midiEvent) in ordered)
+        foreach (var (tick, midiEvent) in events)
         {
             midiEvent.DeltaTime = tick - previousTick;
             previousTick = tick;
         }
 
         var chunk = new TrackChunk(new SequenceTrackNameEvent(trackName));
-        chunk.Events.AddRange(ordered.Select(item => item.Event));
+        chunk.Events.AddRange(events.Select(item => item.Event));
         return chunk;
     }
 
