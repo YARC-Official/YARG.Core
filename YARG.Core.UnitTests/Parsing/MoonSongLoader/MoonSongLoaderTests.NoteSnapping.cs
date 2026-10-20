@@ -98,6 +98,58 @@ namespace YARG.Core.UnitTests.Parsing
             }
         }
 
+        private static List<DrumNote> LoadExpertProDrums(MoonSong song, long snapThreshold)
+        {
+            var settings = ParseSettings.Default;
+            settings.NoteSnapThreshold = snapThreshold;
+            settings.DrumsType = DrumsType.FourLane;
+
+            return new MoonSongLoader(song, settings)
+                .LoadDrumsTrack(Instrument.ProDrums, null)
+                .GetDifficulty(Difficulty.Expert).Notes;
+        }
+
+        [Test]
+        public void SnappedDrumNoteOnAColorTheChordHas_TakesThatNote()
+        {
+            // A yellow cymbal, then an accented yellow tom 1 tick later
+            var song = CreateSong();
+            var chart = song.GetChart(MoonSong.MoonInstrument.Drums, MoonSong.Difficulty.Expert);
+            chart.Insert(new MoonNote(100, (int) MoonNote.DrumPad.Yellow, 0, MoonNote.Flags.ProDrums_Cymbal));
+            chart.Insert(new MoonNote(101, (int) MoonNote.DrumPad.Yellow, 0, MoonNote.Flags.ProDrums_Accent));
+
+            var notes = LoadExpertProDrums(song, 2);
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(notes, Has.Count.EqualTo(1));
+                Assert.That(notes[0].ChildNotes, Is.Empty);
+                Assert.That(notes[0].Pad, Is.EqualTo((int) FourLaneDrumPad.YellowCymbal));
+                Assert.That(notes[0].Type, Is.EqualTo(DrumNoteType.Neutral));
+            }
+        }
+
+        [Test]
+        public void SnappedRedDrumNote_TakesTheDiscoFlipOfTheChordsYellowNote()
+        {
+            // A disco flip starts on the red's written tick, after the yellow cymbal it snaps to
+            var song = CreateSong();
+            var chart = song.GetChart(MoonSong.MoonInstrument.Drums, MoonSong.Difficulty.Expert);
+            chart.Insert(new MoonNote(100, (int) MoonNote.DrumPad.Yellow, 0, MoonNote.Flags.ProDrums_Cymbal));
+            chart.Insert(new MoonNote(101, (int) MoonNote.DrumPad.Red));
+            chart.Add(new MoonText("mix 3 drums0d", 101));
+
+            var notes = LoadExpertProDrums(song, 2);
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(notes, Has.Count.EqualTo(1));
+                Assert.That(notes[0].Pad, Is.EqualTo((int) FourLaneDrumPad.YellowCymbal));
+                Assert.That(notes[0].ChildNotes.Select(note => (note.Tick, note.Pad)),
+                    Is.EqualTo(new[] { (100u, (int) FourLaneDrumPad.RedDrum) }));
+            }
+        }
+
         [Test]
         public void RockBandNoteSnap_SnapsNotesUpToThresholdWithTheChordsLength()
         {
