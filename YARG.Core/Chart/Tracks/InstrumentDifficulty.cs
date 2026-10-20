@@ -25,6 +25,12 @@ namespace YARG.Core.Chart
         internal List<Phrase> UnplayedPhrases { get; } = new();
 
         /// <summary>
+        /// Notes the chart writes that YARG doesn't play on this difficulty: double kicks on Easy, Medium and Hard.
+        /// Only the TrackHash uses them.
+        /// </summary>
+        internal List<TNote> UnplayedNotes { get; } = new();
+
+        /// <summary>
         /// Whether or not this difficulty contains any data.
         /// </summary>
         /// <remarks>
@@ -64,6 +70,7 @@ namespace YARG.Core.Chart
                 other.TextEvents.Duplicate(), other.RangeShiftEvents.Duplicate())
         {
             UnplayedPhrases = other.UnplayedPhrases.Duplicate();
+            UnplayedNotes = other.UnplayedNotes.DuplicateNotes();
         }
 
         /// <summary>

@@ -140,7 +140,7 @@ namespace YARG.Core.Chart.Hashing
                     phrases = drumDifficulty.Phrases;
                     unplayedPhrases = drumDifficulty.UnplayedPhrases;
                     rangeShiftEvents = drumDifficulty.RangeShiftEvents;
-                    notes = NormalizeDrumNotes(instrument, drumDifficulty.Notes);
+                    notes = NormalizeDrumNotes(instrument, drumDifficulty.Notes.Concat(drumDifficulty.UnplayedNotes));
                     break;
 
                 case Instrument.Vocals:
@@ -363,7 +363,7 @@ namespace YARG.Core.Chart.Hashing
         }
 
         private static List<(long Tick, long Length, BTrackNoteType Type, BTrackNoteFlags Flags)> NormalizeDrumNotes(
-            Instrument instrument, List<DrumNote> notes)
+            Instrument instrument, IEnumerable<DrumNote> notes)
         {
             var normalized = new List<(long Tick, long Length, BTrackNoteType Type, BTrackNoteFlags Flags)>();
             foreach (var note in notes)
