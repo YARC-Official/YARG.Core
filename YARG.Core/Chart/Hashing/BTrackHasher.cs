@@ -151,6 +151,12 @@ namespace YARG.Core.Chart.Hashing
                     return false;
             }
 
+            // A difficulty without notes has no BTrack, even with phrases
+            if (notes.Count == 0)
+            {
+                return false;
+            }
+
             result = WriteBTrack(
                 chart.SyncTrack,
                 ResolveOverlaps(PruneEmptyPhrases(GetPhrases(phrases, PhraseType.StarPower), notes),
