@@ -32,12 +32,12 @@ namespace YARG.Core.Chart
 
             var difficulties = new Dictionary<Difficulty, InstrumentDifficulty<DrumNote>>()
             {
-                { Difficulty.Beginner, LoadDifficulty(instrument, Difficulty.Beginner, beginnerNoteDelegate, HandleTextEvent, finalPassDelegate: DrumsFinalPass) },
-                { Difficulty.Easy, LoadDifficulty(instrument, Difficulty.Easy, createNote, HandleTextEvent, finalPassDelegate: DrumsFinalPass) },
-                { Difficulty.Medium, LoadDifficulty(instrument, Difficulty.Medium, createNote, HandleTextEvent, finalPassDelegate: DrumsFinalPass) },
-                { Difficulty.Hard, LoadDifficulty(instrument, Difficulty.Hard, createNote, HandleTextEvent, finalPassDelegate: DrumsFinalPass) },
-                { Difficulty.Expert, LoadDifficulty(instrument, Difficulty.Expert, createNote, HandleTextEvent, finalPassDelegate: DrumsFinalPass) },
-                { Difficulty.ExpertPlus, LoadDifficulty(instrument, Difficulty.ExpertPlus, createNote, HandleTextEvent, finalPassDelegate: DrumsFinalPass) },
+                { Difficulty.Beginner, LoadDrumsDifficulty(instrument, Difficulty.Beginner, beginnerNoteDelegate) },
+                { Difficulty.Easy, LoadDrumsDifficulty(instrument, Difficulty.Easy, createNote) },
+                { Difficulty.Medium, LoadDrumsDifficulty(instrument, Difficulty.Medium, createNote) },
+                { Difficulty.Hard, LoadDrumsDifficulty(instrument, Difficulty.Hard, createNote) },
+                { Difficulty.Expert, LoadDrumsDifficulty(instrument, Difficulty.Expert, createNote) },
+                { Difficulty.ExpertPlus, LoadDrumsDifficulty(instrument, Difficulty.ExpertPlus, createNote) },
             };
 
             foreach (var difficulty in difficulties)
@@ -72,6 +72,14 @@ namespace YARG.Core.Chart
             }
 
             return new(instrument, difficulties, GetAnimationTrack(instrument));
+        }
+
+        private InstrumentDifficulty<DrumNote> LoadDrumsDifficulty(Instrument instrument, Difficulty difficulty,
+            CreateNoteDelegate<DrumNote> createNote)
+        {
+            // A disco flip ends with its difficulty's notes
+            _mixSetting = DrumsMixSetting.None;
+            return LoadDifficulty(instrument, difficulty, createNote, HandleTextEvent, finalPassDelegate: DrumsFinalPass);
         }
 
         // "Hand chords" are ineligible for drum trills, but chords consisting of one hand gem and a kick are eligible
@@ -124,7 +132,10 @@ namespace YARG.Core.Chart
 
             bool isDoubleKick = pad is FourLaneDrumPad.Kick && ((moonNote.flags & Flags.InstrumentPlus) != 0);
 
-            return new DrumNote(pad, noteType, drumFlags, generalFlags, time, moonNote.tick, isDoubleKick, GetStem(pad));
+            return new DrumNote(pad, noteType, drumFlags, generalFlags, time, moonNote.tick, isDoubleKick, GetStem(pad))
+            {
+                WrittenPad = (int) GetFourLaneDrumPad(moonNote, discoFlip: false),
+            };
         }
 
         private DrumNote CreateFiveLaneDrumNote(MoonNote moonNote, Dictionary<MoonPhrase.Type, MoonPhrase> currentPhrases, List<DrumNote> notes)
@@ -259,9 +270,14 @@ namespace YARG.Core.Chart
 
         private FourLaneDrumPad GetFourLaneDrumPad(MoonNote moonNote)
         {
+            return GetFourLaneDrumPad(moonNote, _mixSetting == DrumsMixSetting.DiscoFlip);
+        }
+
+        private FourLaneDrumPad GetFourLaneDrumPad(MoonNote moonNote, bool discoFlip)
+        {
             var pad = _settings.DrumsType switch
             {
-                DrumsType.FourLane => MoonNoteToFourLane(moonNote),
+                DrumsType.FourLane => MoonNoteToFourLane(moonNote, discoFlip),
                 DrumsType.FiveLane => GetFourLaneFromFiveLane(moonNote),
                 _ => throw new InvalidOperationException($"Unexpected drums type {_settings.DrumsType}! (Drums type should have been calculated by now)")
             };
@@ -389,6 +405,11 @@ namespace YARG.Core.Chart
 
         private FourLaneDrumPad MoonNoteToFourLane(MoonNote moonNote)
         {
+            return MoonNoteToFourLane(moonNote, _mixSetting == DrumsMixSetting.DiscoFlip);
+        }
+
+        private FourLaneDrumPad MoonNoteToFourLane(MoonNote moonNote, bool discoFlip)
+        {
             var pad = moonNote.drumPad switch
             {
                 MoonNote.DrumPad.Kick   => FourLaneDrumPad.Kick,
@@ -405,7 +426,7 @@ namespace YARG.Core.Chart
                 var flags = moonNote.flags;
 
                 // Disco flip
-                if (_mixSetting == DrumsMixSetting.DiscoFlip)
+                if (discoFlip)
                 {
                     if (pad == FourLaneDrumPad.RedDrum)
                     {
@@ -468,9 +489,18 @@ namespace YARG.Core.Chart
 
         private DrumNoteFlags GetDrumNoteFlags(MoonNote moonNote, Dictionary<MoonPhrase.Type, MoonPhrase> currentPhrases)
         {
-            // Can be populated later if additional note flags are added
             // Activation note marking is done within DrumsPlayer
-            return DrumNoteFlags.None;
+            if (moonNote.drumPad is not (MoonNote.DrumPad.Red or MoonNote.DrumPad.Yellow))
+            {
+                return DrumNoteFlags.None;
+            }
+
+            return _mixSetting switch
+            {
+                DrumsMixSetting.DiscoFlip   => DrumNoteFlags.DiscoFlip,
+                DrumsMixSetting.DiscoNoFlip => DrumNoteFlags.DiscoNoFlip,
+                _                           => DrumNoteFlags.None,
+            };
         }
 
         private InstrumentDifficulty<DrumNote> LoadFromEliteDrumsDownchartDifficulty(Instrument instrument,

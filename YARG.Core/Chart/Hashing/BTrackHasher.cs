@@ -10,7 +10,7 @@ namespace YARG.Core.Chart.Hashing
 {
     /// <summary>
     /// Writes a CHNF/20260801 BTrack and its TrackHash.
-    /// Sections 1–9 follow https://rhinestone-guide-ff8.notion.site/BTrack-Specification-38d2fadb443280a9b0b2ce54efee14af
+    /// Sections 1–9 follow https://chart-spec.enchor.us/hashes/btrack
     /// Vocal sections are a YARG extension in the unknown-section range.
     /// </summary>
     public static class BTrackHasher
@@ -381,6 +381,16 @@ namespace YARG.Core.Chart.Hashing
                 flags |= BTrackNoteFlags.Accent;
             }
 
+            // The loader sets these only on notes written red or yellow
+            if ((note.DrumFlags & DrumNoteFlags.DiscoFlip) != 0)
+            {
+                flags |= BTrackNoteFlags.Disco;
+            }
+            else if ((note.DrumFlags & DrumNoteFlags.DiscoNoFlip) != 0)
+            {
+                flags |= BTrackNoteFlags.DiscoNoFlip;
+            }
+
             if (instrument == Instrument.FiveLaneDrums)
             {
                 return TryMapFiveLaneDrumNote(note, ref flags, out type);
@@ -391,7 +401,8 @@ namespace YARG.Core.Chart.Hashing
 
         private static bool TryMapFourLaneDrumNote(DrumNote note, ref BTrackNoteFlags flags, out BTrackNoteType type)
         {
-            switch ((FourLaneDrumPad) note.Pad)
+            // The TrackHash keeps the pads as written, with the disco flags, not as a disco flip swaps them for play
+            switch ((FourLaneDrumPad) note.WrittenPad)
             {
                 case FourLaneDrumPad.Kick:
                     type = BTrackNoteType.Kick;
