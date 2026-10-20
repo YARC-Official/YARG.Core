@@ -487,6 +487,25 @@ public class ScanChartCompatibilityTests
         AssertHashMatchesStrippedFile(result);
     }
 
+    [Test]
+    public void DotChart_MisalignedTimeSignature_HashesOnlyWrittenTimeSignatures()
+    {
+        // At resolution 480, the 4/4 at 960 cuts the first measure short, and the 3/4 at 3360 the third.
+        // YARG marks both earlier time signatures interrupted, and inserts a 4/4 at 2880, where the third measure starts
+        var chart = ParseDotChart(["0 = B 120000", "0 = TS 4", "960 = TS 4", "3360 = TS 3"], [], "ExpertSingle",
+            "0 = N 0 0");
+
+        var result = Hash(chart, Instrument.FiveFretGuitar);
+
+        Assert.That(ReadSection(result.BTrack, 3, ReadTimeSignatures), Is.EqualTo(new List<(long Tick, uint Numerator, uint Denominator)>
+        {
+            (0, 4, 4),
+            (960, 4, 4),
+            (3360, 3, 4),
+        }));
+        AssertHashMatchesStrippedFile(result);
+    }
+
     private static void AssertHashMatchesStrippedFile(BTrackHashResult result)
     {
         Assert.That(result.Hash, Is.EqualTo(BTrackHashResult.Encode(Blake3.Hash(StripForHash(result.BTrack)))));
@@ -531,6 +550,17 @@ public class ScanChartCompatibilityTests
             lanes.Add((reader.ReadInt64(), reader.ReadInt64(), reader.ReadByte()));
         }
         return lanes;
+    }
+
+    private static List<(long Tick, uint Numerator, uint Denominator)> ReadTimeSignatures(BinaryReader reader)
+    {
+        var timeSignatures = new List<(long Tick, uint Numerator, uint Denominator)>();
+        var count = reader.ReadUInt32();
+        for (var i = 0; i < count; i++)
+        {
+            timeSignatures.Add((reader.ReadInt64(), reader.ReadUInt32(), reader.ReadUInt32()));
+        }
+        return timeSignatures;
     }
 
     private static byte[] StripForHash(byte[] bTrack)
