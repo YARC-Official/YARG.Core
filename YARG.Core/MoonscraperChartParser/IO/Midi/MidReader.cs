@@ -925,7 +925,8 @@ namespace MoonscraperChartEditor.Song.IO
         private static void InsertPhrases(ref EventProcessParams processParams)
         {
             // Of two phrases of one note number that start on one tick, keep the longer.
-            // Overlapping phrases of one note number are trimmed as notes are, except lanes, which may overlap
+            // Overlapping star power phrases and solos of one note number are trimmed as notes are;
+            // other phrases, such as drum fills and lanes, may overlap
             foreach (var group in processParams.phrases.GroupBy(phrase => (phrase.noteNumber, phrase.type, phrase.difficulty)))
             {
                 PendingPhrase? previous = null;
@@ -937,7 +938,8 @@ namespace MoonscraperChartEditor.Song.IO
                         continue;
                     }
 
-                    if (previous != null && !IsLane(phrase.type) && previous.tick + previous.length > phrase.tick)
+                    if (previous != null && phrase.type is MoonPhrase.Type.Starpower or MoonPhrase.Type.Solo &&
+                        previous.tick + previous.length > phrase.tick)
                     {
                         phrase.length = Math.Max(phrase.length, previous.tick + previous.length - phrase.tick);
                         previous.length = phrase.tick - previous.tick;
@@ -967,12 +969,6 @@ namespace MoonscraperChartEditor.Song.IO
                         song.GetChart(instrument, phrase.difficulty.Value).specialPhrases);
                 }
             }
-        }
-
-        private static bool IsLane(MoonPhrase.Type type)
-        {
-            return type is MoonPhrase.Type.TremoloLane or MoonPhrase.Type.TrillLane or MoonPhrase.Type.ProDrums_KickLane
-                || MidIOHelper.ELITE_DRUMS_LANE_LOOKUP.ContainsKey(type);
         }
 
 
