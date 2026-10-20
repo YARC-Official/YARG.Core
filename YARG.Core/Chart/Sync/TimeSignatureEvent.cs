@@ -29,6 +29,12 @@ namespace YARG.Core.Chart
         /// </remarks>
         public bool IsInterrupted { get; }
 
+        /// <summary>
+        /// Whether the parser inserted this time signature, where a following misaligned time signature cuts a measure
+        /// short, instead of reading it from the chart.
+        /// </summary>
+        internal bool IsInserted { get; set; }
+
         public TimeSignatureChange(
             uint numerator,
             uint denominator,
@@ -71,7 +77,10 @@ namespace YARG.Core.Chart
                 QuarterNoteCount,
 
                 IsInterrupted
-            );
+            )
+            {
+                IsInserted = IsInserted,
+            };
         }
 
         public static uint GetMeasureTickResolution(uint quarterResolution)

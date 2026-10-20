@@ -785,7 +785,8 @@ namespace YARG.Core.Chart.Hashing
                     writer.Write(tempo.BeatsPerMinute);
                 });
             AddListSection(sections, BTrackSectionId.TimeSignature,
-                GetLastPerTick(syncTrack.TimeSignatures, timeSignature => timeSignature.Tick),
+                GetLastPerTick(syncTrack.TimeSignatures.Where(timeSignature => !timeSignature.IsInserted).ToList(),
+                    timeSignature => timeSignature.Tick),
                 (writer, timeSignature) =>
                 {
                     writer.Write((long) timeSignature.Tick);
