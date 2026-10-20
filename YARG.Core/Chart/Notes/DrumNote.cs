@@ -15,6 +15,12 @@ namespace YARG.Core.Chart
         /// </summary>
         internal int WrittenPad { get; set; }
 
+        /// <summary>
+        /// The note's length as the chart writes it, after the sustain cutoff. Drum notes have no sustains,
+        /// so only the TrackHash uses it.
+        /// </summary>
+        internal uint WrittenTickLength { get; set; }
+
         public bool IsDoubleKick { get; }
 
         public DrumNoteType Type { get; set; }
@@ -69,6 +75,7 @@ namespace YARG.Core.Chart
         {
             Pad = other.Pad;
             WrittenPad = other.WrittenPad;
+            WrittenTickLength = other.WrittenTickLength;
             Type = other.Type;
             IsDoubleKick = other.IsDoubleKick;
             Stem = other.Stem;

@@ -37,6 +37,13 @@ namespace YARG.Core.Chart
         public bool IsTap   => Type == GuitarNoteType.Tap;
 
         public bool IsSustain => TickLength > 0;
+
+        /// <summary>
+        /// The note's length as the chart writes it, after the sustain cutoff. A lane cuts the sustains of its notes
+        /// for play, and only the TrackHash uses this one.
+        /// </summary>
+        internal uint WrittenTickLength { get; }
+
         /// <summary>
         /// A sustain note where other notes are placed during the sustain.
         /// </summary>
@@ -77,6 +84,7 @@ namespace YARG.Core.Chart
         {
             Fret = fret;
             Type = noteType;
+            WrittenTickLength = tickLength;
 
             GuitarFlags = _guitarFlags = guitarFlags;
 
@@ -88,6 +96,7 @@ namespace YARG.Core.Chart
         {
             Fret = other.Fret;
             Type = other.Type;
+            WrittenTickLength = other.WrittenTickLength;
 
             GuitarFlags = _guitarFlags = other._guitarFlags;
 
