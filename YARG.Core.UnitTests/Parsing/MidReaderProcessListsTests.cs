@@ -210,6 +210,76 @@ public class MidReaderProcessListsTests
     }
 
     [Test]
+    public void ReadMidi_UsesTheLaterOfTwoSectionsOnOneTick()
+    {
+        var midi = MakeMidi(MakeEventsTrack(
+            Text(0, "[section Verse]"),
+            Text(0, "[section Chorus]")));
+
+        var song = MidReader.ReadMidi(midi);
+
+        Assert.That(song.sections.Select(section => section.text), Is.EqualTo(new[] { "Chorus" }));
+    }
+
+    [TestCase("[ld_range_shift 3 1 3]", 1, 3)]
+    [TestCase("[ld_range_shift 3 2 4]", 2, 4)]
+    [TestCase("[ld_range_shift 3 1]", 1, 5)]
+    [TestCase(" [ld_range_shift 3 1 3] ", 1, 3)]
+    public void RangeShift_IsReadFromBracketedTextEvent(string text, int range, int size)
+    {
+        var rangeShifts = ReadExpertGuitarRangeShifts(Text(0, text));
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(rangeShifts, Has.Count.EqualTo(1));
+            Assert.That(rangeShifts[0].Range, Is.EqualTo(range));
+            Assert.That(rangeShifts[0].Size, Is.EqualTo(size));
+        }
+    }
+
+    [TestCase("ld_range_shift 3 1")]
+    [TestCase("[ ld_range_shift 3 1]")]
+    [TestCase("[ld_range_shift  3 1]")]
+    [TestCase("[ld_range_shiftX 3 1]")]
+    [TestCase("[ld_range_shift +3 1]")]
+    [TestCase("[ld_range_shift 3 1 0]")]
+    [TestCase("[ld_range_shift 3 1 6]")]
+    [TestCase("[ld_range_shift 3 3 4]")]
+    [TestCase("[ld_range_shift 3 0]")]
+    [TestCase("[ld_range_shift -1 1]")]
+    [TestCase("[ld_range_shift 4 1]")]
+    [TestCase("[ld_range_shift 3 1 3 3]")]
+    public void RangeShift_IgnoresOtherForms(string text)
+    {
+        var rangeShifts = ReadExpertGuitarRangeShifts(Text(0, text));
+
+        Assert.That(rangeShifts, Is.Empty);
+    }
+
+    [Test]
+    public void RangeShift_IgnoresLyricEvent()
+    {
+        var rangeShifts = ReadExpertGuitarRangeShifts(
+            new TimedMidiEvent(0, new Melanchall.DryWetMidi.Core.LyricEvent("[ld_range_shift 3 1 3]")));
+
+        Assert.That(rangeShifts, Is.Empty);
+    }
+
+    [Test]
+    public void RangeShift_UsesTheLaterOfTwoOnOneTick()
+    {
+        var rangeShifts = ReadExpertGuitarRangeShifts(
+            Text(0, "[ld_range_shift 3 2 3]"),
+            Text(0, "[ld_range_shift 3 1 3]"));
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(rangeShifts, Has.Count.EqualTo(1));
+            Assert.That(rangeShifts[0].Range, Is.EqualTo(1));
+        }
+    }
+
+    [Test]
     public void SongChart_MidiChordToSameFretSingle_IsStrumWithoutLoaderCancellation()
     {
         var red = MidIOHelper.GUITAR_DIFF_START_LOOKUP[Difficulty.Expert] + 1;
@@ -329,6 +399,17 @@ public class MidReaderProcessListsTests
         {
             (50, uint.MaxValue),
         }));
+    }
+
+    private static List<RangeShift> ReadExpertGuitarRangeShifts(params TimedMidiEvent[] events)
+    {
+        // Range shifts are only made for a difficulty with notes
+        var green = MidIOHelper.GUITAR_DIFF_START_LOOKUP[Difficulty.Expert];
+        var settings = ParseSettings.Default_Midi;
+        var midi = MakeMidi(MakeTrack(MidIOHelper.GUITAR_TRACK, events, Note(0, 10, green), Note(960, 970, green)));
+
+        var songChart = SongChart.FromMidi(in settings, midi);
+        return songChart.FiveFretGuitar.GetDifficulty(YARG.Core.Difficulty.Expert).RangeShiftEvents;
     }
 
     private static MidiFile MakeMidi(params TrackChunk[] tracks)
