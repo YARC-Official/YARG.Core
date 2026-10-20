@@ -283,6 +283,53 @@ public class ScanChartCompatibilityTests
         AssertHashMatchesStrippedFile(result);
     }
 
+    [Test]
+    public void DotChartProDrums_DiscoFlip_HashesWrittenPadsAndFlagsRedAndYellow()
+    {
+        var chart = ParseDotChart(["0 = TS 4 2", "0 = B 120000"], [], "ExpertDrums",
+            "0 = E mix 3 drums0d",
+            "0 = N 0 0",
+            "0 = N 1 0",
+            "0 = N 2 0",
+            "0 = N 66 0",
+            "0 = N 3 0");
+
+        var result = Hash(chart, Instrument.ProDrums);
+
+        Assert.That(ReadNotes(result.BTrack), Is.EqualTo(new List<(long Tick, long Length, uint Type, uint Flags)>
+        {
+            (0, 0, 13, 0),
+            (0, 0, 14, 16 | 128),
+            (0, 0, 15, 32 | 128),
+            (0, 0, 16, 16),
+        }));
+    }
+
+    [Test]
+    public void DotChartProDrums_DiscoFlip_EndsWithItsDifficulty()
+    {
+        var chart = ParseDotChart(["0 = TS 4 2", "0 = B 120000"], [], "ExpertDrums",
+            "0 = N 1 0",
+            "192 = E mix 3 drums0d",
+            "192 = N 1 0");
+
+        Assert.That(chart.ProDrums.TryGetDifficulty(Difficulty.ExpertPlus, out var expertPlus), Is.True);
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(expertPlus!.Notes.Select(note => (FourLaneDrumPad) note.Pad), Is.EqualTo(new[]
+            {
+                FourLaneDrumPad.RedDrum,
+                FourLaneDrumPad.YellowCymbal,
+            }));
+            Assert.That(ReadNotes(Hash(chart, Instrument.ProDrums).BTrack),
+                Is.EqualTo(new List<(long Tick, long Length, uint Type, uint Flags)>
+                {
+                    (0, 0, 14, 16),
+                    (192, 0, 14, 16 | 128),
+                }));
+        }
+    }
+
     private static void AssertHashMatchesStrippedFile(BTrackHashResult result)
     {
         Assert.That(result.Hash, Is.EqualTo(BTrackHashResult.Encode(Blake3.Hash(StripForHash(result.BTrack)))));
@@ -305,6 +352,17 @@ public class ScanChartCompatibilityTests
 
         var chart = SongChart.FromDotChart(ParseSettings.Default_Chart, chartText.AsSpan());
         return Hash(chart, instrument, Difficulty.Expert);
+    }
+
+    private static SongChart ParseDotChart(string[] syncLines, string[] eventLines, string trackName, params string[] trackLines)
+    {
+        var chartText = ChartText.Chart(
+            ChartText.SongSection(480),
+            ChartText.Section("SyncTrack", syncLines),
+            ChartText.Section("Events", eventLines),
+            ChartText.Section(trackName, trackLines));
+
+        return SongChart.FromDotChart(ParseSettings.Default_Chart, chartText.AsSpan());
     }
 
     private static byte[] StripForHash(byte[] bTrack)
