@@ -157,12 +157,13 @@ namespace YARG.Core.Chart.Hashing
                 return false;
             }
 
+            // Star power and solos resolve their overlaps before the ones without a note are left out
             result = WriteBTrack(
                 chart.SyncTrack,
-                ResolveOverlaps(PruneEmptyPhrases(GetPhrases(phrases, PhraseType.StarPower), notes),
-                    phrase => phrase.Tick, phrase => phrase.Length, (_, tick, length) => (tick, length)),
-                ResolveOverlaps(PruneEmptyPhrases(GetPhrases(phrases, PhraseType.Solo, chart.SoloSectionLengthIncludesTerminalTick), notes),
-                    phrase => phrase.Tick, phrase => phrase.Length, (_, tick, length) => (tick, length)),
+                PruneEmptyPhrases(ResolveOverlaps(GetPhrases(phrases, PhraseType.StarPower),
+                    phrase => phrase.Tick, phrase => phrase.Length, (_, tick, length) => (tick, length)), notes),
+                PruneEmptyPhrases(ResolveOverlaps(GetPhrases(phrases, PhraseType.Solo, chart.SoloSectionLengthIncludesTerminalTick),
+                    phrase => phrase.Tick, phrase => phrase.Length, (_, tick, length) => (tick, length)), notes),
                 PruneEmptyFlexLanes(GetFlexLanes(phrases.Concat(unplayedPhrases)), notes),
                 GetDrumFreestyles(phrases.Concat(unplayedPhrases), chart.GlobalEvents),
                 GetRangeShifts(rangeShiftEvents),

@@ -510,6 +510,24 @@ public class ScanChartCompatibilityTests
     }
 
     [Test]
+    public void DotChartGuitar_OverlappingStarPower_ResolvesOverlapsBeforeLeavingOutEmptyPhrases()
+    {
+        // The second phrase holds no note until the first one's overlap extends it to 240
+        var result = CalculateDotChartHash("ExpertSingle", Instrument.FiveFretGuitar,
+            "0 = S 2 240",
+            "0 = N 0 0",
+            "120 = S 2 60",
+            "180 = N 1 0");
+
+        Assert.That(ReadSectionPhrases(result.BTrack, 4), Is.EqualTo(new List<(long Tick, long Length)>
+        {
+            (0, 120),
+            (120, 120),
+        }));
+        AssertHashMatchesStrippedFile(result);
+    }
+
+    [Test]
     public void DotChart_DifficultyWithoutNotes_HasNoTrackHash()
     {
         var chartText = ChartText.Chart(
