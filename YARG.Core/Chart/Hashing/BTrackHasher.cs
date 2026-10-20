@@ -301,7 +301,7 @@ namespace YARG.Core.Chart.Hashing
                 {
                     if (tryMap(child, out var type))
                     {
-                        normalized.Add((child.Tick, child.TickLength, type, MapGuitarFlags(child)));
+                        normalized.Add((child.Tick, child.WrittenTickLength, type, MapGuitarFlags(child)));
                     }
                 }
             }
@@ -361,7 +361,7 @@ namespace YARG.Core.Chart.Hashing
                 {
                     if (TryMapDrumNote(instrument, child, out var type, out var flags))
                     {
-                        normalized.Add((child.Tick, child.TickLength, type, flags));
+                        normalized.Add((child.Tick, child.WrittenTickLength, type, flags));
                     }
                 }
             }

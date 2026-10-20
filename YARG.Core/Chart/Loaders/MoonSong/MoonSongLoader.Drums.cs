@@ -135,6 +135,7 @@ namespace YARG.Core.Chart
             return new DrumNote(pad, noteType, drumFlags, generalFlags, time, moonNote.tick, isDoubleKick, GetStem(pad))
             {
                 WrittenPad = (int) GetFourLaneDrumPad(moonNote, discoFlip: false),
+                WrittenTickLength = moonNote.length,
             };
         }
 
@@ -151,7 +152,10 @@ namespace YARG.Core.Chart
 
             bool isDoubleKick = pad is FiveLaneDrumPad.Kick && ((moonNote.flags & Flags.InstrumentPlus) != 0);
 
-            return new DrumNote(pad, noteType, drumFlags, generalFlags, time, moonNote.tick, isDoubleKick, GetStem(pad));
+            return new DrumNote(pad, noteType, drumFlags, generalFlags, time, moonNote.tick, isDoubleKick, GetStem(pad))
+            {
+                WrittenTickLength = moonNote.length,
+            };
         }
 
         private DrumNote CreateFourLaneDrumBeginnerNote(MoonNote moonNote, Dictionary<MoonPhrase.Type, MoonPhrase> currentPhrases, List<DrumNote> notes)

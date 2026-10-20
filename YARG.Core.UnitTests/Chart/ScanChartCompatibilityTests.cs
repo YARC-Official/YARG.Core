@@ -344,6 +344,55 @@ public class ScanChartCompatibilityTests
         }));
     }
 
+    [Test]
+    public void DotChartDrums_NoteLength_IsInTrackHash()
+    {
+        var result = CalculateDotChartHash("ExpertDrums", Instrument.FourLaneDrums,
+            "0 = N 1 100");
+
+        Assert.That(ReadNotes(result.BTrack), Is.EqualTo(new List<(long Tick, long Length, uint Type, uint Flags)>
+        {
+            (0, 100, 14, 16),
+        }));
+    }
+
+    [Test]
+    public void MidiGuitar_TremoloLane_KeepsSustainsInTrackHash()
+    {
+        var midi = new MidiFile(
+            new TrackChunk(new SetTempoEvent(TempoChange.BpmToMicroSeconds(120))),
+            new TrackChunk(
+                new SequenceTrackNameEvent("PART GUITAR"),
+                NoteOn(0, 126),
+                NoteOn(0, 96),
+                NoteOff(240, 96),
+                NoteOn(0, 96),
+                NoteOff(240, 96),
+                NoteOn(0, 96),
+                NoteOff(240, 96),
+                NoteOff(0, 126)))
+        {
+            TimeDivision = new TicksPerQuarterNoteTimeDivision(480),
+        };
+
+        var chart = SongChart.FromMidi(ParseSettings.Default_Midi, midi);
+        var result = Hash(chart, Instrument.FiveFretGuitar);
+
+        Assert.That(chart.FiveFretGuitar.TryGetDifficulty(Difficulty.Expert, out var expert), Is.True);
+        using (Assert.EnterMultipleScope())
+        {
+            // The lane cuts the sustains of all but its last note for play
+            Assert.That(expert!.Notes.Select(note => note.TickLength), Is.EqualTo(new uint[] { 0, 0, 240 }));
+            Assert.That(ReadNotes(result.BTrack), Is.EqualTo(new List<(long Tick, long Length, uint Type, uint Flags)>
+            {
+                (0, 240, 2, 1),
+                (240, 240, 2, 1),
+                (480, 240, 2, 1),
+            }));
+        }
+        AssertHashMatchesStrippedFile(result);
+    }
+
     private static void AssertHashMatchesStrippedFile(BTrackHashResult result)
     {
         Assert.That(result.Hash, Is.EqualTo(BTrackHashResult.Encode(Blake3.Hash(StripForHash(result.BTrack)))));
