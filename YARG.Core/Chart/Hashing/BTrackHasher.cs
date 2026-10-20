@@ -855,7 +855,27 @@ namespace YARG.Core.Chart.Hashing
 
             foreach (var section in sections)
             {
-                writer.Write(section.Payload);
+                writer.Write(section.Id == (ulong) BTrackSectionId.TempoMarker
+                    ? RoundTempos(section.Payload)
+                    : section.Payload);
+            }
+
+            return stream.ToArray();
+        }
+
+        // The TrackHash rounds each tempo to a thousandth of a BPM, as .chart stores it, so a chart keeps its
+        // TrackHash when converted between .chart and .mid. The BTrack keeps the exact tempo.
+        private static byte[] RoundTempos(byte[] payload)
+        {
+            using var reader = new BinaryReader(new MemoryStream(payload));
+            using var stream = new MemoryStream(payload.Length);
+            using var writer = new BinaryWriter(stream);
+            uint count = reader.ReadUInt32();
+            writer.Write(count);
+            for (uint i = 0; i < count; i++)
+            {
+                writer.Write(reader.ReadInt64());
+                writer.Write(Math.Floor(reader.ReadDouble() * 1000 + 0.5) / 1000);
             }
 
             return stream.ToArray();
