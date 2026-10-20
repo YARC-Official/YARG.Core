@@ -394,6 +394,75 @@ public class ScanChartCompatibilityTests
     }
 
     [Test]
+    public void MidiSixFret_LaneAndFill_AreInTrackHashButNotPlayed()
+    {
+        var midi = new MidiFile(
+            new TrackChunk(new SetTempoEvent(TempoChange.BpmToMicroSeconds(120))),
+            new TrackChunk(
+                new SequenceTrackNameEvent("PART GUITAR GHL"),
+                NoteOn(0, 120),
+                NoteOn(0, 126),
+                NoteOn(0, 95),
+                NoteOff(120, 95),
+                NoteOn(120, 95),
+                NoteOff(120, 95),
+                NoteOff(0, 120),
+                NoteOn(120, 95),
+                NoteOff(120, 95),
+                NoteOff(0, 126)))
+        {
+            TimeDivision = new TicksPerQuarterNoteTimeDivision(480),
+        };
+
+        var chart = SongChart.FromMidi(ParseSettings.Default_Midi, midi);
+        var result = Hash(chart, Instrument.SixFretGuitar);
+
+        Assert.That(chart.SixFretGuitar.TryGetDifficulty(Difficulty.Expert, out var expert), Is.True);
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(ReadSection(result.BTrack, 6, ReadFlexLanes), Is.EqualTo(new List<(long Tick, long Length, byte IsDouble)>
+            {
+                (0, 600, 0),
+            }));
+            Assert.That(ReadDrumFreestyles(result.BTrack), Is.EqualTo(new List<(long Tick, long Length, byte IsCoda)>
+            {
+                (0, 360, 0),
+            }));
+            Assert.That(expert!.Phrases, Is.Empty);
+            Assert.That(expert.Notes.Any(note => note.IsLane), Is.False);
+        }
+        AssertHashMatchesStrippedFile(result);
+    }
+
+    [Test]
+    public void DotChartSixFret_LaneAndFill_AreInTrackHashButNotPlayed()
+    {
+        var chart = ParseDotChart(["0 = TS 4 2", "0 = B 120000"], [], "ExpertGHLGuitar",
+            "0 = S 66 384",
+            "0 = S 64 192",
+            "0 = N 0 0",
+            "192 = N 1 0",
+            "384 = N 0 0");
+
+        var result = Hash(chart, Instrument.SixFretGuitar);
+
+        Assert.That(chart.SixFretGuitar.TryGetDifficulty(Difficulty.Expert, out var expert), Is.True);
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(ReadSection(result.BTrack, 6, ReadFlexLanes), Is.EqualTo(new List<(long Tick, long Length, byte IsDouble)>
+            {
+                (0, 384, 1),
+            }));
+            Assert.That(ReadDrumFreestyles(result.BTrack), Is.EqualTo(new List<(long Tick, long Length, byte IsCoda)>
+            {
+                (0, 192, 0),
+            }));
+            Assert.That(expert!.Phrases, Is.Empty);
+        }
+        AssertHashMatchesStrippedFile(result);
+    }
+
+    [Test]
     public void DotChartDrums_NoteLength_IsInTrackHash()
     {
         var result = CalculateDotChartHash("ExpertDrums", Instrument.FourLaneDrums,
