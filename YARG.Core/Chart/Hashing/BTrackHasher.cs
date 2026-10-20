@@ -126,7 +126,11 @@ namespace YARG.Core.Chart.Hashing
                 case Instrument.FourLaneDrums:
                 case Instrument.ProDrums:
                 case Instrument.FiveLaneDrums:
-                    if (!chart.GetDrumsTrack(instrument).TryGetDifficulty(difficulty, out var drumDifficulty))
+                    var drumsTrack = chart.GetDrumsTrack(instrument);
+                    // Expert's TrackHash holds its double kicks, which YARG plays only on Expert+,
+                    // so Expert and Expert+ both hash Expert+
+                    if (!(difficulty == Difficulty.Expert && drumsTrack.TryGetDifficulty(Difficulty.ExpertPlus, out var drumDifficulty))
+                        && !drumsTrack.TryGetDifficulty(difficulty, out drumDifficulty))
                     {
                         return false;
                     }
