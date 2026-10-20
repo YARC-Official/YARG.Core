@@ -77,7 +77,7 @@ namespace YARG.Core.IO.Ini
                 section = string.Empty;
                 return false;
             }
-            section = YARGTextReader.PeekLine(ref container).ToLower();
+            section = YARGTextReader.PeekLine(ref container).ToLowerInvariant();
             return true;
         }
 
@@ -87,7 +87,7 @@ namespace YARG.Core.IO.Ini
             IniModifierCollection collection = new();
             while (IsStillCurrentSection(ref container))
             {
-                string name = YARGTextReader.ExtractModifierName(ref container).ToLower();
+                string name = YARGTextReader.ExtractModifierName(ref container).ToLowerInvariant();
                 if (outlines.TryGetValue(name, out var outline))
                 {
                     collection.Add(ref container, in outline, false);
