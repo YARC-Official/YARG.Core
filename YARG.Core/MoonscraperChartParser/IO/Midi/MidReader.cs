@@ -1003,10 +1003,8 @@ namespace MoonscraperChartEditor.Song.IO
             }
 
             uint startTick = (uint)timedEvent.startTick;
+            // Tap SysEx phrases do *not* exclude the last tick: a note on the end tick is tapped
             uint endTick = (uint)timedEvent.endTick;
-            // Exclude the last tick of the phrase
-            if (endTick > startTick)
-                --endTick;
 
             if (startEvent.difficulty == PhaseShiftSysEx.Difficulty.All)
             {
