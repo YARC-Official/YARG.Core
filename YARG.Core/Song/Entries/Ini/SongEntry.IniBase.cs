@@ -262,9 +262,11 @@ namespace YARG.Core.Song
 
             if (entry._chartFormat == ChartFormat.Mid || entry._chartFormat == ChartFormat.Midi)
             {
-                if (!modifiers.Extract("multiplier_note", out entry._settings.OverdiveMidiNote) || entry._settings.OverdiveMidiNote != 103)
+                // Without a valid multiplier_note, the parser decides whether solos are star power
+                if (!modifiers.Extract("multiplier_note", out entry._settings.OverdiveMidiNote) ||
+                    (entry._settings.OverdiveMidiNote != 103 && entry._settings.OverdiveMidiNote != 116))
                 {
-                    entry._settings.OverdiveMidiNote = 116;
+                    entry._settings.OverdiveMidiNote = ParseSettings.SETTING_DEFAULT;
                 }
             }
 
