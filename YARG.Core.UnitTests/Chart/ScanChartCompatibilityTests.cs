@@ -198,7 +198,9 @@ public class ScanChartCompatibilityTests
             new TrackChunk(
                 new SequenceTrackNameEvent("PART DRUMS"),
                 NoteOn(0, 120),
+                NoteOn(0, 97),
                 NoteOff(80, 120),
+                NoteOff(0, 97),
                 NoteOn(20, 120),
                 NoteOff(40, 120)))
         {
@@ -208,6 +210,7 @@ public class ScanChartCompatibilityTests
         var chart = SongChart.FromMidi(ParseSettings.Default_Midi, midi);
         var result = Hash(chart, Instrument.FourLaneDrums, Difficulty.Expert);
 
+        // The red note gives the track its BTrack, and the fills don't depend on it
         Assert.That(ReadDrumFreestyles(result.BTrack), Is.EqualTo(new List<(long Tick, long Length, byte IsCoda)>
         {
             (0, 80, 0),
@@ -504,6 +507,30 @@ public class ScanChartCompatibilityTests
             (3360, 3, 4),
         }));
         AssertHashMatchesStrippedFile(result);
+    }
+
+    [Test]
+    public void DotChart_DifficultyWithoutNotes_HasNoTrackHash()
+    {
+        var chartText = ChartText.Chart(
+            ChartText.SongSection(480),
+            ChartText.SyncSection(),
+            ChartText.Section("Events"),
+            ChartText.Section("ExpertSingle", "0 = N 0 0"),
+            ChartText.Section("HardSingle", "0 = S 2 192", "0 = S 64 192"),
+            ChartText.Section("ExpertDrums", "0 = N 32 0"),
+            ChartText.Section("HardDrums", "0 = S 64 192"));
+        var chart = SongChart.FromDotChart(ParseSettings.Default_Chart, chartText.AsSpan());
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(BTrackHasher.TryCalculateTrackHash(chart, Instrument.FiveFretGuitar, Difficulty.Expert, out _), Is.True);
+            Assert.That(BTrackHasher.TryCalculateTrackHash(chart, Instrument.FiveFretGuitar, Difficulty.Hard, out _), Is.False);
+            Assert.That(BTrackHasher.TryCalculateTrackHash(chart, Instrument.FiveFretGuitar, Difficulty.Medium, out _), Is.False);
+            // Expert's only notes are double kicks, which its TrackHash holds
+            Assert.That(BTrackHasher.TryCalculateTrackHash(chart, Instrument.FourLaneDrums, Difficulty.Expert, out _), Is.True);
+            Assert.That(BTrackHasher.TryCalculateTrackHash(chart, Instrument.FourLaneDrums, Difficulty.Hard, out _), Is.False);
+        }
     }
 
     private static void AssertHashMatchesStrippedFile(BTrackHashResult result)
