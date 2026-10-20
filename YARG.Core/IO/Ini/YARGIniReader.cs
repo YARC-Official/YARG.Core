@@ -59,7 +59,13 @@ namespace YARG.Core.IO.Ini
             {
                 if (lookups.TryGetValue(section, out var nodes))
                 {
-                    collections[section] = ExtractModifiers(ref container, ref nodes);
+                    // A section written more than once reads as one, where the last line of each key counts
+                    if (!collections.TryGetValue(section, out var collection))
+                    {
+                        collection = new IniModifierCollection();
+                        collections[section] = collection;
+                    }
+                    ExtractModifiers(ref container, ref nodes, collection);
                 }
                 else
                 {
@@ -81,10 +87,9 @@ namespace YARG.Core.IO.Ini
             return true;
         }
 
-        private static IniModifierCollection ExtractModifiers<TChar>(ref YARGTextContainer<TChar> container, ref Dictionary<string, IniModifierOutline> outlines)
+        private static void ExtractModifiers<TChar>(ref YARGTextContainer<TChar> container, ref Dictionary<string, IniModifierOutline> outlines, IniModifierCollection collection)
             where TChar : unmanaged, IConvertible, IEquatable<TChar>
         {
-            IniModifierCollection collection = new();
             while (IsStillCurrentSection(ref container))
             {
                 string name = YARGTextReader.ExtractModifierName(ref container).ToLower();
@@ -93,7 +98,6 @@ namespace YARG.Core.IO.Ini
                     collection.Add(ref container, in outline, false);
                 }
             }
-            return collection;
         }
 
         private static bool IsStillCurrentSection<TChar>(ref YARGTextContainer<TChar> container)
