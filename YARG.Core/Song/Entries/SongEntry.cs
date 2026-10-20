@@ -15,12 +15,14 @@ namespace YARG.Core.Song
         {
             HopoThreshold = -1,
             SustainCutoffThreshold = -1,
+            NoteSnapThreshold = 0,
             OverdiveMidiNote = 116,
             TuningOffsetCents = 0
         };
 
         public long HopoThreshold;
         public long SustainCutoffThreshold;
+        public long NoteSnapThreshold;
         public int OverdiveMidiNote;
         public int TuningOffsetCents;
     }
@@ -457,6 +459,7 @@ namespace YARG.Core.Song
 
             stream.Write(_settings.HopoThreshold, Endianness.Little);
             stream.Write(_settings.SustainCutoffThreshold, Endianness.Little);
+            stream.Write(_settings.NoteSnapThreshold, Endianness.Little);
             stream.Write(_settings.OverdiveMidiNote, Endianness.Little);
         }
 
@@ -560,6 +563,7 @@ namespace YARG.Core.Song
 
             _settings.HopoThreshold = stream.Read<long>(Endianness.Little);
             _settings.SustainCutoffThreshold = stream.Read<long>(Endianness.Little);
+            _settings.NoteSnapThreshold = stream.Read<long>(Endianness.Little);
             _settings.OverdiveMidiNote = stream.Read<int>(Endianness.Little);
 
             SetSortStrings();

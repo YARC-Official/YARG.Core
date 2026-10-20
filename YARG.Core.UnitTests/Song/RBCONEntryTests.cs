@@ -1,4 +1,7 @@
+using MoonscraperChartEditor.Song;
+using MoonscraperChartEditor.Song.IO;
 using NUnit.Framework;
+using YARG.Core.Chart;
 using YARG.Core.Extensions;
 using YARG.Core.IO;
 using YARG.Core.Song;
@@ -103,6 +106,50 @@ public class RBCONEntryTests
 
                 Assert.That(entry[Instrument.Harmony].Intensity, Is.EqualTo(3));
                 Assert.That(entry[Instrument.Vocals].Intensity, Is.EqualTo(3));
+            }
+        }
+        finally
+        {
+            if (Directory.Exists(root))
+            {
+                Directory.Delete(root, true);
+            }
+        }
+    }
+
+    [TestCase(null, 161)]
+    [TestCase(100, 101)]
+    public void LoadChart_KeepsRockBandSustainCutoffAndHopoThreshold(int? dtaHopoThreshold, int hopoThreshold)
+    {
+        string root = CreateTempDirectory();
+        try
+        {
+            string hopoNode = dtaHopoThreshold == null ? "" : $"(hopo_threshold {dtaHopoThreshold})";
+            string dta = $$"""
+                           ({{TEST_NODE_NAME}}
+                             (name "Test Song")
+                             (song
+                               (name "songs/{{TEST_NODE_NAME}}/{{TEST_NODE_NAME}}")
+                               (pans (0.0))
+                               (vols (0.0))
+                               (cores (0.0))
+                               {{hopoNode}}
+                             )
+                           )
+                           """;
+            // At 480 ticks per beat, sustains shorter than 160 ticks are cut
+            int green = MidIOHelper.GUITAR_DIFF_START_LOOKUP[MoonSong.Difficulty.Expert];
+            var entry = CreateUnpackedEntry(root, TEST_NODE_NAME, dta, writeMidi: path => TestMidi.Write(path, 480,
+                MidIOHelper.GUITAR_TRACK, (0, 159, green), (hopoThreshold, 160, green + 1), (960, 10, green),
+                (960 + hopoThreshold + 1, 10, green + 1)));
+
+            var notes = entry.LoadChart()!.FiveFretGuitar.GetDifficulty(Difficulty.Expert).Notes;
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(notes.Select(note => note.TickLength), Is.EqualTo(new uint[] { 0, 160, 0, 0 }));
+                Assert.That(notes.Select(note => note.Type),
+                    Is.EqualTo(new[] { GuitarNoteType.Strum, GuitarNoteType.Hopo, GuitarNoteType.Strum, GuitarNoteType.Strum }));
             }
         }
         finally
@@ -417,13 +464,20 @@ public class RBCONEntryTests
     }
 
     private static RBCONEntry CreateUnpackedEntry(string root, string nodeName, string dtaText,
-        int moggVersion = RBCONEntry.UNENCRYPTED_MOGG)
+        int moggVersion = RBCONEntry.UNENCRYPTED_MOGG, Action<string>? writeMidi = null)
     {
         string songDirectory = Path.Combine(root, nodeName);
         Directory.CreateDirectory(songDirectory);
 
         string midiPath = Path.Combine(songDirectory, $"{nodeName}.mid");
-        File.Copy(GetTestMidiPath(), midiPath);
+        if (writeMidi != null)
+        {
+            writeMidi(midiPath);
+        }
+        else
+        {
+            File.Copy(GetTestMidiPath(), midiPath);
+        }
 
         string moggPath = Path.Combine(songDirectory, $"{nodeName}.mogg");
         using (var mogg = new FileStream(moggPath, FileMode.Create, FileAccess.Write, FileShare.None))
