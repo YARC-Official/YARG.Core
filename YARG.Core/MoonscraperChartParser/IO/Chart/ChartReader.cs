@@ -428,7 +428,7 @@ namespace MoonscraperChartEditor.Song.IO
                     if (typeCodeText[0] == 'E')
                     {
                         // Get event text
-                        var eventText = TextEvents.NormalizeTextEvent(remaining.TrimOnce('"').Trim());
+                        var eventText = TextEvents.NormalizeGlobalEvent(remaining.TrimOnce('"'), holdsLyrics: true);
 
                         // Check for section events
                         if (TextEvents.TryParseSectionEvent(eventText, out var sectionName))
@@ -576,8 +576,15 @@ namespace MoonscraperChartEditor.Song.IO
                             }
                             case 'E':
                             {
-                                var eventText = TextEvents.NormalizeTextEvent(remaining.TrimOnce('"'));
-                                chart.Add(new MoonText(eventText.ToString(), tick));
+                                var eventText = TextEvents.NormalizeTextEvent(remaining.TrimOnce('"'), out bool hadBrackets).ToString();
+                                // A range shift is written without brackets
+                                if (hadBrackets && gameMode is MoonChart.GameMode.Guitar
+                                    && TextEvents.TryParseRangeShiftEvent(eventText, out _, out _, out _))
+                                {
+                                    break;
+                                }
+
+                                chart.Add(new MoonText(eventText, tick));
                                 break;
                             }
 

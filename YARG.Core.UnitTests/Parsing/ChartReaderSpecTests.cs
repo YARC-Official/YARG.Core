@@ -1,6 +1,7 @@
 using MoonscraperChartEditor.Song;
 using MoonscraperChartEditor.Song.IO;
 using NUnit.Framework;
+using YARG.Core.Chart;
 using YARG.Core.Parsing;
 
 namespace YARG.Core.UnitTests.Parsing;
@@ -101,6 +102,123 @@ internal class ChartReaderSpecTests
                 text is { tick: 96, text: "phrase_start" }));
             Assert.That(song.events, Has.One.Matches<MoonText>(text =>
                 text is { tick: 120, text: "lyric OOOoooo" }));
+        }
+    }
+
+    [Test]
+    public void EventsSection_UsesTheLaterOfTwoSectionsOnOneTick()
+    {
+        var song = ChartReader.ReadFromText(Chart(
+            SongSection(),
+            SyncSection(),
+            Section(ChartIOHelper.SECTION_EVENTS,
+                "0 = E \"section Verse\"",
+                "0 = E \"section Chorus\"",
+                "768 = E \"section Bridge\"")));
+
+        Assert.That(song.sections.Select(section => section.text), Is.EqualTo(new[] { "Chorus", "Bridge" }));
+    }
+
+    [TestCase("section Chorus [2]", "Chorus [2]")]
+    [TestCase("section asdf[section Chorus [2]]asdf", "asdf[section Chorus [2]]asdf")]
+    [TestCase("[section Intro]", "Intro")]
+    [TestCase(" [section Intro] ", "Intro")]
+    [TestCase("asdf[section Chorus [2]]asdf", "Chorus [2]")]
+    [TestCase("[prc_intro] - Intro", "intro")]
+    [TestCase("[section chorus_2c]]", "chorus_2c")]
+    [TestCase("[section Chorus 2", "Chorus 2")]
+    public void EventsSection_ReadsSectionBrackets(string text, string name)
+    {
+        var song = ChartReader.ReadFromText(Chart(
+            SongSection(),
+            SyncSection(),
+            Section(ChartIOHelper.SECTION_EVENTS, $"0 = E \"{text}\"")));
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(song.sections.Select(section => section.text), Is.EqualTo(new[] { name }));
+            Assert.That(song.events, Is.Empty);
+        }
+    }
+
+    [TestCase("[coda]", "coda")]
+    [TestCase("[coda] - Big Rock Ending", "coda")]
+    [TestCase("[coda", "coda")]
+    [TestCase("[end", "end")]
+    [TestCase("x [coda", "x [coda")]
+    [TestCase("coda]", "coda]")]
+    [TestCase("[[coda]", "[coda]")]
+    [TestCase("crowd_clap [coda]", "coda")]
+    [TestCase("[ section Intro]", " section Intro")]
+    [TestCase("lyric [x]", "lyric [x]")]
+    [TestCase("[lyric [x]]", "lyric [x]")]
+    [TestCase("lyric x [coda]", "lyric x [coda]")]
+    [TestCase("[custom] text", "custom")]
+    public void EventsSection_ReadsGlobalEventBrackets(string text, string eventText)
+    {
+        var song = ChartReader.ReadFromText(Chart(
+            SongSection(),
+            SyncSection(),
+            Section(ChartIOHelper.SECTION_EVENTS, $"0 = E \"{text}\"")));
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(song.sections, Is.Empty);
+            Assert.That(song.events.Select(ev => ev.text), Is.EqualTo(new[] { eventText }));
+        }
+    }
+
+    [Test]
+    public void TrackEvents_KeepTheirOwnBracketRule()
+    {
+        var song = ChartReader.ReadFromText(Chart(
+            SongSection(),
+            SyncSection(),
+            Section("ExpertSingle", "192 = E [custom_event] text")));
+
+        var chart = song.GetChart(MoonInstrument.Guitar, Difficulty.Expert);
+
+        Assert.That(chart.events.Select(ev => ev.text), Is.EqualTo(new[] { "custom_event" }));
+    }
+
+    [TestCase("ld_range_shift 3 1 3", 1, 3)]
+    [TestCase("\"ld_range_shift 3 1 3\"", 1, 3)]
+    [TestCase("ld_range_shift 3 1", 1, 5)]
+    public void TrackEvents_ReadRangeShift(string text, int range, int size)
+    {
+        var rangeShifts = ReadExpertGuitarRangeShifts($"192 = E {text}");
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(rangeShifts, Has.Count.EqualTo(1));
+            Assert.That(rangeShifts[0].Tick, Is.EqualTo(192));
+            Assert.That(rangeShifts[0].Range, Is.EqualTo(range));
+            Assert.That(rangeShifts[0].Size, Is.EqualTo(size));
+        }
+    }
+
+    [TestCase("[ld_range_shift 3 1 3]")]
+    [TestCase("ld_range_shift 2 1 3")]
+    [TestCase("ld_range_shift 3 +1")]
+    [TestCase("ld_range_shift 3 1 0")]
+    public void TrackEvents_IgnoreRangeShiftInOtherForms(string text)
+    {
+        var rangeShifts = ReadExpertGuitarRangeShifts($"192 = E {text}");
+
+        Assert.That(rangeShifts, Is.Empty);
+    }
+
+    [Test]
+    public void TrackEvents_UseTheLaterOfTwoRangeShiftsOnOneTick()
+    {
+        var rangeShifts = ReadExpertGuitarRangeShifts(
+            "192 = E ld_range_shift 3 2 3",
+            "192 = E ld_range_shift 3 1 3");
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(rangeShifts, Has.Count.EqualTo(1));
+            Assert.That(rangeShifts[0].Range, Is.EqualTo(1));
         }
     }
 
@@ -209,4 +327,13 @@ internal class ChartReaderSpecTests
         }
     }
 
+    private static List<RangeShift> ReadExpertGuitarRangeShifts(params string[] eventLines)
+    {
+        // Range shifts are only made for a difficulty with notes
+        var lines = eventLines.Prepend("0 = N 0 0").Append("960 = N 0 0").ToArray();
+        var settings = ParseSettings.Default_Chart;
+        var songChart = SongChart.FromDotChart(in settings, Chart(SongSection(), SyncSection(), Section("ExpertSingle", lines)));
+
+        return songChart.FiveFretGuitar.GetDifficulty(YARG.Core.Difficulty.Expert).RangeShiftEvents;
+    }
 }
