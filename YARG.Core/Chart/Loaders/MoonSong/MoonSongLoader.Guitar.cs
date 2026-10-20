@@ -185,10 +185,11 @@ namespace YARG.Core.Chart
 
         private Phrase? ValidateGuitarPhrase(Phrase phrase, List<Phrase> phrases)
         {
-            // Guitar plays no drum fills, lanes only from .mid, and BRE phrases only inside a coda event.
+            // Guitar plays no drum fills, lanes only on 5-fret from .mid, and BRE phrases only inside a coda event.
             // The TrackHash still holds the others
             if (phrase.Type == PhraseType.DrumFill
-                || (phrase.Type is PhraseType.TremoloLane or PhraseType.TrillLane && _isDotChart)
+                || (phrase.Type is PhraseType.TremoloLane or PhraseType.TrillLane
+                    && (_isDotChart || _currentMode == GameMode.SixFretGuitar))
                 || (phrase.Type == PhraseType.BigRockEnding && !IsWithinCoda(phrase)))
             {
                 _unplayedPhrases.Add(phrase);
