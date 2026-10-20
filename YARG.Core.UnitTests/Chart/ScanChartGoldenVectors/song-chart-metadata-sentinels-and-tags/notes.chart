@@ -1,0 +1,24 @@
+[Song]
+{
+  Resolution = 192
+  Name = "0"
+  Artist = "-1"
+  Album = "<b>Bold</b> Album"
+  Genre = "<color=#FF0000>Red</color>"
+  Year = ", 0"
+  Charter = "0"
+}
+[SyncTrack]
+{
+  0 = B 120000
+  0 = TS 4
+}
+[Events]
+{
+}
+[ExpertSingle]
+{
+  0 = N 0 0
+  192 = N 1 0
+  384 = N 2 0
+}
