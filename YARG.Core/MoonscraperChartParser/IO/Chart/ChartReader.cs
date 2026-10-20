@@ -428,7 +428,7 @@ namespace MoonscraperChartEditor.Song.IO
                     if (typeCodeText[0] == 'E')
                     {
                         // Get event text
-                        var eventText = TextEvents.NormalizeTextEvent(remaining.TrimOnce('"').Trim());
+                        var eventText = TextEvents.NormalizeGlobalEvent(remaining.TrimOnce('"'), holdsLyrics: true);
 
                         // Check for section events
                         if (TextEvents.TryParseSectionEvent(eventText, out var sectionName))

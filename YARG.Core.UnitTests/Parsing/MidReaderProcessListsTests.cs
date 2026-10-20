@@ -221,6 +221,94 @@ public class MidReaderProcessListsTests
         Assert.That(song.sections.Select(section => section.text), Is.EqualTo(new[] { "Chorus" }));
     }
 
+    [TestCase("section Chorus [2]", "Chorus [2]")]
+    [TestCase("section asdf[section Chorus [2]]asdf", "asdf[section Chorus [2]]asdf")]
+    [TestCase("[section Intro]", "Intro")]
+    [TestCase(" [section Intro] ", "Intro")]
+    [TestCase("asdf[section Chorus [2]]asdf", "Chorus [2]")]
+    [TestCase("[prc_intro] - Intro", "intro")]
+    [TestCase("[section chorus_2c]]", "chorus_2c")]
+    [TestCase("[section Chorus 2", "Chorus 2")]
+    public void ReadMidi_ReadsSectionBrackets(string text, string name)
+    {
+        var song = MidReader.ReadMidi(MakeMidi(MakeEventsTrack(Text(0, text))));
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(song.sections.Select(section => section.text), Is.EqualTo(new[] { name }));
+            Assert.That(song.events, Is.Empty);
+        }
+    }
+
+    [TestCase("[coda]", "coda")]
+    [TestCase("[coda] - Big Rock Ending", "coda")]
+    [TestCase("[coda", "coda")]
+    [TestCase("[end", "end")]
+    [TestCase("x [coda", "x [coda")]
+    [TestCase("coda]", "coda]")]
+    [TestCase("[[coda]", "[coda]")]
+    [TestCase("crowd_clap [coda]", "coda")]
+    [TestCase("lyric x [coda]", "coda")]
+    [TestCase("[ section Intro]", " section Intro")]
+    [TestCase("[custom] text", "custom")]
+    public void ReadMidi_ReadsGlobalEventBrackets(string text, string eventText)
+    {
+        var song = MidReader.ReadMidi(MakeMidi(MakeEventsTrack(Text(0, text))));
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(song.sections, Is.Empty);
+            Assert.That(song.events.Select(ev => ev.text), Is.EqualTo(new[] { eventText }));
+        }
+    }
+
+    [Test]
+    public void ReadMidi_ReadsSectionsCodaAndEndOnlyFromTextEvents()
+    {
+        var song = MidReader.ReadMidi(MakeMidi(MakeEventsTrack(
+            new TimedMidiEvent(0, new Melanchall.DryWetMidi.Core.LyricEvent("[section Intro]")),
+            new TimedMidiEvent(10, new Melanchall.DryWetMidi.Core.LyricEvent("[coda]")),
+            new TimedMidiEvent(20, new Melanchall.DryWetMidi.Core.LyricEvent("[end]")),
+            new TimedMidiEvent(30, new MarkerEvent("[coda] - Big Rock Ending")),
+            new TimedMidiEvent(40, new CuePointEvent("[prc_outro]")))));
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(song.sections, Is.Empty);
+            Assert.That(song.events, Is.Empty);
+        }
+    }
+
+    [Test]
+    public void ReadMidi_ReadsOtherSongWideEventsFromAnyTextType()
+    {
+        var song = MidReader.ReadMidi(MakeMidi(MakeEventsTrack(
+            new TimedMidiEvent(0, new Melanchall.DryWetMidi.Core.LyricEvent("[crowd_clap]")),
+            new TimedMidiEvent(10, new Melanchall.DryWetMidi.Core.LyricEvent("[music_end]")),
+            new TimedMidiEvent(20, new MarkerEvent("[crowd_intense]")))));
+
+        Assert.That(song.events.Select(ev => ev.text), Is.EqualTo(new[] { "crowd_clap", "music_end", "crowd_intense" }));
+    }
+
+    [Test]
+    public void ReadMidi_InstrumentAndVocalTextKeepTheirOwnBracketRules()
+    {
+        var song = MidReader.ReadMidi(MakeMidi(
+            MakeTrack(MidIOHelper.GUITAR_TRACK, Text(0, "[custom_event] text")),
+            MakeTrack(MidIOHelper.VOCALS_TRACK,
+                Note(0, 10, MidIOHelper.LYRICS_PHRASE_1),
+                new TimedMidiEvent(0, new Melanchall.DryWetMidi.Core.LyricEvent("[x]")),
+                new TimedMidiEvent(5, new Melanchall.DryWetMidi.Core.LyricEvent("lo")))));
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(song.GetChart(MoonInstrument.Guitar, Difficulty.Expert).events.Select(ev => ev.text),
+                Is.EqualTo(new[] { "custom_event" }));
+            Assert.That(song.events.Select(ev => ev.text).Where(text => text.StartsWith("lyric")),
+                Is.EqualTo(new[] { "lyric lo" }));
+        }
+    }
+
     [TestCase("[ld_range_shift 3 1 3]", 1, 3)]
     [TestCase("[ld_range_shift 3 2 4]", 2, 4)]
     [TestCase("[ld_range_shift 3 1]", 1, 5)]

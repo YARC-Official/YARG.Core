@@ -119,6 +119,68 @@ internal class ChartReaderSpecTests
         Assert.That(song.sections.Select(section => section.text), Is.EqualTo(new[] { "Chorus", "Bridge" }));
     }
 
+    [TestCase("section Chorus [2]", "Chorus [2]")]
+    [TestCase("section asdf[section Chorus [2]]asdf", "asdf[section Chorus [2]]asdf")]
+    [TestCase("[section Intro]", "Intro")]
+    [TestCase(" [section Intro] ", "Intro")]
+    [TestCase("asdf[section Chorus [2]]asdf", "Chorus [2]")]
+    [TestCase("[prc_intro] - Intro", "intro")]
+    [TestCase("[section chorus_2c]]", "chorus_2c")]
+    [TestCase("[section Chorus 2", "Chorus 2")]
+    public void EventsSection_ReadsSectionBrackets(string text, string name)
+    {
+        var song = ChartReader.ReadFromText(Chart(
+            SongSection(),
+            SyncSection(),
+            Section(ChartIOHelper.SECTION_EVENTS, $"0 = E \"{text}\"")));
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(song.sections.Select(section => section.text), Is.EqualTo(new[] { name }));
+            Assert.That(song.events, Is.Empty);
+        }
+    }
+
+    [TestCase("[coda]", "coda")]
+    [TestCase("[coda] - Big Rock Ending", "coda")]
+    [TestCase("[coda", "coda")]
+    [TestCase("[end", "end")]
+    [TestCase("x [coda", "x [coda")]
+    [TestCase("coda]", "coda]")]
+    [TestCase("[[coda]", "[coda]")]
+    [TestCase("crowd_clap [coda]", "coda")]
+    [TestCase("[ section Intro]", " section Intro")]
+    [TestCase("lyric [x]", "lyric [x]")]
+    [TestCase("[lyric [x]]", "lyric [x]")]
+    [TestCase("lyric x [coda]", "lyric x [coda]")]
+    [TestCase("[custom] text", "custom")]
+    public void EventsSection_ReadsGlobalEventBrackets(string text, string eventText)
+    {
+        var song = ChartReader.ReadFromText(Chart(
+            SongSection(),
+            SyncSection(),
+            Section(ChartIOHelper.SECTION_EVENTS, $"0 = E \"{text}\"")));
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(song.sections, Is.Empty);
+            Assert.That(song.events.Select(ev => ev.text), Is.EqualTo(new[] { eventText }));
+        }
+    }
+
+    [Test]
+    public void TrackEvents_KeepTheirOwnBracketRule()
+    {
+        var song = ChartReader.ReadFromText(Chart(
+            SongSection(),
+            SyncSection(),
+            Section("ExpertSingle", "192 = E [custom_event] text")));
+
+        var chart = song.GetChart(MoonInstrument.Guitar, Difficulty.Expert);
+
+        Assert.That(chart.events.Select(ev => ev.text), Is.EqualTo(new[] { "custom_event" }));
+    }
+
     [TestCase("ld_range_shift 3 1 3", 1, 3)]
     [TestCase("\"ld_range_shift 3 1 3\"", 1, 3)]
     [TestCase("ld_range_shift 3 1", 1, 5)]
