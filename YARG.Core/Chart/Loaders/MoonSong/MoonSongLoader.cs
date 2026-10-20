@@ -28,12 +28,16 @@ namespace YARG.Core.Chart
         // .chart format uses inclusive solo phrase boundaries (the note at phrase end tick is inside the solo);
         // .mid format uses exclusive boundaries. Other formats should set this based on their own spec.
         private bool _inclusiveSoloBoundary;
+        private bool _isDotChart;
 
         // Set only by LoadUltraStar. Gates the ChildNotes slide-child walk in FixLyricLengths,
         // which only UltraStar's flattened pitch-slide chains need (see MoonSongLoader.Vocals.cs).
         private bool _matchSlideChildrenByExactTick;
 
         public bool SoloSectionLengthIncludesTerminalTick => _inclusiveSoloBoundary;
+
+        // Phrases of the difficulty being loaded that YARG doesn't play, for the TrackHash
+        private List<Phrase> _unplayedPhrases = new();
 
         private GameMode _currentMode;
         private Instrument _currentInstrument;
@@ -74,7 +78,7 @@ namespace YARG.Core.Chart
                 ? ChartReader.ReadFromFile(ref settings, filePath)
                 : MidReader.ReadMidi(ref settings, filePath);
 
-            return new(song, settings) { _inclusiveSoloBoundary = isChart };
+            return new(song, settings) { _inclusiveSoloBoundary = isChart, _isDotChart = isChart };
         }
 
         public static MoonSongLoader LoadMidi(ParseSettings settings, MidiFile midi)
@@ -88,7 +92,7 @@ namespace YARG.Core.Chart
             // Reading from a .chart *file* is handled in LoadSong, and checks the extension
             // This path reads from data already in-memory, which we know is '.chart', so this is hardcoded
             var song = ChartReader.ReadFromText(ref settings, chartText);
-            return new(song, settings)  { _inclusiveSoloBoundary = true };
+            return new(song, settings)  { _inclusiveSoloBoundary = true, _isDotChart = true };
         }
 
         public List<TextEvent> LoadGlobalEvents()
@@ -162,10 +166,12 @@ namespace YARG.Core.Chart
 
             var moonChart = GetMoonChart(instrument, difficulty);
             var notes = GetNotes(moonChart, difficulty, createNote, processText);
+            _unplayedPhrases = new();
             var phrases = GetPhrases(moonChart, validatePhrase);
             var textEvents = GetTextEvents(moonChart);
 
             var chart = new InstrumentDifficulty<TNote>(instrument, difficulty, notes, phrases, textEvents);
+            chart.UnplayedPhrases.AddRange(_unplayedPhrases);
 
             if (finalPassDelegate is not null)
             {
@@ -267,7 +273,7 @@ namespace YARG.Core.Chart
 
                 double time = _moonSong.TickToTime(moonPhrase.tick);
                 var newPhrase = new Phrase(phraseType.Value, time, GetLengthInTime(moonPhrase), moonPhrase.tick, moonPhrase.length,
-                    moonPhrase.ConvertedFromDrumFill);
+                    moonPhrase.type is MoonPhrase.Type.ProDrums_Activation or MoonPhrase.Type.BigRockEnding);
 
                 if (validatePhrase == null)
                 {
