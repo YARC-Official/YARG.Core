@@ -1,6 +1,7 @@
 // Copyright (c) 2016-2020 Alexander Ong
 // See LICENSE in project root for license information.
 
+using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.IO;
@@ -356,7 +357,11 @@ namespace MoonscraperChartEditor.Song.IO
                 if (MidIOHelper.IsTextEvent(trackEvent, out var text))
                 {
                     // Get event text
-                    var eventText = TextEvents.NormalizeTextEvent(text.Text);
+                    var eventText = TextEvents.NormalizeGlobalEvent(text.Text, holdsLyrics: false);
+                    if (trackEvent.EventType != MidiEventType.Text && NeedsTextEventType(eventText))
+                    {
+                        continue;
+                    }
 
                     // Check for section events
                     if (TextEvents.TryParseSectionEvent(eventText, out var sectionName))
@@ -369,6 +374,15 @@ namespace MoonscraperChartEditor.Song.IO
                     }
                 }
             }
+        }
+
+        // Practice sections, the coda and the song's end are only read from text events (FF 01), as Clone Hero
+        // reads them. YARG's other song-wide events, such as crowd events, are also read from lyrics and markers.
+        private static bool NeedsTextEventType(ReadOnlySpan<char> eventText)
+        {
+            return TextEvents.TryParseSectionEvent(eventText, out _)
+                || eventText.Equals(TextEvents.BIG_ROCK_ENDING_START, StringComparison.Ordinal)
+                || eventText.Equals(TextEvents.END_MARKER, StringComparison.Ordinal);
         }
 
         private static void ReadTextEventsIntoGlobalEventsAsLyrics(TrackChunk track, MoonSong song)

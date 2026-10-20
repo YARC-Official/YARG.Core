@@ -89,7 +89,8 @@ namespace YARG.Core.Parsing
         /// leading/trailing whitespace, and isolating any text inside square brackets.
         /// </summary>
         /// <remarks>
-        /// All text events must be passed through this method before being used elsewhere.
+        /// All text events must be passed through this method, or <see cref="NormalizeGlobalEvent"/> for song-wide
+        /// events, before being used elsewhere.
         /// All other methods that operate on text events expect them to be normalized.
         /// </remarks>
         // Equivalent to reading the capture of this regex: \[(.*?)\]
@@ -112,6 +113,62 @@ namespace YARG.Core.Parsing
         /// <inheritdoc cref="NormalizeTextEvent(ReadOnlySpan{char}, out bool)"/>
         public static ReadOnlySpan<char> NormalizeTextEvent(ReadOnlySpan<char> text)
             => NormalizeTextEvent(text, out _);
+
+        /// <summary>
+        /// Normalizes a song-wide text event (.chart [Events], .mid EVENTS). The trimmed text is read as written
+        /// when it's an event. Otherwise, when the text has a '[' and a ']' that closes it (counting nested pairs),
+        /// the text between the first '[' and that ']' is read as it is, and everything outside them is dropped.
+        /// When the text starts with a '[' that no ']' closes, the text after that '[' is read as it is.
+        /// </summary>
+        /// <remarks>
+        /// For example, <c>section Verse [2]</c> is a section named <c>Verse [2]</c>,
+        /// <c>[prc_intro] - Intro</c> is a section named <c>intro</c>, <c>[coda</c> is the coda,
+        /// and <c>x [coda</c> is no event.
+        /// </remarks>
+        /// <param name="text">The event's text.</param>
+        /// <param name="holdsLyrics">
+        /// Whether the events hold lyrics, as a .chart file's [Events] does and a .mid file's EVENTS doesn't.
+        /// Only then are lyrics, <c>phrase_start</c> and <c>phrase_end</c> events here.
+        /// </param>
+        public static ReadOnlySpan<char> NormalizeGlobalEvent(ReadOnlySpan<char> text, bool holdsLyrics)
+        {
+            text = text.Trim();
+            if (IsGlobalEvent(text, holdsLyrics))
+                return text;
+
+            int open = text.IndexOf('[');
+            if (open < 0)
+                return text;
+
+            int depth = 0;
+            for (int i = open; i < text.Length; i++)
+            {
+                if (text[i] == '[')
+                {
+                    depth++;
+                }
+                else if (text[i] == ']' && --depth == 0)
+                {
+                    return text[(open + 1)..i];
+                }
+            }
+
+            // A '[' at the start that no ']' closes
+            return open == 0 ? text[1..] : text;
+        }
+
+        // The song-wide events of the chart specification, which decide how brackets are read.
+        // YARG's own events, such as crowd events, aren't among them, and read as they are after normalizing.
+        private static bool IsGlobalEvent(ReadOnlySpan<char> text, bool holdsLyrics)
+        {
+            return TryParseSectionEvent(text, out _)
+                || text.Equals(BIG_ROCK_ENDING_START, StringComparison.Ordinal)
+                || text.Equals(END_MARKER, StringComparison.Ordinal)
+                || (holdsLyrics && (text.StartsWith(LYRIC_PREFIX_WITH_SPACE)
+                    || text.StartsWith(LYRIC_PREFIX + "\t")
+                    || text.Equals(LYRIC_PHRASE_START, StringComparison.Ordinal)
+                    || text.Equals(LYRIC_PHRASE_END, StringComparison.Ordinal)));
+        }
 
         // For events that have either space or underscore separators
         private static ReadOnlySpan<char> SkipSpaceOrUnderscore(this ReadOnlySpan<char> text)
