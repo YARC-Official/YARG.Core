@@ -361,9 +361,23 @@ namespace YARG.Core.Chart.Hashing
             var normalized = new List<(long Tick, long Length, BTrackNoteType Type, BTrackNoteFlags Flags)>();
             foreach (var note in notes)
             {
+                // An orange and green chord on a 5-lane chart is a green cymbal and a blue tom
+                bool orangeAndGreen = false;
+                if (instrument == Instrument.FiveLaneDrums)
+                {
+                    bool orange = false;
+                    bool green = false;
+                    foreach (var child in note.AllNotes)
+                    {
+                        orange |= child.Pad == (int) FiveLaneDrumPad.Orange;
+                        green |= child.Pad == (int) FiveLaneDrumPad.Green;
+                    }
+                    orangeAndGreen = orange && green;
+                }
+
                 foreach (var child in note.AllNotes)
                 {
-                    if (TryMapDrumNote(instrument, child, out var type, out var flags))
+                    if (TryMapDrumNote(instrument, child, orangeAndGreen, out var type, out var flags))
                     {
                         normalized.Add((child.Tick, child.WrittenTickLength, type, flags));
                     }
@@ -372,7 +386,8 @@ namespace YARG.Core.Chart.Hashing
             return NormalizeNotes(normalized);
         }
 
-        private static bool TryMapDrumNote(Instrument instrument, DrumNote note, out BTrackNoteType type, out BTrackNoteFlags flags)
+        private static bool TryMapDrumNote(Instrument instrument, DrumNote note, bool orangeAndGreen, out BTrackNoteType type,
+            out BTrackNoteFlags flags)
         {
             flags = BTrackNoteFlags.None;
             if (note.IsDoubleKick)
@@ -401,7 +416,7 @@ namespace YARG.Core.Chart.Hashing
 
             if (instrument == Instrument.FiveLaneDrums)
             {
-                return TryMapFiveLaneDrumNote(note, ref flags, out type);
+                return TryMapFiveLaneDrumNote(note, orangeAndGreen, ref flags, out type);
             }
 
             return TryMapFourLaneDrumNote(note, ref flags, out type);
@@ -449,7 +464,8 @@ namespace YARG.Core.Chart.Hashing
             }
         }
 
-        private static bool TryMapFiveLaneDrumNote(DrumNote note, ref BTrackNoteFlags flags, out BTrackNoteType type)
+        private static bool TryMapFiveLaneDrumNote(DrumNote note, bool orangeAndGreen, ref BTrackNoteFlags flags,
+            out BTrackNoteType type)
         {
             switch ((FiveLaneDrumPad) note.Pad)
             {
@@ -474,7 +490,7 @@ namespace YARG.Core.Chart.Hashing
                     return true;
                 case FiveLaneDrumPad.Green:
                     flags |= BTrackNoteFlags.Tom;
-                    type = BTrackNoteType.GreenDrum;
+                    type = orangeAndGreen ? BTrackNoteType.BlueDrum : BTrackNoteType.GreenDrum;
                     return true;
                 default:
                     type = default;
