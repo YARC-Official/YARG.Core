@@ -236,6 +236,10 @@ namespace YARG.Core.Chart
             if (difficulty != currentDiff)
                 return;
 
+            // easy and easynokick only set up the Easy audio, so a flip stays as it is
+            if (setting is DrumsMixSetting.Easy or DrumsMixSetting.EasyNoKick)
+                return;
+
             _mixSetting = setting;
         }
 
