@@ -107,9 +107,18 @@ namespace YARG.Core.Chart
         /// The tick threshold to use for snapping together single notes into chords.
         /// </summary>
         /// <remarks>
-        /// Defaults to 10 in CON files, and 0 in other charts.
+        /// Uses the <c>chord_snap_threshold</c> tag from song.ini files: a note less than this many ticks after
+        /// the start of a chord joins it, takes its note type, and keeps its own length.<br/>
+        /// Defaults to 10 in CON files, and 0 (no snapping) in other charts.
         /// </remarks>
         public long NoteSnapThreshold;
+
+        /// <summary>
+        /// Snap notes as CON files do instead: a note up to <see cref="NoteSnapThreshold"/> ticks after the
+        /// start of a chord joins it with all of its values, its length included, and tom markers also cover
+        /// notes up to that many ticks before them.
+        /// </summary>
+        public bool RockBandNoteSnap;
 
         /// <summary>
         /// The MIDI note to use for Star Power phrases in .mid charts.

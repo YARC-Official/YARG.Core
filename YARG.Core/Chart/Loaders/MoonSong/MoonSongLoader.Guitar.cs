@@ -139,7 +139,7 @@ namespace YARG.Core.Chart
 
             if (nextNote is not null &&
                 noteEndTick > nextNote.tick &&
-                ticksToNextNote > _settings.NoteSnapThreshold)
+                ticksToNextNote > _maxSnapDistance)
             {
                 flags |= GuitarNoteFlags.ExtendedSustain;
             }
@@ -164,7 +164,7 @@ namespace YARG.Core.Chart
 
                 if (prevNoteEndTick > moonNote.tick &&
                     moonNote.length > 0 &&
-                    ticksToPrevNote > _settings.NoteSnapThreshold)
+                    ticksToPrevNote > _maxSnapDistance)
                 {
                     flags |= GuitarNoteFlags.ExtendedSustain;
                 }

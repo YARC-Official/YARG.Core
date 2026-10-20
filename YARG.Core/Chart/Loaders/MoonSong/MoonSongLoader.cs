@@ -25,6 +25,8 @@ namespace YARG.Core.Chart
 
         private MoonSong _moonSong;
         private ParseSettings _settings;
+        // The most ticks a note can start after a chord and still snap into it
+        private readonly long _maxSnapDistance;
         // .chart format uses inclusive solo phrase boundaries (the note at phrase end tick is inside the solo);
         // .mid format uses exclusive boundaries. Other formats should set this based on their own spec.
         private bool _inclusiveSoloBoundary;
@@ -53,6 +55,7 @@ namespace YARG.Core.Chart
         {
             _moonSong = song;
             _settings = settings;
+            _maxSnapDistance = settings.RockBandNoteSnap ? settings.NoteSnapThreshold : settings.NoteSnapThreshold - 1;
             _codaTime = FindCodaTime();
             _codaTicks = GetCodaTicks();
         }
@@ -391,13 +394,19 @@ namespace YARG.Core.Chart
                     currentParent.AddChildNote(note);
                     return;
                 }
-                else if ((note.Tick - currentParent.Tick) <= _settings.NoteSnapThreshold)
+                else if ((note.Tick - currentParent.Tick) <= _maxSnapDistance)
                 {
-                    // Chord needs to be snapped, copy values
-                    note.CopyValuesFrom(currentParent);
-
                     note.PreviousNote = previousParent;
-                    currentParent.AddChildNote(note);
+                    if (_settings.RockBandNoteSnap)
+                    {
+                        // Chord needs to be snapped, copy values
+                        note.CopyValuesFrom(currentParent);
+                        currentParent.AddChildNote(note);
+                    }
+                    else
+                    {
+                        currentParent.SnapNote(note, GetLengthInTime(currentParent.Time, currentParent.Tick, note.TickLength));
+                    }
                     return;
                 }
             }
