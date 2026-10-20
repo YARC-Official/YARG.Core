@@ -330,6 +330,20 @@ public class ScanChartCompatibilityTests
         }
     }
 
+    [Test]
+    public void DotChartDrums_DoubleKick_IsInExpertTrackHash()
+    {
+        var result = CalculateDotChartHash("ExpertDrums", Instrument.FourLaneDrums,
+            "0 = N 0 0",
+            "192 = N 32 0");
+
+        Assert.That(ReadNotes(result.BTrack), Is.EqualTo(new List<(long Tick, long Length, uint Type, uint Flags)>
+        {
+            (0, 0, 13, 0),
+            (192, 0, 13, 8),
+        }));
+    }
+
     private static void AssertHashMatchesStrippedFile(BTrackHashResult result)
     {
         Assert.That(result.Hash, Is.EqualTo(BTrackHashResult.Encode(Blake3.Hash(StripForHash(result.BTrack)))));
