@@ -684,10 +684,28 @@ namespace MoonscraperChartEditor.Song.IO
                 eventText = TextEvents.LYRIC_PREFIX_WITH_SPACE + eventText;
             }
 
+            bool isRangeShift = MoonSong.InstrumentToChartGameMode(processParams.instrument) is MoonChart.GameMode.Guitar
+                && TextEvents.TryParseRangeShiftEvent(eventText, out _, out _, out _);
+            // A range shift is only read from a text event (not a lyric or marker) with brackets around the whole text
+            if (isRangeShift && (text.EventType != MidiEventType.Text || text.Text.Trim() != $"[{eventText}]"))
+            {
+                return;
+            }
+
             // Copy text event to all difficulties
             foreach (var difficulty in EnumExtensions<MoonSong.Difficulty>.Values)
             {
-                processParams.song.GetChart(processParams.instrument, difficulty).Insert(new MoonText(eventText, tick));
+                var chart = processParams.song.GetChart(processParams.instrument, difficulty);
+                var moonText = new MoonText(eventText, tick);
+                if (isRangeShift)
+                {
+                    // Of two range shifts on one tick the later one is used, so they're kept in the file's order
+                    MoonObjectHelper.OrderedInsertFromBack(moonText, chart.events);
+                }
+                else
+                {
+                    chart.Insert(moonText);
+                }
             }
         }
 

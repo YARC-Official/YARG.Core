@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Globalization;
 using YARG.Core.Extensions;
 using YARG.Core.IO;
 using MemoryExtensions = System.MemoryExtensions;
@@ -143,6 +144,56 @@ namespace YARG.Core.Parsing
             // Isolate section name
             name = text.TrimStart('_').Trim();
             return !name.IsEmpty;
+        }
+
+        /// <summary>
+        /// Parses a 5-fret range shift event: <c>ld_range_shift &lt;difficulty&gt; &lt;position&gt; [size]</c>,
+        /// with the parts separated by single spaces and the numbers in digits.
+        /// </summary>
+        /// <returns>
+        /// True if the event was parsed successfully, false otherwise.
+        /// </returns>
+        public static bool TryParseRangeShiftEvent(string text, out Difficulty difficulty, out int position, out int size)
+        {
+            difficulty = Difficulty.Expert;
+            position = 0;
+            size = 0;
+
+            const string RANGE_SHIFT_PREFIX = "ld_range_shift";
+            if (!text.StartsWith(RANGE_SHIFT_PREFIX + " ", StringComparison.Ordinal))
+                return false;
+
+            var parts = text.Split(' ');
+            // 3 parts use the difficulty's default size, 4 give the size
+            if (parts.Length is not (3 or 4))
+                return false;
+
+            if (!TryParseDigits(parts[1], out int difficultyNumber) || difficultyNumber > 3
+                || !TryParseDigits(parts[2], out position) || position is < 1 or > 5)
+                return false;
+
+            // Difficulties are numbered from 0, Easy, to 3, Expert
+            difficulty = (Difficulty) (difficultyNumber + 1);
+            if (parts.Length == 4)
+            {
+                if (!TryParseDigits(parts[3], out size) || size is < 1 or > 5)
+                    return false;
+            }
+            else
+            {
+                size = difficulty switch
+                {
+                    Difficulty.Easy   => 3,
+                    Difficulty.Medium => 4,
+                    _                 => 5,
+                };
+            }
+
+            // The range can't go past the fifth fret
+            return position + size <= 6;
+
+            static bool TryParseDigits(string number, out int value)
+                => int.TryParse(number, NumberStyles.None, CultureInfo.InvariantCulture, out value);
         }
 
         /// <summary>
