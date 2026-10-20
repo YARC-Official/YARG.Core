@@ -271,52 +271,19 @@ namespace YARG.Core.IO
         {
             long stringBegin = container.Position;
             long stringEnd = -1;
-            if (isChartFile && !container.IsAtEnd() && container.Get() == '\"')
+            while (!container.IsAtEnd())
             {
-                while (true)
+                int ch = container.Get();
+                if (ch == '\n')
                 {
-                    ++container.Position;
-                    if (container.IsAtEnd())
-                    {
-                        break;
-                    }
-
-                    int ch = container.Get();
-                    if (ch == '\n')
-                    {
-                        break;
-                    }
-
-                    if (stringEnd == -1)
-                    {
-                        if (ch == '\"' && container.PositionPointer[-1].ToInt32(null) != '\\')
-                        {
-                            ++stringBegin;
-                            stringEnd = container.Position;
-                        }
-                        else if (ch == '\r')
-                        {
-                            stringEnd = container.Position;
-                        }
-                    }
+                    break;
                 }
-            }
-            else
-            {
-                while (!container.IsAtEnd())
+
+                if (ch == '\r' && stringEnd == -1)
                 {
-                    int ch = container.Get();
-                    if (ch == '\n')
-                    {
-                        break;
-                    }
-
-                    if (ch == '\r' && stringEnd == -1)
-                    {
-                        stringEnd = container.Position;
-                    }
-                    ++container.Position;
+                    stringEnd = container.Position;
                 }
+                ++container.Position;
             }
 
             if (stringEnd == -1)
@@ -324,12 +291,34 @@ namespace YARG.Core.IO
                 stringEnd = container.Position;
             }
 
-            while (stringEnd > stringBegin && container.GetBuffer()[stringEnd - 1].ToInt32(null) <= WHITESPACE_LIMIT)
+            var buffer = container.GetBuffer();
+            while (stringEnd > stringBegin && buffer[stringEnd - 1].ToInt32(null) <= WHITESPACE_LIMIT)
             {
                 --stringEnd;
             }
 
-            return Decode(container.GetBuffer() + stringBegin, stringEnd - stringBegin, ref container);
+            // .chart text has no escape characters, so a quotation mark inside it is part of it:
+            // only an opening one and one at the end of the line enclose the text
+            if (isChartFile && stringEnd > stringBegin && buffer[stringBegin].ToInt32(null) == '\"')
+            {
+                ++stringBegin;
+                if (stringEnd > stringBegin && buffer[stringEnd - 1].ToInt32(null) == '\"')
+                {
+                    --stringEnd;
+                }
+
+                while (stringBegin < stringEnd && buffer[stringBegin].ToInt32(null) <= WHITESPACE_LIMIT)
+                {
+                    ++stringBegin;
+                }
+
+                while (stringEnd > stringBegin && buffer[stringEnd - 1].ToInt32(null) <= WHITESPACE_LIMIT)
+                {
+                    --stringEnd;
+                }
+            }
+
+            return Decode(buffer + stringBegin, stringEnd - stringBegin, ref container);
         }
 
         public static bool ExtractBoolean<TChar>(in YARGTextContainer<TChar> text)
