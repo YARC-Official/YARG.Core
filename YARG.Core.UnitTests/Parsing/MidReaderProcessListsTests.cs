@@ -210,6 +210,22 @@ public class MidReaderProcessListsTests
     }
 
     [Test]
+    public void ReadMidi_ReadsPartDrumAsDrums()
+    {
+        var red = MidIOHelper.DRUMS_DIFF_START_LOOKUP[Difficulty.Expert] + 1;
+        var midi = MakeMidi(MakeTrack(MidIOHelper.DRUMS_TRACK_2, Note(10, 100, red)));
+
+        var song = MidReader.ReadMidi(midi);
+        var notes = song.GetChart(MoonInstrument.Drums, Difficulty.Expert).notes;
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(notes, Has.Count.EqualTo(1));
+            Assert.That(notes[0].drumPad, Is.EqualTo(DrumPad.Red));
+        }
+    }
+
+    [Test]
     public void SongChart_MidiChordToSameFretSingle_IsStrumWithoutLoaderCancellation()
     {
         var red = MidIOHelper.GUITAR_DIFF_START_LOOKUP[Difficulty.Expert] + 1;

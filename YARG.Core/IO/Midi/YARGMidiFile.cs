@@ -62,7 +62,7 @@ namespace YARG.Core.IO
 
         public bool GetNextTrack(out ushort trackNumber, out YARGMidiTrack track)
         {
-            if (_trackNumber == _numTracks || _position == _data.Length)
+            if (_position == _data.Length || (_trackNumber >= _numTracks && !HasWholeTrackChunk()))
             {
                 trackNumber = _trackNumber;
                 track = default;
@@ -96,6 +96,27 @@ namespace YARG.Core.IO
             _position += length;
             trackNumber = _trackNumber;
             return true;
+        }
+
+        /// <summary>
+        /// A file can hold more tracks than its header counts, so the tracks past the count are read too.
+        /// Past the counted tracks, anything but a whole 'MTrk' chunk (such as leftover bytes at the end
+        /// of the file) ends the tracks instead of failing the file.
+        /// </summary>
+        private readonly bool HasWholeTrackChunk()
+        {
+            if (_position + DATA_OFFSET > _data.Length
+                || !TRACK_TAG.Matches(_data.ReadonlySlice(_position, TAG_SIZE)))
+            {
+                return false;
+            }
+
+            long length =
+                ((uint) _data[_position + TAG_SIZE] << 24) |
+                ((uint) _data[_position + TAG_SIZE + 1] << 16) |
+                ((uint) _data[_position + TAG_SIZE + 2] << 8) |
+                        _data[_position + TAG_SIZE + 3];
+            return _position + DATA_OFFSET + length <= _data.Length;
         }
 
         public void Reset()
