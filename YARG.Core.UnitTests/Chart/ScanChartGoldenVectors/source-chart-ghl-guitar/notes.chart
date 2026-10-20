@@ -1,0 +1,26 @@
+[Song]
+{
+  Resolution = 192
+}
+[SyncTrack]
+{
+  0 = B 120000
+  0 = TS 4
+}
+[Events]
+{
+}
+[ExpertGHLGuitar]
+{
+  0 = N 0 0
+  96 = N 1 0
+  192 = N 2 0
+  288 = N 3 0
+  384 = N 4 0
+  480 = N 8 0
+  576 = N 7 0
+  672 = N 0 0
+  672 = N 3 0
+  768 = N 2 0
+  768 = N 6 0
+}

@@ -1,0 +1,32 @@
+[Song]
+{
+  Resolution = 192
+}
+[SyncTrack]
+{
+  0 = TS 4
+  0 = B 120000
+}
+[Events]
+{
+}
+[ExpertDrums]
+{
+  0 = N 1 0
+  0 = N 2 0
+  192 = E [mix 3 drums0d]
+  192 = N 1 0
+  192 = N 2 0
+  384 = N 1 0
+  384 = N 2 0
+  768 = E [mix 3 drums0dnoflip]
+  768 = N 1 0
+  768 = N 2 0
+  960 = N 1 0
+  960 = N 2 0
+  1344 = E [mix 3 drums0]
+  1344 = N 1 0
+  1344 = N 2 0
+  1536 = N 1 0
+  1536 = N 2 0
+}
