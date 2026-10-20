@@ -48,9 +48,7 @@ namespace YARG.Core.Chart
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static double MicroSecondsToBpm(long usecs)
         {
-            double secondsPerBeat = usecs / 1000f / 1000f;
-            double tempo = SECONDS_PER_MINUTE / secondsPerBeat;
-            return tempo;
+            return SECONDS_PER_MINUTE * 1000 * 1000 / usecs;
         }
 
         public double TickToTime(uint tick, uint resolution)
