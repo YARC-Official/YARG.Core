@@ -161,12 +161,14 @@ namespace YARG.Core.Chart
             _currentMoonDifficulty = YargDifficultyToMoonDifficulty(_currentDifficulty);
 
             var moonChart = GetMoonChart(instrument, difficulty);
-            var notes = GetNotes(moonChart, difficulty, createNote, processText);
+            var unplayedNotes = new List<TNote>();
+            var notes = GetNotes(moonChart, difficulty, createNote, processText, unplayedNotes);
             _unplayedPhrases = new();
             var phrases = GetPhrases(moonChart, validatePhrase);
             var textEvents = GetTextEvents(moonChart);
 
             var chart = new InstrumentDifficulty<TNote>(instrument, difficulty, notes, phrases, textEvents);
+            chart.UnplayedNotes.AddRange(unplayedNotes);
             chart.UnplayedPhrases.AddRange(_unplayedPhrases);
 
             if (finalPassDelegate is not null)
@@ -178,7 +180,7 @@ namespace YARG.Core.Chart
         }
 
         private List<TNote> GetNotes<TNote>(MoonChart moonChart, Difficulty difficulty,
-            CreateNoteDelegate<TNote> createNote, ProcessTextDelegate? processText = null)
+            CreateNoteDelegate<TNote> createNote, ProcessTextDelegate? processText = null, List<TNote>? unplayedNotes = null)
             where TNote : Note<TNote>
         {
             var notes = new List<TNote>(moonChart.notes.Count);
@@ -220,6 +222,11 @@ namespace YARG.Core.Chart
                 // Skip Expert+ notes if not on Expert+
                 if (difficulty != Difficulty.ExpertPlus && (moonNote.flags & MoonNote.Flags.InstrumentPlus) != 0)
                 {
+                    // Easy to Hard play no double kicks, but their TrackHash holds them
+                    if (unplayedNotes != null && difficulty is Difficulty.Easy or Difficulty.Medium or Difficulty.Hard)
+                    {
+                        unplayedNotes.Add(createNote(moonNote, currentPhrases, unplayedNotes));
+                    }
                     continue;
                 }
 

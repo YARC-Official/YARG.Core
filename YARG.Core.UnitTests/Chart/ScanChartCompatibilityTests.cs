@@ -348,6 +348,52 @@ public class ScanChartCompatibilityTests
     }
 
     [Test]
+    public void DotChartDrums_EasyDoubleKick_IsInTrackHashButNotPlayed()
+    {
+        var chart = ParseDotChart(["0 = TS 4 2", "0 = B 120000"], [], "EasyDrums",
+            "0 = N 0 0",
+            "192 = N 32 0");
+
+        var result = Hash(chart, Instrument.FourLaneDrums, Difficulty.Easy);
+
+        Assert.That(chart.FourLaneDrums.TryGetDifficulty(Difficulty.Easy, out var easy), Is.True);
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(easy!.Notes.Select(note => note.Tick), Is.EqualTo(new uint[] { 0 }));
+            Assert.That(ReadNotes(result.BTrack), Is.EqualTo(new List<(long Tick, long Length, uint Type, uint Flags)>
+            {
+                (0, 0, 13, 0),
+                (192, 0, 13, 8),
+            }));
+        }
+    }
+
+    [Test]
+    public void MidiDrums_HardDoubleKick_IsInTrackHash()
+    {
+        var midi = new MidiFile(
+            new TrackChunk(new SetTempoEvent(TempoChange.BpmToMicroSeconds(120))),
+            new TrackChunk(
+                new SequenceTrackNameEvent("PART DRUMS"),
+                NoteOn(0, 84),
+                NoteOff(60, 84),
+                NoteOn(420, 83),
+                NoteOff(60, 83)))
+        {
+            TimeDivision = new TicksPerQuarterNoteTimeDivision(480),
+        };
+
+        var chart = SongChart.FromMidi(ParseSettings.Default_Midi, midi);
+        var result = Hash(chart, Instrument.FourLaneDrums, Difficulty.Hard);
+
+        Assert.That(ReadNotes(result.BTrack), Is.EqualTo(new List<(long Tick, long Length, uint Type, uint Flags)>
+        {
+            (0, 0, 13, 0),
+            (480, 0, 13, 8),
+        }));
+    }
+
+    [Test]
     public void DotChartDrums_NoteLength_IsInTrackHash()
     {
         var result = CalculateDotChartHash("ExpertDrums", Instrument.FourLaneDrums,
