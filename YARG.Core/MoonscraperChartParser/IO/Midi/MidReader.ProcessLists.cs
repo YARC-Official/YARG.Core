@@ -373,9 +373,12 @@ namespace MoonscraperChartEditor.Song.IO
 
         private static void SetCodaFlags(ref EventProcessParams processParams)
         {
-            // Find coda starts and ends
-            var song = processParams.song;
+            SetCodaFlags(processParams.song, processParams.instrument);
+        }
 
+        internal static void SetCodaFlags(MoonSong song, MoonSong.MoonInstrument instrument)
+        {
+            // Find coda starts and ends
             if (song.events.All(e => e.text != MidIOHelper.CODA_START && e.text != MidIOHelper.MIDCODA_START))
             {
                 return;
@@ -393,7 +396,7 @@ namespace MoonscraperChartEditor.Song.IO
             foreach (var diff in EnumExtensions<MoonSong.Difficulty>.Values)
             {
                 var codaIndex = 0;
-                var chart = processParams.song.GetChart(processParams.instrument, diff);
+                var chart = song.GetChart(instrument, diff);
 
                 if (chart.notes.Count == 0)
                 {
@@ -443,14 +446,17 @@ namespace MoonscraperChartEditor.Song.IO
 
         private static void ReplaceDrumFillDuringCoda(ref EventProcessParams processParams)
         {
-            var song = processParams.song;
+            ReplaceDrumFillDuringCoda(processParams.song, processParams.instrument);
+        }
 
+        internal static void ReplaceDrumFillDuringCoda(MoonSong song, MoonSong.MoonInstrument instrument)
+        {
             if (song.events.All(e => e.text != MidIOHelper.CODA_START && e.text != MidIOHelper.MIDCODA_START))
             {
                 return;
             }
 
-            var chart = processParams.song.GetChart(processParams.instrument, MoonSong.Difficulty.Expert);
+            var chart = song.GetChart(instrument, MoonSong.Difficulty.Expert);
 
             if (chart.specialPhrases.Any(sp => sp.type == MoonPhrase.Type.BigRockEnding)
                 || chart.specialPhrases.All(sp => sp.type != MoonPhrase.Type.ProDrums_Activation))
@@ -467,7 +473,7 @@ namespace MoonscraperChartEditor.Song.IO
 
             foreach (var diff in EnumExtensions<MoonSong.Difficulty>.Values)
             {
-                chart = processParams.song.GetChart(processParams.instrument, diff);
+                chart = song.GetChart(instrument, diff);
                 foreach (var phrase in chart.specialPhrases)
                 {
                     if (phrase.type == MoonPhrase.Type.ProDrums_Activation
