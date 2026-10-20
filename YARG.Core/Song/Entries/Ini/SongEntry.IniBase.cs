@@ -113,14 +113,14 @@ namespace YARG.Core.Song
                 return SongChart.FromUltraStarBytes(in parseSettings, data.ReadOnlySpan);
             }
 
-            using var stream = data.ToReferenceStream();
             if (_chartFormat == ChartFormat.Mid || _chartFormat == ChartFormat.Midi)
             {
+                using var stream = data.ToReferenceStream();
                 return SongChart.FromMidi(in parseSettings, MidFileLoader.LoadMidiFile(stream));
             }
 
-            using var reader = new StreamReader(stream);
-            return SongChart.FromDotChart(in parseSettings, reader.ReadToEnd());
+            // Decodes the text as the scan does
+            return SongChart.FromDotChart(in parseSettings, YARGTextReader.DecodeFile(data));
         }
 
         public override FixedArray<byte>? LoadMiloData()
