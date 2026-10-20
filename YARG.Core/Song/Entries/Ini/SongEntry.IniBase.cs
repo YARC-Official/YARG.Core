@@ -151,10 +151,16 @@ namespace YARG.Core.Song
 
         protected internal static ScanResult ScanChart(IniSubEntry entry, FixedArray<byte> file, IniModifierCollection modifiers)
         {
-            var drums_type = DrumsType.FourOrFive;
-            if (modifiers.Extract("five_lane_drums", out bool fiveLaneDrums))
+            // A true five_lane_drums, then a true pro_drums, sets the drum type. A false one is the same as no key,
+            // and the notes decide: a cymbal or tom marker gives pro, then a 5-lane note five lane, then four lane.
+            var drums_type = DrumsType.Any;
+            if (modifiers.Extract("five_lane_drums", out bool fiveLaneDrums) && fiveLaneDrums)
             {
-                drums_type = fiveLaneDrums ? DrumsType.FiveLane : DrumsType.FourLane;
+                drums_type = DrumsType.FiveLane;
+            }
+            else if (modifiers.Extract("pro_drums", out bool proDrums) && proDrums)
+            {
+                drums_type = DrumsType.ProDrums;
             }
 
             if (entry._chartFormat == ChartFormat.UltraStar)
@@ -187,7 +193,7 @@ namespace YARG.Core.Song
             }
             else // if (chartType == ChartType.Mid || chartType == ChartType.Midi) // Uncomment for any future file type
             {
-                resolution = ParseDotMidi(file, modifiers, ref entry._parts, ref drums_type);
+                resolution = ParseMidi(file, ref entry._parts, ref drums_type);
             }
 
             if (!resolution)
@@ -372,12 +378,6 @@ namespace YARG.Core.Song
         private static ScanExpected<long> ParseDotChart<TChar>(ref YARGTextContainer<TChar> container, IniModifierCollection modifiers, ref AvailableParts parts, ref DrumsType drumsType)
             where TChar : unmanaged, IEquatable<TChar>, IConvertible
         {
-            if (drumsType != DrumsType.FiveLane && modifiers.Extract("pro_drums", out bool proDrums) && proDrums)
-            {
-                drumsType |= DrumsType.ProDrums;
-                drumsType &= ~DrumsType.FourLane;
-            }
-
             long resolution = 192;
             if (YARGChartFileReader.ValidateTrack(ref container, YARGChartFileReader.HEADERTRACK))
             {
@@ -401,17 +401,6 @@ namespace YARG.Core.Song
                 }
             }
             return resolution;
-        }
-
-        private static ScanExpected<long> ParseDotMidi(FixedArray<byte> file, IniModifierCollection modifiers, ref AvailableParts parts, ref DrumsType drumsType)
-        {
-            if (drumsType != DrumsType.FiveLane && (!modifiers.Extract("pro_drums", out bool proDrums) || proDrums))
-            {
-                // .mid's default state when the value isn't provided is ProDrums, differing with .chart
-                drumsType |= DrumsType.ProDrums;
-                drumsType &= ~DrumsType.FourLane;
-            }
-            return ParseMidi(file, ref parts, ref drumsType);
         }
 
         /// <returns>Whether the track was fully traversed</returns>
@@ -525,12 +514,10 @@ namespace YARG.Core.Song
                     }
                     else if (lane == 5)
                     {
-                        // In other words, the DrumsType.FiveLane bit is active
-                        if (drumsType >= DrumsType.FiveLane)
-                        {
-                            drumsType = DrumsType.FiveLane;
-                            part.ActivateDifficulty(difficulty);
-                        }
+                        // A green tom in pro, or green in five lane: the drums can't be four lane.
+                        // A cymbal marker anywhere still makes them pro, so the type stays open.
+                        drumsType &= ~DrumsType.FourLane;
+                        part.ActivateDifficulty(difficulty);
                     }
                     else if (YELLOW_CYMBAL <= lane && lane <= GREEN_CYMBAL)
                     {
