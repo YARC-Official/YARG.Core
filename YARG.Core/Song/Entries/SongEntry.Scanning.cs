@@ -16,6 +16,7 @@ namespace YARG.Core.Song
 
             bool harm2 = false;
             bool harm3 = false;
+            bool eliteDownchart = false;
             while (midiFile.GetNextTrack(out var _, out var track))
             {
                 if (!track.FindTrackName(out var trackname))
@@ -41,7 +42,18 @@ namespace YARG.Core.Song
                     case MidiTrackType.Rhythm_6: if (!parts.SixFretRhythm.IsActive())      parts.SixFretRhythm.Difficulties      = Midi_SixFret_Preparser.Parse(track); break;
                     case MidiTrackType.Coop_6:   if (!parts.SixFretCoopGuitar.IsActive())  parts.SixFretCoopGuitar.Difficulties  = Midi_SixFret_Preparser.Parse(track); break;
 
-                    case MidiTrackType.Drums:      if (!parts.FourLaneDrums.IsActive()) parts.FourLaneDrums.Difficulties = Midi_Drums_Preparser.Parse(track, ref drumsType); break;
+                    case MidiTrackType.Drums:
+                        // After an Elite Drums track has stood in for its difficulties, the drums track still sets the drum type
+                        if (!parts.FourLaneDrums.IsActive() || eliteDownchart)
+                        {
+                            var drumsDifficulties = Midi_Drums_Preparser.Parse(track, ref drumsType);
+                            if (!parts.FourLaneDrums.IsActive())
+                            {
+                                parts.FourLaneDrums.Difficulties = drumsDifficulties;
+                            }
+                            eliteDownchart = false;
+                        }
+                        break;
                     case MidiTrackType.EliteDrums:
                         var difficulties = Midi_EliteDrums_Preparser.Parse(track);
 
@@ -53,6 +65,7 @@ namespace YARG.Core.Song
                         if (parts.FourLaneDrums.Difficulties is DifficultyMask.None)
                         {
                             parts.FourLaneDrums.Difficulties = difficulties.downchartDifficulties;
+                            eliteDownchart = parts.FourLaneDrums.IsActive();
                         }
 
                         break;
@@ -74,6 +87,12 @@ namespace YARG.Core.Song
                 }
             }
 
+            // The Elite Drums downchart has cymbals, so without a drums track or a song.ini key it's pro
+            if (eliteDownchart && drumsType > DrumsType.FiveLane)
+            {
+                drumsType = DrumsType.ProDrums;
+            }
+
             // HARM 2/3 are not playable without HARM1 phrases
             if (parts.HarmonyVocals[0])
             {
@@ -91,17 +110,15 @@ namespace YARG.Core.Song
 
         protected static void FinalizeDrums(ref AvailableParts parts, DrumsType drumsType)
         {
-            if (!drumsType.Has(DrumsType.FourLane))
+            // A type the scan left open had no key and no marker: five lane with a 5-lane note, otherwise four lane
+            if (drumsType == DrumsType.ProDrums)
             {
-                if (drumsType.Has(DrumsType.ProDrums))
-                {
-                    parts.ProDrums.Difficulties = parts.FourLaneDrums.Difficulties;
-                }
-                else
-                {
-                    parts.FiveLaneDrums.Difficulties = parts.FourLaneDrums.Difficulties;
-                    parts.FourLaneDrums.Difficulties = DifficultyMask.None;
-                }
+                parts.ProDrums.Difficulties = parts.FourLaneDrums.Difficulties;
+            }
+            else if (!drumsType.Has(DrumsType.FourLane))
+            {
+                parts.FiveLaneDrums.Difficulties = parts.FourLaneDrums.Difficulties;
+                parts.FourLaneDrums.Difficulties = DifficultyMask.None;
             }
         }
 
