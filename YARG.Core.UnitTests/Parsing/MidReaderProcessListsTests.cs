@@ -447,8 +447,8 @@ public class MidReaderProcessListsTests
 
         Assert.That(phrases.Select(phrase => (phrase.type, phrase.tick, phrase.length)), Is.EqualTo(new[]
         {
-            (MoonPhrase.Type.ProDrums_Activation, 0u, 192u),
-            (MoonPhrase.Type.ProDrums_Activation, 192u, 192u),
+            (MoonPhrase.Type.ProDrums_Activation, 0u, 384u),
+            (MoonPhrase.Type.ProDrums_Activation, 192u, 0u),
         }));
     }
 
@@ -478,6 +478,22 @@ public class MidReaderProcessListsTests
         {
             (MoonPhrase.Type.TremoloLane, 0u, 576u),
             (MoonPhrase.Type.TremoloLane, 192u, 192u),
+        }));
+    }
+
+    [Test]
+    public void OverlappingDrumFills_KeepTheirOverlap()
+    {
+        var midi = MakeMidi(MakeTrack(MidIOHelper.DRUMS_TRACK,
+            Note(0, 576, MidIOHelper.DRUM_FILL_NOTE_0),
+            Note(192, 384, MidIOHelper.DRUM_FILL_NOTE_0)));
+
+        var phrases = MidReader.ReadMidi(midi).GetChart(MoonInstrument.Drums, Difficulty.Expert).specialPhrases;
+
+        Assert.That(phrases.Select(phrase => (phrase.type, phrase.tick, phrase.length)), Is.EqualTo(new[]
+        {
+            (MoonPhrase.Type.ProDrums_Activation, 0u, 576u),
+            (MoonPhrase.Type.ProDrums_Activation, 192u, 192u),
         }));
     }
 
