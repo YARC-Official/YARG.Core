@@ -92,6 +92,7 @@ namespace YARG.Core.Chart.Hashing
             result = default;
 
             List<Phrase> phrases;
+            List<Phrase> unplayedPhrases;
             List<RangeShift> rangeShiftEvents;
             List<(long Tick, long Length, BTrackNoteType Type, BTrackNoteFlags Flags)> notes;
             switch (instrument)
@@ -106,6 +107,7 @@ namespace YARG.Core.Chart.Hashing
                         return false;
                     }
                     phrases = guitarDifficulty.Phrases;
+                    unplayedPhrases = guitarDifficulty.UnplayedPhrases;
                     rangeShiftEvents = guitarDifficulty.RangeShiftEvents;
                     notes = NormalizeGuitarNotes(guitarDifficulty.Notes, TryMapFiveFretNote);
                     break;
@@ -119,6 +121,7 @@ namespace YARG.Core.Chart.Hashing
                         return false;
                     }
                     phrases = sixFretDifficulty.Phrases;
+                    unplayedPhrases = sixFretDifficulty.UnplayedPhrases;
                     rangeShiftEvents = sixFretDifficulty.RangeShiftEvents;
                     notes = NormalizeGuitarNotes(sixFretDifficulty.Notes, TryMapSixFretNote);
                     break;
@@ -135,6 +138,7 @@ namespace YARG.Core.Chart.Hashing
                         return false;
                     }
                     phrases = drumDifficulty.Phrases;
+                    unplayedPhrases = drumDifficulty.UnplayedPhrases;
                     rangeShiftEvents = drumDifficulty.RangeShiftEvents;
                     notes = NormalizeDrumNotes(instrument, drumDifficulty.Notes);
                     break;
@@ -153,8 +157,8 @@ namespace YARG.Core.Chart.Hashing
                     phrase => phrase.Tick, phrase => phrase.Length, (_, tick, length) => (tick, length)),
                 ResolveOverlaps(PruneEmptyPhrases(GetPhrases(phrases, PhraseType.Solo, chart.SoloSectionLengthIncludesTerminalTick), notes),
                     phrase => phrase.Tick, phrase => phrase.Length, (_, tick, length) => (tick, length)),
-                PruneEmptyFlexLanes(GetFlexLanes(phrases), notes),
-                GetDrumFreestyles(phrases, chart.GlobalEvents),
+                PruneEmptyFlexLanes(GetFlexLanes(phrases.Concat(unplayedPhrases)), notes),
+                GetDrumFreestyles(phrases.Concat(unplayedPhrases), chart.GlobalEvents),
                 GetRangeShifts(rangeShiftEvents),
                 notes);
             return true;
@@ -541,7 +545,7 @@ namespace YARG.Core.Chart.Hashing
                 .ToList();
         }
 
-        private static List<(long Tick, long Length, bool IsDouble)> GetFlexLanes(List<Phrase> phrases)
+        private static List<(long Tick, long Length, bool IsDouble)> GetFlexLanes(IEnumerable<Phrase> phrases)
         {
             return phrases
                 .Where(phrase => phrase.Type is PhraseType.TremoloLane or PhraseType.TrillLane)
@@ -552,7 +556,7 @@ namespace YARG.Core.Chart.Hashing
                 .ToList();
         }
 
-        private static List<(long Tick, long Length, bool IsCoda)> GetDrumFreestyles(List<Phrase> phrases, List<TextEvent> globalEvents)
+        private static List<(long Tick, long Length, bool IsCoda)> GetDrumFreestyles(IEnumerable<Phrase> phrases, List<TextEvent> globalEvents)
         {
             var codaTick = FirstCodaTick(globalEvents);
             return phrases
