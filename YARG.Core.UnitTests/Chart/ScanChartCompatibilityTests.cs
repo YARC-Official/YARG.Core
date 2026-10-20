@@ -357,6 +357,100 @@ public class ScanChartCompatibilityTests
     }
 
     [Test]
+    public void DotChartGuitar_LaneAndBigRockEnding_AreInTrackHashButNotPlayed()
+    {
+        var chart = ParseDotChart(["0 = TS 4 2", "0 = B 120000"], ["384 = E \"coda\""], "ExpertSingle",
+            "0 = S 65 192",
+            "0 = N 0 0",
+            "96 = N 0 0",
+            "192 = N 0 0",
+            "384 = S 64 192",
+            "384 = N 0 0",
+            "768 = N 0 0");
+
+        var result = Hash(chart, Instrument.FiveFretGuitar);
+
+        Assert.That(chart.FiveFretGuitar.TryGetDifficulty(Difficulty.Expert, out var expert), Is.True);
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(ReadSection(result.BTrack, 6, ReadFlexLanes), Is.EqualTo(new List<(long Tick, long Length, byte IsDouble)>
+            {
+                (0, 192, 0),
+            }));
+            Assert.That(ReadDrumFreestyles(result.BTrack), Is.EqualTo(new List<(long Tick, long Length, byte IsCoda)>
+            {
+                (384, 192, 1),
+            }));
+            Assert.That(expert!.Phrases, Is.Empty);
+            Assert.That(expert.Notes.Any(note => note.IsLane), Is.False);
+        }
+        AssertHashMatchesStrippedFile(result);
+    }
+
+    [Test]
+    public void MidiGuitar_BigRockEndingAfterCoda_IsInTrackHash()
+    {
+        var midi = new MidiFile(
+            new TrackChunk(new SetTempoEvent(TempoChange.BpmToMicroSeconds(120))),
+            new TrackChunk(
+                new SequenceTrackNameEvent("EVENTS"),
+                new Melanchall.DryWetMidi.Core.TextEvent("[coda]") { DeltaTime = 480 }),
+            new TrackChunk(
+                new SequenceTrackNameEvent("PART GUITAR"),
+                NoteOn(0, 96),
+                NoteOff(120, 96),
+                NoteOn(840, 120),
+                NoteOn(0, 96),
+                NoteOff(120, 96),
+                NoteOff(360, 120),
+                NoteOn(0, 96),
+                NoteOff(120, 96)))
+        {
+            TimeDivision = new TicksPerQuarterNoteTimeDivision(480),
+        };
+
+        var chart = SongChart.FromMidi(ParseSettings.Default_Midi, midi);
+        var result = Hash(chart, Instrument.FiveFretGuitar);
+
+        Assert.That(ReadDrumFreestyles(result.BTrack), Is.EqualTo(new List<(long Tick, long Length, byte IsCoda)>
+        {
+            (960, 480, 1),
+        }));
+        AssertHashMatchesStrippedFile(result);
+    }
+
+    [Test]
+    public void MidiGuitar_BigRockEndingWithoutCoda_IsInTrackHashButNotPlayed()
+    {
+        var midi = new MidiFile(
+            new TrackChunk(new SetTempoEvent(TempoChange.BpmToMicroSeconds(120))),
+            new TrackChunk(
+                new SequenceTrackNameEvent("PART GUITAR"),
+                NoteOn(0, 120),
+                NoteOn(0, 96),
+                NoteOff(120, 96),
+                NoteOff(360, 120),
+                NoteOn(0, 96),
+                NoteOff(120, 96)))
+        {
+            TimeDivision = new TicksPerQuarterNoteTimeDivision(480),
+        };
+
+        var chart = SongChart.FromMidi(ParseSettings.Default_Midi, midi);
+        var result = Hash(chart, Instrument.FiveFretGuitar);
+
+        Assert.That(chart.FiveFretGuitar.TryGetDifficulty(Difficulty.Expert, out var expert), Is.True);
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(ReadDrumFreestyles(result.BTrack), Is.EqualTo(new List<(long Tick, long Length, byte IsCoda)>
+            {
+                (0, 480, 0),
+            }));
+            Assert.That(expert!.Phrases, Is.Empty);
+        }
+    }
+
+    [Test]
     public void MidiGuitar_TremoloLane_KeepsSustainsInTrackHash()
     {
         var midi = new MidiFile(
@@ -426,6 +520,17 @@ public class ScanChartCompatibilityTests
             ChartText.Section(trackName, trackLines));
 
         return SongChart.FromDotChart(ParseSettings.Default_Chart, chartText.AsSpan());
+    }
+
+    private static List<(long Tick, long Length, byte IsDouble)> ReadFlexLanes(BinaryReader reader)
+    {
+        var lanes = new List<(long Tick, long Length, byte IsDouble)>();
+        var count = reader.ReadUInt32();
+        for (var i = 0; i < count; i++)
+        {
+            lanes.Add((reader.ReadInt64(), reader.ReadInt64(), reader.ReadByte()));
+        }
+        return lanes;
     }
 
     private static byte[] StripForHash(byte[] bTrack)

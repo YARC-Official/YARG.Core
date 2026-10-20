@@ -114,6 +114,16 @@ namespace MoonscraperChartEditor.Song.IO
             { ChartIOHelper.PHRASE_STARPOWER, (ref NoteProcessParams noteProcessParams) => {
                 ProcessNoteOnEventAsSpecialPhrase(ref noteProcessParams, MoonPhrase.Type.Starpower);
             }},
+            // YARG plays none of these on guitar from .chart, but the TrackHash holds them
+            { ChartIOHelper.PHRASE_DRUM_FILL, (ref NoteProcessParams noteProcessParams) => {
+                ProcessNoteOnEventAsSpecialPhrase(ref noteProcessParams, MoonPhrase.Type.ProDrums_Activation);
+            }},
+            { ChartIOHelper.PHRASE_TREMOLO_LANE, (ref NoteProcessParams noteProcessParams) => {
+                ProcessNoteOnEventAsSpecialPhrase(ref noteProcessParams, MoonPhrase.Type.TremoloLane);
+            }},
+            { ChartIOHelper.PHRASE_TRILL_LANE, (ref NoteProcessParams noteProcessParams) => {
+                ProcessNoteOnEventAsSpecialPhrase(ref noteProcessParams, MoonPhrase.Type.TrillLane);
+            }},
         };
 
         private static readonly Dictionary<int, NoteEventProcessFn> DrumsChartSpecialPhraseNumberToProcessFnMap = new()
