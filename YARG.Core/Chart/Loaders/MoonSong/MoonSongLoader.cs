@@ -17,7 +17,8 @@ namespace YARG.Core.Chart
     /// </summary>
     internal partial class MoonSongLoader : ISongLoader
     {
-        private delegate TNote CreateNoteDelegate<TNote>(MoonNote moonNote, CurrentPhrases currentPhrases, List<TNote> notes)
+        // Returns null for a note that's left out
+        private delegate TNote? CreateNoteDelegate<TNote>(MoonNote moonNote, CurrentPhrases currentPhrases, List<TNote> notes)
             where TNote : Note<TNote>;
         private delegate void ProcessTextDelegate(MoonText text);
         private delegate Phrase? ValidatePhraseDelegate(Phrase phrase, List<Phrase> phrases);
@@ -221,7 +222,10 @@ namespace YARG.Core.Chart
                 }
 
                 var newNote = createNote(moonNote, currentPhrases, notes);
-                AddNoteToList(notes, newNote);
+                if (newNote is not null)
+                {
+                    AddNoteToList(notes, newNote);
+                }
             }
 
             notes.TrimExcess();
@@ -394,7 +398,7 @@ namespace YARG.Core.Chart
                     currentParent.AddChildNote(note);
                     return;
                 }
-                else if ((note.Tick - currentParent.Tick) <= _maxSnapDistance)
+                else if (SnapsIntoChord(note.Tick, currentParent.Tick))
                 {
                     note.PreviousNote = previousParent;
                     if (_settings.RockBandNoteSnap)
@@ -426,6 +430,14 @@ namespace YARG.Core.Chart
             }
 
             notes.Add(note);
+        }
+
+        /// <summary>
+        /// Whether a note at the given tick snaps into the chord at an earlier tick.
+        /// </summary>
+        private bool SnapsIntoChord(uint tick, uint chordTick)
+        {
+            return tick != chordTick && tick - chordTick <= _maxSnapDistance;
         }
 
         private double GetLengthInTime(double startTime, uint tick, uint tickLength)
