@@ -123,6 +123,9 @@ namespace YARG.Core.Engine.Vocals.Engines
         // trail's on-note gate sees a stable per-frame signal instead of the single-tick
         // transient above (which is 0 on most ticks and killed the trail).
         private readonly uint[] _micHittingPartsThisFrame;
+        private readonly int[] _micDisplayParts;
+        private readonly VocalNote?[,] _micMatchedNotesThisFrame;
+        private bool _micDisplayPartsDirty = true;
 
         // Unified per-mic "sang this tick" flag - source of truth for needle visibility
         private readonly bool[] _micSangThisTick;
@@ -183,6 +186,8 @@ namespace YARG.Core.Engine.Vocals.Engines
             }
             _broadcastDirectTicks = new double[partCount];
             _micHittingPartsThisFrame = new uint[micCount];
+            _micDisplayParts = new int[micCount];
+            _micMatchedNotesThisFrame = new VocalNote?[micCount, partCount];
             _micSangThisTick = new bool[micCount];
 
             _harmDirectTicks = new double[partCount];
@@ -273,11 +278,8 @@ namespace YARG.Core.Engine.Vocals.Engines
         /// parts satisfied by the same pitch), the lowest index wins — the sub-engine iterates
         /// parts in ascending order and keeps the first best-percent match.
         ///
-        /// When multi-mic support is added, the coordinator will disambiguate across mics:
-        /// e.g., if mic 0 and mic 1 both match HARM1+HARM2 at the same pitch, mic 0 claims
-        /// HARM1 (lower index) and mic 1 claims HARM2. This property would then return mic 0's
-        /// resolved part. The disambiguation strategy is a coordinator responsibility, not the
-        /// sub-engine's.
+        /// Per-mic trails use <see cref="GetMicDisplayPart"/> for joint distinct-color
+        /// selection; this legacy primary-target property retains its original meaning.
         /// </summary>
         public int DisplayedHarmonyIndex => _micCount > 0 ? _subEngines[0].CurrentTargetHarmonyIndex : 0;
 
@@ -346,6 +348,32 @@ namespace YARG.Core.Engine.Vocals.Engines
             return _micHittingPartsThisFrame[micIndex];
         }
 
+        /// <summary>
+        /// The jointly selected trail part for this frame, or -1 for an invalid or nonmatching
+        /// microphone. Resolves every microphone together, independent of caller query order.
+        /// This is visual feedback only and does not attribute scoring contributions.
+        /// </summary>
+        public int GetMicDisplayPart(int micIndex)
+        {
+            if (micIndex < 0 || micIndex >= _micCount) return -1;
+            if (_micDisplayPartsDirty)
+            {
+                PartyVocalsDisplayPartResolver.Resolve(_micHittingPartsThisFrame, _micDisplayParts);
+                _micDisplayPartsDirty = false;
+            }
+            return _micDisplayParts[micIndex];
+        }
+
+        /// <summary>
+        /// The last matched note in this frame for the jointly selected display part.
+        /// Retains that match across later ticks with no singing sample, just like the frame mask.
+        /// </summary>
+        public VocalNote? GetMicDisplayNote(int micIndex)
+        {
+            int part = GetMicDisplayPart(micIndex);
+            return part < 0 ? null : _micMatchedNotesThisFrame[micIndex, part];
+        }
+
         public float GetMicPitch(int micIndex)
         {
             if (micIndex < 0 || micIndex >= _micCount) return 0f;
@@ -358,6 +386,8 @@ namespace YARG.Core.Engine.Vocals.Engines
             // frame's ticks and consumed by the visual layer after Update.
             Array.Clear(_micSangThisTick, 0, _micSangThisTick.Length);
             Array.Clear(_micHittingPartsThisFrame, 0, _micHittingPartsThisFrame.Length);
+            Array.Clear(_micMatchedNotesThisFrame, 0, _micMatchedNotesThisFrame.Length);
+            _micDisplayPartsDirty = true;
         }
         public bool DidMicSingThisTick(int mic) =>
             mic >= 0 && mic < _micCount && _micSangThisTick[mic];
@@ -368,19 +398,15 @@ namespace YARG.Core.Engine.Vocals.Engines
         {
             int mic = PartyVocalsInput.UnpackMic(gameInput.Action);
             var action = PartyVocalsInput.UnpackAction(gameInput.Action);
+            // Apply the existing silent-drop convention to every packed action,
+            // including percussion and shared star-power buttons.
+            if (mic < 0 || mic >= _micCount) return;
 
             switch (action)
             {
                 case VocalsAction.Pitch:
-                    // Guarded sub-engine call — mirrors the silent-default pattern of
-                    // GetMicPitch/GetMicHittingParts (a malformed/replayed mic index is
-                    // dropped, not thrown). Do NOT call the coordinator's own
-                    // SetMicPitch(int,float) here: it throws on out-of-range.
-                    if (mic >= 0 && mic < _micCount)
-                    {
-                        _subEngines[mic].SetMicPitch(gameInput.Axis);
-                        _micSangThisTick[mic] = true; // unified needle sang-state (see below)
-                    }
+                    _subEngines[mic].SetMicPitch(gameInput.Axis);
+                    _micSangThisTick[mic] = true; // unified needle sang-state (see below)
                     break;
                 case VocalsAction.Hit when gameInput.Button:
                     HasHit = true; // coordinator-level; percussion scored here (standalone fix)
@@ -462,10 +488,17 @@ namespace YARG.Core.Engine.Vocals.Engines
                 // plus which of those matches were pitched (note-kind per matched part).
                 _micCurrentlyHittingParts[i] = _subEngines[i].GetMicHittingParts();
                 _micCurrentlyHittingPitchedParts[i] = _subEngines[i].GetMicHittingPitchedParts();
+                for (int part = 0; part < _allParts.Length; part++)
+                {
+                    if ((_micCurrentlyHittingParts[i] & (1u << part)) != 0)
+                        _micMatchedNotesThisFrame[i, part] = _subEngines[i].GetMatchedNote(part);
+                }
 
                 // OR-accumulate into the per-frame signal the visual layer reads, so a hit
                 // on any tick this frame keeps the trail's on-note gate satisfied.
-                _micHittingPartsThisFrame[i] |= _micCurrentlyHittingParts[i];
+                uint frameMask = _micHittingPartsThisFrame[i] | _micCurrentlyHittingParts[i];
+                if (frameMask != _micHittingPartsThisFrame[i]) _micDisplayPartsDirty = true;
+                _micHittingPartsThisFrame[i] = frameMask;
             }
 
             var phrase = Notes[NoteIndex];
@@ -641,7 +674,9 @@ namespace YARG.Core.Engine.Vocals.Engines
             Array.Clear(_broadcastDirectTicks, 0, _broadcastDirectTicks.Length);
             Array.Clear(_micHittingPartsThisFrame, 0, _micHittingPartsThisFrame.Length);
             Array.Clear(_micSangThisTick, 0, _micSangThisTick.Length);
+            Array.Clear(_micMatchedNotesThisFrame, 0, _micMatchedNotesThisFrame.Length);
 
+            _micDisplayPartsDirty = true;
             _lastMeterRefreshTime = CurrentTime;
         }
 

@@ -14,6 +14,37 @@ namespace YARG.Core.UnitTests.Engine;
 [TestFixture]
 public sealed class PartyVocalsCoordinatorEngineTests
 {
+    // Input from a nonexistent mic slot must not produce a percussion hit.
+    [TestCase(-1)]
+    [TestCase(2)]
+    public void OutOfRangeMicInputCannotHitPercussion(int mic)
+    {
+        var parts = new List<VocalsPart> { CreateVocalsPart() };
+        AddPercussionPhrase(parts[0], 4800, 960);
+        var engine = CreateCoordinator(parts, 2);
+        int hits = 0;
+        engine.OnNoteHit += (_, note) => { if (note.IsPercussion) hits++; };
+        engine.Update(4.9);
+        var input = new GameInput(5, PartyVocalsInput.Pack(mic, VocalsAction.Hit), true);
+        engine.QueueInput(ref input);
+        engine.Update(6.5);
+        Assert.That(hits, Is.Zero);
+    }
+
+    // Input from a nonexistent mic slot must not set the shared star-power activation flag.
+    [TestCase(-1)]
+    [TestCase(2)]
+    public void OutOfRangeMicInputCannotActivateStarPower(int mic)
+    {
+        var parts = new List<VocalsPart> { CreateVocalsPart() };
+        AddPhrase(parts[0], 0, 960, 60);
+        var engine = CreateCoordinator(parts, 2);
+        var input = new GameInput(0.1, PartyVocalsInput.Pack(mic, VocalsAction.StarPower), true);
+        engine.QueueInput(ref input);
+        engine.Update(0.1);
+        Assert.That(engine.IsStarPowerInputActive, Is.False);
+    }
+
     private const double AwesomeThreshold = 0.75;
     private const double Epsilon = 1e-9;
     private const double ApproximateVocalFps = 60.0;
