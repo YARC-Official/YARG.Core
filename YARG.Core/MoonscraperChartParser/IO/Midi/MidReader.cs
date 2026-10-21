@@ -19,22 +19,13 @@ namespace MoonscraperChartEditor.Song.IO
     {
         private const int SOLO_END_CORRECTION_OFFSET = -1;
 
-        // true == override existing track, false == discard if already exists
-        private static readonly Dictionary<string, bool> TrackOverrides = new()
+        // Read only while their instrument has nothing in it, and replaced by a track under the instrument's own name
+        private static readonly HashSet<string> FallbackTracks = new()
         {
-            { MidIOHelper.GUITAR_TRACK,     true },
-            { MidIOHelper.GH1_GUITAR_TRACK, false },
-
-            { MidIOHelper.DRUMS_TRACK,      true },
-            { MidIOHelper.DRUMS_TRACK_2,    false },
-            { MidIOHelper.DRUMS_REAL_TRACK, false },
-
-            { MidIOHelper.HARMONY_1_TRACK, true },
-            { MidIOHelper.HARMONY_2_TRACK, true },
-            { MidIOHelper.HARMONY_3_TRACK, true },
-            { MidIOHelper.HARMONY_1_TRACK_2, false },
-            { MidIOHelper.HARMONY_2_TRACK_2, false },
-            { MidIOHelper.HARMONY_3_TRACK_2, false },
+            MidIOHelper.DRUMS_REAL_TRACK,
+            MidIOHelper.HARMONY_1_TRACK_2,
+            MidIOHelper.HARMONY_2_TRACK_2,
+            MidIOHelper.HARMONY_3_TRACK_2,
         };
 
         private static string GetRecognizedTrackName(TrackChunk track)
@@ -56,9 +47,11 @@ namespace MoonscraperChartEditor.Song.IO
                 }
 
                 firstTrackName = firstTrackName.Length == 0 ? trackName.Text : firstTrackName;
-                if (IsRecognizedTrackName(trackName.Text))
+                // Track names are read in any letter case
+                string name = trackName.Text.ToUpperInvariant();
+                if (IsRecognizedTrackName(name))
                 {
-                    return trackName.Text;
+                    return name;
                 }
             }
 
@@ -199,6 +192,7 @@ namespace MoonscraperChartEditor.Song.IO
                 }
             }
 
+            var readInstruments = new HashSet<MoonSong.MoonInstrument>();
             for (int i = 1; i < midi.Chunks.Count; i++)
             {
                 var chunk = midi.Chunks[i];
@@ -242,11 +236,6 @@ namespace MoonscraperChartEditor.Song.IO
                         ReadNotes(ref settings, track, song, MoonSong.MoonInstrument.ProKeys, MoonSong.Difficulty.Easy);
                         break;
 
-                    case MidIOHelper.VOCALS_TRACK:
-                        // Parse lyrics to global track, and then parse as an instrument
-                        ReadTextEventsIntoGlobalEventsAsLyrics(track, song);
-                        goto default;
-
                     default:
                         MoonSong.MoonInstrument instrument;
                         if (!MidIOHelper.TrackNameToInstrumentMap.TryGetValue(trackName, out instrument))
@@ -255,17 +244,30 @@ namespace MoonscraperChartEditor.Song.IO
                             YargLogger.LogFormatTrace("Skipping unrecognized track {0}", trackName);
                             continue;
                         }
+                        else if (FallbackTracks.Contains(trackName))
+                        {
+                            if (song.ChartExistsForInstrument(instrument))
+                                continue;
+                        }
+                        // Only the first track of an instrument is read, even when it has no notes
+                        else if (!readInstruments.Add(instrument))
+                        {
+                            continue;
+                        }
                         else if (song.ChartExistsForInstrument(instrument))
                         {
-                            if (!TrackOverrides.TryGetValue(trackName, out bool overwrite) || !overwrite)
-                                continue;
-
-                            // Overwrite existing track
+                            // Overwrite a fallback track
                             foreach (var difficulty in EnumExtensions<MoonSong.Difficulty>.Values)
                             {
                                 var chart = song.GetChart(instrument, difficulty);
                                 chart.Clear();
                             }
+                        }
+
+                        if (instrument == MoonSong.MoonInstrument.Vocals)
+                        {
+                            // Parse lyrics to global track, and then parse as an instrument
+                            ReadTextEventsIntoGlobalEventsAsLyrics(track, song);
                         }
 
                         YargLogger.LogFormatTrace("Loading MIDI track {0}", trackName);
