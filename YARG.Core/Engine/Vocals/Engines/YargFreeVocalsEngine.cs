@@ -69,6 +69,7 @@ namespace YARG.Core.Engine.Vocals.Engines
         private readonly double[] _singleMicPartHits;
         // Bitmask of parts that the single mic is hitting this tick
         private uint _singleMicHittingParts;
+        private readonly VocalNote?[] _matchedNotesThisTick;
         // Bitmask of the parts above whose CURRENT matched note is pitched (has a real
         // MIDI pitch). A bit set in _singleMicHittingParts but not here means that part
         // was matched through a talkie (non-pitched) note this tick. Consumed by
@@ -99,6 +100,7 @@ namespace YARG.Core.Engine.Vocals.Engines
             // Initialize fields for single-mic per-part accumulation
             _lastTickPartDeltas = new double[allParts.Count];
             _singleMicPartHits = new double[allParts.Count];
+            _matchedNotesThisTick = new VocalNote?[allParts.Count];
             _singleMicHittingParts = 0u;
             _singleMicHittingPitchedParts = 0u;
 
@@ -350,6 +352,7 @@ namespace YARG.Core.Engine.Vocals.Engines
                             {
                                 anyMicHit = true;
                                 representativeHitNote ??= note;
+                                _matchedNotesThisTick[partIndex] = note;
                                 _singleMicHittingParts |= 1u << partIndex;
                                 if (!note.IsNonPitched)
                                 {
@@ -572,6 +575,12 @@ namespace YARG.Core.Engine.Vocals.Engines
         /// Used by the coordinator for visual feedback.
         /// </summary>
         public uint GetMicHittingParts() => _singleMicHittingParts;
+
+        // The mask gates stale array entries when no credit was accumulated this tick.
+        internal VocalNote? GetMatchedNote(int partIndex) =>
+            partIndex >= 0 && partIndex < _matchedNotesThisTick.Length &&
+            (_singleMicHittingParts & (1u << partIndex)) != 0
+                ? _matchedNotesThisTick[partIndex] : null;
 
         /// <summary>
         /// Get the bitmask of parts that the single mic is hitting this tick through a

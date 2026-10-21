@@ -17,7 +17,7 @@ namespace YARG.Core.Game
         /// The current version for profile serialization.
         /// Increment this when adding new fields to the profile that may affect deserialization.
         /// </summary>
-        private const int PROFILE_VERSION = 9;
+        private const int PROFILE_VERSION = 10;
 
         public int Version;
 
@@ -30,6 +30,8 @@ namespace YARG.Core.Game
         public bool IsBot;
 
         public GameMode GameMode;
+
+        public PartyVocalsChartPreference PartyVocalsChartPreference;
 
         public float NoteSpeed;
         public float HighwayLength;
@@ -334,6 +336,11 @@ namespace YARG.Core.Game
             {
                 RockMeterPreset = stream.ReadGuid();
             }
+
+            if (Version >= 10)
+            {
+                PartyVocalsChartPreference = (PartyVocalsChartPreference) stream.ReadByte();
+            }
         }
 
         public void AddSingleModifier(Modifier modifier)
@@ -473,6 +480,7 @@ namespace YARG.Core.Game
                             $"track with notes of {typeof(TNote)}!");
                     }
                 case GameMode.Vocals:
+                case GameMode.PartyVocals:
                             throw new InvalidOperationException("For vocals, use ApplyVocalModifiers instead!");
                         }
         }
@@ -507,6 +515,11 @@ namespace YARG.Core.Game
             // re-resolved against each song's part count in difficulty select.
             _harmonyIndex = _harmonyIndexFallback;
 
+            // Live profiles migrate; binary replay profiles retain their recorded mode.
+            if (GameMode == GameMode.Vocals && CurrentInstrument == Instrument.PartyVocals)
+            {
+                GameMode = GameMode.PartyVocals;
+            }
             ValidatePreferredInstrument();
 
             // The saved modifier selection is the serialized source of truth;
@@ -584,6 +597,7 @@ namespace YARG.Core.Game
             }
 
             writer.Write(RockMeterPreset);
+            writer.Write((byte) PartyVocalsChartPreference);
         }
 
         private static DrumsHighwayItem[] DEFAULT_FOUR_LANE_ORDERING = new DrumsHighwayItem[] {
