@@ -22,6 +22,9 @@ internal sealed class NullAudioManager : AudioManager
 
     protected internal override OutputChannel? CreateOutputChannel(int channelId) => null;
 
+    public override PushStream CreatePushStream(int sampleRate, int channelCount)
+        => throw new NotSupportedException("NullAudioManager does not stream live audio");
+
     protected internal override List<(int id, string name)> GetAllOutputDevices() => new();
 
     protected internal override int GetOutputChannelCount() => 0;
