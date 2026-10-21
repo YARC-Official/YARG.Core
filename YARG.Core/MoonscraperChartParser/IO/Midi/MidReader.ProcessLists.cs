@@ -3,6 +3,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using Melanchall.DryWetMidi.Core;
 using YARG.Core.Chart;
@@ -200,6 +201,7 @@ namespace MoonscraperChartEditor.Song.IO
 
         private static readonly List<EventProcessFn> DrumsPostProcessList = new()
         {
+            ValidateProDrumsGreenNotes,
             DisambiguateDrumsType,
             ReplaceDrumFillDuringCoda,
             SetCodaFlags,
@@ -528,6 +530,39 @@ namespace MoonscraperChartEditor.Song.IO
             }
 
             return codaRanges;
+        }
+
+        // In pro drums, 100 is a green cymbal or tom and 101 is a green tom, so they can't share a tick, and likewise
+        // on the other difficulties. Such a chart is invalid, so it isn't loaded.
+        private static void ValidateProDrumsGreenNotes(ref EventProcessParams processParams)
+        {
+            // A tom marker that covers a note makes the drums pro, unless they were given as five lane
+            if (processParams.settings.DrumsType is DrumsType.FiveLane || !processParams.tomMarker)
+                return;
+
+            foreach (var difficulty in EnumExtensions<MoonSong.Difficulty>.Values)
+            {
+                uint tick = 0;
+                bool green = false;
+                bool greenTom = false;
+                foreach (var note in processParams.song.GetChart(processParams.instrument, difficulty).notes)
+                {
+                    if (note.tick != tick)
+                    {
+                        tick = note.tick;
+                        green = false;
+                        greenTom = false;
+                    }
+
+                    green |= note.drumPad is MoonNote.DrumPad.Orange;
+                    greenTom |= note.drumPad is MoonNote.DrumPad.Green;
+                    if (green && greenTom)
+                    {
+                        int greenNote = MidIOHelper.DRUMS_DIFF_START_LOOKUP[difficulty] + 4;
+                        throw new InvalidDataException($"Invalid pro drums! Found notes {greenNote} and {greenNote + 1} at tick {tick} on {difficulty}");
+                    }
+                }
+            }
         }
 
         private static void DisambiguateDrumsType(ref EventProcessParams processParams)
@@ -1117,7 +1152,7 @@ namespace MoonscraperChartEditor.Song.IO
 
                 processFnDict.Add(midiKey, (ref EventProcessParams eventProcessParams) =>
                 {
-                    ProcessNoteOnEventAsFlagToggle(ref eventProcessParams, MoonNote.Flags.ProDrums_Cymbal, pad);
+                    ProcessNoteOnEventAsTomMarker(ref eventProcessParams, pad);
                 });
             }
 
