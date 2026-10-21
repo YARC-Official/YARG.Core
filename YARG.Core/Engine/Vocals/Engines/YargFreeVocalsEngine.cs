@@ -134,6 +134,15 @@ namespace YARG.Core.Engine.Vocals.Engines
                 {
                     return pn;
                 }
+
+                // A lyric (including its slide tail) can outlast its scoring phrase.
+                foreach (var note in pn.ChildNotes)
+                {
+                    if (!note.IsPercussion && CurrentTick >= note.Tick && CurrentTick <= note.TotalTickEnd)
+                    {
+                        return pn;
+                    }
+                }
             }
             return null;
         }

@@ -1474,7 +1474,12 @@ public sealed class PartyVocalsCoordinatorEngineTests
             primaryChart, parts, CreateSyncTrack(), EngineParams, isBot: true, micCount: 3);
 
         var grades = new List<PhraseGrade>();
-        engine.OnPartyVocalsPhrase += (grade, meters, isLast) => grades.Add(grade);
+        engine.OnPartyVocalsPhrase += (grade, meters, isLast) =>
+        {
+            grades.Add(grade);
+            Assert.That(meters.Count, Is.EqualTo(3));
+            Assert.That(meters.Select(part => part.Meter), Is.All.GreaterThanOrEqualTo(AwesomeThreshold));
+        };
 
         // Drive the bots through the phrase at ~60fps; bots self-generate pitch, so
         // we deliberately do NOT call SetMicPitch.
@@ -1483,8 +1488,8 @@ public sealed class PartyVocalsCoordinatorEngineTests
             engine.Update((f + 1) / ApproximateVocalFps);
 
         Assert.AreEqual(1, grades.Count, "Bot phrase should be graded once");
-        Assert.AreNotEqual(PhraseGrade.Miss, grades[0],
-            "Bots should hit their assigned parts, not miss");
+        Assert.That(grades[0], Is.EqualTo(PhraseGrade.TripleAwesome),
+            "Each bot must fill a different part, not just produce any successful grade.");
         Assert.Greater(((VocalsStats)engine.BaseStats).TicksHit, 0u,
             "Bot hits should accumulate TicksHit");
     }
