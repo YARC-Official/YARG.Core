@@ -287,12 +287,22 @@ namespace YARG.Core.UnitTests.Parsing
 
 
         [Test]
-        public void ReadFromText_ThrowsWhenSongSectionIsMissing()
+        public void ReadFromText_ReadsFileWithoutSongSectionWithResolution192()
         {
             var chartText = ChartText.Chart(
-                ChartText.Section(ChartIOHelper.SECTION_SYNC_TRACK, "0 = B 120000"));
+                ChartText.Section(ChartIOHelper.SECTION_SYNC_TRACK, "0 = B 150000"),
+                ChartText.Section("ExpertSingle", "192 = N 0 0"));
 
-            Assert.Throws<InvalidDataException>(() => ChartReader.ReadFromText(chartText));
+            var song = ChartReader.ReadFromText(chartText);
+            var notes = song.GetChart(MoonInstrument.Guitar, MoonDifficulty.Expert).notes;
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(song.resolution, Is.EqualTo(192));
+                Assert.That(song.hopoThreshold, Is.EqualTo(65));
+                Assert.That(song.syncTrack.Tempos.Single().BeatsPerMinute, Is.EqualTo(150));
+                Assert.That(notes.Select(note => note.tick), Is.EqualTo(new uint[] { 192 }));
+            }
         }
 
         [Test]

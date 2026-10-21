@@ -72,13 +72,35 @@ namespace YARG.Core.IO.Ini
         private static bool TrySection<TChar>(ref YARGTextContainer<TChar> container, out string section)
             where TChar : unmanaged, IConvertible, IEquatable<TChar>
         {
-            if (container.IsAtEnd() || (container.Get() != '[' && !YARGTextReader.SkipLinesUntil(ref container, TextConstants<TChar>.OPEN_BRACKET)))
+            if (!container.IsAtEnd() && (container.Get() == '[' || YARGTextReader.SkipLinesUntil(ref container, TextConstants<TChar>.OPEN_BRACKET)))
             {
-                section = string.Empty;
+                do
+                {
+                    if (IsSectionHeader(ref container, out section))
+                    {
+                        section = section.ToLower();
+                        return true;
+                    }
+                } while (YARGTextReader.SkipLinesUntil(ref container, TextConstants<TChar>.OPEN_BRACKET));
+            }
+            section = string.Empty;
+            return false;
+        }
+
+        /// <summary>
+        /// Checks whether the line at the current position is a section header: a name in brackets alone on its line.
+        /// A line that only starts with one, such as "[Song] = ", is a key line.
+        /// </summary>
+        private static bool IsSectionHeader<TChar>(ref YARGTextContainer<TChar> container, out string header)
+            where TChar : unmanaged, IConvertible, IEquatable<TChar>
+        {
+            if (container.Get() != '[')
+            {
+                header = string.Empty;
                 return false;
             }
-            section = YARGTextReader.PeekLine(ref container).ToLower();
-            return true;
+            header = YARGTextReader.PeekLine(ref container);
+            return header[header.Length - 1] == ']';
         }
 
         private static IniModifierCollection ExtractModifiers<TChar>(ref YARGTextContainer<TChar> container, ref Dictionary<string, IniModifierOutline> outlines)
@@ -100,7 +122,7 @@ namespace YARG.Core.IO.Ini
             where TChar : unmanaged, IConvertible, IEquatable<TChar>
         {
             YARGTextReader.GotoNextLine(ref container);
-            return !container.IsAtEnd() && container.Get() != '[';
+            return !container.IsAtEnd() && !IsSectionHeader(ref container, out _);
         }
     }
 }
