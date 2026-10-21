@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Globalization;
 using YARG.Core.IO;
 using YARG.Core.IO.Ini;
 
@@ -37,6 +38,7 @@ namespace YARG.Core.Song
             Source = DEFAULT_SOURCE,
             Year = DEFAULT_YEAR,
             YearSecondary = string.Empty,
+            ReleaseDate = null,
             Playlist = string.Empty,
             IsMaster = true,
             VideoLoop = false,
@@ -109,6 +111,7 @@ namespace YARG.Core.Song
         public string Playlist;
         public string Year;
         public string YearSecondary;
+        public DateTime? ReleaseDate;
 
         public long SongLength;
         public long SongOffset;
@@ -238,6 +241,13 @@ namespace YARG.Core.Song
                 {
                     metadata.Year = year;
                 }
+            }
+
+            if (modifiers.Extract("date_released", out string releaseDate) &&
+                DateTime.TryParseExact(releaseDate, new[] { "yyyy-MM-dd", "yyyy-MM" }, CultureInfo.InvariantCulture,
+                    DateTimeStyles.None, out var parsedReleaseDate))
+            {
+                metadata.ReleaseDate = parsedReleaseDate.Date;
             }
 
             if (modifiers.Extract("charter", out string charter) || modifiers.Extract("frets", out charter))
@@ -573,7 +583,19 @@ namespace YARG.Core.Song
 
             if (modifiers.Extract("vocal_gender", out string vocalGender))
             {
-                if (Enum.TryParse<VocalGender>(vocalGender, true, out var genderValue))
+                // Numeric song.ini values use the documented VocalGender ordering.
+                if (int.TryParse(vocalGender, out int numericGender))
+                {
+                    metadata.VocalGender = numericGender switch
+                    {
+                        0 => VocalGender.Female,
+                        1 => VocalGender.Male,
+                        2 => VocalGender.Nonbinary,
+                        3 => VocalGender.Other,
+                        _ => VocalGender.Unspecified,
+                    };
+                }
+                else if (Enum.TryParse<VocalGender>(vocalGender, true, out var genderValue))
                 {
                     metadata.VocalGender = genderValue;
                 }

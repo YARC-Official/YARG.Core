@@ -8,6 +8,99 @@ namespace YARG.Core.UnitTests.Song;
 
 public class IniEntryTests
 {
+    [TestCase("2008-10-07", 2008, 10, 7)]
+    [TestCase("2008-10", 2008, 10, 1)]
+    public void CreateIniEntry_ParsesReleaseDate(string value, int year, int month, int day)
+    {
+        const string songName = "testsong";
+        string root = CreateTempDirectory();
+        try
+        {
+            var ini = $"{CreateBasicIni()}\ndate_released = {value}\n";
+            var entry = CreateIniEntry(root, songName, ini);
+
+            Assert.That(entry.ReleaseDate, Is.EqualTo(new DateTime(year, month, day)));
+        }
+        finally
+        {
+            if (Directory.Exists(root))
+                Directory.Delete(root, true);
+        }
+    }
+
+    [TestCase("10/07/2008")]
+    [TestCase("2008-13")]
+    [TestCase("not-a-date")]
+    public void CreateIniEntry_IgnoresInvalidReleaseDate(string value)
+    {
+        const string songName = "testsong";
+        string root = CreateTempDirectory();
+        try
+        {
+            var ini = $"{CreateBasicIni()}\ndate_released = {value}\n";
+            var entry = CreateIniEntry(root, songName, ini);
+
+            Assert.That(entry.ReleaseDate, Is.Null);
+        }
+        finally
+        {
+            if (Directory.Exists(root))
+                Directory.Delete(root, true);
+        }
+    }
+
+    [Test]
+    public void CreateIniEntry_IgnoresUnsupportedReleasedDateAlias()
+    {
+        const string songName = "testsong";
+        string root = CreateTempDirectory();
+        try
+        {
+            var ini = $"{CreateBasicIni()}\nreleased_date = 2008-10-07\n";
+            var entry = CreateIniEntry(root, songName, ini);
+
+            Assert.That(entry.ReleaseDate, Is.Null);
+        }
+        finally
+        {
+            if (Directory.Exists(root))
+                Directory.Delete(root, true);
+        }
+    }
+
+    [TestCase(VocalGender.Female, 0)]
+    [TestCase(VocalGender.Male, 1)]
+    [TestCase(VocalGender.Nonbinary, 2)]
+    [TestCase(VocalGender.Other, 3)]
+    [TestCase(VocalGender.Unspecified, 4)]
+    public void VocalGender_UsesDocumentedNumericValue(VocalGender gender, int expected)
+    {
+        Assert.That((int) gender, Is.EqualTo(expected));
+    }
+
+    [TestCase(0, VocalGender.Female)]
+    [TestCase(1, VocalGender.Male)]
+    [TestCase(2, VocalGender.Nonbinary)]
+    [TestCase(3, VocalGender.Other)]
+    [TestCase(4, VocalGender.Unspecified)]
+    public void CreateIniEntry_MapsNumericVocalGender(int iniValue, VocalGender expected)
+    {
+        const string songName = "testsong";
+        string root = CreateTempDirectory();
+        try
+        {
+            var ini = $"{CreateBasicIni()}\nvocal_gender = {iniValue}\n";
+            var entry = CreateIniEntry(root, songName, ini);
+
+            Assert.That(entry.VocalGender, Is.EqualTo(expected));
+        }
+        finally
+        {
+            if (Directory.Exists(root))
+                Directory.Delete(root, true);
+        }
+    }
+
     [TestCase("_clean", true, TestName = "Loads clean video when censoring enabled")]
     [TestCase("_explicit", false, TestName = "Loads explicit video when censoring disabled")]
     public void LoadBackground_LoadsSpecificVideo_BasedOnCensorship(string suffix, bool censoringEnabled)

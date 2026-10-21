@@ -13,6 +13,8 @@ namespace YARG.Core.Audio
         private const double DEFAULT_START_TIME = 20.0;
         private const double DEFAULT_END_TIME = 50.0;
 
+        public bool IsDisposed => _disposed;
+
         public static async Task<PreviewContext?> Create(
             SongEntry entry,
             float volume,
@@ -98,6 +100,63 @@ namespace YARG.Core.Audio
                     fadeDuration = previewLength / 4;
                 }
                 return new PreviewContext(mixer, previewStartTime, previewLength, fadeDuration, volume, token);
+            }
+            catch (OperationCanceledException)
+            {
+                return null;
+            }
+            catch (Exception ex)
+            {
+                YargLogger.LogException(ex, "Error while loading song preview!");
+                return null;
+            }
+        }
+
+        public static async Task<PreviewContext?> Create(
+            SongEntry entry,
+            float volume,
+            float speed,
+            double delaySeconds,
+            double fadeDuration,
+            bool enableCensoring,
+            double startTime,
+            double length,
+            CancellationToken token
+        )
+        {
+            if (startTime == 0 || length == 0)
+            {
+                return null;
+            }
+
+            try
+            {
+                if (delaySeconds > 0)
+                {
+                    await Task.Delay(TimeSpan.FromSeconds(delaySeconds), token);
+                }
+
+                // Check if canceled
+                if (token.IsCancellationRequested)
+                {
+                    return null;
+                }
+
+                // Load the song
+                var mixer = await Task.Run(() => entry.LoadPreviewAudio(speed, enableCensoring), token);
+                if (mixer == null || token.IsCancellationRequested)
+                {
+                    mixer?.Dispose();
+                    return null;
+                }
+
+                double previewLength = startTime + length > mixer.Length ? mixer.Length - startTime : length;
+
+                if (fadeDuration > previewLength / 4)
+                {
+                    fadeDuration = previewLength / 4;
+                }
+                return new PreviewContext(mixer, startTime, previewLength, fadeDuration, volume, token);
             }
             catch (OperationCanceledException)
             {

@@ -272,7 +272,31 @@ namespace YARG.Core.Audio
                 {
                     return 0;
                 }
-                return GetTempoStreamLatency_Internal();
+                return GetTransportLatency_Internal() + GetTempoResponseLatency_Internal();
+            }
+        }
+
+        public double GetTempoResponseLatency()
+        {
+            lock (this)
+            {
+                if (_disposed)
+                {
+                    return 0;
+                }
+                return GetTempoResponseLatency_Internal();
+            }
+        }
+
+        public double GetTransportLatency()
+        {
+            lock (this)
+            {
+                if (_disposed)
+                {
+                    return 0;
+                }
+                return GetTransportLatency_Internal();
             }
         }
 
@@ -475,7 +499,8 @@ namespace YARG.Core.Audio
             return new SyncPosition(position, position);
         }
         protected virtual double GetControlPosition_Internal() => GetPosition_Internal();
-        protected virtual double GetTempoStreamLatency_Internal() => 0;
+        protected virtual double GetTempoResponseLatency_Internal() => 0;
+        protected virtual double GetTransportLatency_Internal() => 0;
         protected abstract double GetVolume_Internal();
         protected abstract void SetPosition_Internal(double position);
         protected abstract void SetVolume_Internal(double volume);
