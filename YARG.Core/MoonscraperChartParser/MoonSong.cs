@@ -182,6 +182,7 @@ namespace MoonscraperChartEditor.Song
                     uint newMeasureCount = previousTimesig.MeasureCount + (uint) Math.Round(previousTimesig.GetMeasureProgress(newTick, syncTrack.Resolution));
                     uint newDenominatorBeatCount = previousTimesig.DenominatorBeatCount + (uint) Math.Round(previousTimesig.GetDenominatorBeatProgress(newTick, syncTrack.Resolution));
                     double newQuarterNoteCount = previousTimesig.QuarterNoteCount + previousTimesig.GetQuarterNoteProgress(newTick, syncTrack.Resolution);
+                    bool replacesPrevious = newTick == previousTimesig.Tick;
 
                     previousTimesig = new TimeSignatureChange(
                         previousTimesig.Numerator,
@@ -196,7 +197,11 @@ namespace MoonscraperChartEditor.Song
                         newQuarterNoteCount,
 
                         interrupted: true
-                    );
+                    )
+                    {
+                        // At the previous time signature's own tick, this one replaces it
+                        IsInserted = !replacesPrevious,
+                    };
                     AddSyncEvent(syncTrack.TimeSignatures, previousTimesig);
 
                     measureTick = newMeasureTick + syncTrack.MeasureResolution;

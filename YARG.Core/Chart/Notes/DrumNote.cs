@@ -9,6 +9,18 @@ namespace YARG.Core.Chart
 
         public int Pad { get; }
 
+        /// <summary>
+        /// The pad as the chart writes it. It differs from <see cref="Pad"/> only on Pro Drums during a disco flip,
+        /// which swaps red and yellow for play.
+        /// </summary>
+        internal int WrittenPad { get; set; }
+
+        /// <summary>
+        /// The note's length as the chart writes it, after the sustain cutoff. Drum notes have no sustains,
+        /// so only the TrackHash uses it.
+        /// </summary>
+        internal uint WrittenTickLength { get; set; }
+
         public bool IsDoubleKick { get; }
 
         public DrumNoteType Type { get; set; }
@@ -49,6 +61,7 @@ namespace YARG.Core.Chart
             : base(flags, time, 0, tick, 0)
         {
             Pad = pad;
+            WrittenPad = pad;
             Type = noteType;
             IsDoubleKick = isDoubleKick;
             Stem = drumStem;
@@ -61,6 +74,8 @@ namespace YARG.Core.Chart
         public DrumNote(DrumNote other) : base(other)
         {
             Pad = other.Pad;
+            WrittenPad = other.WrittenPad;
+            WrittenTickLength = other.WrittenTickLength;
             Type = other.Type;
             IsDoubleKick = other.IsDoubleKick;
             Stem = other.Stem;
@@ -157,6 +172,10 @@ namespace YARG.Core.Chart
         KickLane = 1 << 1,
         KickLaneStart = 1 << 2,
         KickLaneEnd = 1 << 3,
+
+        // A note written red or yellow, during a disco flip (mix event flag "d") or a no-flip disco ("dnoflip")
+        DiscoFlip = 1 << 4,
+        DiscoNoFlip = 1 << 5,
     }
 
     public enum DrumStem
