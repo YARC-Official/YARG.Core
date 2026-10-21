@@ -220,6 +220,58 @@ public class ScanChartCompatibilityTests
     }
 
     [Test]
+    public void MidiDrums_CodaInOtherLetterCase_DoesNotStartTheCoda()
+    {
+        var midi = new MidiFile(
+            new TrackChunk(new SetTempoEvent(TempoChange.BpmToMicroSeconds(120))),
+            new TrackChunk(
+                new SequenceTrackNameEvent("EVENTS"),
+                new Melanchall.DryWetMidi.Core.TextEvent("[CODA]") { DeltaTime = 100 },
+                new Melanchall.DryWetMidi.Core.TextEvent("[coda]") { DeltaTime = 100 }),
+            new TrackChunk(
+                new SequenceTrackNameEvent("PART DRUMS"),
+                NoteOn(0, 97),
+                NoteOff(80, 97),
+                NoteOn(20, 120),
+                NoteOff(40, 120),
+                NoteOn(60, 120),
+                NoteOff(40, 120)))
+        {
+            TimeDivision = new TicksPerQuarterNoteTimeDivision(480),
+        };
+
+        var chart = SongChart.FromMidi(ParseSettings.Default_Midi, midi);
+        var result = Hash(chart, Instrument.FourLaneDrums, Difficulty.Expert);
+
+        // The coda is only `coda` in this letter case, so it starts at 200
+        Assert.That(ReadDrumFreestyles(result.BTrack), Is.EqualTo(new List<(long Tick, long Length, byte IsCoda)>
+        {
+            (100, 40, 0),
+            (200, 40, 1),
+        }));
+        AssertHashMatchesStrippedFile(result);
+    }
+
+    [Test]
+    public void DotChartDrums_CodaInOtherLetterCase_DoesNotStartTheCoda()
+    {
+        var chart = ParseDotChart(["0 = TS 4 2", "0 = B 120000"], ["192 = E \"Coda\"", "384 = E \"coda\""], "ExpertDrums",
+            "0 = N 1 0",
+            "192 = S 64 96",
+            "384 = S 64 96");
+
+        var result = Hash(chart, Instrument.FourLaneDrums);
+
+        // The coda is only `coda` in this letter case, so it starts at 384
+        Assert.That(ReadDrumFreestyles(result.BTrack), Is.EqualTo(new List<(long Tick, long Length, byte IsCoda)>
+        {
+            (192, 96, 0),
+            (384, 96, 1),
+        }));
+        AssertHashMatchesStrippedFile(result);
+    }
+
+    [Test]
     public void MidiVocals_StarPowerBeforePhrase_UsesScoringPhrase()
     {
         var midi = new MidiFile(

@@ -3,6 +3,7 @@ using System.Buffers.Binary;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using YARG.Core.Parsing;
 
 // ReSharper disable InconsistentNaming
 
@@ -592,23 +593,19 @@ namespace YARG.Core.Chart.Hashing
                 .ToList();
         }
 
+        // The chart readers have already normalized the event text, so the coda is exactly `coda`, as for play.
+        // Only the first coda counts
         private static uint? FirstCodaTick(List<TextEvent> globalEvents)
         {
-            uint? codaTick = null;
             foreach (var textEvent in globalEvents)
             {
-                if (!IsCodaEvent(textEvent.Text))
+                if (textEvent.Text == TextEvents.BIG_ROCK_ENDING_START)
                 {
-                    continue;
-                }
-
-                if (codaTick is null || textEvent.Tick < codaTick)
-                {
-                    codaTick = textEvent.Tick;
+                    return textEvent.Tick;
                 }
             }
 
-            return codaTick;
+            return null;
         }
 
         private static List<(long Tick, long Length)> DedupRanges(List<(long Tick, long Length)> ranges)
@@ -618,13 +615,6 @@ namespace YARG.Core.Chart.Hashing
                 .Select(group => (Tick: group.Key, Length: group.Max(range => range.Length)))
                 .OrderBy(range => range.Tick)
                 .ToList();
-        }
-
-        private static bool IsCodaEvent(string text)
-        {
-            var trimmed = text.Trim();
-            return trimmed.Equals("coda", StringComparison.OrdinalIgnoreCase) ||
-                trimmed.Equals("[coda]", StringComparison.OrdinalIgnoreCase);
         }
 
         private static List<(long Tick, long Position, long Size)> GetRangeShifts(List<RangeShift> rangeShifts)
