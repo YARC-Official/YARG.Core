@@ -1,4 +1,6 @@
-﻿using System.Text;
+﻿using System;
+using System.Collections.Generic;
+using System.Text;
 using YARG.Core.Chart;
 using YARG.Core.IO;
 
@@ -6,6 +8,14 @@ namespace YARG.Core.Song
 {
     public abstract partial class SongEntry
     {
+        // Read only while their part has no notes, so that a HARM1 to HARM3 track after them is still read
+        private static readonly HashSet<string> FALLBACK_TRACKNAMES = new(StringComparer.OrdinalIgnoreCase)
+        {
+            "PART HARM1",
+            "PART HARM2",
+            "PART HARM3",
+        };
+
         private protected static ScanExpected<long> ParseMidi(FixedArray<byte> file, ref AvailableParts parts, ref DrumsType drumsType)
         {
             var midiFile = YARGMidiFile.Load(file);
@@ -16,6 +26,7 @@ namespace YARG.Core.Song
 
             bool harm2 = false;
             bool harm3 = false;
+            int readTracks = 0;
             while (midiFile.GetNextTrack(out var _, out var track))
             {
                 if (!track.FindTrackName(out var trackname))
@@ -23,9 +34,21 @@ namespace YARG.Core.Song
                     return new ScanUnexpected(ScanResult.MultipleMidiTrackNames);
                 }
 
-                if (!YARGMidiTrack.TRACKNAMES.TryGetValue(trackname.GetString(Encoding.ASCII), out var type))
+                string name = trackname.GetString(Encoding.ASCII);
+                if (!YARGMidiTrack.TRACKNAMES.TryGetValue(name, out var type))
                 {
                     continue;
+                }
+
+                if (!FALLBACK_TRACKNAMES.Contains(name))
+                {
+                    // Only the first track of each part is read, even when it has no notes
+                    int typeBit = 1 << (int) type;
+                    if ((readTracks & typeBit) != 0)
+                    {
+                        continue;
+                    }
+                    readTracks |= typeBit;
                 }
 
                 switch (type)
