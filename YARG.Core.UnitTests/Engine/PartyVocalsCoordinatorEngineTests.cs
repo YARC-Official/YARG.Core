@@ -14,6 +14,37 @@ namespace YARG.Core.UnitTests.Engine;
 [TestFixture]
 public sealed class PartyVocalsCoordinatorEngineTests
 {
+    // Input from a nonexistent mic slot must not produce a percussion hit.
+    [TestCase(-1)]
+    [TestCase(2)]
+    public void OutOfRangeMicInputCannotHitPercussion(int mic)
+    {
+        var parts = new List<VocalsPart> { CreateVocalsPart() };
+        AddPercussionPhrase(parts[0], 4800, 960);
+        var engine = CreateCoordinator(parts, 2);
+        int hits = 0;
+        engine.OnNoteHit += (_, note) => { if (note.IsPercussion) hits++; };
+        engine.Update(4.9);
+        var input = new GameInput(5, PartyVocalsInput.Pack(mic, VocalsAction.Hit), true);
+        engine.QueueInput(ref input);
+        engine.Update(6.5);
+        Assert.That(hits, Is.Zero);
+    }
+
+    // Input from a nonexistent mic slot must not set the shared star-power activation flag.
+    [TestCase(-1)]
+    [TestCase(2)]
+    public void OutOfRangeMicInputCannotActivateStarPower(int mic)
+    {
+        var parts = new List<VocalsPart> { CreateVocalsPart() };
+        AddPhrase(parts[0], 0, 960, 60);
+        var engine = CreateCoordinator(parts, 2);
+        var input = new GameInput(0.1, PartyVocalsInput.Pack(mic, VocalsAction.StarPower), true);
+        engine.QueueInput(ref input);
+        engine.Update(0.1);
+        Assert.That(engine.IsStarPowerInputActive, Is.False);
+    }
+
     private const double AwesomeThreshold = 0.75;
     private const double Epsilon = 1e-9;
     private const double ApproximateVocalFps = 60.0;
@@ -1443,7 +1474,12 @@ public sealed class PartyVocalsCoordinatorEngineTests
             primaryChart, parts, CreateSyncTrack(), EngineParams, isBot: true, micCount: 3);
 
         var grades = new List<PhraseGrade>();
-        engine.OnPartyVocalsPhrase += (grade, meters, isLast) => grades.Add(grade);
+        engine.OnPartyVocalsPhrase += (grade, meters, isLast) =>
+        {
+            grades.Add(grade);
+            Assert.That(meters.Count, Is.EqualTo(3));
+            Assert.That(meters.Select(part => part.Meter), Is.All.GreaterThanOrEqualTo(AwesomeThreshold));
+        };
 
         // Drive the bots through the phrase at ~60fps; bots self-generate pitch, so
         // we deliberately do NOT call SetMicPitch.
@@ -1452,8 +1488,8 @@ public sealed class PartyVocalsCoordinatorEngineTests
             engine.Update((f + 1) / ApproximateVocalFps);
 
         Assert.AreEqual(1, grades.Count, "Bot phrase should be graded once");
-        Assert.AreNotEqual(PhraseGrade.Miss, grades[0],
-            "Bots should hit their assigned parts, not miss");
+        Assert.That(grades[0], Is.EqualTo(PhraseGrade.TripleAwesome),
+            "Each bot must fill a different part, not just produce any successful grade.");
         Assert.Greater(((VocalsStats)engine.BaseStats).TicksHit, 0u,
             "Bot hits should accumulate TicksHit");
     }
