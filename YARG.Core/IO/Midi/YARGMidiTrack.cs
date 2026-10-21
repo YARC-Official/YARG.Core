@@ -128,6 +128,12 @@ namespace YARG.Core.IO
 
         public bool ParseEvent(ref MidiStats stats)
         {
+            // A track without an end of track event ends with its chunk
+            if (_trackPosition == _length)
+            {
+                return false;
+            }
+
             _tickPosition += ReadVLQ();
             if (_trackPosition == _length)
             {
