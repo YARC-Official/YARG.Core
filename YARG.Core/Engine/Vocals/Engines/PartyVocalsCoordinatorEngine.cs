@@ -915,7 +915,6 @@ namespace YARG.Core.Engine.Vocals.Engines
 
         private uint GetTicksInPhraseForPart(VocalsPart part, VocalNote masterPhrase)
         {
-            uint masterStart = masterPhrase.Tick;
             uint masterEnd = masterPhrase.TickEnd;
 
             uint totalTime = 0;
@@ -923,12 +922,12 @@ namespace YARG.Core.Engine.Vocals.Engines
             {
                 var phraseNote = partPhrase.PhraseParentNote;
                 if (phraseNote.Tick >= masterEnd) break;
-                if (phraseNote.TickEnd <= masterStart) continue;
 
                 foreach (var noteInPhrase in phraseNote.ChildNotes)
                 {
                     if (noteInPhrase.IsPercussion) continue;
-                    totalTime += phraseNote.GetTicksForNote(noteInPhrase);
+                    // Notes can outlast their parent phrase; count their overlap with the scoring phrase.
+                    totalTime += masterPhrase.GetTicksForNote(noteInPhrase);
                 }
             }
             return totalTime;
