@@ -265,48 +265,32 @@ namespace YARG.Core.Chart
         /// </summary>
         /// <param name="phrase">The phrase containing the lyrics and vocal notes.</param>
         /// <param name="isStaticLyricsPhrase">Whether this phrase is a static lyrics phrase, which decides whether to remove unpaired lyrics.</param>
-        private static void FixLyricLengths(VocalsPhrase phrase, bool isStaticLyricsPhrase)
+        private void FixLyricLengths(VocalsPhrase phrase, bool isStaticLyricsPhrase)
         {
             var matchedLyrics = new bool[phrase.Lyrics.Count];
             var unmatchedNoteCount = 0;
-            for (var i = 0; i < phrase.PhraseParentNote.ChildNotes.Count; i++)
+            foreach (var note in phrase.PhraseParentNote.ChildNotes)
             {
-                var note = phrase.PhraseParentNote.ChildNotes[i];
-                var distance = double.MaxValue;
-                int? closestLyricIndex = null;
-                for (int j = 0; j < phrase.Lyrics.Count; j++)
-                {
-                    if (matchedLyrics[j])
-                    {
-                        continue;
-                    }
-
-                    var lyric = phrase.Lyrics[j];
-                    // lyrics *should* be ordered by tick, but once we find a lyric with a tick greater than the last distance, we can break
-                    var newDistance = Math.Abs(note.Tick - lyric.Tick);
-                    if (newDistance < distance)
-                    {
-                        distance = newDistance;
-                        closestLyricIndex = j;
-                    }
-                    else
-                    {
-                        break;
-                    }
-                }
-                if (closestLyricIndex is not null)
-                {
-                    var closestLyric = phrase.Lyrics[closestLyricIndex.Value];
-                    matchedLyrics[closestLyricIndex.Value] = true;
-                    closestLyric.TimeLength = note.TotalTimeEnd - note.Time;
-                    closestLyric.TickLength = note.TotalTickEnd - note.Tick;
-                }
-                else
+                if (!TryMatchClosestLyric(note, phrase.Lyrics, matchedLyrics))
                 {
                     unmatchedNoteCount++;
                 }
-            }
 
+                if (!_matchSlideChildrenByExactTick)
+                {
+                    continue;
+                }
+
+                // A pitch-slide chain (e.g. UltraStar's "n~"/"eed") is flattened one level deep
+                // under its lead note (see GetVocalsPhrases); each child still carries its own
+                // lyric event, but only at its own tick. A bare '~' hold has no lyric there, so
+                // it must claim nothing rather than steal the next syllable's lyric by distance.
+                // That's expected, so it doesn't count as unmatched.
+                foreach (var slideChild in note.ChildNotes)
+                {
+                    MatchExactTickLyric(slideChild, phrase.Lyrics, matchedLyrics);
+                }
+            }
             if (unmatchedNoteCount > 0)
             {
                 YargLogger.LogFormatInfo(
@@ -338,6 +322,62 @@ namespace YARG.Core.Chart
 
                 phrase.Lyrics.RemoveRange(kept, phrase.Lyrics.Count - kept);
             }
+        }
+
+        // Claims the nearest not-yet-matched lyric by tick distance, assuming lyrics are
+        // ordered by tick: once distance starts increasing, every later lyric is farther still.
+        private static bool TryMatchClosestLyric(VocalNote note, List<LyricEvent> lyrics, bool[] matchedLyrics)
+        {
+            double distance = double.MaxValue;
+            int? closestLyricIndex = null;
+            for (int j = 0; j < lyrics.Count; j++)
+            {
+                if (matchedLyrics[j])
+                {
+                    continue;
+                }
+
+                double newDistance = Math.Abs(note.Tick - lyrics[j].Tick);
+                if (newDistance < distance)
+                {
+                    distance = newDistance;
+                    closestLyricIndex = j;
+                }
+                else
+                {
+                    break;
+                }
+            }
+
+            if (closestLyricIndex is null)
+            {
+                return false;
+            }
+
+            ClaimLyric(note, lyrics, matchedLyrics, closestLyricIndex.Value);
+            return true;
+        }
+
+        // Claims a not-yet-matched lyric only at the note's own tick -- used for UltraStar
+        // slide children, which must not steal a later syllable's lyric by closest distance.
+        private static void MatchExactTickLyric(VocalNote note, List<LyricEvent> lyrics, bool[] matchedLyrics)
+        {
+            for (int j = 0; j < lyrics.Count; j++)
+            {
+                if (!matchedLyrics[j] && lyrics[j].Tick == note.Tick)
+                {
+                    ClaimLyric(note, lyrics, matchedLyrics, j);
+                    return;
+                }
+            }
+        }
+
+        private static void ClaimLyric(VocalNote note, List<LyricEvent> lyrics, bool[] matchedLyrics, int index)
+        {
+            var lyric = lyrics[index];
+            matchedLyrics[index] = true;
+            lyric.TimeLength = note.TotalTimeEnd - note.Time;
+            lyric.TickLength = note.TotalTickEnd - note.Tick;
         }
 
         private readonly struct LyricWord
