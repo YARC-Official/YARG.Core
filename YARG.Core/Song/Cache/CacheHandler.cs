@@ -1066,11 +1066,10 @@ namespace YARG.Core.Song.Cache
                 goto Invalidate;
             }
 
-            FindOrMarkDirectory(directory);
-
             // Will add the update group to the shared list on success
             if (CONUpdateGroup.Create(directory, dtaInfo, out var group) && group.Root.LastWriteTime == dtaLastWrite)
             {
+                FindOrMarkDirectory(directory);
                 lock (updateGroups)
                 {
                     updateGroups.Add(group);
@@ -1115,6 +1114,9 @@ namespace YARG.Core.Song.Cache
                 }
                 return;
             }
+
+            // Leave rejected directories unmarked so discovery can load the current update this scan.
+            group?.Dispose();
 
         Invalidate:
             for (int i = 0; i < count; i++)
