@@ -29,7 +29,7 @@ namespace YARG.Core.Benchmarks
         [Benchmark(Description = "List folder")]
         public bool ListFolder() => new FileCollection(_folder).ContainsTextFiles;
 
-        [Benchmark(Description = ".txt discovery, unconditional (previous)")]
+        [Benchmark(Description = ".txt discovery, unconditional (baseline)")]
         public int DiscoverUnconditionally() => _collection.FindAllFilesByExtension(".txt").Count;
 
         [Benchmark(Description = ".txt discovery, gated")]

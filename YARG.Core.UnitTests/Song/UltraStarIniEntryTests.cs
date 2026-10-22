@@ -3,6 +3,7 @@ using YARG.Core;
 using YARG.Core.Audio;
 using YARG.Core.Song;
 using YARG.Core.Song.Cache;
+using YARG.Core.UnitTests.Audio;
 using YARG.Core.Venue;
 using ChartFormat = YARG.Core.Song.ChartFormat;
 
@@ -95,24 +96,27 @@ public class UltraStarIniEntryTests
     [Test]
     public void SongLengthComesFromTheAudioHeader()
     {
-        // 1.5 s of 8 kHz mono 8-bit PCM. The test audio backend can't open anything, so a
-        // non-zero length can only have come from the file's own header.
-        var fmt = new byte[] { 1, 0, 1, 0, 0x40, 0x1F, 0, 0, 0x40, 0x1F, 0, 0, 1, 0, 8, 0 };
-        var data = new byte[12000];
-        using var wav = new MemoryStream();
-        using (var writer = new BinaryWriter(wav, System.Text.Encoding.ASCII, true))
-        {
-            writer.Write("RIFF".ToCharArray());
-            writer.Write(4 + 8 + fmt.Length + 8 + data.Length);
-            writer.Write("WAVEfmt ".ToCharArray());
-            writer.Write(fmt.Length);
-            writer.Write(fmt);
-            writer.Write("data".ToCharArray());
-            writer.Write(data.Length);
-            writer.Write(data);
-        }
+        // The test audio backend can't open anything, so a non-zero length can only have
+        // come from the file's own header.
         string chartPath = WriteChart("song.txt", BasicChart(audio: "audio.wav"));
-        File.WriteAllBytes(Path.Combine(_songDir, "audio.wav"), wav.ToArray());
+        File.WriteAllBytes(Path.Combine(_songDir, "audio.wav"), TestAudioFiles.Wav(1.5));
+
+        var result = TryScan(chartPath);
+
+        Assert.That(result.HasValue, Is.True, $"Expected UltraStar scan to succeed, but got {result.Error}.");
+        Assert.That(result.Value.SongLengthMilliseconds, Is.EqualTo(1500));
+    }
+
+    [Test]
+    public void SongLengthComesFromTheAudioHeaderInAFolderWithDuplicateNames()
+    {
+        // Only a case-sensitive file system can hold two names that differ only by case.
+        File.WriteAllText(Path.Combine(_songDir, "Notes.md"), "a");
+        File.WriteAllText(Path.Combine(_songDir, "notes.md"), "b");
+        Assume.That(Directory.GetFiles(_songDir, "*.md").Length, Is.EqualTo(2), "Needs a case-sensitive file system.");
+
+        string chartPath = WriteChart("song.txt", BasicChart(audio: "audio.wav"));
+        File.WriteAllBytes(Path.Combine(_songDir, "audio.wav"), TestAudioFiles.Wav(1.5));
 
         var result = TryScan(chartPath);
 
@@ -253,6 +257,17 @@ public class UltraStarIniEntryTests
 
         var names = ScanFolderForNames();
         Assert.That(names, Is.EqualTo(new[] { "Solo Title" }));
+    }
+
+    [Test]
+    public void PairingFallsBackToMp3WhenAudioTagIsBlank()
+    {
+        // "#AUDIO:," parses to a blank value. Scanning then uses #MP3, so pairing must too.
+        WriteChart("Artist - Song.txt", BasicChart(title: "Solo Title", audio: "audio.mp3", extraTags: "#AUDIO:,"));
+        WriteChart("Artist - Song [DUET].txt", DuetChart(title: "Duet Title", audio: "audio.mp3"));
+        WriteAudio("audio.mp3");
+
+        Assert.That(ScanFolderForNames(), Is.EqualTo(new[] { "Solo Title" }));
     }
 
     [Test]

@@ -285,12 +285,10 @@ namespace YARG.Core.Chart
                 // under its lead note (see GetVocalsPhrases); each child still carries its own
                 // lyric event, but only at its own tick. A bare '~' hold has no lyric there, so
                 // it must claim nothing rather than steal the next syllable's lyric by distance.
+                // That's expected, so it doesn't count as unmatched.
                 foreach (var slideChild in note.ChildNotes)
                 {
-                    if (!TryMatchExactTickLyric(slideChild, phrase.Lyrics, matchedLyrics))
-                    {
-                        unmatchedNoteCount++;
-                    }
+                    MatchExactTickLyric(slideChild, phrase.Lyrics, matchedLyrics);
                 }
             }
             if (unmatchedNoteCount > 0)
@@ -356,31 +354,30 @@ namespace YARG.Core.Chart
                 return false;
             }
 
-            var closestLyric = lyrics[closestLyricIndex.Value];
-            matchedLyrics[closestLyricIndex.Value] = true;
-            closestLyric.TimeLength = note.TotalTimeEnd - note.Time;
-            closestLyric.TickLength = note.TotalTickEnd - note.Tick;
+            ClaimLyric(note, lyrics, matchedLyrics, closestLyricIndex.Value);
             return true;
         }
 
         // Claims a not-yet-matched lyric only at the note's own tick -- used for UltraStar
         // slide children, which must not steal a later syllable's lyric by closest distance.
-        private static bool TryMatchExactTickLyric(VocalNote note, List<LyricEvent> lyrics, bool[] matchedLyrics)
+        private static void MatchExactTickLyric(VocalNote note, List<LyricEvent> lyrics, bool[] matchedLyrics)
         {
             for (int j = 0; j < lyrics.Count; j++)
             {
-                if (matchedLyrics[j] || lyrics[j].Tick != note.Tick)
+                if (!matchedLyrics[j] && lyrics[j].Tick == note.Tick)
                 {
-                    continue;
+                    ClaimLyric(note, lyrics, matchedLyrics, j);
+                    return;
                 }
-
-                var lyric = lyrics[j];
-                matchedLyrics[j] = true;
-                lyric.TimeLength = note.TotalTimeEnd - note.Time;
-                lyric.TickLength = note.TotalTickEnd - note.Tick;
-                return true;
             }
-            return false;
+        }
+
+        private static void ClaimLyric(VocalNote note, List<LyricEvent> lyrics, bool[] matchedLyrics, int index)
+        {
+            var lyric = lyrics[index];
+            matchedLyrics[index] = true;
+            lyric.TimeLength = note.TotalTimeEnd - note.Time;
+            lyric.TickLength = note.TotalTickEnd - note.Tick;
         }
 
         private readonly struct LyricWord

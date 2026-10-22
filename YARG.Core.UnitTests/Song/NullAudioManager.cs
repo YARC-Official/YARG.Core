@@ -7,7 +7,7 @@ namespace YARG.Core.UnitTests.Song;
 /// <summary>
 /// Minimal no-op <see cref="AudioManager"/> so scan-level tests can exercise code paths
 /// that call into <see cref="GlobalAudioHandler"/> (e.g. the SongLength-via-audio-duration
-/// fallback in ScanUltraStar/ScanChart) without needing a real audio backend.
+/// fallback in IniSubEntry.FillSongLengthFromAudio) without needing a real audio backend.
 /// </summary>
 internal sealed class NullAudioManager : AudioManager
 {

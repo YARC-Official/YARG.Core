@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Text;
 using YARG.Core.IO;
+using YARG.Core.Utility;
 
 namespace YARG.Core.Chart.Loaders.UltraStar
 {
@@ -22,6 +23,37 @@ namespace YARG.Core.Chart.Loaders.UltraStar
 
         public string? GetMetadata(string key)
             => _metadata.TryGetValue(key, out var value) ? value : null;
+
+        /// <summary>The tag's NFC-normalized value, or null when it's absent or blank.</summary>
+        public string? GetTag(string key)
+        {
+            string? value = StringTransformations.NormalizeUnicode(GetMetadata(key));
+            return !string.IsNullOrWhiteSpace(value) ? value : null;
+        }
+
+        /// <summary>
+        /// The #AUDIO file, else the legacy #MP3 (which needn't be an mp3), or null if neither
+        /// names one. A blank #AUDIO counts as absent.
+        /// </summary>
+        public string? GetAudioFile() => GetTag("AUDIO") ?? GetTag("MP3");
+    }
+
+    /// <summary>
+    /// An UltraStar .txt the library scan has already read and header-scanned, passed along
+    /// so neither step repeats. The scan that read it owns <see cref="Data"/>.
+    /// </summary>
+    internal readonly struct UltraStarChartFile
+    {
+        public readonly FileInfo File;
+        public readonly FixedArray<byte> Data;
+        public readonly UltraStarHeader Header;
+
+        public UltraStarChartFile(FileInfo file, FixedArray<byte> data)
+        {
+            File = file;
+            Data = data;
+            Header = UltraStarLoader.ScanHeader(data);
+        }
     }
 
     internal enum UltraStarFileKind
@@ -104,8 +136,9 @@ namespace YARG.Core.Chart.Loaders.UltraStar
                 : UltraStarFileKind.NonChartText;
         }
 
-        // "#KEY:" -- '#', an ASCII letter, then letters/digits/'_'/'-', optional spaces or
-        // tabs, then ':'. A Markdown heading needs whitespace right after '#', so never matches.
+        // "#KEY:" -- '#', an ASCII letter, then letters/digits/'_'/'-', optional spaces (tabs
+        // are already spaces by now), then ':'. A Markdown heading needs whitespace right after
+        // '#', so never matches.
         private static bool IsTagLine(ReadOnlySpan<char> trimmedLine)
         {
             if (trimmedLine.Length < 3 || !IsAsciiLetter(trimmedLine[1]))
@@ -119,7 +152,7 @@ namespace YARG.Core.Chart.Loaders.UltraStar
             {
                 i++;
             }
-            while (i < trimmedLine.Length && (trimmedLine[i] == ' ' || trimmedLine[i] == '\t'))
+            while (i < trimmedLine.Length && trimmedLine[i] == ' ')
             {
                 i++;
             }

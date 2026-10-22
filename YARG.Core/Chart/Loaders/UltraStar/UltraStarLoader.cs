@@ -116,6 +116,9 @@ namespace YARG.Core.Chart.Loaders.UltraStar
         public string? GetMetadata(string key)
             => _metadata.TryGetValue(key, out var v) ? v : null;
 
+        /// <summary>#GAP as written, in milliseconds; may be negative.</summary>
+        internal double GapMs => _gapMs;
+
         /// <summary>Populated voice part indices (P1..P3, as 0..2), in ascending order.</summary>
         public List<int> Voices
         {
@@ -159,8 +162,8 @@ namespace YARG.Core.Chart.Loaders.UltraStar
 
         private enum LineProcessMode { Full, Header, Classify }
 
-        // Both the span driver (Full/Header) and the stream driver (Classify) feed lines
-        // through this one handler, so a library scan always agrees with a full load.
+        // The span driver for Full/Header; ClassifyTextFile is the stream driver for Classify.
+        // Both feed lines through ProcessLine, so a library scan always agrees with a full load.
         private void RunSpanDriver(FixedArray<byte> file, LineProcessMode mode)
         {
             var text = DecodeText(file).AsSpan();
@@ -276,8 +279,8 @@ namespace YARG.Core.Chart.Loaders.UltraStar
 
         private enum LineKind { Blank, Metadata, VoiceMarker, End, TempoChange, Note, Ignored }
 
-        // Shared by the full parser and ScanHeader, so a library scan reads a file exactly
-        // the way loading it would.
+        // Shared by every line-processing mode, so a library scan reads a file exactly the
+        // way loading it would.
         private static LineKind ClassifyLine(ReadOnlySpan<char> trimmedLine, out int voiceNumber)
         {
             voiceNumber = 0;
@@ -424,8 +427,7 @@ namespace YARG.Core.Chart.Loaders.UltraStar
             {
                 if (TryParseNumber(value, out double gap))
                 {
-                    // Notes before the audio starts would need negative ticks, which don't exist.
-                    _gapMs = Math.Max(0, gap);
+                    _gapMs = gap;
                 }
             }
         }
@@ -551,11 +553,13 @@ namespace YARG.Core.Chart.Loaders.UltraStar
 
         private uint TicksPerUltraStarBeat => _ticksPerBeat / US_BEATS_PER_TICK_BEAT;
 
-        // Ticks are a pure subdivision of beat position and don't depend on BPM,
-        // so mid-song tempo changes don't affect this conversion.
+        // Beats are a pure subdivision of ticks, so mid-song tempo changes don't affect this.
+        // GAP is in milliseconds, converted at the initial tempo: with 120 ticks per beat and
+        // the halved BPM LoadSyncTrack uses, that's exactly _bpm ticks per second. A negative
+        // GAP would need negative ticks, so it's clamped to 0 here and becomes SongOffset instead.
         private uint BeatToTick(uint beat)
         {
-            uint gapTicks = (uint) (_gapMs / 1000.0 * _bpm);
+            uint gapTicks = (uint) (Math.Max(0, _gapMs) / 1000.0 * _bpm);
             return gapTicks + (beat * TicksPerUltraStarBeat);
         }
 
@@ -606,7 +610,7 @@ namespace YARG.Core.Chart.Loaders.UltraStar
         {
             if (instrument != Instrument.Vocals && instrument != Instrument.Harmony && instrument != Instrument.PartyVocals)
             {
-                throw new ArgumentException("UltraStar only supports Vocals and HarmonyVocals.", nameof(instrument));
+                throw new ArgumentException("UltraStar only supports Vocals, PartyVocals and Harmony.", nameof(instrument));
             }
 
             var voices = Voices;
@@ -921,7 +925,6 @@ namespace YARG.Core.Chart.Loaders.UltraStar
                 startTick, endTick - startTick);
 
             var lyrics = new List<LyricEvent>();
-            int harmonyPart = Math.Clamp(partIndex, 0, MAX_VOICE_PARTS - 1);
 
             foreach (var uNote in phraseNotes)
             {
@@ -936,7 +939,7 @@ namespace YARG.Core.Chart.Loaders.UltraStar
 
                 parentNote.AddChildNote(new VocalNote(
                     midiPitch,
-                    harmonyPart,
+                    partIndex,
                     VocalNoteType.Lyric,
                     noteTime,
                     noteTimeLen,
@@ -987,7 +990,7 @@ namespace YARG.Core.Chart.Loaders.UltraStar
 
             // Many files already end a mid-word syllable with an FoF-style hyphen, which is
             // the same character as LYRIC_JOIN_SYMBOL. Checked before the '#' suffix below,
-            // and past any pitch-slide marker ParseNoteLine already appended, either of
+            // and past any pitch-slide marker ResolvePhrase already appended, either of
             // which would otherwise hide the existing hyphen from this test.
             string unmarked = lyric.TrimEnd(LyricSymbols.PITCH_SLIDE_SYMBOL);
             bool alreadyHyphenated = unmarked.Length > 0

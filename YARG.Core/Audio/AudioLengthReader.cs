@@ -2,6 +2,7 @@ using System;
 using System.Buffers;
 using System.Buffers.Binary;
 using System.IO;
+using YARG.Core.IO;
 
 namespace YARG.Core.Audio
 {
@@ -26,6 +27,23 @@ namespace YARG.Core.Audio
         // The first read of a search window. The MP3 sync and the final Ogg page are almost
         // always within it, so the full window is read only when they aren't.
         private const int FIRST_READ_BYTES = 4096;
+
+        private static readonly FourCC FTYP = new('f', 't', 'y', 'p');
+        private static readonly FourCC MOOV = new('m', 'o', 'o', 'v');
+        private static readonly FourCC TRAK = new('t', 'r', 'a', 'k');
+        private static readonly FourCC MDIA = new('m', 'd', 'i', 'a');
+        private static readonly FourCC HDLR = new('h', 'd', 'l', 'r');
+        private static readonly FourCC MDHD = new('m', 'd', 'h', 'd');
+        private static readonly FourCC SOUN = new('s', 'o', 'u', 'n');
+        private static readonly FourCC RIFF = new('R', 'I', 'F', 'F');
+        private static readonly FourCC WAVE = new('W', 'A', 'V', 'E');
+        private static readonly FourCC FMT  = new('f', 'm', 't', ' ');
+        private static readonly FourCC DATA = new('d', 'a', 't', 'a');
+        private static readonly FourCC FLAC = new('f', 'L', 'a', 'C');
+        private static readonly FourCC OGGS = new('O', 'g', 'g', 'S');
+        private static readonly FourCC XING = new('X', 'i', 'n', 'g');
+        private static readonly FourCC INFO = new('I', 'n', 'f', 'o');
+        private static readonly EightCC OPUS_HEAD = new('O', 'p', 'u', 's', 'H', 'e', 'a', 'd');
 
         public static bool TryGetExactLength(string path, out double seconds)
         {
@@ -56,19 +74,19 @@ namespace YARG.Core.Audio
                 }
 
                 bool found;
-                if (Matches(magic.Slice(4, 4), "ftyp"))
+                if (FTYP.Matches(magic.Slice(4)))
                 {
                     found = TryMp4(stream, start, out seconds);
                 }
-                else if (Matches(magic.Slice(0, 4), "RIFF") && Matches(magic.Slice(8, 4), "WAVE"))
+                else if (RIFF.Matches(magic) && WAVE.Matches(magic.Slice(8)))
                 {
                     found = TryWav(stream, start, out seconds);
                 }
-                else if (Matches(magic.Slice(0, 4), "fLaC"))
+                else if (FLAC.Matches(magic))
                 {
                     found = TryFlac(stream, start, out seconds);
                 }
-                else if (Matches(magic.Slice(0, 4), "OggS"))
+                else if (OGGS.Matches(magic))
                 {
                     found = TryOgg(stream, start, out seconds);
                 }
@@ -101,7 +119,7 @@ namespace YARG.Core.Audio
         private static bool TryMp4(Stream stream, long start, out double seconds)
         {
             seconds = 0;
-            return FindBox(stream, start, stream.Length, "moov", out long moovStart, out long moovEnd)
+            return FindBox(stream, start, stream.Length, MOOV, out long moovStart, out long moovEnd)
                 && TryMp4Tracks(stream, moovStart, moovEnd, out seconds);
         }
 
@@ -109,23 +127,23 @@ namespace YARG.Core.Audio
         {
             seconds = 0;
             long position = moovStart;
-            while (NextBox(stream, ref position, moovEnd, out string type, out long bodyStart, out long bodyEnd))
+            while (NextBox(stream, ref position, moovEnd, out var type, out long bodyStart, out long bodyEnd))
             {
-                if (type != "trak"
-                    || !FindBox(stream, bodyStart, bodyEnd, "mdia", out long mdiaStart, out long mdiaEnd)
-                    || !FindBox(stream, mdiaStart, mdiaEnd, "hdlr", out long hdlrStart, out _))
+                if (type != TRAK
+                    || !FindBox(stream, bodyStart, bodyEnd, MDIA, out long mdiaStart, out long mdiaEnd)
+                    || !FindBox(stream, mdiaStart, mdiaEnd, HDLR, out long hdlrStart, out _))
                 {
                     continue;
                 }
 
                 // hdlr: version/flags (4), pre_defined (4), handler_type (4)
                 Span<byte> handler = stackalloc byte[4];
-                if (!ReadAt(stream, hdlrStart + 8, handler) || !Matches(handler, "soun"))
+                if (!ReadAt(stream, hdlrStart + 8, handler) || !SOUN.Matches(handler))
                 {
                     continue;
                 }
 
-                return FindBox(stream, mdiaStart, mdiaEnd, "mdhd", out long mdhdStart, out _)
+                return FindBox(stream, mdiaStart, mdiaEnd, MDHD, out long mdhdStart, out _)
                     && TryMdhd(stream, mdhdStart, out seconds);
             }
             return false;
@@ -180,10 +198,10 @@ namespace YARG.Core.Audio
             return true;
         }
 
-        private static bool FindBox(Stream stream, long start, long end, string wanted, out long bodyStart, out long bodyEnd)
+        private static bool FindBox(Stream stream, long start, long end, FourCC wanted, out long bodyStart, out long bodyEnd)
         {
             long position = start;
-            while (NextBox(stream, ref position, end, out string type, out bodyStart, out bodyEnd))
+            while (NextBox(stream, ref position, end, out var type, out bodyStart, out bodyEnd))
             {
                 if (type == wanted)
                 {
@@ -194,9 +212,9 @@ namespace YARG.Core.Audio
             return false;
         }
 
-        private static bool NextBox(Stream stream, ref long position, long end, out string type, out long bodyStart, out long bodyEnd)
+        private static bool NextBox(Stream stream, ref long position, long end, out FourCC type, out long bodyStart, out long bodyEnd)
         {
-            type = string.Empty;
+            type = default;
             bodyStart = bodyEnd = 0;
             Span<byte> header = stackalloc byte[16];
             if (position + 8 > end || !ReadAt(stream, position, header.Slice(0, 8)))
@@ -225,7 +243,7 @@ namespace YARG.Core.Audio
                 return false;
             }
 
-            type = AsAscii(header.Slice(4, 4));
+            type = new FourCC(header.Slice(4, 4));
             bodyStart = position + headerSize;
             bodyEnd = position + (long) size;
             position = bodyEnd;
@@ -241,9 +259,9 @@ namespace YARG.Core.Audio
             seconds = 0;
             Span<byte> fmt = stackalloc byte[16];
             long position = start + 12;
-            if (!FindChunk(stream, ref position, "fmt ", out long fmtBody, out uint fmtSize)
+            if (!FindChunk(stream, ref position, FMT, out long fmtBody, out uint fmtSize)
                 || fmtSize < 16 || !ReadAt(stream, fmtBody, fmt)
-                || !FindChunk(stream, ref position, "data", out long dataBody, out uint dataSize))
+                || !FindChunk(stream, ref position, DATA, out long dataBody, out uint dataSize))
             {
                 return false;
             }
@@ -263,7 +281,7 @@ namespace YARG.Core.Audio
         }
 
         // Walks RIFF chunks from `position` to the first one named `id`, leaving `position` just past it.
-        private static bool FindChunk(Stream stream, ref long position, string id, out long body, out uint size)
+        private static bool FindChunk(Stream stream, ref long position, FourCC id, out long body, out uint size)
         {
             Span<byte> header = stackalloc byte[8];
             while (position + 8 <= stream.Length && ReadAt(stream, position, header))
@@ -271,7 +289,7 @@ namespace YARG.Core.Audio
                 size = BinaryPrimitives.ReadUInt32LittleEndian(header.Slice(4));
                 body = position + 8;
                 position = body + size + (size & 1);
-                if (Matches(header.Slice(0, 4), id))
+                if (id.Matches(header))
                 {
                     return true;
                 }
@@ -396,7 +414,7 @@ namespace YARG.Core.Audio
             Span<byte> buffer = stackalloc byte[16];
             const uint FRAMES = 1, BYTES = 2;
             if (!ReadAt(stream, frameStart + 4 + frame.SideInfoSize, buffer)
-                || !(Matches(buffer.Slice(0, 4), "Xing") || Matches(buffer.Slice(0, 4), "Info"))
+                || !(XING.Matches(buffer) || INFO.Matches(buffer))
                 || (BinaryPrimitives.ReadUInt32BigEndian(buffer.Slice(4)) & (FRAMES | BYTES)) != (FRAMES | BYTES))
             {
                 return false;
@@ -480,7 +498,7 @@ namespace YARG.Core.Audio
             {
                 rate = BinaryPrimitives.ReadUInt32LittleEndian(packet.Slice(12));
             }
-            else if (Matches(packet.Slice(0, 8), "OpusHead"))
+            else if (OPUS_HEAD.Matches(packet))
             {
                 rate = 48000;
                 preSkip = BinaryPrimitives.ReadUInt16LittleEndian(packet.Slice(10));
@@ -504,14 +522,14 @@ namespace YARG.Core.Audio
         private static bool TryLastPage(Stream stream, long start, out uint serial, out ulong granule)
         {
             long available = stream.Length - start;
-            return TryLastPage(stream, (int) Math.Min(available, FIRST_READ_BYTES), out serial, out granule)
+            return TryLastPageInTail(stream, (int) Math.Min(available, FIRST_READ_BYTES), out serial, out granule)
                 || (available > FIRST_READ_BYTES
-                    && TryLastPage(stream, (int) Math.Min(available, OGG_TAIL_BYTES), out serial, out granule));
+                    && TryLastPageInTail(stream, (int) Math.Min(available, OGG_TAIL_BYTES), out serial, out granule));
         }
 
         // Searches the file's last `tailLength` bytes for the final page: the last capture
         // pattern whose page ends exactly at the end of the file.
-        private static bool TryLastPage(Stream stream, int tailLength, out uint serial, out ulong granule)
+        private static bool TryLastPageInTail(Stream stream, int tailLength, out uint serial, out ulong granule)
         {
             serial = 0;
             granule = 0;
@@ -533,7 +551,8 @@ namespace YARG.Core.Audio
             granule = 0;
             for (int i = tail.Length - 27; i >= 0; i--)
             {
-                if (tail[i] != (byte) 'O' || tail[i + 1] != (byte) 'g' || tail[i + 2] != (byte) 'g' || tail[i + 3] != (byte) 'S' || tail[i + 4] != 0)
+                // Capture pattern, then stream structure version 0.
+                if (!OGGS.Matches(tail.Slice(i)) || tail[i + 4] != 0)
                 {
                     continue;
                 }
@@ -598,6 +617,7 @@ namespace YARG.Core.Audio
             return true;
         }
 
+        // For the few markers that aren't four or eight bytes long.
         private static bool Matches(ReadOnlySpan<byte> bytes, string ascii)
         {
             if (bytes.Length != ascii.Length)
@@ -612,16 +632,6 @@ namespace YARG.Core.Audio
                 }
             }
             return true;
-        }
-
-        private static string AsAscii(ReadOnlySpan<byte> bytes)
-        {
-            Span<char> chars = stackalloc char[bytes.Length];
-            for (int i = 0; i < bytes.Length; i++)
-            {
-                chars[i] = (char) bytes[i];
-            }
-            return chars.ToString();
         }
 
         #endregion

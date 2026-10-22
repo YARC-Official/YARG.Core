@@ -41,7 +41,7 @@ namespace YARG.Core.Chart
                 // Harmony with 2+ voices builds its own static-lyric phrases from each
                 // voice's own lines (see UltraStarLoader.BuildVocalsPart), so HARM2/3 keep
                 // whole display lines even where scoring is cut to a shared window. A lone
-                // voice has none, so falls back to the scoring phrases, as before.
+                // voice has none, so uses its scoring phrases, which are already whole lines.
                 var staticLyricPhrases = part.StaticLyricPhrases.Count > 0 ? part.StaticLyricPhrases : part.NotePhrases;
                 foreach (var phrase in staticLyricPhrases)
                 {
@@ -166,7 +166,7 @@ namespace YARG.Core.Chart
             }
         }
 
-        private static MoonSong ConvertUltraStarToMoonSong(UltraStarLoader loader, UltraStarLoader? duetLoader = null)
+        private static MoonSong ConvertUltraStarToMoonSong(UltraStarLoader loader, UltraStarLoader? duetLoader)
         {
             const uint RESOLUTION = 120;
             var moonSong = new MoonSong(RESOLUTION);
@@ -242,14 +242,11 @@ namespace YARG.Core.Chart
             var soloSync = soloLoader.LoadSyncTrack();
             var duetSync = duetLoader.LoadSyncTrack();
 
-            // Only a negative GAP becomes SongOffset (see ScanUltraStar). A positive GAP is
-            // already baked into both files' ticks the same way, so it needs no correction
-            // here -- but a negative one is clamped to tick 0 (see ApplyMetadataValue) and
-            // loses that information, so it has to be reapplied as a time shift.
-            UltraStarLoader.TryParseNumber(soloLoader.GetMetadata("GAP"), out double soloGapMs);
-            UltraStarLoader.TryParseNumber(duetLoader.GetMetadata("GAP"), out double duetGapMs);
-            double soloOffsetSeconds = Math.Min(soloGapMs, 0.0) / 1000.0;
-            double duetOffsetSeconds = Math.Min(duetGapMs, 0.0) / 1000.0;
+            // A positive GAP is baked into both files' ticks the same way, so needs no
+            // correction. A negative one is clamped to tick 0 (see UltraStarLoader.BeatToTick),
+            // so it has to be reapplied here as a time shift.
+            double soloOffsetSeconds = Math.Min(soloLoader.GapMs, 0.0) / 1000.0;
+            double duetOffsetSeconds = Math.Min(duetLoader.GapMs, 0.0) / 1000.0;
             double offsetDiffSeconds = duetOffsetSeconds - soloOffsetSeconds;
 
             if (offsetDiffSeconds == 0.0 && SyncTracksMatch(soloSync, duetSync))

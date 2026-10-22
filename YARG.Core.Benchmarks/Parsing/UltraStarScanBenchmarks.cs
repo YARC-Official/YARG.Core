@@ -27,13 +27,13 @@ namespace YARG.Core.Benchmarks
         [GlobalCleanup]
         public void Cleanup() => _chart.Dispose();
 
-        [Benchmark(Baseline = true, Description = "Full loader (previous scan)")]
+        [Benchmark(Baseline = true, Description = "Full loader (baseline)")]
         public int FullLoader() => new UltraStarLoader(_chart).VoiceCount;
 
         [Benchmark(Description = "Header scan")]
         public int HeaderScan() => UltraStarLoader.ScanHeader(_chart).VoiceCount;
 
-        [Benchmark(Description = "Probe + second read (previous discovery)")]
+        [Benchmark(Description = "Probe + second read (baseline)")]
         public int ProbeThenLoad()
         {
             using (var reader = new FileInfo(_chartPath).OpenText())

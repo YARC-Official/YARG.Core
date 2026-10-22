@@ -1,9 +1,46 @@
-﻿using NUnit.Framework;
+﻿using Cysharp.Text;
+using NUnit.Framework;
+using YARG.Core.Logging;
 
 namespace YARG.Core.UnitTests.Parsing
 {
     internal class UltraStarLoaderTests_Lyrics : UltraStarLoaderTests
     {
+        [TestCase(": 0 4 0 la\n: 5 4 0 ~\n: 10 4 2 next", TestName = "A bare hold")]
+        [TestCase(": 0 4 0 n~\n: 5 4 2 eed", TestName = "A trailing ~ slide")]
+        [TestCase(": 0 4 0 la\n: 5 4 0 ~\n: 10 4 0 ~\n: 15 4 2 ~ght", TestName = "A chain of bare holds")]
+        public void SlideChainsDoNotLogUnmatchedNotes(string notes)
+        {
+            using var log = new CapturingLogListener();
+            YargLogger.AddLogListener(log);
+            try
+            {
+                LoadUltraStarChart(Us("#BPM:120", notes, "E"));
+                YargLogger.FlushLogQueue();
+            }
+            finally
+            {
+                YargLogger.RemoveLogListener(log);
+            }
+
+            Assert.That(log.Messages, Has.None.Contains("Could not find an associated lyric"));
+        }
+
+        private sealed class CapturingLogListener : BaseYargLogListener
+        {
+            public readonly List<string> Messages = new();
+
+            public CapturingLogListener() : base(new MessageOnlyYargLogFormatter()) { }
+
+            public override void WriteLogItem(ref Utf16ValueStringBuilder output, LogItem item)
+            {
+                lock (Messages)
+                {
+                    Messages.Add(output.ToString());
+                }
+            }
+        }
+
         [Test]
         public void SongLyricsTrackMatchesTheVocals()
         {

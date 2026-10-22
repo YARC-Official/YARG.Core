@@ -29,7 +29,7 @@ namespace YARG.Core.Chart
         // .mid format uses exclusive boundaries. Other formats should set this based on their own spec.
         private bool _inclusiveSoloBoundary;
 
-        // Set only by LoadUltraStar. Gates the AllNotes slide-child walk in FixLyricLengths,
+        // Set only by LoadUltraStar. Gates the ChildNotes slide-child walk in FixLyricLengths,
         // which only UltraStar's flattened pitch-slide chains need (see MoonSongLoader.Vocals.cs).
         private bool _matchSlideChildrenByExactTick;
 

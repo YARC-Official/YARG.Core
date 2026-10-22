@@ -136,11 +136,7 @@ public class AudioLengthReaderTests
     [Test]
     public void Wav()
     {
-        var fmt = Concat(U16Le(1), U16Le(1), U32Le(8000), U32Le(8000), U16Le(1), U16Le(8));
-        var data = new byte[12000];
-        var body = Concat(Ascii("WAVE"), Ascii("fmt "), U32Le(16), fmt, Ascii("data"), U32Le((uint) data.Length), data);
-        var file = Concat(Ascii("RIFF"), U32Le((uint) body.Length), body);
-        Assert.That(Length(file), Is.EqualTo(1.5).Within(1e-9));
+        Assert.That(Length(TestAudioFiles.Wav(1.5)), Is.EqualTo(1.5).Within(1e-9));
     }
 
     [Test]

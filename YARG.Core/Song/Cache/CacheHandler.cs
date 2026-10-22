@@ -36,7 +36,7 @@ namespace YARG.Core.Song.Cache
         /// if multiple cache version changes happen in a single day).
         /// </summary>
         /// <remarks>Change whenever the song cache needs to be cleared and regenerated, e.g. when the new data is added to the cache.</remarks>
-        private const int CACHE_VERSION = 26_10_14_00;
+        private const int CACHE_VERSION = 26_10_22_00;
 
         public static ScanProgressTracker Progress => _progress;
         private static ScanProgressTracker _progress;
@@ -805,8 +805,8 @@ namespace YARG.Core.Song.Cache
         }
 
         /// <summary>
-        /// Searches for a ".ini" and any .mid or .chart file to possibly extract as a song entry.
-        /// If found, even if we can't extract an entry from them, we should perform no further directory traversal.
+        /// Searches for a ".ini" and any .mid or .chart file to possibly extract as a song entry,
+        /// or, in a folder with no song.ini, for UltraStar .txt charts. If found, even if we can't extract an entry from them, we should perform no further directory traversal.
         /// </summary>
         /// <param name="collection">The collection containing the subfiles to search from</param>
         /// <param name="group">The group aligning to one of the base directories provided by the user</param>
@@ -858,9 +858,8 @@ namespace YARG.Core.Song.Cache
             }
 
             bool foundAny = false;
-            // (file, bytes, header) for every candidate read this pass, so pairing doesn't
-            // need to open or parse any of them a second time.
-            var candidates = new List<(FileInfo File, FixedArray<byte> Data, UltraStarHeader Header)>();
+            // Every candidate read this pass, so pairing doesn't open or parse any of them twice.
+            var candidates = new List<UltraStarChartFile>();
             try
             {
                 foreach (var txtFile in collection.FindAllFilesByExtension(".txt"))
@@ -888,11 +887,11 @@ namespace YARG.Core.Song.Cache
                     {
                         // Null data means the read failed: ScanIniChart reads the file itself
                         // and reports the error like any other chart's.
-                        ScanIniChart(collection, txtFile, ChartFormat.UltraStar, null, group, defaultPlaylist, null);
+                        ScanIniChart(collection, txtFile, ChartFormat.UltraStar, null, group, defaultPlaylist);
                         continue;
                     }
 
-                    candidates.Add((txtFile, data, UltraStarLoader.ScanHeader(data)));
+                    candidates.Add(new UltraStarChartFile(txtFile, data));
                 }
 
                 ScanPairedUltraStarCharts(collection, group, defaultPlaylist, candidates);
@@ -914,13 +913,14 @@ namespace YARG.Core.Song.Cache
         /// solos or two duets sharing audio, is ambiguous and stays as separate entries.
         /// </summary>
         private void ScanPairedUltraStarCharts(in FileCollection collection, IniEntryGroup group, string defaultPlaylist,
-            List<(FileInfo File, FixedArray<byte> Data, UltraStarHeader Header)> candidates)
+            List<UltraStarChartFile> candidates)
         {
             var byAudioKey = new Dictionary<string, List<int>>();
             for (int i = 0; i < candidates.Count; i++)
             {
-                string? audio = candidates[i].Header.GetMetadata("AUDIO") ?? candidates[i].Header.GetMetadata("MP3");
-                if (string.IsNullOrWhiteSpace(audio))
+                // The same file the scan will use, so pairing can't disagree with it.
+                string? audio = candidates[i].Header.GetAudioFile();
+                if (audio == null)
                 {
                     continue;
                 }
@@ -942,8 +942,8 @@ namespace YARG.Core.Song.Cache
                     continue;
                 }
 
-                var (fileA, dataA, headerA) = candidates[indices[0]];
-                var (fileB, dataB, headerB) = candidates[indices[1]];
+                var headerA = candidates[indices[0]].Header;
+                var headerB = candidates[indices[1]].Header;
 
                 int soloIndex, duetIndex;
                 if (headerA.VoiceCount == 1 && headerB.VoiceCount >= 2)
@@ -962,9 +962,8 @@ namespace YARG.Core.Song.Cache
                 merged.Add(indices[0]);
                 merged.Add(indices[1]);
 
-                var (soloFile, soloData, soloHeader) = candidates[soloIndex];
-                var (duetFile, duetData, duetHeader) = candidates[duetIndex];
-                ScanIniChart(collection, soloFile, ChartFormat.UltraStar, null, group, defaultPlaylist, soloData, duetFile, duetData, soloHeader, duetHeader);
+                var solo = candidates[soloIndex];
+                ScanIniChart(collection, solo.File, ChartFormat.UltraStar, null, group, defaultPlaylist, solo, candidates[duetIndex]);
             }
 
             for (int i = 0; i < candidates.Count; i++)
@@ -973,8 +972,7 @@ namespace YARG.Core.Song.Cache
                 {
                     continue;
                 }
-                var (file, data, candidateHeader) = candidates[i];
-                ScanIniChart(collection, file, ChartFormat.UltraStar, null, group, defaultPlaylist, data, header: candidateHeader);
+                ScanIniChart(collection, candidates[i].File, ChartFormat.UltraStar, null, group, defaultPlaylist, candidates[i]);
             }
         }
 
@@ -1054,12 +1052,11 @@ namespace YARG.Core.Song.Cache
         }
 
         private void ScanIniChart(in FileCollection collection, FileInfo chart, ChartFormat format, FileInfo? ini, IniEntryGroup group, string defaultPlaylist,
-            FixedArray<byte>? chartData = null, FileInfo? harmonyChart = null, FixedArray<byte>? harmonyChartData = null,
-            UltraStarHeader? header = null, UltraStarHeader? harmonyHeader = null)
+            UltraStarChartFile? ultraStarChart = null, UltraStarChartFile? duetChart = null)
         {
             try
             {
-                var entry = UnpackedIniEntry.ProcessNewEntry(collection.Directory, chart, format, ini, defaultPlaylist, collection, chartData, harmonyChart, harmonyChartData, header, harmonyHeader);
+                var entry = UnpackedIniEntry.ProcessNewEntry(collection.Directory, chart, format, ini, defaultPlaylist, collection, ultraStarChart, duetChart);
                 if (entry)
                 {
                     AddEntry(entry.Value);

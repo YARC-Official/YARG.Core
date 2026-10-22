@@ -2,7 +2,6 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
-using YARG.Core.Audio;
 using YARG.Core.Chart;
 using YARG.Core.Chart.Loaders.UltraStar;
 using YARG.Core.Extensions;
@@ -10,7 +9,6 @@ using YARG.Core.IO;
 using YARG.Core.IO.Ini;
 using YARG.Core.Logging;
 using YARG.Core.Song.Cache;
-using YARG.Core.Utility;
 
 namespace YARG.Core.Song
 {
@@ -102,6 +100,17 @@ namespace YARG.Core.Song
         /// wasn't merged (<see cref="_harmonyChartFileName"/> is empty) or the file is gone.</summary>
         protected virtual FixedArray<byte>? GetHarmonyChartData() => null;
 
+        /// <summary>
+        /// The song's length read straight from its audio file's header, when that gives the
+        /// same answer as measuring it through a mixer; false sends the scan to the mixer.
+        /// </summary>
+        /// <param name="files">The scanned folder's listing, or null outside an unpacked folder.</param>
+        protected virtual bool TryGetExactAudioLength(FileCollection? files, out double seconds)
+        {
+            seconds = 0;
+            return false;
+        }
+
         internal override void Serialize(MemoryStream stream, CacheWriteIndices indices)
         {
             base.Serialize(stream, indices);
@@ -186,12 +195,11 @@ namespace YARG.Core.Song
             _harmonyChartLastWrite = harmonyChartLastWrite ?? default;
         }
 
-        /// <param name="header">The solo/standalone file's already-scanned header, if the
-        /// caller has one (see CacheHandler.ScanUltraStarCharts), so <paramref name="file"/>
-        /// isn't parsed a second time. Ignored outside UltraStar.</param>
-        /// <param name="harmonyHeader">As <paramref name="header"/>, for <paramref name="harmonyFile"/>.</param>
+        /// <param name="header"><paramref name="file"/>'s already-scanned header, if the caller
+        /// has one, so it isn't parsed a second time. UltraStar only.</param>
+        /// <param name="duetChart">A duet merged into this entry (see CacheHandler.ScanUltraStarCharts). UltraStar only.</param>
         protected internal static ScanResult ScanChart(IniSubEntry entry, FixedArray<byte> file, IniModifierCollection modifiers, FileCollection? collection = null,
-            FixedArray<byte>? harmonyFile = null, UltraStarHeader? header = null, UltraStarHeader? harmonyHeader = null)
+            UltraStarHeader? header = null, UltraStarChartFile? duetChart = null)
         {
             var drums_type = DrumsType.FourOrFive;
             if (modifiers.Extract("five_lane_drums", out bool fiveLaneDrums))
@@ -201,7 +209,7 @@ namespace YARG.Core.Song
 
             if (entry._chartFormat == ChartFormat.UltraStar)
             {
-                return ScanUltraStar(entry, file, collection, harmonyFile, header, harmonyHeader);
+                return ScanUltraStar(entry, file, collection, header, duetChart);
             }
 
             ScanExpected<long> resolution;
@@ -327,11 +335,7 @@ namespace YARG.Core.Song
 
             if (entry._metadata.SongLength <= 0)
             {
-                using var mixer = entry.LoadAudio(0, 0, false);
-                if (mixer != null)
-                {
-                    entry._metadata.SongLength = (long) (mixer.Length * SongMetadata.MILLISECOND_FACTOR);
-                }
+                FillSongLengthFromAudio(entry, collection);
             }
             return ScanResult.Success;
         }
@@ -599,20 +603,18 @@ namespace YARG.Core.Song
             return true;
         }
 
-        /// <param name="harmonyFile">
+        /// <param name="preScannedHeader">The already-scanned header for <paramref name="file"/>,
+        /// if the caller has one, so it isn't parsed a second time.</param>
+        /// <param name="duetChart">
         /// A duet file sharing this one's audio (see CacheHandler.ScanUltraStarCharts). When
         /// present, <paramref name="file"/> is the solo chart: all metadata and LeadVocals
         /// come from it, while HarmonyVocals.SubTracks comes from the duet's voice count.
         /// </param>
-        /// <param name="header">The already-scanned header for <paramref name="file"/>, if the
-        /// caller has one, so it isn't parsed a second time.</param>
-        /// <param name="harmonyHeader">As <paramref name="header"/>, for <paramref name="harmonyFile"/>.</param>
-        private static ScanResult ScanUltraStar(IniSubEntry entry, FixedArray<byte> file, FileCollection? collection = null, FixedArray<byte>? harmonyFile = null,
-            UltraStarHeader? preScannedHeader = null, UltraStarHeader? preScannedHarmonyHeader = null)
+        private static ScanResult ScanUltraStar(IniSubEntry entry, FixedArray<byte> file, FileCollection? collection,
+            UltraStarHeader? preScannedHeader, UltraStarChartFile? duetChart)
         {
             // Only the tags and voice count are needed here, not the notes.
             var header = preScannedHeader ?? UltraStarLoader.ScanHeader(file);
-            var harmonyHeader = preScannedHarmonyHeader ?? (harmonyFile is { } harmonyData ? UltraStarLoader.ScanHeader(harmonyData) : (UltraStarHeader?) null);
 
             string? title = header.GetMetadata("TITLE");
             if (string.IsNullOrWhiteSpace(title))
@@ -628,14 +630,9 @@ namespace YARG.Core.Song
             UltraStarLoader.TryParseNumber(header.GetMetadata("GAP"), out double gapMs);
 
             // Blank tags fall back to the default, matching SongMetadata.FillFromIni.
-            string? Tag(string key, string? fallback = null)
-            {
-                string? value = StringTransformations.NormalizeUnicode(header.GetMetadata(key));
-                return !string.IsNullOrWhiteSpace(value) ? value : fallback;
-            }
+            string? Tag(string key, string? fallback = null) => header.GetTag(key) ?? fallback;
 
-            // #MP3 is the legacy name for #AUDIO; the file needn't be an mp3.
-            string? audioFile = Tag("AUDIO") ?? Tag("MP3");
+            string? audioFile = header.GetAudioFile();
             if (audioFile == null)
             {
                 return ScanResult.NoAudio;
@@ -647,7 +644,7 @@ namespace YARG.Core.Song
                 return ScanResult.NoAudio;
             }
 
-            if (!files.FindFile(FileCollection.ToKey(audioFile), out var audioInfo))
+            if (!files.FindFile(FileCollection.ToKey(audioFile), out _))
             {
                 return ScanResult.NoAudio;
             }
@@ -661,10 +658,12 @@ namespace YARG.Core.Song
 
             entry._metadata = SongMetadata.Default;
 
+            // UltraStarLoader bakes a positive GAP into each note's tick, so mapping it to
+            // SongOffset too would apply it twice. It clamps a negative GAP (audio starting
+            // before the chart) to 0 ticks, and since SongRunner computes song time as audio
+            // position minus SongOffset, that's exactly SongOffset = GAP.
             if (gapMs < 0)
             {
-                // SongRunner computes song time as audio position minus SongOffset, so a
-                // negative GAP (audio starts before the first note) is exactly SongOffset = GAP.
                 entry._metadata.SongOffset = (long) gapMs;
             }
 
@@ -684,10 +683,6 @@ namespace YARG.Core.Song
             entry._cover = Tag("COVER", string.Empty)!;
             entry._video = Tag("VIDEO", string.Empty)!;
             entry._background = Tag("BACKGROUND", string.Empty)!;
-
-            // Don't map a positive GAP to SongOffset: UltraStarLoader already bakes it into
-            // each note's tick, so setting it here would apply the shift twice. A negative
-            // GAP is set above, since the loader clamps negative gaps to 0 ticks.
 
             if (UltraStarLoader.TryParseNumber(header.GetMetadata("VIDEOGAP"), out double videoGapSeconds))
             {
@@ -710,7 +705,7 @@ namespace YARG.Core.Song
 
             // HarmonyVocals.SubTracks comes from the duet file when merged, not the solo one
             // (whose own VoiceCount is always 1, by the pairing rule in ScanUltraStarCharts).
-            int voiceCount = harmonyHeader?.VoiceCount ?? header.VoiceCount;
+            int voiceCount = duetChart?.Header.VoiceCount ?? header.VoiceCount;
             if (voiceCount >= 2)
             {
                 entry._parts.HarmonyVocals.SubTracks = (byte) Math.Min(voiceCount, 3);
@@ -724,30 +719,32 @@ namespace YARG.Core.Song
 
             // Editing either file changes the hash, so replays against a merged entry stay
             // tied to both of its charts, not just the solo one.
-            entry._hash = harmonyFile is { } harmony ? HashCombined(file, harmony) : HashWrapper.Hash(file.ReadOnlySpan);
+            entry._hash = duetChart is { } duet ? HashCombined(file, duet.Data) : HashWrapper.Hash(file.ReadOnlySpan);
             (entry._parsedYear, entry._yearAsNumber) = ParseYear(entry._metadata.Year);
             entry.SetSortStrings();
 
-            if (entry._metadata.SongLength <= 0)
+            // UltraStar has no length tag.
+            FillSongLengthFromAudio(entry, files);
+            return ScanResult.Success;
+        }
+
+        /// <summary>
+        /// Sets the song's length from its audio headers when they record it exactly (far
+        /// cheaper than a mixer), else through a mixer. Unchanged if the audio can't be loaded.
+        /// </summary>
+        private static void FillSongLengthFromAudio(IniSubEntry entry, FileCollection? files)
+        {
+            if (entry.TryGetExactAudioLength(files, out double seconds))
             {
-                // US has no length tag, so read it from the audio file's header, which is far
-                // cheaper than a mixer. Without an exact header length, or in a folder with
-                // duplicate names (where the audio lookup throws), use the mixer as before.
-                if (!files.ContainedDupes && AudioLengthReader.TryGetExactLength(audioInfo.FullName, out double seconds))
-                {
-                    entry._metadata.SongLength = (long) (seconds * SongMetadata.MILLISECOND_FACTOR);
-                }
-                else
-                {
-                    using var mixer = entry.LoadAudio(0, 0, false);
-                    if (mixer != null)
-                    {
-                        entry._metadata.SongLength = (long) (mixer.Length * SongMetadata.MILLISECOND_FACTOR);
-                    }
-                }
+                entry._metadata.SongLength = (long) (seconds * SongMetadata.MILLISECOND_FACTOR);
+                return;
             }
 
-            return ScanResult.Success;
+            using var mixer = entry.LoadAudio(0, 0, false);
+            if (mixer != null)
+            {
+                entry._metadata.SongLength = (long) (mixer.Length * SongMetadata.MILLISECOND_FACTOR);
+            }
         }
 
         // Hashes both files' bytes as one buffer, so a merged entry's hash depends on either.
