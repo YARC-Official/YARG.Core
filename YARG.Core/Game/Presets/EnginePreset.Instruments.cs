@@ -329,6 +329,9 @@ namespace YARG.Core.Game
             [SettingType(SettingType.Toggle)]
             public bool EnableLanes = true;
 
+            [SettingType(SettingType.Toggle)]
+            public bool ReleaseKeysCanHitNotes = false;
+
             [SettingType(SettingType.MillisecondInput)]
             [SettingRange(min: 0f)]
             public double ChordStaggerWindow = 0.05;
@@ -359,6 +362,7 @@ namespace YARG.Core.Game
                     ChordStaggerWindow = ChordStaggerWindow,
                     FatFingerWindow = FatFingerWindow,
                     EnableLanes = EnableLanes,
+                    ReleaseKeysCanHitNotes = ReleaseKeysCanHitNotes,
                     HitWindow = HitWindow.Copy(),
                 };
             }
@@ -376,7 +380,8 @@ namespace YARG.Core.Game
                     ChordStaggerWindow,
                     FatFingerWindow,
                     NoStarPowerOverlap,
-                    EnableLanes);
+                    EnableLanes,
+                    ReleaseKeysCanHitNotes);
             }
         }
     }
