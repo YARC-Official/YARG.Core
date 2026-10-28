@@ -708,7 +708,10 @@ namespace YARG.Core.Song
             int voiceCount = duetChart?.Header.VoiceCount ?? header.VoiceCount;
             if (voiceCount >= 2)
             {
-                entry._parts.HarmonyVocals.SubTracks = (byte) Math.Min(voiceCount, 3);
+                for (int i = 0; i < voiceCount; i++)
+                {
+                    entry._parts.HarmonyVocals.ActivateSubtrack(i);
+                }
                 entry._parts.HarmonyVocals.Intensity = 0;
                 entry._parts.HarmonyVocals.ActivateDifficulty(Difficulty.Expert);
             }

@@ -223,8 +223,7 @@ public class UltraStarIniEntryTests
     [Test]
     public void P1PlusP3MapsToTwoCompactedHarmonySubTracks()
     {
-        // VoiceCount (and hence SubTracks) is the count of populated voices, compacted --
-        // P1+P3 is 2 voices, not 3.
+        // Harmony sub-tracks are the populated voices, compacted -- P1+P3 is H1+H2, not H1+H3.
         string chart =
             "#TITLE:Test Song\n" +
             "#ARTIST:Test Artist\n" +
@@ -241,6 +240,7 @@ public class UltraStarIniEntryTests
         // PartValues.SubTracks shares its byte with Difficulties, so check the sub-track bits
         // through the indexer rather than the raw value.
         Assert.That(entry.VocalsCount, Is.EqualTo(2));
+        Assert.That(entry[Instrument.Harmony][0], Is.True, "Harmony1 bit should be set for the first populated voice");
         Assert.That(entry[Instrument.Harmony][1], Is.True, "Harmony2 bit should be set for the second populated voice");
         Assert.That(entry[Instrument.Harmony][2], Is.False, "Harmony3 bit should be unset -- only 2 voices are populated");
     }
@@ -283,6 +283,36 @@ public class UltraStarIniEntryTests
         Assert.That(entry[Instrument.Vocals][0], Is.True);
         // 2 populated voices in the duet file, same as P1PlusP3MapsToTwoCompactedHarmonySubTracks.
         Assert.That(entry.VocalsCount, Is.EqualTo(2));
+        Assert.That(entry[Instrument.Harmony][0], Is.True);
+        Assert.That(entry[Instrument.Harmony][1], Is.True);
+    }
+
+    [Test]
+    public void ThreeVoiceChartHasThreeHarmonySubTracks()
+    {
+        var entry = Scan(chart: TrioChart());
+
+        Assert.That(entry.VocalsCount, Is.EqualTo(3));
+        Assert.That(entry[Instrument.Harmony][0], Is.True);
+        Assert.That(entry[Instrument.Harmony][1], Is.True);
+        Assert.That(entry[Instrument.Harmony][2], Is.True);
+    }
+
+    [Test]
+    public void SoloPlusTrioSharingAudioMergeWithThreeHarmonySubTracks()
+    {
+        WriteChart("Artist - Song.txt", BasicChart(title: "Solo Title", audio: "audio.mp3"));
+        WriteChart("Artist - Song [TRIO].txt", TrioChart(title: "Trio Title", audio: "audio.mp3"));
+        WriteAudio("audio.mp3");
+
+        var entry = SoleEntry(RunFullScan());
+
+        Assert.That(entry.Name.Original, Is.EqualTo("Solo Title"));
+        Assert.That(entry[Instrument.Vocals][0], Is.True);
+        Assert.That(entry.VocalsCount, Is.EqualTo(3));
+        Assert.That(entry[Instrument.Harmony][0], Is.True);
+        Assert.That(entry[Instrument.Harmony][1], Is.True);
+        Assert.That(entry[Instrument.Harmony][2], Is.True);
     }
 
     [Test]
@@ -637,6 +667,24 @@ public class UltraStarIniEntryTests
                ": 0 4 0 Hello\n" +
                "P2\n" +
                ": 0 4 2 Hi\n" +
+               "E\n";
+    }
+
+    /// <summary>A three-voice (P1+P2+P3) chart.</summary>
+    private static string TrioChart(string title = "Test Song (Trio)", string audio = "audio.mp3", string extraTags = "")
+    {
+        string tags = extraTags.Length > 0 ? extraTags.TrimEnd('\n') + "\n" : string.Empty;
+        return $"#TITLE:{title}\n" +
+               "#ARTIST:Test Artist\n" +
+               $"#MP3:{audio}\n" +
+               "#BPM:120\n" +
+               tags +
+               "P1\n" +
+               ": 0 4 0 Hello\n" +
+               "P2\n" +
+               ": 0 4 2 Hi\n" +
+               "P3\n" +
+               ": 0 4 4 Hey\n" +
                "E\n";
     }
 }

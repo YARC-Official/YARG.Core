@@ -11,6 +11,8 @@ namespace YARG.Core.UnitTests.Parsing
         [TestCase(": 0 4 0 la\n: 5 4 0 ~\n: 10 4 0 ~\n: 15 4 2 ~ght", TestName = "A chain of bare holds")]
         public void SlideChainsDoNotLogUnmatchedNotes(string notes)
         {
+            // Drain items queued by earlier tests, or the flush below hands them to this listener.
+            YargLogger.FlushLogQueue();
             using var log = new CapturingLogListener();
             YargLogger.AddLogListener(log);
             try
