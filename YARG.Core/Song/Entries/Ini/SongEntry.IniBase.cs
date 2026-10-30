@@ -78,6 +78,24 @@ namespace YARG.Core.Song
         public override string SortBasedLocation => _location;
         public override string ActualLocation => _location;
         public override DateTime GetLastWriteTime() { return _chartLastWrite; }
+        public override DateTime GetLastModifiedTime()
+        {
+            // Packed SNG/YARGSONG entries use the package itself as the chart file.
+            if (File.Exists(_location))
+            {
+                return File.GetLastWriteTime(_location);
+            }
+
+            foreach (var chart in CHART_FILE_TYPES)
+            {
+                if (chart.Format == _chartFormat)
+                {
+                    return File.GetLastWriteTime(Path.Combine(_location, chart.Filename));
+                }
+            }
+
+            return base.GetLastModifiedTime();
+        }
 
         protected abstract FixedArray<byte>? GetChartData(string filename);
 

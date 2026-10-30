@@ -70,6 +70,15 @@ namespace YARG.Core.Song
             return last_write;
         }
 
+        public override DateTime GetLastModifiedTime()
+        {
+            // Packed CON files contain the chart. Unpacked CON entries keep it in the song MIDI.
+            string chartPath = File.Exists(_root.FullName)
+                ? _root.FullName
+                : Path.Combine(_root.FullName, _subName, _subName + ".mid");
+            return File.GetLastWriteTime(chartPath);
+        }
+
         internal override void Serialize(MemoryStream stream, CacheWriteIndices indices)
         {
             base.Serialize(stream, indices);
