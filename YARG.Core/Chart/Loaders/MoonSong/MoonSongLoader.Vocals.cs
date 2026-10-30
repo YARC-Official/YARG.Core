@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using System.Text.RegularExpressions;
 using MoonscraperChartEditor.Song;
 using YARG.Core.Extensions;
 using YARG.Core.Logging;
@@ -64,7 +63,12 @@ namespace YARG.Core.Chart
             var isHarmony = moonInstrument != MoonSong.MoonInstrument.Vocals;
             var notePhrases = GetVocalsPhrases(moonChart, harmonyPart, false);
 
-            var staticLyricPhrases = GetVocalsPhrases(moonChart, harmonyPart, true);
+            // For solo vocals and HARM1 the static pass reads exactly the same phrases as the
+            // note pass (see GetVocalsPhrases) and differs only in dropping lyrics without a
+            // note, so copy the note pass instead of parsing the chart a second time.
+            var staticLyricPhrases = harmonyPart is 0
+                ? CopyAsStaticLyricPhrases(notePhrases)
+                : GetVocalsPhrases(moonChart, harmonyPart, true);
             var otherPhrases = GetPhrases(moonChart);
             var textEvents = GetTextEvents(moonChart);
             List<VocalsPhrase> mergedPhrases = new();
@@ -102,7 +106,8 @@ namespace YARG.Core.Chart
             if (harmonyPart is 0)
             {
                 // For solo vocals and HARM1, we never care about harmony lyric phrases. LoadVocalsPart never calls with harmonyPart=0
-                // and staticLyricPhrases=true anyway; it just reuses the result of the first call with staticLyricPhrases=false
+                // and staticLyricPhrases=true; it copies the result of the call with staticLyricPhrases=false instead
+                // (see CopyAsStaticLyricPhrases)
                 (lyricPhraseType, otherLyricPhraseType) = (MoonPhrase.Type.Vocals_ScoringPhrase, MoonPhrase.Type.Vocals_StaticLyricPhrase);
             } else
             {
@@ -261,52 +266,61 @@ namespace YARG.Core.Chart
         }
 
         /// <summary>
+        /// The static lyric phrases for a part whose note pass already read the same phrases.
+        /// A separate static pass would build each note tree with exactly the same operations,
+        /// so the copies keep the note pass's child order verbatim (see
+        /// VocalNote.CloneKeepingChildOrder). They must be deep copies, since later steps
+        /// (MergePhrasePair, the static splitters) modify static phrases and their lyrics in
+        /// place. Matching again in static mode then drops the lyrics with no note, exactly as
+        /// the separate pass would.
+        /// </summary>
+        private List<VocalsPhrase> CopyAsStaticLyricPhrases(List<VocalsPhrase> notePhrases)
+        {
+            var copies = new List<VocalsPhrase>(notePhrases.Count);
+            foreach (var phrase in notePhrases)
+            {
+                var copy = new VocalsPhrase(phrase.Time, phrase.TimeLength, phrase.Tick, phrase.TickLength,
+                    phrase.PhraseParentNote.CloneKeepingChildOrder(), phrase.Lyrics.Duplicate());
+                FixLyricLengths(copy, true);
+                copies.Add(copy);
+            }
+            return copies;
+        }
+
+        /// <summary>
         /// Attempts to provide lengths for lyrics events in a phrase by associating them with vocal notes.
         /// </summary>
         /// <param name="phrase">The phrase containing the lyrics and vocal notes.</param>
         /// <param name="isStaticLyricsPhrase">Whether this phrase is a static lyrics phrase, which decides whether to remove unpaired lyrics.</param>
-        private static void FixLyricLengths(VocalsPhrase phrase, bool isStaticLyricsPhrase)
+        private void FixLyricLengths(VocalsPhrase phrase, bool isStaticLyricsPhrase)
         {
             var matchedLyrics = new bool[phrase.Lyrics.Count];
+            int firstUnmatched = 0;
             var unmatchedNoteCount = 0;
-            for (var i = 0; i < phrase.PhraseParentNote.ChildNotes.Count; i++)
+            foreach (var note in phrase.PhraseParentNote.ChildNotes)
             {
-                var note = phrase.PhraseParentNote.ChildNotes[i];
-                var distance = double.MaxValue;
-                int? closestLyricIndex = null;
-                for (int j = 0; j < phrase.Lyrics.Count; j++)
-                {
-                    if (matchedLyrics[j])
-                    {
-                        continue;
-                    }
-
-                    var lyric = phrase.Lyrics[j];
-                    // lyrics *should* be ordered by tick, but once we find a lyric with a tick greater than the last distance, we can break
-                    var newDistance = Math.Abs(note.Tick - lyric.Tick);
-                    if (newDistance < distance)
-                    {
-                        distance = newDistance;
-                        closestLyricIndex = j;
-                    }
-                    else
-                    {
-                        break;
-                    }
-                }
-                if (closestLyricIndex is not null)
-                {
-                    var closestLyric = phrase.Lyrics[closestLyricIndex.Value];
-                    matchedLyrics[closestLyricIndex.Value] = true;
-                    closestLyric.TimeLength = note.TotalTimeEnd - note.Time;
-                    closestLyric.TickLength = note.TotalTickEnd - note.Tick;
-                }
-                else
+                if (!TryMatchClosestLyric(note, phrase.Lyrics, matchedLyrics, ref firstUnmatched))
                 {
                     unmatchedNoteCount++;
                 }
-            }
 
+                if (!_matchSlideChildrenByExactTick)
+                {
+                    continue;
+                }
+
+                // A pitch-slide chain (e.g. UltraStar's "n~"/"eed") is flattened one level deep
+                // under its lead note (see GetVocalsPhrases); each child still carries its own
+                // lyric event, but only at its own tick. A bare '~' hold has no lyric there, so
+                // it must claim nothing rather than steal the next syllable's lyric by distance.
+                foreach (var slideChild in note.ChildNotes)
+                {
+                    if (!TryMatchExactTickLyric(slideChild, phrase.Lyrics, matchedLyrics))
+                    {
+                        unmatchedNoteCount++;
+                    }
+                }
+            }
             if (unmatchedNoteCount > 0)
             {
                 YargLogger.LogFormatInfo(
@@ -340,6 +354,70 @@ namespace YARG.Core.Chart
             }
         }
 
+        // Claims the nearest not-yet-matched lyric by tick distance, assuming lyrics are
+        // ordered by tick: once distance starts increasing, every later lyric is farther still.
+        // Every lyric before firstUnmatched is already matched, so the search starts there
+        // instead of re-skipping them for every note.
+        private static bool TryMatchClosestLyric(VocalNote note, List<LyricEvent> lyrics, bool[] matchedLyrics,
+            ref int firstUnmatched)
+        {
+            double distance = double.MaxValue;
+            int? closestLyricIndex = null;
+            for (int j = firstUnmatched; j < lyrics.Count; j++)
+            {
+                if (matchedLyrics[j])
+                {
+                    continue;
+                }
+
+                double newDistance = Math.Abs(note.Tick - lyrics[j].Tick);
+                if (newDistance < distance)
+                {
+                    distance = newDistance;
+                    closestLyricIndex = j;
+                }
+                else
+                {
+                    break;
+                }
+            }
+
+            if (closestLyricIndex is null)
+            {
+                return false;
+            }
+
+            var closestLyric = lyrics[closestLyricIndex.Value];
+            matchedLyrics[closestLyricIndex.Value] = true;
+            closestLyric.TimeLength = note.TotalTimeEnd - note.Time;
+            closestLyric.TickLength = note.TotalTickEnd - note.Tick;
+            while (firstUnmatched < matchedLyrics.Length && matchedLyrics[firstUnmatched])
+            {
+                firstUnmatched++;
+            }
+            return true;
+        }
+
+        // Claims a not-yet-matched lyric only at the note's own tick -- used for UltraStar
+        // slide children, which must not steal a later syllable's lyric by closest distance.
+        private static bool TryMatchExactTickLyric(VocalNote note, List<LyricEvent> lyrics, bool[] matchedLyrics)
+        {
+            for (int j = 0; j < lyrics.Count; j++)
+            {
+                if (matchedLyrics[j] || lyrics[j].Tick != note.Tick)
+                {
+                    continue;
+                }
+
+                var lyric = lyrics[j];
+                matchedLyrics[j] = true;
+                lyric.TimeLength = note.TotalTimeEnd - note.Time;
+                lyric.TickLength = note.TotalTickEnd - note.Tick;
+                return true;
+            }
+            return false;
+        }
+
         private readonly struct LyricWord
         {
             public          uint   Tick       => Syllables.Count > 0 ? Syllables[0].Tick : 0;
@@ -362,12 +440,17 @@ namespace YARG.Core.Chart
                 Syllables.AddRange(events);
             }
 
-            public static List<LyricWord> FromLyricEvents(List<LyricEvent> events)
+            public static List<LyricWord> FromVisibleLyricEvents(List<LyricEvent> events)
             {
                 var words = new List<LyricWord>();
                 var currentWord = new List<LyricEvent>();
                 foreach (var ev in events)
                 {
+                    if (ev.HarmonyHidden)
+                    {
+                        continue;
+                    }
+
                     currentWord.Add(ev);
                     if (!ev.JoinOrHyphenateWithNext)
                     {
@@ -389,13 +472,12 @@ namespace YARG.Core.Chart
         {
             // 16th note
             var tolerance = (syncTrack.Resolution / 4) - 1;
-            var alphanumericRegex = new Regex("[^a-zA-Z0-9]", RegexOptions.Compiled);
 
             var mergedLyrics = new List<LyricEvent>();
             var otherWordIdx = 0;
 
-            var mainPhraseWords = LyricWord.FromLyricEvents(mainPhrase.Lyrics.Where(lyric => !lyric.HarmonyHidden).ToList());
-            var otherPhraseWords = LyricWord.FromLyricEvents(otherPhrase.Lyrics.Where(lyric => !lyric.HarmonyHidden).ToList());
+            var mainPhraseWords = LyricWord.FromVisibleLyricEvents(mainPhrase.Lyrics);
+            var otherPhraseWords = LyricWord.FromVisibleLyricEvents(otherPhrase.Lyrics);
 
             if (mainPhraseWords.Count == 0 && otherPhraseWords.Count == 0)
             {
@@ -438,7 +520,7 @@ namespace YARG.Core.Chart
                 {
                     var simultaneousMergedWord = otherPhraseWords[otherWordIdx++];
                     // ...and their texts match...
-                    if (string.Equals(alphanumericRegex.Replace(simultaneousMergedWord.Text, ""), alphanumericRegex.Replace(mainWord.Text, ""), StringComparison.OrdinalIgnoreCase))
+                    if (AlphanumericTextEquals(simultaneousMergedWord.Text, mainWord.Text))
                     {
                         // ...make a lyric with the earliest start time, and latest end time, and add it to the merged lyrics
                         var selectedWord = mainWord;
@@ -498,6 +580,45 @@ namespace YARG.Core.Chart
                 mergedLyrics
             );
         }
+        /// <summary>
+        /// Whether two lyrics read the same once everything but ASCII letters and digits is
+        /// dropped, ignoring case. Runs once per pair of simultaneous harmony words, so it
+        /// compares in place rather than building stripped copies with a regex.
+        /// </summary>
+        private static bool AlphanumericTextEquals(string a, string b)
+        {
+            int i = 0;
+            int j = 0;
+            while (true)
+            {
+                while (i < a.Length && !IsAsciiAlphanumeric(a[i]))
+                {
+                    i++;
+                }
+                while (j < b.Length && !IsAsciiAlphanumeric(b[j]))
+                {
+                    j++;
+                }
+
+                if (i == a.Length || j == b.Length)
+                {
+                    return i == a.Length && j == b.Length;
+                }
+
+                if (ToLowerAscii(a[i]) != ToLowerAscii(b[j]))
+                {
+                    return false;
+                }
+                i++;
+                j++;
+            }
+        }
+
+        private static bool IsAsciiAlphanumeric(char c)
+            => (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9');
+
+        private static char ToLowerAscii(char c) => c >= 'A' && c <= 'Z' ? (char) (c + ('a' - 'A')) : c;
+
         private static List<VocalsPhrase> MergePhrases(List<VocalsPhrase> mainPhrases, List<VocalsPhrase> otherPhrases, SyncTrack syncTrack)
         {
             var result = new List<VocalsPhrase>();
