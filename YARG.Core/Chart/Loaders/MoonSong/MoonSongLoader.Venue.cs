@@ -31,9 +31,8 @@ namespace YARG.Core.Chart
 
             // And for post processing, it turns out
             MoonVenue? postProcessingCurrentEvent = null;
-
-            // A sixteenth note, in ticks
-            var sixteenthNote = _moonSong.syncTrack.Resolution / 4;
+            PostProcessingType? postProcessingCurrentType = null;
+            var postProcessingIsTransitionStart = false;
 
             foreach (var moonVenue in _moonSong.venue)
             {
@@ -71,7 +70,9 @@ namespace YARG.Core.Chart
                         if (!PostProcessLookup.TryGetValue(text, out var type))
                             continue;
 
-                        HandlePostProcessingEvent(postProcessingEvents, type, moonVenue, ref postProcessingCurrentEvent);
+                        HandlePostProcessingEvent(postProcessingEvents, type, moonVenue,
+                            ref postProcessingCurrentEvent, ref postProcessingCurrentType,
+                            ref postProcessingIsTransitionStart);
                         break;
                     }
 
@@ -122,10 +123,10 @@ namespace YARG.Core.Chart
             // Flush tracked events
             FinalizePerformerEvent(performerEvents, PerformerEventType.Spotlight, ref spotlightCurrentEvent, spotlightPerformers);
             FinalizePerformerEvent(performerEvents, PerformerEventType.Singalong, ref singalongCurrentEvent, singalongPerformers);
-            if (postProcessingCurrentEvent != null &&
-                PostProcessLookup.TryGetValue(postProcessingCurrentEvent.text, out var postProcType))
+            if (postProcessingCurrentEvent != null && postProcessingCurrentType != null)
             {
-                FinalizePostProcessingEvent(postProcessingEvents, postProcType, ref postProcessingCurrentEvent);
+                FinalizePostProcessingEvent(postProcessingEvents, postProcessingCurrentType.Value,
+                    ref postProcessingCurrentEvent);
             }
 
             lightingEvents.TrimExcess();
@@ -270,7 +271,9 @@ namespace YARG.Core.Chart
             List<PostProcessingEvent> events,
             PostProcessingType type,
             MoonVenue moonEvent,
-            ref MoonVenue? currentEvent
+            ref MoonVenue? currentEvent,
+            ref PostProcessingType? currentType,
+            ref bool isTransitionStart
         )
         {
             // No currently tracked event
@@ -290,37 +293,53 @@ namespace YARG.Core.Chart
 
                     currentEvent = moonEvent;
                     FinalizePostProcessingEvent(events, type, ref currentEvent);
+                    isTransitionStart = false;
                     return;
                 }
 
                 // Having no length, this is a text event, so we must track it until we get called again
                 currentEvent = moonEvent;
+                isTransitionStart = false;
                 return;
             }
 
-            // If this is the same type as the tracked event, give the tracked event a length and ignore this one
-            if (moonEvent.type == currentEvent.type)
+            // If this is the same type as the tracked event, we are starting a transition
+            if (type == currentType)
             {
-                uint length = moonEvent.tick - currentEvent.tick;
-                currentEvent.length = length;
                 FinalizePostProcessingEvent(events, type, ref currentEvent);
+
+                currentEvent = moonEvent;
+                currentType = type;
+                isTransitionStart = true;
                 return;
             }
 
-            // Different than previous, so there was no length
-            FinalizePostProcessingEvent(events, type, ref currentEvent);
+            // Different type. If last was a repeat, commit it with the length of moonevent - currentevent
+            if (isTransitionStart)
+            {
+                currentEvent.length = moonEvent.tick - currentEvent.tick;
+                FinalizePostProcessingEvent(events, type, ref currentEvent);
+            }
+            else
+            {
+                // Not a repeat, so flush current as-is
+                FinalizePostProcessingEvent(events, currentType, ref currentEvent);
+            }
+
             currentEvent = moonEvent;
+            currentType = type;
+            isTransitionStart = false;
         }
 
         private void FinalizePostProcessingEvent(
             List<PostProcessingEvent> events,
-            PostProcessingType type,
+            PostProcessingType? type,
             ref MoonVenue? currentEvent
         )
         {
-            if (currentEvent != null)
+            if (currentEvent != null && type != null)
             {
-                events.OrderedInsert(new(type,
+                events.OrderedInsert(new(type.Value,
                     _moonSong.TickToTime(currentEvent.tick),
                     GetLengthInTime(currentEvent),
                     currentEvent.tick,

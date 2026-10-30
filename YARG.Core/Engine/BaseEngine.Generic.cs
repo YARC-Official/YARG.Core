@@ -556,6 +556,11 @@ namespace YARG.Core.Engine
 
         protected abstract bool CanSustainHold(TNoteType note);
 
+        protected virtual bool CanSustainHold(in ActiveSustain<TNoteType> sustain)
+        {
+            return CanSustainHold(sustain.Note);
+        }
+
         protected virtual void HitNote(TNoteType note)
         {
             // The coda ends on the final note of the section. That note may be a chord, but the
@@ -929,7 +934,7 @@ namespace YARG.Core.Engine
 
                 bool dropped = false;
 
-                if(!CanSustainHold(note))
+                if (!CanSustainHold(in sustain))
                 {
                     // Currently beind held by sustain drop leniency
                     if (sustain.IsLeniencyHeld)

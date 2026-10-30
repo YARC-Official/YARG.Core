@@ -29,6 +29,8 @@ namespace YARG.Core.Chart
         // .mid format uses exclusive boundaries. Other formats should set this based on their own spec.
         private bool _inclusiveSoloBoundary;
 
+        public bool SoloSectionLengthIncludesTerminalTick => _inclusiveSoloBoundary;
+
         private GameMode _currentMode;
         private Instrument _currentInstrument;
         private Difficulty _currentDifficulty;
@@ -260,7 +262,8 @@ namespace YARG.Core.Chart
                 }
 
                 double time = _moonSong.TickToTime(moonPhrase.tick);
-                var newPhrase = new Phrase(phraseType.Value, time, GetLengthInTime(moonPhrase), moonPhrase.tick, moonPhrase.length);
+                var newPhrase = new Phrase(phraseType.Value, time, GetLengthInTime(moonPhrase), moonPhrase.tick, moonPhrase.length,
+                    moonPhrase.ConvertedFromDrumFill);
 
                 if (validatePhrase == null)
                 {

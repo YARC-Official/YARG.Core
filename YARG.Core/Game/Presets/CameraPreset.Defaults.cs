@@ -109,6 +109,17 @@ namespace YARG.Core.Game
                 Rotation    = 17.09f,
                 FadeLength  = 1.5f,
                 CurveFactor = 0f,
+            },
+            new CameraPreset("Kinda Orthogonal", true)
+            {
+                FieldOfView      = 55f,
+                PositionY        = 19.0359173f,
+                PositionZ        = -13.9824343f,
+                Rotation         = 44.7486229f,
+                FadeLength       = 0f,
+                CurveFactor      = 0f,
+                Orthographic     = true,
+                OrthographicSize = 1.20628035f,
             }
         };
     }

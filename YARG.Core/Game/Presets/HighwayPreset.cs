@@ -70,18 +70,5 @@ namespace YARG.Core.Game
                 SideWaviness = SideWaviness
             };
         }
-
-        public string? GetExtraContentFolder()
-        {
-            var baseName = System.IO.Path.GetFileNameWithoutExtension(Path);
-            var directory = System.IO.Path.GetDirectoryName(Path);
-
-            if (baseName == null || directory == null)
-            {
-                return null;
-            }
-
-            return System.IO.Path.Combine(directory, baseName);
-        }
     }
 }

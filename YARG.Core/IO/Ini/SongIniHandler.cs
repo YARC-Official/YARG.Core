@@ -71,6 +71,7 @@ namespace YARG.Core.IO.Ini
                 { "clean_vocals",                         new("clean_vocals", ModifierType.Bool) },
 
                 { "dance_type",                           new("dance_type", ModifierType.UInt32) },
+                { "date_released",                        new("date_released", ModifierType.String) },
                 { "delay",                                new("delay", ModifierType.Int64) },
                 { "diff_band",                            new("diff_band", ModifierType.Int32) },
                 { "diff_bass",                            new("diff_bass", ModifierType.Int32) },
@@ -185,6 +186,8 @@ namespace YARG.Core.IO.Ini
                 { "vocal_character_hint",                 new("vocal_character_hint", ModifierType.String) },
                 { "vocal_gender",                         new("vocal_gender", ModifierType.String) },
                 { "vocal_scroll_speed",                   new("vocal_scroll_speed", ModifierType.Int16) },
+
+                { "yarg_guid",                            new("yarg_guid", ModifierType.String) },
 
                 { "year",                                 new("year", ModifierType.String) },
             };

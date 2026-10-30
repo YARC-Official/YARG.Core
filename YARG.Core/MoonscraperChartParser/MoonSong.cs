@@ -14,6 +14,12 @@ namespace MoonscraperChartEditor.Song
         public uint resolution => syncTrack.Resolution;
         public uint hopoThreshold;
 
+        /// <summary>
+        /// Matches scan-chart's MIDI-only natural HOPO compatibility exception:
+        /// a single note contained in the previous chord is a strum for .mid, but not for .chart.
+        /// </summary>
+        public bool UsesMidiNaturalHopoSubsetException;
+
         // Charts
         private readonly MoonChart[] charts;
 

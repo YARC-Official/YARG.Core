@@ -374,6 +374,88 @@ namespace YARG.Core.UnitTests.Parsing
         }
 
         [Test]
+        public void GuitarProcessList_ChordToSameFretSingleWithinHopoThreshold_IsHopo()
+        {
+            var chartText = ChartText.Chart(
+                ChartText.SongSection(),
+                ChartText.SyncSection(),
+                ChartText.Section("ExpertSingle",
+                    "0 = N 1 0",
+                    "0 = N 2 0",
+                    "64 = N 1 0"));
+
+            var song = ChartReader.ReadFromText(chartText);
+            var notes = song.GetChart(MoonInstrument.Guitar, MoonDifficulty.Expert).notes;
+            var redAfterChord = notes.Single(note => note.tick == 64);
+
+            Assert.That(redAfterChord.GetGuitarNoteType(song.hopoThreshold), Is.EqualTo(MoonNote.MoonNoteType.Hopo));
+        }
+
+        [Test]
+        public void GuitarProcessList_PairsNestedSoloEventsWithClosestPreviousStart()
+        {
+            var chartText = ChartText.Chart(
+                ChartText.SongSection(),
+                ChartText.SyncSection(),
+                ChartText.Section("ExpertSingle",
+                    $"100 = E \"{TextEvents.SOLO_START}\"",
+                    $"150 = E \"{TextEvents.SOLO_START}\"",
+                    $"200 = E \"{TextEvents.SOLO_END}\"",
+                    $"300 = E \"{TextEvents.SOLO_END}\""));
+
+            var song = ChartReader.ReadFromText(chartText);
+            var phrases = song.GetChart(MoonInstrument.Guitar, MoonDifficulty.Expert).specialPhrases;
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(phrases, Has.Count.EqualTo(2));
+                Assert.That(phrases, Has.One.Matches<MoonPhrase>(phrase =>
+                    phrase is { tick: 150, length: 50, type: MoonPhrase.Type.Solo }));
+                Assert.That(phrases, Has.One.Matches<MoonPhrase>(phrase =>
+                    phrase is { tick: 100, length: 200, type: MoonPhrase.Type.Solo }));
+            }
+        }
+
+        [Test]
+        public void ReadFromText_AcceptsOutOfOrderTrackEventsAndSortsBeforeProcessing()
+        {
+            var chartText = ChartText.Chart(
+                ChartText.SongSection(),
+                ChartText.SyncSection(),
+                ChartText.Section("ExpertSingle",
+                    "100 = N 0 0",
+                    "200 = N 1 0",
+                    "100 = N 6 0"));
+
+            var song = ChartReader.ReadFromText(chartText);
+            var note = song.GetChart(MoonInstrument.Guitar, MoonDifficulty.Expert).notes.Single(note => note.tick == 100);
+
+            AssertHasFlag(note, Flags.Tap);
+        }
+
+        [Test]
+        public void ReadFromText_SkipsMalformedTrackLinesWithoutDroppingFollowingEvents()
+        {
+            var chartText = ChartText.Chart(
+                ChartText.SongSection(),
+                ChartText.SyncSection(),
+                ChartText.Section("ExpertSingle",
+                    "not a valid chart line",
+                    "0 = N 0 0",
+                    "50 = N 1 0"));
+
+            var song = ChartReader.ReadFromText(chartText);
+            var notes = song.GetChart(MoonInstrument.Guitar, MoonDifficulty.Expert).notes;
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(notes, Has.Count.EqualTo(2));
+                Assert.That(notes, Has.One.Matches<MoonNote>(note => note.tick == 0 && note.guitarFret == GuitarFret.Green));
+                Assert.That(notes, Has.One.Matches<MoonNote>(note => note.tick == 50 && note.guitarFret == GuitarFret.Red));
+            }
+        }
+
+        [Test]
         public void GuitarProcessList_ConvertsSoloTextEventsToInclusiveSoloPhrase()
         {
             var chartText = ChartText.Chart(
@@ -395,7 +477,7 @@ namespace YARG.Core.UnitTests.Parsing
         }
 
         [Test]
-        public void GuitarProcessList_SplitsSameTickSoloEndAndStartWithoutOverlap()
+        public void GuitarProcessList_PairsSameTickNestedSoloEndWithClosestPreviousStart()
         {
             var chartText = ChartText.Chart(
                 ChartText.SongSection(),
@@ -413,9 +495,9 @@ namespace YARG.Core.UnitTests.Parsing
             {
                 Assert.That(phrases, Has.Count.EqualTo(2));
                 Assert.That(phrases, Has.One.Matches<MoonPhrase>(phrase =>
-                    phrase is { tick: 100, length: 100, type: MoonPhrase.Type.Solo }));
+                    phrase is { tick: 100, length: 199, type: MoonPhrase.Type.Solo }));
                 Assert.That(phrases, Has.One.Matches<MoonPhrase>(phrase =>
-                    phrase is { tick: 200, length: 99, type: MoonPhrase.Type.Solo }));
+                    phrase is { tick: 200, length: 0, type: MoonPhrase.Type.Solo }));
             }
         }
 

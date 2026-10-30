@@ -1,11 +1,18 @@
+using Melanchall.DryWetMidi.Common;
+using Melanchall.DryWetMidi.Core;
+using MoonscraperChartEditor.Song.IO;
 using NUnit.Framework;
 using YARG.Core.Chart;
+using YARG.Core.IO;
 using YARG.Core.Song;
+using MoonDifficulty = MoonscraperChartEditor.Song.MoonSong.Difficulty;
 
 namespace YARG.Core.UnitTests.Song;
 
 public class SongEntryScanningTests
 {
+    private const short Resolution = 192;
+
     [Test]
     public void FinalizeDrums_KeepsFourLaneDifficultiesWhenFourLaneFlagIsPresent()
     {
@@ -82,5 +89,55 @@ public class SongEntryScanningTests
             Assert.That(TestSongEntry.IsValidForTest(proKeysParts), Is.True);
             Assert.That(TestSongEntry.IsValidForTest(vocalParts), Is.True);
         }
+    }
+
+    [Test]
+    public void ParseMidi_UsesFirstRecognizedTrackNameWhenMultipleTickZeroNamesArePresent()
+    {
+        var midi = new MidiFile(MakeSyncTrack(), MakeGuitarTrackWithDuplicateNames())
+        {
+            TimeDivision = new TicksPerQuarterNoteTimeDivision(Resolution),
+        };
+
+        using var stream = new MemoryStream();
+        midi.Write(stream);
+        stream.Position = 0;
+        using var file = FixedArray.Read(stream, stream.Length);
+        var parts = AvailableParts.Default;
+        var drumsType = DrumsType.Unknown;
+
+        var result = TestSongEntry.ParseMidiForTest(file, ref parts, ref drumsType);
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(result.HasValue, Is.True);
+            Assert.That(parts.FiveFretGuitar.Difficulties, Is.EqualTo(DifficultyMask.Expert));
+        }
+    }
+
+    private static TrackChunk MakeSyncTrack()
+    {
+        return new TrackChunk(
+            new SequenceTrackNameEvent("TEMPO_TRACK"),
+            new SetTempoEvent(TempoChange.BpmToMicroSeconds(150)),
+            new TimeSignatureEvent(4, 4));
+    }
+
+    private static TrackChunk MakeGuitarTrackWithDuplicateNames()
+    {
+        var green = MidIOHelper.GUITAR_DIFF_START_LOOKUP[MoonDifficulty.Expert];
+        var track = new TrackChunk(
+            new SequenceTrackNameEvent("unrecognized track name"),
+            new SequenceTrackNameEvent(MidIOHelper.GUITAR_TRACK),
+            new NoteOnEvent((SevenBitNumber) (byte) green, (SevenBitNumber) (byte) MidIOHelper.VELOCITY)
+            {
+                DeltaTime = 10,
+            },
+            new NoteOffEvent((SevenBitNumber) (byte) green, (SevenBitNumber) 0)
+            {
+                DeltaTime = 90,
+            });
+
+        return track;
     }
 }

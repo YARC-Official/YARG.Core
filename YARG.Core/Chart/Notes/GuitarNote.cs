@@ -21,7 +21,13 @@ namespace YARG.Core.Chart
         // 5     | (unused)           | White 3
         // 6     | Open               | Open
         // 7-31  | (all unused)       | (all unused)
+        /// <summary>
+        /// Bitmask of the fret, if a child note, or the entire chord, if a parent note.
+        /// </summary>
         public int NoteMask     { get; set; }
+        /// <summary>
+        /// Bitmask of a single fret, always. Used for hit logic when a chord is <see cref="IsDisjoint">disjoint</see>
+        /// </summary>
         public int DisjointMask { get; set; }
 
         public GuitarNoteType Type { get; set; }
@@ -31,8 +37,13 @@ namespace YARG.Core.Chart
         public bool IsTap   => Type == GuitarNoteType.Tap;
 
         public bool IsSustain => TickLength > 0;
-
+        /// <summary>
+        /// A sustain note where other notes are placed during the sustain.
+        /// </summary>
         public bool IsExtendedSustain => (GuitarFlags & GuitarNoteFlags.ExtendedSustain) != 0;
+        /// <summary>
+        /// A sustain chord where all notes in the chord do not end at the same time.
+        /// </summary>
         public bool IsDisjoint        => (GuitarFlags & GuitarNoteFlags.Disjoint) != 0;
 
         public FiveLaneKeysAction FiveLaneKeysAction => (FiveFretGuitarFret)Fret switch
@@ -148,8 +159,9 @@ namespace YARG.Core.Chart
     public enum GuitarNoteFlags
     {
         None = 0,
-
+        /// <inheritdoc cref="GuitarNote.IsExtendedSustain"/>
         ExtendedSustain = 1 << 0,
+        /// <inheritdoc cref="GuitarNote.IsDisjoint"/>
         Disjoint        = 1 << 1,
     }
 }

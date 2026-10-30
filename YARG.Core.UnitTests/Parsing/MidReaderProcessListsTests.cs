@@ -150,6 +150,86 @@ public class MidReaderProcessListsTests
     }
 
     [Test]
+    public void GuitarForcingMarkers_ResolveOverlappingHopoAndStrumByPriority()
+    {
+        var green = MidIOHelper.GUITAR_DIFF_START_LOOKUP[Difficulty.Expert];
+        var forcedHopo = green + 5;
+        var forcedStrum = green + 6;
+        var midi = MakeMidi(MakeTrack(MidIOHelper.GUITAR_TRACK,
+            Note(10, 100, forcedHopo),
+            Note(10, 100, forcedStrum),
+            Note(20, 30, green)));
+
+        var song = MidReader.ReadMidi(midi);
+        var notes = song.GetChart(MoonInstrument.Guitar, Difficulty.Expert).notes;
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(notes, Has.Count.EqualTo(1));
+            AssertHasFlag(notes[0], Flags.Forced_Hopo);
+            AssertDoesNotHaveFlag(notes[0], Flags.Forced_Strum);
+        }
+    }
+
+    [Test]
+    public void SysExTapPhrase_DoesNotIncludeNoteAtExactEndTick()
+    {
+        var green = MidIOHelper.GUITAR_DIFF_START_LOOKUP[Difficulty.Expert];
+        var midi = MakeMidi(MakeTrack(MidIOHelper.GUITAR_TRACK,
+            PhaseShiftTap(10, start: true),
+            PhaseShiftTap(20, start: false),
+            Note(20, 30, green)));
+
+        var song = MidReader.ReadMidi(midi);
+        var notes = song.GetChart(MoonInstrument.Guitar, Difficulty.Expert).notes;
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(notes, Has.Count.EqualTo(1));
+            AssertDoesNotHaveFlag(notes[0], Flags.Tap);
+        }
+    }
+
+    [Test]
+    public void ReadMidi_UsesFirstRecognizedTrackNameWhenMultipleTrackNamesArePresent()
+    {
+        var green = MidIOHelper.GUITAR_DIFF_START_LOOKUP[Difficulty.Expert];
+        var midi = MakeMidi(MakeTrackWithTrackNames(
+            $"[{MidIOHelper.ENHANCED_OPENS_TEXT}]",
+            MidIOHelper.GUITAR_TRACK,
+            Note(10, 100, green)));
+
+        var song = MidReader.ReadMidi(midi);
+        var notes = song.GetChart(MoonInstrument.Guitar, Difficulty.Expert).notes;
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(notes, Has.Count.EqualTo(1));
+            Assert.That(notes[0].guitarFret, Is.EqualTo(GuitarFret.Green));
+        }
+    }
+
+    [Test]
+    public void SongChart_MidiChordToSameFretSingle_IsStrumWithoutLoaderCancellation()
+    {
+        var red = MidIOHelper.GUITAR_DIFF_START_LOOKUP[Difficulty.Expert] + 1;
+        var yellow = MidIOHelper.GUITAR_DIFF_START_LOOKUP[Difficulty.Expert] + 2;
+        var settings = ParseSettings.Default_Midi;
+        settings.ChordHopoCancellation = false;
+        var midi = MakeMidi(MakeTrack(MidIOHelper.GUITAR_TRACK,
+            Note(0, 10, red),
+            Note(0, 10, yellow),
+            Note(64, 100, red)));
+
+        var songChart = SongChart.FromMidi(in settings, midi);
+        var notes = songChart.GetFiveFretTrack(Instrument.FiveFretGuitar)
+            .GetDifficulty(YARG.Core.Difficulty.Expert).Notes;
+        var redAfterChord = notes.Single(note => note.Tick == 64);
+
+        Assert.That(redAfterChord.Type, Is.EqualTo(GuitarNoteType.Strum));
+    }
+
+    [Test]
     public void CodaPostProcessing_SetsCodaEndAndConvertsDrumFillToBigRockEnding()
     {
         var red = MidIOHelper.DRUMS_DIFF_START_LOOKUP[Difficulty.Expert] + 1;
@@ -283,6 +363,21 @@ public class MidReaderProcessListsTests
         return new TimedMidiEvent(tick, new MidiTextEvent(text));
     }
 
+    private static TimedMidiEvent PhaseShiftTap(long tick, bool start)
+    {
+        return new TimedMidiEvent(tick, new NormalSysExEvent(new byte[]
+        {
+            0x50,
+            0x53,
+            0x00,
+            0x00,
+            0x03,
+            0x04,
+            (byte) (start ? 0x01 : 0x00),
+            0xF7,
+        }));
+    }
+
     private static TimedMidiEvent[] Note(long startTick, long endTick, int noteNumber,
         int velocity = MidIOHelper.VELOCITY, int channel = 0)
     {
@@ -324,6 +419,28 @@ public class MidReaderProcessListsTests
         }
 
         var chunk = new TrackChunk(new SequenceTrackNameEvent(trackName));
+        chunk.Events.AddRange(ordered.Select(item => item.Event));
+        return chunk;
+    }
+
+    private static TrackChunk MakeTrackWithTrackNames(string firstTrackName, string secondTrackName, params object[] eventItems)
+    {
+        var ordered = FlattenEvents(eventItems)
+            .OrderBy(item => item.Tick)
+            .ThenBy(item => EventPriority(item.Event))
+            .ThenBy(item => item.Event is NoteEvent note ? (int) note.NoteNumber : 0)
+            .ToArray();
+
+        long previousTick = 0;
+        foreach (var (tick, midiEvent) in ordered)
+        {
+            midiEvent.DeltaTime = tick - previousTick;
+            previousTick = tick;
+        }
+
+        var chunk = new TrackChunk(
+            new SequenceTrackNameEvent(firstTrackName),
+            new SequenceTrackNameEvent(secondTrackName));
         chunk.Events.AddRange(ordered.Select(item => item.Event));
         return chunk;
     }

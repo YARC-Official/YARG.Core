@@ -17,6 +17,9 @@
                 {
                     if (note.Type == VocalNoteType.Percussion)
                     {
+                        // Preserve percussion notes — UnpitchedOnly only affects pitched notes.
+                        // NoVocalPercussion is the modifier that removes percussion.
+                        newPhraseParent.AddChildNote(note);
                         continue;
                     }
 

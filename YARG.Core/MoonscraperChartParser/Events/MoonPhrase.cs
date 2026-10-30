@@ -59,6 +59,12 @@ namespace MoonscraperChartEditor.Song
         public uint length;
         public Type type;
 
+        /// <summary>
+        /// Set when a drum fill is rewritten to <see cref="Type.BigRockEnding"/> for play.
+        /// The hash still emits it as a freestyle section.
+        /// </summary>
+        public bool ConvertedFromDrumFill;
+
         public MoonPhrase(uint _position, uint _length, Type _type)
             : base(ID.Phrase, _position)
         {
