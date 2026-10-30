@@ -172,21 +172,23 @@ public class MidReaderProcessListsTests
     }
 
     [Test]
-    public void SysExTapPhrase_DoesNotIncludeNoteAtExactEndTick()
+    public void SysExTapPhrase_IncludesNoteAtExactEndTick()
     {
         var green = MidIOHelper.GUITAR_DIFF_START_LOOKUP[Difficulty.Expert];
         var midi = MakeMidi(MakeTrack(MidIOHelper.GUITAR_TRACK,
             PhaseShiftTap(10, start: true),
             PhaseShiftTap(20, start: false),
-            Note(20, 30, green)));
+            Note(20, 30, green),
+            Note(40, 50, green + 1)));
 
         var song = MidReader.ReadMidi(midi);
         var notes = song.GetChart(MoonInstrument.Guitar, Difficulty.Expert).notes;
 
         using (Assert.EnterMultipleScope())
         {
-            Assert.That(notes, Has.Count.EqualTo(1));
-            AssertDoesNotHaveFlag(notes[0], Flags.Tap);
+            Assert.That(notes, Has.Count.EqualTo(2));
+            AssertHasFlag(notes[0], Flags.Tap);
+            AssertDoesNotHaveFlag(notes[1], Flags.Tap);
         }
     }
 
