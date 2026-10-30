@@ -536,7 +536,8 @@ namespace YARG.Core.Song
                     metadata.Preview.Start = (long)((previewStartSeconds) * MILLISECOND_FACTOR);
                 }
 
-                if (modifiers.Extract("preview_end_time", out preview.End))
+                // An end of 0 isn't set, so [Song]'s time applies
+                if (modifiers.Extract("preview_end_time", out preview.End) && preview.End != 0)
                 {
                     metadata.Preview.End = preview.Item2;
                 }
