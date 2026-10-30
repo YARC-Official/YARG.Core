@@ -1,3 +1,4 @@
+using System.Text;
 using NUnit.Framework;
 using YARG.Core.Extensions;
 using YARG.Core.Song;
@@ -252,6 +253,116 @@ public class IniEntryTests
                 Directory.Delete(root, true);
             }
         }
+    }
+
+    private const string CHART_WITH_TWO_PARTS =
+        """
+        [Song]
+        {
+          Resolution = 192
+        }
+        [SyncTrack]
+        {
+          0 = TS 4
+          0 = B 120000
+        }
+        [Events]
+        {
+          0 = E "section Café"
+        }
+        [ExpertSingle]
+        {
+          0 = N 0 0
+        }
+        [ExpertDoubleBass]
+        {
+          0 = N 0 0
+        }
+        """;
+
+    [TestCase("utf-16BE")]
+    [TestCase("utf-32")]
+    [TestCase("utf-32BE")]
+    public void CreateIniEntry_DecodesChartByByteOrderMark(string encodingName)
+    {
+        string root = CreateTempDirectory();
+        try
+        {
+            var encoding = Encoding.GetEncoding(encodingName);
+            var result = ScanChartEntry(root, [.. encoding.GetPreamble(), .. encoding.GetBytes(CHART_WITH_TWO_PARTS)]);
+
+            Assert.That(result.HasValue, Is.True, $"Expected the scan to succeed, but got {result.Error}.");
+            Assert.That(result.Value[Instrument.FiveFretGuitar][Difficulty.Expert], Is.True);
+        }
+        finally
+        {
+            if (Directory.Exists(root))
+            {
+                Directory.Delete(root, true);
+            }
+        }
+    }
+
+    [Test]
+    public void LoadChart_DecodesChartThatIsNotValidUtf8AsIso88591()
+    {
+        string root = CreateTempDirectory();
+        try
+        {
+            var result = ScanChartEntry(root, Encoding.Latin1.GetBytes(CHART_WITH_TWO_PARTS));
+            Assert.That(result.HasValue, Is.True, $"Expected the scan to succeed, but got {result.Error}.");
+
+            var chart = result.Value.LoadChart();
+
+            Assert.That(chart, Is.Not.Null);
+            Assert.That(chart!.Sections.Select(section => section.Name), Is.EqualTo(new[] { "Café" }));
+        }
+        finally
+        {
+            if (Directory.Exists(root))
+            {
+                Directory.Delete(root, true);
+            }
+        }
+    }
+
+    [Test]
+    public void CreateIniEntry_ScansChartSectionAfterOneWhoseLastLineIsItsFirstNote()
+    {
+        string root = CreateTempDirectory();
+        try
+        {
+            var result = ScanChartEntry(root, Encoding.UTF8.GetBytes(CHART_WITH_TWO_PARTS));
+
+            Assert.That(result.HasValue, Is.True, $"Expected the scan to succeed, but got {result.Error}.");
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(result.Value[Instrument.FiveFretGuitar][Difficulty.Expert], Is.True);
+                Assert.That(result.Value[Instrument.FiveFretBass][Difficulty.Expert], Is.True);
+            }
+        }
+        finally
+        {
+            if (Directory.Exists(root))
+            {
+                Directory.Delete(root, true);
+            }
+        }
+    }
+
+    private static ScanExpected<UnpackedIniEntry> ScanChartEntry(string root, byte[] chart)
+    {
+        string songDirectory = Path.Combine(root, "testsong");
+        Directory.CreateDirectory(songDirectory);
+
+        string chartPath = Path.Combine(songDirectory, "notes.chart");
+        File.WriteAllBytes(chartPath, chart);
+
+        string iniPath = Path.Combine(songDirectory, "song.ini");
+        File.WriteAllText(iniPath, "[song]\nname = Test\nsong_length = 10000\n");
+
+        return UnpackedIniEntry.ProcessNewEntry(songDirectory, new FileInfo(chartPath), ChartFormat.Chart,
+            new FileInfo(iniPath), "");
     }
 
     private static UnpackedIniEntry CreateIniEntry(string root, string name, string iniText)
