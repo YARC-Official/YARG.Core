@@ -236,6 +236,13 @@ namespace MoonscraperChartEditor.Song
 
         public void AddSection(MoonText section)
         {
+            // Of two sections on one tick, the later one is used
+            if (sections.Count > 0 && sections[^1].tick == section.tick)
+            {
+                sections[^1] = section;
+                return;
+            }
+
             MoonObjectHelper.AddToEnd(section, sections);
         }
 
@@ -251,6 +258,14 @@ namespace MoonscraperChartEditor.Song
 
         public void InsertSection(MoonText section)
         {
+            // Of two sections on one tick, the later one is used
+            int index = MoonObjectHelper.FindObjectPosition(section.tick, sections);
+            if (index != MoonObjectHelper.NOTFOUND)
+            {
+                sections[index] = section;
+                return;
+            }
+
             MoonObjectHelper.Insert(section, sections);
         }
 
