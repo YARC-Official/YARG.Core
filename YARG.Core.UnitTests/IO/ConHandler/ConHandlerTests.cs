@@ -15,15 +15,7 @@ public class ConHandlerTests
     public void TryParseListings_ParsesDirectoryHierarchyAndContiguousFile()
     {
         byte[] expected = "con-data"u8.ToArray();
-        byte[] image = CreateConImage(CONFileStream.CalculateBlockLocation(2, 0) + CONFileStream.BYTES_PER_BLOCK);
-
-        expected.CopyTo(image, CONFileStream.CalculateBlockLocation(0, 0));
-        WriteMetadata(image, entryId: 0x0000B000, fileTableBlockCount: 1, fileTableFirstBlock: 2);
-
-        int tableOffset = (int) CONFileStream.CalculateBlockLocation(2, 0);
-        WriteListing(image.AsSpan(tableOffset, SizeOfFileListing), "songs", CONFileListing.Flag.Directory, 0, 0, -1, 0);
-        WriteListing(image.AsSpan(tableOffset + SizeOfFileListing, SizeOfFileListing),
-            "track.mid", CONFileListing.Flag.Consecutive, 1, 0, 0, expected.Length);
+        byte[] image = CreateHierarchyImage(expected);
 
         string path = CreateTempFile(image);
         try
@@ -56,6 +48,24 @@ public class ConHandlerTests
         }
     }
 
+    [TestCase(1)]
+    [TestCase(3)]
+    public void TryParseListings_ParsesAndLoadsThroughShortReads(int maxPerRead)
+    {
+        byte[] expected = "con-data"u8.ToArray();
+        byte[] image = CreateHierarchyImage(expected);
+
+        using var stream = new ShortReadStream(new MemoryStream(image, writable: false), maxPerRead);
+        var listings = CONFile.TryParseListings("short-read.con", stream);
+
+        Assert.That(listings, Is.Not.Null);
+        Assert.That(listings, Has.Count.EqualTo(2));
+        Assert.That(listings!.FindListing("songs/track.mid", out var fileListing), Is.True);
+
+        using var file = CONFileStream.LoadFile(stream, fileListing);
+        Assert.That(file.ReadOnlySpan.ToArray(), Is.EqualTo(expected));
+    }
+
     [Test]
     public void TryParseListings_WhenPathIndexIsOutOfRange_ReturnsNull()
     {
@@ -80,8 +90,10 @@ public class ConHandlerTests
         }
     }
 
-    [Test]
-    public void LoadFile_ReadsSplitFileUsingHashChain()
+    [TestCase(null)]
+    [TestCase(1)]
+    [TestCase(3)]
+    public void LoadFile_ReadsSplitFileUsingHashChain(int? maxPerRead)
     {
         byte[] expected = Enumerable.Range(0, 5000).Select(i => (byte) (i % 251)).ToArray();
         byte[] image = CreateConImage(CONFileStream.CalculateBlockLocation(2, 0) + CONFileStream.BYTES_PER_BLOCK);
@@ -108,7 +120,40 @@ public class ConHandlerTests
             Shift = 0,
         };
 
-        using var stream = new MemoryStream(image, writable: false);
+        Stream stream = new MemoryStream(image, writable: false);
+        if (maxPerRead is int max)
+        {
+            stream = new ShortReadStream(stream, max);
+        }
+
+        using (stream)
+        using (var file = CONFileStream.LoadFile(stream, listing))
+        {
+            Assert.That(file.ReadOnlySpan.ToArray(), Is.EqualTo(expected));
+        }
+    }
+
+    [TestCase(1)]
+    [TestCase(3)]
+    public void LoadFile_ReadsContiguousFileAcrossSectionBoundaryThroughShortReads(int maxPerRead)
+    {
+        byte[] expected = Enumerable.Range(0, CONFileStream.BYTES_PER_BLOCK + 128)
+            .Select(i => (byte) (i % 251))
+            .ToArray();
+        byte[] image = CreateSectionBoundaryImage(expected);
+
+        var listing = new CONFileListing
+        {
+            Name = "boundary.mid",
+            Flags = CONFileListing.Flag.Consecutive,
+            BlockCount = 2,
+            BlockOffset = CONFileStream.BLOCKS_PER_SECTION - 1,
+            PathIndex = -1,
+            Length = expected.Length,
+            Shift = 0,
+        };
+
+        using var stream = new ShortReadStream(new MemoryStream(image, writable: false), maxPerRead);
         using var file = CONFileStream.LoadFile(stream, listing);
 
         Assert.That(file.ReadOnlySpan.ToArray(), Is.EqualTo(expected));
@@ -120,15 +165,7 @@ public class ConHandlerTests
         byte[] expected = Enumerable.Range(0, CONFileStream.BYTES_PER_BLOCK + 128)
             .Select(i => (byte) (i % 251))
             .ToArray();
-        byte[] image = CreateConImage(CONFileStream.CalculateBlockLocation(CONFileStream.BLOCKS_PER_SECTION, 0)
-            + CONFileStream.BYTES_PER_BLOCK);
-
-        expected.AsSpan(0, CONFileStream.BYTES_PER_BLOCK).CopyTo(
-            image.AsSpan((int) CONFileStream.CalculateBlockLocation(CONFileStream.BLOCKS_PER_SECTION - 1, 0),
-                CONFileStream.BYTES_PER_BLOCK));
-        expected.AsSpan(CONFileStream.BYTES_PER_BLOCK).CopyTo(
-            image.AsSpan((int) CONFileStream.CalculateBlockLocation(CONFileStream.BLOCKS_PER_SECTION, 0),
-                expected.Length - CONFileStream.BYTES_PER_BLOCK));
+        byte[] image = CreateSectionBoundaryImage(expected);
 
         var listing = new CONFileListing
         {
@@ -295,6 +332,34 @@ public class ConHandlerTests
     public void CalculateBlockLocation_AccountsForSectionAndShiftAdjustments(int blockNum, int shift, long expected)
     {
         Assert.That(CONFileStream.CalculateBlockLocation(blockNum, shift), Is.EqualTo(expected));
+    }
+
+    private static byte[] CreateHierarchyImage(byte[] fileData)
+    {
+        byte[] image = CreateConImage(CONFileStream.CalculateBlockLocation(2, 0) + CONFileStream.BYTES_PER_BLOCK);
+
+        fileData.CopyTo(image, CONFileStream.CalculateBlockLocation(0, 0));
+        WriteMetadata(image, entryId: 0x0000B000, fileTableBlockCount: 1, fileTableFirstBlock: 2);
+
+        int tableOffset = (int) CONFileStream.CalculateBlockLocation(2, 0);
+        WriteListing(image.AsSpan(tableOffset, SizeOfFileListing), "songs", CONFileListing.Flag.Directory, 0, 0, -1, 0);
+        WriteListing(image.AsSpan(tableOffset + SizeOfFileListing, SizeOfFileListing),
+            "track.mid", CONFileListing.Flag.Consecutive, 1, 0, 0, fileData.Length);
+        return image;
+    }
+
+    private static byte[] CreateSectionBoundaryImage(byte[] fileData)
+    {
+        byte[] image = CreateConImage(CONFileStream.CalculateBlockLocation(CONFileStream.BLOCKS_PER_SECTION, 0)
+            + CONFileStream.BYTES_PER_BLOCK);
+
+        fileData.AsSpan(0, CONFileStream.BYTES_PER_BLOCK).CopyTo(
+            image.AsSpan((int) CONFileStream.CalculateBlockLocation(CONFileStream.BLOCKS_PER_SECTION - 1, 0),
+                CONFileStream.BYTES_PER_BLOCK));
+        fileData.AsSpan(CONFileStream.BYTES_PER_BLOCK).CopyTo(
+            image.AsSpan((int) CONFileStream.CalculateBlockLocation(CONFileStream.BLOCKS_PER_SECTION, 0),
+                fileData.Length - CONFileStream.BYTES_PER_BLOCK));
+        return image;
     }
 
     private static byte[] CreateConImage(long length, string tag = "CON ")

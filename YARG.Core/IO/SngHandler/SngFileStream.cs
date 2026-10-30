@@ -3,6 +3,7 @@ using System.IO;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
+using YARG.Core.Extensions;
 
 namespace YARG.Core.IO
 {
@@ -177,7 +178,7 @@ namespace YARG.Core.IO
             lock (_tracker.Stream)
             {
                 _tracker.Stream.Position = readPosition + _listing.Position;
-                if (_tracker.Stream.Read(_dataBuffer[..(int)readCount]) != readCount)
+                if (_tracker.Stream.ReadFully(_dataBuffer[..(int)readCount]) != readCount)
                 {
                     throw new IOException("Read error in SNGPKG subfile");
                 }

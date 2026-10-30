@@ -110,7 +110,7 @@ namespace YARG.Core.IO
             {
                 filestream.Position = 0;
                 Span<byte> tag = stackalloc byte[SNGPKG.Length];
-                if (filestream.Read(tag) < tag.Length || !tag.SequenceEqual(SNGPKG))
+                if (filestream.ReadFully(tag) < tag.Length || !tag.SequenceEqual(SNGPKG))
                 {
                     return default;
                 }
@@ -154,7 +154,7 @@ namespace YARG.Core.IO
             {
                 filestream.Position = 0;
                 Span<byte> tag = stackalloc byte[SNGPKG.Length];
-                if (filestream.Read(tag) < tag.Length || !tag.SequenceEqual(SNGPKG))
+                if (filestream.ReadFully(tag) < tag.Length || !tag.SequenceEqual(SNGPKG))
                 {
                     return false;
                 }
