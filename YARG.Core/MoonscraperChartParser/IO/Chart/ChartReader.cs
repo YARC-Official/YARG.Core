@@ -180,6 +180,11 @@ namespace MoonscraperChartEditor.Song.IO
                 SubmitChartData(ref settings, song, sectionName, sectionBody);
             }
 
+            // A drum fill at or after the coda is a Big Rock Ending, as in a .mid.
+            // [Events] can come after the drums sections, so this waits for every section.
+            MidReader.ReplaceDrumFillDuringCoda(song, MoonSong.MoonInstrument.Drums);
+            MidReader.SetCodaFlags(song, MoonSong.MoonInstrument.Drums);
+
             return song;
         }
 
