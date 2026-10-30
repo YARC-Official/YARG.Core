@@ -85,6 +85,27 @@ public class SongIniHandlerTests
     }
 
     [Test]
+    public void ReadSongIniFile_ReadsSongEqualsLineAsKeyLine()
+    {
+        var modifiers = ReadSongIni(
+            """
+            [Song]
+            [Song] =
+            name = Song Name
+            artist = Artist
+            """
+        );
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(modifiers.Extract("name", out string name), Is.True);
+            Assert.That(name, Is.EqualTo("Song Name"));
+            Assert.That(modifiers.Extract("artist", out string artist), Is.True);
+            Assert.That(artist, Is.EqualTo("Artist"));
+        }
+    }
+
+    [Test]
     public void ReadSongIniFile_ReadsUtf16EncodedFiles()
     {
         var modifiers = ReadSongIni(
