@@ -159,7 +159,8 @@ namespace YARG.Core.Song
                 TuningOffsetCents = _settings.TuningOffsetCents,
                 DrumsType = DrumsType.FourLane,
                 ChordHopoCancellation = true,
-                NoteSnapThreshold = NOTE_SNAP_THRESHOLD
+                NoteSnapThreshold = NOTE_SNAP_THRESHOLD,
+                RockBandNoteSnap = true
             };
             return SongChart.FromMidi(in parseSettings, midi);
         }
@@ -583,10 +584,12 @@ namespace YARG.Core.Song
                 }
 
                 entry._parts.ProDrums.Difficulties = entry._parts.FourLaneDrums.Difficulties;
-                entry._settings.SustainCutoffThreshold = resolution.Value / 3;
-                if (entry._settings.HopoThreshold == -1)
+                // Rock Band songs cut sustains shorter than a 1/12th note, and add a tick to the HOPO threshold
+                // in songs.dta, like the default
+                entry._settings.SustainCutoffThreshold = resolution.Value / 3 - 1;
+                if (entry._settings.HopoThreshold >= 0)
                 {
-                    entry._settings.HopoThreshold = entry._settings.SustainCutoffThreshold;
+                    entry._settings.HopoThreshold += 1;
                 }
 
                 using var buffer = FixedArray<byte>.Alloc(bufLength);

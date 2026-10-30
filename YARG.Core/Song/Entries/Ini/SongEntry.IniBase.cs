@@ -102,6 +102,7 @@ namespace YARG.Core.Song
             {
                 HopoThreshold = _settings.HopoThreshold,
                 SustainCutoffThreshold = _settings.SustainCutoffThreshold,
+                NoteSnapThreshold = _settings.NoteSnapThreshold,
                 StarPowerNote = _settings.OverdiveMidiNote,
                 TuningOffsetCents = _settings.TuningOffsetCents,
                 DrumsType = ParseDrumsType(in _parts),
@@ -220,36 +221,24 @@ namespace YARG.Core.Song
 
             if (!modifiers.Extract("hopo_frequency", out entry._settings.HopoThreshold) || entry._settings.HopoThreshold <= 0)
             {
-                if (modifiers.Extract("eighthnote_hopo", out bool eighthNoteHopo))
+                if (modifiers.Extract("eighthnote_hopo", out bool eighthNoteHopo) && eighthNoteHopo)
                 {
-                    entry._settings.HopoThreshold = resolution.Value / (eighthNoteHopo ? 2 : 3);
-                }
-                else if (modifiers.Extract("hopofreq", out int hopoFreq))
-                {
-                    long denominator = hopoFreq switch
+                    entry._settings.HopoThreshold = resolution.Value / 2;
+                    if (entry._chartFormat == ChartFormat.Chart)
                     {
-                        0 => 24,
-                        1 => 16,
-                        2 => 12,
-                        3 => 8,
-                        4 => 6,
-                        5 => 4,
-                        _ => throw new NotImplementedException($"Unhandled hopofreq value {hopoFreq}!")
-                    };
-                    entry._settings.HopoThreshold = 4 * resolution.Value / denominator;
+                        // .chart scales its extra tick with the resolution
+                        const float DEFAULT_RESOLUTION = 192;
+                        entry._settings.HopoThreshold += (long) (resolution.Value / DEFAULT_RESOLUTION);
+                    }
+                    else
+                    {
+                        entry._settings.HopoThreshold += 1;
+                    }
                 }
                 else
                 {
-                    entry._settings.HopoThreshold = resolution.Value / 3;
-                }
-
-                if (entry._chartFormat == ChartFormat.Chart)
-                {
-                    // With a 192 resolution, .chart has a HOPO threshold of 65 ticks, not 64,
-                    // so we need to scale this factor to different resolutions (480 res = 162.5 threshold).
-                    // Why?... idk, but I hate it.
-                    const float DEFAULT_RESOLUTION = 192;
-                    entry._settings.HopoThreshold += (long) (resolution.Value / DEFAULT_RESOLUTION);
+                    // The chart readers apply the default threshold of their format
+                    entry._settings.HopoThreshold = ParseSettings.SETTING_DEFAULT;
                 }
             }
 
@@ -257,7 +246,12 @@ namespace YARG.Core.Song
             // Since a failed `Extract` sets the value to zero, we need no additional work unless it's .mid
             if (!modifiers.Extract("sustain_cutoff_threshold", out entry._settings.SustainCutoffThreshold) && entry._chartFormat != ChartFormat.Chart)
             {
-                entry._settings.SustainCutoffThreshold = resolution.Value / 3;
+                entry._settings.SustainCutoffThreshold = resolution.Value / 3 + 1;
+            }
+
+            if (modifiers.Extract("chord_snap_threshold", out entry._settings.NoteSnapThreshold) && entry._settings.NoteSnapThreshold < 0)
+            {
+                entry._settings.NoteSnapThreshold = 0;
             }
 
             if (entry._chartFormat == ChartFormat.Mid || entry._chartFormat == ChartFormat.Midi)

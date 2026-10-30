@@ -50,6 +50,11 @@ namespace YARG.Core.Chart
             NoteMask |= GetKeyMask(note.Key);
         }
 
+        protected override bool IsSameLane(ProKeysNote other)
+        {
+            return other.Key == Key;
+        }
+
         public override void ResetNoteState()
         {
             base.ResetNoteState();

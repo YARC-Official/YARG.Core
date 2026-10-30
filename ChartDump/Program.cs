@@ -95,7 +95,7 @@ class Program
         // Read song.ini next to the chart file so we pick up drum-type hints
         // (five_lane_drums / pro_drums). Without these, SongChart auto-populates
         // all three drum interpretations and we can't tell which one is canonical.
-        // Also read hopo_frequency / eighthnote_hopo / hopofreq so the parser
+        // Also read hopo_frequency / eighthnote_hopo so the parser
         // uses the same HOPO threshold the game will — matching YARG.Core's
         // SongEntry.IniBase ini handling.
         string chartDir = Path.GetDirectoryName(chartFile) ?? "";
@@ -103,7 +103,6 @@ class Program
         DrumsType iniDrumsType = DrumsType.Unknown;
         long? iniHopoFrequency = null;
         bool? iniEighthnoteHopo = null;
-        int? iniHopofreq = null;
         if (File.Exists(iniPath))
         {
             try
@@ -140,8 +139,6 @@ class Program
                         iniHopoFrequency = hopoFreq;
                     else if (ReadBool("eighthnote_hopo", out var eighthHopo))
                         iniEighthnoteHopo = eighthHopo;
-                    else if (ReadInt("hopofreq", out var hf))
-                        iniHopofreq = (int)hf;
                 }
             }
             catch { /* ignore ini read errors */ }
@@ -185,14 +182,10 @@ class Program
                     reader.ReadUInt16();
                     var division = (ushort)((reader.ReadByte() << 8) | reader.ReadByte());
                     int resolution = division & 0x7FFF;
-                    settings.HopoThreshold = resolution / (iniEighthnoteHopo.Value ? 2 : 3);
+                    settings.HopoThreshold = resolution / (iniEighthnoteHopo.Value ? 2 : 3) + 1;
                 }
                 catch { /* ignore */ }
             }
-        }
-        else if (iniHopofreq.HasValue)
-        {
-            // Not common — leave default for now.
         }
 
         // ChordHopoCancellation mirrors what SongEntry.IniBase applies at game
