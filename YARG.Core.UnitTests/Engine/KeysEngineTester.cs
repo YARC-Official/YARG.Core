@@ -1,4 +1,5 @@
-﻿using NUnit.Framework;
+﻿using System.Collections.Generic;
+using NUnit.Framework;
 using YARG.Core.Chart;
 using YARG.Core.Engine;
 using YARG.Core.Engine.Keys;
@@ -9,6 +10,292 @@ namespace YARG.Core.UnitTests.Engine;
 
 public class KeysEngineTester : EngineTester
 {
+    [Test]
+    public void ReleaseDoesNotHitSingleNoteWhenOptionIsDisabled()
+    {
+        var note = CreateNote(FiveFretGuitarFret.Green, NoteFlags.None, 1.0, 480);
+        var engine = CreateReleaseHitEngine(enabled: false, note);
+
+        PressKey(engine, 0.5, ProKeysAction.GreenKey);
+        ReleaseKey(engine, 1.0, ProKeysAction.GreenKey);
+
+        Assert.That(note.WasHit, Is.False);
+    }
+
+    [Test]
+    public void ReleaseHitsMatchingSingleNoteWhenOptionIsEnabled()
+    {
+        var note = CreateNote(FiveFretGuitarFret.Green, NoteFlags.None, 1.0, 480);
+        var engine = CreateReleaseHitEngine(enabled: true, note);
+
+        PressKey(engine, 0.5, ProKeysAction.GreenKey);
+        ReleaseKey(engine, 1.0, ProKeysAction.GreenKey);
+
+        Assert.That(note.WasHit, Is.True);
+    }
+
+    [Test]
+    public void ReleaseWithoutMatchingNoteDoesNotHitOrOverhit()
+    {
+        var note = CreateNote(FiveFretGuitarFret.Green, NoteFlags.None, 1.0, 480);
+        var engine = CreateReleaseHitEngine(enabled: true, note);
+
+        ReleaseKey(engine, 1.0, ProKeysAction.BlueKey);
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(note.WasHit, Is.False);
+            Assert.That(engine.EngineStats.Overhits, Is.Zero);
+        }
+    }
+
+    [Test]
+    public void ReleaseOutsideHitWindowDoesNotHitSingleNote()
+    {
+        var note = CreateNote(FiveFretGuitarFret.Green, NoteFlags.None, 1.0, 480);
+        var engine = CreateReleaseHitEngine(enabled: true, note);
+
+        PressKey(engine, 0.5, ProKeysAction.GreenKey);
+        ReleaseKey(engine, 1.11, ProKeysAction.GreenKey);
+
+        Assert.That(note.WasHit, Is.False);
+    }
+
+    [Test]
+    public void ReleaseHitSustainRemainsHeldUntilItsNaturalEnd()
+    {
+        var note = CreateSustainNote(FiveFretGuitarFret.Green, 1.0, 960, 480);
+        var engine = CreateReleaseHitEngine(enabled: true, note);
+        var sustainEnds = new List<(double Time, bool Finished)>();
+        engine.OnSustainEnd += (_, time, finished) => sustainEnds.Add((time, finished));
+
+        PressKey(engine, 0.5, ProKeysAction.GreenKey);
+        ReleaseKey(engine, 1.0, ProKeysAction.GreenKey);
+        engine.Update(1.25);
+        engine.Update(1.3);
+
+        Assert.That(sustainEnds, Is.Empty);
+
+        engine.Update(1.5);
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(sustainEnds, Has.Count.EqualTo(1));
+            Assert.That(sustainEnds[0].Finished, Is.True);
+            Assert.That(note.SustainTicksHeld, Is.EqualTo(note.TickLength));
+        }
+    }
+
+    [Test]
+    public void ResetClearsReleaseHeldSustain()
+    {
+        var note = CreateSustainNote(FiveFretGuitarFret.Green, 1.0, 960, 480);
+        var engine = CreateReleaseHitEngine(enabled: true, note);
+        var sustainEnds = new List<bool>();
+        engine.OnSustainEnd += (_, _, finished) => sustainEnds.Add(finished);
+
+        PressKey(engine, 0.5, ProKeysAction.GreenKey);
+        ReleaseKey(engine, 1.0, ProKeysAction.GreenKey);
+        engine.Update(1.25);
+        engine.Reset();
+        engine.Update(1.5);
+
+        Assert.That(sustainEnds, Is.Empty);
+    }
+
+    [Test]
+    public void ReleaseHeldSustainBehaviorIsNotAppliedWhenOptionIsDisabled()
+    {
+        // Wildcard notes already accept a recent key release; this verifies that the new sustain
+        // behavior is still gated by ReleaseKeysCanHitNotes.
+        var note = CreateSustainNote(FiveFretGuitarFret.Wildcard, 1.0, 960, 480);
+        var engine = CreateReleaseHitEngine(enabled: false, sustainDropLeniency: 0.01, note);
+        var sustainEnds = new List<bool>();
+        engine.OnSustainEnd += (_, _, finished) => sustainEnds.Add(finished);
+
+        ReleaseKey(engine, 1.0, ProKeysAction.GreenKey);
+        engine.Update(1.02);
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(note.WasHit, Is.True);
+            Assert.That(sustainEnds, Has.Count.EqualTo(1));
+            Assert.That(sustainEnds[0], Is.False);
+        }
+    }
+
+    [Test]
+    public void ReleaseModeChordMarksOnlyReleaseHitSustainsAsHeld()
+    {
+        var previousChord = CreateChord(0.0, 0, FiveFretGuitarFret.Green, FiveFretGuitarFret.Red);
+        var currentChord = CreateSustainChord(1.0, 960, 480,
+            FiveFretGuitarFret.Green, FiveFretGuitarFret.Red);
+        LinkNotes(previousChord, currentChord);
+        var engine = CreateReleaseHitEngine(enabled: true, previousChord, currentChord);
+        var sustainEnds = new List<(GuitarNote Note, bool Finished)>();
+        engine.OnSustainEnd += (endedNote, _, finished) => sustainEnds.Add((endedNote, finished));
+
+        engine.Update(0.2);
+        PressKey(engine, 0.3, ProKeysAction.GreenKey);
+        PressKey(engine, 0.31, ProKeysAction.RedKey);
+        ReleaseKey(engine, 0.96, ProKeysAction.GreenKey);
+        engine.Update(1.01);
+        engine.Update(1.25);
+        Assert.That(sustainEnds, Is.Empty);
+
+        engine.Update(1.5);
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(currentChord.WasHit, Is.True);
+            Assert.That(currentChord.ChildNotes[0].WasMissed, Is.True);
+            Assert.That(sustainEnds, Has.Count.EqualTo(1));
+            Assert.That(sustainEnds[0].Note, Is.SameAs(currentChord));
+            Assert.That(sustainEnds[0].Finished, Is.True);
+        }
+    }
+
+    [Test]
+    public void ReleaseModeChordHitsRepeatedChordEvenWhenPreviousChordWasMissed()
+    {
+        var previousChord = CreateChord(0.0, 0, FiveFretGuitarFret.Green, FiveFretGuitarFret.Red);
+        var currentChord = CreateChord(1.0, 480, FiveFretGuitarFret.Green, FiveFretGuitarFret.Red);
+        LinkNotes(previousChord, currentChord);
+        var engine = CreateReleaseHitEngine(enabled: true, previousChord, currentChord);
+
+        // Miss the first chord, then hold its lanes so they can be released for the repeated chord.
+        engine.Update(0.2);
+        PressKey(engine, 0.3, ProKeysAction.GreenKey);
+        PressKey(engine, 0.31, ProKeysAction.RedKey);
+        ReleaseKey(engine, 0.96, ProKeysAction.GreenKey);
+        ReleaseKey(engine, 0.98, ProKeysAction.RedKey);
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(previousChord.WasFullyMissed(), Is.True);
+            Assert.That(currentChord.WasFullyHit(), Is.True);
+        }
+    }
+
+    [Test]
+    public void ReleaseModeChordStaggerHitsOnlyReleasedLanes()
+    {
+        var previousChord = CreateChord(0.0, 0, FiveFretGuitarFret.Green, FiveFretGuitarFret.Red);
+        var currentChord = CreateChord(1.0, 480, FiveFretGuitarFret.Green, FiveFretGuitarFret.Red);
+        LinkNotes(previousChord, currentChord);
+        var engine = CreateReleaseHitEngine(enabled: true, previousChord, currentChord);
+
+        engine.Update(0.2);
+        PressKey(engine, 0.3, ProKeysAction.GreenKey);
+        PressKey(engine, 0.31, ProKeysAction.RedKey);
+        ReleaseKey(engine, 0.96, ProKeysAction.GreenKey);
+        engine.Update(1.01);
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(currentChord.WasHit, Is.True);
+            Assert.That(currentChord.WasMissed, Is.False);
+            Assert.That(currentChord.ChildNotes[0].WasHit, Is.False);
+            Assert.That(currentChord.ChildNotes[0].WasMissed, Is.True);
+        }
+    }
+
+    [Test]
+    public void ReleaseCannotCompletePressModeChord()
+    {
+        var previousChord = CreateChord(0.0, 0, FiveFretGuitarFret.Green, FiveFretGuitarFret.Red);
+        var currentChord = CreateChord(1.0, 480, FiveFretGuitarFret.Green, FiveFretGuitarFret.Red);
+        LinkNotes(previousChord, currentChord);
+        var engine = CreateReleaseHitEngine(enabled: true, previousChord, currentChord);
+
+        engine.Update(0.2);
+        PressKey(engine, 0.3, ProKeysAction.RedKey);
+        PressKey(engine, 0.96, ProKeysAction.GreenKey);
+        ReleaseKey(engine, 0.98, ProKeysAction.RedKey);
+        engine.Update(1.01);
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(currentChord.WasHit, Is.True);
+            Assert.That(currentChord.ChildNotes[0].WasHit, Is.False);
+            Assert.That(currentChord.ChildNotes[0].WasMissed, Is.True);
+        }
+    }
+
+    [Test]
+    public void PressCannotCompleteReleaseModeChord()
+    {
+        var previousChord = CreateChord(0.0, 0, FiveFretGuitarFret.Green, FiveFretGuitarFret.Red);
+        var currentChord = CreateChord(1.0, 480, FiveFretGuitarFret.Green, FiveFretGuitarFret.Red);
+        LinkNotes(previousChord, currentChord);
+        var engine = CreateReleaseHitEngine(enabled: true, previousChord, currentChord);
+
+        engine.Update(0.2);
+        PressKey(engine, 0.3, ProKeysAction.GreenKey);
+        PressKey(engine, 0.3, ProKeysAction.RedKey);
+        ReleaseKey(engine, 0.96, ProKeysAction.GreenKey);
+        PressKey(engine, 0.98, ProKeysAction.RedKey);
+        engine.Update(1.01);
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(currentChord.WasHit, Is.True);
+            Assert.That(currentChord.ChildNotes[0].WasHit, Is.False);
+            Assert.That(currentChord.ChildNotes[0].WasMissed, Is.True);
+        }
+    }
+
+    [Test]
+    public void ReleaseDoesNotHitChordWithoutMatchingPreviousChordMask()
+    {
+        var previousChord = CreateChord(0.0, 0, FiveFretGuitarFret.Green, FiveFretGuitarFret.Red);
+        var currentChord = CreateChord(1.0, 480, FiveFretGuitarFret.Green, FiveFretGuitarFret.Blue);
+        LinkNotes(previousChord, currentChord);
+        var engine = CreateReleaseHitEngine(enabled: true, previousChord, currentChord);
+
+        engine.Update(0.2);
+        PressKey(engine, 0.3, ProKeysAction.GreenKey);
+        PressKey(engine, 0.31, ProKeysAction.BlueKey);
+        ReleaseKey(engine, 0.96, ProKeysAction.GreenKey);
+        ReleaseKey(engine, 0.98, ProKeysAction.BlueKey);
+
+        Assert.That(currentChord.WasHit, Is.False);
+    }
+
+    [Test]
+    public void ReleaseDoesNotHitChordAfterSinglePreviousNote()
+    {
+        var previousNote = CreateNote(FiveFretGuitarFret.Green, NoteFlags.None, 0.0, 0);
+        var currentChord = CreateChord(1.0, 480, FiveFretGuitarFret.Green, FiveFretGuitarFret.Red);
+        LinkNotes(previousNote, currentChord);
+        var engine = CreateReleaseHitEngine(enabled: true, previousNote, currentChord);
+
+        engine.Update(0.2);
+        PressKey(engine, 0.3, ProKeysAction.GreenKey);
+        PressKey(engine, 0.31, ProKeysAction.RedKey);
+        ReleaseKey(engine, 0.96, ProKeysAction.GreenKey);
+        ReleaseKey(engine, 0.98, ProKeysAction.RedKey);
+
+        Assert.That(currentChord.WasHit, Is.False);
+    }
+
+    [Test]
+    public void ProKeysIgnoresReleaseHitParameter()
+    {
+        var note = new ProKeysNote(0, ProKeysNoteFlags.None, NoteFlags.None, 1.0, 0, 480, 0);
+        var notes = new InstrumentDifficulty<ProKeysNote>(Instrument.ProKeys, Difficulty.Expert,
+            [note], new(), new());
+        var engineParameters = CreateKeysEngineParameters(releaseKeysCanHitNotes: true);
+        var syncTrack = CreateSyncTrack();
+        var engine = new YargProKeysEngine(notes, syncTrack, engineParameters, false);
+
+        var release = GameInput.Create(1.0, ProKeysAction.Key1, false);
+        engine.QueueInput(ref release);
+        engine.Update(1.0);
+
+        Assert.That(note.WasHit, Is.False);
+    }
+
     [Test]
     public void MatchingKeyBeforeChordTremoloLaneStart_DoesNotOverhit()
     {
@@ -78,6 +365,69 @@ public class KeysEngineTester : EngineTester
 
         Assert.That(engine.EngineStats.Overhits, Is.EqualTo(1));
         Assert.That(overhitKey, Is.EqualTo((int) FiveLaneKeysEngine.FiveLaneKeysAction.YellowKey));
+    }
+
+    private static YargFiveLaneKeysEngine CreateReleaseHitEngine(bool enabled, params GuitarNote[] notes)
+    {
+        return CreateReleaseHitEngine(enabled, 0, notes);
+    }
+
+    private static YargFiveLaneKeysEngine CreateReleaseHitEngine(bool enabled, double sustainDropLeniency,
+        params GuitarNote[] notes)
+    {
+        LinkNotes(notes);
+
+        var difficulty = new InstrumentDifficulty<GuitarNote>(Instrument.Keys, Difficulty.Expert,
+            new List<GuitarNote>(notes), new(), new());
+        var engineParameters = CreateKeysEngineParameters(enabled, sustainDropLeniency);
+        return new YargFiveLaneKeysEngine(difficulty, CreateSyncTrack(), engineParameters, false);
+    }
+
+    private static KeysEngineParameters CreateKeysEngineParameters(bool releaseKeysCanHitNotes,
+        double sustainDropLeniency = 0)
+    {
+        return new KeysEngineParameters(
+            CreateHitWindowSettings(),
+            4,
+            0,
+            sustainDropLeniency,
+            StarMultiplierThresholds,
+            SoloBonusStarMultiplierThresholds,
+            0.05,
+            0,
+            false,
+            true,
+            releaseKeysCanHitNotes);
+    }
+
+    private static GuitarNote CreateSustainNote(FiveFretGuitarFret fret, double time, uint tick, uint tickLength)
+    {
+        const double TICKS_PER_SECOND = 960.0;
+        return new GuitarNote(fret, GuitarNoteType.Strum, GuitarNoteFlags.None, NoteFlags.None,
+            time, tickLength / TICKS_PER_SECOND, tick, tickLength);
+    }
+
+    private static GuitarNote CreateSustainChord(double time, uint tick, uint tickLength,
+        params FiveFretGuitarFret[] frets)
+    {
+        var chord = CreateSustainNote(frets[0], time, tick, tickLength);
+        for (int i = 1; i < frets.Length; i++)
+        {
+            chord.AddChildNote(CreateSustainNote(frets[i], time, tick, tickLength));
+        }
+
+        return chord;
+    }
+
+    private static GuitarNote CreateChord(double time, uint tick, params FiveFretGuitarFret[] frets)
+    {
+        var chord = CreateNote(frets[0], NoteFlags.None, time, tick);
+        for (int i = 1; i < frets.Length; i++)
+        {
+            chord.AddChildNote(CreateNote(frets[i], NoteFlags.None, time, tick));
+        }
+
+        return chord;
     }
 
     private static (YargFiveLaneKeysEngine Engine, InstrumentDifficulty<GuitarNote> Notes) CreateChordTremoloLaneProximityEngine()
