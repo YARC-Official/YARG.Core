@@ -579,6 +579,31 @@ namespace YARG.Core.UnitTests.Parsing
             Assert.That(settings.DrumsType, Is.EqualTo(DrumsType.FiveLane));
         }
 
+        // A red note at the pair's tick reads as (RedDrum, Snare) after off, (YellowCymbal, Else) after d,
+        // and (RedDrum, Else) after dnoflip
+        [TestCase("", "d", FourLaneDrumPad.RedDrum, DrumStem.Snare)]
+        [TestCase("d", "", FourLaneDrumPad.RedDrum, DrumStem.Snare)]
+        [TestCase("d", "dnoflip", FourLaneDrumPad.YellowCymbal, DrumStem.Else)]
+        [TestCase("dnoflip", "d", FourLaneDrumPad.YellowCymbal, DrumStem.Else)]
+        [TestCase("", "dnoflip", FourLaneDrumPad.RedDrum, DrumStem.Snare)]
+        [TestCase("dnoflip", "", FourLaneDrumPad.RedDrum, DrumStem.Snare)]
+        public void DrumsMixEventsAtOneTick_UseOffThenDThenDnoflip(string firstFlag, string secondFlag,
+            FourLaneDrumPad pad, DrumStem stem)
+        {
+            var chartText = ChartText.Chart(
+                ChartText.SongSection(),
+                ChartText.SyncSection(),
+                ChartText.Section("ExpertDrums",
+                    $"192 = E mix 3 drums0{firstFlag}",
+                    $"192 = E mix 3 drums0{secondFlag}",
+                    "192 = N 1 0"));
+
+            var songChart = SongChart.FromDotChart(ParseSettings.Default_Chart, chartText.AsSpan());
+            var note = songChart.ProDrums.GetDifficulty(YargDifficulty.Expert).Notes.Single();
+
+            Assert.That(((FourLaneDrumPad) note.Pad, note.Stem), Is.EqualTo((pad, stem)));
+        }
+
         [Test]
         public void ReadFromText_AppliesSustainCutoffThreshold()
         {
