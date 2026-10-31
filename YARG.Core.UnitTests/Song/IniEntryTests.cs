@@ -1,4 +1,7 @@
+using MoonscraperChartEditor.Song;
+using MoonscraperChartEditor.Song.IO;
 using NUnit.Framework;
+using YARG.Core.Chart;
 using YARG.Core.Extensions;
 using YARG.Core.Song;
 using YARG.Core.Venue;
@@ -93,6 +96,129 @@ public class IniEntryTests
             var entry = CreateIniEntry(root, songName, ini);
 
             Assert.That(entry.VocalGender, Is.EqualTo(expected));
+        }
+        finally
+        {
+            if (Directory.Exists(root))
+                Directory.Delete(root, true);
+        }
+    }
+
+    [Test]
+    public void LoadChart_ChartDefaultHopoThresholdIs65TicksAtResolution192()
+    {
+        string root = CreateTempDirectory();
+        try
+        {
+            // 128 * 65 / 192 = 43 ticks
+            var entry = CreateChartEntry(root, CreateBasicIni(), 128,
+                "0 = N 0 0", "43 = N 1 0", "1000 = N 0 0", "1044 = N 1 0");
+
+            Assert.That(LoadExpertGuitar(entry).Select(note => note.Type),
+                Is.EqualTo(new[] { GuitarNoteType.Strum, GuitarNoteType.Hopo, GuitarNoteType.Strum, GuitarNoteType.Strum }));
+        }
+        finally
+        {
+            if (Directory.Exists(root))
+                Directory.Delete(root, true);
+        }
+    }
+
+    [Test]
+    public void LoadChart_MidHopoFrequencyIsTheHopoThreshold()
+    {
+        string root = CreateTempDirectory();
+        try
+        {
+            var ini = $"{CreateBasicIni()}\nhopo_frequency = 100\n";
+            var entry = CreateMidEntry(root, ini, 480, (0, 0, 0), (100, 0, 1), (960, 0, 0), (1061, 0, 1));
+
+            Assert.That(LoadExpertGuitar(entry).Select(note => note.Type),
+                Is.EqualTo(new[] { GuitarNoteType.Strum, GuitarNoteType.Hopo, GuitarNoteType.Strum, GuitarNoteType.Strum }));
+        }
+        finally
+        {
+            if (Directory.Exists(root))
+                Directory.Delete(root, true);
+        }
+    }
+
+    [TestCase(0)]
+    [TestCase(6)]
+    [TestCase(-1)]
+    public void LoadChart_IgnoresHopofreq(int hopofreq)
+    {
+        string root = CreateTempDirectory();
+        try
+        {
+            var ini = $"{CreateBasicIni()}\nhopofreq = {hopofreq}\n";
+            var entry = CreateChartEntry(root, ini, 192, "0 = N 0 0", "40 = N 1 0");
+
+            Assert.That(LoadExpertGuitar(entry).Select(note => note.Type),
+                Is.EqualTo(new[] { GuitarNoteType.Strum, GuitarNoteType.Hopo }));
+        }
+        finally
+        {
+            if (Directory.Exists(root))
+                Directory.Delete(root, true);
+        }
+    }
+
+    [Test]
+    public void LoadChart_MidDefaultSustainCutoffIsAThirdOfABeatPlusOneTick()
+    {
+        string root = CreateTempDirectory();
+        try
+        {
+            var entry = CreateMidEntry(root, CreateBasicIni(), 480, (0, 160, 0), (480, 161, 0), (960, 162, 0));
+
+            Assert.That(LoadExpertGuitar(entry).Select(note => note.TickLength), Is.EqualTo(new uint[] { 0, 0, 162 }));
+        }
+        finally
+        {
+            if (Directory.Exists(root))
+                Directory.Delete(root, true);
+        }
+    }
+
+    [TestCase(ChartFormat.Mid)]
+    [TestCase(ChartFormat.Chart)]
+    public void LoadChart_SustainCutoffThresholdCutsSustainsOfItsLength(ChartFormat format)
+    {
+        string root = CreateTempDirectory();
+        try
+        {
+            var ini = $"{CreateBasicIni()}\nsustain_cutoff_threshold = 2\n";
+            var entry = format == ChartFormat.Mid
+                ? CreateMidEntry(root, ini, 480, (0, 2, 0), (480, 3, 0))
+                : CreateChartEntry(root, ini, 480, "0 = N 0 2", "480 = N 0 3");
+
+            Assert.That(LoadExpertGuitar(entry).Select(note => note.TickLength), Is.EqualTo(new uint[] { 0, 3 }));
+        }
+        finally
+        {
+            if (Directory.Exists(root))
+                Directory.Delete(root, true);
+        }
+    }
+
+    [Test]
+    public void LoadChart_ChordSnapThresholdSnapsCloseNotesIntoChords()
+    {
+        string root = CreateTempDirectory();
+        try
+        {
+            var ini = $"{CreateBasicIni()}\nchord_snap_threshold = 2\n";
+            var entry = CreateChartEntry(root, ini, 192, "0 = N 0 0", "1 = N 1 0", "100 = N 0 0", "102 = N 1 0");
+
+            var notes = LoadExpertGuitar(entry);
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(notes.Select(note => note.Tick), Is.EqualTo(new uint[] { 0, 100, 102 }));
+                Assert.That(notes[0].ChildNotes.Select(note => (note.Tick, note.Fret)),
+                    Is.EqualTo(new[] { (0u, (int) FiveFretGuitarFret.Red) }));
+            }
         }
         finally
         {
@@ -256,11 +382,17 @@ public class IniEntryTests
 
     private static UnpackedIniEntry CreateIniEntry(string root, string name, string iniText)
     {
+        return CreateIniEntry(root, name, iniText, ChartFormat.Mid, path => File.Copy(GetTestMidiPath(), path));
+    }
+
+    private static UnpackedIniEntry CreateIniEntry(string root, string name, string iniText, ChartFormat format,
+        Action<string> writeChart)
+    {
         string songDirectory = Path.Combine(root, name);
         Directory.CreateDirectory(songDirectory);
 
-        string midiPath = Path.Combine(songDirectory, "notes.mid");
-        File.Copy(GetTestMidiPath(), midiPath);
+        string chartPath = Path.Combine(songDirectory, format == ChartFormat.Chart ? "notes.chart" : "notes.mid");
+        writeChart(chartPath);
 
         string audioPath = Path.Combine(songDirectory, "song.opus");
         using (var opus = new FileStream(audioPath, FileMode.Create, FileAccess.Write, FileShare.None))
@@ -272,7 +404,7 @@ public class IniEntryTests
         File.WriteAllText(iniPath, iniText);
 
         // TODO: We should probably be creating a test entry, not an actual entry, because it really doesn't like doing certain things in a test environment. But for now, this works.
-        var result = UnpackedIniEntry.ProcessNewEntry(songDirectory, new FileInfo(midiPath), ChartFormat.Mid,
+        var result = UnpackedIniEntry.ProcessNewEntry(songDirectory, new FileInfo(chartPath), format,
             new FileInfo(iniPath), "");
         Assert.That(result.HasValue, Is.True, $"Expected ini creation to succeed, but got {result.Error}.");
         return result.Value;
@@ -320,5 +452,30 @@ public class IniEntryTests
             "../../../../Parsing/Test Charts/test.mid"));
         Assert.That(File.Exists(path), Is.True, $"Expected test MIDI fixture at {path}.");
         return path;
+    }
+
+    private static UnpackedIniEntry CreateChartEntry(string root, string iniText, uint resolution, params string[] expertGuitarLines)
+    {
+        var chartText = Parsing.ChartText.Chart(
+            Parsing.ChartText.SongSection(resolution),
+            Parsing.ChartText.SyncSection(),
+            Parsing.ChartText.Section("ExpertSingle", expertGuitarLines));
+        return CreateIniEntry(root, "testsong", iniText, ChartFormat.Chart, path => File.WriteAllText(path, chartText));
+    }
+
+    private static UnpackedIniEntry CreateMidEntry(string root, string iniText, short resolution,
+        params (long Tick, long Length, int Fret)[] expertGuitarNotes)
+    {
+        int green = MidIOHelper.GUITAR_DIFF_START_LOOKUP[MoonSong.Difficulty.Expert];
+        var notes = expertGuitarNotes.Select(note => (note.Tick, note.Length, green + note.Fret)).ToArray();
+        return CreateIniEntry(root, "testsong", iniText, ChartFormat.Mid,
+            path => TestMidi.Write(path, resolution, MidIOHelper.GUITAR_TRACK, notes));
+    }
+
+    private static List<GuitarNote> LoadExpertGuitar(UnpackedIniEntry entry)
+    {
+        var chart = entry.LoadChart();
+        Assert.That(chart, Is.Not.Null);
+        return chart!.FiveFretGuitar.GetDifficulty(Difficulty.Expert).Notes;
     }
 }

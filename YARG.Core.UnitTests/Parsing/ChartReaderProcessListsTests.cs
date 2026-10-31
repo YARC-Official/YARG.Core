@@ -587,16 +587,17 @@ namespace YARG.Core.UnitTests.Parsing
             var chartText = ChartText.Chart(
                 ChartText.SongSection(),
                 ChartText.SyncSection(),
-                ChartText.Section("ExpertSingle", "0 = N 0 9", "100 = N 1 10"));
+                ChartText.Section("ExpertSingle", "0 = N 0 9", "100 = N 1 10", "200 = N 2 11"));
 
             var song = ChartReader.ReadFromText(ref settings, chartText);
             var notes = song.GetChart(MoonInstrument.Guitar, MoonDifficulty.Expert).notes;
 
             using (Assert.EnterMultipleScope())
             {
-                Assert.That(notes, Has.Count.EqualTo(2));
+                Assert.That(notes, Has.Count.EqualTo(3));
                 Assert.That(notes.Single(note => note.tick == 0).length, Is.EqualTo(0));
-                Assert.That(notes.Single(note => note.tick == 100).length, Is.EqualTo(10));
+                Assert.That(notes.Single(note => note.tick == 100).length, Is.EqualTo(0));
+                Assert.That(notes.Single(note => note.tick == 200).length, Is.EqualTo(11));
             }
         }
 

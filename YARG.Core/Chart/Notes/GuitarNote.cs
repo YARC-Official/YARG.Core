@@ -104,6 +104,37 @@ namespace YARG.Core.Chart
             NoteMask |= GetNoteMask(note.Fret);
         }
 
+        public override void SnapNote(GuitarNote note, double timeLength)
+        {
+            note.Type = Type;
+            base.SnapNote(note, timeLength);
+
+            // The snapped note keeps its length, so the chord's sustains may no longer end together
+            bool disjoint = false;
+            foreach (var chordNote in AllNotes)
+            {
+                disjoint |= chordNote.TickLength != TickLength;
+            }
+
+            foreach (var chordNote in AllNotes)
+            {
+                if (disjoint)
+                {
+                    chordNote._guitarFlags |= GuitarNoteFlags.Disjoint;
+                }
+                else
+                {
+                    chordNote._guitarFlags &= ~GuitarNoteFlags.Disjoint;
+                }
+                chordNote.GuitarFlags = chordNote._guitarFlags;
+            }
+        }
+
+        protected override bool IsSameLane(GuitarNote other)
+        {
+            return other.Fret == Fret;
+        }
+
         public override void ResetNoteState()
         {
             base.ResetNoteState();
