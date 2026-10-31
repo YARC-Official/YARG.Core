@@ -3,6 +3,7 @@ using System.Buffers.Binary;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using YARG.Core.Parsing;
 
 // ReSharper disable InconsistentNaming
 
@@ -10,7 +11,7 @@ namespace YARG.Core.Chart.Hashing
 {
     /// <summary>
     /// Writes a CHNF/20260801 BTrack and its TrackHash.
-    /// Sections 1–9 follow https://rhinestone-guide-ff8.notion.site/BTrack-Specification-38d2fadb443280a9b0b2ce54efee14af
+    /// Sections 1–9 follow https://chart-spec.enchor.us/hashes/btrack
     /// Vocal sections are a YARG extension in the unknown-section range.
     /// </summary>
     public static class BTrackHasher
@@ -92,6 +93,7 @@ namespace YARG.Core.Chart.Hashing
             result = default;
 
             List<Phrase> phrases;
+            List<Phrase> unplayedPhrases;
             List<RangeShift> rangeShiftEvents;
             List<(long Tick, long Length, BTrackNoteType Type, BTrackNoteFlags Flags)> notes;
             switch (instrument)
@@ -106,6 +108,7 @@ namespace YARG.Core.Chart.Hashing
                         return false;
                     }
                     phrases = guitarDifficulty.Phrases;
+                    unplayedPhrases = guitarDifficulty.UnplayedPhrases;
                     rangeShiftEvents = guitarDifficulty.RangeShiftEvents;
                     notes = NormalizeGuitarNotes(guitarDifficulty.Notes, TryMapFiveFretNote);
                     break;
@@ -119,6 +122,7 @@ namespace YARG.Core.Chart.Hashing
                         return false;
                     }
                     phrases = sixFretDifficulty.Phrases;
+                    unplayedPhrases = sixFretDifficulty.UnplayedPhrases;
                     rangeShiftEvents = sixFretDifficulty.RangeShiftEvents;
                     notes = NormalizeGuitarNotes(sixFretDifficulty.Notes, TryMapSixFretNote);
                     break;
@@ -126,13 +130,18 @@ namespace YARG.Core.Chart.Hashing
                 case Instrument.FourLaneDrums:
                 case Instrument.ProDrums:
                 case Instrument.FiveLaneDrums:
-                    if (!chart.GetDrumsTrack(instrument).TryGetDifficulty(difficulty, out var drumDifficulty))
+                    var drumsTrack = chart.GetDrumsTrack(instrument);
+                    // Expert's TrackHash holds its double kicks, which YARG plays only on Expert+,
+                    // so Expert and Expert+ both hash Expert+
+                    if (!(difficulty == Difficulty.Expert && drumsTrack.TryGetDifficulty(Difficulty.ExpertPlus, out var drumDifficulty))
+                        && !drumsTrack.TryGetDifficulty(difficulty, out drumDifficulty))
                     {
                         return false;
                     }
                     phrases = drumDifficulty.Phrases;
+                    unplayedPhrases = drumDifficulty.UnplayedPhrases;
                     rangeShiftEvents = drumDifficulty.RangeShiftEvents;
-                    notes = NormalizeDrumNotes(instrument, drumDifficulty.Notes);
+                    notes = NormalizeDrumNotes(instrument, drumDifficulty.Notes.Concat(drumDifficulty.UnplayedNotes));
                     break;
 
                 case Instrument.Vocals:
@@ -143,14 +152,21 @@ namespace YARG.Core.Chart.Hashing
                     return false;
             }
 
+            // A difficulty without notes has no BTrack, even with phrases
+            if (notes.Count == 0)
+            {
+                return false;
+            }
+
+            // Star power and solos resolve their overlaps before the ones without a note are left out
             result = WriteBTrack(
                 chart.SyncTrack,
-                ResolveOverlaps(PruneEmptyPhrases(GetPhrases(phrases, PhraseType.StarPower), notes),
-                    phrase => phrase.Tick, phrase => phrase.Length, (_, tick, length) => (tick, length)),
-                ResolveOverlaps(PruneEmptyPhrases(GetPhrases(phrases, PhraseType.Solo, chart.SoloSectionLengthIncludesTerminalTick), notes),
-                    phrase => phrase.Tick, phrase => phrase.Length, (_, tick, length) => (tick, length)),
-                PruneEmptyFlexLanes(GetFlexLanes(phrases), notes),
-                GetDrumFreestyles(phrases, chart.GlobalEvents),
+                PruneEmptyPhrases(ResolveOverlaps(GetPhrases(phrases, PhraseType.StarPower),
+                    phrase => phrase.Tick, phrase => phrase.Length, (_, tick, length) => (tick, length)), notes),
+                PruneEmptyPhrases(ResolveOverlaps(GetPhrases(phrases, PhraseType.Solo, chart.SoloSectionLengthIncludesTerminalTick),
+                    phrase => phrase.Tick, phrase => phrase.Length, (_, tick, length) => (tick, length)), notes),
+                PruneEmptyFlexLanes(GetFlexLanes(phrases.Concat(unplayedPhrases)), notes),
+                GetDrumFreestyles(phrases.Concat(unplayedPhrases), chart.GlobalEvents),
                 GetRangeShifts(rangeShiftEvents),
                 notes);
             return true;
@@ -297,7 +313,7 @@ namespace YARG.Core.Chart.Hashing
                 {
                     if (tryMap(child, out var type))
                     {
-                        normalized.Add((child.Tick, child.TickLength, type, MapGuitarFlags(child)));
+                        normalized.Add((child.Tick, child.WrittenTickLength, type, MapGuitarFlags(child)));
                     }
                 }
             }
@@ -348,23 +364,38 @@ namespace YARG.Core.Chart.Hashing
         }
 
         private static List<(long Tick, long Length, BTrackNoteType Type, BTrackNoteFlags Flags)> NormalizeDrumNotes(
-            Instrument instrument, List<DrumNote> notes)
+            Instrument instrument, IEnumerable<DrumNote> notes)
         {
             var normalized = new List<(long Tick, long Length, BTrackNoteType Type, BTrackNoteFlags Flags)>();
             foreach (var note in notes)
             {
+                // An orange and green chord on a 5-lane chart is a green cymbal and a blue tom
+                bool orangeAndGreen = false;
+                if (instrument == Instrument.FiveLaneDrums)
+                {
+                    bool orange = false;
+                    bool green = false;
+                    foreach (var child in note.AllNotes)
+                    {
+                        orange |= child.Pad == (int) FiveLaneDrumPad.Orange;
+                        green |= child.Pad == (int) FiveLaneDrumPad.Green;
+                    }
+                    orangeAndGreen = orange && green;
+                }
+
                 foreach (var child in note.AllNotes)
                 {
-                    if (TryMapDrumNote(instrument, child, out var type, out var flags))
+                    if (TryMapDrumNote(instrument, child, orangeAndGreen, out var type, out var flags))
                     {
-                        normalized.Add((child.Tick, child.TickLength, type, flags));
+                        normalized.Add((child.Tick, child.WrittenTickLength, type, flags));
                     }
                 }
             }
             return NormalizeNotes(normalized);
         }
 
-        private static bool TryMapDrumNote(Instrument instrument, DrumNote note, out BTrackNoteType type, out BTrackNoteFlags flags)
+        private static bool TryMapDrumNote(Instrument instrument, DrumNote note, bool orangeAndGreen, out BTrackNoteType type,
+            out BTrackNoteFlags flags)
         {
             flags = BTrackNoteFlags.None;
             if (note.IsDoubleKick)
@@ -381,9 +412,19 @@ namespace YARG.Core.Chart.Hashing
                 flags |= BTrackNoteFlags.Accent;
             }
 
+            // The loader sets these only on notes written red or yellow
+            if ((note.DrumFlags & DrumNoteFlags.DiscoFlip) != 0)
+            {
+                flags |= BTrackNoteFlags.Disco;
+            }
+            else if ((note.DrumFlags & DrumNoteFlags.DiscoNoFlip) != 0)
+            {
+                flags |= BTrackNoteFlags.DiscoNoFlip;
+            }
+
             if (instrument == Instrument.FiveLaneDrums)
             {
-                return TryMapFiveLaneDrumNote(note, ref flags, out type);
+                return TryMapFiveLaneDrumNote(note, orangeAndGreen, ref flags, out type);
             }
 
             return TryMapFourLaneDrumNote(note, ref flags, out type);
@@ -391,7 +432,8 @@ namespace YARG.Core.Chart.Hashing
 
         private static bool TryMapFourLaneDrumNote(DrumNote note, ref BTrackNoteFlags flags, out BTrackNoteType type)
         {
-            switch ((FourLaneDrumPad) note.Pad)
+            // The TrackHash keeps the pads as written, with the disco flags, not as a disco flip swaps them for play
+            switch ((FourLaneDrumPad) note.WrittenPad)
             {
                 case FourLaneDrumPad.Kick:
                     type = BTrackNoteType.Kick;
@@ -430,7 +472,8 @@ namespace YARG.Core.Chart.Hashing
             }
         }
 
-        private static bool TryMapFiveLaneDrumNote(DrumNote note, ref BTrackNoteFlags flags, out BTrackNoteType type)
+        private static bool TryMapFiveLaneDrumNote(DrumNote note, bool orangeAndGreen, ref BTrackNoteFlags flags,
+            out BTrackNoteType type)
         {
             switch ((FiveLaneDrumPad) note.Pad)
             {
@@ -455,7 +498,7 @@ namespace YARG.Core.Chart.Hashing
                     return true;
                 case FiveLaneDrumPad.Green:
                     flags |= BTrackNoteFlags.Tom;
-                    type = BTrackNoteType.GreenDrum;
+                    type = orangeAndGreen ? BTrackNoteType.BlueDrum : BTrackNoteType.GreenDrum;
                     return true;
                 default:
                     type = default;
@@ -526,7 +569,7 @@ namespace YARG.Core.Chart.Hashing
                 .ToList();
         }
 
-        private static List<(long Tick, long Length, bool IsDouble)> GetFlexLanes(List<Phrase> phrases)
+        private static List<(long Tick, long Length, bool IsDouble)> GetFlexLanes(IEnumerable<Phrase> phrases)
         {
             return phrases
                 .Where(phrase => phrase.Type is PhraseType.TremoloLane or PhraseType.TrillLane)
@@ -537,7 +580,7 @@ namespace YARG.Core.Chart.Hashing
                 .ToList();
         }
 
-        private static List<(long Tick, long Length, bool IsCoda)> GetDrumFreestyles(List<Phrase> phrases, List<TextEvent> globalEvents)
+        private static List<(long Tick, long Length, bool IsCoda)> GetDrumFreestyles(IEnumerable<Phrase> phrases, List<TextEvent> globalEvents)
         {
             var codaTick = FirstCodaTick(globalEvents);
             return phrases
@@ -550,23 +593,19 @@ namespace YARG.Core.Chart.Hashing
                 .ToList();
         }
 
+        // The chart readers have already normalized the event text, so the coda is exactly `coda`, as for play.
+        // Only the first coda counts
         private static uint? FirstCodaTick(List<TextEvent> globalEvents)
         {
-            uint? codaTick = null;
             foreach (var textEvent in globalEvents)
             {
-                if (!IsCodaEvent(textEvent.Text))
+                if (textEvent.Text == TextEvents.BIG_ROCK_ENDING_START)
                 {
-                    continue;
-                }
-
-                if (codaTick is null || textEvent.Tick < codaTick)
-                {
-                    codaTick = textEvent.Tick;
+                    return textEvent.Tick;
                 }
             }
 
-            return codaTick;
+            return null;
         }
 
         private static List<(long Tick, long Length)> DedupRanges(List<(long Tick, long Length)> ranges)
@@ -576,13 +615,6 @@ namespace YARG.Core.Chart.Hashing
                 .Select(group => (Tick: group.Key, Length: group.Max(range => range.Length)))
                 .OrderBy(range => range.Tick)
                 .ToList();
-        }
-
-        private static bool IsCodaEvent(string text)
-        {
-            var trimmed = text.Trim();
-            return trimmed.Equals("coda", StringComparison.OrdinalIgnoreCase) ||
-                trimmed.Equals("[coda]", StringComparison.OrdinalIgnoreCase);
         }
 
         private static List<(long Tick, long Position, long Size)> GetRangeShifts(List<RangeShift> rangeShifts)
@@ -766,7 +798,8 @@ namespace YARG.Core.Chart.Hashing
                     writer.Write(tempo.BeatsPerMinute);
                 });
             AddListSection(sections, BTrackSectionId.TimeSignature,
-                GetLastPerTick(syncTrack.TimeSignatures, timeSignature => timeSignature.Tick),
+                GetLastPerTick(syncTrack.TimeSignatures.Where(timeSignature => !timeSignature.IsInserted).ToList(),
+                    timeSignature => timeSignature.Tick),
                 (writer, timeSignature) =>
                 {
                     writer.Write((long) timeSignature.Tick);
@@ -836,7 +869,27 @@ namespace YARG.Core.Chart.Hashing
 
             foreach (var section in sections)
             {
-                writer.Write(section.Payload);
+                writer.Write(section.Id == (ulong) BTrackSectionId.TempoMarker
+                    ? RoundTempos(section.Payload)
+                    : section.Payload);
+            }
+
+            return stream.ToArray();
+        }
+
+        // The TrackHash rounds each tempo to a thousandth of a BPM, as .chart stores it, so a chart keeps its
+        // TrackHash when converted between .chart and .mid. The BTrack keeps the exact tempo.
+        private static byte[] RoundTempos(byte[] payload)
+        {
+            using var reader = new BinaryReader(new MemoryStream(payload));
+            using var stream = new MemoryStream(payload.Length);
+            using var writer = new BinaryWriter(stream);
+            uint count = reader.ReadUInt32();
+            writer.Write(count);
+            for (uint i = 0; i < count; i++)
+            {
+                writer.Write(reader.ReadInt64());
+                writer.Write(Math.Floor(reader.ReadDouble() * 1000 + 0.5) / 1000);
             }
 
             return stream.ToArray();
