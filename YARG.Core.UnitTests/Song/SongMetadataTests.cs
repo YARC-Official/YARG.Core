@@ -126,6 +126,46 @@ public class SongMetadataTests
         Assert.That(metadata.Preview, Is.EqualTo((1250L, 2500L)));
     }
 
+    [TestCase("-1", "-1", 30000L, 60000L)]
+    [TestCase("-1", "0", 30000L, 60000L)]
+    [TestCase("0", "45000", 0L, 45000L)]
+    public void FillFromIni_UsesPreviewSecondsWhenPreviewTimeIsNotSet(string start, string end, long expectedStart, long expectedEnd)
+    {
+        var metadata = SongMetadata.CreateFromIni(CreateModifiers(
+            ("preview_start_time", start, ModifierType.Int64),
+            ("preview_end_time", end, ModifierType.Int64),
+            ("preview_start_seconds", "30", ModifierType.Double),
+            ("preview_end_seconds", "60", ModifierType.Double)
+        ));
+
+        Assert.That(metadata.Preview, Is.EqualTo((expectedStart, expectedEnd)));
+    }
+
+    [Test]
+    public void CreateFromIni_ReadsMinusOneInNumberKeysAsNotSet()
+    {
+        var metadata = CreateMetadataFromSongIni(
+            """
+            [song]
+            track = 5
+            album_track = -1
+            playlist_track = -1
+            delay = -1
+            video_start_time = -1
+            vocal_scroll_speed = -1
+            """
+        );
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(metadata.AlbumTrack, Is.EqualTo(int.MaxValue));
+            Assert.That(metadata.PlaylistTrack, Is.EqualTo(int.MaxValue));
+            Assert.That(metadata.SongOffset, Is.Zero);
+            Assert.That(metadata.Video.Start, Is.Zero);
+            Assert.That(metadata.VocalScrollSpeedScalingFactor, Is.Null);
+        }
+    }
+
     [Test]
     public void FillFromIni_PrefersNonZeroDelayAndFallsBackToDelaySecondsWhenDelayIsZero()
     {

@@ -72,7 +72,7 @@ namespace YARG.Core.IO.Ini
 
                 { "dance_type",                           new("dance_type", ModifierType.UInt32) },
                 { "date_released",                        new("date_released", ModifierType.String) },
-                { "delay",                                new("delay", ModifierType.Int64) },
+                { "delay",                                new("delay", ModifierType.Delay) },
                 { "diff_band",                            new("diff_band", ModifierType.Int32) },
                 { "diff_bass",                            new("diff_bass", ModifierType.Int32) },
                 { "diff_bass_real",                       new("diff_bass_real", ModifierType.Int32) },
