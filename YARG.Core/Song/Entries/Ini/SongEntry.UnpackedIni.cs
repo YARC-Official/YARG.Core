@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using YARG.Core.Chart.Loaders.UltraStar;
 using YARG.Core.Song.Cache;
 using YARG.Core.IO;
 using YARG.Core.IO.Ini;
@@ -15,17 +16,35 @@ namespace YARG.Core.Song
     internal sealed class UnpackedIniEntry : IniSubEntry
     {
         private readonly DateTime? _iniLastWrite;
+        // US only: the folder's mtime at scan time. Adding, removing or renaming a sibling
+        // chart changes it, which forces a rescan (and re-pairing) instead of trusting a
+        // cached entry that was scanned before that sibling existed.
+        private readonly DateTime _directoryLastWrite;
 
         public override EntryType SubType => EntryType.Ini;
 
         internal override void Serialize(MemoryStream stream, CacheWriteIndices node)
         {
             stream.WriteByte((byte) _chartFormat);
+            // Here, not with IniSubEntry's fields: cache reload checks the chart file exists
+            // before it reads those.
+            stream.Write(_chartFileName);
             stream.Write(_chartLastWrite.ToBinary(), Endianness.Little);
             stream.Write(_iniLastWrite.HasValue);
             if (_iniLastWrite.HasValue)
             {
                 stream.Write(_iniLastWrite.Value.ToBinary(), Endianness.Little);
+            }
+
+            if (_chartFormat == ChartFormat.UltraStar)
+            {
+                // Empty name means this entry wasn't merged with a duet file.
+                stream.Write(_harmonyChartFileName);
+                if (_harmonyChartFileName.Length > 0)
+                {
+                    stream.Write(_harmonyChartLastWrite.ToBinary(), Endianness.Little);
+                }
+                stream.Write(_directoryLastWrite.ToBinary(), Endianness.Little);
             }
             base.Serialize(stream, node);
         }
@@ -40,8 +59,33 @@ namespace YARG.Core.Song
                 YargLogger.LogError("Failed to create mixer!");
                 return null;
             }
-            var addedCleanStems = new HashSet<SongStem>();
             var subFiles = GetSubFiles();
+
+            if (_chartFormat == ChartFormat.UltraStar)
+            {
+                // UltraStar has no stem convention -- the single audio file it references
+                // via #AUDIO/#MP3 is loaded directly as the primary (Song) stem.
+                if (!string.IsNullOrEmpty(_audioFile) && subFiles.TryGetValue(_audioFile, out var audioPath) &&
+                    !ignoreStems.Contains(SongStem.Song))
+                {
+                    var stream = new FileStream(audioPath, FileMode.Open, FileAccess.Read, FileShare.Read, 1);
+                    if (!mixer.AddChannel(stream, SongStem.Song))
+                    {
+                        stream.Dispose();
+                        YargLogger.LogFormatError("Failed to load stem file {0}", audioPath);
+                    }
+                }
+
+                if (mixer.Channels.Count == 0)
+                {
+                    YargLogger.LogError("Failed to add any stems!");
+                    mixer.Dispose();
+                    return null;
+                }
+                return mixer;
+            }
+
+            var addedCleanStems = new HashSet<SongStem>();
             if (enableCensoring)
             {
                 foreach (var stem in IniAudio.SupportedCleanStems)
@@ -97,6 +141,42 @@ namespace YARG.Core.Song
                 YargLogger.LogFormatInfo("Loaded {0} stems", mixer.Channels.Count);
             }
             return mixer;
+        }
+
+        /// <summary>
+        /// What the scan's LoadAudio(0, 0, false) mixer would report -- the longest of the
+        /// stems it loads, each in the first supported format present (see TryLoadStem) --
+        /// read from those files' headers instead. Only when every one of them records its
+        /// exact length (see AudioLengthReader); otherwise the scan measures through the mixer.
+        /// </summary>
+        protected override bool TryGetExactAudioLength(out double seconds)
+        {
+            seconds = 0;
+            var subFiles = GetSubFiles();
+            bool foundAny = false;
+            // LoadAudio's order with censoring off: the regular stems, then the explicit ones.
+            foreach (var stems in new[] { IniAudio.SupportedStems, IniAudio.SupportedExplicitStems })
+            {
+                foreach (var stem in stems)
+                {
+                    foreach (var format in IniAudio.SupportedFormats)
+                    {
+                        if (!subFiles.TryGetValue(stem + format, out var file))
+                        {
+                            continue;
+                        }
+
+                        if (!AudioLengthReader.TryGetExactLength(file, out double stemSeconds))
+                        {
+                            return false;
+                        }
+                        seconds = Math.Max(seconds, stemSeconds);
+                        foundAny = true;
+                        break;
+                    }
+                }
+            }
+            return foundAny;
         }
 
         private static bool TryLoadStem(string stem, SongStem stemEnum, Dictionary<string, string> fileDictionary, StemMixer mixer)
@@ -263,6 +343,22 @@ namespace YARG.Core.Song
 
             return FixedArray.LoadFile(chartPath);
         }
+
+        protected override FixedArray<byte> GetHarmonyChartData()
+        {
+            if (_harmonyChartFileName.Length == 0)
+            {
+                return null;
+            }
+
+            string harmonyPath = Path.Combine(_location, _harmonyChartFileName);
+            if (!AbridgedFileInfo.Validate(harmonyPath, in _harmonyChartLastWrite))
+            {
+                return null;
+            }
+
+            return FixedArray.LoadFile(harmonyPath);
+        }
         #nullable restore
 
         private Dictionary<string, string> GetSubFiles()
@@ -272,19 +368,35 @@ namespace YARG.Core.Song
             {
                 foreach (var file in Directory.EnumerateFiles(_location))
                 {
-                    files.Add(file[(_location.Length + 1)..].ToLower(), file);
+                    // Lowercase keys: LoadMiloData/LoadVocData match extensions against them ordinally.
+                    files.Add(FileCollection.ToKey(file[(_location.Length + 1)..]), file);
                 }
             }
             return files;
         }
 
-        private UnpackedIniEntry(string directory, in DateTime chartLastWrite, in DateTime? iniLastWrite, in ChartFormat format)
-            : base(directory, in chartLastWrite, format)
+        private UnpackedIniEntry(string directory, in DateTime chartLastWrite, in DateTime? iniLastWrite, in ChartFormat format, string? chartFileName = null,
+            string? harmonyChartFileName = null, DateTime? harmonyChartLastWrite = null, DateTime? directoryLastWrite = null)
+            : base(directory, in chartLastWrite, format, chartFileName, harmonyChartFileName, harmonyChartLastWrite)
         {
             _iniLastWrite = iniLastWrite;
+            _directoryLastWrite = directoryLastWrite ?? default;
         }
 
-        public static ScanExpected<UnpackedIniEntry> ProcessNewEntry(string directory, FileInfo chartInfo, ChartFormat format, FileInfo? iniFile, string defaultPlaylist)
+        /// <param name="chartData">The chart's bytes if the caller already read them;
+        /// otherwise the file is read here.</param>
+        /// <param name="harmonyChartInfo">A duet file sharing this chart's audio (see
+        /// CacheHandler.ScanUltraStarCharts). When given, this entry's LeadVocals and
+        /// metadata still come from <paramref name="chartInfo"/>, but HarmonyVocals comes
+        /// from this file instead.</param>
+        /// <param name="harmonyChartData">The duet's bytes if the caller already read them;
+        /// otherwise the file is read here.</param>
+        /// <param name="header">The already-scanned UltraStar header for <paramref name="chartInfo"/>,
+        /// if the caller has one (see CacheHandler.ScanUltraStarCharts), so it isn't parsed twice.</param>
+        /// <param name="harmonyHeader">As <paramref name="header"/>, for <paramref name="harmonyChartInfo"/>.</param>
+        public static ScanExpected<UnpackedIniEntry> ProcessNewEntry(string directory, FileInfo chartInfo, ChartFormat format, FileInfo? iniFile, string defaultPlaylist, FileCollection collection,
+            FixedArray<byte>? chartData = null, FileInfo? harmonyChartInfo = null, FixedArray<byte>? harmonyChartData = null,
+            UltraStarHeader? header = null, UltraStarHeader? harmonyHeader = null)
         {
             IniModifierCollection iniModifiers;
             DateTime? iniLastWrite = default;
@@ -298,12 +410,23 @@ namespace YARG.Core.Song
                 iniModifiers = new();
             }
 
-            var entry = new UnpackedIniEntry(directory, AbridgedFileInfo.NormalizedLastWrite(chartInfo), in iniLastWrite, format);
+            string? harmonyChartFileName = harmonyChartInfo?.Name;
+            DateTime? harmonyChartLastWrite = harmonyChartInfo != null ? AbridgedFileInfo.NormalizedLastWrite(harmonyChartInfo) : null;
+            // Lets a sibling chart added/removed/renamed in this folder later force a rescan
+            // and re-pairing, rather than trusting a cached entry scanned before that happened.
+            DateTime? directoryLastWrite = format == ChartFormat.UltraStar ? AbridgedFileInfo.NormalizedLastWrite(new DirectoryInfo(directory)) : null;
+
+            var entry = new UnpackedIniEntry(directory, AbridgedFileInfo.NormalizedLastWrite(chartInfo), in iniLastWrite, format, chartInfo.Name,
+                harmonyChartFileName, harmonyChartLastWrite, directoryLastWrite);
             entry._metadata.Playlist = defaultPlaylist;
 
-            using var file = FixedArray.LoadFile(chartInfo.FullName);
+            using var ownedFile = chartData == null ? FixedArray.LoadFile(chartInfo.FullName) : null;
+            var file = chartData ?? ownedFile!;
 
-            var result = ScanChart(entry, file, iniModifiers);
+            using var ownedHarmonyFile = harmonyChartInfo != null && harmonyChartData == null ? FixedArray.LoadFile(harmonyChartInfo.FullName) : null;
+            var harmonyFile = harmonyChartData ?? ownedHarmonyFile;
+
+            var result = ScanChart(entry, file, iniModifiers, collection, harmonyFile, header, harmonyHeader);
             return result == ScanResult.Success ? entry : new ScanUnexpected(result);
         }
 
@@ -311,8 +434,9 @@ namespace YARG.Core.Song
         {
             string directory = Path.Combine(baseDirectory, stream.ReadString());
             ref readonly var chart = ref CHART_FILE_TYPES[stream.ReadByte()];
+            string chartFileName = stream.ReadString();
             var chartLastWrite = DateTime.FromBinary(stream.Read<long>(Endianness.Little));
-            if (!AbridgedFileInfo.Validate(Path.Combine(directory, chart.Filename), chartLastWrite))
+            if (!AbridgedFileInfo.Validate(Path.Combine(directory, chartFileName), chartLastWrite))
             {
                 return null;
             }
@@ -332,7 +456,30 @@ namespace YARG.Core.Song
                 return null;
             }
 
-            var entry = new UnpackedIniEntry(directory, in chartLastWrite, in iniLastWrite, chart.Format);
+            string harmonyChartFileName = string.Empty;
+            DateTime? harmonyChartLastWrite = default;
+            DateTime? directoryLastWrite = default;
+            if (chart.Format == ChartFormat.UltraStar)
+            {
+                harmonyChartFileName = stream.ReadString();
+                if (harmonyChartFileName.Length > 0)
+                {
+                    harmonyChartLastWrite = DateTime.FromBinary(stream.Read<long>(Endianness.Little));
+                    if (!AbridgedFileInfo.Validate(Path.Combine(directory, harmonyChartFileName), harmonyChartLastWrite.Value))
+                    {
+                        return null;
+                    }
+                }
+
+                directoryLastWrite = DateTime.FromBinary(stream.Read<long>(Endianness.Little));
+                if (!Directory.Exists(directory) || AbridgedFileInfo.NormalizedLastWrite(new DirectoryInfo(directory)) != directoryLastWrite.Value)
+                {
+                    return null;
+                }
+            }
+
+            var entry = new UnpackedIniEntry(directory, in chartLastWrite, in iniLastWrite, chart.Format, chartFileName,
+                harmonyChartFileName, harmonyChartLastWrite, directoryLastWrite);
             entry.Deserialize(ref stream, strings);
             return entry;
         }
@@ -341,9 +488,25 @@ namespace YARG.Core.Song
         {
             string directory = Path.Combine(baseDirectory, stream.ReadString());
             ref readonly var chart = ref CHART_FILE_TYPES[stream.ReadByte()];
+            string chartFileName = stream.ReadString();
             var chartLastWrite = DateTime.FromBinary(stream.Read<long>(Endianness.Little));
             DateTime? iniLastWrite = stream.ReadBoolean() ? DateTime.FromBinary(stream.Read<long>(Endianness.Little)) : default;
-            var entry = new UnpackedIniEntry(directory, in chartLastWrite, in iniLastWrite, chart.Format);
+
+            string harmonyChartFileName = string.Empty;
+            DateTime? harmonyChartLastWrite = default;
+            DateTime? directoryLastWrite = default;
+            if (chart.Format == ChartFormat.UltraStar)
+            {
+                harmonyChartFileName = stream.ReadString();
+                if (harmonyChartFileName.Length > 0)
+                {
+                    harmonyChartLastWrite = DateTime.FromBinary(stream.Read<long>(Endianness.Little));
+                }
+                directoryLastWrite = DateTime.FromBinary(stream.Read<long>(Endianness.Little));
+            }
+
+            var entry = new UnpackedIniEntry(directory, in chartLastWrite, in iniLastWrite, chart.Format, chartFileName,
+                harmonyChartFileName, harmonyChartLastWrite, directoryLastWrite);
             entry.Deserialize(ref stream, strings);
             return entry;
         }

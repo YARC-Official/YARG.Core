@@ -140,6 +140,67 @@ public class FileCollectionTests
         }
     }
 
+    [Test]
+    public void FindAllFilesByExtension_FindsEveryMatchRegardlessOfCase()
+    {
+        string path = CreateTempDirectory();
+        try
+        {
+            File.WriteAllText(Path.Combine(path, "Artist - Title.txt"), string.Empty);
+            File.WriteAllText(Path.Combine(path, "Artist - Other Title.TXT"), string.Empty);
+            File.WriteAllText(Path.Combine(path, "notes.mid"), string.Empty);
+
+            var collection = new FileCollection(new DirectoryInfo(path));
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(collection.FindFile("notes.txt", out _), Is.False);
+                Assert.That(collection.FindAllFilesByExtension(".txt").Select(file => file.Name),
+                    Is.EquivalentTo(new[] { "Artist - Title.txt", "Artist - Other Title.TXT" }));
+                Assert.That(collection.FindAllFilesByExtension(".chart"), Is.Empty);
+            }
+        }
+        finally
+        {
+            if (Directory.Exists(path))
+            {
+                Directory.Delete(path, true);
+            }
+        }
+    }
+
+    [TestCase(new[] { "Artist - Song.txt" }, true, TestName = "ContainsTextFiles is set for a .txt file")]
+    [TestCase(new[] { "Artist - Song.TXT" }, true, TestName = "ContainsTextFiles matches the extension case-insensitively")]
+    [TestCase(new[] { "audio.mp3" }, false, TestName = "ContainsTextFiles is clear without any .txt")]
+    [TestCase(new[] { "notes.txt/" }, false, TestName = "ContainsTextFiles ignores a directory named like a text file")]
+    public void ContainsTextFiles_IsSetOnlyByATextFile(string[] entries, bool expected)
+    {
+        string path = CreateTempDirectory();
+        try
+        {
+            foreach (string entry in entries)
+            {
+                if (entry.EndsWith('/'))
+                {
+                    Directory.CreateDirectory(Path.Combine(path, entry.TrimEnd('/')));
+                }
+                else
+                {
+                    File.WriteAllText(Path.Combine(path, entry), string.Empty);
+                }
+            }
+
+            Assert.That(new FileCollection(new DirectoryInfo(path)).ContainsTextFiles, Is.EqualTo(expected));
+        }
+        finally
+        {
+            if (Directory.Exists(path))
+            {
+                Directory.Delete(path, true);
+            }
+        }
+    }
+
     private static string CreateTempDirectory()
     {
         string path = Path.Combine(Path.GetTempPath(), $"yarg-filecollection-{Guid.NewGuid():N}");

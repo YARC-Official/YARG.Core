@@ -31,9 +31,9 @@ namespace YARG.Core.UnitTests.Parsing
             var phrase = track.Parts[0].NotePhrases[0];
             var note = phrase.PhraseParentNote.ChildNotes[0];
 
-            // Golden Rap keeps real MIDI pitch (like SingStar): -1 + 60 = 59
-            Assert.That(note.IsNonPitched, Is.False);
-            Assert.That(note.Pitch, Is.EqualTo(59f));
+            // Golden Rap carries no pitch requirement per spec; bonus scoring is separate
+            Assert.That(note.IsNonPitched, Is.True);
+            Assert.That(note.Pitch, Is.EqualTo(-1f));
             Assert.That(phrase.IsStarPower, Is.True);
         }
 
