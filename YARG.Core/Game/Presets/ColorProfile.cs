@@ -8,7 +8,7 @@ namespace YARG.Core.Game
 {
     public partial class ColorProfile : BasePreset, IBinarySerializable
     {
-        private const int COLOR_PROFILE_VERSION = 2;
+        private const int COLOR_PROFILE_VERSION = 3;
 
         /// <summary>
         /// Interface that has methods that allows for generic fret color retrieval.
@@ -34,6 +34,8 @@ namespace YARG.Core.Game
         public FiveLaneDrumsColors FiveLaneDrums;
         [SettingSubSection]
         public ProKeysColors ProKeys;
+        [SettingSubSection]
+        public VocalsColors Vocals;
 
         public ColorProfile(string name, bool defaultPreset = false) : base(name, defaultPreset)
         {
@@ -42,6 +44,7 @@ namespace YARG.Core.Game
             FourLaneDrums = new FourLaneDrumsColors();
             FiveLaneDrums = new FiveLaneDrumsColors();
             ProKeys = new ProKeysColors();
+            Vocals = new VocalsColors();
         }
 
         public override BasePreset CopyWithNewName(string name)
@@ -53,6 +56,7 @@ namespace YARG.Core.Game
                 FourLaneDrums = FourLaneDrums.Copy(),
                 FiveLaneDrums = FiveLaneDrums.Copy(),
                 ProKeys = ProKeys.Copy(),
+                Vocals = Vocals.Copy(),
             };
         }
 
@@ -66,6 +70,7 @@ namespace YARG.Core.Game
             FourLaneDrums.Serialize(writer);
             FiveLaneDrums.Serialize(writer);
             ProKeys.Serialize(writer);
+            Vocals.Serialize(writer);
         }
 
         public void Deserialize(BinaryReader reader, int version = 0)
@@ -78,6 +83,11 @@ namespace YARG.Core.Game
             FourLaneDrums.Deserialize(reader, version);
             FiveLaneDrums.Deserialize(reader, version);
             ProKeys.Deserialize(reader, version);
+
+            if (version >= 3)
+            {
+                Vocals.Deserialize(reader, version);
+            }
         }
     }
 }
