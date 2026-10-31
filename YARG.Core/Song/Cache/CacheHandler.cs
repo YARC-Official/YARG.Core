@@ -1409,7 +1409,8 @@ namespace YARG.Core.Song.Cache
             string defaultPlaylist = ConstructPlaylist(location, baseGroup.Directory, fullDirectoryPlaylists);
 
             CONEntryGroup? group = null;
-            if (stream.ReadBoolean())
+            var type = (CONEntryGroup.CONEntryType) stream.Read<int>(Endianness.Little);
+            if (type == CONEntryGroup.CONEntryType.PackedCONEntry)
             {
                 lock (conEntryGroups)
                 {
@@ -1426,7 +1427,7 @@ namespace YARG.Core.Song.Cache
                     }
                 }
             }
-            else
+            else if (type is CONEntryGroup.CONEntryType.UnpackedCONEntry or CONEntryGroup.CONEntryType.UnpackedPKGEntry)
             {
                 var dtaInfo = new FileInfo(Path.Combine(location, CONEntryGroup.SONGS_DTA));
                 if (dtaInfo.Exists)
