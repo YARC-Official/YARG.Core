@@ -157,9 +157,29 @@ namespace MoonscraperChartEditor.Song.IO
                     throw new InvalidDataException($"Invalid section ordering! Expected [{name}], found [{sectionName.ToString()}]");
             }
 
-            // Check for the [Song] section first explicitly, need the Resolution property up-front
-            ExpectSection(chartText, ref textIndex, ChartIOHelper.SECTION_SONG, out var sectionBody);
-            var song = SubmitDataSong(sectionBody);
+            static bool HasSection(ReadOnlySpan<char> chartText, int textIndex, string name)
+            {
+                while (GetNextSection(chartText, ref textIndex, out var sectionName, out _))
+                {
+                    if (sectionName.Equals(name, StringComparison.Ordinal))
+                        return true;
+                }
+                return false;
+            }
+
+            // Check for the [Song] section first explicitly, need the Resolution property up-front.
+            // A file without one reads with the default resolution, as a [Song] section without Resolution does.
+            AsciiTrimSplitter sectionBody;
+            MoonSong song;
+            if (HasSection(chartText, textIndex, ChartIOHelper.SECTION_SONG))
+            {
+                ExpectSection(chartText, ref textIndex, ChartIOHelper.SECTION_SONG, out sectionBody);
+                song = SubmitDataSong(sectionBody);
+            }
+            else
+            {
+                song = new MoonSong(DEFAULT_RESOLUTION);
+            }
 
             // With a 192 resolution, .chart has a HOPO threshold of 65 ticks, not 64,
             // so we need to scale this factor to different resolutions (480 res = 162.5 threshold)
