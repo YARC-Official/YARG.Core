@@ -10,6 +10,7 @@ namespace YARG.Core.Song
     {
         private const int    ENCRYPTED_EDAT_MAGIC       = 0x4E504400;
         protected override YARGImage DXTImageLoader(string path) => YARGImage.LoadPS3DXT(path);
+        protected override string MidiFileExtension => ".mid.edat";
 
         private UnpackedRBPKGEntry(in AbridgedFileInfo root, string nodeName)
             : base(in root, nodeName) {}
