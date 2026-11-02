@@ -93,10 +93,12 @@ namespace YARG.Core.IO
 
         public readonly void Dispose()
         {
-            _tracker.Dispose();
+            // A file that didn't load has no tracker
+            _tracker?.Dispose();
         }
 
         private static readonly byte[] SNGPKG = { (byte) 'S', (byte) 'N', (byte) 'G', (byte) 'P', (byte) 'K', (byte) 'G' };
+        private const uint SNG_VERSION = 1;
         public static SngFile TryLoadFromFile(string filename, bool loadMetadata)
         {
             using var tracker = new SngTracker();
@@ -121,6 +123,12 @@ namespace YARG.Core.IO
             {
                 Version = tracker.Stream.Read<uint>(Endianness.Little)
             };
+
+            // A .sng file of a version other than 1 may be laid out differently, so it isn't loaded
+            if (yargStream == null && sng.Version != SNG_VERSION)
+            {
+                return default;
+            }
 
             tracker.Mask = SngMask.LoadMask(tracker.Stream);
             if (loadMetadata)
