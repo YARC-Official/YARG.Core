@@ -5,6 +5,7 @@ using NUnit.Framework;
 using YARG.Core.Chart;
 using YARG.Core.IO;
 using YARG.Core.Song;
+using ChartFormat = YARG.Core.Song.ChartFormat;
 using MoonDifficulty = MoonscraperChartEditor.Song.MoonSong.Difficulty;
 
 namespace YARG.Core.UnitTests.Song;
@@ -112,6 +113,94 @@ public class SongEntryScanningTests
         {
             Assert.That(result.HasValue, Is.True);
             Assert.That(parts.FiveFretGuitar.Difficulties, Is.EqualTo(DifficultyMask.Expert));
+        }
+    }
+
+    [Test]
+    public void ScanChart_ReadsResolutionInQuotationMarks()
+    {
+        var result = ScanChart(
+            """
+            [song]
+            name = Test
+            song_length = 10000
+            """,
+            """
+            [Song]
+            {
+              Resolution = "192"
+            }
+            [SyncTrack]
+            {
+              0 = TS 4
+              0 = B 120000
+            }
+            [ExpertSingle]
+            {
+              0 = N 0 0
+            }
+            """
+        );
+
+        Assert.That(result.HasValue, Is.True, $"Expected the scan to succeed, but got {result.Error}.");
+        Assert.That(result.Value[Instrument.FiveFretGuitar][Difficulty.Expert], Is.True);
+    }
+
+    [TestCase("")]
+    [TestCase("Name = \"Chart Name\"")]
+    public void ScanChart_ReadsSongIniKeysAfterSongEqualsLine(string chartNameLine)
+    {
+        var result = ScanChart(
+            """
+            [Song]
+            song_length = 10000
+            [Song] =
+            name = Song Name
+            charter = Charter
+            """,
+            $$"""
+            [Song]
+            {
+              {{chartNameLine}}
+              Resolution = 192
+            }
+            [SyncTrack]
+            {
+              0 = TS 4
+              0 = B 120000
+            }
+            [ExpertSingle]
+            {
+              0 = N 0 0
+            }
+            """
+        );
+
+        Assert.That(result.HasValue, Is.True, $"Expected the scan to succeed, but got {result.Error}.");
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(result.Value.Name.Original, Is.EqualTo("Song Name"));
+            Assert.That(result.Value.Charter.Original, Is.EqualTo("Charter"));
+        }
+    }
+
+    private static ScanExpected<UnpackedIniEntry> ScanChart(string iniText, string chartText)
+    {
+        string directory = Path.Combine(Path.GetTempPath(), $"yarg-scan-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(directory);
+        try
+        {
+            string iniPath = Path.Combine(directory, "song.ini");
+            File.WriteAllText(iniPath, iniText);
+            string chartPath = Path.Combine(directory, "notes.chart");
+            File.WriteAllText(chartPath, chartText);
+
+            return UnpackedIniEntry.ProcessNewEntry(directory, new FileInfo(chartPath), ChartFormat.Chart,
+                new FileInfo(iniPath), "");
+        }
+        finally
+        {
+            Directory.Delete(directory, true);
         }
     }
 
