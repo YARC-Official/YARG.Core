@@ -1,4 +1,7 @@
+using MoonscraperChartEditor.Song;
+using MoonscraperChartEditor.Song.IO;
 using NUnit.Framework;
+using YARG.Core.Chart;
 using YARG.Core.Extensions;
 using YARG.Core.Song;
 using YARG.Core.Venue;
@@ -60,6 +63,32 @@ public class IniEntryTests
             var entry = CreateIniEntry(root, songName, ini);
 
             Assert.That(entry.ReleaseDate, Is.Null);
+        }
+        finally
+        {
+            if (Directory.Exists(root))
+                Directory.Delete(root, true);
+        }
+    }
+
+    [TestCase("", PhraseType.StarPower)]
+    [TestCase("multiplier_note = 50", PhraseType.StarPower)]
+    [TestCase("multiplier_note = 116", PhraseType.Solo)]
+    public void LoadChart_ReadsTwoSolosWithoutStarPowerAsStarPower(string multiplierNote, PhraseType expected)
+    {
+        string root = CreateTempDirectory();
+        try
+        {
+            int green = MidIOHelper.GUITAR_DIFF_START_LOOKUP[MoonSong.Difficulty.Expert];
+            var ini = $"{CreateBasicIni()}\n{multiplierNote}\n";
+            var entry = CreateIniEntry(root, "testsong", ini, ChartFormat.Mid, path => TestMidi.Write(path, 480,
+                MidIOHelper.GUITAR_TRACK, (0, 10, green), (480, 10, green), (1920, 10, green), (2400, 10, green),
+                (0, 960, MidIOHelper.SOLO_NOTE), (1920, 960, MidIOHelper.SOLO_NOTE)));
+
+            var phrases = entry.LoadChart()!.FiveFretGuitar.GetDifficulty(Difficulty.Expert).Phrases;
+
+            Assert.That(phrases.Select(phrase => (phrase.Type, phrase.Tick)),
+                Is.EqualTo(new[] { (expected, 0u), (expected, 1920u) }));
         }
         finally
         {
@@ -256,11 +285,17 @@ public class IniEntryTests
 
     private static UnpackedIniEntry CreateIniEntry(string root, string name, string iniText)
     {
+        return CreateIniEntry(root, name, iniText, ChartFormat.Mid, path => File.Copy(GetTestMidiPath(), path));
+    }
+
+    private static UnpackedIniEntry CreateIniEntry(string root, string name, string iniText, ChartFormat format,
+        Action<string> writeChart)
+    {
         string songDirectory = Path.Combine(root, name);
         Directory.CreateDirectory(songDirectory);
 
-        string midiPath = Path.Combine(songDirectory, "notes.mid");
-        File.Copy(GetTestMidiPath(), midiPath);
+        string chartPath = Path.Combine(songDirectory, format == ChartFormat.Chart ? "notes.chart" : "notes.mid");
+        writeChart(chartPath);
 
         string audioPath = Path.Combine(songDirectory, "song.opus");
         using (var opus = new FileStream(audioPath, FileMode.Create, FileAccess.Write, FileShare.None))
@@ -272,7 +307,7 @@ public class IniEntryTests
         File.WriteAllText(iniPath, iniText);
 
         // TODO: We should probably be creating a test entry, not an actual entry, because it really doesn't like doing certain things in a test environment. But for now, this works.
-        var result = UnpackedIniEntry.ProcessNewEntry(songDirectory, new FileInfo(midiPath), ChartFormat.Mid,
+        var result = UnpackedIniEntry.ProcessNewEntry(songDirectory, new FileInfo(chartPath), format,
             new FileInfo(iniPath), "");
         Assert.That(result.HasValue, Is.True, $"Expected ini creation to succeed, but got {result.Error}.");
         return result.Value;

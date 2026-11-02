@@ -264,16 +264,49 @@ public class MidReaderProcessListsTests
         var settings = ParseSettings.Default_Midi;
         settings.StarPowerNote = ParseSettings.SETTING_DEFAULT;
         var midi = MakeMidi(MakeTrack(MidIOHelper.GUITAR_TRACK,
-            Note(10, 100, MidIOHelper.SOLO_NOTE)));
+            Note(10, 100, MidIOHelper.SOLO_NOTE),
+            Note(200, 300, MidIOHelper.SOLO_NOTE)));
 
         var song = MidReader.ReadMidi(ref settings, midi);
         var phrases = song.GetChart(MoonInstrument.Guitar, Difficulty.Expert).specialPhrases;
 
         using (Assert.EnterMultipleScope())
         {
-            Assert.That(phrases, Has.One.Matches<MoonPhrase>(phrase => phrase.type == MoonPhrase.Type.Starpower));
+            Assert.That(phrases, Has.Exactly(2).Matches<MoonPhrase>(phrase => phrase.type == MoonPhrase.Type.Starpower));
             Assert.That(phrases, Has.None.Matches<MoonPhrase>(phrase => phrase.type == MoonPhrase.Type.Solo));
         }
+    }
+
+    [Test]
+    public void LegacyStarPowerFixup_KeepsASingleSolo()
+    {
+        var settings = ParseSettings.Default_Midi;
+        settings.StarPowerNote = ParseSettings.SETTING_DEFAULT;
+        var midi = MakeMidi(MakeTrack(MidIOHelper.GUITAR_TRACK,
+            Note(10, 100, MidIOHelper.SOLO_NOTE)));
+
+        var song = MidReader.ReadMidi(ref settings, midi);
+        var phrases = song.GetChart(MoonInstrument.Guitar, Difficulty.Expert).specialPhrases;
+
+        Assert.That(phrases.Select(phrase => phrase.type), Is.EqualTo(new[] { MoonPhrase.Type.Solo }));
+    }
+
+    [TestCase(MidIOHelper.KEYS_TRACK)]
+    [TestCase(MidIOHelper.GHL_GUITAR_TRACK)]
+    public void LegacyStarPowerFixup_AppliesToKeysAndSixFretTracks(string trackName)
+    {
+        var settings = ParseSettings.Default_Midi;
+        settings.StarPowerNote = ParseSettings.SETTING_DEFAULT;
+        var midi = MakeMidi(MakeTrack(trackName,
+            Note(10, 100, MidIOHelper.SOLO_NOTE),
+            Note(200, 300, MidIOHelper.SOLO_NOTE)));
+        var instrument = trackName == MidIOHelper.KEYS_TRACK ? MoonInstrument.Keys : MoonInstrument.GHLiveGuitar;
+
+        var song = MidReader.ReadMidi(ref settings, midi);
+        var phrases = song.GetChart(instrument, Difficulty.Expert).specialPhrases;
+
+        Assert.That(phrases.Select(phrase => phrase.type),
+            Is.EqualTo(new[] { MoonPhrase.Type.Starpower, MoonPhrase.Type.Starpower }));
     }
 
     [Test]
