@@ -8,7 +8,8 @@ namespace YARG.Core.IO
 {
     public struct YARGMidiTrack
     {
-        public static readonly Dictionary<string, MidiTrackType> TRACKNAMES = new()
+        // Track names are read in any letter case
+        public static readonly Dictionary<string, MidiTrackType> TRACKNAMES = new(StringComparer.OrdinalIgnoreCase)
         {
             {"EVENTS",               MidiTrackType.Events},
             {"PART GUITAR",          MidiTrackType.Guitar_5},
