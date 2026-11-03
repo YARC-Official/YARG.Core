@@ -550,6 +550,44 @@ namespace YARG.Core.UnitTests.Parsing
         }
 
         [Test]
+        public void DrumsProcessList_ConvertsDrumFillAtOrAfterCodaToBigRockEnding()
+        {
+            // [Events] after the drums: the coda applies once every section is read
+            var chartText = ChartText.Chart(
+                ChartText.SongSection(),
+                ChartText.SyncSection(),
+                ChartText.Section("ExpertDrums",
+                    "384 = S 64 192",
+                    "384 = N 1 0",
+                    "576 = N 1 0",
+                    "1536 = S 64 768",
+                    "1536 = N 1 0",
+                    "2304 = N 1 0"),
+                ChartText.Section("HardDrums",
+                    "1536 = S 64 768",
+                    "1536 = N 1 0",
+                    "2304 = N 1 0"),
+                ChartText.Section(ChartIOHelper.SECTION_EVENTS,
+                    "1536 = E \"coda\""));
+
+            var song = ChartReader.ReadFromText(chartText);
+            var expert = song.GetChart(MoonInstrument.Drums, MoonDifficulty.Expert);
+            var hard = song.GetChart(MoonInstrument.Drums, MoonDifficulty.Hard);
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(expert.specialPhrases, Has.One.Matches<MoonPhrase>(phrase =>
+                    phrase is { type: MoonPhrase.Type.ProDrums_Activation, tick: 384, length: 192 }));
+                Assert.That(expert.specialPhrases, Has.One.Matches<MoonPhrase>(phrase =>
+                    phrase is { type: MoonPhrase.Type.BigRockEnding, tick: 1536, length: 768 }));
+                Assert.That(hard.specialPhrases, Has.One.Matches<MoonPhrase>(phrase =>
+                    phrase is { type: MoonPhrase.Type.BigRockEnding, tick: 1536, length: 768 }));
+                AssertHasFlag(expert.notes.Single(note => note.tick == 2304), Flags.CodaEnd);
+                AssertHasFlag(hard.notes.Single(note => note.tick == 2304), Flags.CodaEnd);
+            }
+        }
+
+        [Test]
         public void DrumsProcessList_DisambiguatesUnknownDrumsTypeFromCymbalMarkers()
         {
             var settings = ParseSettings.Default_Chart;
