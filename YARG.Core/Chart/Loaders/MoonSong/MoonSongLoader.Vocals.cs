@@ -160,10 +160,12 @@ namespace YARG.Core.Chart
                 var lyrics = new List<LyricEvent>();
                 VocalNote? previousNote = null;
                 uint endOfPhrase = moonPhrase.tick + moonPhrase.length;
+                // A note on the phrase's end tick belongs to it, unless another phrase starts on that tick
+                bool endTickInPhrase = !PhraseStartsAt(moonChart.specialPhrases, moonPhraseIndex, lyricPhraseType, endOfPhrase);
                 while (moonNoteIndex < moonChart.notes.Count)
                 {
                     var moonNote = moonChart.notes[moonNoteIndex];
-                    if (moonNote.tick >= endOfPhrase)
+                    if (moonNote.tick > endOfPhrase || (moonNote.tick == endOfPhrase && !endTickInPhrase))
                         break;
                     moonNoteIndex++;
 
@@ -258,6 +260,18 @@ namespace YARG.Core.Chart
             phrases.ForEach(phrase => FixLyricLengths(phrase, staticLyricPhrases));
 
             return phrases;
+        }
+
+        private static bool PhraseStartsAt(List<MoonPhrase> phrases, int startIndex, MoonPhrase.Type type, uint tick)
+        {
+            for (int i = startIndex; i < phrases.Count && phrases[i].tick <= tick; i++)
+            {
+                if (phrases[i].type == type && phrases[i].tick == tick)
+                {
+                    return true;
+                }
+            }
+            return false;
         }
 
         /// <summary>
