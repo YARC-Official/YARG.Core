@@ -251,6 +251,7 @@ namespace MoonscraperChartEditor.Song.IO
             { KEYS_TRACK,          MoonSong.MoonInstrument.Keys },
 
             { DRUMS_TRACK,         MoonSong.MoonInstrument.Drums },
+            { DRUMS_TRACK_2,       MoonSong.MoonInstrument.Drums },
             { DRUMS_REAL_TRACK,    MoonSong.MoonInstrument.Drums },
             { ELITE_DRUMS_TRACK,   MoonSong.MoonInstrument.EliteDrums },
 

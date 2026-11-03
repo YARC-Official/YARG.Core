@@ -22,6 +22,7 @@ namespace YARG.Core.IO
             {"PART GUITAR COOP GHL", MidiTrackType.Coop_6},
             {"PART KEYS",            MidiTrackType.Keys},
             {"PART DRUMS",           MidiTrackType.Drums},
+            {"PART DRUM",            MidiTrackType.Drums},
             {"PART ELITE_DRUMS",     MidiTrackType.EliteDrums},
             {"PART VOCALS",          MidiTrackType.Vocals},
             {"PART HARM1",           MidiTrackType.Harm1},
