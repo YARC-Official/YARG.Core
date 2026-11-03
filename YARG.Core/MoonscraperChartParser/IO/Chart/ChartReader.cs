@@ -174,13 +174,51 @@ namespace MoonscraperChartEditor.Song.IO
             ExpectSection(chartText, ref textIndex, ChartIOHelper.SECTION_SYNC_TRACK, out sectionBody);
             SubmitDataSync(song, sectionBody);
 
+            // The drum type as given, before the drums sections decide one
+            var drumsType = settings.DrumsType;
+            bool cymbalMarker = false;
+
             // Parse instrument tracks
             while (GetNextSection(chartText, ref textIndex, out var sectionName, out sectionBody))
             {
-                SubmitChartData(ref settings, song, sectionName, sectionBody);
+                SubmitChartData(ref settings, song, sectionName, sectionBody, ref cymbalMarker);
+            }
+
+            // A cymbal marker in any drums section makes the drums pro, unless they were given as five lane
+            if (drumsType is not DrumsType.FiveLane && cymbalMarker)
+            {
+                ValidateProDrumsGreenNotes(song);
             }
 
             return song;
+        }
+
+        // In pro drums, N 4 is a green cymbal or tom and N 5 is a green tom, so they can't share a tick.
+        // Such a chart is invalid, so it isn't loaded.
+        private static void ValidateProDrumsGreenNotes(MoonSong song)
+        {
+            foreach (var difficulty in EnumExtensions<MoonSong.Difficulty>.Values)
+            {
+                uint tick = 0;
+                bool green = false;
+                bool greenTom = false;
+                foreach (var note in song.GetChart(MoonSong.MoonInstrument.Drums, difficulty).notes)
+                {
+                    if (note.tick != tick)
+                    {
+                        tick = note.tick;
+                        green = false;
+                        greenTom = false;
+                    }
+
+                    green |= note.drumPad is MoonNote.DrumPad.Orange;
+                    greenTom |= note.drumPad is MoonNote.DrumPad.Green;
+                    if (green && greenTom)
+                    {
+                        throw new InvalidDataException($"Invalid pro drums! Found N 4 and N 5 at tick {tick} in [{difficulty}Drums]");
+                    }
+                }
+            }
         }
 
         private static bool GetNextSection(ReadOnlySpan<char> chartText, ref int index,
@@ -301,7 +339,7 @@ namespace MoonscraperChartEditor.Song.IO
         }
 
         private static void SubmitChartData(ref ParseSettings settings, MoonSong song, ReadOnlySpan<char> sectionName,
-            AsciiTrimSplitter sectionLines)
+            AsciiTrimSplitter sectionLines, ref bool cymbalMarker)
         {
             if (sectionName.Equals(ChartIOHelper.SECTION_EVENTS, StringComparison.Ordinal))
             {
@@ -320,7 +358,7 @@ namespace MoonscraperChartEditor.Song.IO
                     if (!sectionName.EndsWith(instrumentName, StringComparison.Ordinal)) continue;
 
                     YargLogger.LogFormatDebug("Loading data for {0} {1}", difficulty, instrument);
-                    LoadChart(ref settings, song, sectionLines, instrument, difficulty);
+                    LoadChart(ref settings, song, sectionLines, instrument, difficulty, ref cymbalMarker);
                     break;
                 }
 
@@ -457,7 +495,7 @@ namespace MoonscraperChartEditor.Song.IO
         #endregion
 
         private static void LoadChart(ref ParseSettings settings, MoonSong song, AsciiTrimSplitter sectionLines,
-            MoonSong.MoonInstrument instrument, MoonSong.Difficulty difficulty)
+            MoonSong.MoonInstrument instrument, MoonSong.Difficulty difficulty, ref bool cymbalMarker)
         {
             var chart = song.GetChart(instrument, difficulty);
             var gameMode = chart.gameMode;
@@ -534,6 +572,13 @@ namespace MoonscraperChartEditor.Song.IO
 
                                 var noteLengthText = remaining.GetNextWord(out remaining);
                                 uint noteLength = (uint) FastInt32Parse(noteLengthText);
+
+                                // A cymbal marker makes the drums pro, even on a tick without its note
+                                if (gameMode == MoonChart.GameMode.Drums && noteType is >= ChartIOHelper.NOTE_OFFSET_PRO_DRUMS + 2
+                                    and <= ChartIOHelper.NOTE_OFFSET_PRO_DRUMS + 4)
+                                {
+                                    cymbalMarker = true;
+                                }
 
                                 // Process the note
                                 if (noteProcessDict.TryGetValue(noteType, out var processFn))

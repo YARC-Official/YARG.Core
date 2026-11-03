@@ -110,6 +110,9 @@ namespace MoonscraperChartEditor.Song.IO
             public List<EventProcessFn> forcingProcessList;
             public List<EventProcessFn> sysexProcessList;
             public IReadOnlyList<EventProcessFn> postProcessList;
+
+            // Whether a drums tom marker covers a note, which makes the drums pro
+            public bool tomMarker;
         }
 
         public static MoonSong ReadMidi(string path)
@@ -958,6 +961,34 @@ namespace MoonscraperChartEditor.Song.IO
             eventProcessParams.forcingProcessList.Add((ref EventProcessParams processParams) =>
             {
                 ProcessNoteOnEventAsFlagTogglePostDelay(ref processParams, startTick, endTick, flags, individualNoteSpecifier);
+            });
+        }
+
+        private static void ProcessNoteOnEventAsTomMarker(ref EventProcessParams eventProcessParams, int pad)
+        {
+            ProcessNoteOnEventAsFlagToggle(ref eventProcessParams, MoonNote.Flags.ProDrums_Cymbal, pad);
+
+            var timedEvent = eventProcessParams.timedEvent;
+            uint startTick = (uint)timedEvent.startTick;
+            uint endTick = (uint)timedEvent.endTick;
+            // Exclude the last tick of the marker
+            if (endTick > startTick)
+                --endTick;
+
+            // A marker that covers a note of any difficulty, kicks included, makes the drums pro.
+            // Delay the check until all the notes are in.
+            eventProcessParams.forcingProcessList.Add((ref EventProcessParams processParams) =>
+            {
+                foreach (var difficulty in EnumExtensions<MoonSong.Difficulty>.Values)
+                {
+                    var chart = processParams.song.GetChart(processParams.instrument, difficulty);
+                    MoonObjectHelper.GetRange(chart.notes, startTick, endTick, out _, out int length);
+                    if (length > 0)
+                    {
+                        processParams.tomMarker = true;
+                        return;
+                    }
+                }
             });
         }
 

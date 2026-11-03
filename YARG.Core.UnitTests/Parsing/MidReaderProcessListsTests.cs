@@ -107,6 +107,105 @@ public class MidReaderProcessListsTests
         }
     }
 
+    [TestCase(DrumsType.FourLane, true)]
+    [TestCase(DrumsType.FourLane, false)]
+    [TestCase(DrumsType.Unknown, true)]
+    public void ReadMidi_ThrowsForBothGreenNotesAtOneTickInProDrums(DrumsType drumsType, bool greenTom)
+    {
+        var settings = ParseSettings.Default_Midi;
+        settings.DrumsType = drumsType;
+        // The tom marker makes the drums pro: over the green note, two green toms; over a yellow note, a green
+        // cymbal and a green tom
+        int tomMarker = greenTom ? 112 : 110;
+        int tomMarkerTick = greenTom ? 192 : 0;
+        var midi = MakeMidi(MakeTrack(MidIOHelper.DRUMS_TRACK,
+            Note(0, 10, 98),
+            Note(tomMarkerTick, tomMarkerTick + 10, tomMarker),
+            Note(192, 202, 100),
+            Note(192, 202, 101)));
+
+        Assert.Throws<InvalidDataException>(() => MidReader.ReadMidi(ref settings, midi));
+    }
+
+    [Test]
+    public void ReadMidi_ThrowsForBothGreenNotesAtOneTickWhenATomMarkerCoversOnlyAKick()
+    {
+        var settings = ParseSettings.Default_Midi;
+        settings.DrumsType = DrumsType.FourLane;
+        var midi = MakeMidi(MakeTrack(MidIOHelper.DRUMS_TRACK,
+            Note(0, 10, 60),
+            Note(0, 10, 110),
+            Note(192, 202, 88),
+            Note(192, 202, 89)));
+
+        var exception = Assert.Throws<InvalidDataException>(() => MidReader.ReadMidi(ref settings, midi));
+
+        Assert.That(exception.Message, Does.Contain("notes 88 and 89 at tick 192 on Hard"));
+    }
+
+    [TestCase(DrumsType.FourLane)]
+    [TestCase(DrumsType.Unknown)]
+    public void ReadMidi_ReadsBothGreenNotesAtOneTickWithoutTomMarkers(DrumsType drumsType)
+    {
+        // Five lane drums: an orange and a green. The drum type given may still be four lane.
+        var settings = ParseSettings.Default_Midi;
+        settings.DrumsType = drumsType;
+        var midi = MakeMidi(MakeTrack(MidIOHelper.DRUMS_TRACK,
+            Note(192, 202, 100),
+            Note(192, 202, 101)));
+
+        var song = MidReader.ReadMidi(ref settings, midi);
+        var notes = song.GetChart(MoonInstrument.Drums, Difficulty.Expert).notes;
+
+        Assert.That(notes.Select(note => note.drumPad), Is.EquivalentTo(new[] { DrumPad.Orange, DrumPad.Green }));
+    }
+
+    [Test]
+    public void ReadMidi_ReadsBothGreenNotesAtOneTickWhenTheTomMarkerCoversNoNote()
+    {
+        var settings = ParseSettings.Default_Midi;
+        settings.DrumsType = DrumsType.FourLane;
+        var midi = MakeMidi(MakeTrack(MidIOHelper.DRUMS_TRACK,
+            Note(192, 202, 100),
+            Note(192, 202, 101),
+            Note(960, 970, 112)));
+
+        var song = MidReader.ReadMidi(ref settings, midi);
+
+        Assert.That(song.GetChart(MoonInstrument.Drums, Difficulty.Expert).notes, Has.Count.EqualTo(2));
+    }
+
+    [Test]
+    public void ReadMidi_ReadsBothGreenNotesAtOneTickWhenGivenFiveLane()
+    {
+        var settings = ParseSettings.Default_Midi;
+        settings.DrumsType = DrumsType.FiveLane;
+        var midi = MakeMidi(MakeTrack(MidIOHelper.DRUMS_TRACK,
+            Note(192, 202, 100),
+            Note(192, 202, 101),
+            Note(192, 202, 112)));
+
+        var song = MidReader.ReadMidi(ref settings, midi);
+
+        Assert.That(song.GetChart(MoonInstrument.Drums, Difficulty.Expert).notes, Has.Count.EqualTo(2));
+    }
+
+    [Test]
+    public void ReadMidi_Reads101AloneInProDrums()
+    {
+        var settings = ParseSettings.Default_Midi;
+        settings.DrumsType = DrumsType.FourLane;
+        var midi = MakeMidi(MakeTrack(MidIOHelper.DRUMS_TRACK,
+            Note(0, 10, 98),
+            Note(0, 10, 110),
+            Note(192, 202, 101),
+            Note(384, 394, 100)));
+
+        var song = MidReader.ReadMidi(ref settings, midi);
+
+        Assert.That(song.GetChart(MoonInstrument.Drums, Difficulty.Expert).notes, Has.Count.EqualTo(3));
+    }
+
     [Test]
     public void EliteDrumsStrictHatPedalStateTextEvent_SetsStrictHatPedalFlag()
     {

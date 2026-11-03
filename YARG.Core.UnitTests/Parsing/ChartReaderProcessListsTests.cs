@@ -579,6 +579,92 @@ namespace YARG.Core.UnitTests.Parsing
             Assert.That(settings.DrumsType, Is.EqualTo(DrumsType.FiveLane));
         }
 
+        [TestCase(DrumsType.FourLane, false)]
+        [TestCase(DrumsType.FourLane, true)]
+        [TestCase(DrumsType.Unknown, false)]
+        public void ReadFromText_ThrowsForN4AndN5AtOneTickInProDrums(DrumsType drumsType, bool greenCymbal)
+        {
+            var settings = ParseSettings.Default_Chart;
+            settings.DrumsType = drumsType;
+            var lines = new List<string> { "0 = N 2 0", "0 = N 66 0", "192 = N 4 0", "192 = N 5 0" };
+            if (greenCymbal)
+            {
+                lines.Add("192 = N 68 0");
+            }
+
+            var chartText = ChartText.Chart(
+                ChartText.SongSection(),
+                ChartText.SyncSection(),
+                ChartText.Section("ExpertDrums", lines.ToArray()));
+
+            Assert.Throws<InvalidDataException>(() => ChartReader.ReadFromText(ref settings, chartText));
+        }
+
+        [Test]
+        public void ReadFromText_ThrowsForN4AndN5AtOneTickWhenAnotherSectionHasACymbalMarker()
+        {
+            // The marker has no note on its tick, and it still makes the drums pro
+            var settings = ParseSettings.Default_Chart;
+            settings.DrumsType = DrumsType.FourLane;
+            var chartText = ChartText.Chart(
+                ChartText.SongSection(),
+                ChartText.SyncSection(),
+                ChartText.Section("ExpertDrums", "0 = N 1 0", "0 = N 66 0"),
+                ChartText.Section("EasyDrums", "192 = N 4 0", "192 = N 5 0"));
+
+            var exception = Assert.Throws<InvalidDataException>(() => ChartReader.ReadFromText(ref settings, chartText));
+
+            Assert.That(exception.Message, Does.Contain("tick 192 in [EasyDrums]"));
+        }
+
+        [TestCase(DrumsType.FourLane)]
+        [TestCase(DrumsType.Unknown)]
+        public void ReadFromText_ReadsN4AndN5AtOneTickWithoutCymbalMarkers(DrumsType drumsType)
+        {
+            // Five lane drums: an orange and a green. The drum type given may still be four lane.
+            var settings = ParseSettings.Default_Chart;
+            settings.DrumsType = drumsType;
+            var chartText = ChartText.Chart(
+                ChartText.SongSection(),
+                ChartText.SyncSection(),
+                ChartText.Section("ExpertDrums", "192 = N 4 0", "192 = N 5 0"));
+
+            var song = ChartReader.ReadFromText(ref settings, chartText);
+            var notes = song.GetChart(MoonInstrument.Drums, MoonDifficulty.Expert).notes;
+
+            Assert.That(notes.Select(note => note.drumPad), Is.EqualTo(new[] { DrumPad.Orange, DrumPad.Green }));
+        }
+
+        [Test]
+        public void ReadFromText_ReadsN4AndN5AtOneTickWhenGivenFiveLane()
+        {
+            var settings = ParseSettings.Default_Chart;
+            settings.DrumsType = DrumsType.FiveLane;
+            var chartText = ChartText.Chart(
+                ChartText.SongSection(),
+                ChartText.SyncSection(),
+                ChartText.Section("ExpertDrums", "0 = N 2 0", "0 = N 66 0", "192 = N 4 0", "192 = N 5 0"));
+
+            var song = ChartReader.ReadFromText(ref settings, chartText);
+
+            Assert.That(song.GetChart(MoonInstrument.Drums, MoonDifficulty.Expert).notes, Has.Count.EqualTo(3));
+        }
+
+        [Test]
+        public void ReadFromText_ReadsN5AloneInProDrums()
+        {
+            var settings = ParseSettings.Default_Chart;
+            settings.DrumsType = DrumsType.FourLane;
+            var chartText = ChartText.Chart(
+                ChartText.SongSection(),
+                ChartText.SyncSection(),
+                ChartText.Section("ExpertDrums", "0 = N 2 0", "0 = N 66 0", "192 = N 5 0", "384 = N 4 0"));
+
+            var song = ChartReader.ReadFromText(ref settings, chartText);
+
+            Assert.That(song.GetChart(MoonInstrument.Drums, MoonDifficulty.Expert).notes, Has.Count.EqualTo(3));
+        }
+
         [Test]
         public void ReadFromText_AppliesSustainCutoffThreshold()
         {
