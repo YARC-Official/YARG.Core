@@ -102,9 +102,11 @@ namespace YARG.Core.Chart
                         phrases.Add(new(phrase.Tick, phrase.TickLength, MoonPhrase.Type.Solo));
                         break;
                     case PhraseType.EliteDrums_DiscoFlip:
-                        if (phrase.Tick == 0)
+                        // A flip that starts at tick 0, or where the last one ends, replaces the event that turns
+                        // the flip off there, which would otherwise win over it
+                        if (textEvents[^1].tick == phrase.Tick)
                         {
-                            textEvents[0].text = discoOnText;
+                            textEvents[^1].text = discoOnText;
                         }
                         else
                         {

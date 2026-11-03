@@ -13,9 +13,14 @@ namespace YARG.Core.Chart
     {
         private DrumsMixSetting _mixSetting = DrumsMixSetting.None;
 
+        // The difficulty and tick of the mix event that set _mixSetting, to choose between mix events at one tick
+        private Difficulty? _mixDifficulty;
+        private uint _mixTick;
+
         public InstrumentTrack<DrumNote> LoadDrumsTrack(Instrument instrument, InstrumentTrack<EliteDrumNote>? eliteDrumsFallback)
         {
             _mixSetting = DrumsMixSetting.None;
+            _mixDifficulty = null;
             return instrument.ToNativeGameMode() switch
             {
                 GameMode.FourLaneDrums => LoadDrumsTrack(instrument, CreateFourLaneDrumNote, eliteDrumsFallback),
@@ -236,7 +241,26 @@ namespace YARG.Core.Chart
             if (difficulty != currentDiff)
                 return;
 
+            // Of two mix events at one tick, one that turns the flip off wins, then d, then dnoflip,
+            // whichever order they come in
+            if (_mixDifficulty == _currentDifficulty && _mixTick == text.tick &&
+                GetMixPriority(setting) < GetMixPriority(_mixSetting))
+                return;
+
             _mixSetting = setting;
+            _mixDifficulty = _currentDifficulty;
+            _mixTick = text.tick;
+        }
+
+        private static int GetMixPriority(DrumsMixSetting setting)
+        {
+            return setting switch
+            {
+                DrumsMixSetting.DiscoNoFlip => 0,
+                DrumsMixSetting.DiscoFlip   => 1,
+                // Every other setting turns the flip off
+                _                           => 2,
+            };
         }
 
         // Left as an example of how to use phrase validation/replacement despite being no longer required
