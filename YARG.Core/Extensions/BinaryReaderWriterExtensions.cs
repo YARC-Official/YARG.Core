@@ -16,7 +16,7 @@ namespace YARG.Core.Extensions
         public static Guid ReadGuid(this BinaryReader reader)
         {
             Span<byte> span = stackalloc byte[16];
-            if (reader.Read(span) != span.Length)
+            if (reader.BaseStream.ReadFully(span) != span.Length)
             {
                 throw new EndOfStreamException("Failed to read GUID, ran out of bytes!");
             }

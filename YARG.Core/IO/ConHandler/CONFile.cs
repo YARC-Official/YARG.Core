@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
+using YARG.Core.Extensions;
 using YARG.Core.Logging;
 
 namespace YARG.Core.IO
@@ -36,7 +37,12 @@ namespace YARG.Core.IO
             return false;
         }
 
-        public static unsafe List<CONFileListing>? TryParseListings(string filename, FileStream filestream)
+        public static List<CONFileListing>? TryParseListings(string filename, FileStream filestream)
+        {
+            return TryParseListings(filename, (Stream) filestream);
+        }
+
+        public static unsafe List<CONFileListing>? TryParseListings(string filename, Stream filestream)
         {
             if (filestream.Length <= CONFileStream.FIRSTBLOCK_OFFSET)
             {
@@ -51,7 +57,7 @@ namespace YARG.Core.IO
 
             Span<byte> buffer = stackalloc byte[BYTES_32BIT];
             filestream.Position = METADATA_POSITION;
-            if (filestream.Read(buffer) != BYTES_32BIT)
+            if (filestream.ReadFully(buffer) != BYTES_32BIT)
             {
                 return null;
             }
@@ -66,7 +72,7 @@ namespace YARG.Core.IO
             }
 
             filestream.Position = FILETABLEBLOCKCOUNT_POSITION;
-            if (filestream.Read(buffer[..BYTES_16BIT]) != BYTES_16BIT)
+            if (filestream.ReadFully(buffer[..BYTES_16BIT]) != BYTES_16BIT)
             {
                 return null;
             }
@@ -74,7 +80,7 @@ namespace YARG.Core.IO
             int length = BYTES_PER_BLOCK * (buffer[0] | buffer[1] << 8);
 
             filestream.Position = FILETABLEFIRSTBLOCK_POSITION;
-            if (filestream.Read(buffer[..BYTES_24BIT]) != BYTES_24BIT)
+            if (filestream.ReadFully(buffer[..BYTES_24BIT]) != BYTES_24BIT)
             {
                 return null;
             }

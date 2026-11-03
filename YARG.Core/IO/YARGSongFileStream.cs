@@ -1,5 +1,6 @@
 ﻿using System;
 using System.IO;
+using YARG.Core.Extensions;
 
 namespace YARG.Core.IO
 {
@@ -38,7 +39,7 @@ namespace YARG.Core.IO
         {
             yargStream = null!;
             Span<byte> signature = stackalloc byte[FILE_SIGNATURE.Length];
-            if (filestream.Read(signature) != FILE_SIGNATURE.Length)
+            if (filestream.ReadFully(signature) != FILE_SIGNATURE.Length)
             {
                 return false;
             }
@@ -65,7 +66,7 @@ namespace YARG.Core.IO
             // We are using a SET_LENGTH-long Euler cipher set (I think?) for this
 
             Span<byte> set = stackalloc byte[SET_LENGTH];
-            if (filestream.Read(set) != SET_LENGTH)
+            if (filestream.ReadFully(set) != SET_LENGTH)
             {
                 filestream.Close();
                 throw new EndOfStreamException("YARGSong incomplete");

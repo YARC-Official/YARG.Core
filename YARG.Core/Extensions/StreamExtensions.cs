@@ -14,13 +14,71 @@ namespace YARG.Core.Extensions
 
     public static class StreamExtensions
     {
+        /// <summary>
+        /// Calls <see cref="Stream.Read(Span{byte})"/> until <paramref name="buffer"/> is full or the stream ends,
+        /// since a single call may return fewer bytes than requested (network streams do).
+        /// </summary>
+        /// <returns>The number of bytes read, which is less than the buffer length only at end of stream</returns>
+        public static int ReadFully(this Stream stream, Span<byte> buffer)
+        {
+            int total = 0;
+            while (total < buffer.Length)
+            {
+                int read = stream.Read(buffer[total..]);
+                if (read == 0)
+                {
+                    break;
+                }
+                total += read;
+            }
+            return total;
+        }
+
+        /// <inheritdoc cref="ReadFully(Stream, Span{byte})"/>
+        public static int ReadFully(this Stream stream, byte[] buffer, int offset, int count)
+        {
+            int total = 0;
+            while (total < count)
+            {
+                int read = stream.Read(buffer, offset + total, count - total);
+                if (read == 0)
+                {
+                    break;
+                }
+                total += read;
+            }
+            return total;
+        }
+
+        /// <summary>
+        /// Fills <paramref name="buffer"/> from the stream, matching .NET 7's <c>Stream.ReadExactly</c>,
+        /// which netstandard2.1 lacks.
+        /// </summary>
+        /// <exception cref="EndOfStreamException">The stream ended before the buffer was filled</exception>
+        public static void ReadExactly(this Stream stream, Span<byte> buffer)
+        {
+            if (stream.ReadFully(buffer) != buffer.Length)
+            {
+                throw new EndOfStreamException();
+            }
+        }
+
+        /// <inheritdoc cref="ReadExactly(Stream, Span{byte})"/>
+        public static void ReadExactly(this Stream stream, byte[] buffer, int offset, int count)
+        {
+            if (stream.ReadFully(buffer, offset, count) != count)
+            {
+                throw new EndOfStreamException();
+            }
+        }
+
         public static TType Read<TType>(this Stream stream, Endianness endianness)
             where TType : unmanaged, IComparable, IComparable<TType>, IConvertible, IEquatable<TType>, IFormattable
         {
             TType value = default;
             unsafe
             {
-                if (stream.Read(new Span<byte>(&value, sizeof(TType))) != sizeof(TType))
+                if (stream.ReadFully(new Span<byte>(&value, sizeof(TType))) != sizeof(TType))
                 {
                     throw new EndOfStreamException($"Not enough data in the stream to read {typeof(TType)} ({sizeof(TType)} bytes)!");
                 }
@@ -116,7 +174,7 @@ namespace YARG.Core.Extensions
         public static Guid ReadGuid(this Stream stream)
         {
             Span<byte> span = stackalloc byte[16];
-            if (stream.Read(span) != span.Length)
+            if (stream.ReadFully(span) != span.Length)
             {
                 throw new EndOfStreamException("Failed to read GUID, ran out of bytes!");
             }
@@ -126,7 +184,7 @@ namespace YARG.Core.Extensions
         public static byte[] ReadBytes(this Stream stream, int length)
         {
             byte[] buffer = new byte[length];
-            if (stream.Read(buffer, 0, length) != length)
+            if (stream.ReadFully(buffer, 0, length) != length)
             {
                 throw new EndOfStreamException($"Not enough data in the stream to read {length} bytes!");
             }
@@ -172,7 +230,7 @@ namespace YARG.Core.Extensions
                 // Maybe we happened to match the first byte?
                 if (buffer[0] == barrier[0])
                 {
-                    if (stream.Read(buffer, 1, 3) == 3 && barrier.SequenceEqual(buffer))
+                    if (stream.ReadFully(buffer, 1, 3) == 3 && barrier.SequenceEqual(buffer))
                     {
                         return memoryStream2.ToArray();
                     }

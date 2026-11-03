@@ -2,6 +2,7 @@
 using System.Globalization;
 using System.IO;
 using System.Security.Cryptography;
+using YARG.Core.Extensions;
 using YARG.Core.IO;
 using YARG.Core.Logging;
 
@@ -38,10 +39,7 @@ namespace YARG.Core.Song
         {
             var wrapper = new HashWrapper();
             var span = new Span<byte>(wrapper._hash, HASH_SIZE_IN_BYTES);
-            if (stream.Read(span) != HASH_SIZE_IN_BYTES)
-            {
-                throw new EndOfStreamException();
-            }
+            stream.ReadExactly(span);
             return wrapper;
         }
 

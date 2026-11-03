@@ -2,6 +2,7 @@
 using System.IO;
 using System.Numerics;
 using System.Runtime.InteropServices;
+using YARG.Core.Extensions;
 
 namespace YARG.Core.IO
 {
@@ -20,7 +21,7 @@ namespace YARG.Core.IO
         {
             const int NUM_KEYS = 16;
             Span<byte> keys = stackalloc byte[NUM_KEYS];
-            if (stream.Read(keys) < keys.Length)
+            if (stream.ReadFully(keys) < keys.Length)
             {
                 throw new EndOfStreamException("Unable to read SNG mask");
             }
