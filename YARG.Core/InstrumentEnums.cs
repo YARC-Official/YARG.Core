@@ -30,6 +30,7 @@ namespace YARG.Core
 
         // 15-19: Vocals
         Vocals = 15,
+        PartyVocals = 16,
 
         // 20-24: Other
         // Dj = 20,
@@ -162,6 +163,12 @@ namespace YARG.Core
         Orange          = 14
     }
 
+    public enum PartyVocalsChartPreference : byte
+    {
+        Harmony = 0,
+        Solo = 1
+    }
+
     public static class ChartEnumExtensions
     {
         /// <summary>
@@ -220,8 +227,8 @@ namespace YARG.Core
                 Instrument.ProKeys => GameMode.ProKeys,
 
                 Instrument.Vocals or
-                Instrument.Harmony or
-                Instrument.PartyVocals => GameMode.Vocals,
+                Instrument.Harmony => GameMode.Vocals,
+                Instrument.PartyVocals => GameMode.PartyVocals,
 
                 // Instrument.DjSingle => GameMode.Dj,
                 // Instrument.DjDouble => GameMode.Dj,
@@ -287,6 +294,7 @@ namespace YARG.Core
                     Instrument.FiveFretRhythm,
                     Instrument.FiveFretCoopGuitar
                 },
+                GameMode.PartyVocals => new[] { Instrument.PartyVocals },
                 GameMode.Vocals => new[]
                 {
                     Instrument.Vocals,
