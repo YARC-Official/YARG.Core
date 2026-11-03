@@ -18,7 +18,8 @@ namespace YARG.Core.Game
         NoDynamics    = 1 << 8,
         NoVocalPercussion = 1 << 9,
         RangeCompress = 1 << 10,
-        OpensToGreens = 1 << 11
+        OpensToGreens = 1 << 11,
+        RandomColors  = 1 << 12
     }
 
     public static class ModifierConflicts
@@ -70,7 +71,8 @@ namespace YARG.Core.Game
                     Modifier.HoposToTaps   |
                     Modifier.TapsToHopos   |
                     Modifier.RangeCompress |
-                    Modifier.OpensToGreens,
+                    Modifier.OpensToGreens |
+                    Modifier.RandomColors,
 
                 GameMode.SixFretGuitar =>
                     Modifier.AllStrums     |
