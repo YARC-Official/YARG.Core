@@ -3,6 +3,7 @@ using NUnit.Framework;
 using YARG.Core.Audio;
 using YARG.Core.Chart.Hashing;
 using YARG.Core.Song;
+using YARG.Core.Song.Cache;
 
 namespace YARG.Core.UnitTests.Chart;
 
@@ -109,8 +110,9 @@ public class ScanChartGoldenVectorTests
         result = default;
         var chart = IniSubEntry.CHART_FILE_TYPES.First(type => File.Exists(Path.Combine(directory, type.Filename)));
         var ini = new FileInfo(Path.Combine(directory, "song.ini"));
+        var collection = new FileCollection(new DirectoryInfo(directory));
         var scan = UnpackedIniEntry.ProcessNewEntry(directory, new FileInfo(Path.Combine(directory, chart.Filename)),
-            chart.Format, ini.Exists ? ini : null, string.Empty);
+            chart.Format, ini.Exists ? ini : null, string.Empty, collection);
         if (!scan.HasValue)
         {
             return $"YARG's scan gives {scan.Error}";
