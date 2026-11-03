@@ -199,6 +199,7 @@ namespace MoonscraperChartEditor.Song.IO
                 }
             }
 
+            bool beatsRead = false;
             for (int i = 1; i < midi.Chunks.Count; i++)
             {
                 var chunk = midi.Chunks[i];
@@ -218,7 +219,12 @@ namespace MoonscraperChartEditor.Song.IO
                 switch (trackName)
                 {
                     case MidIOHelper.BEAT_TRACK:
-                        ReadSongBeats(track, song);
+                        // Only the first BEAT track is read
+                        if (!beatsRead)
+                        {
+                            ReadSongBeats(track, song);
+                            beatsRead = true;
+                        }
                         break;
 
                     case MidIOHelper.EVENTS_TRACK:

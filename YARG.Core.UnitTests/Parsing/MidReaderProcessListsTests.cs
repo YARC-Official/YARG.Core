@@ -62,6 +62,30 @@ public class MidReaderProcessListsTests
     }
 
     [Test]
+    public void ReadMidi_ReadsOnlyTheFirstBeatTrack()
+    {
+        var midi = MakeMidi(
+            MakeTrack(MidIOHelper.BEAT_TRACK,
+                Note(0, 10, MidIOHelper.BEAT_MEASURE),
+                Note(192, 202, MidIOHelper.BEAT_WEAK)),
+            MakeTrack(MidIOHelper.BEAT_TRACK,
+                Note(0, 10, MidIOHelper.BEAT_MEASURE),
+                Note(96, 106, MidIOHelper.BEAT_STRONG)));
+
+        var song = MidReader.ReadMidi(midi);
+        var beatlines = song.syncTrack.Beatlines;
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(beatlines, Has.Count.EqualTo(2));
+            Assert.That(beatlines[0].Tick, Is.EqualTo(0));
+            Assert.That(beatlines[0].Type, Is.EqualTo(BeatlineType.Measure));
+            Assert.That(beatlines[1].Tick, Is.EqualTo(192));
+            Assert.That(beatlines[1].Type, Is.EqualTo(BeatlineType.Weak));
+        }
+    }
+
+    [Test]
     public void GuitarOpenNotes_AreIgnoredUntilEnhancedOpensTextEvent()
     {
         var openNote = MidIOHelper.GUITAR_DIFF_START_LOOKUP[Difficulty.Expert] - 1;
