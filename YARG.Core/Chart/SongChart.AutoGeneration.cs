@@ -711,87 +711,42 @@ namespace YARG.Core.Chart
 
         private static List<RangeShiftEvent> ParseRangeShifts(InstrumentDifficulty<GuitarNote> instrumentDifficulty)
         {
-            // List<TextEvent> textEvents = new List<TextEvent>();
-            List<RangeShiftEvent> rangeShiftEvents = new List<RangeShiftEvent>();
-            int size;
+            var rangeShiftEvents = new List<RangeShiftEvent>();
 
             foreach (var textEvent in instrumentDifficulty.TextEvents)
             {
-                // This ensures that if size is not parseable we will use the default for the difficulty
-                size = -1;
-
-                if (!textEvent.Text.StartsWith("ld_range_shift"))
+                if (!TextEvents.TryParseRangeShiftEvent(textEvent.Text, out var difficulty, out int range, out int size))
                 {
-                    continue;
-                }
-
-                // Validate the event and add it to the list
-                // My natural inclination here would be to use a regex, but they're not really used
-                // anywhere else in YARG, so...
-                var splitEvent = textEvent.Text.Split(' ');
-
-                // 3 uses default size, 4 explicitly defines range size
-                if (splitEvent.Length != 3 && splitEvent.Length != 4)
-                {
-                    YargLogger.LogDebug("Invalid range shift event. (Improper parameter count)");
-                    continue;
-                }
-
-                if (!(int.TryParse(splitEvent[1], out int eventDifficulty) &&
-                    int.TryParse(splitEvent[2], out int range)))
-                {
-                    YargLogger.LogDebug("Invalid range shift event. (Unable to parse difficulty and range)");
-                    continue;
-                }
-
-                // Add one to eventDifficulty to make it match the Difficulty enum
-                eventDifficulty++;
-
-                if (splitEvent.Length == 4 && !int.TryParse(splitEvent[3], out size))
-                {
-                    YargLogger.LogDebug("Invalid range shift event. (Unable to parse size)");
-                    continue;
-                }
-
-                if (size < 0 || size > 5) {
-                    YargLogger.LogDebug("Range shift event size invalid, using default instead");
-                    size = eventDifficulty switch
+                    if (textEvent.Text.StartsWith("ld_range_shift", StringComparison.Ordinal))
                     {
-                        (int) Difficulty.Easy    => 3,
-                        (int) Difficulty.Medium  => 4,
-                        _                        => 5,
-                    };
-                }
-
-                // Further validation
-                // 1) Is the range index valid
-                if (range < 1 || range > 5)
-                {
-                    YargLogger.LogDebug("Invalid range shift event. (Range is out of bounds)");
+                        YargLogger.LogFormatDebug("Invalid range shift event '{0}'", textEvent.Text);
+                    }
                     continue;
                 }
 
-                // 2) Is the size valid for the range index
-                if (range + size > 6)
-                {
-                    YargLogger.LogDebug("Invalid range shift event. (Size is too large for range)");
-                    continue;
-                }
-
-                // 3) Does it apply to this difficulty?
-                if ((int) instrumentDifficulty.Difficulty != eventDifficulty)
+                // Does it apply to this difficulty?
+                if (instrumentDifficulty.Difficulty != difficulty)
                 {
                     continue;
                 }
 
-                // We have a syntactically valid range shift, so add it to the list
-                rangeShiftEvents.Add(new RangeShiftEvent
+                var rangeShift = new RangeShiftEvent
                 {
                     Time = textEvent.Time,
                     Tick = textEvent.Tick,
                     Range = range,
                     Size = size
-                });
+                };
+
+                // Of two range shifts on one tick, the later one is used
+                if (rangeShiftEvents.Count > 0 && rangeShiftEvents[^1].Tick == textEvent.Tick)
+                {
+                    rangeShiftEvents[^1] = rangeShift;
+                }
+                else
+                {
+                    rangeShiftEvents.Add(rangeShift);
+                }
             }
             return rangeShiftEvents;
         }

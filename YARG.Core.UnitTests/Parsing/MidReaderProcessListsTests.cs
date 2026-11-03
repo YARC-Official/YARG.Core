@@ -210,6 +210,164 @@ public class MidReaderProcessListsTests
     }
 
     [Test]
+    public void ReadMidi_UsesTheLaterOfTwoSectionsOnOneTick()
+    {
+        var midi = MakeMidi(MakeEventsTrack(
+            Text(0, "[section Verse]"),
+            Text(0, "[section Chorus]")));
+
+        var song = MidReader.ReadMidi(midi);
+
+        Assert.That(song.sections.Select(section => section.text), Is.EqualTo(new[] { "Chorus" }));
+    }
+
+    [TestCase("section Chorus [2]", "Chorus [2]")]
+    [TestCase("section asdf[section Chorus [2]]asdf", "asdf[section Chorus [2]]asdf")]
+    [TestCase("[section Intro]", "Intro")]
+    [TestCase(" [section Intro] ", "Intro")]
+    [TestCase("asdf[section Chorus [2]]asdf", "Chorus [2]")]
+    [TestCase("[prc_intro] - Intro", "intro")]
+    [TestCase("[section chorus_2c]]", "chorus_2c")]
+    [TestCase("[section Chorus 2", "Chorus 2")]
+    public void ReadMidi_ReadsSectionBrackets(string text, string name)
+    {
+        var song = MidReader.ReadMidi(MakeMidi(MakeEventsTrack(Text(0, text))));
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(song.sections.Select(section => section.text), Is.EqualTo(new[] { name }));
+            Assert.That(song.events, Is.Empty);
+        }
+    }
+
+    [TestCase("[coda]", "coda")]
+    [TestCase("[coda] - Big Rock Ending", "coda")]
+    [TestCase("[coda", "coda")]
+    [TestCase("[end", "end")]
+    [TestCase("x [coda", "x [coda")]
+    [TestCase("coda]", "coda]")]
+    [TestCase("[[coda]", "[coda]")]
+    [TestCase("crowd_clap [coda]", "coda")]
+    [TestCase("lyric x [coda]", "coda")]
+    [TestCase("[ section Intro]", " section Intro")]
+    [TestCase("[custom] text", "custom")]
+    public void ReadMidi_ReadsGlobalEventBrackets(string text, string eventText)
+    {
+        var song = MidReader.ReadMidi(MakeMidi(MakeEventsTrack(Text(0, text))));
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(song.sections, Is.Empty);
+            Assert.That(song.events.Select(ev => ev.text), Is.EqualTo(new[] { eventText }));
+        }
+    }
+
+    [Test]
+    public void ReadMidi_ReadsSectionsCodaAndEndOnlyFromTextEvents()
+    {
+        var song = MidReader.ReadMidi(MakeMidi(MakeEventsTrack(
+            new TimedMidiEvent(0, new Melanchall.DryWetMidi.Core.LyricEvent("[section Intro]")),
+            new TimedMidiEvent(10, new Melanchall.DryWetMidi.Core.LyricEvent("[coda]")),
+            new TimedMidiEvent(20, new Melanchall.DryWetMidi.Core.LyricEvent("[end]")),
+            new TimedMidiEvent(30, new MarkerEvent("[coda] - Big Rock Ending")),
+            new TimedMidiEvent(40, new CuePointEvent("[prc_outro]")))));
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(song.sections, Is.Empty);
+            Assert.That(song.events, Is.Empty);
+        }
+    }
+
+    [Test]
+    public void ReadMidi_ReadsOtherSongWideEventsFromAnyTextType()
+    {
+        var song = MidReader.ReadMidi(MakeMidi(MakeEventsTrack(
+            new TimedMidiEvent(0, new Melanchall.DryWetMidi.Core.LyricEvent("[crowd_clap]")),
+            new TimedMidiEvent(10, new Melanchall.DryWetMidi.Core.LyricEvent("[music_end]")),
+            new TimedMidiEvent(20, new MarkerEvent("[crowd_intense]")))));
+
+        Assert.That(song.events.Select(ev => ev.text), Is.EqualTo(new[] { "crowd_clap", "music_end", "crowd_intense" }));
+    }
+
+    [Test]
+    public void ReadMidi_InstrumentAndVocalTextKeepTheirOwnBracketRules()
+    {
+        var song = MidReader.ReadMidi(MakeMidi(
+            MakeTrack(MidIOHelper.GUITAR_TRACK, Text(0, "[custom_event] text")),
+            MakeTrack(MidIOHelper.VOCALS_TRACK,
+                Note(0, 10, MidIOHelper.LYRICS_PHRASE_1),
+                new TimedMidiEvent(0, new Melanchall.DryWetMidi.Core.LyricEvent("[x]")),
+                new TimedMidiEvent(5, new Melanchall.DryWetMidi.Core.LyricEvent("lo")))));
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(song.GetChart(MoonInstrument.Guitar, Difficulty.Expert).events.Select(ev => ev.text),
+                Is.EqualTo(new[] { "custom_event" }));
+            Assert.That(song.events.Select(ev => ev.text).Where(text => text.StartsWith("lyric")),
+                Is.EqualTo(new[] { "lyric lo" }));
+        }
+    }
+
+    [TestCase("[ld_range_shift 3 1 3]", 1, 3)]
+    [TestCase("[ld_range_shift 3 2 4]", 2, 4)]
+    [TestCase("[ld_range_shift 3 1]", 1, 5)]
+    [TestCase(" [ld_range_shift 3 1 3] ", 1, 3)]
+    public void RangeShift_IsReadFromBracketedTextEvent(string text, int range, int size)
+    {
+        var rangeShifts = ReadExpertGuitarRangeShifts(Text(0, text));
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(rangeShifts, Has.Count.EqualTo(1));
+            Assert.That(rangeShifts[0].Range, Is.EqualTo(range));
+            Assert.That(rangeShifts[0].Size, Is.EqualTo(size));
+        }
+    }
+
+    [TestCase("ld_range_shift 3 1")]
+    [TestCase("[ ld_range_shift 3 1]")]
+    [TestCase("[ld_range_shift  3 1]")]
+    [TestCase("[ld_range_shiftX 3 1]")]
+    [TestCase("[ld_range_shift +3 1]")]
+    [TestCase("[ld_range_shift 3 1 0]")]
+    [TestCase("[ld_range_shift 3 1 6]")]
+    [TestCase("[ld_range_shift 3 3 4]")]
+    [TestCase("[ld_range_shift 3 0]")]
+    [TestCase("[ld_range_shift -1 1]")]
+    [TestCase("[ld_range_shift 4 1]")]
+    [TestCase("[ld_range_shift 3 1 3 3]")]
+    public void RangeShift_IgnoresOtherForms(string text)
+    {
+        var rangeShifts = ReadExpertGuitarRangeShifts(Text(0, text));
+
+        Assert.That(rangeShifts, Is.Empty);
+    }
+
+    [Test]
+    public void RangeShift_IgnoresLyricEvent()
+    {
+        var rangeShifts = ReadExpertGuitarRangeShifts(
+            new TimedMidiEvent(0, new Melanchall.DryWetMidi.Core.LyricEvent("[ld_range_shift 3 1 3]")));
+
+        Assert.That(rangeShifts, Is.Empty);
+    }
+
+    [Test]
+    public void RangeShift_UsesTheLaterOfTwoOnOneTick()
+    {
+        var rangeShifts = ReadExpertGuitarRangeShifts(
+            Text(0, "[ld_range_shift 3 2 3]"),
+            Text(0, "[ld_range_shift 3 1 3]"));
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(rangeShifts, Has.Count.EqualTo(1));
+            Assert.That(rangeShifts[0].Range, Is.EqualTo(1));
+        }
+    }
+
+    [Test]
     public void SongChart_MidiChordToSameFretSingle_IsStrumWithoutLoaderCancellation()
     {
         var red = MidIOHelper.GUITAR_DIFF_START_LOOKUP[Difficulty.Expert] + 1;
@@ -329,6 +487,17 @@ public class MidReaderProcessListsTests
         {
             (50, uint.MaxValue),
         }));
+    }
+
+    private static List<RangeShift> ReadExpertGuitarRangeShifts(params TimedMidiEvent[] events)
+    {
+        // Range shifts are only made for a difficulty with notes
+        var green = MidIOHelper.GUITAR_DIFF_START_LOOKUP[Difficulty.Expert];
+        var settings = ParseSettings.Default_Midi;
+        var midi = MakeMidi(MakeTrack(MidIOHelper.GUITAR_TRACK, events, Note(0, 10, green), Note(960, 970, green)));
+
+        var songChart = SongChart.FromMidi(in settings, midi);
+        return songChart.FiveFretGuitar.GetDifficulty(YARG.Core.Difficulty.Expert).RangeShiftEvents;
     }
 
     private static MidiFile MakeMidi(params TrackChunk[] tracks)

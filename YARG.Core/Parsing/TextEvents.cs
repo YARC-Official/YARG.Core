@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Globalization;
 using YARG.Core.Extensions;
 using YARG.Core.IO;
 using MemoryExtensions = System.MemoryExtensions;
@@ -88,7 +89,8 @@ namespace YARG.Core.Parsing
         /// leading/trailing whitespace, and isolating any text inside square brackets.
         /// </summary>
         /// <remarks>
-        /// All text events must be passed through this method before being used elsewhere.
+        /// All text events must be passed through this method, or <see cref="NormalizeGlobalEvent"/> for song-wide
+        /// events, before being used elsewhere.
         /// All other methods that operate on text events expect them to be normalized.
         /// </remarks>
         // Equivalent to reading the capture of this regex: \[(.*?)\]
@@ -111,6 +113,62 @@ namespace YARG.Core.Parsing
         /// <inheritdoc cref="NormalizeTextEvent(ReadOnlySpan{char}, out bool)"/>
         public static ReadOnlySpan<char> NormalizeTextEvent(ReadOnlySpan<char> text)
             => NormalizeTextEvent(text, out _);
+
+        /// <summary>
+        /// Normalizes a song-wide text event (.chart [Events], .mid EVENTS). The trimmed text is read as written
+        /// when it's an event. Otherwise, when the text has a '[' and a ']' that closes it (counting nested pairs),
+        /// the text between the first '[' and that ']' is read as it is, and everything outside them is dropped.
+        /// When the text starts with a '[' that no ']' closes, the text after that '[' is read as it is.
+        /// </summary>
+        /// <remarks>
+        /// For example, <c>section Verse [2]</c> is a section named <c>Verse [2]</c>,
+        /// <c>[prc_intro] - Intro</c> is a section named <c>intro</c>, <c>[coda</c> is the coda,
+        /// and <c>x [coda</c> is no event.
+        /// </remarks>
+        /// <param name="text">The event's text.</param>
+        /// <param name="holdsLyrics">
+        /// Whether the events hold lyrics, as a .chart file's [Events] does and a .mid file's EVENTS doesn't.
+        /// Only then are lyrics, <c>phrase_start</c> and <c>phrase_end</c> events here.
+        /// </param>
+        public static ReadOnlySpan<char> NormalizeGlobalEvent(ReadOnlySpan<char> text, bool holdsLyrics)
+        {
+            text = text.Trim();
+            if (IsGlobalEvent(text, holdsLyrics))
+                return text;
+
+            int open = text.IndexOf('[');
+            if (open < 0)
+                return text;
+
+            int depth = 0;
+            for (int i = open; i < text.Length; i++)
+            {
+                if (text[i] == '[')
+                {
+                    depth++;
+                }
+                else if (text[i] == ']' && --depth == 0)
+                {
+                    return text[(open + 1)..i];
+                }
+            }
+
+            // A '[' at the start that no ']' closes
+            return open == 0 ? text[1..] : text;
+        }
+
+        // The song-wide events of the chart specification, which decide how brackets are read.
+        // YARG's own events, such as crowd events, aren't among them, and read as they are after normalizing.
+        private static bool IsGlobalEvent(ReadOnlySpan<char> text, bool holdsLyrics)
+        {
+            return TryParseSectionEvent(text, out _)
+                || text.Equals(BIG_ROCK_ENDING_START, StringComparison.Ordinal)
+                || text.Equals(END_MARKER, StringComparison.Ordinal)
+                || (holdsLyrics && (text.StartsWith(LYRIC_PREFIX_WITH_SPACE)
+                    || text.StartsWith(LYRIC_PREFIX + "\t")
+                    || text.Equals(LYRIC_PHRASE_START, StringComparison.Ordinal)
+                    || text.Equals(LYRIC_PHRASE_END, StringComparison.Ordinal)));
+        }
 
         // For events that have either space or underscore separators
         private static ReadOnlySpan<char> SkipSpaceOrUnderscore(this ReadOnlySpan<char> text)
@@ -143,6 +201,56 @@ namespace YARG.Core.Parsing
             // Isolate section name
             name = text.TrimStart('_').Trim();
             return !name.IsEmpty;
+        }
+
+        /// <summary>
+        /// Parses a 5-fret range shift event: <c>ld_range_shift &lt;difficulty&gt; &lt;position&gt; [size]</c>,
+        /// with the parts separated by single spaces and the numbers in digits.
+        /// </summary>
+        /// <returns>
+        /// True if the event was parsed successfully, false otherwise.
+        /// </returns>
+        public static bool TryParseRangeShiftEvent(string text, out Difficulty difficulty, out int position, out int size)
+        {
+            difficulty = Difficulty.Expert;
+            position = 0;
+            size = 0;
+
+            const string RANGE_SHIFT_PREFIX = "ld_range_shift";
+            if (!text.StartsWith(RANGE_SHIFT_PREFIX + " ", StringComparison.Ordinal))
+                return false;
+
+            var parts = text.Split(' ');
+            // 3 parts use the difficulty's default size, 4 give the size
+            if (parts.Length is not (3 or 4))
+                return false;
+
+            if (!TryParseDigits(parts[1], out int difficultyNumber) || difficultyNumber > 3
+                || !TryParseDigits(parts[2], out position) || position is < 1 or > 5)
+                return false;
+
+            // Difficulties are numbered from 0, Easy, to 3, Expert
+            difficulty = (Difficulty) (difficultyNumber + 1);
+            if (parts.Length == 4)
+            {
+                if (!TryParseDigits(parts[3], out size) || size is < 1 or > 5)
+                    return false;
+            }
+            else
+            {
+                size = difficulty switch
+                {
+                    Difficulty.Easy   => 3,
+                    Difficulty.Medium => 4,
+                    _                 => 5,
+                };
+            }
+
+            // The range can't go past the fifth fret
+            return position + size <= 6;
+
+            static bool TryParseDigits(string number, out int value)
+                => int.TryParse(number, NumberStyles.None, CultureInfo.InvariantCulture, out value);
         }
 
         /// <summary>
