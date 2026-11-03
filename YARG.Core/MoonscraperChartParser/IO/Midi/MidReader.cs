@@ -1,9 +1,11 @@
 // Copyright (c) 2016-2020 Alexander Ong
 // See LICENSE in project root for license information.
 
+using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.IO;
+using System.Linq;
 using Melanchall.DryWetMidi.Core;
 using YARG.Core.Chart;
 using YARG.Core.Extensions;
@@ -110,6 +112,19 @@ namespace MoonscraperChartEditor.Song.IO
             public List<EventProcessFn> forcingProcessList;
             public List<EventProcessFn> sysexProcessList;
             public IReadOnlyList<EventProcessFn> postProcessList;
+
+            public List<PendingPhrase> phrases;
+            public Dictionary<(int noteNumber, MoonNote.Flags flags, int individualNoteSpecifier), List<(uint startTick, uint endTick)>> flagToggleRanges;
+        }
+
+        private class PendingPhrase
+        {
+            public int noteNumber;
+            public MoonPhrase.Type type;
+            public MoonSong.Difficulty? difficulty;
+            public uint tick;
+            public uint length;
+            public bool removed;
         }
 
         public static MoonSong ReadMidi(string path)
@@ -565,6 +580,8 @@ namespace MoonscraperChartEditor.Song.IO
                 forcingProcessList = new(),
                 sysexProcessList = new(),
                 postProcessList = GetPostProcessList(gameMode),
+                phrases = new(),
+                flagToggleRanges = new(),
             };
 
             // Load all the notes
@@ -598,6 +615,8 @@ namespace MoonscraperChartEditor.Song.IO
             YargLogger.Assert(unpairedNoteQueue.Count == 0, "Chart contains unpaired note events!");
             YargLogger.Assert(unpairedSysexQueue.Count == 0, "Chart contains unpaired SysEx events!");
 
+            InsertPhrases(ref processParams);
+
             // Apply SysEx events first
             // These are separate to prevent forcing issues on open notes marked via SysEx
             foreach (var process in processParams.sysexProcessList)
@@ -609,6 +628,13 @@ namespace MoonscraperChartEditor.Song.IO
             foreach (var process in processParams.forcingProcessList)
             {
                 process(ref processParams);
+            }
+            ApplyFlagToggles(ref processParams);
+
+            // Trim overlapping notes of one lane, as a .chart file's sustains are trimmed
+            foreach (var difficulty in EnumExtensions<MoonSong.Difficulty>.Values)
+            {
+                TrimOverlappingNotes(song.GetChart(instrument, difficulty).notes);
             }
 
             // Apply post-processing
@@ -639,11 +665,8 @@ namespace MoonscraperChartEditor.Song.IO
         {
             if (note.EventType == MidiEventType.NoteOn)
             {
-                // Check for duplicates
-                if (TryFindMatchingNote(unpairedNotes, note, out _, out _, out _))
-                    YargLogger.LogFormatDebug("Found duplicate note on at tick {0}!", absoluteTick);
-                else
-                    unpairedNotes.Add((note, absoluteTick));
+                // Overlapping notes of one number are all kept, and resolved once every note is in
+                unpairedNotes.Add((note, absoluteTick));
             }
             else if (note.EventType == MidiEventType.NoteOff)
             {
@@ -737,10 +760,11 @@ namespace MoonscraperChartEditor.Song.IO
             }
         }
 
+        // Finds the latest unpaired note of the given note's number and channel
         private static bool TryFindMatchingNote(NoteEventQueue unpairedNotes, NoteEvent noteToMatch,
             [NotNullWhen(true)] out NoteEvent? matchingNote, out long matchTick, out int matchIndex)
         {
-            for (int i = 0; i < unpairedNotes.Count; i++)
+            for (int i = unpairedNotes.Count - 1; i >= 0; i--)
             {
                 var queued = unpairedNotes[i];
                 if (queued.note.NoteNumber == noteToMatch.NoteNumber && queued.note.Channel == noteToMatch.Channel)
@@ -807,7 +831,47 @@ namespace MoonscraperChartEditor.Song.IO
             if (chart.notes.Capacity == 0)
                 chart.notes.Capacity = 5000;
 
-            MoonObjectHelper.OrderedInsertFromBack(newMoonNote, chart.notes);
+            int index = MoonObjectHelper.OrderedInsertFromBack(newMoonNote, chart.notes);
+
+            // Of two notes of one lane on a tick, such as a kick and a double kick, keep the longer,
+            // or the double kick when they're the same length
+            var existing = chart.notes[index];
+            if (existing != newMoonNote && (sus > existing.length ||
+                (sus == existing.length && (defaultFlags & MoonNote.Flags.InstrumentPlus) != 0)))
+            {
+                existing.length = sus;
+                existing.flags = defaultFlags;
+            }
+        }
+
+        // When a note starts before an earlier note of its lane ends, the earlier note ends where the later starts,
+        // and the later runs to whichever of the two ends last
+        private static void TrimOverlappingNotes(List<MoonNote> notes)
+        {
+            // The notes of each lane at the last tick it has a note. There can be more than one when a modifier
+            // changes the lanes of a chord, such as an open note SysEx event over a chord
+            var previousNotes = new Dictionary<int, List<MoonNote>>();
+            foreach (var note in notes)
+            {
+                if (!previousNotes.TryGetValue(note.rawNote, out var previous))
+                {
+                    previous = new List<MoonNote>();
+                    previousNotes.Add(note.rawNote, previous);
+                }
+                else if (previous[0].tick != note.tick)
+                {
+                    foreach (var previousNote in previous)
+                    {
+                        if (previousNote.tick + previousNote.length > note.tick)
+                        {
+                            note.length = Math.Max(note.length, previousNote.tick + previousNote.length - note.tick);
+                            previousNote.length = note.tick - previousNote.tick;
+                        }
+                    }
+                    previous.Clear();
+                }
+                previous.Add(note);
+            }
         }
 
         private static void ProcessNoteOnEventAsAnimation(ref EventProcessParams eventProcessParams, MoonSong.Difficulty diff, int noteNumber)
@@ -839,25 +903,71 @@ namespace MoonscraperChartEditor.Song.IO
         private static void ProcessNoteOnEventAsSpecialPhrase(ref EventProcessParams eventProcessParams,
             MoonPhrase.Type type, MoonSong.Difficulty? difficulty = null)
         {
-            var song = eventProcessParams.song;
-            var instrument = eventProcessParams.instrument;
-
             var timedEvent = eventProcessParams.timedEvent;
-            uint tick = (uint)timedEvent.startTick;
-            uint sus = (uint)timedEvent.length;
-
-            if (difficulty is null)
+            if (timedEvent.midiEvent is not NoteEvent noteEvent)
             {
-                foreach (var diff in EnumExtensions<MoonSong.Difficulty>.Values)
+                YargLogger.FailFormat("Wrong note event type! Expected: {0}, Actual: {1}",
+                    typeof(NoteEvent), timedEvent.midiEvent.GetType());
+                return;
+            }
+
+            // Insert once every note is in, after overlapping phrases of one note number are resolved
+            eventProcessParams.phrases.Add(new PendingPhrase()
+            {
+                noteNumber = (int)noteEvent.NoteNumber,
+                type = type,
+                difficulty = difficulty,
+                tick = (uint)timedEvent.startTick,
+                length = (uint)timedEvent.length,
+            });
+        }
+
+        private static void InsertPhrases(ref EventProcessParams processParams)
+        {
+            // Of two phrases of one note number that start on one tick, keep the longer.
+            // Overlapping star power phrases and solos of one note number are trimmed as notes are;
+            // other phrases, such as drum fills and lanes, may overlap
+            foreach (var group in processParams.phrases.GroupBy(phrase => (phrase.noteNumber, phrase.type, phrase.difficulty)))
+            {
+                PendingPhrase? previous = null;
+                foreach (var phrase in group.OrderBy(phrase => phrase.tick).ThenByDescending(phrase => phrase.length))
                 {
-                    MoonObjectHelper.OrderedInsertFromBack(new MoonPhrase(tick, sus, type),
-                        song.GetChart(instrument, diff).specialPhrases);
+                    if (previous != null && phrase.tick == previous.tick)
+                    {
+                        phrase.removed = true;
+                        continue;
+                    }
+
+                    if (previous != null && phrase.type is MoonPhrase.Type.Starpower or MoonPhrase.Type.Solo &&
+                        previous.tick + previous.length > phrase.tick)
+                    {
+                        phrase.length = Math.Max(phrase.length, previous.tick + previous.length - phrase.tick);
+                        previous.length = phrase.tick - previous.tick;
+                    }
+                    previous = phrase;
                 }
             }
-            else
+
+            var song = processParams.song;
+            var instrument = processParams.instrument;
+            foreach (var phrase in processParams.phrases)
             {
-                MoonObjectHelper.OrderedInsertFromBack(new MoonPhrase(tick, sus, type),
-                    song.GetChart(instrument, difficulty.Value).specialPhrases);
+                if (phrase.removed)
+                    continue;
+
+                if (phrase.difficulty is null)
+                {
+                    foreach (var diff in EnumExtensions<MoonSong.Difficulty>.Values)
+                    {
+                        MoonObjectHelper.OrderedInsertFromBack(new MoonPhrase(phrase.tick, phrase.length, phrase.type),
+                            song.GetChart(instrument, diff).specialPhrases);
+                    }
+                }
+                else
+                {
+                    MoonObjectHelper.OrderedInsertFromBack(new MoonPhrase(phrase.tick, phrase.length, phrase.type),
+                        song.GetChart(instrument, phrase.difficulty.Value).specialPhrases);
+                }
             }
         }
 
@@ -948,17 +1058,53 @@ namespace MoonscraperChartEditor.Song.IO
         private static void ProcessNoteOnEventAsFlagToggle(ref EventProcessParams eventProcessParams, MoonNote.Flags flags, int individualNoteSpecifier)
         {
             var timedEvent = eventProcessParams.timedEvent;
+            if (timedEvent.midiEvent is not NoteEvent noteEvent)
+            {
+                YargLogger.FailFormat("Wrong note event type! Expected: {0}, Actual: {1}",
+                    typeof(NoteEvent), timedEvent.midiEvent.GetType());
+                return;
+            }
+
             uint startTick = (uint)timedEvent.startTick;
             uint endTick = (uint)timedEvent.endTick;
             // Exclude the last tick of the phrase
             if (endTick > startTick)
                 --endTick;
 
-            // Delay the actual processing once all the notes are actually in
-            eventProcessParams.forcingProcessList.Add((ref EventProcessParams processParams) =>
+            // Delay the actual processing once all the notes are actually in,
+            // and overlapping toggles of one number are merged
+            var key = ((int)noteEvent.NoteNumber, flags, individualNoteSpecifier);
+            if (!eventProcessParams.flagToggleRanges.TryGetValue(key, out var ranges))
             {
+                ranges = new();
+                eventProcessParams.flagToggleRanges.Add(key, ranges);
+            }
+            ranges.Add((startTick, endTick));
+        }
+
+        private static void ApplyFlagToggles(ref EventProcessParams processParams)
+        {
+            // Overlapping modifiers of one number cover every note under either of them,
+            // so merge them and toggle each note once
+            foreach (var ((_, flags, individualNoteSpecifier), ranges) in processParams.flagToggleRanges)
+            {
+                ranges.Sort();
+                var (startTick, endTick) = ranges[0];
+                for (int i = 1; i < ranges.Count; i++)
+                {
+                    var (nextStartTick, nextEndTick) = ranges[i];
+                    if (nextStartTick <= endTick)
+                    {
+                        endTick = Math.Max(endTick, nextEndTick);
+                        continue;
+                    }
+
+                    ProcessNoteOnEventAsFlagTogglePostDelay(ref processParams, startTick, endTick, flags, individualNoteSpecifier);
+                    (startTick, endTick) = (nextStartTick, nextEndTick);
+                }
+
                 ProcessNoteOnEventAsFlagTogglePostDelay(ref processParams, startTick, endTick, flags, individualNoteSpecifier);
-            });
+            }
         }
 
         private static void ProcessNoteOnEventAsFlagTogglePostDelay(ref EventProcessParams eventProcessParams, uint startTick, uint endTick, MoonNote.Flags flags, int individualNoteSpecifier)   // individualNoteSpecifier as -1 to apply to the whole chord
