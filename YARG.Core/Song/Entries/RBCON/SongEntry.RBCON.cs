@@ -47,6 +47,7 @@ namespace YARG.Core.Song
         protected RBAudio<float> _panning = RBAudio<float>.Empty;
 
         public string RBSongId => _rbMetadata.SongID;
+        public string SubName => _subName;
         public int RBBandDiff => _rbIntensities.Band;
 
         protected abstract DateTime MidiLastWriteTime { get; }
@@ -67,6 +68,12 @@ namespace YARG.Core.Song
                 last_write = _upgrade.LastWriteTime;
             }
             return last_write;
+        }
+
+        public override DateTime GetLastModifiedTime()
+        {
+            // Packed CON files contain the chart. Unpacked entries override this with their MIDI path.
+            return File.GetLastWriteTime(_root.FullName);
         }
 
         internal override void Serialize(MemoryStream stream, CacheWriteIndices indices)

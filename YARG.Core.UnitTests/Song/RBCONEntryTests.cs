@@ -190,6 +190,29 @@ public class RBCONEntryTests
         Assert.That(entry.GetLastWriteTime(), Is.EqualTo(baseMidi));
     }
 
+    [TestCase(false, ".mid")]
+    [TestCase(true, ".mid.edat")]
+    public void GetLastModifiedTime_UnpackedEntryUsesPackageChartPath(bool isPs3, string chartExtension)
+    {
+        string root = CreateTempDirectory();
+        try
+        {
+            var entry = CreateUnpackedEntry(root, TEST_NODE_NAME, CreateBasicDta(TEST_NODE_NAME), isPs3: isPs3);
+            string chartPath = Path.Combine(root, TEST_NODE_NAME, TEST_NODE_NAME + chartExtension);
+            var expected = new DateTime(2020, 06, 15, 12, 30, 0, DateTimeKind.Local);
+            File.SetLastWriteTime(chartPath, expected);
+
+            Assert.That(entry.GetLastModifiedTime(), Is.EqualTo(File.GetLastWriteTime(chartPath)));
+        }
+        finally
+        {
+            if (Directory.Exists(root))
+            {
+                Directory.Delete(root, true);
+            }
+        }
+    }
+
     [Test]
     public void LoadBackground_PackedCONSupportsVideoNamedAfterCONWithPeriods()
     {
@@ -417,12 +440,13 @@ public class RBCONEntryTests
     }
 
     private static RBCONEntry CreateUnpackedEntry(string root, string nodeName, string dtaText,
-        int moggVersion = RBCONEntry.UNENCRYPTED_MOGG)
+        int moggVersion = RBCONEntry.UNENCRYPTED_MOGG, bool isPs3 = false)
     {
         string songDirectory = Path.Combine(root, nodeName);
         Directory.CreateDirectory(songDirectory);
 
-        string midiPath = Path.Combine(songDirectory, $"{nodeName}.mid");
+        string midiExtension = isPs3 ? ".mid.edat" : ".mid";
+        string midiPath = Path.Combine(songDirectory, nodeName + midiExtension);
         File.Copy(GetTestMidiPath(), midiPath);
 
         string moggPath = Path.Combine(songDirectory, $"{nodeName}.mogg");
@@ -433,7 +457,9 @@ public class RBCONEntryTests
 
         var parameters = CreateScanParameters(root, nodeName, CreateDta(dtaText));
 
-        var result = UnpackedRBCONEntry.Create(in parameters);
+        var result = isPs3
+            ? UnpackedRBPKGEntry.Create(in parameters)
+            : UnpackedRBCONEntry.Create(in parameters);
         Assert.That(result.HasValue, Is.True, $"Expected RBCON creation to succeed, but got {result.Error}.");
         return result.Value;
     }

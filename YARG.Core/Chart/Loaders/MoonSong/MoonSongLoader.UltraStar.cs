@@ -1,9 +1,10 @@
-﻿using System.Collections.Generic;
-using System.IO;
+using System;
+using System.Collections.Generic;
 using System.Linq;
 using MoonscraperChartEditor.Song;
 using YARG.Core.Chart.Loaders.UltraStar;
 using YARG.Core.IO;
+using YARG.Core.Parsing;
 
 namespace YARG.Core.Chart
 {
@@ -11,30 +12,25 @@ namespace YARG.Core.Chart
     {
         #region Loading
 
-        public static MoonSongLoader LoadUltraStar(ParseSettings settings, string filePath)
+        /// <param name="harmonyFile">
+        /// A duet file merged with this solo one (see CacheHandler.ScanUltraStarCharts).
+        /// When given, the sync track, solo Vocals chart and song-level lyrics still come
+        /// from <paramref name="file"/>, but Harmony1-3 come from this file instead.
+        /// </param>
+        internal static MoonSongLoader LoadUltraStar(ParseSettings settings, FixedArray<byte> file, FixedArray<byte>? harmonyFile = null)
         {
-            using var fixedArray = FixedArray.LoadFile(filePath);
-            var ultraStarLoader = new UltraStarLoader(fixedArray);
-            var moonSong = ConvertUltraStarToMoonSong(ultraStarLoader);
+            var soloLoader = new UltraStarLoader(file);
+            var duetLoader = harmonyFile is { } harmonyData ? new UltraStarLoader(harmonyData) : null;
+            var moonSong = ConvertUltraStarToMoonSong(soloLoader, duetLoader);
 
-            return new MoonSongLoader(moonSong, settings);
-        }
-
-        public static MoonSongLoader LoadUltraStar(ParseSettings settings, byte[] bytes)
-        {
-            using var ms = new MemoryStream(bytes);
-            using var fixedArray = FixedArray.Read(ms, bytes.Length);
-            var ultraStarLoader = new UltraStarLoader(fixedArray);
-            var moonSong = ConvertUltraStarToMoonSong(ultraStarLoader);
-
-            return new MoonSongLoader(moonSong, settings);
+            return new MoonSongLoader(moonSong, settings) { _matchSlideChildrenByExactTick = true };
         }
 
         #endregion
 
         #region Conversion
 
-        private static void AddPartToChart(IEnumerable<VocalsPart> parts, MoonChart chart)
+        private static void AddPartToChart(IEnumerable<VocalsPart> parts, MoonChart chart, Func<uint, uint>? remapTick)
         {
             var allPhrases = new List<MoonPhrase>();
             var allText = new List<MoonText>();
@@ -42,15 +38,29 @@ namespace YARG.Core.Chart
 
             foreach (var part in parts)
             {
+                // Harmony with 2+ voices builds its own static-lyric phrases from each
+                // voice's own lines (see UltraStarLoader.BuildVocalsPart), so HARM2/3 keep
+                // whole display lines even where scoring is cut to a shared window. A lone
+                // voice has none, so uses its scoring phrases, which are already whole lines.
+                var staticLyricPhrases = part.StaticLyricPhrases.Count > 0 ? part.StaticLyricPhrases : part.NotePhrases;
+                foreach (var phrase in staticLyricPhrases)
+                {
+                    var (lyricPhraseTick, lyricPhraseLength) = RemapTickRange(
+                        phrase.PhraseParentNote.Tick, phrase.PhraseParentNote.TickLength, remapTick);
+                    allPhrases.Add(new MoonPhrase(lyricPhraseTick, lyricPhraseLength, MoonPhrase.Type.Vocals_StaticLyricPhrase));
+                }
+
                 foreach (var phrase in part.NotePhrases)
                 {
                     var parent = phrase.PhraseParentNote;
+                    var (phraseTick, phraseLength) = RemapTickRange(parent.Tick, parent.TickLength, remapTick);
 
-                    allPhrases.Add(new MoonPhrase(parent.Tick, parent.TickLength, MoonPhrase.Type.Vocals_ScoringPhrase));
+                    allPhrases.Add(new MoonPhrase(phraseTick, phraseLength, MoonPhrase.Type.Vocals_ScoringPhrase));
 
                     foreach (var lyric in phrase.Lyrics)
                     {
-                        allText.Add(new MoonText($"lyric {lyric.Text}", lyric.Tick));
+                        uint lyricTick = remapTick?.Invoke(lyric.Tick) ?? lyric.Tick;
+                        allText.Add(new MoonText($"lyric {lyric.Text}", lyricTick));
                     }
 
                     foreach (var child in parent.ChildNotes)
@@ -60,14 +70,15 @@ namespace YARG.Core.Chart
                             continue;
                         }
 
-                        // UltraStar freestyle (F), rap (R), and golden freestyle (G) notes are
+                        // UltraStar freestyle (F), rap (R), and golden rap (G) notes are
                         // unpitched lyrical notes, NOT percussion. Keep as None so they stay
                         // VocalNoteType.Lyric downstream.
                         var flags = MoonNote.Flags.None;
 
                         int rawNote = child.IsNonPitched ? 0 : (int) child.Pitch;
+                        var (noteTick, noteLength) = RemapTickRange(child.Tick, child.TickLength, remapTick);
 
-                        allNotes.Add(new MoonNote(child.Tick, rawNote, child.TickLength, flags));
+                        allNotes.Add(new MoonNote(noteTick, rawNote, noteLength, flags));
                     }
                 }
             }
@@ -76,7 +87,7 @@ namespace YARG.Core.Chart
 
             var lyricPhrases = allPhrases
                 .Where(p => p.type == MoonPhrase.Type.Vocals_ScoringPhrase || p.type == MoonPhrase.Type.Vocals_StaticLyricPhrase)
-                .GroupBy(p => p.tick)
+                .GroupBy(p => new { p.tick, p.type })
                 .Select(g => g.OrderByDescending(p => p.length).First());
             allPhrasesList.AddRange(lyricPhrases);
 
@@ -86,7 +97,8 @@ namespace YARG.Core.Chart
                 {
                     if (phrase.Type == PhraseType.StarPower)
                     {
-                        allPhrasesList.Add(new MoonPhrase(phrase.Tick, phrase.TickLength, MoonPhrase.Type.Starpower));
+                        var (spTick, spLength) = RemapTickRange(phrase.Tick, phrase.TickLength, remapTick);
+                        allPhrasesList.Add(new MoonPhrase(spTick, spLength, MoonPhrase.Type.Starpower));
                     }
                 }
             }
@@ -118,12 +130,49 @@ namespace YARG.Core.Chart
             }
         }
 
-        private static MoonSong ConvertUltraStarToMoonSong(UltraStarLoader loader)
+        /// <summary>
+        /// Maps a tick range [tick, tick + tickLength) through <paramref name="remapTick"/>,
+        /// mapping both endpoints rather than just scaling the length -- the map isn't
+        /// necessarily linear once two different tempo maps are involved.
+        /// </summary>
+        private static (uint Tick, uint TickLength) RemapTickRange(uint tick, uint tickLength, Func<uint, uint>? remapTick)
+        {
+            if (remapTick == null)
+            {
+                return (tick, tickLength);
+            }
+
+            uint newStart = remapTick(tick);
+            uint newEnd = remapTick(tick + tickLength);
+            return (newStart, newEnd > newStart ? newEnd - newStart : 0);
+        }
+
+        /// <summary>
+        /// SongChart.Lyrics (and the lipsync generated from it) is built from song-level text
+        /// events, which a .mid fills from its vocals track (see MidReader) -- add the same
+        /// events here, from the part the solo Vocals chart shows.
+        /// </summary>
+        private static void AddSongLyrics(MoonSong song, VocalsPart part)
+        {
+            foreach (var phrase in part.NotePhrases)
+            {
+                var parent = phrase.PhraseParentNote;
+                song.InsertText(new MoonText(TextEvents.LYRIC_PHRASE_START, parent.Tick));
+                foreach (var lyric in phrase.Lyrics)
+                {
+                    song.InsertText(new MoonText(TextEvents.LYRIC_PREFIX_WITH_SPACE + lyric.Text, lyric.Tick));
+                }
+                song.InsertText(new MoonText(TextEvents.LYRIC_PHRASE_END, parent.Tick + parent.TickLength));
+            }
+        }
+
+        private static MoonSong ConvertUltraStarToMoonSong(UltraStarLoader loader, UltraStarLoader? duetLoader)
         {
             const uint RESOLUTION = 120;
             var moonSong = new MoonSong(RESOLUTION);
 
-            // Sync track
+            // Sync track: always the solo loader's, even when merged -- the duet's notes get
+            // retimed onto it below instead.
             var syncTrack = loader.LoadSyncTrack();
             foreach (var t in syncTrack.Tempos)
             {
@@ -135,31 +184,105 @@ namespace YARG.Core.Chart
                 moonSong.AddTimeSignature(ts.Numerator, ts.Denominator, ts.Tick);
             }
 
-            bool isDuet = loader.GetMetadata("PARTS") == "2";
+            // The loader whose voices become Harmony1-3: a merged entry's own duet file, or
+            // this loader itself when it's a standalone duet (#PARTS >= 2) with no separate file.
+            var harmonyLoader = duetLoader ?? loader;
+            bool hasHarmony = harmonyLoader.VoiceCount >= 2;
 
-            var vocalTrack = loader.LoadVocalsTrack(isDuet ? Instrument.Harmony : Instrument.Vocals);
+            // A standalone duet's harmony voices already share this sync track (they're the
+            // same file); a merged entry's duet file generally doesn't, so its ticks need
+            // remapping onto the solo file's tempo map.
+            Func<uint, uint>? remapDuetTick = duetLoader != null ? BuildDuetTickRemap(loader, duetLoader) : null;
+
+            bool soloIsAlsoHarmonySource = duetLoader == null && hasHarmony;
+            var soloVocalTrack = loader.LoadVocalsTrack(soloIsAlsoHarmonySource ? Instrument.Harmony : Instrument.Vocals);
             var soloChart = moonSong.GetChart(MoonSong.MoonInstrument.Vocals, MoonSong.Difficulty.Expert);
 
-            if (vocalTrack.Parts.Count > 0)
+            if (soloVocalTrack.Parts.Count > 0)
             {
-                // For duet, only show first part in solo Vocals chart.
-                // Both parts are still available separately in Harmony1/Harmony2.
-                var soloParts = isDuet
-                    ? new List<VocalsPart> { vocalTrack.Parts[0] }
-                    : vocalTrack.Parts;
-                AddPartToChart(soloParts, soloChart);
+                // For a standalone duet, only show its first part in the solo Vocals chart.
+                // All parts are still available separately in Harmony1/2/3.
+                var soloParts = soloIsAlsoHarmonySource
+                    ? new List<VocalsPart> { soloVocalTrack.Parts[0] }
+                    : soloVocalTrack.Parts;
+                AddPartToChart(soloParts, soloChart, null);
+                AddSongLyrics(moonSong, soloVocalTrack.Parts[0]);
             }
 
-            if (isDuet && vocalTrack.Parts.Count >= 2)
+            if (hasHarmony)
             {
-                var chartH1 = moonSong.GetChart(MoonSong.MoonInstrument.Harmony1, MoonSong.Difficulty.Expert);
-                AddPartToChart(new[] { vocalTrack.Parts[0] }, chartH1);
+                // Reuse the Harmony-mode load above when this loader is its own harmony
+                // source, rather than parsing it a second time.
+                var harmonyTrack = soloIsAlsoHarmonySource ? soloVocalTrack : harmonyLoader.LoadVocalsTrack(Instrument.Harmony);
+                var harmonyInstruments = new[]
+                {
+                    MoonSong.MoonInstrument.Harmony1,
+                    MoonSong.MoonInstrument.Harmony2,
+                    MoonSong.MoonInstrument.Harmony3,
+                };
 
-                var chartH2 = moonSong.GetChart(MoonSong.MoonInstrument.Harmony2, MoonSong.Difficulty.Expert);
-                AddPartToChart(new[] { vocalTrack.Parts[1] }, chartH2);
+                for (int i = 0; i < harmonyTrack.Parts.Count && i < harmonyInstruments.Length; i++)
+                {
+                    var chart = moonSong.GetChart(harmonyInstruments[i], MoonSong.Difficulty.Expert);
+                    AddPartToChart(new[] { harmonyTrack.Parts[i] }, chart, remapDuetTick);
+                }
             }
 
             return moonSong;
+        }
+
+        /// <summary>
+        /// Builds a tick-mapping function from a duet file's tick space onto the solo file's,
+        /// for a merged entry whose two files don't share a tempo map. Returns the identity
+        /// map when they already agree, since GAP is baked into ticks and tick 0 = time 0
+        /// for both (see UltraStarLoader.LoadSyncTrack) -- so ticks already line up.
+        /// </summary>
+        private static Func<uint, uint> BuildDuetTickRemap(UltraStarLoader soloLoader, UltraStarLoader duetLoader)
+        {
+            var soloSync = soloLoader.LoadSyncTrack();
+            var duetSync = duetLoader.LoadSyncTrack();
+
+            // A positive GAP is baked into both files' ticks the same way, so needs no
+            // correction. A negative one is clamped to tick 0 (see UltraStarLoader.BeatToTick),
+            // so it has to be reapplied here as a time shift.
+            double soloOffsetSeconds = Math.Min(soloLoader.GapMs, 0.0) / 1000.0;
+            double duetOffsetSeconds = Math.Min(duetLoader.GapMs, 0.0) / 1000.0;
+            double offsetDiffSeconds = duetOffsetSeconds - soloOffsetSeconds;
+
+            if (offsetDiffSeconds == 0.0 && SyncTracksMatch(soloSync, duetSync))
+            {
+                return tick => tick;
+            }
+
+            return tick => soloSync.TimeToTick(duetSync.TickToTime(tick) + offsetDiffSeconds);
+        }
+
+        private static bool SyncTracksMatch(SyncTrack a, SyncTrack b)
+        {
+            if (a.Tempos.Count != b.Tempos.Count || a.TimeSignatures.Count != b.TimeSignatures.Count)
+            {
+                return false;
+            }
+
+            for (int i = 0; i < a.Tempos.Count; i++)
+            {
+                if (a.Tempos[i].Tick != b.Tempos[i].Tick || a.Tempos[i].BeatsPerMinute != b.Tempos[i].BeatsPerMinute)
+                {
+                    return false;
+                }
+            }
+
+            for (int i = 0; i < a.TimeSignatures.Count; i++)
+            {
+                if (a.TimeSignatures[i].Tick != b.TimeSignatures[i].Tick
+                    || a.TimeSignatures[i].Numerator != b.TimeSignatures[i].Numerator
+                    || a.TimeSignatures[i].Denominator != b.TimeSignatures[i].Denominator)
+                {
+                    return false;
+                }
+            }
+
+            return true;
         }
 
         #endregion

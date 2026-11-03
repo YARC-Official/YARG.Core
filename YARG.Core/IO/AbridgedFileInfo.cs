@@ -68,7 +68,7 @@ namespace YARG.Core.IO
             return Validate(FullName, in LastWriteTime);
         }
 
-        public static DateTime NormalizedLastWrite(FileInfo info)
+        public static DateTime NormalizedLastWrite(FileSystemInfo info)
         {
             return info.LastWriteTime > info.CreationTime ? info.LastWriteTime : info.CreationTime;
         }
