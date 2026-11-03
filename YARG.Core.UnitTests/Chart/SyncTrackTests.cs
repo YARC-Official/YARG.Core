@@ -87,6 +87,16 @@ public class SyncTrackTests
     private static SyncTrack _syncTrack = new(RESOLUTION, _tempos, _timesigs, _beatlines);
 
     [Test]
+    public void MicroSecondsToBpm_DividesInDoublePrecision()
+    {
+        // In single precision this tempo came out as 199.80949..., a different thousandth of a BPM
+        double bpm = TempoChange.MicroSecondsToBpm(300286);
+
+        Assert.That(bpm, Is.EqualTo(60_000_000.0 / 300286));
+        Assert.That(Math.Round(bpm, 3), Is.EqualTo(199.81));
+    }
+
+    [Test]
     public void ValidateSyncTrack()
     {
         for (int i = 1; i < _syncTrack.Tempos.Count; i++)

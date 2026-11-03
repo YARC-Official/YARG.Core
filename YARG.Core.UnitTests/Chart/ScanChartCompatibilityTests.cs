@@ -198,7 +198,9 @@ public class ScanChartCompatibilityTests
             new TrackChunk(
                 new SequenceTrackNameEvent("PART DRUMS"),
                 NoteOn(0, 120),
+                NoteOn(0, 97),
                 NoteOff(80, 120),
+                NoteOff(0, 97),
                 NoteOn(20, 120),
                 NoteOff(40, 120)))
         {
@@ -208,10 +210,63 @@ public class ScanChartCompatibilityTests
         var chart = SongChart.FromMidi(ParseSettings.Default_Midi, midi);
         var result = Hash(chart, Instrument.FourLaneDrums, Difficulty.Expert);
 
+        // The red note gives the track its BTrack, and the fills don't depend on it
         Assert.That(ReadDrumFreestyles(result.BTrack), Is.EqualTo(new List<(long Tick, long Length, byte IsCoda)>
         {
             (0, 80, 0),
             (100, 40, 1),
+        }));
+        AssertHashMatchesStrippedFile(result);
+    }
+
+    [Test]
+    public void MidiDrums_CodaInOtherLetterCase_DoesNotStartTheCoda()
+    {
+        var midi = new MidiFile(
+            new TrackChunk(new SetTempoEvent(TempoChange.BpmToMicroSeconds(120))),
+            new TrackChunk(
+                new SequenceTrackNameEvent("EVENTS"),
+                new Melanchall.DryWetMidi.Core.TextEvent("[CODA]") { DeltaTime = 100 },
+                new Melanchall.DryWetMidi.Core.TextEvent("[coda]") { DeltaTime = 100 }),
+            new TrackChunk(
+                new SequenceTrackNameEvent("PART DRUMS"),
+                NoteOn(0, 97),
+                NoteOff(80, 97),
+                NoteOn(20, 120),
+                NoteOff(40, 120),
+                NoteOn(60, 120),
+                NoteOff(40, 120)))
+        {
+            TimeDivision = new TicksPerQuarterNoteTimeDivision(480),
+        };
+
+        var chart = SongChart.FromMidi(ParseSettings.Default_Midi, midi);
+        var result = Hash(chart, Instrument.FourLaneDrums, Difficulty.Expert);
+
+        // The coda is only `coda` in this letter case, so it starts at 200
+        Assert.That(ReadDrumFreestyles(result.BTrack), Is.EqualTo(new List<(long Tick, long Length, byte IsCoda)>
+        {
+            (100, 40, 0),
+            (200, 40, 1),
+        }));
+        AssertHashMatchesStrippedFile(result);
+    }
+
+    [Test]
+    public void DotChartDrums_CodaInOtherLetterCase_DoesNotStartTheCoda()
+    {
+        var chart = ParseDotChart(["0 = TS 4 2", "0 = B 120000"], ["192 = E \"Coda\"", "384 = E \"coda\""], "ExpertDrums",
+            "0 = N 1 0",
+            "192 = S 64 96",
+            "384 = S 64 96");
+
+        var result = Hash(chart, Instrument.FourLaneDrums);
+
+        // The coda is only `coda` in this letter case, so it starts at 384
+        Assert.That(ReadDrumFreestyles(result.BTrack), Is.EqualTo(new List<(long Tick, long Length, byte IsCoda)>
+        {
+            (192, 96, 0),
+            (384, 96, 1),
         }));
         AssertHashMatchesStrippedFile(result);
     }
@@ -283,6 +338,386 @@ public class ScanChartCompatibilityTests
         AssertHashMatchesStrippedFile(result);
     }
 
+    [Test]
+    public void DotChartProDrums_DiscoFlip_HashesWrittenPadsAndFlagsRedAndYellow()
+    {
+        var chart = ParseDotChart(["0 = TS 4 2", "0 = B 120000"], [], "ExpertDrums",
+            "0 = E mix 3 drums0d",
+            "0 = N 0 0",
+            "0 = N 1 0",
+            "0 = N 2 0",
+            "0 = N 66 0",
+            "0 = N 3 0");
+
+        var result = Hash(chart, Instrument.ProDrums);
+
+        Assert.That(ReadNotes(result.BTrack), Is.EqualTo(new List<(long Tick, long Length, uint Type, uint Flags)>
+        {
+            (0, 0, 13, 0),
+            (0, 0, 14, 16 | 128),
+            (0, 0, 15, 32 | 128),
+            (0, 0, 16, 16),
+        }));
+    }
+
+    [Test]
+    public void DotChartProDrums_DiscoFlip_EndsWithItsDifficulty()
+    {
+        var chart = ParseDotChart(["0 = TS 4 2", "0 = B 120000"], [], "ExpertDrums",
+            "0 = N 1 0",
+            "192 = E mix 3 drums0d",
+            "192 = N 1 0");
+
+        Assert.That(chart.ProDrums.TryGetDifficulty(Difficulty.ExpertPlus, out var expertPlus), Is.True);
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(expertPlus!.Notes.Select(note => (FourLaneDrumPad) note.Pad), Is.EqualTo(new[]
+            {
+                FourLaneDrumPad.RedDrum,
+                FourLaneDrumPad.YellowCymbal,
+            }));
+            Assert.That(ReadNotes(Hash(chart, Instrument.ProDrums).BTrack),
+                Is.EqualTo(new List<(long Tick, long Length, uint Type, uint Flags)>
+                {
+                    (0, 0, 14, 16),
+                    (192, 0, 14, 16 | 128),
+                }));
+        }
+    }
+
+    [Test]
+    public void DotChartDrums_DoubleKick_IsInExpertTrackHash()
+    {
+        var result = CalculateDotChartHash("ExpertDrums", Instrument.FourLaneDrums,
+            "0 = N 0 0",
+            "192 = N 32 0");
+
+        Assert.That(ReadNotes(result.BTrack), Is.EqualTo(new List<(long Tick, long Length, uint Type, uint Flags)>
+        {
+            (0, 0, 13, 0),
+            (192, 0, 13, 8),
+        }));
+    }
+
+    [Test]
+    public void DotChartDrums_EasyDoubleKick_IsInTrackHashButNotPlayed()
+    {
+        var chart = ParseDotChart(["0 = TS 4 2", "0 = B 120000"], [], "EasyDrums",
+            "0 = N 0 0",
+            "192 = N 32 0");
+
+        var result = Hash(chart, Instrument.FourLaneDrums, Difficulty.Easy);
+
+        Assert.That(chart.FourLaneDrums.TryGetDifficulty(Difficulty.Easy, out var easy), Is.True);
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(easy!.Notes.Select(note => note.Tick), Is.EqualTo(new uint[] { 0 }));
+            Assert.That(ReadNotes(result.BTrack), Is.EqualTo(new List<(long Tick, long Length, uint Type, uint Flags)>
+            {
+                (0, 0, 13, 0),
+                (192, 0, 13, 8),
+            }));
+        }
+    }
+
+    [Test]
+    public void MidiDrums_HardDoubleKick_IsInTrackHash()
+    {
+        var midi = new MidiFile(
+            new TrackChunk(new SetTempoEvent(TempoChange.BpmToMicroSeconds(120))),
+            new TrackChunk(
+                new SequenceTrackNameEvent("PART DRUMS"),
+                NoteOn(0, 84),
+                NoteOff(60, 84),
+                NoteOn(420, 83),
+                NoteOff(60, 83)))
+        {
+            TimeDivision = new TicksPerQuarterNoteTimeDivision(480),
+        };
+
+        var chart = SongChart.FromMidi(ParseSettings.Default_Midi, midi);
+        var result = Hash(chart, Instrument.FourLaneDrums, Difficulty.Hard);
+
+        Assert.That(ReadNotes(result.BTrack), Is.EqualTo(new List<(long Tick, long Length, uint Type, uint Flags)>
+        {
+            (0, 0, 13, 0),
+            (480, 0, 13, 8),
+        }));
+    }
+
+    [Test]
+    public void MidiSixFret_LaneAndFill_AreInTrackHashButNotPlayed()
+    {
+        var midi = new MidiFile(
+            new TrackChunk(new SetTempoEvent(TempoChange.BpmToMicroSeconds(120))),
+            new TrackChunk(
+                new SequenceTrackNameEvent("PART GUITAR GHL"),
+                NoteOn(0, 120),
+                NoteOn(0, 126),
+                NoteOn(0, 95),
+                NoteOff(120, 95),
+                NoteOn(120, 95),
+                NoteOff(120, 95),
+                NoteOff(0, 120),
+                NoteOn(120, 95),
+                NoteOff(120, 95),
+                NoteOff(0, 126)))
+        {
+            TimeDivision = new TicksPerQuarterNoteTimeDivision(480),
+        };
+
+        var chart = SongChart.FromMidi(ParseSettings.Default_Midi, midi);
+        var result = Hash(chart, Instrument.SixFretGuitar);
+
+        Assert.That(chart.SixFretGuitar.TryGetDifficulty(Difficulty.Expert, out var expert), Is.True);
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(ReadSection(result.BTrack, 6, ReadFlexLanes), Is.EqualTo(new List<(long Tick, long Length, byte IsDouble)>
+            {
+                (0, 600, 0),
+            }));
+            Assert.That(ReadDrumFreestyles(result.BTrack), Is.EqualTo(new List<(long Tick, long Length, byte IsCoda)>
+            {
+                (0, 360, 0),
+            }));
+            Assert.That(expert!.Phrases, Is.Empty);
+            Assert.That(expert.Notes.Any(note => note.IsLane), Is.False);
+        }
+        AssertHashMatchesStrippedFile(result);
+    }
+
+    [Test]
+    public void DotChartSixFret_LaneAndFill_AreInTrackHashButNotPlayed()
+    {
+        var chart = ParseDotChart(["0 = TS 4 2", "0 = B 120000"], [], "ExpertGHLGuitar",
+            "0 = S 66 384",
+            "0 = S 64 192",
+            "0 = N 0 0",
+            "192 = N 1 0",
+            "384 = N 0 0");
+
+        var result = Hash(chart, Instrument.SixFretGuitar);
+
+        Assert.That(chart.SixFretGuitar.TryGetDifficulty(Difficulty.Expert, out var expert), Is.True);
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(ReadSection(result.BTrack, 6, ReadFlexLanes), Is.EqualTo(new List<(long Tick, long Length, byte IsDouble)>
+            {
+                (0, 384, 1),
+            }));
+            Assert.That(ReadDrumFreestyles(result.BTrack), Is.EqualTo(new List<(long Tick, long Length, byte IsCoda)>
+            {
+                (0, 192, 0),
+            }));
+            Assert.That(expert!.Phrases, Is.Empty);
+        }
+        AssertHashMatchesStrippedFile(result);
+    }
+
+    [Test]
+    public void DotChartDrums_NoteLength_IsInTrackHash()
+    {
+        var result = CalculateDotChartHash("ExpertDrums", Instrument.FourLaneDrums,
+            "0 = N 1 100");
+
+        Assert.That(ReadNotes(result.BTrack), Is.EqualTo(new List<(long Tick, long Length, uint Type, uint Flags)>
+        {
+            (0, 100, 14, 16),
+        }));
+    }
+
+    [Test]
+    public void DotChartGuitar_LaneAndBigRockEnding_AreInTrackHashButNotPlayed()
+    {
+        var chart = ParseDotChart(["0 = TS 4 2", "0 = B 120000"], ["384 = E \"coda\""], "ExpertSingle",
+            "0 = S 65 192",
+            "0 = N 0 0",
+            "96 = N 0 0",
+            "192 = N 0 0",
+            "384 = S 64 192",
+            "384 = N 0 0",
+            "768 = N 0 0");
+
+        var result = Hash(chart, Instrument.FiveFretGuitar);
+
+        Assert.That(chart.FiveFretGuitar.TryGetDifficulty(Difficulty.Expert, out var expert), Is.True);
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(ReadSection(result.BTrack, 6, ReadFlexLanes), Is.EqualTo(new List<(long Tick, long Length, byte IsDouble)>
+            {
+                (0, 192, 0),
+            }));
+            Assert.That(ReadDrumFreestyles(result.BTrack), Is.EqualTo(new List<(long Tick, long Length, byte IsCoda)>
+            {
+                (384, 192, 1),
+            }));
+            Assert.That(expert!.Phrases, Is.Empty);
+            Assert.That(expert.Notes.Any(note => note.IsLane), Is.False);
+        }
+        AssertHashMatchesStrippedFile(result);
+    }
+
+    [Test]
+    public void MidiGuitar_BigRockEndingAfterCoda_IsInTrackHash()
+    {
+        var midi = new MidiFile(
+            new TrackChunk(new SetTempoEvent(TempoChange.BpmToMicroSeconds(120))),
+            new TrackChunk(
+                new SequenceTrackNameEvent("EVENTS"),
+                new Melanchall.DryWetMidi.Core.TextEvent("[coda]") { DeltaTime = 480 }),
+            new TrackChunk(
+                new SequenceTrackNameEvent("PART GUITAR"),
+                NoteOn(0, 96),
+                NoteOff(120, 96),
+                NoteOn(840, 120),
+                NoteOn(0, 96),
+                NoteOff(120, 96),
+                NoteOff(360, 120),
+                NoteOn(0, 96),
+                NoteOff(120, 96)))
+        {
+            TimeDivision = new TicksPerQuarterNoteTimeDivision(480),
+        };
+
+        var chart = SongChart.FromMidi(ParseSettings.Default_Midi, midi);
+        var result = Hash(chart, Instrument.FiveFretGuitar);
+
+        Assert.That(ReadDrumFreestyles(result.BTrack), Is.EqualTo(new List<(long Tick, long Length, byte IsCoda)>
+        {
+            (960, 480, 1),
+        }));
+        AssertHashMatchesStrippedFile(result);
+    }
+
+    [Test]
+    public void MidiGuitar_BigRockEndingWithoutCoda_IsInTrackHashButNotPlayed()
+    {
+        var midi = new MidiFile(
+            new TrackChunk(new SetTempoEvent(TempoChange.BpmToMicroSeconds(120))),
+            new TrackChunk(
+                new SequenceTrackNameEvent("PART GUITAR"),
+                NoteOn(0, 120),
+                NoteOn(0, 96),
+                NoteOff(120, 96),
+                NoteOff(360, 120),
+                NoteOn(0, 96),
+                NoteOff(120, 96)))
+        {
+            TimeDivision = new TicksPerQuarterNoteTimeDivision(480),
+        };
+
+        var chart = SongChart.FromMidi(ParseSettings.Default_Midi, midi);
+        var result = Hash(chart, Instrument.FiveFretGuitar);
+
+        Assert.That(chart.FiveFretGuitar.TryGetDifficulty(Difficulty.Expert, out var expert), Is.True);
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(ReadDrumFreestyles(result.BTrack), Is.EqualTo(new List<(long Tick, long Length, byte IsCoda)>
+            {
+                (0, 480, 0),
+            }));
+            Assert.That(expert!.Phrases, Is.Empty);
+        }
+    }
+
+    [Test]
+    public void MidiGuitar_TremoloLane_KeepsSustainsInTrackHash()
+    {
+        var midi = new MidiFile(
+            new TrackChunk(new SetTempoEvent(TempoChange.BpmToMicroSeconds(120))),
+            new TrackChunk(
+                new SequenceTrackNameEvent("PART GUITAR"),
+                NoteOn(0, 126),
+                NoteOn(0, 96),
+                NoteOff(240, 96),
+                NoteOn(0, 96),
+                NoteOff(240, 96),
+                NoteOn(0, 96),
+                NoteOff(240, 96),
+                NoteOff(0, 126)))
+        {
+            TimeDivision = new TicksPerQuarterNoteTimeDivision(480),
+        };
+
+        var chart = SongChart.FromMidi(ParseSettings.Default_Midi, midi);
+        var result = Hash(chart, Instrument.FiveFretGuitar);
+
+        Assert.That(chart.FiveFretGuitar.TryGetDifficulty(Difficulty.Expert, out var expert), Is.True);
+        using (Assert.EnterMultipleScope())
+        {
+            // The lane cuts the sustains of all but its last note for play
+            Assert.That(expert!.Notes.Select(note => note.TickLength), Is.EqualTo(new uint[] { 0, 0, 240 }));
+            Assert.That(ReadNotes(result.BTrack), Is.EqualTo(new List<(long Tick, long Length, uint Type, uint Flags)>
+            {
+                (0, 240, 2, 1),
+                (240, 240, 2, 1),
+                (480, 240, 2, 1),
+            }));
+        }
+        AssertHashMatchesStrippedFile(result);
+    }
+
+    [Test]
+    public void DotChart_MisalignedTimeSignature_HashesOnlyWrittenTimeSignatures()
+    {
+        // At resolution 480, the 4/4 at 960 cuts the first measure short, and the 3/4 at 3360 the third.
+        // YARG marks both earlier time signatures interrupted, and inserts a 4/4 at 2880, where the third measure starts
+        var chart = ParseDotChart(["0 = B 120000", "0 = TS 4", "960 = TS 4", "3360 = TS 3"], [], "ExpertSingle",
+            "0 = N 0 0");
+
+        var result = Hash(chart, Instrument.FiveFretGuitar);
+
+        Assert.That(ReadSection(result.BTrack, 3, ReadTimeSignatures), Is.EqualTo(new List<(long Tick, uint Numerator, uint Denominator)>
+        {
+            (0, 4, 4),
+            (960, 4, 4),
+            (3360, 3, 4),
+        }));
+        AssertHashMatchesStrippedFile(result);
+    }
+
+    [Test]
+    public void DotChartGuitar_OverlappingStarPower_ResolvesOverlapsBeforeLeavingOutEmptyPhrases()
+    {
+        // The second phrase holds no note until the first one's overlap extends it to 240
+        var result = CalculateDotChartHash("ExpertSingle", Instrument.FiveFretGuitar,
+            "0 = S 2 240",
+            "0 = N 0 0",
+            "120 = S 2 60",
+            "180 = N 1 0");
+
+        Assert.That(ReadSectionPhrases(result.BTrack, 4), Is.EqualTo(new List<(long Tick, long Length)>
+        {
+            (0, 120),
+            (120, 120),
+        }));
+        AssertHashMatchesStrippedFile(result);
+    }
+
+    [Test]
+    public void DotChart_DifficultyWithoutNotes_HasNoTrackHash()
+    {
+        var chartText = ChartText.Chart(
+            ChartText.SongSection(480),
+            ChartText.SyncSection(),
+            ChartText.Section("Events"),
+            ChartText.Section("ExpertSingle", "0 = N 0 0"),
+            ChartText.Section("HardSingle", "0 = S 2 192", "0 = S 64 192"),
+            ChartText.Section("ExpertDrums", "0 = N 32 0"),
+            ChartText.Section("HardDrums", "0 = S 64 192"));
+        var chart = SongChart.FromDotChart(ParseSettings.Default_Chart, chartText.AsSpan());
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(BTrackHasher.TryCalculateTrackHash(chart, Instrument.FiveFretGuitar, Difficulty.Expert, out _), Is.True);
+            Assert.That(BTrackHasher.TryCalculateTrackHash(chart, Instrument.FiveFretGuitar, Difficulty.Hard, out _), Is.False);
+            Assert.That(BTrackHasher.TryCalculateTrackHash(chart, Instrument.FiveFretGuitar, Difficulty.Medium, out _), Is.False);
+            // Expert's only notes are double kicks, which its TrackHash holds
+            Assert.That(BTrackHasher.TryCalculateTrackHash(chart, Instrument.FourLaneDrums, Difficulty.Expert, out _), Is.True);
+            Assert.That(BTrackHasher.TryCalculateTrackHash(chart, Instrument.FourLaneDrums, Difficulty.Hard, out _), Is.False);
+        }
+    }
+
     private static void AssertHashMatchesStrippedFile(BTrackHashResult result)
     {
         Assert.That(result.Hash, Is.EqualTo(BTrackHashResult.Encode(Blake3.Hash(StripForHash(result.BTrack)))));
@@ -305,6 +740,39 @@ public class ScanChartCompatibilityTests
 
         var chart = SongChart.FromDotChart(ParseSettings.Default_Chart, chartText.AsSpan());
         return Hash(chart, instrument, Difficulty.Expert);
+    }
+
+    private static SongChart ParseDotChart(string[] syncLines, string[] eventLines, string trackName, params string[] trackLines)
+    {
+        var chartText = ChartText.Chart(
+            ChartText.SongSection(480),
+            ChartText.Section("SyncTrack", syncLines),
+            ChartText.Section("Events", eventLines),
+            ChartText.Section(trackName, trackLines));
+
+        return SongChart.FromDotChart(ParseSettings.Default_Chart, chartText.AsSpan());
+    }
+
+    private static List<(long Tick, long Length, byte IsDouble)> ReadFlexLanes(BinaryReader reader)
+    {
+        var lanes = new List<(long Tick, long Length, byte IsDouble)>();
+        var count = reader.ReadUInt32();
+        for (var i = 0; i < count; i++)
+        {
+            lanes.Add((reader.ReadInt64(), reader.ReadInt64(), reader.ReadByte()));
+        }
+        return lanes;
+    }
+
+    private static List<(long Tick, uint Numerator, uint Denominator)> ReadTimeSignatures(BinaryReader reader)
+    {
+        var timeSignatures = new List<(long Tick, uint Numerator, uint Denominator)>();
+        var count = reader.ReadUInt32();
+        for (var i = 0; i < count; i++)
+        {
+            timeSignatures.Add((reader.ReadInt64(), reader.ReadUInt32(), reader.ReadUInt32()));
+        }
+        return timeSignatures;
     }
 
     private static byte[] StripForHash(byte[] bTrack)

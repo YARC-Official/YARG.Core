@@ -1,0 +1,44 @@
+[Song]
+{
+  Resolution = 192
+  Name = "Noteless Sections"
+}
+[SyncTrack]
+{
+  0 = B 120000
+  0 = TS 4
+}
+[Events]
+{
+}
+[ExpertSingle]
+{
+  0 = N 0 0
+}
+[HardSingle]
+{
+}
+[MediumSingle]
+{
+  0 = S 2 192
+}
+[EasySingle]
+{
+  0 = N 5 0
+  0 = N 6 0
+  0 = E "solo"
+  100 = E "soloend"
+}
+[ExpertDrums]
+{
+  0 = N 66 0
+  0 = S 64 192
+}
+[HardDrums]
+{
+  0 = N 0 0
+}
+[EasyDoubleBass]
+{
+  100 = E "ld_range_shift 0 1"
+}

@@ -1,0 +1,16 @@
+[Song]
+{
+  Resolution = 3
+}
+[SyncTrack]
+{
+  0 = B 25000
+  0 = TS 4
+}
+[Events]
+{
+}
+[ExpertSingle]
+{
+  0 = N 0 0
+}

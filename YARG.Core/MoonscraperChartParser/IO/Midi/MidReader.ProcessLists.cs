@@ -32,6 +32,8 @@ namespace MoonscraperChartEditor.Song.IO
             public int soloNote;
             public bool versusPhrases;
             public bool lanePhrases;
+            // Lanes, and note 120 as a drum fill, which no guitar plays, for the TrackHash only
+            public bool unplayedLanePhrases;
         }
 
         // These dictionaries map the NoteNumber of each midi note event to a specific function of how to process them
@@ -63,6 +65,7 @@ namespace MoonscraperChartEditor.Song.IO
             soloNote = MidIOHelper.SOLO_NOTE,
             versusPhrases = false,
             lanePhrases = false,
+            unplayedLanePhrases = true,
         };
 
         private static readonly CommonPhraseSettings ProGuitarPhraseSettings = new()
@@ -473,7 +476,6 @@ namespace MoonscraperChartEditor.Song.IO
                     if (phrase.type == MoonPhrase.Type.ProDrums_Activation
                         && codaRanges.Any(range => phrase.tick >= range.start && phrase.tick <= range.end))
                     {
-                        phrase.ConvertedFromDrumFill = true;
                         phrase.type = MoonPhrase.Type.BigRockEnding;
                     }
                 }
@@ -804,6 +806,18 @@ namespace MoonscraperChartEditor.Song.IO
                 //  also probably need to handle the fact that there are 4 of these
                 processMap.Add(MidIOHelper.BIG_ROCK_ENDING_NOTE_1, (ref EventProcessParams eventProcessParams) => {
                     ProcessNoteOnEventAsSpecialPhrase(ref eventProcessParams, MoonPhrase.Type.BigRockEnding);
+                });
+            }
+            else if (settings.unplayedLanePhrases)
+            {
+                processMap.Add(MidIOHelper.TREMOLO_LANE_NOTE, (ref EventProcessParams eventProcessParams) => {
+                    ProcessLanePhrase(ref eventProcessParams, MoonPhrase.Type.TremoloLane);
+                });
+                processMap.Add(MidIOHelper.TRILL_LANE_NOTE, (ref EventProcessParams eventProcessParams) => {
+                    ProcessLanePhrase(ref eventProcessParams, MoonPhrase.Type.TrillLane);
+                });
+                processMap.Add(MidIOHelper.BIG_ROCK_ENDING_NOTE_1, (ref EventProcessParams eventProcessParams) => {
+                    ProcessNoteOnEventAsSpecialPhrase(ref eventProcessParams, MoonPhrase.Type.ProDrums_Activation);
                 });
             }
 

@@ -56,8 +56,8 @@ namespace YARG.Core.Chart
         public PhraseType Type { get; }
 
         /// <summary>
-        /// Drum fill, including one rewritten to a big rock ending because it sits in a coda.
-        /// Gameplay still sees <see cref="PhraseType.BigRockEnding"/> for the rewritten phrase.
+        /// A drum fill or big rock ending as the chart writes it (<c>S 64</c> in .chart, note 120 in .mid), on any
+        /// instrument. The TrackHash holds each one. Drum fills that YARG generates aren't.
         /// </summary>
         public bool IsDrumFreestyle { get; }
 
@@ -65,7 +65,7 @@ namespace YARG.Core.Chart
             : base(time, timeLength, tick, tickLength)
         {
             Type = type;
-            IsDrumFreestyle = isDrumFreestyle || type == PhraseType.DrumFill;
+            IsDrumFreestyle = isDrumFreestyle;
         }
 
         public Phrase(Phrase other) : base(other)
