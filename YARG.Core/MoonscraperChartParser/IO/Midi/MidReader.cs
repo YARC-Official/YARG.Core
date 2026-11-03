@@ -711,11 +711,9 @@ namespace MoonscraperChartEditor.Song.IO
 
             if (psEvent.phraseValue == PhaseShiftSysEx.PhraseValue.Start)
             {
-                // Check for duplicates
-                if (TryFindMatchingSysEx(unpairedSysex, psEvent, out _, out _, out _))
-                    YargLogger.LogFormatDebug("Found duplicate SysEx start event at tick {0}!", absoluteTick);
-                else
-                    unpairedSysex.Add((psEvent, absoluteTick));
+                // Overlapping starts of one difficulty and type are all kept, and an end ends the latest.
+                // A start that never ends is ignored
+                unpairedSysex.Add((psEvent, absoluteTick));
             }
             else if (psEvent.phraseValue == PhaseShiftSysEx.PhraseValue.End)
             {
@@ -757,10 +755,11 @@ namespace MoonscraperChartEditor.Song.IO
             return false;
         }
 
+        // Finds the latest unpaired start of the given event's difficulty and type
         private static bool TryFindMatchingSysEx(SysExEventQueue unpairedSysex, PhaseShiftSysEx sysexToMatch,
             [NotNullWhen(true)] out PhaseShiftSysEx? matchingSysex, out long matchTick, out int matchIndex)
         {
-            for (int i = 0; i < unpairedSysex.Count; i++)
+            for (int i = unpairedSysex.Count - 1; i >= 0; i--)
             {
                 var queued = unpairedSysex[i];
                 if (queued.sysex.MatchesWith(sysexToMatch))
