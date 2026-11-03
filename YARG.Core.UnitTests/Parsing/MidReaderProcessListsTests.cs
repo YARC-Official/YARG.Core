@@ -258,6 +258,74 @@ public class MidReaderProcessListsTests
         }
     }
 
+    [TestCase(MidIOHelper.DRUM_FILL_NOTE_1)]
+    [TestCase(MidIOHelper.DRUM_FILL_NOTE_2)]
+    [TestCase(MidIOHelper.DRUM_FILL_NOTE_3)]
+    [TestCase(MidIOHelper.DRUM_FILL_NOTE_4)]
+    public void DrumFillNotes121To124_WithoutNote120_AreIgnored(int fillNote)
+    {
+        var red = MidIOHelper.DRUMS_DIFF_START_LOOKUP[Difficulty.Expert] + 1;
+        var midi = MakeMidi(MakeTrack(MidIOHelper.DRUMS_TRACK,
+            Note(100, 105, red),
+            Note(200, 205, red),
+            Note(100, 200, fillNote)));
+
+        var song = MidReader.ReadMidi(midi);
+
+        using (Assert.EnterMultipleScope())
+        {
+            foreach (var difficulty in Enum.GetValues<Difficulty>())
+            {
+                Assert.That(song.GetChart(MoonInstrument.Drums, difficulty).specialPhrases, Is.Empty,
+                    difficulty.ToString());
+            }
+        }
+    }
+
+    [Test]
+    public void DrumFill_IsNote120WhenNotes121To124StartOrEndElsewhere()
+    {
+        var red = MidIOHelper.DRUMS_DIFF_START_LOOKUP[Difficulty.Expert] + 1;
+        var midi = MakeMidi(MakeTrack(MidIOHelper.DRUMS_TRACK,
+            Note(100, 105, red),
+            Note(300, 305, red),
+            Note(100, 300, MidIOHelper.DRUM_FILL_NOTE_0),
+            Note(100, 200, MidIOHelper.DRUM_FILL_NOTE_1),
+            Note(100, 400, MidIOHelper.DRUM_FILL_NOTE_2),
+            Note(100, 300, MidIOHelper.DRUM_FILL_NOTE_3),
+            Note(99, 300, MidIOHelper.DRUM_FILL_NOTE_4)));
+
+        var song = MidReader.ReadMidi(midi);
+        var phrases = song.GetChart(MoonInstrument.Drums, Difficulty.Expert).specialPhrases;
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(phrases, Has.Count.EqualTo(1));
+            Assert.That(phrases, Has.One.Matches<MoonPhrase>(phrase =>
+                phrase.type == MoonPhrase.Type.ProDrums_Activation && phrase.tick == 100 && phrase.length == 200));
+        }
+    }
+
+    [Test]
+    public void DrumFillNotes121To124_WithoutNote120AfterCoda_AreNoBigRockEnding()
+    {
+        var red = MidIOHelper.DRUMS_DIFF_START_LOOKUP[Difficulty.Expert] + 1;
+        var midi = MakeMidi(
+            MakeEventsTrack(Text(50, $"[{MidIOHelper.CODA_START}]")),
+            MakeTrack(MidIOHelper.DRUMS_TRACK,
+                Note(40, 45, red),
+                Note(100, 105, red),
+                Note(200, 205, red),
+                Note(100, 200, MidIOHelper.DRUM_FILL_NOTE_1),
+                Note(100, 200, MidIOHelper.DRUM_FILL_NOTE_2),
+                Note(100, 200, MidIOHelper.DRUM_FILL_NOTE_3),
+                Note(100, 200, MidIOHelper.DRUM_FILL_NOTE_4)));
+
+        var song = MidReader.ReadMidi(midi);
+
+        Assert.That(song.GetChart(MoonInstrument.Drums, Difficulty.Expert).specialPhrases, Is.Empty);
+    }
+
     [Test]
     public void LegacyStarPowerFixup_ConvertsSoloToStarPowerWhenStarPowerOverrideIsUnset()
     {

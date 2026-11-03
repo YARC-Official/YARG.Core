@@ -1015,19 +1015,8 @@ namespace MoonscraperChartEditor.Song.IO
         {
             var processFnDict = new Dictionary<int, EventProcessFn>()
             {
+                // Rock Band charts write notes 121 to 124 with each fill too, but only 120 is the fill
                 { MidIOHelper.DRUM_FILL_NOTE_0, (ref EventProcessParams eventProcessParams) => {
-                    ProcessNoteOnEventAsSpecialPhrase(ref eventProcessParams, MoonPhrase.Type.ProDrums_Activation);
-                }},
-                { MidIOHelper.DRUM_FILL_NOTE_1, (ref EventProcessParams eventProcessParams) => {
-                    ProcessNoteOnEventAsSpecialPhrase(ref eventProcessParams, MoonPhrase.Type.ProDrums_Activation);
-                }},
-                { MidIOHelper.DRUM_FILL_NOTE_2, (ref EventProcessParams eventProcessParams) => {
-                    ProcessNoteOnEventAsSpecialPhrase(ref eventProcessParams, MoonPhrase.Type.ProDrums_Activation);
-                }},
-                { MidIOHelper.DRUM_FILL_NOTE_3, (ref EventProcessParams eventProcessParams) => {
-                    ProcessNoteOnEventAsSpecialPhrase(ref eventProcessParams, MoonPhrase.Type.ProDrums_Activation);
-                }},
-                { MidIOHelper.DRUM_FILL_NOTE_4, (ref EventProcessParams eventProcessParams) => {
                     ProcessNoteOnEventAsSpecialPhrase(ref eventProcessParams, MoonPhrase.Type.ProDrums_Activation);
                 }},
                 { MidIOHelper.DRUMS_KICK_LANE_NOTE, (ref EventProcessParams eventProcessParams) => {
