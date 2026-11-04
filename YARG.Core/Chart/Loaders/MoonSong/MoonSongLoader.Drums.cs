@@ -52,8 +52,13 @@ namespace YARG.Core.Chart
             // No native chart. Do we have an Elite Drums chart to fall back on?
             if (eliteDrumsFallback is not null)
             {
-                // Generate downcharts if we haven't already
-                _downCharts ??= DownchartEliteDrumsTrack(eliteDrumsFallback);
+                // Generate downcharts if we haven't already. A null result (no notes to
+                // downchart) is cached too, so the three drum tracks don't each redo it.
+                if (!_downChartsGenerated)
+                {
+                    _downCharts = DownchartEliteDrumsTrack(eliteDrumsFallback);
+                    _downChartsGenerated = true;
+                }
 
                 if (_downCharts is not null)
                 {
@@ -74,49 +79,12 @@ namespace YARG.Core.Chart
             return new(instrument, difficulties, GetAnimationTrack(instrument));
         }
 
-        // "Hand chords" are ineligible for drum trills, but chords consisting of one hand gem and a kick are eligible
-        private static bool IsEligibleForDrumTrill(MoonNote moonNote)
-        {
-            var numberOfHandGems = 0;
-            var currentNote = moonNote;
-
-            while (currentNote is not null && currentNote.tick == moonNote.tick)
-            {
-                if (currentNote.drumPad is not DrumPad.Kick)
-                {
-                    numberOfHandGems++;
-                    if (numberOfHandGems > 1)
-                    {
-                        return false;
-                    }
-                }
-                currentNote = currentNote.previous;
-            }
-
-            currentNote = moonNote.next;
-
-            while (currentNote is not null && currentNote.tick == moonNote.tick)
-            {
-                if (currentNote.drumPad is not DrumPad.Kick)
-                {
-                    numberOfHandGems++;
-                    if (numberOfHandGems > 1)
-                    {
-                        return false;
-                    }
-                }
-                currentNote = currentNote.next;
-            }
-
-            return true;
-        }
-
         private DrumNote CreateFourLaneDrumNote(MoonNote moonNote, Dictionary<MoonPhrase.Type, MoonPhrase> currentPhrases, List<DrumNote> notes)
         {
             var pad = GetFourLaneDrumPad(moonNote);
             var noteType = GetDrumNoteType(moonNote);
 
-            var generalFlags = GetGeneralFlags(moonNote, currentPhrases, IsEligibleForDrumTrill);
+            var generalFlags = GetGeneralFlags(moonNote, currentPhrases);
 
             var drumFlags = GetDrumNoteFlags(moonNote, currentPhrases);
 
@@ -132,7 +100,7 @@ namespace YARG.Core.Chart
             var pad = GetFiveLaneDrumPad(moonNote);
             var noteType = GetDrumNoteType(moonNote);
 
-            var generalFlags = GetGeneralFlags(moonNote, currentPhrases, IsEligibleForDrumTrill);
+            var generalFlags = GetGeneralFlags(moonNote, currentPhrases);
 
             var drumFlags = GetDrumNoteFlags(moonNote, currentPhrases);
 

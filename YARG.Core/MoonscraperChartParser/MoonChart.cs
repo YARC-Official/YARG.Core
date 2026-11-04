@@ -13,6 +13,10 @@ namespace MoonscraperChartEditor.Song
         /// </summary>
         public GameMode gameMode { get; private set; }
 
+        // A MoonSong is discarded once its SongChart is built, so these lists grow naturally:
+        // don't pre-size or TrimExcess them. Most charts are a few hundred notes, and every
+        // instrument/difficulty has a chart, so a fixed guess wastes far more than it saves.
+
         /// <summary>
         /// Read only list of notes.
         /// </summary>
