@@ -103,12 +103,5 @@ namespace YARG.Core.Chart
 
             return new AnimationTrack(characterStates, handMaps, strumMaps, animationEvents);
         }
-
-        private AnimationTrack GetVocalsAnimationTrack()
-        {
-            var chart = _moonSong.GetChart(MoonSong.MoonInstrument.Vocals, MoonSong.Difficulty.Expert);
-
-            return new AnimationTrack();
-        }
     }
 }

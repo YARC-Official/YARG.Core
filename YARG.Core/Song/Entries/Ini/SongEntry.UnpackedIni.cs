@@ -160,6 +160,9 @@ namespace YARG.Core.Song
                     && AudioLengthReader.TryGetExactLength(audio.FullName, out seconds);
             }
 
+            // GetSubFiles, not `files`, so stem names match exactly as LoadAudio's do. Unlike
+            // TryLoadStem, this trusts the first format present and doesn't fall through to the
+            // next one when that file wouldn't decode.
             var subFiles = GetSubFiles();
             bool foundAny = false;
             // LoadAudio's order with censoring off: the regular stems, then the explicit ones.

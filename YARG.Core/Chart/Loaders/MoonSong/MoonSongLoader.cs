@@ -179,7 +179,7 @@ namespace YARG.Core.Chart
             CreateNoteDelegate<TNote> createNote, ProcessTextDelegate? processText = null)
             where TNote : Note<TNote>
         {
-            var notes = new List<TNote>(moonChart.notes.Count);
+            var notes = new List<TNote>(CountDistinctTicks(moonChart.notes));
 
             int moonPhraseIndex = 0;
             int moonTextIndex = 0;
@@ -227,6 +227,22 @@ namespace YARG.Core.Chart
 
             notes.TrimExcess();
             return notes;
+        }
+
+        // Only chord parents go into the note list, so this bounds its size; sizing to the full
+        // MoonNote count would leave enough slack for TrimExcess to reallocate almost every time.
+        private static int CountDistinctTicks(List<MoonNote> moonNotes)
+        {
+            int count = 0;
+            for (int i = 0; i < moonNotes.Count; i++)
+            {
+                if (i == 0 || moonNotes[i].tick != moonNotes[i - 1].tick)
+                {
+                    count++;
+                }
+            }
+
+            return count;
         }
 
         private List<Phrase> GetPhrases(MoonChart moonChart, ValidatePhraseDelegate? validatePhrase = null)
@@ -299,18 +315,6 @@ namespace YARG.Core.Chart
         }
 
         private NoteFlags GetGeneralFlags(MoonNote moonNote, CurrentPhrases currentPhrases)
-        {
-            // In most cases, eligibility for trills simply means not being a chord
-            // Drums needs its own check to make exceptions for kicks
-            static bool DefaultTrillEligibilityCheck(MoonNote moonNote)
-            {
-                return !moonNote.isChord;
-            }
-
-            return GetGeneralFlags(moonNote, currentPhrases, DefaultTrillEligibilityCheck);
-        }
-
-        private NoteFlags GetGeneralFlags(MoonNote moonNote, CurrentPhrases currentPhrases, Func<MoonNote,bool> isEligibleForTrill)
         {
             var flags = NoteFlags.None;
 
@@ -425,8 +429,9 @@ namespace YARG.Core.Chart
 
         private double GetLengthInTime(double startTime, uint tick, uint tickLength)
         {
-            // TickToTime(tick) - TickToTime(tick) is exactly 0, so skip the tempo search.
-            if (tickLength == 0)
+            // Callers pass startTime == TickToTime(tick), so a zero length is exactly 0 and needs no
+            // tempo search. Not for non-finite times (a 0 BPM .chart), where x - x is NaN.
+            if (tickLength == 0 && double.IsFinite(startTime))
             {
                 return 0;
             }

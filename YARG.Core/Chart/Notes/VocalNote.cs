@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Linq;
 
 namespace YARG.Core.Chart
 {
@@ -84,7 +83,27 @@ namespace YARG.Core.Chart
         /// <summary>
         /// Whether or not this note is a vocal phrase that contains only lyric notes.
         /// </summary>
-        public bool IsLyricPhrase => Type == VocalNoteType.VocalPhrase && ChildNotes.All(e => e.Type == VocalNoteType.Lyric);
+        public bool IsLyricPhrase
+        {
+            get
+            {
+                if (Type != VocalNoteType.VocalPhrase)
+                {
+                    return false;
+                }
+
+                // A loop, not LINQ: AddChildNote checks this for every child.
+                foreach (var child in _childNotes)
+                {
+                    if (child.Type != VocalNoteType.Lyric)
+                    {
+                        return false;
+                    }
+                }
+
+                return true;
+            }
+        }
 
         /// <summary>
         /// Whether or not this note is a vocal phrase that contains no notes.
@@ -189,7 +208,7 @@ namespace YARG.Core.Chart
              (but I have no idea how vocals works) - Riley
             */
 
-            if (IsLyricPhraseWithoutAllocating())
+            if (IsLyricPhrase)
             {
                 if (note.Tick < Tick) return;
 
@@ -224,24 +243,6 @@ namespace YARG.Core.Chart
                 copy._childNotes.Add(child.CloneKeepingChildOrder());
             }
             return copy;
-        }
-
-        // Same as IsLyricPhrase; AddChildNote runs once per note, so it avoids LINQ.
-        private bool IsLyricPhraseWithoutAllocating()
-        {
-            if (Type != VocalNoteType.VocalPhrase)
-            {
-                return false;
-            }
-
-            foreach (var child in _childNotes)
-            {
-                if (child.Type != VocalNoteType.Lyric)
-                {
-                    return false;
-                }
-            }
-            return true;
         }
 
         private static readonly Comparison<VocalNote> CompareByTick = (note1, note2) => note1.Tick.CompareTo(note2.Tick);

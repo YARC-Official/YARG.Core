@@ -171,35 +171,16 @@ namespace YARG.Core.Chart
             }
 
             // Disjoint chords
-            if (HasDisjointLength(moonNote))
+            foreach (var note in moonNote.chord)
             {
-                flags |= GuitarNoteFlags.Disjoint;
+                if (note.length != moonNote.length)
+                {
+                    flags |= GuitarNoteFlags.Disjoint;
+                    break;
+                }
             }
 
             return flags;
-        }
-
-        // Whether any note in moonNote's chord has a different length; walks the list directly
-        // instead of allocating via MoonNote.chord.
-        private static bool HasDisjointLength(MoonNote moonNote)
-        {
-            for (var note = moonNote.previous; note != null && note.tick == moonNote.tick; note = note.previous)
-            {
-                if (note.length != moonNote.length)
-                {
-                    return true;
-                }
-            }
-
-            for (var note = moonNote.next; note != null && note.tick == moonNote.tick; note = note.next)
-            {
-                if (note.length != moonNote.length)
-                {
-                    return true;
-                }
-            }
-
-            return false;
         }
 
         private Phrase? ValidateGuitarPhrase(Phrase phrase, List<Phrase> phrases)
