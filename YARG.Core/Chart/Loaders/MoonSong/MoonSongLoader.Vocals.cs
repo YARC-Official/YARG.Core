@@ -273,6 +273,11 @@ namespace YARG.Core.Chart
         /// (MergePhrasePair, the static splitters) modify static phrases and their lyrics in
         /// place. Matching again in static mode then drops the lyrics with no note, exactly as
         /// the separate pass would.
+        /// <para>
+        /// Relies on two things: the note pass's FixLyricLengths(false) only sets the lengths of
+        /// matched lyrics, so running the match again is idempotent; and the copy is taken
+        /// before anything modifies <paramref name="notePhrases"/>.
+        /// </para>
         /// </summary>
         private List<VocalsPhrase> CopyAsStaticLyricPhrases(List<VocalsPhrase> notePhrases)
         {
@@ -1089,7 +1094,7 @@ namespace YARG.Core.Chart
             float pitch = GetVocalNotePitch(moonNote, lyricFlags);
             bool isCensorable = moonNote.flags.HasFlag(MoonNote.Flags.Vocals_Censorship);
             double time = _moonSong.TickToTime(moonNote.tick);
-            return new VocalNote(pitch, harmonyPart, vocalType, time, GetLengthInTime(moonNote), moonNote.tick, moonNote.length, isCensorable);
+            return new VocalNote(pitch, harmonyPart, vocalType, time, GetLengthInTime(time, moonNote.tick, moonNote.length), moonNote.tick, moonNote.length, isCensorable);
         }
 
         private float GetVocalNotePitch(MoonNote moonNote, LyricSymbolFlags lyricFlags)
