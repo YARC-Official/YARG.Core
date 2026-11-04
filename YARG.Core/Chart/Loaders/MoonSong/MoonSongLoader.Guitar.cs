@@ -43,7 +43,7 @@ namespace YARG.Core.Chart
             var guitarFlags = GetGuitarNoteFlags(moonNote);
 
             double time = _moonSong.TickToTime(moonNote.tick);
-            return new GuitarNote(fret, noteType, guitarFlags, generalFlags, time, GetLengthInTime(moonNote), moonNote.tick, moonNote.length);
+            return new GuitarNote(fret, noteType, guitarFlags, generalFlags, time, GetLengthInTime(time, moonNote.tick, moonNote.length), moonNote.tick, moonNote.length);
         }
 
         private GuitarNote CreateFiveFretBeginnerNote(MoonNote moonNote, Dictionary<MoonPhrase.Type, MoonPhrase> currentPhrases,
@@ -82,7 +82,7 @@ namespace YARG.Core.Chart
             var guitarFlags = GetGuitarNoteFlags(moonNote);
 
             double time = _moonSong.TickToTime(moonNote.tick);
-            return new GuitarNote(fret, noteType, guitarFlags, generalFlags, time, GetLengthInTime(moonNote), moonNote.tick, moonNote.length);
+            return new GuitarNote(fret, noteType, guitarFlags, generalFlags, time, GetLengthInTime(time, moonNote.tick, moonNote.length), moonNote.tick, moonNote.length);
         }
 
         private FiveFretGuitarFret GetFiveFretGuitarFret(MoonNote moonNote)
@@ -171,16 +171,35 @@ namespace YARG.Core.Chart
             }
 
             // Disjoint chords
-            foreach (var note in moonNote.chord)
+            if (HasDisjointLength(moonNote))
             {
-                if (note.length != moonNote.length)
-                {
-                    flags |= GuitarNoteFlags.Disjoint;
-                    break;
-                }
+                flags |= GuitarNoteFlags.Disjoint;
             }
 
             return flags;
+        }
+
+        // Whether any note in moonNote's chord has a different length; walks the list directly
+        // instead of allocating via MoonNote.chord.
+        private static bool HasDisjointLength(MoonNote moonNote)
+        {
+            for (var note = moonNote.previous; note != null && note.tick == moonNote.tick; note = note.previous)
+            {
+                if (note.length != moonNote.length)
+                {
+                    return true;
+                }
+            }
+
+            for (var note = moonNote.next; note != null && note.tick == moonNote.tick; note = note.next)
+            {
+                if (note.length != moonNote.length)
+                {
+                    return true;
+                }
+            }
+
+            return false;
         }
 
         private Phrase? ValidateGuitarPhrase(Phrase phrase, List<Phrase> phrases)

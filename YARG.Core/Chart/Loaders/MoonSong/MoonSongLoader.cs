@@ -425,6 +425,12 @@ namespace YARG.Core.Chart
 
         private double GetLengthInTime(double startTime, uint tick, uint tickLength)
         {
+            // TickToTime(tick) - TickToTime(tick) is exactly 0, so skip the tempo search.
+            if (tickLength == 0)
+            {
+                return 0;
+            }
+
             return _moonSong.TickToTime(tick + tickLength) - startTime;
         }
 
