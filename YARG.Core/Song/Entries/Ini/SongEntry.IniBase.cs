@@ -498,6 +498,7 @@ namespace YARG.Core.Song
                 Instrument.SixFretBass        => ScanSixFret (ref parts.SixFretBass,                  ref container, difficulty),
                 Instrument.SixFretRhythm      => ScanSixFret (ref parts.SixFretRhythm,                ref container, difficulty),
                 Instrument.SixFretCoopGuitar  => ScanSixFret (ref parts.SixFretCoopGuitar,            ref container, difficulty),
+                Instrument.SixLaneKeys        => ScanSixFret (ref parts.SixLaneKeys,                  ref container, difficulty),
                 Instrument.FourLaneDrums      => ScanDrums   (ref parts.FourLaneDrums, ref drumsType, ref container, difficulty),
                 _ => false,
             };
@@ -826,6 +827,11 @@ namespace YARG.Core.Song
             if (modifiers.Extract("diff_guitar_coop_ghl", out intensity))
             {
                 parts.SixFretCoopGuitar.Intensity = (sbyte) intensity;
+            }
+
+            if (modifiers.Extract("diff_keys_ghl", out intensity))
+            {
+                parts.SixLaneKeys.Intensity = (sbyte) intensity;
             }
 
             if (modifiers.Extract("diff_keys", out intensity))

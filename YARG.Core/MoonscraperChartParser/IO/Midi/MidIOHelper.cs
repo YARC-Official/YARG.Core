@@ -37,6 +37,7 @@ namespace MoonscraperChartEditor.Song.IO
         public const string GHL_BASS_TRACK = "PART BASS GHL";
         public const string GHL_RHYTHM_TRACK = "PART RHYTHM GHL";
         public const string GHL_GUITAR_COOP_TRACK = "PART GUITAR COOP GHL";
+        public const string GHL_KEYS_TRACK = "PART KEYS GHL";
         public const string VOCALS_TRACK = "PART VOCALS";
         public const string HARMONY_1_TRACK = "HARM1";
         public const string HARMONY_2_TRACK = "HARM2";
@@ -258,6 +259,7 @@ namespace MoonscraperChartEditor.Song.IO
             { GHL_BASS_TRACK,      MoonSong.MoonInstrument.GHLiveBass },
             { GHL_RHYTHM_TRACK,    MoonSong.MoonInstrument.GHLiveRhythm },
             { GHL_GUITAR_COOP_TRACK, MoonSong.MoonInstrument.GHLiveCoop },
+            { GHL_KEYS_TRACK,      MoonSong.MoonInstrument.GHLiveKeys },
 
             { PRO_GUITAR_17_FRET_TRACK, MoonSong.MoonInstrument.ProGuitar_17Fret },
             { PRO_GUITAR_22_FRET_TRACK, MoonSong.MoonInstrument.ProGuitar_22Fret },

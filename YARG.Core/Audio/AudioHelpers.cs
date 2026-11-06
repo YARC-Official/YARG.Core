@@ -99,6 +99,7 @@ namespace YARG.Core.Audio
                 Instrument.SixFretCoopGuitar => RhythmStems,
 
                 Instrument.Keys or
+                Instrument.SixLaneKeys or
                 Instrument.ProKeys => KeysStems,
 
                 Instrument.ProDrums or

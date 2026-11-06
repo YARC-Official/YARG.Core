@@ -297,6 +297,7 @@ namespace MoonscraperChartEditor.Song
                 case MoonInstrument.GHLiveBass:
                 case MoonInstrument.GHLiveRhythm:
                 case MoonInstrument.GHLiveCoop:
+                case MoonInstrument.GHLiveKeys:
                     return MoonChart.GameMode.GHLGuitar;
 
                 case MoonInstrument.ProGuitar_17Fret:
@@ -342,6 +343,7 @@ namespace MoonscraperChartEditor.Song
             GHLiveBass,
             GHLiveRhythm,
             GHLiveCoop,
+            GHLiveKeys,
             ProGuitar_17Fret,
             ProGuitar_22Fret,
             ProBass_17Fret,

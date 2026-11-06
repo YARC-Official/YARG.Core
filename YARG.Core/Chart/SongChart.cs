@@ -56,6 +56,7 @@ namespace YARG.Core.Chart
         public InstrumentTrack<GuitarNote> SixFretCoop { get; set; } = new(Instrument.SixFretCoopGuitar);
         public InstrumentTrack<GuitarNote> SixFretRhythm { get; set; } = new(Instrument.SixFretRhythm);
         public InstrumentTrack<GuitarNote> SixFretBass { get; set; } = new(Instrument.SixFretBass);
+        public InstrumentTrack<GuitarNote> SixLaneKeys { get; set; } = new(Instrument.SixLaneKeys);
 
         public IEnumerable<InstrumentTrack<GuitarNote>> SixFretTracks
         {
@@ -65,6 +66,7 @@ namespace YARG.Core.Chart
                 yield return SixFretCoop;
                 yield return SixFretRhythm;
                 yield return SixFretBass;
+                yield return SixLaneKeys;
             }
         }
 
@@ -142,6 +144,7 @@ namespace YARG.Core.Chart
             SixFretCoop = loader.LoadGuitarTrack(Instrument.SixFretCoopGuitar);
             SixFretRhythm = loader.LoadGuitarTrack(Instrument.SixFretRhythm);
             SixFretBass = loader.LoadGuitarTrack(Instrument.SixFretBass);
+            SixLaneKeys = loader.LoadGuitarTrack(Instrument.SixLaneKeys);
 
             EliteDrums = loader.LoadEliteDrumsTrack(Instrument.EliteDrums); // Load elite first, because the others will fall back to it if they don't natively exist
             FourLaneDrums = loader.LoadDrumsTrack(Instrument.FourLaneDrums, EliteDrums);
@@ -203,6 +206,9 @@ namespace YARG.Core.Chart
 
             if (!song.SixFretBass.IsEmpty)
                 SixFretBass = song.SixFretBass;
+
+            if (!song.SixLaneKeys.IsEmpty)
+                SixLaneKeys = song.SixLaneKeys;
 
             if (!song.FourLaneDrums.IsEmpty)
                 FourLaneDrums = song.FourLaneDrums;
@@ -274,6 +280,7 @@ namespace YARG.Core.Chart
                 Instrument.SixFretCoopGuitar => SixFretCoop,
                 Instrument.SixFretRhythm => SixFretRhythm,
                 Instrument.SixFretBass => SixFretBass,
+                Instrument.SixLaneKeys => SixLaneKeys,
                 _ => throw new ArgumentException($"Instrument {instrument} is not a 6-fret guitar instrument!")
             };
         }
@@ -327,7 +334,7 @@ namespace YARG.Core.Chart
         /// clone before mutating.</remarks>
         public InstrumentDifficulty<GuitarNote> GetSixFretPlayableDifficulty(Instrument instrument, Difficulty difficulty,
             bool leftyFlip = false)
-        {
+        { //TODO: We want to turn this into a modifier at some point - off by default, but can be turned on if users want it.
             InstrumentDifficulty<GuitarNote> track;
             if (instrument.IsSixFret())
             {

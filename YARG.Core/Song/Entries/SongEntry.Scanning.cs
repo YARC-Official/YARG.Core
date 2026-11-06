@@ -34,12 +34,13 @@ namespace YARG.Core.Song
                     case MidiTrackType.Bass_5:   if (!parts.FiveFretBass.IsActive())       parts.FiveFretBass.Difficulties       = Midi_FiveFret_Preparser.Parse(track); break;
                     case MidiTrackType.Rhythm_5: if (!parts.FiveFretRhythm.IsActive())     parts.FiveFretRhythm.Difficulties     = Midi_FiveFret_Preparser.Parse(track); break;
                     case MidiTrackType.Coop_5:   if (!parts.FiveFretCoopGuitar.IsActive()) parts.FiveFretCoopGuitar.Difficulties = Midi_FiveFret_Preparser.Parse(track); break;
-                    case MidiTrackType.Keys:     if (!parts.Keys.IsActive())               parts.Keys.Difficulties               = Midi_FiveFret_Preparser.Parse(track); break;
+                    case MidiTrackType.Keys_5:   if (!parts.Keys.IsActive())               parts.Keys.Difficulties               = Midi_FiveFret_Preparser.Parse(track); break;
 
                     case MidiTrackType.Guitar_6: if (!parts.SixFretGuitar.IsActive())      parts.SixFretGuitar.Difficulties      = Midi_SixFret_Preparser.Parse(track); break;
                     case MidiTrackType.Bass_6:   if (!parts.SixFretBass.IsActive())        parts.SixFretBass.Difficulties        = Midi_SixFret_Preparser.Parse(track); break;
                     case MidiTrackType.Rhythm_6: if (!parts.SixFretRhythm.IsActive())      parts.SixFretRhythm.Difficulties      = Midi_SixFret_Preparser.Parse(track); break;
                     case MidiTrackType.Coop_6:   if (!parts.SixFretCoopGuitar.IsActive())  parts.SixFretCoopGuitar.Difficulties  = Midi_SixFret_Preparser.Parse(track); break;
+                    case MidiTrackType.Keys_6:   if (!parts.SixLaneKeys.IsActive())        parts.SixLaneKeys.Difficulties        = Midi_SixFret_Preparser.Parse(track); break;
 
                     case MidiTrackType.Drums:      if (!parts.FourLaneDrums.IsActive()) parts.FourLaneDrums.Difficulties = Midi_Drums_Preparser.Parse(track, ref drumsType); break;
                     case MidiTrackType.EliteDrums:
@@ -116,6 +117,7 @@ namespace YARG.Core.Song
                 || parts.SixFretBass.IsActive()
                 || parts.SixFretRhythm.IsActive()
                 || parts.SixFretCoopGuitar.IsActive()
+                || parts.SixLaneKeys.IsActive()
                 || parts.FourLaneDrums.IsActive()
                 || parts.ProDrums.IsActive()
                 || parts.FiveLaneDrums.IsActive()

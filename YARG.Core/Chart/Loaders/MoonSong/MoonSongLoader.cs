@@ -531,6 +531,7 @@ namespace YARG.Core.Chart
             Instrument.SixFretCoopGuitar => MoonSong.MoonInstrument.GHLiveCoop,
             Instrument.SixFretBass       => MoonSong.MoonInstrument.GHLiveBass,
             Instrument.SixFretRhythm     => MoonSong.MoonInstrument.GHLiveRhythm,
+            Instrument.SixLaneKeys       => MoonSong.MoonInstrument.GHLiveKeys,
 
             Instrument.FourLaneDrums or
             Instrument.FiveLaneDrums or

@@ -38,6 +38,7 @@ namespace YARG.Core.UnitTests.Parsing
             { MoonInstrument.GHLiveBass,   GHL_BASS_TRACK },
             { MoonInstrument.GHLiveRhythm, GHL_RHYTHM_TRACK },
             { MoonInstrument.GHLiveCoop,   GHL_GUITAR_COOP_TRACK },
+            { MoonInstrument.GHLiveKeys,   GHL_KEYS_TRACK },
 
             { MoonInstrument.ProGuitar_17Fret, PRO_GUITAR_17_FRET_TRACK },
             { MoonInstrument.ProGuitar_22Fret, PRO_GUITAR_22_FRET_TRACK },

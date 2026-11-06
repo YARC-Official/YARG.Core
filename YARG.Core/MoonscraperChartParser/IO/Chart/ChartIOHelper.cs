@@ -96,6 +96,7 @@ namespace MoonscraperChartEditor.Song.IO
             { "GHLBass",        MoonSong.MoonInstrument.GHLiveBass },
             { "GHLRhythm",      MoonSong.MoonInstrument.GHLiveRhythm },
             { "GHLCoop",        MoonSong.MoonInstrument.GHLiveCoop },
+            { "GHLKeys",        MoonSong.MoonInstrument.GHLiveKeys }
         };
     }
 }

@@ -241,6 +241,7 @@ namespace YARG.Core.Song
                     Instrument.SixFretBass => _parts.SixFretBass,
                     Instrument.SixFretRhythm => _parts.SixFretRhythm,
                     Instrument.SixFretCoopGuitar => _parts.SixFretCoopGuitar,
+                    Instrument.SixLaneKeys => _parts.SixLaneKeys,
 
                     Instrument.FourLaneDrums => _parts.FourLaneDrums,
                     Instrument.FiveLaneDrums => _parts.FiveLaneDrums,
@@ -281,6 +282,7 @@ namespace YARG.Core.Song
                 Instrument.SixFretBass => _parts.SixFretBass.IsActive(),
                 Instrument.SixFretRhythm => _parts.SixFretRhythm.IsActive(),
                 Instrument.SixFretCoopGuitar => _parts.SixFretCoopGuitar.IsActive(),
+                Instrument.SixLaneKeys => _parts.SixLaneKeys.IsActive(),
 
                 Instrument.FourLaneDrums => _parts.FourLaneDrums.IsActive(),
                 Instrument.FiveLaneDrums => _parts.FiveLaneDrums.IsActive(),
@@ -324,6 +326,7 @@ namespace YARG.Core.Song
                 Instrument.SixFretBass       => _parts.SixFretBass,
                 Instrument.SixFretRhythm     => _parts.SixFretRhythm,
                 Instrument.SixFretCoopGuitar => _parts.SixFretCoopGuitar,
+                Instrument.SixLaneKeys       => _parts.SixLaneKeys,
 
                 Instrument.FourLaneDrums => _parts.FourLaneDrums,
                 Instrument.FiveLaneDrums => _parts.FiveLaneDrums,

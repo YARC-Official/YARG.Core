@@ -18,6 +18,7 @@ namespace YARG.Core.Song
             SixFretBass = PartValues.Default,
             SixFretRhythm = PartValues.Default,
             SixFretCoopGuitar = PartValues.Default,
+            SixLaneKeys = PartValues.Default,
 
             FourLaneDrums = PartValues.Default,
             ProDrums = PartValues.Default,
@@ -50,6 +51,7 @@ namespace YARG.Core.Song
         public PartValues SixFretBass;
         public PartValues SixFretRhythm;
         public PartValues SixFretCoopGuitar;
+        public PartValues SixLaneKeys;
 
         public PartValues FourLaneDrums;
         public PartValues ProDrums;

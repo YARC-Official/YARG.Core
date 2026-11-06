@@ -53,6 +53,7 @@ namespace YARG.Core
         SixFretBass = 11,
         SixFretRhythm = 12,
         SixFretCoopGuitar = 13,
+        SixLaneKeys = 14,
 
         // 20-29: Drums
         FourLaneDrums = 20,
@@ -173,10 +174,11 @@ namespace YARG.Core
         {
             return instrument switch
             {
-                Instrument.SixFretGuitar    => Instrument.FiveFretGuitar,
-                Instrument.SixFretBass      => Instrument.FiveFretBass,
-                Instrument.SixFretRhythm    => Instrument.FiveFretRhythm,
+                Instrument.SixFretGuitar     => Instrument.FiveFretGuitar,
+                Instrument.SixFretBass       => Instrument.FiveFretBass,
+                Instrument.SixFretRhythm     => Instrument.FiveFretRhythm,
                 Instrument.SixFretCoopGuitar => Instrument.FiveFretCoopGuitar,
+                Instrument.SixLaneKeys       => Instrument.Keys,
                 _ => instrument
             };
         }
@@ -187,7 +189,7 @@ namespace YARG.Core
         public static bool IsSixFret(this Instrument instrument)
         {
             return instrument is Instrument.SixFretGuitar or Instrument.SixFretBass
-                or Instrument.SixFretRhythm or Instrument.SixFretCoopGuitar;
+                or Instrument.SixFretRhythm or Instrument.SixFretCoopGuitar or Instrument.SixLaneKeys;
         }
 
         public static GameMode ToNativeGameMode(this Instrument instrument)
@@ -203,7 +205,9 @@ namespace YARG.Core
                 Instrument.SixFretGuitar or
                 Instrument.SixFretBass or
                 Instrument.SixFretRhythm or
-                Instrument.SixFretCoopGuitar => GameMode.SixFretGuitar,
+                Instrument.SixFretCoopGuitar or
+                // TODO: When 6L keys is implemented, move it to its own game mode
+                Instrument.SixLaneKeys => GameMode.SixFretGuitar,
 
                 Instrument.FourLaneDrums or
                 Instrument.ProDrums => GameMode.FourLaneDrums,
@@ -248,6 +252,7 @@ namespace YARG.Core
                     Instrument.SixFretBass,
                     Instrument.SixFretRhythm,
                     Instrument.SixFretCoopGuitar,
+                    Instrument.SixLaneKeys,
                     // 5F is playable on 6F through the magical power of conversions
                     Instrument.FiveFretGuitar,
                     Instrument.FiveFretBass,
@@ -282,6 +287,7 @@ namespace YARG.Core
                 {
                     Instrument.ProKeys,
                     Instrument.Keys,
+                    // Instrument.SixLaneKeys, TODO: Not yet implemented; needs 6L Keys player support
                     Instrument.FiveFretGuitar,
                     Instrument.FiveFretBass,
                     Instrument.FiveFretRhythm,
@@ -323,6 +329,7 @@ namespace YARG.Core
                     Instrument.SixFretBass,
                     Instrument.SixFretRhythm,
                     Instrument.SixFretCoopGuitar,
+                    Instrument.SixLaneKeys,
                     // Allow selecting 5-fret tracks in 6-fret mode (pro keys pattern)
                     Instrument.FiveFretGuitar,
                     Instrument.FiveFretBass,

@@ -63,6 +63,7 @@ namespace YARG.Core.IO
             new("GHLBass]",      Instrument.SixFretBass),
             new("GHLRhythm]",    Instrument.SixFretRhythm),
             new("GHLCoop]",      Instrument.SixFretCoopGuitar),
+            new("GHLKeys]",      Instrument.SixLaneKeys),
         };
 
         internal static readonly (string Descriptor, ChartEventType Type)[] EVENTS =

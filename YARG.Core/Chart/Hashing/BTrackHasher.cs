@@ -114,6 +114,7 @@ namespace YARG.Core.Chart.Hashing
                 case Instrument.SixFretBass:
                 case Instrument.SixFretRhythm:
                 case Instrument.SixFretCoopGuitar:
+                case Instrument.SixLaneKeys:
                     if (!chart.GetSixFretTrack(instrument).TryGetDifficulty(difficulty, out var sixFretDifficulty))
                     {
                         return false;
