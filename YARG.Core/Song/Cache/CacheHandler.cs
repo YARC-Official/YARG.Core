@@ -4,6 +4,7 @@ using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
 using YARG.Core.Audio;
+using YARG.Core.Chart.Loaders.UltraStar;
 using YARG.Core.Extensions;
 using YARG.Core.IO;
 using YARG.Core.Logging;
@@ -35,7 +36,7 @@ namespace YARG.Core.Song.Cache
         /// if multiple cache version changes happen in a single day).
         /// </summary>
         /// <remarks>Change whenever the song cache needs to be cleared and regenerated, e.g. when the new data is added to the cache.</remarks>
-        private const int CACHE_VERSION = 26_10_14_00;
+        private const int CACHE_VERSION = 26_10_28_00;
 
         public static ScanProgressTracker Progress => _progress;
         private static ScanProgressTracker _progress;
@@ -184,6 +185,10 @@ namespace YARG.Core.Song.Cache
         private readonly Dictionary<string, CONModification> conModifications = new();
 
         private readonly HashSet<string> preScannedPaths = new();
+        // UltraStar folders can hold several charts, so loading one from the cache can't mark
+        // the whole folder as done -- a sibling that was edited or added would never be
+        // scanned. Instead these are the chart names already loaded, per directory.
+        private readonly Dictionary<string, HashSet<string>> cachedUltraStarCharts = new();
         private readonly SortedDictionary<string, ScanResult> badSongs = new();
         #endregion
 
@@ -539,6 +544,10 @@ namespace YARG.Core.Song.Cache
                     case ScanResult.NoAudio:
                         writer.WriteLine("No audio accompanying the chart file");
                         break;
+                    case ScanResult.UnsupportedAudioFormat:
+                        writer.WriteLine("The chart's audio tag points at a video file, which cannot be decoded as audio.");
+                        writer.WriteLine("To fix, extract the audio to a separate file (e.g. .ogg or .mp3) and point the tag at it.");
+                        break;
                     case ScanResult.NoName:
                         writer.WriteLine("Name metadata not provided");
                         break;
@@ -796,8 +805,8 @@ namespace YARG.Core.Song.Cache
         }
 
         /// <summary>
-        /// Searches for a ".ini" and any .mid or .chart file to possibly extract as a song entry.
-        /// If found, even if we can't extract an entry from them, we should perform no further directory traversal.
+        /// Searches for a ".ini" and any .mid or .chart file to possibly extract as a song entry,
+        /// or, in a folder with no song.ini, for UltraStar .txt charts. If found, even if we can't extract an entry from them, we should perform no further directory traversal.
         /// </summary>
         /// <param name="collection">The collection containing the subfiles to search from</param>
         /// <param name="group">The group aligning to one of the base directories provided by the user</param>
@@ -805,13 +814,17 @@ namespace YARG.Core.Song.Cache
         /// <returns>Whether files pertaining to an unpacked ini entry were discovered</returns>
         private bool ScanIniEntry(in FileCollection collection, IniEntryGroup group, string defaultPlaylist)
         {
-            bool hasIni = collection.FindFile("song.ini", out var ini);
-            int i = hasIni ? 0 : 3;
-            while (i < 4)
+            // A song.ini marks an FoF/RB-style folder, which only has fixed-name charts.
+            // UltraStar charts are only looked for in folders without one.
+            if (!collection.FindFile("song.ini", out var ini))
             {
-                if (!collection.FindFile(IniSubEntry.CHART_FILE_TYPES[i].Filename, out var chart))
+                return ScanUltraStarCharts(collection, group, defaultPlaylist);
+            }
+
+            foreach (var (filename, format) in IniSubEntry.CHART_FILE_TYPES)
+            {
+                if (format == ChartFormat.UltraStar || !collection.FindFile(filename, out var chart))
                 {
-                    ++i;
                     continue;
                 }
 
@@ -822,35 +835,248 @@ namespace YARG.Core.Song.Cache
                 if (!collection.ContainsAudio())
                 {
                     AddToBadSongs(chart.FullName, ScanResult.NoAudio);
-                    break;
+                    return false;
                 }
 
-                try
-                {
-                    var entry = UnpackedIniEntry.ProcessNewEntry(collection.Directory, chart, IniSubEntry.CHART_FILE_TYPES[i].Format, hasIni ? ini : null, defaultPlaylist);
-                    if (entry)
-                    {
-                        AddEntry(entry.Value);
-                        group.AddEntry(entry.Value);
-                    }
-                    else
-                    {
-                        AddToBadSongs(chart.FullName, entry.Error);
-                    }
-                }
-                catch (PathTooLongException)
-                {
-                    YargLogger.LogFormatError("Path {0} is too long for the file system!", chart);
-                    AddToBadSongs(chart.FullName, ScanResult.PathTooLong);
-                }
-                catch (Exception e)
-                {
-                    YargLogger.LogException(e, $"Error while scanning chart file {chart}!");
-                    AddToBadSongs(collection.Directory, ScanResult.IniEntryCorruption);
-                }
+                ScanIniChart(collection, chart, format, ini, group, defaultPlaylist);
                 return true;
             }
             return false;
+        }
+
+        /// <summary>
+        /// Scans every UltraStar chart in a folder. They have no fixed name (usually
+        /// "Artist - Title.txt"), and a folder can hold several. Each is its own song, except
+        /// that a solo chart and a duet sharing its audio become one merged entry.
+        /// </summary>
+        /// <returns>Whether the folder has any chart, including ones already loaded from the cache</returns>
+        private bool ScanUltraStarCharts(in FileCollection collection, IniEntryGroup group, string defaultPlaylist)
+        {
+            if (!collection.ContainsTextFiles)
+            {
+                return false;
+            }
+
+            bool foundAny = false;
+            // Every candidate read this pass, so pairing doesn't open or parse any of them twice.
+            var candidates = new List<UltraStarChartFile>();
+            try
+            {
+                foreach (var txtFile in collection.FindAllFilesByExtension(".txt"))
+                {
+                    // Skips readmes and licenses without opening them; any other non-chart .txt is
+                    // caught by the content check.
+                    if (NON_CHART_TEXT_FILE_NAMES.Contains(Path.GetFileNameWithoutExtension(txtFile.Name)))
+                    {
+                        continue;
+                    }
+
+                    if (IsCachedUltraStarChart(collection.Directory, txtFile))
+                    {
+                        foundAny = true;
+                        continue;
+                    }
+
+                    if (!TryReadUltraStarChart(txtFile, out var chartData))
+                    {
+                        continue;
+                    }
+                    foundAny = true;
+
+                    if (chartData is not { } data)
+                    {
+                        // Null data means the read failed: ScanIniChart reads the file itself
+                        // and reports the error like any other chart's.
+                        ScanIniChart(collection, txtFile, ChartFormat.UltraStar, null, group, defaultPlaylist);
+                        continue;
+                    }
+
+                    candidates.Add(new UltraStarChartFile(txtFile, data));
+                }
+
+                ScanPairedUltraStarCharts(collection, group, defaultPlaylist, candidates);
+            }
+            finally
+            {
+                foreach (var candidate in candidates)
+                {
+                    candidate.Data.Dispose();
+                }
+            }
+            return foundAny;
+        }
+
+        /// <summary>
+        /// Groups already-read candidates by their #AUDIO/#MP3 file (<see cref="FileCollection.ToKey"/>)
+        /// and merges a group into one entry only when it holds exactly one solo chart
+        /// (VoiceCount == 1) and one duet (VoiceCount &gt;= 2) -- any other shape, including two
+        /// solos or two duets sharing audio, is ambiguous and stays as separate entries.
+        /// </summary>
+        private void ScanPairedUltraStarCharts(in FileCollection collection, IniEntryGroup group, string defaultPlaylist,
+            List<UltraStarChartFile> candidates)
+        {
+            var byAudioKey = new Dictionary<string, List<int>>();
+            for (int i = 0; i < candidates.Count; i++)
+            {
+                // The same file the scan will use, so pairing can't disagree with it.
+                string? audio = candidates[i].Header.GetAudioFile();
+                if (audio == null)
+                {
+                    continue;
+                }
+
+                string key = FileCollection.ToKey(audio);
+                if (!byAudioKey.TryGetValue(key, out var indices))
+                {
+                    indices = new List<int>();
+                    byAudioKey.Add(key, indices);
+                }
+                indices.Add(i);
+            }
+
+            var merged = new HashSet<int>();
+            foreach (var indices in byAudioKey.Values)
+            {
+                if (indices.Count != 2)
+                {
+                    continue;
+                }
+
+                var headerA = candidates[indices[0]].Header;
+                var headerB = candidates[indices[1]].Header;
+
+                int soloIndex, duetIndex;
+                if (headerA.VoiceCount == 1 && headerB.VoiceCount >= 2)
+                {
+                    (soloIndex, duetIndex) = (indices[0], indices[1]);
+                }
+                else if (headerB.VoiceCount == 1 && headerA.VoiceCount >= 2)
+                {
+                    (soloIndex, duetIndex) = (indices[1], indices[0]);
+                }
+                else
+                {
+                    continue;
+                }
+
+                merged.Add(indices[0]);
+                merged.Add(indices[1]);
+
+                var solo = candidates[soloIndex];
+                ScanIniChart(collection, solo.File, ChartFormat.UltraStar, null, group, defaultPlaylist, solo, candidates[duetIndex]);
+            }
+
+            for (int i = 0; i < candidates.Count; i++)
+            {
+                if (merged.Contains(i))
+                {
+                    continue;
+                }
+                ScanIniChart(collection, candidates[i].File, ChartFormat.UltraStar, null, group, defaultPlaylist, candidates[i]);
+            }
+        }
+
+        // Matched by file name only, never against tag-supplied names such as the title, so
+        // it can't misfire on a case, spelling or Unicode-form mismatch.
+        private static readonly HashSet<string> NON_CHART_TEXT_FILE_NAMES = new(StringComparer.OrdinalIgnoreCase)
+        {
+            "readme", "license", "licence", "copying", "changelog",
+        };
+
+        private void MarkCachedUltraStarChart(string directory, string chartFileName)
+        {
+            lock (cachedUltraStarCharts)
+            {
+                if (!cachedUltraStarCharts.TryGetValue(directory, out var names))
+                {
+                    names = new HashSet<string>();
+                    cachedUltraStarCharts.Add(directory, names);
+                }
+                names.Add(FileCollection.ToKey(chartFileName));
+            }
+        }
+
+        private bool IsCachedUltraStarChart(string directory, FileInfo chart)
+        {
+            lock (cachedUltraStarCharts)
+            {
+                return cachedUltraStarCharts.TryGetValue(directory, out var names) && names.Contains(FileCollection.ToKey(chart.Name));
+            }
+        }
+
+        /// <summary>
+        /// Reads a candidate .txt once, keeping its bytes if it's an UltraStar chart (see
+        /// <see cref="UltraStarLoader.ClassifyTextFile"/>) so the scan doesn't open it twice.
+        /// </summary>
+        /// <returns>
+        /// False to skip the file: it isn't a chart, or it can't be opened. True with null
+        /// <paramref name="data"/> if it opened but couldn't be read, so the error still gets reported.
+        /// </returns>
+        private static bool TryReadUltraStarChart(FileInfo file, out FixedArray<byte>? data)
+        {
+            data = null;
+            FileStream stream;
+            try
+            {
+                stream = new FileStream(file.FullName, FileMode.Open, FileAccess.Read, FileShare.Read, 1);
+            }
+            catch (Exception e)
+            {
+                YargLogger.LogException(e, $"Error while probing text file {file}!");
+                return false;
+            }
+
+            using (stream)
+            {
+                try
+                {
+                    // Usually reads just the first line, so a large stray .txt is never loaded in full.
+                    switch (UltraStarLoader.ClassifyTextFile(stream))
+                    {
+                        case UltraStarFileKind.Chart:
+                            stream.Position = 0;
+                            data = FixedArray.Read(stream, stream.Length);
+                            return true;
+                        case UltraStarFileKind.NonChartText:
+                            YargLogger.LogFormatDebug("Skipping {0}: it starts with '#' but isn't a tagged chart with notes", file.FullName);
+                            break;
+                    }
+                    return false;
+                }
+                catch (Exception e)
+                {
+                    YargLogger.LogException(e, $"Error while reading text file {file}!");
+                    return true;
+                }
+            }
+        }
+
+        private void ScanIniChart(in FileCollection collection, FileInfo chart, ChartFormat format, FileInfo? ini, IniEntryGroup group, string defaultPlaylist,
+            UltraStarChartFile? ultraStarChart = null, UltraStarChartFile? duetChart = null)
+        {
+            try
+            {
+                var entry = UnpackedIniEntry.ProcessNewEntry(collection.Directory, chart, format, ini, defaultPlaylist, collection, ultraStarChart, duetChart);
+                if (entry)
+                {
+                    AddEntry(entry.Value);
+                    group.AddEntry(entry.Value);
+                }
+                else
+                {
+                    AddToBadSongs(chart.FullName, entry.Error);
+                }
+            }
+            catch (PathTooLongException)
+            {
+                YargLogger.LogFormatError("Path {0} is too long for the file system!", chart);
+                AddToBadSongs(chart.FullName, ScanResult.PathTooLong);
+            }
+            catch (Exception e)
+            {
+                YargLogger.LogException(e, $"Error while scanning chart file {chart}!");
+                AddToBadSongs(collection.Directory, ScanResult.IniEntryCorruption);
+            }
         }
 
         /// <summary>
@@ -1368,7 +1594,18 @@ namespace YARG.Core.Song.Cache
                     var entry = UnpackedIniEntry.TryDeserialize(directory, ref node.Slice, strings);
                     if (entry != null)
                     {
-                        FindOrMarkDirectory(entry.ActualLocation);
+                        if (entry.Format == ChartFormat.UltraStar)
+                        {
+                            MarkCachedUltraStarChart(entry.ActualLocation, entry.ChartFileName);
+                            if (entry.HarmonyChartFileName.Length > 0)
+                            {
+                                MarkCachedUltraStarChart(entry.ActualLocation, entry.HarmonyChartFileName);
+                            }
+                        }
+                        else
+                        {
+                            FindOrMarkDirectory(entry.ActualLocation);
+                        }
                         AddEntry(entry);
                         baseGroup.AddEntry(entry);
                     }

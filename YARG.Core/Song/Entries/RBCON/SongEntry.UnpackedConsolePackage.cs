@@ -9,6 +9,7 @@ namespace YARG.Core.Song
     internal abstract class UnpackedConsolePackageEntry : RBCONEntry
     {
         protected abstract YARGImage DXTImageLoader(string path);
+        protected abstract string MidiFileExtension { get; }
 
 
         protected DateTime _midiLastWrite;
@@ -17,6 +18,12 @@ namespace YARG.Core.Song
         public override string SortBasedLocation => Path.Combine(_root.FullName, _subName);
         public override string ActualLocation => Path.Combine(_root.FullName, _subName);
         protected override DateTime MidiLastWriteTime => _midiLastWrite;
+
+        public override DateTime GetLastModifiedTime()
+        {
+            string chartPath = Path.Combine(_root.FullName, _subName, _subName + MidiFileExtension);
+            return File.GetLastWriteTime(chartPath);
+        }
 
         internal override void Serialize(MemoryStream stream, CacheWriteIndices node)
         {

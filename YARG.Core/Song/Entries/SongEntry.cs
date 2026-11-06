@@ -50,7 +50,7 @@ namespace YARG.Core.Song
 
         protected static readonly string[] VIDEO_EXTENSIONS =
         {
-            ".mp4", ".mov", ".webm",
+            ".mp4", ".mov", ".webm", ".mkv",
         };
 
         protected static readonly string[] IMAGE_EXTENSIONS =
@@ -213,6 +213,15 @@ namespace YARG.Core.Song
         public bool IsDuplicate => _isDuplicate;
 
         public abstract DateTime GetLastWriteTime();
+
+        /// <summary>
+        /// Gets the last-modified time of the file containing the chart.
+        /// Unlike <see cref="GetLastWriteTime"/>, this does not consider the file creation time.
+        /// </summary>
+        public virtual DateTime GetLastModifiedTime()
+        {
+            return File.GetLastWriteTime(ActualLocation);
+        }
 
         public override string ToString() { return Artist + " | " + Name; }
 
