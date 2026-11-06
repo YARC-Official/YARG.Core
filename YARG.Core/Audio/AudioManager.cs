@@ -91,6 +91,9 @@ namespace YARG.Core.Audio
             return CreateInputDevice(info);
         }
 
+        protected internal virtual MicDevice? GetInputDevice(MicId id) =>
+            GetInputDevice(id.BaseName, id.Channel);
+
         protected internal abstract OutputChannel? CreateOutputChannel(int channelId);
 
         /// <summary>

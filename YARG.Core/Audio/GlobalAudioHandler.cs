@@ -530,6 +530,9 @@ namespace YARG.Core.Audio
             }
         }
 
+        public static MicDevice? GetInputDevice(MicId id) =>
+            GetInputDevice(id.BaseName, id.Channel);
+
         public static List<InputDeviceInfo> GetAllInputDevices()
         {
             lock (_instanceLock)

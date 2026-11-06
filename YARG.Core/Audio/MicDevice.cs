@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Text;
 
@@ -106,6 +106,8 @@ namespace YARG.Core.Audio
         public abstract void SetReverbLevel(float wet);
 
         public abstract MicBufferInfo? GetBufferInfo();
+
+        public abstract MicId Id { get; }
 
         /// <summary>
         /// Converts this microphone into its serialized form.

@@ -33,6 +33,8 @@ namespace YARG.Core
 
         // 20-24: Other
         // Dj = 20,
+
+        Menu = byte.MaxValue, // 255
     }
 
     /// <summary>
