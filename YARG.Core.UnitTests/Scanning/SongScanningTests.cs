@@ -1,6 +1,10 @@
-﻿using NUnit.Framework;
+﻿using System.Diagnostics;
+using NUnit.Framework;
+using YARG.Core.Audio;
 using YARG.Core.Logging;
+using YARG.Core.Song;
 using YARG.Core.Song.Cache;
+using YARG.Core.UnitTests.Song;
 
 namespace YARG.Core.UnitTests.Scanning
 {
@@ -32,13 +36,27 @@ namespace YARG.Core.UnitTests.Scanning
             {
                 Assert.Ignore($"No valid song directories were found in {SONG_DIRECTORIES_ENV_VAR}.");
             }
+
+            // Ini/UltraStar entries without a known song length fall back to opening their
+            // audio, which throws if no audio backend has been initialized -- every such song
+            // would land in badsongs.txt instead of being scanned.
+            GlobalAudioHandler.Initialize<NullAudioManager>();
+        }
+
+        [TearDown]
+        public void TearDown()
+        {
+            GlobalAudioHandler.Close();
         }
 
         [TestCase]
         public void FullScan()
         {
             YargLogger.AddLogListener(new DebugYargLogListener());
+            var stopwatch = Stopwatch.StartNew();
             var cache = CacheHandler.RunScan(false, SongCachePath, BadSongsPath, FULL_DIRECTORY_PATHS, songDirectories);
+            stopwatch.Stop();
+            LogResult("Full scan", cache, stopwatch);
             // TODO: Any cache properties we want to check here?
             // Currently the only fail condition would be an unhandled exception
         }
@@ -47,8 +65,21 @@ namespace YARG.Core.UnitTests.Scanning
         public void QuickScan()
         {
             YargLogger.AddLogListener(new DebugYargLogListener());
+            var stopwatch = Stopwatch.StartNew();
             var cache = CacheHandler.RunScan(true, SongCachePath, BadSongsPath, FULL_DIRECTORY_PATHS, songDirectories);
+            stopwatch.Stop();
+            LogResult("Quick scan", cache, stopwatch);
             // TODO: see above
+        }
+
+        private static void LogResult(string label, SongCache cache, Stopwatch stopwatch)
+        {
+            int entryCount = cache.Entries.Values.Sum(list => list.Count);
+            int badSongCount = File.Exists(BadSongsPath)
+                ? File.ReadLines(BadSongsPath).Count(line => !string.IsNullOrWhiteSpace(line))
+                : 0;
+            TestContext.Out.WriteLine(
+                $"{label}: {stopwatch.Elapsed.TotalMilliseconds:F0} ms, {entryCount} entries, {badSongCount} non-empty badsongs.txt lines");
         }
     }
 }
