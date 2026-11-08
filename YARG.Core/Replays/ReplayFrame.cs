@@ -29,6 +29,7 @@ namespace YARG.Core.Replays
             Stats = stats;
             EngineParameters = param;
             Inputs = inputs;
+            ValidatePartyInputs();
         }
 
         public ReplayFrame(ref FixedArrayStream stream, int version)
@@ -53,6 +54,7 @@ namespace YARG.Core.Replays
                     Stats = new DrumsStats(ref stream, version);
                     break;
                 case GameMode.Vocals:
+                case GameMode.PartyVocals:
                     EngineParameters = new VocalsEngineParameters(ref stream, version);
                     Stats = new VocalsStats(ref stream, version);
                     break;
@@ -73,6 +75,21 @@ namespace YARG.Core.Replays
                 int value = stream.Read<int>(Endianness.Little);
 
                 Inputs[i] = new GameInput(time, action, value);
+            }
+            ValidatePartyInputs();
+        }
+
+        private void ValidatePartyInputs()
+        {
+            if (Profile.GameMode != GameMode.PartyVocals) return;
+            if (Profile.CurrentInstrument != Instrument.PartyVocals || EngineParameters is not VocalsEngineParameters parameters)
+                throw new InvalidDataException("Invalid Party Vocals replay configuration.");
+            foreach (var input in Inputs)
+            {
+                int mic = PartyVocalsInput.UnpackMic(input.Action);
+                var action = PartyVocalsInput.UnpackAction(input.Action);
+                if (mic < 0 || mic >= parameters.PartyVocalsMicCount || action > VocalsAction.StarPower)
+                    throw new InvalidDataException("Party Vocals replay input is outside the recorded session.");
             }
         }
 

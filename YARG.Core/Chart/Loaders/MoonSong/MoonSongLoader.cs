@@ -514,7 +514,7 @@ namespace YARG.Core.Chart
             GameMode.ProGuitar => MoonChart.GameMode.ProGuitar,
             GameMode.ProKeys => MoonChart.GameMode.ProKeys,
 
-            GameMode.Vocals => MoonChart.GameMode.Vocals,
+            GameMode.Vocals or GameMode.PartyVocals => MoonChart.GameMode.Vocals,
 
             _ => throw new NotImplementedException($"Unhandled game mode {mode}!")
         };

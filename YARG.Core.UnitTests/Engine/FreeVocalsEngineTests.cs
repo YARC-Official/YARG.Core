@@ -259,6 +259,60 @@ public sealed class FreeVocalsEngineTests
         Assert.That(engine.CurrentTargetHarmonyIndex, Is.EqualTo(0));
     }
 
+    // A bot must keep singing its own carried lyric, including slide tails, rather than
+    // falling back to HARM1 or going silent when the lyric's parent phrase ends.
+    [TestCase(1, false)]
+    [TestCase(2, false)]
+    [TestCase(1, true)]
+    [TestCase(2, true)]
+    public void BotContinuesPreferredCarriedNoteAcrossPhraseBoundary(int preferredPart, bool slide)
+    {
+        var parts = new List<VocalsPart>
+        {
+            CreateVocalsPart(false), CreateVocalsPart(true), CreateVocalsPart(true)
+        };
+        AddBotPhrase(parts[0], 0, 2880, new VocalNote(60, 0, VocalNoteType.Lyric, 0, 3, 0, 2880));
+        var carriedNote = new VocalNote(64, preferredPart, VocalNoteType.Lyric,
+            0.5, slide ? 0.25 : 1.5, 480, slide ? 240u : 1440u);
+        if (slide)
+            carriedNote.AddChildNote(new VocalNote(67, preferredPart, VocalNoteType.Lyric, 1.25, 0.75, 1200, 720));
+        AddBotPhrase(parts[preferredPart], 0, 960, carriedNote);
+        AddBotPhrase(parts[preferredPart], 960, 1920);
+
+        var sync = new SyncTrack(480);
+        sync.Tempos.Add(new TempoChange(120, 0, 0));
+        var engine = new YargFreeVocalsEngine(parts[0].CloneAsInstrumentDifficulty(), parts,
+            sync, EngineParameters, isBot: true, botPartIndex: preferredPart);
+        VocalNote? target = null;
+        engine.OnTargetNoteChanged += note => target = note;
+        for (int frame = 1; frame <= 45; frame++)
+            engine.Update(frame / 60.0);
+        Assert.That(target, Is.SameAs(carriedNote));
+
+        for (int frame = 46; frame <= 61; frame++)
+            engine.Update(frame / 60.0);
+        target = null;
+        for (int frame = 62; frame <= 90; frame++)
+            engine.Update(frame / 60.0);
+        Assert.That(target, Is.SameAs(carriedNote), "The carried lyric must still drive the bot after its phrase ends.");
+        Assert.That(engine.PitchSang, Is.EqualTo(slide ? 67f : 64f));
+
+        // Once the carry ends, the empty preferred phrase must not leave a stale target.
+        for (int frame = 91; frame <= 121; frame++)
+            engine.Update(frame / 60.0);
+        target = null;
+        for (int frame = 122; frame <= 150; frame++)
+            engine.Update(frame / 60.0);
+        Assert.That(target, Is.Null);
+
+        static void AddBotPhrase(VocalsPart part, uint start, uint length, VocalNote? note = null)
+        {
+            var parent = new VocalNote(NoteFlags.None, false, start / 960.0, length / 960.0, start, length);
+            if (note is not null) parent.AddChildNote(note);
+            part.NotePhrases.Add(new VocalsPhrase(parent.Time, parent.TimeLength, start, length, parent, new()));
+        }
+    }
+
     // ================================================================
     // Pitch window boundary: 2 semitones off is outside window of 1.5
     // ================================================================

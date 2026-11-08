@@ -277,6 +277,14 @@ namespace YARG.Core.Replays.Analyzer
                     manager.Register((FiveLaneKeysEngine)engine, fiveLaneNotes, _chart, rockMeterPreset);
                     break;
                 }
+                case GameMode.PartyVocals:
+                {
+                    var vocalParameters = (VocalsEngineParameters) parameters;
+                    var parts = PartyVocalsChartSelection.CreateModifiedParts(_chart, vocalParameters.PartyVocalsChartSource, profile);
+                    var merged = PartyVocalsCoordinatorEngine.BuildMergedTrack(parts, parts[0].CloneAsInstrumentDifficulty());
+                    manager.Register((VocalsEngine) engine, merged, _chart, rockMeterPreset);
+                    break;
+                }
                 case GameMode.Vocals:
                 {
                     var multiTrack = _chart.GetVocalsTrack(profile.CurrentInstrument);
@@ -413,6 +421,15 @@ namespace YARG.Core.Replays.Analyzer
                         _chart.SyncTrack,
                         (KeysEngineParameters) parameters,
                         profile.IsBot);
+                }
+                case GameMode.PartyVocals:
+                {
+                    var vocalParameters = (VocalsEngineParameters) parameters;
+                    var parts = PartyVocalsChartSelection.CreateModifiedParts(_chart, vocalParameters.PartyVocalsChartSource, profile);
+                    return new PartyVocalsCoordinatorEngine(
+                        PartyVocalsCoordinatorEngine.BuildMergedTrack(parts, parts[0].CloneAsInstrumentDifficulty()),
+                        parts, _chart.SyncTrack, vocalParameters, profile.IsBot,
+                        micCount: vocalParameters.PartyVocalsMicCount);
                 }
                 case GameMode.Vocals:
                 {

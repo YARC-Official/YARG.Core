@@ -1,4 +1,5 @@
-﻿using System.IO;
+﻿using System;
+using System.IO;
 using YARG.Core.Extensions;
 using YARG.Core.IO;
 
@@ -40,9 +41,14 @@ namespace YARG.Core.Engine.Vocals
         /// </summary>
         public readonly int PointsPerPhrase;
 
+        public const int MAX_PARTY_MIC_COUNT = 7;
+        public readonly int PartyVocalsMicCount;
+        public readonly Instrument PartyVocalsChartSource;
+
         public VocalsEngineParameters(HitWindowSettings hitWindow, int maxMultiplier, float[] starMultiplierThresholds, float[] soloBonusStarMultiplierThresholds,
             float pitchWindow, float pitchWindowPerfect, double phraseHitPercent, double approximateVocalFps,
-            bool singToActivateStarPower, int pointsPerPhrase)
+            bool singToActivateStarPower, int pointsPerPhrase, int partyVocalsMicCount = 1,
+            Instrument partyVocalsChartSource = Instrument.Harmony)
             : base(hitWindow, maxMultiplier, 0, 0, starMultiplierThresholds, soloBonusStarMultiplierThresholds, enableLanes: false)
         {
             PitchWindow = pitchWindow;
@@ -51,6 +57,9 @@ namespace YARG.Core.Engine.Vocals
             ApproximateVocalFps = approximateVocalFps;
             SingToActivateStarPower = singToActivateStarPower;
             PointsPerPhrase = pointsPerPhrase;
+            ValidatePartySession(partyVocalsMicCount, partyVocalsChartSource);
+            PartyVocalsMicCount = partyVocalsMicCount;
+            PartyVocalsChartSource = partyVocalsChartSource;
         }
 
         public VocalsEngineParameters(ref FixedArrayStream stream, int version)
@@ -62,6 +71,17 @@ namespace YARG.Core.Engine.Vocals
             ApproximateVocalFps = stream.Read<double>(Endianness.Little);
             SingToActivateStarPower = stream.ReadBoolean();
             PointsPerPhrase = stream.Read<int>(Endianness.Little);
+            PartyVocalsMicCount = version >= 20 ? stream.ReadByte() : 1;
+            PartyVocalsChartSource = version >= 20 ? (Instrument) stream.ReadByte() : Instrument.Harmony;
+            ValidatePartySession(PartyVocalsMicCount, PartyVocalsChartSource);
+        }
+
+        private static void ValidatePartySession(int count, Instrument source)
+        {
+            if (count < 1 || count > MAX_PARTY_MIC_COUNT)
+                throw new ArgumentOutOfRangeException(nameof(count));
+            if (source != Instrument.Vocals && source != Instrument.Harmony)
+                throw new ArgumentOutOfRangeException(nameof(source));
         }
 
         public override void Serialize(BinaryWriter writer)
@@ -74,6 +94,8 @@ namespace YARG.Core.Engine.Vocals
             writer.Write(ApproximateVocalFps);
             writer.Write(SingToActivateStarPower);
             writer.Write(PointsPerPhrase);
+            writer.Write((byte) PartyVocalsMicCount);
+            writer.Write((byte) PartyVocalsChartSource);
         }
     }
 }

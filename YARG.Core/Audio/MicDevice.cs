@@ -69,6 +69,8 @@ namespace YARG.Core.Audio
 
         private bool _disposed;
 
+        public virtual bool IsConnected => !_disposed;
+
         public readonly string DisplayName;
         public bool IsMonitoring;
         public bool IsRecordingOutput;
