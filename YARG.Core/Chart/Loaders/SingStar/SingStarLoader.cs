@@ -18,21 +18,38 @@ namespace YARG.Core.Chart.Loaders.SingStar
 
         public string? GetMetadata(string key) => _metadata.GetValueOrDefault(key);
 
+        /// <summary>Whether the chart contains at least one pitched note.</summary>
+        internal bool HasNotes => _partNotes.Values.Any(notes => notes.Any(note => !note.IsRest));
+
         #region SingStarNote
 
         private class SingStarNote
         {
             public int PartIndex { get; set; }
             public int MidiNote { get; set; } // Absolute MIDI pitch; 0 = rest/silence
-            public uint StartUnit { get; set; } // Cumulative position in 1/8-note units
-            public uint Duration { get; set; } // Length in 1/8-note units
+            public uint StartUnit { get; set; } // Cumulative position in chart units
+            public uint Duration { get; set; } // Length in chart units
             public string Lyric { get; set; } = string.Empty;
             public bool IsBonus { get; set; } // Bonus="Yes" -> power star
             public bool IsSentenceStart { get; set; }
             public bool IsFreeStyle { get; set; }
 
-            // A rest is a note with MidiNote == 0 AND no lyric text.
-            public bool IsRest => MidiNote == SINGSTAR_REST_NOTE && string.IsNullOrEmpty(Lyric);
+            /// <summary>
+            ///     "word -": glue this syllable onto the next one with no space
+            ///     (LyricSymbolFlags.JoinWithNext downstream).
+            /// </summary>
+            public bool JoinWithNext { get; set; }
+
+            /// <summary>
+            ///     A bare "-": this note holds the previous syllable, so its pitch slides on
+            ///     from the note before it (LyricSymbols.PITCH_SLIDE_SYMBOL downstream).
+            /// </summary>
+            public bool IsSlide { get; set; }
+
+            // A rest is a note with MidiNote == 0 AND no lyric text. A freestyle note is
+            // unpitched, not a rest, even when it has no syllable.
+            public bool IsRest => !IsFreeStyle && !IsSlide &&
+                MidiNote == SINGSTAR_REST_NOTE && string.IsNullOrEmpty(Lyric);
             public bool IsGolden => IsBonus;
         }
 
@@ -41,7 +58,12 @@ namespace YARG.Core.Chart.Loaders.SingStar
         #region Constants
 
         private const int SINGSTAR_REST_NOTE = 0;
-        private const uint SINGSTAR_UNITS_PER_BEAT = 8;
+
+        // A chart's Resolution states what fraction of a beat one Duration unit
+        // is: Demisemiquaver (1/32 note) is 8 units per beat and Semiquaver
+        // (1/16 note) is 4. Files without the attribute are treated as
+        // Demisemiquaver, by far the most common value.
+        private const uint DEFAULT_UNITS_PER_BEAT = 8;
 
         #endregion
 
@@ -49,6 +71,7 @@ namespace YARG.Core.Chart.Loaders.SingStar
 
         private readonly Dictionary<string, string> _metadata = new(StringComparer.OrdinalIgnoreCase);
         private uint _ticksPerBeat = 120;
+        private uint _unitsPerBeat = DEFAULT_UNITS_PER_BEAT;
         private double _bpm = 120.0;
 
         private List<TextEvent>? _globalEvents;
@@ -58,13 +81,14 @@ namespace YARG.Core.Chart.Loaders.SingStar
         private LyricsTrack? _lyricsTrack;
 
         private uint _barMarkerDelay;
+        private bool _barMarkerDelaySet;
         private int  _formatVersion   = 2;
         private int  _v1CurrentSinger = 0;
         private bool _v1LastWasGroup  = false;
-        private bool _readerAdvanced  = false;
 
         private readonly uint[] _cumulativeUnits = new uint[2];
         private string? _currentPartName;
+        private List<(string Name, uint StartUnit)>? _pendingSections;
 
         // Key 0 = Player1, Key 1 = Player2
         private readonly Dictionary<int, List<SingStarNote>> _partNotes = new()
@@ -249,6 +273,21 @@ namespace YARG.Core.Chart.Loaders.SingStar
             if (res != null)
             {
                 _metadata["RESOLUTION"] = res;
+
+                if (res.Equals("Semiquaver", StringComparison.OrdinalIgnoreCase))
+                {
+                    _unitsPerBeat = 4;
+                }
+                else if (res.Equals("Demisemiquaver", StringComparison.OrdinalIgnoreCase))
+                {
+                    _unitsPerBeat = DEFAULT_UNITS_PER_BEAT;
+                }
+                else
+                {
+                    YargLogger.LogFormatWarning(
+                        "[SingStar] Unknown tempo resolution '{0}', assuming Demisemiquaver", res);
+                    _unitsPerBeat = DEFAULT_UNITS_PER_BEAT;
+                }
             }
         }
 
@@ -287,7 +326,7 @@ namespace YARG.Core.Chart.Loaders.SingStar
                 _partNotes[partIndex] = new List<SingStarNote>();
             }
 
-            uint cumulativeUnits = 0; // Running position in 1/8-note units
+            uint cumulativeUnits = 0; // Running position in chart units
 
             // Read through the TRACK subtree
             using var subtree = reader.ReadSubtree();
@@ -314,40 +353,39 @@ namespace YARG.Core.Chart.Loaders.SingStar
         {
             if (!string.IsNullOrEmpty(partName) && partName != _currentPartName)
             {
-                _sections ??= new List<Section>();
-                _sections.Add(new Section(partName, UnitsToTime(cumulativeUnits), UnitsToTick(cumulativeUnits)));
+                // Deferred: the Bar Marker delay may be declared by a LABEL in this
+                // very sentence, and section times depend on it.
+                _pendingSections ??= new List<(string Name, uint StartUnit)>();
+                _pendingSections.Add((partName, cumulativeUnits));
                 _currentPartName = partName;
             }
 
             int sentenceStartIndex = _partNotes[partIndex].Count;
 
             using var subtree = reader.ReadSubtree();
-            bool inMelismaContinuation = false;
             bool firstNote = true;
 
             while (subtree.Read())
             {
-                if (subtree.NodeType != XmlNodeType.Element || subtree.Name != "NOTE")
+                if (subtree.NodeType != XmlNodeType.Element)
                 {
                     continue;
                 }
 
                 if (subtree.Name == "LABEL")
                 {
-                    string? labelName = subtree.GetAttribute("Name");
-                    string? delayStr = subtree.GetAttribute("Delay");
-                    if ("Bar Marker".Equals(labelName, StringComparison.OrdinalIgnoreCase)
-                        && delayStr != null
-                        && uint.TryParse(delayStr, out uint delay)
-                        && _barMarkerDelay == 0)
-                    {
-                        _barMarkerDelay = delay;
-                    }
+                    ParseLabel(subtree);
+                    continue;
+                }
+
+                if (subtree.Name != "NOTE")
+                {
+                    continue;
                 }
 
                 string? midiStr = subtree.GetAttribute("MidiNote");
                 string? durStr = subtree.GetAttribute("Duration");
-                string? lyric = subtree.GetAttribute("Lyric") ?? string.Empty;
+                string lyric = subtree.GetAttribute("Lyric") ?? string.Empty;
                 string? bonus = subtree.GetAttribute("Bonus");
                 string? freestyle = subtree.GetAttribute("FreeStyle");
                 var isFreestyle = freestyle != null && freestyle.Equals("Yes", StringComparison.OrdinalIgnoreCase);
@@ -363,21 +401,18 @@ namespace YARG.Core.Chart.Loaders.SingStar
                     continue;
                 }
 
-                bool isRest = midiNote == SINGSTAR_REST_NOTE;
+                bool isRest = midiNote == SINGSTAR_REST_NOTE && !isFreestyle;
+                bool joinWithNext = false;
+                bool isSlide = false;
 
-                if (!isRest && !isFreestyle)
+                if (isRest)
                 {
-                    lyric = ProcessLyricForMelisma(lyric, ref inMelismaContinuation);
+                    // A pause; words cannot continue through it.
+                    lyric = string.Empty;
                 }
                 else
                 {
-                    inMelismaContinuation = false;
-                }
-
-                if (isFreestyle)
-                {
-                    // Non-Pitched Symbol
-                    lyric = FormatLyric(lyric) + "#";
+                    lyric = ClassifyLyric(lyric, isFreestyle, out joinWithNext, out isSlide);
                 }
 
                 _partNotes[partIndex].Add(new SingStarNote
@@ -389,7 +424,9 @@ namespace YARG.Core.Chart.Loaders.SingStar
                     Lyric = lyric,
                     IsBonus = bonus != null && bonus.Equals("Yes", StringComparison.OrdinalIgnoreCase),
                     IsSentenceStart = firstNote,
-                    IsFreeStyle = isFreestyle
+                    IsFreeStyle = isFreestyle,
+                    JoinWithNext = joinWithNext,
+                    IsSlide = isSlide,
                 });
 
                 firstNote = false;
@@ -397,27 +434,155 @@ namespace YARG.Core.Chart.Loaders.SingStar
                 cumulativeUnits += duration;
             }
 
-            PostProcessMelismaMarkers(_partNotes[partIndex], sentenceStartIndex);
+            // Markers can only be resolved once the whole sentence is known: a slide needs
+            // a previous note, and a join needs a following syllable.
+            ResolveSentenceLyrics(_partNotes[partIndex], sentenceStartIndex);
+        }
+
+        /// <summary>
+        ///     Translates a SingStar lyric attribute into YARG's lyric model. SingStar marks
+        ///     syllable boundaries as suffixes on the syllable text:
+        ///     <list type="bullet">
+        ///         <item><c>"word -"</c>: the next syllable continues this word.</item>
+        ///         <item><c>"-"</c> alone: a held note, i.e. the pitch slides on from the previous note.</item>
+        ///         <item><c>"word-"</c>: a literal hyphen in the displayed word.</item>
+        ///     </list>
+        /// </summary>
+        private static string ClassifyLyric(string raw, bool isFreestyle, out bool joinWithNext, out bool isSlide)
+        {
+            joinWithNext = false;
+            isSlide = false;
+
+            string lyric = raw.Trim();
+            if (lyric.Length == 0)
+            {
+                return string.Empty;
+            }
+
+            // A bare hyphen is SingStar's melisma marker, not a syllable of its own.
+            if (lyric == "-")
+            {
+                // An unpitched note has no pitch to slide, so it keeps no syllable either.
+                isSlide = !isFreestyle;
+                return string.Empty;
+            }
+
+            // "word -" glues the next syllable onto this one, displaying a hyphen.
+            if (lyric.EndsWith(" -", StringComparison.Ordinal))
+            {
+                joinWithNext = true;
+                lyric = lyric[..^2].TrimEnd();
+            }
+            // An attached hyphen is part of the displayed word and also continues the word.
+            else if (lyric.Length > 1 && lyric[^1] == LyricSymbols.LYRIC_JOIN_SYMBOL)
+            {
+                joinWithNext = true;
+            }
+
+            return EscapeSlideMarker(lyric);
+        }
+
+        /// <summary>
+        ///     '+' is an ordinary character in SingStar lyrics but YARG's pitch-slide marker.
+        ///     Spell it with the fullwidth variant so it cannot merge two notes.
+        /// </summary>
+        private static string EscapeSlideMarker(string lyric)
+            => lyric.Replace(LyricSymbols.PITCH_SLIDE_SYMBOL, '＋');
+
+        /// <summary>
+        ///     Validates the markers classified for one SENTENCE. A pitch slide needs a
+        ///     previous pitched note in the same sentence to attach to, and a word join on
+        ///     the sentence's final syllable has nothing left to join.
+        /// </summary>
+        private static void ResolveSentenceLyrics(List<SingStarNote> notes, int fromIndex)
+        {
+            int lastSyllableIndex = -1;
+
+            for (int i = fromIndex; i < notes.Count; i++)
+            {
+                var note = notes[i];
+                if (note.IsRest)
+                {
+                    continue;
+                }
+
+                if (note.IsSlide)
+                {
+                    if (FindPreviousPitchedNote(notes, fromIndex, i) is null)
+                    {
+                        note.IsSlide = false;
+                    }
+                    continue;
+                }
+
+                if (!string.IsNullOrWhiteSpace(note.Lyric))
+                {
+                    lastSyllableIndex = i;
+                }
+            }
+
+            if (lastSyllableIndex >= 0)
+            {
+                notes[lastSyllableIndex].JoinWithNext = false;
+            }
+        }
+
+        private static SingStarNote? FindPreviousPitchedNote(List<SingStarNote> notes, int fromIndex, int index)
+        {
+            for (int i = index - 1; i >= fromIndex; i--)
+            {
+                var note = notes[i];
+                if (note.IsRest)
+                {
+                    continue;
+                }
+
+                // A freestyle note has no pitch, so nothing can slide onto it or out of it.
+                return note.IsFreeStyle ? null : note;
+            }
+
+            return null;
+        }
+
+        /// <summary>
+        ///     Parses a LABEL element. The "Bar Marker" label's Delay is the number of
+        ///     chart units between the start of the chart and the first bar line.
+        /// </summary>
+        private void ParseLabel(XmlReader reader)
+        {
+            if (_barMarkerDelaySet ||
+                !"Bar Marker".Equals(reader.GetAttribute("Name"), StringComparison.OrdinalIgnoreCase))
+            {
+                return;
+            }
+
+            string? delayStr = reader.GetAttribute("Delay");
+            if (delayStr != null && uint.TryParse(delayStr, out uint delay))
+            {
+                _barMarkerDelay = delay;
+                _barMarkerDelaySet = true;
+            }
         }
 
         #endregion
 
         #region Time Conversion
 
-        // SingStar Resolution="Demisemiquaver" means 1 unit = 1/8 of a beat.
-        // To convert units to beats:  beats = units / 8
+        // A chart's Resolution defines how many units make up one beat. Durations
+        // and positions are otherwise plain unit counts relative to the Bar Marker.
+        // To convert units to beats:  beats = units / _unitsPerBeat
         // To convert beats to ticks:  ticks = beats * _ticksPerBeat
         // To convert beats to seconds: seconds = beats * 60.0 / _bpm
 
         private double UnitsToTime(uint units) =>
-            (units - (double) _barMarkerDelay) / SINGSTAR_UNITS_PER_BEAT * (60.0 / _bpm);
+            (units - (double) _barMarkerDelay) / _unitsPerBeat * (60.0 / _bpm);
 
         private double UnitsDurationToSeconds(uint durationUnits) =>
-            durationUnits / (double) SINGSTAR_UNITS_PER_BEAT * (60.0 / _bpm);
+            durationUnits / (double) _unitsPerBeat * (60.0 / _bpm);
 
         private uint UnitsToTick(uint units)
         {
-            double beats = (units - (double) _barMarkerDelay) / SINGSTAR_UNITS_PER_BEAT;
+            double beats = (units - (double) _barMarkerDelay) / _unitsPerBeat;
             return beats >= 0 ? (uint) (beats * _ticksPerBeat) : 0u;
         }
 
@@ -426,7 +591,26 @@ namespace YARG.Core.Chart.Loaders.SingStar
         #region Loading
 
         public List<TextEvent> LoadGlobalEvents() => _globalEvents ??= new List<TextEvent>();
-        public List<Section> LoadSections() => _sections ??= new List<Section>();
+
+        public List<Section> LoadSections()
+        {
+            if (_sections != null)
+            {
+                return _sections;
+            }
+
+            _sections = new List<Section>();
+            if (_pendingSections != null)
+            {
+                foreach (var (name, startUnit) in _pendingSections)
+                {
+                    _sections.Add(new Section(name, UnitsToTime(startUnit), UnitsToTick(startUnit)));
+                }
+            }
+
+            return _sections;
+        }
+
         public VenueTrack LoadVenueTrack() => _venueTrack ??= new VenueTrack();
 
         public InstrumentTrack<GuitarNote> LoadGuitarTrack(Instrument i) => throw new NotSupportedException();
@@ -445,16 +629,17 @@ namespace YARG.Core.Chart.Loaders.SingStar
                 return _syncTrack;
             }
 
-            double delaySeconds = _barMarkerDelay / (double) SINGSTAR_UNITS_PER_BEAT * (60.0 / _bpm);
-
-            _syncTrack = new SyncTrack(120,
+            // Note ticks already have the Bar Marker delay subtracted, so tick 0
+            // maps to time 0. The tempo map must agree with that or tick-based and
+            // time-based note positions would disagree.
+            _syncTrack = new SyncTrack(_ticksPerBeat,
                 new List<TempoChange>
                 {
-                    new(_bpm, -delaySeconds, 0u),
+                    new(_bpm, 0.0, 0u),
                 },
                 new List<TimeSignatureChange>
                 {
-                    new(4, 4, -delaySeconds, 0u, 0u, 0u, 0u, 0.0),
+                    new(4, 4, 0.0, 0u, 0u, 0u, 0u, 0.0),
                 },
                 new List<Beatline>());
 
@@ -486,16 +671,24 @@ namespace YARG.Core.Chart.Loaders.SingStar
                 var events = new List<LyricEvent>();
                 foreach (var n in group)
                 {
-                    if (n.IsRest || string.IsNullOrWhiteSpace(n.Lyric))
+                    if (n.IsRest ||
+                        !TryCreateLyricEvent(n, UnitsToTime(n.StartUnit), UnitsToTick(n.StartUnit), out var rawEvent))
                     {
                         continue;
                     }
 
-                    events.Add(new LyricEvent(
-                        LyricSymbolFlags.None,
-                        FormatLyric(n.Lyric),
-                        UnitsToTime(n.StartUnit),
-                        UnitsToTick(n.StartUnit)));
+                    // The lyrics track displays plain text; the flags preserve the meaning of
+                    // the stripped markers. Empty events (a slide with no syllable) still
+                    // carry their flags, matching how MoonSong's lyric converter handles them.
+                    var flags = LyricSymbols.GetLyricFlags(rawEvent.Text);
+                    string text = LyricSymbols.StripForLyrics(rawEvent.Text);
+                    if (string.IsNullOrWhiteSpace(text))
+                    {
+                        flags |= LyricSymbolFlags.JoinWithNext;
+                        text = string.Empty;
+                    }
+
+                    events.Add(new LyricEvent(flags, text, rawEvent.Time, rawEvent.Tick));
                 }
 
                 if (events.Count > 0)
@@ -578,7 +771,7 @@ namespace YARG.Core.Chart.Loaders.SingStar
 
             otherPhrases = otherPhrases.OrderBy(p => p.Tick).ToList();
 
-            return new VocalsPart(isHarmony, phrases, new List<VocalsPhrase>(), otherPhrases, textEvents);
+            return new VocalsPart(isHarmony, phrases, new List<VocalsPhrase>(), new List<VocalsPhrase>(), otherPhrases, textEvents);
         }
 
         /// <summary>
@@ -587,13 +780,13 @@ namespace YARG.Core.Chart.Loaders.SingStar
         /// </summary>
         private List<List<SingStarNote>> GroupNotesIntoPhrases(List<SingStarNote> notes)
         {
-            const uint REST_GAP_THRESHOLD = SINGSTAR_UNITS_PER_BEAT * 2;
+            uint restGapThreshold = _unitsPerBeat * 2;
             var groups = new List<List<SingStarNote>>();
             var currentGroup = new List<SingStarNote>();
 
             foreach (var note in notes.OrderBy(n => n.StartUnit))
             {
-                var isLongRest = note.IsRest && note.Duration >= REST_GAP_THRESHOLD;
+                var isLongRest = note.IsRest && note.Duration >= restGapThreshold;
                 if (note.IsSentenceStart || isLongRest)
                 {
                     if (currentGroup.Count > 0)
@@ -648,14 +841,16 @@ namespace YARG.Core.Chart.Loaders.SingStar
                 double noteTime = UnitsToTime(sNote.StartUnit);
                 double noteTimeLen = UnitsDurationToSeconds(sNote.Duration);
 
-                // SingStar pitch is already absolute MIDI - no conversion needed.
-                // Clamp to valid range just in case.
-                float midiPitch = Math.Clamp(sNote.MidiNote, 0, 127);
-
                 if (sNote.IsRest)
                 {
                     continue;
                 }
+
+                // SingStar pitch is already absolute MIDI - no conversion needed. Freestyle
+                // notes are unpitched; -1 is the sentinel (see VocalNote.IsNonPitched).
+                float midiPitch = sNote.IsFreeStyle
+                    ? -1f
+                    : Math.Clamp(sNote.MidiNote, 0, 127);
 
                 var childNote = new VocalNote(
                     midiPitch,
@@ -668,13 +863,9 @@ namespace YARG.Core.Chart.Loaders.SingStar
 
                 parentNote.AddChildNote(childNote);
 
-                if (!string.IsNullOrWhiteSpace(sNote.Lyric))
+                if (TryCreateLyricEvent(sNote, noteTime, noteTick, out var lyricEvent))
                 {
-                    lyrics.Add(new LyricEvent(
-                        LyricSymbolFlags.None,
-                        FormatLyric(sNote.Lyric),
-                        noteTime,
-                        noteTick));
+                    lyrics.Add(lyricEvent);
                 }
             }
 
@@ -695,153 +886,52 @@ namespace YARG.Core.Chart.Loaders.SingStar
         #region Utilities
 
         /// <summary>
-        ///     Trims lyric text
+        ///     Builds the lyric event for a note, encoding YARG's modifier symbols the same way
+        ///     the UltraStar loader does: '-' joins the next syllable, '+' slides onto the
+        ///     previous note, and '#' marks the note as non-pitched. Slide and unpitched notes
+        ///     emit an event even without a syllable so those markers are not lost.
         /// </summary>
-        private static string FormatLyric(string raw)
+        private static bool TryCreateLyricEvent(SingStarNote note, double time, uint tick, out LyricEvent lyricEvent)
         {
-            raw = raw.Trim();
-            if (raw.EndsWith(" -", StringComparison.Ordinal))
-            {
-                raw = raw[..^2].TrimEnd() + "-";
-            }
-            return raw;
-        }
+            lyricEvent = default!;
 
-        private static bool EndsWithSlideMarker(string lyric)
-        {
-            if (string.IsNullOrWhiteSpace(lyric))
+            if (string.IsNullOrWhiteSpace(note.Lyric) && !note.IsSlide && !note.IsFreeStyle)
             {
                 return false;
             }
 
-            lyric = lyric.TrimEnd();
+            string lyric = note.Lyric.Trim();
+            var flags = LyricSymbolFlags.None;
 
-            return lyric.EndsWith(" -", StringComparison.Ordinal) ||
-                (lyric.EndsWith("-", StringComparison.Ordinal) && lyric.Length == 1);
-        }
+            // Checked before the markers below hide it: a source hyphen already lives in the
+            // text, and appending the join marker onto it would render it doubled ("feed--").
+            string withoutSlideMarkers = lyric.TrimEnd(LyricSymbols.PITCH_SLIDE_SYMBOL);
+            bool alreadyHyphenated = withoutSlideMarkers.Length > 0 &&
+                withoutSlideMarkers[^1] == LyricSymbols.LYRIC_JOIN_SYMBOL;
 
-        private static string RemoveSlideMarker(string lyric)
-        {
-            if (string.IsNullOrWhiteSpace(lyric))
+            if (note.IsSlide)
             {
-                return string.Empty;
+                lyric += LyricSymbols.PITCH_SLIDE_SYMBOL;
             }
 
-            lyric = lyric.TrimEnd();
-
-            if (lyric.EndsWith(" -", StringComparison.Ordinal))
+            if (note.IsFreeStyle)
             {
-                return lyric.Substring(0, lyric.Length - 2).TrimEnd() + "-";
+                lyric += LyricSymbols.NONPITCHED_SYMBOL;
+                flags |= LyricSymbolFlags.NonPitched;
             }
 
-            if (lyric == "-")
+            if (note.JoinWithNext)
             {
-                return "";
-            }
-
-            return lyric;
-        }
-
-        private static string ProcessLyricForMelisma(string lyric, ref bool inMelismaContinuation)
-        {
-            lyric ??= string.Empty;
-            string trimmed = lyric.Trim();
-
-            bool isStandaloneDash = trimmed == "-";
-            bool endsWithSlideMarker = EndsWithSlideMarker(trimmed);
-
-            // Case 1:
-            // We are already in continuation mode
-            if (inMelismaContinuation)
-            {
-                // "-" means another continuation note => "+"
-                if (isStandaloneDash)
+                if (!alreadyHyphenated)
                 {
-                    return "+";
+                    lyric += LyricSymbols.LYRIC_JOIN_SYMBOL;
                 }
 
-                // Normal lyric while continuing => "word+"
-                // If it also ends with "-" then continuation remains active
-                if (endsWithSlideMarker)
-                {
-                    string baseLyric = RemoveSlideMarker(trimmed);
-                    return string.IsNullOrEmpty(baseLyric) ? "+" : baseLyric + "+";
-                }
-
-                // Normal lyric closes the continuation
-                inMelismaContinuation = false;
-                return string.IsNullOrEmpty(trimmed) ? "+" : trimmed + "+";
+                flags |= LyricSymbolFlags.JoinWithNext;
             }
 
-            // Case 2:
-            // Not in continuation mode yet
-
-            // "word -" starts continuation
-            if (endsWithSlideMarker && !isStandaloneDash)
-            {
-                inMelismaContinuation = true;
-                return RemoveSlideMarker(trimmed);
-            }
-
-            // Standalone "-" without active continuation
-            // safest behavior: treat as "+"
-            if (isStandaloneDash)
-            {
-                return "+";
-            }
-
-            return trimmed;
-        }
-
-        /// <summary>
-        ///     Removes dangling melisma dash markers that have no valid continuation.
-        ///     After <see cref="ProcessLyricForMelisma"/> runs, a note may end with "-"
-        ///     or "-+" if it opened a melisma chain. If the next non-rest note in the
-        ///     sentence has an empty lyric or is already "+" (i.e. nothing real to
-        ///     connect to), the "-" is stripped while preserving any trailing "+".
-        ///     Examples:
-        ///     <list type="bullet">
-        ///         <item>"lone-+" → "lone+" when next lyric is empty</item>
-        ///         <item>"a-"    → "a"    when there is no next note</item>
-        ///     </list>
-        /// </summary>
-        private static void PostProcessMelismaMarkers(List<SingStarNote> notes, int fromIndex)
-        {
-            // fromIndex = index of the first note added in this sentence
-            int count = notes.Count;
-            for (int i = fromIndex; i < count; i++)
-            {
-                var note = notes[i];
-                if (note.IsRest || string.IsNullOrWhiteSpace(note.Lyric))
-                    continue;
-
-                bool endsWithDashPlus = note.Lyric.EndsWith("-+", StringComparison.Ordinal);
-                bool endsWithDash = !endsWithDashPlus && note.Lyric.EndsWith("-", StringComparison.Ordinal);
-
-                if (!endsWithDashPlus && !endsWithDash)
-                    continue;
-
-                // Find the next non rest note in this sentence
-                SingStarNote? next = null;
-                for (int j = i + 1; j < count; j++)
-                {
-                    if (!notes[j].IsRest)
-                    {
-                        next = notes[j];
-                        break;
-                    }
-                }
-
-                bool nextIsEmpty = next == null
-                    || string.IsNullOrWhiteSpace(next.Lyric)
-                    || next.Lyric.Trim() == "+";
-
-                if (!nextIsEmpty)
-                    continue;
-
-                int dashIndex = note.Lyric.Length - (endsWithDashPlus ? 2 : 1);
-                note.Lyric = note.Lyric.Remove(dashIndex, 1).TrimEnd();
-            }
+            lyricEvent = new LyricEvent(flags, lyric, time, tick);
+            return true;
         }
 
         public void DumpToLog()

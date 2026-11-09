@@ -123,6 +123,70 @@ internal class SingStarLoaderTests_Basic : SingStarLoaderTests
     }
 
     [Test]
+    public void SemiquaverResolutionHalvesUnitDuration()
+    {
+        var loader = LoadSingStar(Ss(
+            "<MELODY Version=\"1\" Tempo=\"120\" Resolution=\"Semiquaver\">",
+            "<SENTENCE>",
+            "<NOTE MidiNote=\"60\" Duration=\"4\" Lyric=\"Test\"/>",
+            "</SENTENCE>",
+            "</MELODY>"
+        ));
+
+        var note = loader.LoadVocalsTrack(Instrument.Vocals)
+            .Parts[0].NotePhrases[0].PhraseParentNote.ChildNotes[0];
+
+        // 4 units at 4 units per beat is one beat: 120 ticks, 0.5 seconds at 120 BPM.
+        Assert.That(note.TickLength, Is.EqualTo(120u));
+        Assert.That(note.TimeLength, Is.EqualTo(0.5).Within(1e-6));
+    }
+
+    [Test]
+    public void BarMarkerDelayAlignsFirstNoteToSongStart()
+    {
+        var loader = LoadSingStar(Ss(
+            "<MELODY Version=\"1\" Tempo=\"120\">",
+            "<SENTENCE>",
+            "<LABEL Name=\"Bar Marker\" Delay=\"32\"/>",
+            "<NOTE MidiNote=\"0\" Duration=\"32\" Lyric=\"\"/>",
+            "<NOTE MidiNote=\"60\" Duration=\"8\" Lyric=\"Start\"/>",
+            "<NOTE MidiNote=\"62\" Duration=\"8\" Lyric=\"Later\"/>",
+            "</SENTENCE>",
+            "</MELODY>"
+        ));
+
+        var notes = loader.LoadVocalsTrack(Instrument.Vocals)
+            .Parts[0].NotePhrases[0].PhraseParentNote.ChildNotes;
+
+        // The 32-unit opening rest is the Bar Marker delay, so the first pitch lands
+        // at song start and the next one a beat later.
+        Assert.That(notes, Has.Count.EqualTo(2));
+        Assert.That(notes[0].Tick, Is.EqualTo(0u));
+        Assert.That(notes[0].Time, Is.EqualTo(0.0).Within(1e-6));
+        Assert.That(notes[1].Tick, Is.EqualTo(120u));
+        Assert.That(notes[1].Time, Is.EqualTo(0.5).Within(1e-6));
+    }
+
+    [Test]
+    public void BarMarkerDelayAppliesToFinalChart()
+    {
+        var chart = LoadSingStarChart(Ss(
+            "<MELODY Version=\"1\" Tempo=\"120\">",
+            "<SENTENCE>",
+            "<LABEL Name=\"Bar Marker\" Delay=\"32\"/>",
+            "<NOTE MidiNote=\"0\" Duration=\"32\" Lyric=\"\"/>",
+            "<NOTE MidiNote=\"60\" Duration=\"8\" Lyric=\"Start\"/>",
+            "</SENTENCE>",
+            "</MELODY>"
+        ));
+
+        var note = chart.Vocals.Parts[0].NotePhrases[0].PhraseParentNote.ChildNotes[0];
+
+        Assert.That(note.Tick, Is.EqualTo(0u));
+        Assert.That(note.Time, Is.EqualTo(0.0).Within(1e-6));
+    }
+
+    [Test]
     public void ParseNotes()
     {
         var loader = LoadSingStar(Ss(

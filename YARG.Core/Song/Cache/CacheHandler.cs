@@ -822,7 +822,19 @@ namespace YARG.Core.Song.Cache
             foreach (var (filename, format) in IniSubEntry.CHART_FILE_TYPES)
             {
                 // UltraStar charts have no fixed name and are handled separately.
-                if (format == ChartFormat.UltraStar || !collection.FindFile(filename, out var chart))
+                if (format == ChartFormat.UltraStar)
+                {
+                    continue;
+                }
+
+                // A song.ini marks an FoF/RB-style folder. SingStar folders are an
+                // exception: their charts use fixed names but commonly ship without one.
+                if (!hasIni && format != ChartFormat.SingStar)
+                {
+                    continue;
+                }
+
+                if (!collection.FindFile(filename, out var chart))
                 {
                     continue;
                 }

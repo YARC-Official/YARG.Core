@@ -98,6 +98,34 @@ internal class SingStarLoaderTests_Sections : SingStarLoaderTests
     }
 
     [Test]
+    public void BarMarkerDelayAppliesToSectionTiming()
+    {
+        var loader = LoadSingStar(Ss(
+            "<MELODY Version=\"1\" Tempo=\"120\">",
+            "<SENTENCE Part=\"Verse\">",
+            "<LABEL Name=\"Bar Marker\" Delay=\"32\"/>",
+            "<NOTE MidiNote=\"0\" Duration=\"32\" Lyric=\"\"/>",
+            "<NOTE MidiNote=\"60\" Duration=\"8\" Lyric=\"Hello\"/>",
+            "</SENTENCE>",
+            "<SENTENCE Part=\"Chorus\">",
+            "<NOTE MidiNote=\"62\" Duration=\"8\" Lyric=\"Chorus\"/>",
+            "</SENTENCE>",
+            "</MELODY>"
+        ));
+
+        var sections = loader.LoadSections();
+
+        // The Part is declared before its sentence's Bar Marker is parsed, so the section
+        // must be deferred until the delay is known.
+        Assert.That(sections, Has.Count.EqualTo(2));
+        Assert.That(sections[0].Name, Is.EqualTo("Verse"));
+        Assert.That(sections[0].Tick, Is.EqualTo(0u));
+        Assert.That(sections[1].Name, Is.EqualTo("Chorus"));
+        Assert.That(sections[1].Tick, Is.EqualTo(120u));
+        Assert.That(sections[1].Time, Is.EqualTo(0.5).Within(1e-6));
+    }
+
+    [Test]
     public void DuetPartsCreateSections()
     {
         var loader = LoadSingStar(Ss(

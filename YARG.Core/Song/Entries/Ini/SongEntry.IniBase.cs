@@ -785,6 +785,11 @@ namespace YARG.Core.Song
                 entry._metadata.Name = title;
             }
 
+            if (!loader.HasNotes)
+            {
+                return ScanResult.NoNotes;
+            }
+
             if (string.IsNullOrWhiteSpace(entry._metadata.Artist) ||
                 entry._metadata.Artist == SongMetadata.DEFAULT_ARTIST)
             {
