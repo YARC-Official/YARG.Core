@@ -9,7 +9,6 @@ namespace YARG.Core.Song
     internal sealed class UnpackedRBCONEntry : UnpackedConsolePackageEntry
     {
         protected override YARGImage DXTImageLoader(string path) => YARGImage.LoadDXT(path);
-        protected override string MidiFileExtension => ".mid";
 
         private UnpackedRBCONEntry(in AbridgedFileInfo root, string nodeName)
             : base(in root, nodeName) {}
@@ -64,6 +63,7 @@ namespace YARG.Core.Song
                     return new ScanUnexpected(result);
                 }
                 entry._midiLastWrite = AbridgedFileInfo.NormalizedLastWrite(midiInfo);
+                entry._lastModifiedTime = midiInfo.LastWriteTime;
                 entry.SetSortStrings();
                 return entry;
             }

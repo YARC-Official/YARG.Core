@@ -250,6 +250,8 @@ namespace YARG.Core.Song
                 listings.FindListing(genPath + ".milo_xbox", out entry._miloListing);
                 listings.FindListing(genPath + "_keep.png_xbox", out entry._imgListing);
                 listings.FindListing(location.Value + ".voc", out entry._vocListing);
+                // The CON file itself contains the chart.
+                entry._lastModifiedTime = File.GetLastWriteTime(parameters.Root.FullName);
                 entry.SetSortStrings();
                 return entry;
             }
