@@ -934,39 +934,6 @@ namespace YARG.Core.Chart.Loaders.SingStar
             return true;
         }
 
-        public void DumpToLog()
-        {
-            int totalNotes = _partNotes.Values.Sum(list => list.Count);
-            YargLogger.LogDebug($"[SingStar] BPM={_bpm} TOTAL_NOTES={totalNotes}");
-
-            foreach (var kvp in _partNotes.OrderBy(k => k.Key))
-            {
-                int partIndex = kvp.Key;
-                var notes = kvp.Value;
-
-                YargLogger.LogDebug($"[SingStar] Part {partIndex + 1}: notes={notes.Count}");
-
-                var groups = GroupNotesIntoPhrases(notes);
-                YargLogger.LogDebug($"[SingStar] Part {partIndex + 1}: phrase groups={groups.Count}");
-
-                for (int gi = 0; gi < groups.Count; gi++)
-                {
-                    var g = groups[gi];
-                    YargLogger.LogDebug($"[SingStar] Part {partIndex + 1} Phrase {gi}: {g.Count} notes, " +
-                        $"units {g[0].StartUnit}–{g[^1].StartUnit + g[^1].Duration}, " +
-                        $"time {UnitsToTime(g[0].StartUnit):F3}s–{UnitsToTime(g[^1].StartUnit + g[^1].Duration):F3}s");
-
-                    foreach (var n in g)
-                    {
-                        YargLogger.LogDebug($"[SingStar] P{partIndex + 1} midi={n.MidiNote} " +
-                            $"start={n.StartUnit} dur={n.Duration} " +
-                            $"tick={UnitsToTick(n.StartUnit)} time={UnitsToTime(n.StartUnit):F3}s " +
-                            $"lyric='{n.Lyric}' golden={n.IsGolden}");
-                    }
-                }
-            }
-        }
-
         #endregion
     }
 }
