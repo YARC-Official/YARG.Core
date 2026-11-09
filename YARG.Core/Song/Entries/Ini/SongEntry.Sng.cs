@@ -346,6 +346,8 @@ namespace YARG.Core.Song
         {
             var entry = new SngEntry(sng.Version, info.FullName, AbridgedFileInfo.NormalizedLastWrite(info), format);
             entry._metadata.Playlist = defaultPlaylist;
+            // The package itself is the chart file.
+            entry._lastModifiedTime = info.LastWriteTime;
 
             using var file = sng.LoadAllBytes(in listing);
             var result = ScanChart(entry, file, sng.Modifiers);

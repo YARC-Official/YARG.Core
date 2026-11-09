@@ -426,6 +426,7 @@ namespace YARG.Core.Song
 
             var entry = new UnpackedIniEntry(directory, AbridgedFileInfo.NormalizedLastWrite(chartInfo), in iniLastWrite, format, chartInfo.Name, in ultraStar);
             entry._metadata.Playlist = defaultPlaylist;
+            entry._lastModifiedTime = chartInfo.LastWriteTime;
 
             using var ownedFile = ultraStarChart == null ? FixedArray.LoadFile(chartInfo.FullName) : null;
             var file = ultraStarChart?.Data ?? ownedFile!;
