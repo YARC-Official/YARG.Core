@@ -1,4 +1,4 @@
-using MoonscraperChartEditor.Song;
+﻿using MoonscraperChartEditor.Song;
 using YARG.Core.Chart.Loaders.SingStar;
 using YARG.Core.IO;
 
@@ -25,7 +25,7 @@ namespace YARG.Core.Chart
             const uint RESOLUTION = 120;
             var moonSong = new MoonSong(RESOLUTION);
 
-            // Sync track — SingStar has no GAP offset, tempo starts at t=0
+            // Sync track: SingStar has no GAP offset, tempo starts at t=0
             var syncTrack = loader.LoadSyncTrack();
             foreach (var t in syncTrack.Tempos)
             {

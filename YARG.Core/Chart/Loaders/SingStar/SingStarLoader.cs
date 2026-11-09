@@ -312,7 +312,7 @@ namespace YARG.Core.Chart.Loaders.SingStar
         /// <summary>
         ///     Parses a single TRACK element (Player1 or Player2).
         ///     Each TRACK contains SENTENCE elements, each of which contains NOTE elements.
-        ///     Notes carry cumulative Duration — we sum them to get absolute positions.
+        ///     Notes carry a cumulative Duration, so we sum them to get absolute positions.
         /// </summary>
         private void ParseTrack(XmlReader reader)
         {
@@ -347,7 +347,7 @@ namespace YARG.Core.Chart.Loaders.SingStar
 
         /// <summary>
         ///     Parses one SENTENCE (phrase). Each SENTENCE is a lyric line.
-        ///     Notes inside are positional — each note starts exactly where the previous one ended
+        ///     Notes inside are positional: each note starts exactly where the previous one ended
         /// </summary>
         private void ParseSentence(XmlReader reader, int partIndex, ref uint cumulativeUnits, string? partName)
         {
@@ -871,7 +871,7 @@ namespace YARG.Core.Chart.Loaders.SingStar
 
             if (parentNote.ChildNotes.Count == 0)
             {
-                YargLogger.LogWarning($"[SingStar] Phrase at tick {phraseStartTick} has 0 child notes — skipping");
+                YargLogger.LogWarning($"[SingStar] Phrase at tick {phraseStartTick} has 0 child notes; skipping");
                 return null;
             }
 

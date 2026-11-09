@@ -1,4 +1,4 @@
-using NUnit.Framework;
+﻿using NUnit.Framework;
 using YARG.Core.Audio;
 using YARG.Core.Song;
 using YARG.Core.Song.Cache;
