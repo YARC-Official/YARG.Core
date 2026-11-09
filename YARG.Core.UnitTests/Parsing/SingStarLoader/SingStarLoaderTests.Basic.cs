@@ -142,7 +142,7 @@ internal class SingStarLoaderTests_Basic : SingStarLoaderTests
     }
 
     [Test]
-    public void BarMarkerDelayAlignsFirstNoteToSongStart()
+    public void BarMarkerDelayDoesNotShiftNoteTiming()
     {
         var loader = LoadSingStar(Ss(
             "<MELODY Version=\"1\" Tempo=\"120\">",
@@ -158,17 +158,17 @@ internal class SingStarLoaderTests_Basic : SingStarLoaderTests
         var notes = loader.LoadVocalsTrack(Instrument.Vocals)
             .Parts[0].NotePhrases[0].PhraseParentNote.ChildNotes;
 
-        // The 32-unit opening rest is the Bar Marker delay, so the first pitch lands
-        // at song start and the next one a beat later.
+        // The Bar Marker delay is bar-grid metadata, not a note offset. The 32-unit
+        // opening rest keeps the first pitch two seconds into the song.
         Assert.That(notes, Has.Count.EqualTo(2));
-        Assert.That(notes[0].Tick, Is.EqualTo(0u));
-        Assert.That(notes[0].Time, Is.EqualTo(0.0).Within(1e-6));
-        Assert.That(notes[1].Tick, Is.EqualTo(120u));
-        Assert.That(notes[1].Time, Is.EqualTo(0.5).Within(1e-6));
+        Assert.That(notes[0].Tick, Is.EqualTo(480u));
+        Assert.That(notes[0].Time, Is.EqualTo(2.0).Within(1e-6));
+        Assert.That(notes[1].Tick, Is.EqualTo(600u));
+        Assert.That(notes[1].Time, Is.EqualTo(2.5).Within(1e-6));
     }
 
     [Test]
-    public void BarMarkerDelayAppliesToFinalChart()
+    public void BarMarkerDelayDoesNotShiftFinalChart()
     {
         var chart = LoadSingStarChart(Ss(
             "<MELODY Version=\"1\" Tempo=\"120\">",
@@ -182,8 +182,8 @@ internal class SingStarLoaderTests_Basic : SingStarLoaderTests
 
         var note = chart.Vocals.Parts[0].NotePhrases[0].PhraseParentNote.ChildNotes[0];
 
-        Assert.That(note.Tick, Is.EqualTo(0u));
-        Assert.That(note.Time, Is.EqualTo(0.0).Within(1e-6));
+        Assert.That(note.Tick, Is.EqualTo(480u));
+        Assert.That(note.Time, Is.EqualTo(2.0).Within(1e-6));
     }
 
     [Test]

@@ -80,15 +80,12 @@ namespace YARG.Core.Chart.Loaders.SingStar
         private VenueTrack? _venueTrack;
         private LyricsTrack? _lyricsTrack;
 
-        private uint _barMarkerDelay;
-        private bool _barMarkerDelaySet;
         private int  _formatVersion   = 2;
         private int  _v1CurrentSinger = 0;
         private bool _v1LastWasGroup  = false;
 
         private readonly uint[] _cumulativeUnits = new uint[2];
         private string? _currentPartName;
-        private List<(string Name, uint StartUnit)>? _pendingSections;
 
         // Key 0 = Player1, Key 1 = Player2
         private readonly Dictionary<int, List<SingStarNote>> _partNotes = new()
@@ -353,10 +350,8 @@ namespace YARG.Core.Chart.Loaders.SingStar
         {
             if (!string.IsNullOrEmpty(partName) && partName != _currentPartName)
             {
-                // Deferred: the Bar Marker delay may be declared by a LABEL in this
-                // very sentence, and section times depend on it.
-                _pendingSections ??= new List<(string Name, uint StartUnit)>();
-                _pendingSections.Add((partName, cumulativeUnits));
+                _sections ??= new List<Section>();
+                _sections.Add(new Section(partName, UnitsToTime(cumulativeUnits), UnitsToTick(cumulativeUnits)));
                 _currentPartName = partName;
             }
 
@@ -369,12 +364,6 @@ namespace YARG.Core.Chart.Loaders.SingStar
             {
                 if (subtree.NodeType != XmlNodeType.Element)
                 {
-                    continue;
-                }
-
-                if (subtree.Name == "LABEL")
-                {
-                    ParseLabel(subtree);
                     continue;
                 }
 
@@ -544,46 +533,26 @@ namespace YARG.Core.Chart.Loaders.SingStar
             return null;
         }
 
-        /// <summary>
-        ///     Parses a LABEL element. The "Bar Marker" label's Delay is the number of
-        ///     chart units between the start of the chart and the first bar line.
-        /// </summary>
-        private void ParseLabel(XmlReader reader)
-        {
-            if (_barMarkerDelaySet ||
-                !"Bar Marker".Equals(reader.GetAttribute("Name"), StringComparison.OrdinalIgnoreCase))
-            {
-                return;
-            }
-
-            string? delayStr = reader.GetAttribute("Delay");
-            if (delayStr != null && uint.TryParse(delayStr, out uint delay))
-            {
-                _barMarkerDelay = delay;
-                _barMarkerDelaySet = true;
-            }
-        }
-
         #endregion
 
         #region Time Conversion
 
-        // A chart's Resolution defines how many units make up one beat. Durations
-        // and positions are otherwise plain unit counts relative to the Bar Marker.
+        // A chart's Resolution defines how many units make up one beat. Positions and
+        // durations are plain unit counts from the start of the chart.
         // To convert units to beats:  beats = units / _unitsPerBeat
         // To convert beats to ticks:  ticks = beats * _ticksPerBeat
         // To convert beats to seconds: seconds = beats * 60.0 / _bpm
 
         private double UnitsToTime(uint units) =>
-            (units - (double) _barMarkerDelay) / _unitsPerBeat * (60.0 / _bpm);
+            units / (double) _unitsPerBeat * (60.0 / _bpm);
 
         private double UnitsDurationToSeconds(uint durationUnits) =>
             durationUnits / (double) _unitsPerBeat * (60.0 / _bpm);
 
         private uint UnitsToTick(uint units)
         {
-            double beats = (units - (double) _barMarkerDelay) / _unitsPerBeat;
-            return beats >= 0 ? (uint) (beats * _ticksPerBeat) : 0u;
+            double beats = units / (double) _unitsPerBeat;
+            return (uint) (beats * _ticksPerBeat);
         }
 
         #endregion
@@ -592,24 +561,7 @@ namespace YARG.Core.Chart.Loaders.SingStar
 
         public List<TextEvent> LoadGlobalEvents() => _globalEvents ??= new List<TextEvent>();
 
-        public List<Section> LoadSections()
-        {
-            if (_sections != null)
-            {
-                return _sections;
-            }
-
-            _sections = new List<Section>();
-            if (_pendingSections != null)
-            {
-                foreach (var (name, startUnit) in _pendingSections)
-                {
-                    _sections.Add(new Section(name, UnitsToTime(startUnit), UnitsToTick(startUnit)));
-                }
-            }
-
-            return _sections;
-        }
+        public List<Section> LoadSections() => _sections ??= new List<Section>();
 
         public VenueTrack LoadVenueTrack() => _venueTrack ??= new VenueTrack();
 
@@ -629,9 +581,8 @@ namespace YARG.Core.Chart.Loaders.SingStar
                 return _syncTrack;
             }
 
-            // Note ticks already have the Bar Marker delay subtracted, so tick 0
-            // maps to time 0. The tempo map must agree with that or tick-based and
-            // time-based note positions would disagree.
+            // The tempo map starts at time 0 and note positions are plain offsets
+            // from the start of the chart, so tick and time agree.
             _syncTrack = new SyncTrack(_ticksPerBeat,
                 new List<TempoChange>
                 {
