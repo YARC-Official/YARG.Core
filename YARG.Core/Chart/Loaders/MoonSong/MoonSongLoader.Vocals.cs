@@ -37,11 +37,12 @@ namespace YARG.Core.Chart
 
         private VocalsTrack LoadHarmonyVocals(Instrument instrument)
         {
+            var phraseStarts = GetHarmonyPhraseStarts();
             var parts = new List<VocalsPart>()
             {
-                LoadVocalsPart(MoonSong.MoonInstrument.Harmony1),
-                LoadVocalsPart(MoonSong.MoonInstrument.Harmony2),
-                LoadVocalsPart(MoonSong.MoonInstrument.Harmony3),
+                LoadVocalsPart(MoonSong.MoonInstrument.Harmony1, phraseStarts),
+                LoadVocalsPart(MoonSong.MoonInstrument.Harmony2, phraseStarts),
+                LoadVocalsPart(MoonSong.MoonInstrument.Harmony3, phraseStarts),
             };
 
             var ranges = GetRangeShifts(parts, MoonSong.MoonInstrument.Harmony1);
@@ -49,7 +50,47 @@ namespace YARG.Core.Chart
             return new(instrument, parts, ranges, anims);
         }
 
-        private VocalsPart LoadVocalsPart(MoonSong.MoonInstrument moonInstrument)
+        private Dictionary<uint, uint> GetHarmonyPhraseStarts()
+        {
+            var lead = _moonSong.GetChart(MoonSong.MoonInstrument.Harmony1, MoonSong.Difficulty.Expert);
+            var phrases = lead.specialPhrases.Where(phrase => phrase.type == MoonPhrase.Type.Vocals_ScoringPhrase)
+                .ToArray();
+            var starts = new Dictionary<uint, uint>();
+
+            foreach (var instrument in new[]
+            {
+                MoonSong.MoonInstrument.Harmony1,
+                MoonSong.MoonInstrument.Harmony2,
+                MoonSong.MoonInstrument.Harmony3
+            })
+            {
+                var part = _moonSong.GetChart(instrument, MoonSong.Difficulty.Expert);
+                int phraseIndex = 0;
+                foreach (var note in part.notes)
+                {
+                    while (phraseIndex < phrases.Length &&
+                        note.tick >= phrases[phraseIndex].tick + phrases[phraseIndex].length)
+                    {
+                        phraseIndex++;
+                    }
+                    if (phraseIndex == phrases.Length)
+                        break;
+
+                    uint start = phrases[phraseIndex].tick;
+                    // A pickup in the gap belongs to the next phrase if it is still sounding at its start.
+                    if (note.tick < start && note.tick + note.length > start &&
+                        (note.flags & MoonNote.Flags.Vocals_Percussion) == 0 &&
+                        (!starts.TryGetValue(start, out uint existing) || note.tick < existing))
+                    {
+                        starts[start] = note.tick;
+                    }
+                }
+            }
+            return starts;
+        }
+
+        private VocalsPart LoadVocalsPart(MoonSong.MoonInstrument moonInstrument,
+            Dictionary<uint, uint>? phraseStarts = null)
         {
             int harmonyPart = moonInstrument switch
             {
@@ -62,13 +103,14 @@ namespace YARG.Core.Chart
             var moonChart = _moonSong.GetChart(moonInstrument, MoonSong.Difficulty.Expert);
 
             var isHarmony = moonInstrument != MoonSong.MoonInstrument.Vocals;
-            var notePhrases = GetVocalsPhrases(moonChart, harmonyPart, false);
+            var notePhrases = GetVocalsPhrases(moonChart, harmonyPart, false, phraseStarts);
 
-            var staticLyricPhrases = GetVocalsPhrases(moonChart, harmonyPart, true);
+            var staticLyricPhrases = GetVocalsPhrases(moonChart, harmonyPart, true,
+                harmonyPart == 0 ? phraseStarts : null);
             var otherPhrases = GetPhrases(moonChart);
             var textEvents = GetTextEvents(moonChart);
             List<VocalsPhrase> mergedPhrases = new();
-            TrimOrphanPhrases(notePhrases, otherPhrases);
+            TrimOrphanPhrases(notePhrases, otherPhrases, phraseStarts);
             if (harmonyPart is 1)
             {
                 var harm3Phrases =
@@ -90,7 +132,9 @@ namespace YARG.Core.Chart
 
             return new(isHarmony, notePhrases, staticLyricPhrases, mergedPhrases, otherPhrases, textEvents);
         }
-        private List<VocalsPhrase> GetVocalsPhrases(MoonChart moonChart, int harmonyPart, bool staticLyricPhrases)
+
+        private List<VocalsPhrase> GetVocalsPhrases(MoonChart moonChart, int harmonyPart, bool staticLyricPhrases,
+            Dictionary<uint, uint>? phraseStarts = null)
         {
             var phrases = new List<VocalsPhrase>();
 
@@ -150,7 +194,8 @@ namespace YARG.Core.Chart
                     moonPhraseIndex++;
                 }
 
-                if (carriedNote != null && carriedNote.Tick + carriedNote.TotalTickLength < moonPhrase.tick)
+                uint startOfPhrase = GetEffectivePhraseStart(moonPhrase.tick, phraseStarts);
+                if (carriedNote != null && carriedNote.TotalTickEnd < startOfPhrase)
                 {
                     carriedNote = null;
                 }
@@ -168,7 +213,7 @@ namespace YARG.Core.Chart
                     moonNoteIndex++;
 
                     // Don't process notes that occur before the phrase
-                    if (moonNote.tick < moonPhrase.tick)
+                    if (moonNote.tick < startOfPhrase)
                     {
                         YargLogger.LogFormatDebug("Vocals note at {0} does not exist within a phrase!", moonNote.tick);
                         continue;
@@ -249,7 +294,7 @@ namespace YARG.Core.Chart
                     continue;
                 }
 
-                var vocalsPhrase = CreateVocalsPhrase(moonPhrase, phraseTracker, notes, lyrics);
+                var vocalsPhrase = CreateVocalsPhrase(moonPhrase, startOfPhrase, phraseTracker, notes, lyrics);
                 phrases.Add(vocalsPhrase);
             }
 
@@ -813,27 +858,26 @@ namespace YARG.Core.Chart
                 lyricsSubset);
         }
 
-        private void TrimOrphanPhrases(List<VocalsPhrase> vocalPhrases, List<Phrase> otherPhrases)
+        private static uint GetEffectivePhraseStart(uint authoredStart, Dictionary<uint, uint>? phraseStarts)
         {
-            int vocalPhraseIndex = 0;
+            return phraseStarts != null && phraseStarts.TryGetValue(authoredStart, out uint start)
+                ? start : authoredStart;
+        }
 
-            foreach (var otherPhrase in otherPhrases.ToList())
+        private static void TrimOrphanPhrases(List<VocalsPhrase> vocalPhrases, List<Phrase> otherPhrases,
+            Dictionary<uint, uint>? phraseStarts)
+        {
+            // Match markers at their authored ticks even if the scoring window starts earlier.
+            var scoringStarts = new HashSet<uint>(vocalPhrases.Select(phrase => phrase.Tick));
+            if (phraseStarts != null)
             {
-                while (vocalPhraseIndex < vocalPhrases.Count
-                    && vocalPhrases[vocalPhraseIndex].Tick < otherPhrase.Tick)
+                foreach (var (authored, effective) in phraseStarts)
                 {
-                    vocalPhraseIndex++;
+                    if (scoringStarts.Remove(effective))
+                        scoringStarts.Add(authored);
                 }
-
-                if (vocalPhraseIndex >= vocalPhrases.Count
-                    || vocalPhrases[vocalPhraseIndex].Tick > otherPhrase.Tick)
-                {
-                    // No match found.
-                    otherPhrases.Remove(otherPhrase);
-                }
-
-                // Otherwise, match found. Keep the other phrase.
             }
+            otherPhrases.RemoveAll(phrase => !scoringStarts.Contains(phrase.Tick));
         }
 
         private void ProcessLyric(List<LyricEvent> lyrics, ReadOnlySpan<char> lyric, uint lyricTick, bool isCensorable,
@@ -1038,13 +1082,13 @@ namespace YARG.Core.Chart
             return flags;
         }
 
-        private VocalsPhrase CreateVocalsPhrase(MoonPhrase moonPhrase, Dictionary<MoonPhrase.Type, MoonPhrase?> phrasetracker,
-            List<VocalNote> notes, List<LyricEvent> lyrics)
+        private VocalsPhrase CreateVocalsPhrase(MoonPhrase moonPhrase, uint tick,
+            Dictionary<MoonPhrase.Type, MoonPhrase?> phrasetracker, List<VocalNote> notes, List<LyricEvent> lyrics)
         {
-            double time = _moonSong.TickToTime(moonPhrase.tick);
-            double timeLength = GetLengthInTime(moonPhrase);
-            uint tick = moonPhrase.tick;
-            uint tickLength = moonPhrase.length;
+            uint endTick = moonPhrase.tick + moonPhrase.length;
+            double time = _moonSong.TickToTime(tick);
+            uint tickLength = endTick - tick;
+            double timeLength = GetLengthInTime(time, tick, tickLength);
 
             var phraseFlags = GetVocalsPhraseFlags(moonPhrase, phrasetracker);
             var isPercussionPhrase = IsPhrasePercussion(notes);
