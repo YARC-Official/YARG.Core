@@ -56,6 +56,17 @@ namespace YARG.Core.Chart
             base.AddChildNote(note);
         }
 
+        public override void SnapNote(ProGuitarNote note, double timeLength)
+        {
+            note.Type = Type;
+            base.SnapNote(note, timeLength);
+        }
+
+        protected override bool IsSameLane(ProGuitarNote other)
+        {
+            return other.String == String && other.Fret == Fret;
+        }
+
         public override void ResetNoteState()
         {
             base.ResetNoteState();

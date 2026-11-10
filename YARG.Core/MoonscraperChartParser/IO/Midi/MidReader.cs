@@ -158,19 +158,14 @@ namespace MoonscraperChartEditor.Song.IO
             };
 
             // Apply settings
+            // The defaults are a 1/12th note, +1 for a small bit of leniency
             song.hopoThreshold = settings.HopoThreshold > ParseSettings.SETTING_DEFAULT
-                // +1 for a small bit of leniency
-                ? (uint)settings.HopoThreshold + 1
+                ? (uint)settings.HopoThreshold
                 : (song.resolution / 3) + 1;
 
             if (settings.SustainCutoffThreshold <= ParseSettings.SETTING_DEFAULT)
             {
-                settings.SustainCutoffThreshold = song.resolution / 3;
-            }
-            else if (settings.SustainCutoffThreshold == 0)
-            {
-                // Limit minimum cutoff to 1 tick, non - sustain notes created by charting programs are 1 tick
-                settings.SustainCutoffThreshold = 1;
+                settings.SustainCutoffThreshold = (song.resolution / 3) + 1;
             }
 
             // The sync track is the very first track in the file
@@ -798,7 +793,7 @@ namespace MoonscraperChartEditor.Song.IO
             var timedEvent = eventProcessParams.timedEvent;
             uint tick = (uint)timedEvent.startTick;
             uint sus = (uint)timedEvent.length;
-            if (sustainCutoff && sus < eventProcessParams.settings.SustainCutoffThreshold)
+            if (sustainCutoff && sus <= eventProcessParams.settings.SustainCutoffThreshold)
             {
                 sus = 0;
             }
@@ -968,7 +963,9 @@ namespace MoonscraperChartEditor.Song.IO
 
             // Extend the lookup window backward to catch notes whose note-off would have overlapped
             // the marker start before note lengths were zeroed out during parsing.
-            uint noteSnapThreshold = (uint)eventProcessParams.settings.NoteSnapThreshold;
+            uint noteSnapThreshold = eventProcessParams.settings.RockBandNoteSnap
+                ? (uint)eventProcessParams.settings.NoteSnapThreshold
+                : 0;
             uint lookbackStart = noteSnapThreshold > 0 && startTick >= noteSnapThreshold
                 ? startTick - noteSnapThreshold
                 : startTick;

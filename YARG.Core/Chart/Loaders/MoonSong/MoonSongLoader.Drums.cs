@@ -13,6 +13,11 @@ namespace YARG.Core.Chart
     {
         private DrumsMixSetting _mixSetting = DrumsMixSetting.None;
 
+        // The chord that chord snapping moves notes into: its pads as written, and the mix setting of its red or
+        // yellow note
+        private int _snapChordPads;
+        private DrumsMixSetting? _snapChordDiscoMix;
+
         public InstrumentTrack<DrumNote> LoadDrumsTrack(Instrument instrument, InstrumentTrack<EliteDrumNote>? eliteDrumsFallback)
         {
             _mixSetting = DrumsMixSetting.None;
@@ -111,9 +116,20 @@ namespace YARG.Core.Chart
             return true;
         }
 
-        private DrumNote CreateFourLaneDrumNote(MoonNote moonNote, Dictionary<MoonPhrase.Type, MoonPhrase> currentPhrases, List<DrumNote> notes)
+        private DrumNote? CreateFourLaneDrumNote(MoonNote moonNote, Dictionary<MoonPhrase.Type, MoonPhrase> currentPhrases, List<DrumNote> notes)
         {
+            if (!TrackSnappedDrumNote(moonNote, notes, out var mixSetting))
+            {
+                return null;
+            }
+
+            // Read the pad and stem with the note's mix setting
+            var tickMixSetting = _mixSetting;
+            _mixSetting = mixSetting;
             var pad = GetFourLaneDrumPad(moonNote);
+            var stem = GetStem(pad);
+            _mixSetting = tickMixSetting;
+
             var noteType = GetDrumNoteType(moonNote);
 
             var generalFlags = GetGeneralFlags(moonNote, currentPhrases, IsEligibleForDrumTrill);
@@ -124,12 +140,22 @@ namespace YARG.Core.Chart
 
             bool isDoubleKick = pad is FourLaneDrumPad.Kick && ((moonNote.flags & Flags.InstrumentPlus) != 0);
 
-            return new DrumNote(pad, noteType, drumFlags, generalFlags, time, moonNote.tick, isDoubleKick, GetStem(pad));
+            return new DrumNote(pad, noteType, drumFlags, generalFlags, time, moonNote.tick, isDoubleKick, stem);
         }
 
-        private DrumNote CreateFiveLaneDrumNote(MoonNote moonNote, Dictionary<MoonPhrase.Type, MoonPhrase> currentPhrases, List<DrumNote> notes)
+        private DrumNote? CreateFiveLaneDrumNote(MoonNote moonNote, Dictionary<MoonPhrase.Type, MoonPhrase> currentPhrases, List<DrumNote> notes)
         {
+            if (!TrackSnappedDrumNote(moonNote, notes, out var mixSetting))
+            {
+                return null;
+            }
+
+            // Read the pad with the note's mix setting
+            var tickMixSetting = _mixSetting;
+            _mixSetting = mixSetting;
             var pad = GetFiveLaneDrumPad(moonNote);
+            _mixSetting = tickMixSetting;
+
             var noteType = GetDrumNoteType(moonNote);
 
             var generalFlags = GetGeneralFlags(moonNote, currentPhrases, IsEligibleForDrumTrill);
@@ -180,6 +206,51 @@ namespace YARG.Core.Chart
 
             double time = _moonSong.TickToTime(moonNote.tick);
             return new DrumNote(pad, noteType, drumFlags, generalFlags, time, moonNote.tick, false, GetStem(pad));
+        }
+
+        /// <summary>
+        /// Follows the chords that <c>chord_snap_threshold</c> makes. A pad is its color as written, so a yellow tom
+        /// and a yellow cymbal are one pad.
+        /// </summary>
+        /// <param name="mixSetting">
+        /// The mix setting to read the note with: a red or yellow note that snapping moves takes the disco flip of
+        /// the chord's red or yellow note, when there is one.
+        /// </param>
+        /// <returns>
+        /// False when snapping moves the note onto a pad the chord already has, since the chord's note stays as it is.
+        /// </returns>
+        private bool TrackSnappedDrumNote(MoonNote moonNote, List<DrumNote> notes, out DrumsMixSetting mixSetting)
+        {
+            mixSetting = _mixSetting;
+            bool moved = !_settings.RockBandNoteSnap && notes.Count > 0 && SnapsIntoChord(moonNote.tick, notes[^1].Tick);
+            if (!moved && (notes.Count == 0 || moonNote.tick != notes[^1].Tick))
+            {
+                // A new chord
+                _snapChordPads = 0;
+                _snapChordDiscoMix = null;
+            }
+
+            int padMask = 1 << (int) moonNote.drumPad;
+            bool isRedOrYellow = moonNote.drumPad is MoonNote.DrumPad.Red or MoonNote.DrumPad.Yellow;
+            if (moved)
+            {
+                if ((_snapChordPads & padMask) != 0)
+                {
+                    return false;
+                }
+
+                if (isRedOrYellow && _snapChordDiscoMix.HasValue)
+                {
+                    mixSetting = _snapChordDiscoMix.Value;
+                }
+            }
+
+            _snapChordPads |= padMask;
+            if (isRedOrYellow && !_snapChordDiscoMix.HasValue)
+            {
+                _snapChordDiscoMix = mixSetting;
+            }
+            return true;
         }
 
         private DrumStem GetStem(FourLaneDrumPad pad)
