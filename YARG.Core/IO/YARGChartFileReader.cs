@@ -241,6 +241,12 @@ namespace YARG.Core.IO
                 string name = YARGTextReader.ExtractModifierName(ref container);
                 if (CHART_MODIFIERS.TryGetValue(name, out var outline))
                 {
+                    // A Difficulty of 0 isn't a band difficulty: Moonscraper writes it into every chart
+                    var value = container;
+                    if (name == "Difficulty" && YARGTextReader.TryExtract(ref value, out long difficulty) && difficulty == 0)
+                    {
+                        continue;
+                    }
                     collection.Add(ref container, outline, true);
                 }
             }

@@ -89,16 +89,19 @@ public class YARGIniReaderTests
     }
 
     [Test]
-    public void ReadIniFile_RepeatedSectionUsesLatestOccurrence()
+    public void ReadIniFile_ReadsRepeatedSectionAsOneWhereTheLastLineOfEachKeyCounts()
     {
         var collections = ReadIni(
             """
             [first]
             name = First
-
-            [first]
-            name = Second
             count = 5
+
+            [second]
+            enabled = 1
+
+            [First]
+            name = Second
             """
         );
 
