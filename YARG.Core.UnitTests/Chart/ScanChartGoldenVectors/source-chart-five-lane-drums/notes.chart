@@ -1,0 +1,23 @@
+[Song]
+{
+  Resolution = 192
+}
+[SyncTrack]
+{
+  0 = B 120000
+  0 = TS 4
+}
+[Events]
+{
+}
+[ExpertDrums]
+{
+  0 = N 0 0
+  0 = N 1 0
+  192 = N 2 0
+  384 = N 3 0
+  576 = N 4 0
+  768 = N 5 0
+  960 = N 4 0
+  960 = N 5 0
+}
