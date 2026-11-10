@@ -115,6 +115,119 @@ public class SongEntryScanningTests
         }
     }
 
+    [TestCase(MidIOHelper.GUITAR_TRACK)]
+    [TestCase(MidIOHelper.GH1_GUITAR_TRACK)]
+    public void ParseMidi_ReadsOnlyTheFirstTrackOfAPartWhenItHasNoNotes(string firstName)
+    {
+        var data = WriteMidi(MakeSyncTrack(), new TrackChunk(new SequenceTrackNameEvent(firstName)), MakeGuitarTrack());
+
+        var (result, parts) = ParseMidi(data);
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(result.HasValue, Is.True);
+            Assert.That(parts.FiveFretGuitar.Difficulties, Is.EqualTo(DifficultyMask.None));
+        }
+    }
+
+    [Test]
+    public void ParseMidi_ReadsOnlyTheFirstHarmonyTrackOfEachPart()
+    {
+        var twoHarm1 = WriteMidi(MakeSyncTrack(),
+            new TrackChunk(new SequenceTrackNameEvent(MidIOHelper.HARMONY_1_TRACK)),
+            MakeVocalTrack(MidIOHelper.HARMONY_1_TRACK));
+        // A HARM1 track is still read after a PART HARM1 track without notes
+        var partHarm1ThenHarm1 = WriteMidi(MakeSyncTrack(),
+            new TrackChunk(new SequenceTrackNameEvent(MidIOHelper.HARMONY_1_TRACK_2)),
+            MakeVocalTrack(MidIOHelper.HARMONY_1_TRACK));
+
+        var (twoHarm1Result, twoHarm1Parts) = ParseMidi(twoHarm1);
+        var (partHarm1Result, partHarm1Parts) = ParseMidi(partHarm1ThenHarm1);
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(twoHarm1Result.HasValue, Is.True);
+            Assert.That(twoHarm1Parts.HarmonyVocals[0], Is.False);
+            Assert.That(partHarm1Result.HasValue, Is.True);
+            Assert.That(partHarm1Parts.HarmonyVocals[0], Is.True);
+        }
+    }
+
+    [Test]
+    public void ParseMidi_ReadsTrackNamesInAnyLetterCase()
+    {
+        var data = WriteMidi(MakeSyncTrack(),
+            MakeNoteTrack("part guitar", MidIOHelper.GUITAR_DIFF_START_LOOKUP[MoonDifficulty.Expert]),
+            MakeNoteTrack("Part Guitar GHL", MidIOHelper.GHL_GUITAR_DIFF_START_LOOKUP[MoonDifficulty.Expert]),
+            MakeVocalTrack("harm1"));
+
+        var (result, parts) = ParseMidi(data);
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(result.HasValue, Is.True);
+            Assert.That(parts.FiveFretGuitar.Difficulties, Is.EqualTo(DifficultyMask.Expert));
+            Assert.That(parts.SixFretGuitar.Difficulties, Is.EqualTo(DifficultyMask.Expert));
+            Assert.That(parts.HarmonyVocals[0], Is.True);
+        }
+    }
+
+    private static byte[] WriteMidi(params TrackChunk[] tracks)
+    {
+        var midi = new MidiFile(tracks)
+        {
+            TimeDivision = new TicksPerQuarterNoteTimeDivision(Resolution),
+        };
+
+        using var stream = new MemoryStream();
+        midi.Write(stream);
+        return stream.ToArray();
+    }
+
+    private static (ScanExpected<long> result, AvailableParts parts) ParseMidi(byte[] data)
+    {
+        using var stream = new MemoryStream(data);
+        using var file = FixedArray.Read(stream, stream.Length);
+        var parts = AvailableParts.Default;
+        var drumsType = DrumsType.Unknown;
+
+        var result = TestSongEntry.ParseMidiForTest(file, ref parts, ref drumsType);
+        return (result, parts);
+    }
+
+    private static TrackChunk MakeGuitarTrack()
+    {
+        return MakeNoteTrack(MidIOHelper.GUITAR_TRACK, MidIOHelper.GUITAR_DIFF_START_LOOKUP[MoonDifficulty.Expert]);
+    }
+
+    private static TrackChunk MakeNoteTrack(string trackName, int noteNumber)
+    {
+        return new TrackChunk(
+            new SequenceTrackNameEvent(trackName),
+            new NoteOnEvent((SevenBitNumber) (byte) noteNumber, (SevenBitNumber) (byte) MidIOHelper.VELOCITY)
+            {
+                DeltaTime = 10,
+            },
+            new NoteOffEvent((SevenBitNumber) (byte) noteNumber, (SevenBitNumber) 0)
+            {
+                DeltaTime = 90,
+            });
+    }
+
+    private static TrackChunk MakeVocalTrack(string trackName)
+    {
+        // A vocal note inside a phrase
+        var phrase = (SevenBitNumber) MidIOHelper.LYRICS_PHRASE_1;
+        var pitch = (SevenBitNumber) MidIOHelper.VOCALS_RANGE_START;
+        var velocity = (SevenBitNumber) (byte) MidIOHelper.VELOCITY;
+        return new TrackChunk(
+            new SequenceTrackNameEvent(trackName),
+            new NoteOnEvent(phrase, velocity),
+            new NoteOnEvent(pitch, velocity) { DeltaTime = 10 },
+            new NoteOffEvent(pitch, (SevenBitNumber) 0) { DeltaTime = 80 },
+            new NoteOffEvent(phrase, (SevenBitNumber) 0) { DeltaTime = 10 });
+    }
+
     private static TrackChunk MakeSyncTrack()
     {
         return new TrackChunk(

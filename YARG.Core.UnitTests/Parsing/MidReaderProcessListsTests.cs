@@ -4,6 +4,7 @@ using MoonscraperChartEditor.Song;
 using MoonscraperChartEditor.Song.IO;
 using NUnit.Framework;
 using YARG.Core.Chart;
+using YARG.Core.Parsing;
 
 namespace YARG.Core.UnitTests.Parsing;
 
@@ -299,6 +300,104 @@ public class MidReaderProcessListsTests
         }
     }
 
+    [TestCase(MidIOHelper.GUITAR_TRACK, MidIOHelper.GUITAR_TRACK, 10u)]
+    [TestCase(MidIOHelper.GH1_GUITAR_TRACK, MidIOHelper.GUITAR_TRACK, 10u)]
+    [TestCase(MidIOHelper.DRUMS_TRACK, MidIOHelper.DRUMS_TRACK, 10u)]
+    // A track under the instrument's own name replaces a fallback track, and is then the first
+    [TestCase(MidIOHelper.DRUMS_REAL_TRACK, MidIOHelper.DRUMS_TRACK, 20u)]
+    public void ReadMidi_ReadsOnlyTheFirstTrackOfAnInstrument(string firstName, string laterName, uint expectedTick)
+    {
+        var instrument = MidIOHelper.TrackNameToInstrumentMap[laterName];
+        var red = instrument == MoonInstrument.Drums
+            ? MidIOHelper.DRUMS_DIFF_START_LOOKUP[Difficulty.Expert] + 1
+            : MidIOHelper.GUITAR_DIFF_START_LOOKUP[Difficulty.Expert] + 1;
+        // An Expert red in each track, each on its own tick
+        var midi = MakeMidi(
+            MakeTrack(firstName, Note(10, 100, red)),
+            MakeTrack(laterName, Note(20, 100, red)),
+            MakeTrack(laterName, Note(30, 100, red)));
+
+        var song = MidReader.ReadMidi(midi);
+        var notes = song.GetChart(instrument, Difficulty.Expert).notes;
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(notes, Has.Count.EqualTo(1));
+            Assert.That(notes[0].tick, Is.EqualTo(expectedTick));
+        }
+    }
+
+    [TestCase(MidIOHelper.GUITAR_TRACK)]
+    [TestCase(MidIOHelper.BASS_TRACK)]
+    public void ReadMidi_ReadsOnlyTheFirstTrackOfAnInstrumentWhenItHasNoNotes(string trackName)
+    {
+        var green = MidIOHelper.GUITAR_DIFF_START_LOOKUP[Difficulty.Expert];
+        var midi = MakeMidi(
+            MakeTrack(trackName),
+            MakeTrack(trackName, Note(10, 100, green)));
+
+        var song = MidReader.ReadMidi(midi);
+        var instrument = MidIOHelper.TrackNameToInstrumentMap[trackName];
+
+        Assert.That(song.GetChart(instrument, Difficulty.Expert).notes, Is.Empty);
+    }
+
+    [Test]
+    public void ReadMidi_ReadsOnlyTheFirstTrackOfEachVocalPart()
+    {
+        var pitch = MidIOHelper.VOCALS_RANGE_START;
+        var midi = MakeMidi(
+            MakeVocalTrack(MidIOHelper.VOCALS_TRACK, pitch, Lyric(10, "first")),
+            MakeVocalTrack(MidIOHelper.VOCALS_TRACK, pitch + 1, Lyric(10, "second")),
+            // A HARM1 track replaces a PART HARM1 track, and is then the first
+            MakeVocalTrack(MidIOHelper.HARMONY_1_TRACK_2, pitch + 2),
+            MakeVocalTrack(MidIOHelper.HARMONY_1_TRACK, pitch),
+            MakeVocalTrack(MidIOHelper.HARMONY_1_TRACK, pitch + 1));
+
+        var song = MidReader.ReadMidi(midi);
+        var vocals = song.GetChart(MoonInstrument.Vocals, Difficulty.Expert).notes;
+        var harmony = song.GetChart(MoonInstrument.Harmony1, Difficulty.Expert).notes;
+        var lyrics = song.events.Select(ev => ev.text).ToList();
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(vocals, Has.Count.EqualTo(1));
+            Assert.That(vocals[0].vocalsPitch, Is.EqualTo(pitch));
+            Assert.That(harmony, Has.Count.EqualTo(1));
+            Assert.That(harmony[0].vocalsPitch, Is.EqualTo(pitch));
+            Assert.That(lyrics, Has.Member(TextEvents.LYRIC_PREFIX_WITH_SPACE + "first"));
+            Assert.That(lyrics, Has.No.Member(TextEvents.LYRIC_PREFIX_WITH_SPACE + "second"));
+        }
+    }
+
+    [TestCase("part guitar", MidIOHelper.GUITAR_TRACK)]
+    [TestCase("Part Guitar GHL", MidIOHelper.GHL_GUITAR_TRACK)]
+    [TestCase("Part Drums", MidIOHelper.DRUMS_TRACK)]
+    [TestCase("harm1", MidIOHelper.HARMONY_1_TRACK)]
+    public void ReadMidi_ReadsTrackNamesInAnyLetterCase(string trackName, string standardName)
+    {
+        var instrument = MidIOHelper.TrackNameToInstrumentMap[standardName];
+        var track = instrument switch
+        {
+            MoonInstrument.GHLiveGuitar => MakeTrack(trackName, Note(10, 100, MidIOHelper.GHL_GUITAR_DIFF_START_LOOKUP[Difficulty.Expert])),
+            MoonInstrument.Drums => MakeTrack(trackName, Note(10, 100, MidIOHelper.DRUMS_DIFF_START_LOOKUP[Difficulty.Expert])),
+            MoonInstrument.Harmony1 => MakeVocalTrack(trackName, MidIOHelper.VOCALS_RANGE_START),
+            _ => MakeTrack(trackName, Note(10, 100, MidIOHelper.GUITAR_DIFF_START_LOOKUP[Difficulty.Expert])),
+        };
+
+        var song = MidReader.ReadMidi(MakeMidi(track));
+
+        Assert.That(song.GetChart(instrument, Difficulty.Expert).notes, Has.Count.EqualTo(1));
+    }
+
+    [Test]
+    public void ReadMidi_ReadsTheEventsTrackNameInAnyLetterCase()
+    {
+        var song = MidReader.ReadMidi(MakeMidi(MakeTrack("Events", Text(10, "[section Intro]"))));
+
+        Assert.That(song.sections, Has.Count.EqualTo(1));
+    }
+
     [Test]
     public void GetCodaRanges_ReturnsBalancedRanges()
     {
@@ -361,6 +460,19 @@ public class MidReaderProcessListsTests
     private static TimedMidiEvent Text(long tick, string text)
     {
         return new TimedMidiEvent(tick, new MidiTextEvent(text));
+    }
+
+    private static TimedMidiEvent Lyric(long tick, string text)
+    {
+        return new TimedMidiEvent(tick, new Melanchall.DryWetMidi.Core.LyricEvent(text));
+    }
+
+    private static TrackChunk MakeVocalTrack(string trackName, int pitch, params TimedMidiEvent[] lyrics)
+    {
+        return MakeTrack(trackName,
+            Note(0, 100, MidIOHelper.LYRICS_PHRASE_1),
+            Note(10, 90, pitch),
+            lyrics);
     }
 
     private static TimedMidiEvent PhaseShiftTap(long tick, bool start)
