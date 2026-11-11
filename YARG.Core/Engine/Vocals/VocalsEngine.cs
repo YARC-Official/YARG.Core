@@ -129,6 +129,11 @@ namespace YARG.Core.Engine.Vocals
 
         protected override void HitNote(VocalNote note)
         {
+            HitNote(note, null);
+        }
+
+        protected void HitNote(VocalNote note, uint? phraseTicks)
+        {
             note.SetHitState(true, false);
 
             if (note.IsPercussion)
@@ -148,7 +153,7 @@ namespace YARG.Core.Engine.Vocals
 
                 // If there aren't any ticks in the phrase, then don't add
                 // any score or update the multiplier.
-                var ticks = GetTicksInPhrase(note);
+                var ticks = phraseTicks ?? GetTicksInPhrase(note);
                 if (ticks != 0)
                 {
                     IncrementCombo();
@@ -341,20 +346,23 @@ namespace YARG.Core.Engine.Vocals
             }
         }
 
-        protected sealed override (int baseScore, int noteScore) CalculateChartScores()
+        protected sealed override (int baseScore, int noteScore) CalculateChartScores() =>
+            CalculateVocalChartScores(i => Notes[i].ChildNotes.Count > 0);
+
+        protected (int baseScore, int noteScore) CalculateVocalChartScores(Func<int, bool> hasVocalContent)
         {
             double baseScore = 0;
             double noteScore = 0;
             int combo = 0;
             int multiplier;
-            foreach (var note in Notes)
+            for (int i = 0; i < Notes.Count; i++)
             {
-                if (note.ChildNotes.Count == 0)
+                if (!hasVocalContent(i))
                 {
                     continue;
-                };
+                }
                 multiplier = Math.Min(combo + 1, BaseParameters.MaxMultiplier);
-                if (note.IsPercussionPhrase)
+                if (Notes[i].IsPercussionPhrase)
                 {
                     // Intentionally not counting percussion notes for base score so they don't affect star calculations
                     // baseScore += POINTS_PER_PERCUSSION * note.ChildNotes.Count * multiplier;

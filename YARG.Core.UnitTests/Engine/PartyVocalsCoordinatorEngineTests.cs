@@ -1420,6 +1420,99 @@ public sealed class PartyVocalsCoordinatorEngineTests
     }
 
     [Test]
+    public void Bot_StaysOnItsHarmonyThroughCarriedOnlyPhrase()
+    {
+        var (parts, sustain) = CreateCarriedHarmony();
+        var engine = new PartyVocalsCoordinatorEngine(parts[0].CloneAsInstrumentDifficulty(),
+            parts, CreateSyncTrack(), EngineParams, isBot: true, micCount: 2);
+        VocalNote? target = null;
+        engine.SubEngines[1].OnTargetNoteChanged += note => target = note;
+
+        for (int frame = 1; frame <= 108; frame++)
+        {
+            target = null;
+            engine.Update(frame / ApproximateVocalFps);
+        }
+
+        Assert.That(target, Is.SameAs(sustain));
+    }
+
+    [TestCase(67f)]
+    [TestCase(-1f)]
+    public void Scoring_CarriedHarmonyCountsOnlyTicksInsideTheNextPhrase(float pitch)
+    {
+        var (parts, _) = CreateCarriedHarmony(pitch);
+        var engine = CreateCoordinator(parts, micCount: 1);
+        PartyPartResult? result = null;
+        engine.OnPartyVocalsPhrase += (grade, results, isLast) =>
+        {
+            if (isLast)
+                result = results.SingleOrDefault(part => part.PartIndex == 1);
+        };
+
+        // Sing only in the gap after the first phrase. The next phrase starts at 1.5s.
+        for (int frame = 1; frame <= 165; frame++)
+        {
+            double time = frame / ApproximateVocalFps;
+            if (frame > 61 && frame < 90)
+            {
+                var input = new GameInput(time, PartyVocalsInput.Pack(0, VocalsAction.Pitch), 67f);
+                engine.QueueInput(ref input);
+            }
+            engine.Update(time);
+            if (frame == 108)
+            {
+                // HARM1 has 480 ticks and HARM2 carries 720 ticks into this phrase.
+                Assert.That(engine.PhraseTicksTotal, Is.EqualTo(1200u));
+            }
+        }
+
+        Assert.That(result?.PartIndex, Is.EqualTo(1));
+        Assert.That(result?.Meter, Is.Zero);
+    }
+
+    [Test]
+    public void Scoring_CarriedOnlyMasterPhraseAwardsPointsAndCombo()
+    {
+        var (parts, _) = CreateCarriedHarmony();
+        parts[0].NotePhrases.RemoveAt(1);
+        var master = PartyVocalsCoordinatorEngine.BuildMergedTrack(parts, parts[0].CloneAsInstrumentDifficulty());
+        var engine = new PartyVocalsCoordinatorEngine(master, parts, CreateSyncTrack(),
+            EngineParams, isBot: false, micCount: 1);
+        var grades = new List<PhraseGrade>();
+        engine.OnPartyVocalsPhrase += (grade, _, _) => grades.Add(grade);
+
+        for (int frame = 1; frame <= 165; frame++)
+        {
+            double time = frame / ApproximateVocalFps;
+            var input = new GameInput(time, PartyVocalsInput.Pack(0, VocalsAction.Pitch),
+                frame <= 30 ? 60f : 67f);
+            engine.QueueInput(ref input);
+            engine.Update(time);
+        }
+
+        Assert.That(grades, Is.EqualTo(new[] { PhraseGrade.DoubleAwesome, PhraseGrade.Awesome }));
+        Assert.That(engine.BaseStats.Combo, Is.EqualTo(2));
+        Assert.That(engine.BaseStats.NoteScore, Is.EqualTo(2 * EngineParams.PointsPerPhrase));
+        Assert.That(engine.BaseNoteScore, Is.EqualTo(2 * EngineParams.PointsPerPhrase));
+    }
+
+    private static (List<VocalsPart> Parts, VocalNote Sustain) CreateCarriedHarmony(float pitch = 67f)
+    {
+        var parts = new List<VocalsPart> { CreateVocalsPart(true), CreateVocalsPart(true) };
+        AddPhrase(parts[0], 0, 960, 60);
+        AddPhrase(parts[0], 1440, 960, 60);
+
+        var sourcePhrase = new VocalNote(NoteFlags.None, false, 0, 1, 0, 960);
+        var sustain = new VocalNote(pitch, 1, VocalNoteType.Lyric, 0.5, 1.75, 480, 1680);
+        sourcePhrase.AddChildNote(sustain);
+        parts[1].NotePhrases.Add(new VocalsPhrase(0, 1, 0, 960, sourcePhrase, new()));
+        var carriedPhrase = new VocalNote(NoteFlags.None, false, 1.5, 1, 1440, 960);
+        parts[1].NotePhrases.Add(new VocalsPhrase(1.5, 1, 1440, 960, carriedPhrase, new()));
+        return (parts, sustain);
+    }
+
+    [Test]
     public void Bot_ThreeMicsThreeHarms_EachBotHitsItsPart()
     {
         // Regression guard: bot Party Vocals builds one sub-engine per HARM part

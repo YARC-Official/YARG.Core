@@ -76,6 +76,8 @@ namespace YARG.Core.Engine.Vocals.Engines
         private readonly int _micCount;
         private readonly VocalsPart[] _allParts;
         private readonly bool[] _partHasContent;
+        private readonly uint[,] _partPhraseVocalTicks;
+        private readonly uint[] _masterPhraseVocalTicks;
         private readonly double[] _canonicalMeters;
         private readonly uint[] _phraseTicksTotalPerPart;
         private readonly double[,] _micPartHits;
@@ -105,7 +107,7 @@ namespace YARG.Core.Engine.Vocals.Engines
         // Broadcast anti-stacking bookkeeping (per phrase). For each part we
         // track the MERGED covered tick spans of every all-talkie broadcast it
         // received: when mic i vouches part j, the tick span it just sang
-        // ([LastCreditSpanStartTick, CurrentTick)) is unioned into
+        // (clipped to the current scoring phrase) is unioned into
         // _partCoveredSpans[j]. A part's broadcast credit is capped at the
         // union's total size — the TEMPORAL UNION of all mics' covered spans —
         // so overlapping talkie coverage counts once (two mics stacking the
@@ -139,9 +141,6 @@ namespace YARG.Core.Engine.Vocals.Engines
         // Sub-engines (one per mic, composition)
         private readonly YargFreeVocalsEngine[] _subEngines;
 
-        // Per-phrase tracking for the coordinator's own phrase-end logic
-        private uint? _coordinatorPhraseTicksTotal;
-
         // Percussion notes this coordinator has already scored or missed. Tracked locally
         // instead of via VocalNote.WasHit/WasMissed: the note objects are shared with the
         // sub-engines and other players' engines, so setting hit/miss state on them leaks
@@ -165,6 +164,20 @@ namespace YARG.Core.Engine.Vocals.Engines
             _micCount = micCount;
             _allParts = allParts.ToArray();
             _partHasContent = new bool[partCount];
+            _partPhraseVocalTicks = new uint[partCount, Notes.Count];
+            _masterPhraseVocalTicks = new uint[Notes.Count];
+            for (int i = 0; i < Notes.Count; i++)
+            {
+                for (int j = 0; j < partCount; j++)
+                {
+                    uint ticks = GetTicksInPhraseForPart(_allParts[j], Notes[i]);
+                    _partPhraseVocalTicks[j, i] = ticks;
+                    _masterPhraseVocalTicks[i] += ticks;
+                }
+            }
+            (BaseScore, BaseNoteScore) = CalculateVocalChartScores(i => _masterPhraseVocalTicks[i] > 0u);
+            StarScoreThresholds = PopulateStarScoreThresholds(engineParameters.StarMultiplierThresholds,
+                engineParameters.SoloBonusStarMultiplierThresholds, BaseScore, EngineStats.MaxSoloBonusPoints);
             _canonicalMeters = new double[partCount];
             _phraseTicksTotalPerPart = new uint[partCount];
             _micPartHits = new double[micCount, partCount];
@@ -295,14 +308,13 @@ namespace YARG.Core.Engine.Vocals.Engines
 
         // True if the part has a (non-percussion) note in the NEXT master phrase. Used by
         // the HUD count-in drain so a meter can warn the player a phrase before their line
-        // returns. Computed on demand (the next phrase hasn't started, so the per-tick
-        // _phraseTicksTotalPerPart array doesn't cover it).
+        // returns.
         public bool PartInNextPhrase(int partIndex)
         {
             if (partIndex < 0 || partIndex >= _allParts.Length) return false;
             int next = NoteIndex + 1;
             if (next < 0 || next >= Notes.Count) return false;
-            return GetTicksInPhraseForPart(_allParts[partIndex], Notes[next]) > 0u;
+            return _partPhraseVocalTicks[partIndex, next] > 0u;
         }
 
         // Progress 0..1 through the CURRENT phrase's tick span. Drives the count-in drain.
@@ -473,18 +485,16 @@ namespace YARG.Core.Engine.Vocals.Engines
             // Populate per-part tick totals for the current phrase. The coordinator's
             // phrase total sums across ALL harmony parts — not just Parts[0]/HARM1 — so
             // phrases that only have HARM2/HARM3 notes are not treated as empty.
-            uint allPartsTotal = 0;
             for (int j = 0; j < _allParts.Length; j++)
             {
-                _phraseTicksTotalPerPart[j] = GetTicksInPhraseForPart(_allParts[j]);
-                allPartsTotal += _phraseTicksTotalPerPart[j];
+                _phraseTicksTotalPerPart[j] = _partPhraseVocalTicks[j, NoteIndex];
             }
 
-            _coordinatorPhraseTicksTotal ??= allPartsTotal;
-            PhraseTicksTotal ??= _coordinatorPhraseTicksTotal;
+            uint phraseTicksTotal = _masterPhraseVocalTicks[NoteIndex];
+            PhraseTicksTotal ??= phraseTicksTotal;
 
             // Run the coordinator's per-tick ambiguity classifier
-            AccumulateAmbiguityScoring();
+            AccumulateAmbiguityScoring(Math.Min(CurrentTick, phrase.TickEnd));
 
             // Speculative refresh on the 100ms throttle for live HUD
             if (CurrentTime - _lastMeterRefreshTime >= METER_UPDATE_INTERVAL_SECONDS)
@@ -496,13 +506,11 @@ namespace YARG.Core.Engine.Vocals.Engines
             // Check for end of phrase
             if (CurrentTick > phrase.TickEnd)
             {
-                bool hasNotes = _coordinatorPhraseTicksTotal.Value != 0;
                 bool isLastPhrase = NoteIndex == Notes.Count - 1;
-                uint phraseTicksTotal = _coordinatorPhraseTicksTotal.Value;
 
                 if (phraseTicksTotal == 0)
                 {
-                    HitNote(phrase);
+                    HitNote(phrase, phraseTicksTotal);
                     // Fire OnPhraseHit so _phrasePercents stays aligned with
                     // _phraseGrades/_phrasePartResults (populated by the
                     // OnPartyVocalsPhrase handler below).
@@ -601,7 +609,7 @@ namespace YARG.Core.Engine.Vocals.Engines
             if (hit)
             {
                 EngineStats.TicksHit += phraseTicksTotal;
-                HitNote(phrase);
+                HitNote(phrase, phraseTicksTotal);
             }
             else
             {
@@ -619,7 +627,6 @@ namespace YARG.Core.Engine.Vocals.Engines
         {
             PhraseTicksHit = 0;
             PhraseTicksTotal = null;
-            _coordinatorPhraseTicksTotal = null;
 
             Array.Clear(_micPartHits, 0, _micPartHits.Length);
             Array.Clear(_lastWindowSnapshot, 0, _lastWindowSnapshot.Length);
@@ -649,7 +656,7 @@ namespace YARG.Core.Engine.Vocals.Engines
 
         #region Ambiguity Scoring
 
-        private void AccumulateAmbiguityScoring()
+        private void AccumulateAmbiguityScoring(uint coverageEnd)
         {
             int partCount = _phraseTicksTotalPerPart.Length;
 
@@ -696,7 +703,7 @@ namespace YARG.Core.Engine.Vocals.Engines
                         // and the tick span the mic just sang joins the part's
                         // temporal-union coverage (the budget below).
                         double d = _subEngines[i].LastTickPartDeltas[j];
-                        RecordCoveredSpan(j, _subEngines[i].LastCreditSpanStartTick, CurrentTick);
+                        RecordCoveredSpan(j, _subEngines[i].LastCreditSpanStartTick, coverageEnd);
                         if (d > maxBroadcast) maxBroadcast = d;
                     }
                     else if (PopCount(m) == 1)
@@ -910,12 +917,8 @@ namespace YARG.Core.Engine.Vocals.Engines
 
         #region Helpers
 
-        private uint GetTicksInPhraseForPart(VocalsPart part) =>
-            GetTicksInPhraseForPart(part, Notes[NoteIndex]);
-
         private uint GetTicksInPhraseForPart(VocalsPart part, VocalNote masterPhrase)
         {
-            uint masterStart = masterPhrase.Tick;
             uint masterEnd = masterPhrase.TickEnd;
 
             uint totalTime = 0;
@@ -923,12 +926,12 @@ namespace YARG.Core.Engine.Vocals.Engines
             {
                 var phraseNote = partPhrase.PhraseParentNote;
                 if (phraseNote.Tick >= masterEnd) break;
-                if (phraseNote.TickEnd <= masterStart) continue;
-
                 foreach (var noteInPhrase in phraseNote.ChildNotes)
                 {
+                    if (noteInPhrase.Tick >= masterEnd) break;
                     if (noteInPhrase.IsPercussion) continue;
-                    totalTime += phraseNote.GetTicksForNote(noteInPhrase);
+                    // A note can outlast its parent phrase. Count its overlap with the master.
+                    totalTime += masterPhrase.GetTicksForNote(noteInPhrase);
                 }
             }
             return totalTime;
