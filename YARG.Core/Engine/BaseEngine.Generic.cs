@@ -78,6 +78,7 @@ namespace YARG.Core.Engine
             SustainBurstThreshold = SyncTrack.Resolution / SUSTAIN_BURST_FRACTION;
 
             SetInitialStats();
+            PopulateStarScoreThresholds();
         }
 
         /// <summary>
@@ -174,16 +175,20 @@ namespace YARG.Core.Engine
 
             EngineStats.MaxSoloBonusPoints = CalculateTotalSoloBonus();
 
-            StarScoreThresholds = PopulateStarScoreThresholds(EngineParameters.StarMultiplierThresholds, EngineParameters.SoloBonusStarMultiplierThresholds, BaseScore, EngineStats.MaxSoloBonusPoints);
         }
 
-        public static int[] PopulateStarScoreThresholds(float[] multiplierThresholds, float[] soloBonusMultiplierThresholds, int baseScore, int soloScore)
+        public void PopulateStarScoreThresholds(double scoreMultiplier = 1.0)
+        {
+            StarScoreThresholds = CalculateStarScoreThresholds(EngineParameters.StarMultiplierThresholds, EngineParameters.SoloBonusStarMultiplierThresholds, BaseScore, EngineStats.MaxSoloBonusPoints, scoreMultiplier);
+        }
+
+        public static int[] CalculateStarScoreThresholds(float[] multiplierThresholds, float[] soloBonusMultiplierThresholds, int baseScore, int soloScore, double scoreMultiplier = 1.0)
         {
             var starScoreThresh = new int[multiplierThresholds.Length];
 
             for (int i = 0; i < multiplierThresholds.Length; i++)
             {
-                starScoreThresh[i] = (int)Math.Floor(baseScore * multiplierThresholds[i] + soloScore * soloBonusMultiplierThresholds[i]);
+                starScoreThresh[i] = (int)Math.Floor(baseScore * multiplierThresholds[i] + soloScore * soloBonusMultiplierThresholds[i] * scoreMultiplier);
             }
 
             return starScoreThresh;

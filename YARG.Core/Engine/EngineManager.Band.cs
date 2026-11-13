@@ -87,30 +87,56 @@ namespace YARG.Core.Engine
             }
         }
 
-        public static int[] GetStarScoreCutoffs(List<int[]> starScoreCutoffsList)
+        public static int[] GetStarScoreCutoffs(List<EngineContainer> engineContainers)
         {
 #if UNITY_EDITOR || YARG_TEST_BUILD || YARG_NIGHTLY_BUILD
-            foreach (var playerCutoffsList in starScoreCutoffsList)
+            int[] debugSpPresenceCounters = new int[3];
+            foreach (var engineContainer in engineContainers)
             {
                 YargLogger.AssertFormat(
-                    playerCutoffsList.Length == NUMBER_OF_STAR_SCORE_THRESHOLDS,
+                    engineContainer.BaseEngine.StarScoreThresholds?.Length == NUMBER_OF_STAR_SCORE_THRESHOLDS,
                     "Expected player star score cutoffs to contain {0} thresholds, got {1}.",
                     NUMBER_OF_STAR_SCORE_THRESHOLDS,
-                    playerCutoffsList.Length);
+                    engineContainer.BaseEngine.StarScoreThresholds?.Length ?? 0);
+                YargLogger.Assert(
+                    engineContainer.BaseEngine.StarScoreThresholds != null,
+                    "Player star score cutoffs are null.");
+                debugSpPresenceCounters[(int) engineContainer.StarPowerPresenceStatus]++;
             }
+            YargLogger.LogFormatDebug(
+                "Star power presence counts: {0} unisons, {1} star power, {2} none.",
+                debugSpPresenceCounters[0],
+                debugSpPresenceCounters[1],
+                debugSpPresenceCounters[2]);
 #endif
 
             int[] bandStarScoreCutoffs = new int[NUMBER_OF_STAR_SCORE_THRESHOLDS];
             for (int i = 0; i < NUMBER_OF_STAR_SCORE_THRESHOLDS; i++)
             {
                 int totalStarCutoff = 0;
-                foreach (var playerCutoffsList in starScoreCutoffsList)
+                double bandSpMultiplier = 0.0;
+                foreach (var engineContainer in engineContainers)
                 {
-                    totalStarCutoff += playerCutoffsList[i];
-                }
+                    if (engineContainer.BaseEngine.StarScoreThresholds == null)
+                    {
+                        YargLogger.LogWarning("Player star score cutoffs are null, skipping.");
+                        continue;
+                    }
+                    totalStarCutoff += engineContainer.BaseEngine.StarScoreThresholds[i];
+                    bandSpMultiplier += engineContainer.StarPowerPresenceStatus switch
+                    {
+                        // Where did .265 come from? dunno, ask Dark from 3 years ago
+                        EngineContainer.ChartStarPowerPresence.HasUnisons   => 0.265,
+                        EngineContainer.ChartStarPowerPresence.HasStarPower => 0.265 / 2,
+                        EngineContainer.ChartStarPowerPresence.None         => 0.0,
+                        _                                                   => throw new ArgumentOutOfRangeException()
+                    };
 
-                bandStarScoreCutoffs[i] = (int) Math.Floor(totalStarCutoff *
-                    (1 + .265f * (starScoreCutoffsList.Count - 1)));
+                }
+                double totalMultiplier = engineContainers.Count > 1
+                    ? 1.0 + bandSpMultiplier * (engineContainers.Count - 1.0) / engineContainers.Count
+                    : 1.0;
+                bandStarScoreCutoffs[i] = (int) Math.Floor(totalStarCutoff * totalMultiplier);
             }
 
             return bandStarScoreCutoffs;

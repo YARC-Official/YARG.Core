@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using YARG.Core.Chart;
 using YARG.Core.Engine.Drums;
 using YARG.Core.Game;
@@ -9,21 +10,29 @@ namespace YARG.Core.Engine
     // Tracks and instantiates engines, handles IPC between engines, and events that affect multiple engines
     public partial class EngineManager
     {
-        private int                      _nextEngineIndex;
-        List <EngineContainer>           _allEngines     = new();
+        private int                  _nextEngineIndex;
+        List<EngineContainer>        _allEngines = new();
         public List<EngineContainer> Engines => _allEngines;
 
-        private SongChart?               _chart;
+        private SongChart? _chart;
 
         public abstract partial class EngineContainer
         {
-            public    int                 EngineId        { get; }
-            public    int                 HarmonyIndex    { get; }
-            public    List<UnisonPhrase>  UnisonPhrases   { get; }
-            public    RockMeterPreset     RockMeterPreset { get; }
-            protected List<EngineCommand> SentCommands = new();
-            private   int                 CommandCount => SentCommands.Count;
-            protected EngineManager       EngineManager;
+            public enum ChartStarPowerPresence
+            {
+                HasUnisons,
+                HasStarPower,
+                None
+            }
+
+            public    int                    EngineId                { get; }
+            public    int                    HarmonyIndex            { get; }
+            public    List<UnisonPhrase>     UnisonPhrases           { get; }
+            public    ChartStarPowerPresence StarPowerPresenceStatus { get; protected set; }
+            public    RockMeterPreset        RockMeterPreset         { get; }
+            protected List<EngineCommand>    SentCommands = new();
+            private   int                    CommandCount => SentCommands.Count;
+            protected EngineManager          EngineManager;
 
             protected void OnStarPowerStatus(bool active)
             {
@@ -45,6 +54,7 @@ namespace YARG.Core.Engine
             public abstract Difficulty Difficulty { get; }
             public abstract void SubscribeToStarPowerPhraseHit();
             public abstract void UnsubscribeFromStarPowerPhraseHit();
+
             protected EngineContainer(int engineId, int harmonyIndex, EngineManager manager,
                 RockMeterPreset rockMeterPreset, List<UnisonPhrase> unisonPhrases)
             {
@@ -72,8 +82,49 @@ namespace YARG.Core.Engine
             {
                 Engine = engine;
                 InstrumentDifficulty = instrumentDifficulty;
-
+                PopulateStarScoreThresholds();
                 SubscribeToEvents();
+            }
+
+            private void PopulateStarScoreThresholds()
+            {
+                /*
+                 * These multipliers came from a rough estimation of how SP and unison phrases affect the total score of a chart.
+                 * Roughly, you can expect an SP phrase every 8 measures, and every other SP phrase to be a unison phrase.
+                 * SP phrases give 1/4th of a bar, and unison phrases give 1/2 of a bar of SP, and a bar lasts 8 measures.
+                 * You can roughly say that every SP phrase gives 1.5 measures of SP, every ~8 measures, or a 15% increase in score.
+                 * Why make it 30% then? I don't know, it seems vaguely correct.
+                 */
+                double multiplier;
+                if (UnisonPhrases.Count > 0)
+                {
+                    // Has unison phrases, use the default star thresholds for unison events
+                    multiplier = 1.0;
+                    StarPowerPresenceStatus = ChartStarPowerPresence.HasUnisons;
+                }
+                else if (InstrumentDifficulty.Notes.Any(note => note.IsStarPower))
+                {
+                    // Has star power notes, multiply thresholds by (1.2 / 1.3)
+                    multiplier = 1.2 / 1.3;
+                    StarPowerPresenceStatus = ChartStarPowerPresence.HasStarPower;
+                }
+                else
+                {
+                    StarPowerPresenceStatus = ChartStarPowerPresence.None;
+                    // has neither, divide thresholds by 1.3
+                    if (Instrument is Instrument.PartyVocals or Instrument.Vocals or Instrument.Harmony)
+                    {
+                        // These have no concept of unison phrases, so we divide by 1.2 instead
+                        // since the thresholds are already lower than other instruments
+                        multiplier = 1.0 / 1.2;
+                    }
+                    else
+                    {
+                        multiplier = 1.0 / 1.3;
+                    }
+                }
+
+                Engine.PopulateStarScoreThresholds(multiplier);
             }
 
             public override void SendCommand(EngineCommandType command)
@@ -246,6 +297,7 @@ namespace YARG.Core.Engine
             {
                 engine.UnsubscribeFromEvents();
             }
+
             _allEngines.Clear();
             _unisonEvents.Clear();
             _nextEngineIndex = 0;
@@ -258,8 +310,7 @@ namespace YARG.Core.Engine
             for (int i = 0; i < _allEngines.Count; i++)
             {
                 var engine = _allEngines[i];
-                if (engine.BaseEngine.BaseStats.IsStarPowerActive)
-                    activeSpCount++;
+                if (engine.BaseEngine.BaseStats.IsStarPowerActive) activeSpCount++;
             }
 
             UpdateStarPowerCount(activeSpCount);
