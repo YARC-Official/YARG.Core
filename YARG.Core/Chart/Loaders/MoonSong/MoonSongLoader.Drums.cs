@@ -13,8 +13,10 @@ namespace YARG.Core.Chart
     {
         private DrumsMixSetting _mixSetting = DrumsMixSetting.None;
 
-        // The chord that chord snapping moves notes into: its pads as written, and the mix setting of its red or
-        // yellow note
+        // The chord that chord snapping moves notes into: the difficulty's note list, its tick, its pads as written,
+        // and the mix setting of its red or yellow note
+        private List<DrumNote>? _snapChordNotes;
+        private uint _snapChordTick;
         private int _snapChordPads;
         private DrumsMixSetting? _snapChordDiscoMix;
 
@@ -38,11 +40,11 @@ namespace YARG.Core.Chart
             var difficulties = new Dictionary<Difficulty, InstrumentDifficulty<DrumNote>>()
             {
                 { Difficulty.Beginner, LoadDifficulty(instrument, Difficulty.Beginner, beginnerNoteDelegate, HandleTextEvent, finalPassDelegate: DrumsFinalPass) },
-                { Difficulty.Easy, LoadDifficulty(instrument, Difficulty.Easy, createNote, HandleTextEvent, finalPassDelegate: DrumsFinalPass) },
-                { Difficulty.Medium, LoadDifficulty(instrument, Difficulty.Medium, createNote, HandleTextEvent, finalPassDelegate: DrumsFinalPass) },
-                { Difficulty.Hard, LoadDifficulty(instrument, Difficulty.Hard, createNote, HandleTextEvent, finalPassDelegate: DrumsFinalPass) },
-                { Difficulty.Expert, LoadDifficulty(instrument, Difficulty.Expert, createNote, HandleTextEvent, finalPassDelegate: DrumsFinalPass) },
-                { Difficulty.ExpertPlus, LoadDifficulty(instrument, Difficulty.ExpertPlus, createNote, HandleTextEvent, finalPassDelegate: DrumsFinalPass) },
+                { Difficulty.Easy, LoadDifficulty(instrument, Difficulty.Easy, createNote, HandleTextEvent, finalPassDelegate: DrumsFinalPass, skippedNote: TrackSkippedDrumNote) },
+                { Difficulty.Medium, LoadDifficulty(instrument, Difficulty.Medium, createNote, HandleTextEvent, finalPassDelegate: DrumsFinalPass, skippedNote: TrackSkippedDrumNote) },
+                { Difficulty.Hard, LoadDifficulty(instrument, Difficulty.Hard, createNote, HandleTextEvent, finalPassDelegate: DrumsFinalPass, skippedNote: TrackSkippedDrumNote) },
+                { Difficulty.Expert, LoadDifficulty(instrument, Difficulty.Expert, createNote, HandleTextEvent, finalPassDelegate: DrumsFinalPass, skippedNote: TrackSkippedDrumNote) },
+                { Difficulty.ExpertPlus, LoadDifficulty(instrument, Difficulty.ExpertPlus, createNote, HandleTextEvent, finalPassDelegate: DrumsFinalPass, skippedNote: TrackSkippedDrumNote) },
             };
 
             foreach (var difficulty in difficulties)
@@ -67,11 +69,11 @@ namespace YARG.Core.Chart
                     difficulties = new Dictionary<Difficulty, InstrumentDifficulty<DrumNote>>()
                     {
                         { Difficulty.Beginner, LoadFromEliteDrumsDownchartDifficulty(instrument, Difficulty.Easy, beginnerNoteDelegate, HandleTextEvent) },
-                        { Difficulty.Easy, LoadFromEliteDrumsDownchartDifficulty(instrument, Difficulty.Easy, createNote, HandleTextEvent)},
-                        { Difficulty.Medium, LoadFromEliteDrumsDownchartDifficulty(instrument, Difficulty.Medium, createNote, HandleTextEvent)},
-                        { Difficulty.Hard, LoadFromEliteDrumsDownchartDifficulty(instrument, Difficulty.Hard, createNote, HandleTextEvent)},
-                        { Difficulty.Expert, LoadFromEliteDrumsDownchartDifficulty(instrument, Difficulty.Expert, createNote, HandleTextEvent)},
-                        { Difficulty.ExpertPlus, LoadFromEliteDrumsDownchartDifficulty(instrument, Difficulty.ExpertPlus, createNote, HandleTextEvent)},
+                        { Difficulty.Easy, LoadFromEliteDrumsDownchartDifficulty(instrument, Difficulty.Easy, createNote, HandleTextEvent, TrackSkippedDrumNote)},
+                        { Difficulty.Medium, LoadFromEliteDrumsDownchartDifficulty(instrument, Difficulty.Medium, createNote, HandleTextEvent, TrackSkippedDrumNote)},
+                        { Difficulty.Hard, LoadFromEliteDrumsDownchartDifficulty(instrument, Difficulty.Hard, createNote, HandleTextEvent, TrackSkippedDrumNote)},
+                        { Difficulty.Expert, LoadFromEliteDrumsDownchartDifficulty(instrument, Difficulty.Expert, createNote, HandleTextEvent, TrackSkippedDrumNote)},
+                        { Difficulty.ExpertPlus, LoadFromEliteDrumsDownchartDifficulty(instrument, Difficulty.ExpertPlus, createNote, HandleTextEvent, TrackSkippedDrumNote)},
                     };
                 }
             }
@@ -118,7 +120,7 @@ namespace YARG.Core.Chart
 
         private DrumNote? CreateFourLaneDrumNote(MoonNote moonNote, Dictionary<MoonPhrase.Type, MoonPhrase> currentPhrases, List<DrumNote> notes)
         {
-            if (!TrackSnappedDrumNote(moonNote, notes, out var mixSetting))
+            if (!TrackSnappedDrumNote(moonNote, notes, out uint tick, out var mixSetting))
             {
                 return null;
             }
@@ -136,16 +138,16 @@ namespace YARG.Core.Chart
 
             var drumFlags = GetDrumNoteFlags(moonNote, currentPhrases);
 
-            double time = _moonSong.TickToTime(moonNote.tick);
+            double time = _moonSong.TickToTime(tick);
 
             bool isDoubleKick = pad is FourLaneDrumPad.Kick && ((moonNote.flags & Flags.InstrumentPlus) != 0);
 
-            return new DrumNote(pad, noteType, drumFlags, generalFlags, time, moonNote.tick, isDoubleKick, stem);
+            return new DrumNote(pad, noteType, drumFlags, generalFlags, time, tick, isDoubleKick, stem);
         }
 
         private DrumNote? CreateFiveLaneDrumNote(MoonNote moonNote, Dictionary<MoonPhrase.Type, MoonPhrase> currentPhrases, List<DrumNote> notes)
         {
-            if (!TrackSnappedDrumNote(moonNote, notes, out var mixSetting))
+            if (!TrackSnappedDrumNote(moonNote, notes, out uint tick, out var mixSetting))
             {
                 return null;
             }
@@ -162,11 +164,11 @@ namespace YARG.Core.Chart
 
             var drumFlags = GetDrumNoteFlags(moonNote, currentPhrases);
 
-            double time = _moonSong.TickToTime(moonNote.tick);
+            double time = _moonSong.TickToTime(tick);
 
             bool isDoubleKick = pad is FiveLaneDrumPad.Kick && ((moonNote.flags & Flags.InstrumentPlus) != 0);
 
-            return new DrumNote(pad, noteType, drumFlags, generalFlags, time, moonNote.tick, isDoubleKick, GetStem(pad));
+            return new DrumNote(pad, noteType, drumFlags, generalFlags, time, tick, isDoubleKick, GetStem(pad));
         }
 
         private DrumNote CreateFourLaneDrumBeginnerNote(MoonNote moonNote, Dictionary<MoonPhrase.Type, MoonPhrase> currentPhrases, List<DrumNote> notes)
@@ -210,8 +212,13 @@ namespace YARG.Core.Chart
 
         /// <summary>
         /// Follows the chords that <c>chord_snap_threshold</c> makes. A pad is its color as written, so a yellow tom
-        /// and a yellow cymbal are one pad.
+        /// and a yellow cymbal are one pad. A double kick below Expert+ still has its pad and tick in a chord, as it
+        /// does on Expert+, though the difficulty leaves it out.
         /// </summary>
+        /// <param name="tick">
+        /// The tick to create the note on: the chord's tick when snapping moves the note into a chord that has no
+        /// note in this difficulty, such as a double kick alone below Expert+, and the note's own tick otherwise.
+        /// </param>
         /// <param name="mixSetting">
         /// The mix setting to read the note with: a red or yellow note that snapping moves takes the disco flip of
         /// the chord's red or yellow note, when there is one.
@@ -219,13 +226,18 @@ namespace YARG.Core.Chart
         /// <returns>
         /// False when snapping moves the note onto a pad the chord already has, since the chord's note stays as it is.
         /// </returns>
-        private bool TrackSnappedDrumNote(MoonNote moonNote, List<DrumNote> notes, out DrumsMixSetting mixSetting)
+        private bool TrackSnappedDrumNote(MoonNote moonNote, List<DrumNote> notes, out uint tick,
+            out DrumsMixSetting mixSetting)
         {
+            tick = moonNote.tick;
             mixSetting = _mixSetting;
-            bool moved = !_settings.RockBandNoteSnap && notes.Count > 0 && SnapsIntoChord(moonNote.tick, notes[^1].Tick);
-            if (!moved && (notes.Count == 0 || moonNote.tick != notes[^1].Tick))
+            bool sameDifficulty = ReferenceEquals(_snapChordNotes, notes);
+            bool moved = sameDifficulty && !_settings.RockBandNoteSnap && SnapsIntoChord(moonNote.tick, _snapChordTick);
+            if (!moved && (!sameDifficulty || moonNote.tick != _snapChordTick))
             {
                 // A new chord
+                _snapChordNotes = notes;
+                _snapChordTick = moonNote.tick;
                 _snapChordPads = 0;
                 _snapChordDiscoMix = null;
             }
@@ -243,6 +255,11 @@ namespace YARG.Core.Chart
                 {
                     mixSetting = _snapChordDiscoMix.Value;
                 }
+
+                if (notes.Count == 0 || notes[^1].Tick != _snapChordTick)
+                {
+                    tick = _snapChordTick;
+                }
             }
 
             _snapChordPads |= padMask;
@@ -251,6 +268,11 @@ namespace YARG.Core.Chart
                 _snapChordDiscoMix = mixSetting;
             }
             return true;
+        }
+
+        private void TrackSkippedDrumNote(MoonNote moonNote, List<DrumNote> notes)
+        {
+            TrackSnappedDrumNote(moonNote, notes, out _, out _);
         }
 
         private DrumStem GetStem(FourLaneDrumPad pad)
@@ -545,11 +567,12 @@ namespace YARG.Core.Chart
         }
 
         private InstrumentDifficulty<DrumNote> LoadFromEliteDrumsDownchartDifficulty(Instrument instrument,
-            Difficulty difficulty, CreateNoteDelegate<DrumNote> createNote, ProcessTextDelegate? processText = null)
+            Difficulty difficulty, CreateNoteDelegate<DrumNote> createNote, ProcessTextDelegate? processText = null,
+            SkippedNoteDelegate<DrumNote>? skippedNote = null)
         {
             var downchart = _downCharts![difficulty];
 
-            var notes = GetNotes(downchart, difficulty, createNote, processText);
+            var notes = GetNotes(downchart, difficulty, createNote, processText, skippedNote);
             var phrases = GetPhrases(downchart);
             var textEvents = GetTextEvents(downchart);
             return new(instrument, difficulty, notes, phrases, textEvents);
