@@ -17,9 +17,11 @@ namespace YARG.Core.UnitTests.Parsing
             return track.GetDifficulty(difficulty).Notes;
         }
 
+        [TestCase("")]
         [TestCase("easy")]
         [TestCase("easynokick")]
-        public void DiscoFlip_EndsAtEasyMixEvent(string flag)
+        [TestCase("'")]
+        public void DiscoFlip_EndsAtMixEventThatIsntAFlip(string flag)
         {
             var song = CreateSong();
             var chart = song.GetChart(MoonSong.MoonInstrument.Drums, MoonSong.Difficulty.Easy);
@@ -32,29 +34,6 @@ namespace YARG.Core.UnitTests.Parsing
 
             Assert.That(pads, Is.EqualTo(new[]
             {
-                FourLaneDrumPad.YellowCymbal,
-                FourLaneDrumPad.RedDrum,
-            }));
-        }
-
-        [Test]
-        public void DiscoFlip_LastsThroughMixEventWithUnknownFlag()
-        {
-            const string flag = "x";
-            var song = CreateSong();
-            var chart = song.GetChart(MoonSong.MoonInstrument.Drums, MoonSong.Difficulty.Easy);
-            chart.Add(new MoonText("mix 0 drums0d", 0));
-            chart.Add(new MoonNote(TICKS(1), (int) MoonNote.DrumPad.Red));
-            chart.Add(new MoonText($"mix 0 drums0{flag}", TICKS(2)));
-            chart.Add(new MoonNote(TICKS(3), (int) MoonNote.DrumPad.Red));
-            chart.Add(new MoonText("mix 0 drums0", TICKS(4)));
-            chart.Add(new MoonNote(TICKS(5), (int) MoonNote.DrumPad.Red));
-
-            var pads = LoadProDrums(song, Difficulty.Easy).Select(note => (FourLaneDrumPad) note.Pad);
-
-            Assert.That(pads, Is.EqualTo(new[]
-            {
-                FourLaneDrumPad.YellowCymbal,
                 FourLaneDrumPad.YellowCymbal,
                 FourLaneDrumPad.RedDrum,
             }));

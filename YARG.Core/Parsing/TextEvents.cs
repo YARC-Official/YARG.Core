@@ -195,21 +195,19 @@ namespace YARG.Core.Parsing
 
             config = (DrumsMixConfiguration) configNumber;
 
-            // Parse settings: no flag turns a flip off, and any flag that starts with d, other than dnoflip, turns one on.
-            // Apart from easy and easynokick, any other flag isn't a mix event.
+            // Parse settings: any flag that starts with d, other than dnoflip, turns a flip on,
+            // and any other flag, or none, turns it off
             var settingText = text;
-            if (settingText.IsEmpty)
-                setting = DrumsMixSetting.None;
-            else if (settingText.Equals("dnoflip", StringComparison.Ordinal))
+            if (settingText.Equals("dnoflip", StringComparison.Ordinal))
                 setting = DrumsMixSetting.DiscoNoFlip;
-            else if (settingText[0] == 'd')
+            else if (!settingText.IsEmpty && settingText[0] == 'd')
                 setting = DrumsMixSetting.DiscoFlip;
             else if (settingText.Equals("easy", StringComparison.Ordinal))
                 setting = DrumsMixSetting.Easy;
             else if (settingText.Equals("easynokick", StringComparison.Ordinal))
                 setting = DrumsMixSetting.EasyNoKick;
             else
-                return false;
+                setting = DrumsMixSetting.None;
 
             return true;
         }
