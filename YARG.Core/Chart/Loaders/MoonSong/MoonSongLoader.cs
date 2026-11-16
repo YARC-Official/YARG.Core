@@ -20,6 +20,9 @@ namespace YARG.Core.Chart
         // Returns null for a note that's left out
         private delegate TNote? CreateNoteDelegate<TNote>(MoonNote moonNote, CurrentPhrases currentPhrases, List<TNote> notes)
             where TNote : Note<TNote>;
+        // Sees a note that the difficulty leaves out, like a double kick below Expert+
+        private delegate void SkippedNoteDelegate<TNote>(MoonNote moonNote, List<TNote> notes)
+            where TNote : Note<TNote>;
         private delegate void ProcessTextDelegate(MoonText text);
         private delegate Phrase? ValidatePhraseDelegate(Phrase phrase, List<Phrase> phrases);
         private delegate void FinalPassDelegate<TNote>(InstrumentDifficulty<TNote> chart) where TNote : Note<TNote>;
@@ -153,7 +156,8 @@ namespace YARG.Core.Chart
             CreateNoteDelegate<TNote> createNote,
             ProcessTextDelegate? processText = null,
             ValidatePhraseDelegate? validatePhrase = null,
-            FinalPassDelegate<TNote>? finalPassDelegate = null)
+            FinalPassDelegate<TNote>? finalPassDelegate = null,
+            SkippedNoteDelegate<TNote>? skippedNote = null)
             where TNote : Note<TNote>
         {
             _currentMode = instrument.ToNativeGameMode();
@@ -165,7 +169,7 @@ namespace YARG.Core.Chart
             _currentMoonDifficulty = YargDifficultyToMoonDifficulty(_currentDifficulty);
 
             var moonChart = GetMoonChart(instrument, difficulty);
-            var notes = GetNotes(moonChart, difficulty, createNote, processText);
+            var notes = GetNotes(moonChart, difficulty, createNote, processText, skippedNote);
             var phrases = GetPhrases(moonChart, validatePhrase);
             var textEvents = GetTextEvents(moonChart);
 
@@ -180,7 +184,8 @@ namespace YARG.Core.Chart
         }
 
         private List<TNote> GetNotes<TNote>(MoonChart moonChart, Difficulty difficulty,
-            CreateNoteDelegate<TNote> createNote, ProcessTextDelegate? processText = null)
+            CreateNoteDelegate<TNote> createNote, ProcessTextDelegate? processText = null,
+            SkippedNoteDelegate<TNote>? skippedNote = null)
             where TNote : Note<TNote>
         {
             var notes = new List<TNote>(moonChart.notes.Count);
@@ -222,6 +227,7 @@ namespace YARG.Core.Chart
                 // Skip Expert+ notes if not on Expert+
                 if (difficulty != Difficulty.ExpertPlus && (moonNote.flags & MoonNote.Flags.InstrumentPlus) != 0)
                 {
+                    skippedNote?.Invoke(moonNote, notes);
                     continue;
                 }
 
