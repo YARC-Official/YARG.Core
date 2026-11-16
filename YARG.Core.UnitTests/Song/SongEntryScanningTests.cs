@@ -202,6 +202,24 @@ public class SongEntryScanningTests
         Assert.That(entry.PreviewStartMilliseconds, Is.EqualTo(expected));
     }
 
+    [TestCase("", -1L)]
+    [TestCase("preview_start_time = -1", -1L)]
+    [TestCase("preview_start_time = 0", 0L)]
+    public void ScanChart_ReadsChartPreviewStartOfZeroAsNotSet(string previewStartLine, long expected)
+    {
+        var entry = ScanChartWithIni(
+            $"""
+            [song]
+            name = Test
+            song_length = 10000
+            {previewStartLine}
+            """,
+            CHART_SONG_SECTION.Replace("PreviewStart = 30", "PreviewStart = 0")
+        );
+
+        Assert.That(entry.PreviewStartMilliseconds, Is.EqualTo(expected));
+    }
+
     [TestCase("-1", 4)]
     [TestCase("2", 2)]
     public void ScanChart_TakesBandDifficultyFromChartWhenSongIniLeavesItUnset(string diffBand, int expected)
@@ -236,11 +254,12 @@ public class SongEntryScanningTests
         Assert.That(entry.BandDifficulty, Is.EqualTo(expected));
     }
 
-    [TestCase("0.1", 100L)]
+    [TestCase("0.1", 700L)]
+    [TestCase("100.0", 100L)]
     [TestCase("250", 250L)]
     [TestCase("0", 700L)]
     [TestCase("-1", 700L)]
-    public void ScanChart_ReadsDelayWithDecimalPointAsSecondsBeforeOffset(string delay, long expected)
+    public void ScanChart_ReadsDelayInWholeMillisecondsBeforeOffset(string delay, long expected)
     {
         var entry = ScanChartWithIni(
             $"""

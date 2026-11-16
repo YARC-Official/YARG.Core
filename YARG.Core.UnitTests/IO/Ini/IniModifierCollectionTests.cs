@@ -79,50 +79,12 @@ public class IniModifierCollectionTests
         }
     }
 
-    [TestCase("0.1", 100L)]
-    [TestCase(".87", 870L)]
-    [TestCase("-0.85", -850L)]
-    [TestCase("0.0004", 0L)]
-    [TestCase("1.2.3", 0L)]
-    [TestCase("-1.0", -1000L)]
-    [TestCase("-0.001", -1L)]
-    [TestCase("250", 250L)]
-    public void Add_ReadsDelayWithDecimalPointAsSeconds(string rawValue, long expected)
-    {
-        var collection = new IniModifierCollection();
-
-        AddModifier(collection, "delay", rawValue, ModifierType.Delay);
-
-        using (Assert.EnterMultipleScope())
-        {
-            Assert.That(collection.Extract("delay", out long delay), Is.True);
-            Assert.That(delay, Is.EqualTo(expected));
-        }
-    }
-
-    [TestCase("0.1", 100L)]
-    [TestCase("-0.85", -850L)]
-    [TestCase("250", 250L)]
-    public void AddSng_ReadsDelayWithDecimalPointAsSeconds(string rawValue, long expected)
-    {
-        var collection = new IniModifierCollection();
-
-        AddSngModifier(collection, "delay", rawValue, ModifierType.Delay);
-
-        using (Assert.EnterMultipleScope())
-        {
-            Assert.That(collection.Extract("delay", out long delay), Is.True);
-            Assert.That(delay, Is.EqualTo(expected));
-        }
-    }
-
     [TestCase(ModifierType.Int64)]
     [TestCase(ModifierType.Int32)]
     [TestCase(ModifierType.Int16)]
     [TestCase(ModifierType.UInt64)]
     [TestCase(ModifierType.UInt32)]
     [TestCase(ModifierType.UInt16)]
-    [TestCase(ModifierType.Delay)]
     public void Add_ReadsMinusOneInANumberKeyAsNotSet(ModifierType type)
     {
         var collection = new IniModifierCollection();
@@ -135,7 +97,6 @@ public class IniModifierCollectionTests
 
     [TestCase(ModifierType.Int32)]
     [TestCase(ModifierType.UInt32)]
-    [TestCase(ModifierType.Delay)]
     public void AddSng_ReadsMinusOneInANumberKeyAsNotSet(ModifierType type)
     {
         var collection = new IniModifierCollection();
