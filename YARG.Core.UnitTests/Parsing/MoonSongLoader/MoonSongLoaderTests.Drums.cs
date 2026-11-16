@@ -19,9 +19,28 @@ namespace YARG.Core.UnitTests.Parsing
 
         [TestCase("easy")]
         [TestCase("easynokick")]
-        [TestCase("x")]
-        public void DiscoFlip_LastsThroughMixEventWithAnotherFlag(string flag)
+        public void DiscoFlip_EndsAtEasyMixEvent(string flag)
         {
+            var song = CreateSong();
+            var chart = song.GetChart(MoonSong.MoonInstrument.Drums, MoonSong.Difficulty.Easy);
+            chart.Add(new MoonText("mix 0 drums0d", 0));
+            chart.Add(new MoonNote(TICKS(1), (int) MoonNote.DrumPad.Red));
+            chart.Add(new MoonText($"mix 0 drums0{flag}", TICKS(2)));
+            chart.Add(new MoonNote(TICKS(3), (int) MoonNote.DrumPad.Red));
+
+            var pads = LoadProDrums(song, Difficulty.Easy).Select(note => (FourLaneDrumPad) note.Pad);
+
+            Assert.That(pads, Is.EqualTo(new[]
+            {
+                FourLaneDrumPad.YellowCymbal,
+                FourLaneDrumPad.RedDrum,
+            }));
+        }
+
+        [Test]
+        public void DiscoFlip_LastsThroughMixEventWithUnknownFlag()
+        {
+            const string flag = "x";
             var song = CreateSong();
             var chart = song.GetChart(MoonSong.MoonInstrument.Drums, MoonSong.Difficulty.Easy);
             chart.Add(new MoonText("mix 0 drums0d", 0));
