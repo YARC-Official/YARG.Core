@@ -833,14 +833,21 @@ namespace MoonscraperChartEditor.Song.IO
 
             int index = MoonObjectHelper.OrderedInsertFromBack(newMoonNote, chart.notes);
 
-            // Of two notes of one lane on a tick, such as a kick and a double kick, keep the longer,
-            // or the double kick when they're the same length
+            // Of two notes of one lane on a tick, keep the longer, but of a kick and a double kick,
+            // keep the kick whatever their lengths, so that Expert keeps it
             var existing = chart.notes[index];
-            if (existing != newMoonNote && (sus > existing.length ||
-                (sus == existing.length && (defaultFlags & MoonNote.Flags.InstrumentPlus) != 0)))
+            if (existing != newMoonNote)
             {
-                existing.length = sus;
-                existing.flags = defaultFlags;
+                bool newIsDoubleKick = (defaultFlags & MoonNote.Flags.InstrumentPlus) != 0;
+                bool existingIsDoubleKick = (existing.flags & MoonNote.Flags.InstrumentPlus) != 0;
+                bool replace = newIsDoubleKick == existingIsDoubleKick
+                    ? sus > existing.length
+                    : existingIsDoubleKick;
+                if (replace)
+                {
+                    existing.length = sus;
+                    existing.flags = defaultFlags;
+                }
             }
         }
 

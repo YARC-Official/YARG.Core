@@ -395,12 +395,11 @@ public class MidReaderProcessListsTests
     }
 
     // The sustain cutoff at this resolution is 64 ticks, so a 30 and a 60 tick note are the same length
-    [TestCase(480, 60, false, 480u)]
-    [TestCase(60, 480, true, 480u)]
-    [TestCase(480, 480, true, 480u)]
-    [TestCase(30, 60, true, 0u)]
-    public void KickAndDoubleKickOnOneTick_KeepTheLongerOrTheDoubleKick(int kickLength, int doubleKickLength,
-        bool keepsDoubleKick, uint keptLength)
+    [TestCase(480, 60, 480u)]
+    [TestCase(60, 480, 0u)]
+    [TestCase(480, 480, 480u)]
+    [TestCase(30, 60, 0u)]
+    public void KickAndDoubleKickOnOneTick_KeepTheKick(int kickLength, int doubleKickLength, uint keptLength)
     {
         var kick = MidIOHelper.DRUMS_DIFF_START_LOOKUP[Difficulty.Expert];
         var midi = MakeMidi(MakeTrack(MidIOHelper.DRUMS_TRACK,
@@ -414,7 +413,7 @@ public class MidReaderProcessListsTests
             Assert.That(notes, Has.Count.EqualTo(1));
             Assert.That(notes[0].drumPad, Is.EqualTo(DrumPad.Kick));
             Assert.That(notes[0].length, Is.EqualTo(keptLength));
-            Assert.That((notes[0].flags & Flags.DoubleKick) != 0, Is.EqualTo(keepsDoubleKick));
+            Assert.That((notes[0].flags & Flags.DoubleKick) != 0, Is.False);
         }
     }
 
