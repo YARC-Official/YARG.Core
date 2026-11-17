@@ -590,13 +590,9 @@ namespace YARG.Core.Song
                 }
 
                 entry._parts.ProDrums.Difficulties = entry._parts.FourLaneDrums.Difficulties;
-                // Rock Band songs cut sustains shorter than a 1/12th note, and add a tick to the HOPO threshold
-                // in songs.dta, like the default
-                entry._settings.SustainCutoffThreshold = resolution.Value / 3 - 1;
-                if (entry._settings.HopoThreshold >= 0)
-                {
-                    entry._settings.HopoThreshold += 1;
-                }
+                // Rock Band songs use the same sustain cutoff and HOPO threshold as song folders,
+                // so a CON and its song folder copy play the same
+                entry._settings.SustainCutoffThreshold = resolution.Value / 3 + 1;
 
                 using var buffer = FixedArray<byte>.Alloc(bufLength);
                 unsafe
