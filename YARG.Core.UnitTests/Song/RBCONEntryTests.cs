@@ -118,8 +118,8 @@ public class RBCONEntryTests
     }
 
     [TestCase(null, 161)]
-    [TestCase(100, 101)]
-    public void LoadChart_KeepsRockBandSustainCutoffAndHopoThreshold(int? dtaHopoThreshold, int hopoThreshold)
+    [TestCase(100, 100)]
+    public void LoadChart_UsesSongFolderSustainCutoffAndHopoThreshold(int? dtaHopoThreshold, int hopoThreshold)
     {
         string root = CreateTempDirectory();
         try
@@ -137,17 +137,17 @@ public class RBCONEntryTests
                              )
                            )
                            """;
-            // At 480 ticks per beat, sustains shorter than 160 ticks are cut
+            // At 480 ticks per beat, sustains of 161 ticks or shorter are cut, as in song folders
             int green = MidIOHelper.GUITAR_DIFF_START_LOOKUP[MoonSong.Difficulty.Expert];
             var entry = CreateUnpackedEntry(root, TEST_NODE_NAME, dta, writeMidi: path => TestMidi.Write(path, 480,
-                MidIOHelper.GUITAR_TRACK, (0, 159, green), (hopoThreshold, 160, green + 1), (960, 10, green),
-                (960 + hopoThreshold + 1, 10, green + 1)));
+                MidIOHelper.GUITAR_TRACK, (0, 160, green), (hopoThreshold, 161, green + 1), (960, 10, green),
+                (960 + hopoThreshold + 1, 162, green + 1)));
 
             var notes = entry.LoadChart()!.FiveFretGuitar.GetDifficulty(Difficulty.Expert).Notes;
 
             using (Assert.EnterMultipleScope())
             {
-                Assert.That(notes.Select(note => note.TickLength), Is.EqualTo(new uint[] { 0, 160, 0, 0 }));
+                Assert.That(notes.Select(note => note.TickLength), Is.EqualTo(new uint[] { 0, 0, 0, 162 }));
                 Assert.That(notes.Select(note => note.Type),
                     Is.EqualTo(new[] { GuitarNoteType.Strum, GuitarNoteType.Hopo, GuitarNoteType.Strum, GuitarNoteType.Strum }));
             }
