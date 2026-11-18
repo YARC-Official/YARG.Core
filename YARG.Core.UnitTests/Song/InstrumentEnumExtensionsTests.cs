@@ -107,6 +107,7 @@ public class InstrumentEnumExtensionsTests
             Instrument.SixFretBass,
             Instrument.SixFretRhythm,
             Instrument.SixFretCoopGuitar,
+            Instrument.SixLaneKeys,
             Instrument.FiveFretGuitar,
             Instrument.FiveFretBass,
             Instrument.FiveFretRhythm,
