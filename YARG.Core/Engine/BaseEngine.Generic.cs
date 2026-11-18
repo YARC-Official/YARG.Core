@@ -78,6 +78,7 @@ namespace YARG.Core.Engine
             SustainBurstThreshold = SyncTrack.Resolution / SUSTAIN_BURST_FRACTION;
 
             SetInitialStats();
+            // This'll get overriden by EngineContainer initialization, but we need to populate it here for anything that does not use them (e.g. tests)
             PopulateStarScoreThresholds();
         }
 
@@ -188,7 +189,7 @@ namespace YARG.Core.Engine
 
             for (int i = 0; i < multiplierThresholds.Length; i++)
             {
-                starScoreThresh[i] = (int)Math.Floor(baseScore * multiplierThresholds[i] + soloScore * soloBonusMultiplierThresholds[i] * scoreMultiplier);
+                starScoreThresh[i] = (int)Math.Floor(baseScore * multiplierThresholds[i] * scoreMultiplier + soloScore * soloBonusMultiplierThresholds[i]);
             }
 
             return starScoreThresh;
