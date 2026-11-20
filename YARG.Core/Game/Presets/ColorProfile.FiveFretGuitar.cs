@@ -194,6 +194,21 @@ namespace YARG.Core.Game
                 return (FiveFretGuitarColors) MemberwiseClone();
             }
 
+            /// <summary>
+            /// The six colors a note/fret can be under the RandomColors modifier
+            /// (the five frets, plus Open). Single source of truth so the picking
+            /// code doesn't need its own copy of this list.
+            /// </summary>
+            public static readonly int[] RandomColorSlots =
+            {
+                (int) FiveFretGuitarFret.Open,
+                (int) FiveFretGuitarFret.Green,
+                (int) FiveFretGuitarFret.Red,
+                (int) FiveFretGuitarFret.Yellow,
+                (int) FiveFretGuitarFret.Blue,
+                (int) FiveFretGuitarFret.Orange,
+            };
+
             public void Serialize(BinaryWriter writer)
             {
                 writer.Write(OpenFret);
