@@ -79,6 +79,66 @@ public class IniModifierCollectionTests
         }
     }
 
+    [TestCase(ModifierType.Int64)]
+    [TestCase(ModifierType.Int32)]
+    [TestCase(ModifierType.Int16)]
+    [TestCase(ModifierType.UInt64)]
+    [TestCase(ModifierType.UInt32)]
+    [TestCase(ModifierType.UInt16)]
+    public void Add_ReadsMinusOneInANumberKeyAsNotSet(ModifierType type)
+    {
+        var collection = new IniModifierCollection();
+
+        AddModifier(collection, "number", "5", type);
+        AddModifier(collection, "number", "-1", type);
+
+        Assert.That(collection.Contains("number"), Is.False);
+    }
+
+    [TestCase(ModifierType.Int32)]
+    [TestCase(ModifierType.UInt32)]
+    public void AddSng_ReadsMinusOneInANumberKeyAsNotSet(ModifierType type)
+    {
+        var collection = new IniModifierCollection();
+
+        AddSngModifier(collection, "number", "-1", type);
+
+        Assert.That(collection.Contains("number"), Is.False);
+    }
+
+    [Test]
+    public void Add_KeepsMinusOneInChartSongSection()
+    {
+        var collection = new IniModifierCollection();
+
+        AddModifier(collection, "diff_band", "-1", ModifierType.Int32, true);
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(collection.Extract("diff_band", out int band), Is.True);
+            Assert.That(band, Is.EqualTo(-1));
+        }
+    }
+
+    [TestCase("\"Song Name\"", "Song Name")]
+    [TestCase("\"Say \"Hi\" now\"", "Say \"Hi\" now")]
+    [TestCase("\"AC\\\"", "AC\\")]
+    [TestCase("\" Song Name \"", "Song Name")]
+    [TestCase("\"Song Name", "Song Name")]
+    [TestCase("\"\"", "")]
+    public void Add_ReadsChartTextBetweenTheFirstAndLastQuotationMarks(string rawValue, string expected)
+    {
+        var collection = new IniModifierCollection();
+
+        AddModifier(collection, "name", rawValue, ModifierType.String, true);
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(collection.Extract("name", out string name), Is.True);
+            Assert.That(name, Is.EqualTo(expected));
+        }
+    }
+
     [Test]
     public void Union_PreservesExistingNonDefaultValuesAndFillsDefaults()
     {
@@ -112,7 +172,7 @@ public class IniModifierCollectionTests
         }
     }
 
-    private static void AddModifier(IniModifierCollection collection, string output, string rawValue, ModifierType type)
+    private static void AddModifier(IniModifierCollection collection, string output, string rawValue, ModifierType type, bool isChartFile = false)
     {
         byte[] bytes = Encoding.UTF8.GetBytes(rawValue);
         using var buffer = FixedArray<byte>.Alloc(bytes.Length);
@@ -122,7 +182,7 @@ public class IniModifierCollectionTests
         YARGTextReader.SkipPureWhitespace(ref container);
 
         var outline = new IniModifierOutline(output, type);
-        collection.Add(ref container, in outline, false);
+        collection.Add(ref container, in outline, isChartFile);
     }
 
     private static void AddSngModifier(

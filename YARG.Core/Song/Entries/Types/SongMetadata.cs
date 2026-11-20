@@ -531,12 +531,14 @@ namespace YARG.Core.Song
                 {
                     metadata.Preview.Start = preview.Start;
                 }
-                else if (modifiers.Extract("preview_start_seconds", out double previewStartSeconds))
+                // [Song]'s PreviewStart of 0 isn't set: Moonscraper writes it into every chart
+                else if (modifiers.Extract("preview_start_seconds", out double previewStartSeconds) && previewStartSeconds != 0)
                 {
                     metadata.Preview.Start = (long)((previewStartSeconds) * MILLISECOND_FACTOR);
                 }
 
-                if (modifiers.Extract("preview_end_time", out preview.End))
+                // An end of 0 isn't set, so [Song]'s time applies
+                if (modifiers.Extract("preview_end_time", out preview.End) && preview.End != 0)
                 {
                     metadata.Preview.End = preview.Item2;
                 }

@@ -70,6 +70,13 @@ namespace YARG.Core.IO.Ini
         public void Add<TChar>(ref YARGTextContainer<TChar> container, in IniModifierOutline outline, bool isChartFile)
             where TChar : unmanaged, IConvertible
         {
+            // In song.ini, -1 in a number key means not set, also over an earlier line of the key
+            if (!isChartFile && IsMinusOne(container, outline.Type))
+            {
+                Remove(in outline);
+                return;
+            }
+
             switch (outline.Type)
             {
                 case ModifierType.String:
@@ -183,6 +190,13 @@ namespace YARG.Core.IO.Ini
 
         public void AddSng(ref YARGTextContainer<byte> container, int length, in IniModifierOutline outline)
         {
+            // As in song.ini, -1 in a number key means not set
+            if (IsMinusOne(container, outline.Type))
+            {
+                Remove(in outline);
+                return;
+            }
+
             switch (outline.Type)
             {
                 case ModifierType.String:
@@ -290,6 +304,41 @@ namespace YARG.Core.IO.Ini
                     _int64Arrays ??= new Dictionary<string, (long, long)>();
                     _int64Arrays[outline.Output] = (i641, i642);
                     break;
+            }
+        }
+
+        /// <summary>
+        /// Whether a whole-number value is -1, which in song.ini and .sng metadata means not set,
+        /// as if the key weren't there.
+        /// </summary>
+        private static bool IsMinusOne<TChar>(YARGTextContainer<TChar> text, ModifierType type)
+            where TChar : unmanaged, IConvertible
+        {
+            switch (type)
+            {
+                case ModifierType.UInt64:
+                case ModifierType.Int64:
+                case ModifierType.UInt32:
+                case ModifierType.Int32:
+                case ModifierType.UInt16:
+                case ModifierType.Int16:
+                    // Read as signed, so that an unsigned key's -1 is found too
+                    return YARGTextReader.TryExtract(ref text, out long value) && value == -1;
+                default:
+                    return false;
+            }
+        }
+
+        private void Remove(in IniModifierOutline outline)
+        {
+            switch (outline.Type)
+            {
+                case ModifierType.UInt64: _uint64s?.Remove(outline.Output); break;
+                case ModifierType.Int64:  _int64s?.Remove(outline.Output);  break;
+                case ModifierType.UInt32: _uint32s?.Remove(outline.Output); break;
+                case ModifierType.Int32:  _int32s?.Remove(outline.Output);  break;
+                case ModifierType.UInt16: _uint16s?.Remove(outline.Output); break;
+                case ModifierType.Int16:  _int16s?.Remove(outline.Output);  break;
             }
         }
 
