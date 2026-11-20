@@ -971,22 +971,7 @@ namespace YARG.Core.Engine
                         YargLogger.LogFormatTrace("Finished scoring sustain ({0}) at {1} (dropped: {2}, burst: {3})",
                             sustain.Note.Tick, CurrentTime, dropped, isBurst);
 
-                        double finalScore = CalculateSustainPoints(ref sustain, sustainTick);
-                        var points = (int) Math.Ceiling(finalScore);
-
-                        AddScore(points);
-                        ulong timeAsUlong = UnsafeExtensions.DoubleToUInt64Bits(CurrentTime);
-                        ulong baseScoreAsUlong = UnsafeExtensions.DoubleToUInt64Bits(sustain.BaseScore);
-                        YargLogger.LogFormatTrace("Added {0} points for end of sustain at {1} (0x{2}). Base Score/Tick: {3} (0x{4}), {5}", points, CurrentTime, timeAsUlong.ToString("X"), sustain.BaseScore, baseScoreAsUlong.ToString("X"), sustain.BaseTick);
-
-                        // SustainPoints must include the multiplier, but NOT the star power multiplier
-                        int sustainPoints = points * EngineStats.ScoreMultiplier;
-                        if (EngineStats.IsStarPowerActive)
-                        {
-                            sustainPoints /= 2;
-                        }
-
-                        EngineStats.SustainScore += sustainPoints;
+                        CommitSustainPoints(ref sustain, sustainTick);
                     }
                     else
                     {
@@ -1020,6 +1005,35 @@ namespace YARG.Core.Engine
             YargLogger.LogFormatTrace("Started sustain at {0} (tick len: {1}, time len: {2})", CurrentTime, note.TickLength, note.TimeLength);
 
             OnSustainStart?.Invoke(note);
+        }
+
+        /// <summary>
+        /// Adds the sustain points earned up to <paramref name="tick"/> to the score.
+        ///
+        /// <see cref="UpdateSustains"/> only scores sustains that are still in <see cref="ActiveSustains"/>,
+        /// so any other path that takes a sustain out of the list early has to call this first -
+        /// otherwise everything the sustain had earned up to that moment is dropped. The caller is
+        /// responsible for not committing twice: the burst / end / drop branch above sets
+        /// <c>HasFinishedScoring</c> when the sustain has paid out in full.
+        /// </summary>
+        protected void CommitSustainPoints(ref ActiveSustain<TNoteType> sustain, uint tick)
+        {
+            double finalScore = CalculateSustainPoints(ref sustain, tick);
+            var points = (int) Math.Ceiling(finalScore);
+
+            AddScore(points);
+            ulong timeAsUlong = UnsafeExtensions.DoubleToUInt64Bits(CurrentTime);
+            ulong baseScoreAsUlong = UnsafeExtensions.DoubleToUInt64Bits(sustain.BaseScore);
+            YargLogger.LogFormatTrace("Added {0} points for end of sustain at {1} (0x{2}). Base Score/Tick: {3} (0x{4}), {5}", points, CurrentTime, timeAsUlong.ToString("X"), sustain.BaseScore, baseScoreAsUlong.ToString("X"), sustain.BaseTick);
+
+            // SustainPoints must include the multiplier, but NOT the star power multiplier
+            int sustainPoints = points * EngineStats.ScoreMultiplier;
+            if (EngineStats.IsStarPowerActive)
+            {
+                sustainPoints /= 2;
+            }
+
+            EngineStats.SustainScore += sustainPoints;
         }
 
         protected virtual void EndSustain(int sustainIndex, bool dropped, bool isEndOfSustain)

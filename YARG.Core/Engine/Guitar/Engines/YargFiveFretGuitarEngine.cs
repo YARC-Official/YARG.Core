@@ -506,14 +506,33 @@ namespace YARG.Core.Engine.Guitar.Engines
 
             StrumLeniencyTimer.Disable(CurrentTime, early: true);
 
-            for(int i = 0; i < ActiveSustains.Count; i++)
+            // Counting down because EndSustain removes the element at i, which shifts every later
+            // sustain down into the slot that was just inspected. UpdateSustains keeps its removal
+            // in sync with an i--; going downwards is the same thing without the extra bookkeeping.
+            for (int i = ActiveSustains.Count - 1; i >= 0; i--)
             {
-                var sustainNote = ActiveSustains[i].Note;
+                ref var sustain = ref ActiveSustains[i];
+                var sustainNote = sustain.Note;
 
                 var sustainMask = sustainNote.IsDisjoint ? sustainNote.DisjointMask : sustainNote.NoteMask;
                 if ((sustainMask & note.NoteMask) != 0)
                 {
-                    EndSustain(i, true, CurrentTick >= sustainNote.TickEnd);
+                    bool isEndOfSustain = CurrentTick >= sustainNote.TickEnd;
+
+                    // The sustain leaves the active list here, so it is scored the same way
+                    // UpdateSustains scores a dropped one: everything earned up to now is committed,
+                    // and the sustain is only marked as fully scored when it really did reach its end.
+                    if (!sustain.HasFinishedScoring)
+                    {
+                        if (isEndOfSustain)
+                        {
+                            sustain.HasFinishedScoring = true;
+                        }
+
+                        CommitSustainPoints(ref sustain, isEndOfSustain ? sustainNote.TickEnd : CurrentTick);
+                    }
+
+                    EndSustain(i, true, isEndOfSustain);
                 }
             }
 
