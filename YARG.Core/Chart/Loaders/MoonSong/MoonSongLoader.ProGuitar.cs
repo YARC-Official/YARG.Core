@@ -31,7 +31,7 @@ namespace YARG.Core.Chart
             var proFlags = GetProGuitarNoteFlags(moonNote);
 
             double time = _moonSong.TickToTime(moonNote.tick);
-            return new ProGuitarNote(proString, proFret, noteType, proFlags, generalFlags, time, GetLengthInTime(moonNote), moonNote.tick, moonNote.length);
+            return new ProGuitarNote(proString, proFret, noteType, proFlags, generalFlags, time, GetLengthInTime(time, moonNote.tick, moonNote.length), moonNote.tick, moonNote.length);
         }
 
         private ProGuitarString GetProGuitarString(MoonNote moonNote)

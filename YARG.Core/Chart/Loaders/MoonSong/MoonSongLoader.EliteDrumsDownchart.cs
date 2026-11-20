@@ -8,6 +8,7 @@ namespace YARG.Core.Chart
     internal partial class MoonSongLoader : ISongLoader
     {
         private Dictionary<Difficulty, MoonChart>? _downCharts = null;
+        private bool _downChartsGenerated = false;
 
         private List<MoonText> _downchartTextEvents = new();
 

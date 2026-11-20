@@ -34,7 +34,7 @@ namespace YARG.Core.Chart
             var proKeysFlags = GetProKeysNoteFlags(moonNote, currentPhrases);
 
             double time = _moonSong.TickToTime(moonNote.tick);
-            return new ProKeysNote(key, proKeysFlags, generalFlags, time, GetLengthInTime(moonNote),
+            return new ProKeysNote(key, proKeysFlags, generalFlags, time, GetLengthInTime(time, moonNote.tick, moonNote.length),
                 moonNote.tick, moonNote.length);
         }
 

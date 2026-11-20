@@ -472,8 +472,6 @@ namespace MoonscraperChartEditor.Song.IO
                 postNotesAddedProcessList = postNotesAddedProcessList
             };
 
-            chart.notes.Capacity = 5000;
-
             var noteProcessDict = GetNoteProcessDict(gameMode);
             var specialPhraseProcessDict = GetSpecialPhraseProcessDict(gameMode);
 
@@ -597,7 +595,6 @@ namespace MoonscraperChartEditor.Song.IO
                     fn(ref processParams);
                 }
 
-                chart.notes.TrimExcess();
                 settings = processParams.settings;
             }
             catch (Exception e)
