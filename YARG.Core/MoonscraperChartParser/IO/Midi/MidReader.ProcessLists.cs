@@ -13,14 +13,6 @@ namespace MoonscraperChartEditor.Song.IO
 {
     internal static partial class MidReader
     {
-        private static readonly List<MoonSong.MoonInstrument> LegacyStarPowerFixupWhitelist = new()
-        {
-            MoonSong.MoonInstrument.Guitar,
-            MoonSong.MoonInstrument.GuitarCoop,
-            MoonSong.MoonInstrument.Bass,
-            MoonSong.MoonInstrument.Rhythm,
-        };
-
         // Delegate for functions that parse something into the chart
         private delegate void EventProcessFn(ref EventProcessParams eventProcessParams);
         // Delegate for functions that modify how the chart should be parsed
@@ -192,6 +184,7 @@ namespace MoonscraperChartEditor.Song.IO
 
         private static readonly List<EventProcessFn> GhlGuitarPostProcessList = new()
         {
+            FixupStarPowerIfNeeded,
         };
 
         private static readonly List<EventProcessFn> ProGuitarPostProcessList = new()
@@ -348,14 +341,12 @@ namespace MoonscraperChartEditor.Song.IO
             if (processParams.settings.StarPowerNote >= 0)
                 return;
 
-            // Check if instrument is allowed to be fixed up
-            if (!LegacyStarPowerFixupWhitelist.Contains(processParams.instrument))
-                return;
-
+            // Guitar Hero 1 charts mark star power with the solo note, so a track with two or more solos
+            // and no star power reads its solos as star power.
             // Only need to check one difficulty since phrases get copied to all difficulties
             var chart = processParams.song.GetChart(processParams.instrument, MoonSong.Difficulty.Expert);
             if (chart.specialPhrases.Any((sp) => sp.type == MoonPhrase.Type.Starpower)
-                || !chart.specialPhrases.Any((sp) => sp.type == MoonPhrase.Type.Solo))
+                || chart.specialPhrases.Count((sp) => sp.type == MoonPhrase.Type.Solo) < 2)
             {
                 return;
             }
