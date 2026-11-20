@@ -68,6 +68,30 @@ public class YARGIniReaderTests
     }
 
     [Test]
+    public void ReadIniFile_ReadsLineThatStartsWithBracketedNameAsKeyLine()
+    {
+        var collections = ReadIni(
+            """
+            [first]
+            [second] = 1
+            name = Alpha
+
+            [second]
+            enabled = 1
+            """
+        );
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(collections.Keys, Is.EquivalentTo(["[first]", "[second]"]));
+            Assert.That(collections["[first]"].Extract("name", out string name), Is.True);
+            Assert.That(name, Is.EqualTo("Alpha"));
+            Assert.That(collections["[second]"].Extract("enabled", out bool enabled), Is.True);
+            Assert.That(enabled, Is.True);
+        }
+    }
+
+    [Test]
     public void ReadIniFile_SkipsUnknownModifiersWithinKnownSection()
     {
         var collections = ReadIni(

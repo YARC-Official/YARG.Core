@@ -241,6 +241,11 @@ namespace YARG.Core.IO
                 string name = YARGTextReader.ExtractModifierName(ref container);
                 if (CHART_MODIFIERS.TryGetValue(name, out var outline))
                 {
+                    // Some charts write the resolution in quotation marks, which the chart loader removes too
+                    if (name == "Resolution" && !container.IsAtEnd() && container.Get() == '"')
+                    {
+                        ++container.Position;
+                    }
                     collection.Add(ref container, outline, true);
                 }
             }
