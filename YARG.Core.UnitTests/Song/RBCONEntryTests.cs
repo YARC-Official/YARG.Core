@@ -197,10 +197,11 @@ public class RBCONEntryTests
         string root = CreateTempDirectory();
         try
         {
-            var entry = CreateUnpackedEntry(root, TEST_NODE_NAME, CreateBasicDta(TEST_NODE_NAME), isPs3: isPs3);
-            string chartPath = Path.Combine(root, TEST_NODE_NAME, TEST_NODE_NAME + chartExtension);
+            // The time is captured when the entry is scanned, so it must be set beforehand.
             var expected = new DateTime(2020, 06, 15, 12, 30, 0, DateTimeKind.Local);
-            File.SetLastWriteTime(chartPath, expected);
+            var entry = CreateUnpackedEntry(root, TEST_NODE_NAME, CreateBasicDta(TEST_NODE_NAME), isPs3: isPs3,
+                beforeScan: chartPath => File.SetLastWriteTime(chartPath, expected));
+            string chartPath = Path.Combine(root, TEST_NODE_NAME, TEST_NODE_NAME + chartExtension);
 
             Assert.That(entry.GetLastModifiedTime(), Is.EqualTo(File.GetLastWriteTime(chartPath)));
         }
@@ -440,7 +441,7 @@ public class RBCONEntryTests
     }
 
     private static RBCONEntry CreateUnpackedEntry(string root, string nodeName, string dtaText,
-        int moggVersion = RBCONEntry.UNENCRYPTED_MOGG, bool isPs3 = false)
+        int moggVersion = RBCONEntry.UNENCRYPTED_MOGG, bool isPs3 = false, Action<string>? beforeScan = null)
     {
         string songDirectory = Path.Combine(root, nodeName);
         Directory.CreateDirectory(songDirectory);
@@ -448,6 +449,7 @@ public class RBCONEntryTests
         string midiExtension = isPs3 ? ".mid.edat" : ".mid";
         string midiPath = Path.Combine(songDirectory, nodeName + midiExtension);
         File.Copy(GetTestMidiPath(), midiPath);
+        beforeScan?.Invoke(midiPath);
 
         string moggPath = Path.Combine(songDirectory, $"{nodeName}.mogg");
         using (var mogg = new FileStream(moggPath, FileMode.Create, FileAccess.Write, FileShare.None))

@@ -215,13 +215,18 @@ namespace YARG.Core.Song
         public abstract DateTime GetLastWriteTime();
 
         /// <summary>
-        /// Gets the last-modified time of the file containing the chart.
-        /// Unlike <see cref="GetLastWriteTime"/>, this does not consider the file creation time.
+        /// The last-modified time of the file containing the chart, as of the scan that created
+        /// this entry. Unlike <see cref="GetLastWriteTime"/>, this does not consider the file
+        /// creation time.
         /// </summary>
-        public virtual DateTime GetLastModifiedTime()
-        {
-            return File.GetLastWriteTime(ActualLocation);
-        }
+        /// <remarks>
+        /// Cached rather than read from disk: sorting reads it for every song, which takes tens
+        /// of seconds over a network share. An edited chart fails its timestamp validation and
+        /// gets rescanned, which refreshes this along with the rest of the entry.
+        /// </remarks>
+        public DateTime GetLastModifiedTime() => _lastModifiedTime;
+
+        private protected DateTime _lastModifiedTime;
 
         public override string ToString() { return Artist + " | " + Name; }
 
@@ -467,6 +472,8 @@ namespace YARG.Core.Song
             stream.Write(_settings.HopoThreshold, Endianness.Little);
             stream.Write(_settings.SustainCutoffThreshold, Endianness.Little);
             stream.Write(_settings.OverdiveMidiNote, Endianness.Little);
+
+            stream.Write(_lastModifiedTime.ToBinary(), Endianness.Little);
         }
 
         protected SongEntry() { }
@@ -570,6 +577,8 @@ namespace YARG.Core.Song
             _settings.HopoThreshold = stream.Read<long>(Endianness.Little);
             _settings.SustainCutoffThreshold = stream.Read<long>(Endianness.Little);
             _settings.OverdiveMidiNote = stream.Read<int>(Endianness.Little);
+
+            _lastModifiedTime = DateTime.FromBinary(stream.Read<long>(Endianness.Little));
 
             SetSortStrings();
         }
