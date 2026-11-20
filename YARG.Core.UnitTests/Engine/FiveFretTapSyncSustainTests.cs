@@ -10,25 +10,12 @@ using YARG.Core.Input;
 
 namespace YARG.Core.UnitTests.Engine;
 
-/// Two defects in the sustain-cutting path of `YargFiveFretGuitarEngine.HitNote`
-/// (`YargFiveFretGuitarEngine.cs:509-518`), the loop that ends the active sustains whose
-/// frets overlap the note that was just hit. This is how a chart cuts a sustain: the next
-/// note on the same fret ("tap sync").
-///
-/// 1. `EndSustain` (`BaseEngine.Generic.cs:1025-1032`) only removes the sustain and raises
-///    `OnSustainEnd`. Sustain points reach the score from two call sites only: the burst/end/drop
-///    branch of `UpdateSustains` (`BaseEngine.Generic.cs:959-1001`, `AddScore` +
-///    `EngineStats.SustainScore`) and `Overstrum` (`GuitarEngine.cs:176-186`, which calls
-///    `CalculateSustainPoints` itself). The between-passes branch (`:993-1000`) only fills
-///    `EngineStats.PendingScore`, which is UI-only. The cut path scores nowhere, so every point
-///    the sustain had earned is discarded.
-/// 2. The loop indexes `ActiveSustains[i]` and `EndSustain` removes at `i`, but the loop then does
-///    `i++`, so the sustain that shifts into `i` is never tested. `UpdateSustains` pairs its removal
-///    with the matching `i--` (`BaseEngine.Generic.cs:1003-1008`), and `Overstrum` does the same
-///    (`GuitarEngine.cs:176-180`); the cut loop is the only removal site that misses it. So when two
-///    active sustains both overlap the note, the second one is skipped: it keeps scoring, keeps
-///    masking its fret in `CanNoteBeHit` (`YargFiveFretGuitarEngine.cs:358-390`), and for a star
-///    power sustain keeps `IsStarPowerSustainActive` true after the note that should have cut it.
+/// <summary>
+/// Regression tests for the sustain-cutting loop in <see cref="YargFiveFretGuitarEngine.HitNote"/>
+/// (inherited by <see cref="YargSixFretGuitarEngine"/>): cutting every overlapping active sustain
+/// without index skips, committing earned points (including burst-window handling), and avoiding
+/// double-scoring after burst.
+/// </summary>
 public class FiveFretTapSyncSustainTests
 {
     // SyncTrack resolution 480 @ 120 bpm, so 960 ticks per second and 19.2 ticks per sustain
@@ -52,13 +39,40 @@ public class FiveFretTapSyncSustainTests
         public readonly List<(double time, int count)> SustainCountOverTime = new();
         public int Score => EngineStats.CommittedScore;
         public int SustainScore => EngineStats.SustainScore;
+        public int StarPowerScore => EngineStats.StarPowerScore;
+    }
+
+    private class TestSixFretEngine : YargSixFretGuitarEngine
+    {
+        public readonly List<(double time, SixFretGuitarFret fret, bool scored)> SustainEnds = new();
+        public int Hits;
+
+        public TestSixFretEngine(InstrumentDifficulty<GuitarNote> chart, SyncTrack syncTrack,
+            GuitarEngineParameters parameters) : base(chart, syncTrack, parameters, false)
+        {
+            OnSustainEnd += (note, time, scored) =>
+                SustainEnds.Add((time, (SixFretGuitarFret) note.Fret, scored));
+            OnNoteHit += (_, _) => Hits++;
+        }
+
+        public int ActiveSustainCount => ActiveSustains.Count;
+        public int Score => EngineStats.CommittedScore;
+        public int SustainScore => EngineStats.SustainScore;
     }
 
     private static GuitarNote Note(FiveFretGuitarFret fret, GuitarNoteType type, double time,
+        uint tickLength = 0, GuitarNoteFlags flags = GuitarNoteFlags.None,
+        NoteFlags noteFlags = NoteFlags.None)
+    {
+        uint tick = (uint) Math.Round(time * TICKS_PER_SEC);
+        return new GuitarNote(fret, type, flags, noteFlags, time, tickLength / TICKS_PER_SEC, tick, tickLength);
+    }
+
+    private static GuitarNote SixFretNote(SixFretGuitarFret fret, GuitarNoteType type, double time,
         uint tickLength = 0, GuitarNoteFlags flags = GuitarNoteFlags.None)
     {
         uint tick = (uint) Math.Round(time * TICKS_PER_SEC);
-        return new GuitarNote(fret, type, flags, NoteFlags.None, time, 0, tick, tickLength);
+        return new GuitarNote(fret, type, flags, NoteFlags.None, time, tickLength / TICKS_PER_SEC, tick, tickLength);
     }
 
     private static void Link(List<GuitarNote> notes)
@@ -116,6 +130,7 @@ public class FiveFretTapSyncSustainTests
     {
         var track = new SyncTrack(480);
         track.Tempos.Add(new TempoChange(120, 0, 0));
+        track.TimeSignatures.Add(new TimeSignatureChange(4, 4, 0.0, 0, 0, 0, 0, 0));
         return track;
     }
 
@@ -146,6 +161,8 @@ public class FiveFretTapSyncSustainTests
             "the tap note should end the sustain it is charted on");
         Assert.That(engine.SustainEnds[0].time, Is.LessThan(2.05),
             "the sustain should be cut by the tap, not run to its natural end at 2.5 s");
+        Assert.That(engine.SustainEnds[0].scored, Is.False,
+            "an early cut before burst should not report the sustain as fully scored");
 
         // A sustain held from 1.0 s to the cut at its front end (~1.94 s, the window saturates at
         // MaxWindow 0.12) has earned ~902/19.2 = 47 of its 75 points. Pinned as a range so that a
@@ -153,6 +170,8 @@ public class FiveFretTapSyncSustainTests
         Assert.That(engine.SustainScore, Is.InRange(45, 50),
             $"the ~47 points earned before the cut should have been committed " +
             $"(SustainScore was {engine.SustainScore}, CommittedScore {engine.Score})");
+        Assert.That(engine.Score, Is.EqualTo(100 + engine.SustainScore),
+            "CommittedScore should match the two notes (100) plus the committed sustain points");
     }
 
     [Test]
@@ -171,10 +190,12 @@ public class FiveFretTapSyncSustainTests
         Assert.That(engine.SustainEnds, Has.Count.EqualTo(1));
         Assert.That(engine.SustainEnds[0].time, Is.InRange(2.4, 2.6),
             "control: the sustain should reach its natural end at 2.5 s, nothing cut it");
+        Assert.That(engine.SustainEnds[0].scored, Is.True);
 
         // 1440 ticks / 19.2 ticks per point at multiplier 1.
         Assert.That(engine.SustainScore, Is.EqualTo(75),
             "control: an uncut sustain pays its full 75 points at burst");
+        Assert.That(engine.Score, Is.EqualTo(125));
     }
 
     [Test]
@@ -233,10 +254,15 @@ public class FiveFretTapSyncSustainTests
             $"both sustains should have been cut by the chord; ends were " +
             $"[{string.Join(", ", engine.SustainEnds)}]");
         Assert.That(engine.SustainEnds.Select(e => e.fret),
-            Is.EquivalentTo(new[] { FiveFretGuitarFret.Green, FiveFretGuitarFret.Red }),
-            "both frets' sustains should have been cut, in any order");
-        Assert.That(engine.SustainEnds[1].time, Is.LessThan(2.05),
+            Is.EqualTo(new[] { FiveFretGuitarFret.Green, FiveFretGuitarFret.Red }),
+            "both frets' sustains should have been cut in FIFO order");
+        Assert.That(engine.SustainEnds.Select(e => e.time), Has.All.LessThan(2.05),
             "both cuts should happen at the chord, not later");
+        Assert.That(engine.SustainEnds.Select(e => e.scored), Has.All.False);
+
+        // Green held ~0.94 s (~47 pts) + Red held ~0.44 s (~22 pts) = ~69 pts; 4 note heads (G, R, G+R) = 200 pts.
+        Assert.That(engine.SustainScore, Is.InRange(65, 73));
+        Assert.That(engine.Score, Is.EqualTo(200 + engine.SustainScore));
 
         // Same fact from the other side: the red sustain sits in the active list for the whole
         // span after the chord, so it keeps scoring and keeps masking its fret.
@@ -244,5 +270,202 @@ public class FiveFretTapSyncSustainTests
         Assert.That(stillActive, Is.Empty,
             "no sustain should still be active after the chord that overlaps both its frets " +
             $"(found {stillActive.Count} updates with an active sustain, e.g. {First(stillActive)})");
+    }
+
+    [Test]
+    public void StrumNote_AtExactBurstTime_PaysFullSustainAndMarksScored()
+    {
+        // Green sustain 1.0-2.5 s (ticks 960..2400). SustainBurstThreshold is 480 / 4 = 120 ticks,
+        // so burstTime is tick 2280 (2.375 s). Strumming a same-fret note at exact 2.375 s runs
+        // CheckForNoteHit before UpdateSustains on that frame; the cut must still honor burst.
+        var notes = new List<GuitarNote>
+        {
+            Note(FiveFretGuitarFret.Green, GuitarNoteType.Strum, 1.0, 1440,
+                GuitarNoteFlags.ExtendedSustain),
+            Note(FiveFretGuitarFret.Green, GuitarNoteType.Strum, 2.375),
+        };
+
+        var inputs = new (double, GuitarAction, bool)[]
+        {
+            (0.95, GuitarAction.GreenFret, true),
+            (1.00, GuitarAction.StrumDown, true),
+            (2.375, GuitarAction.StrumUp, true),
+        };
+
+        var engine = Run(notes, inputs);
+
+        Assert.That(engine.Hits, Is.EqualTo(2));
+        Assert.That(engine.SustainEnds, Has.Count.EqualTo(1));
+        Assert.That(engine.SustainEnds[0].time, Is.EqualTo(2.375).Within(1e-6));
+        Assert.That(engine.SustainEnds[0].scored, Is.True,
+            "a cut at or past burstTime must mark the sustain as fully scored");
+        Assert.That(engine.SustainScore, Is.EqualTo(75),
+            "burst threshold should pay the full 75 points");
+        Assert.That(engine.Score, Is.EqualTo(175));
+    }
+
+    [Test]
+    public void TapNote_AfterBurst_DoesNotDoubleScoreSustain()
+    {
+        // Green sustain 1.0-2.5 s bursts at 2.375 s. The tap at 2.48 s hits at its front end (~2.42 s),
+        // after burst has already committed all 75 points but before TickEnd (2.5 s).
+        var notes = new List<GuitarNote>
+        {
+            Note(FiveFretGuitarFret.Green, GuitarNoteType.Strum, 1.0, 1440,
+                GuitarNoteFlags.ExtendedSustain),
+            Note(FiveFretGuitarFret.Green, GuitarNoteType.Tap, 2.48),
+        };
+
+        var engine = Run(notes, HoldGreen);
+
+        Assert.That(engine.Hits, Is.EqualTo(2));
+        Assert.That(engine.SustainEnds, Has.Count.EqualTo(1));
+        Assert.That(engine.SustainEnds[0].time, Is.LessThan(2.47));
+        Assert.That(engine.SustainEnds[0].scored, Is.True);
+        Assert.That(engine.SustainScore, Is.EqualTo(75),
+            "a sustain already committed at burst must not be scored a second time when cut");
+        Assert.That(engine.Score, Is.EqualTo(175));
+    }
+
+    [Test]
+    public void TapNote_CutsSustain_WithMultiplierAndStarPower()
+    {
+        // Build a 10-note streak (2x multiplier) with two SP phrases (half bar), activate SP (4x total),
+        // then hold a green sustain 2.0-3.5 s and cut it with a green tap at 3.0 s.
+        var notes = new List<GuitarNote>();
+        var inputs = new List<(double, GuitarAction, bool)>
+        {
+            (0.45, GuitarAction.GreenFret, true),
+        };
+
+        for (int i = 0; i < 10; i++)
+        {
+            double t = 0.5 + i * 0.1;
+            var spFlags = i switch
+            {
+                0 or 2 => NoteFlags.StarPower | NoteFlags.StarPowerStart,
+                1 or 3 => NoteFlags.StarPower | NoteFlags.StarPowerEnd,
+                _ => NoteFlags.None,
+            };
+            notes.Add(Note(FiveFretGuitarFret.Green, GuitarNoteType.Strum, t, noteFlags: spFlags));
+            inputs.Add((t, i % 2 == 0 ? GuitarAction.StrumDown : GuitarAction.StrumUp, true));
+        }
+
+        inputs.Add((1.55, GuitarAction.StarPower, true));
+        inputs.Add((1.60, GuitarAction.StarPower, false));
+
+        notes.Add(Note(FiveFretGuitarFret.Green, GuitarNoteType.Strum, 2.0, 1440,
+            GuitarNoteFlags.ExtendedSustain));
+        inputs.Add((2.0, GuitarAction.StrumDown, true));
+
+        notes.Add(Note(FiveFretGuitarFret.Green, GuitarNoteType.Tap, 3.0));
+
+        var engine = Run(notes, inputs, until: 3.6);
+
+        Assert.That(engine.Hits, Is.EqualTo(12));
+        Assert.That(engine.SustainEnds, Has.Count.EqualTo(1));
+        Assert.That(engine.SustainEnds[0].time, Is.LessThan(3.05));
+        Assert.That(engine.SustainEnds[0].scored, Is.False);
+
+        // ~47 base sustain points at 2x combo multiplier -> ~94 in SustainScore (SP excluded),
+        // and 2 * SustainScore (~188) in CommittedScore (4x total with SP active).
+        // Note score: 9 notes @ 1x (450) + 1 note @ 2x (100) + 2 notes @ 4x SP (400) = 950.
+        Assert.That(engine.SustainScore, Is.InRange(90, 100));
+        Assert.That(engine.Score, Is.EqualTo(950 + 2 * engine.SustainScore));
+        Assert.That(engine.StarPowerScore, Is.EqualTo(200 + engine.SustainScore));
+    }
+
+    [Test]
+    public void TapChord_OverDisjointAndNonOverlappingSustains_CutsOnlyOverlapping()
+    {
+        // Green sustain (1.0-3.0 s, lower anchor) plus disjoint red+yellow sustain (1.5-3.0 s).
+        // A red+yellow tap chord at 2.0 s must cut both disjoint sustains while leaving green intact.
+        var green = Note(FiveFretGuitarFret.Green, GuitarNoteType.Strum, 1.0, 1920,
+            GuitarNoteFlags.ExtendedSustain);
+
+        var disjoint = Note(FiveFretGuitarFret.Red, GuitarNoteType.Strum, 1.5, 1440,
+            GuitarNoteFlags.ExtendedSustain | GuitarNoteFlags.Disjoint);
+        disjoint.AddChildNote(Note(FiveFretGuitarFret.Yellow, GuitarNoteType.Strum, 1.5, 1440,
+            GuitarNoteFlags.ExtendedSustain | GuitarNoteFlags.Disjoint));
+
+        var chord = Note(FiveFretGuitarFret.Red, GuitarNoteType.Tap, 2.0);
+        chord.AddChildNote(Note(FiveFretGuitarFret.Yellow, GuitarNoteType.Tap, 2.0));
+
+        var notes = new List<GuitarNote> { green, disjoint, chord };
+        var inputs = new (double, GuitarAction, bool)[]
+        {
+            (0.95, GuitarAction.GreenFret, true),
+            (1.00, GuitarAction.StrumDown, true),
+            (1.45, GuitarAction.RedFret, true),
+            (1.45, GuitarAction.YellowFret, true),
+            (1.50, GuitarAction.StrumUp, true),
+        };
+
+        var engine = Run(notes, inputs, until: 3.3);
+
+        Assert.That(engine.Hits, Is.EqualTo(3));
+        Assert.That(engine.SustainEnds, Has.Count.EqualTo(3));
+
+        var cutEnds = engine.SustainEnds.Where(e => e.time < 2.05).ToList();
+        var naturalEnds = engine.SustainEnds.Where(e => e.time > 2.9).ToList();
+
+        Assert.That(cutEnds.Select(e => e.fret),
+            Is.EqualTo(new[] { FiveFretGuitarFret.Red, FiveFretGuitarFret.Yellow }));
+        Assert.That(cutEnds.Select(e => e.scored), Has.All.False);
+
+        Assert.That(naturalEnds, Has.Count.EqualTo(1));
+        Assert.That(naturalEnds[0].fret, Is.EqualTo(FiveFretGuitarFret.Green));
+        Assert.That(naturalEnds[0].scored, Is.True);
+
+        // Full green sustain (1920 ticks = 100 pts) + two disjoint sustains (~0.44 s -> ~22 pts each = ~44) = ~144.
+        Assert.That(engine.SustainScore, Is.InRange(140, 150));
+        Assert.That(engine.Score, Is.EqualTo(250 + engine.SustainScore));
+    }
+
+    [Test]
+    public void SixFret_TapChord_OverTwoSustains_EndsAndScoresBoth()
+    {
+        var b1 = SixFretNote(SixFretGuitarFret.Black1, GuitarNoteType.Strum, 1.0, 1440,
+            GuitarNoteFlags.ExtendedSustain);
+        var b2 = SixFretNote(SixFretGuitarFret.Black2, GuitarNoteType.Strum, 1.5, 1440,
+            GuitarNoteFlags.ExtendedSustain);
+        var chord = SixFretNote(SixFretGuitarFret.Black1, GuitarNoteType.Tap, 2.0);
+        chord.AddChildNote(SixFretNote(SixFretGuitarFret.Black2, GuitarNoteType.Tap, 2.0));
+
+        var notes = new List<GuitarNote> { b1, b2, chord };
+        Link(notes);
+
+        var difficulty = new InstrumentDifficulty<GuitarNote>(Instrument.SixFretGuitar, Difficulty.Expert,
+            notes, new(), new());
+        var engine = new TestSixFretEngine(difficulty, SyncTrack(), Parameters());
+
+        var inputs = new (double, GuitarAction, bool)[]
+        {
+            (0.95, GuitarAction.Black1Fret, true),
+            (1.00, GuitarAction.StrumDown, true),
+            (1.45, GuitarAction.Black2Fret, true),
+            (1.50, GuitarAction.StrumUp, true),
+        };
+
+        foreach (var (time, action, button) in inputs)
+        {
+            var input = GameInput.Create(time, action, button);
+            engine.QueueInput(ref input);
+        }
+
+        for (double time = 0.4; time <= 2.4; time += 1.0 / 240.0)
+        {
+            engine.Update(time);
+        }
+
+        Assert.That(engine.Hits, Is.EqualTo(3));
+        Assert.That(engine.SustainEnds, Has.Count.EqualTo(2));
+        Assert.That(engine.SustainEnds.Select(e => e.fret),
+            Is.EqualTo(new[] { SixFretGuitarFret.Black1, SixFretGuitarFret.Black2 }));
+        Assert.That(engine.SustainEnds.Select(e => e.time), Has.All.LessThan(2.05));
+        Assert.That(engine.SustainEnds.Select(e => e.scored), Has.All.False);
+        Assert.That(engine.ActiveSustainCount, Is.Zero);
+        Assert.That(engine.SustainScore, Is.InRange(65, 73));
+        Assert.That(engine.Score, Is.EqualTo(200 + engine.SustainScore));
     }
 }

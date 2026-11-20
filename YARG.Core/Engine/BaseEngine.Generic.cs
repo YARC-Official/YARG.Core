@@ -916,17 +916,7 @@ namespace YARG.Core.Engine
 
                 // If we're close enough to the end of the sustain, finish it
                 // Provides leniency for sustains with no gap (and just in general)
-                bool isBurst;
-
-                // Sustain is too short for a burst
-                if (SustainBurstThreshold > note.TickLength)
-                {
-                    isBurst = CurrentTick >= note.Tick;
-                }
-                else
-                {
-                    isBurst = CurrentTick >= note.TickEnd - SustainBurstThreshold;
-                }
+                bool isBurst = IsSustainBursted(note);
 
                 bool isEndOfSustain = CurrentTick >= note.TickEnd;
 
@@ -1007,14 +997,25 @@ namespace YARG.Core.Engine
             OnSustainStart?.Invoke(note);
         }
 
+        protected bool IsSustainBursted(TNoteType note)
+        {
+            // Sustain is too short for a burst
+            if (SustainBurstThreshold > note.TickLength)
+            {
+                return CurrentTick >= note.Tick;
+            }
+
+            return CurrentTick >= note.TickEnd - SustainBurstThreshold;
+        }
+
         /// <summary>
         /// Adds the sustain points earned up to <paramref name="tick"/> to the score.
         ///
         /// <see cref="UpdateSustains"/> only scores sustains that are still in <see cref="ActiveSustains"/>,
         /// so any other path that takes a sustain out of the list early has to call this first -
         /// otherwise everything the sustain had earned up to that moment is dropped. The caller is
-        /// responsible for not committing twice: the burst / end / drop branch above sets
-        /// <c>HasFinishedScoring</c> when the sustain has paid out in full.
+        /// responsible for not committing twice: <c>HasFinishedScoring</c> is set once the sustain
+        /// has paid out in full (burst or end).
         /// </summary>
         protected void CommitSustainPoints(ref ActiveSustain<TNoteType> sustain, uint tick)
         {
