@@ -496,6 +496,8 @@ namespace YARG.Core.Engine
             YargLogger.LogFormatTrace("Activated at SP tick {0}, ends at SP tick {1}. Start time: {2}, End time: {3}",
                 StarPowerTickActivationPosition, StarPowerTickEndPosition, StarPowerActivationTime, StarPowerEndTime);
 
+            RebaseSustains(CurrentTick);
+
             BaseStats.IsStarPowerActive = true;
 
             UpdateMultiplier();
@@ -507,6 +509,8 @@ namespace YARG.Core.Engine
         {
             YargLogger.LogFormatTrace("Star Power ended at {0} (tick: {1})", CurrentTime,
                 StarPowerTickPosition);
+
+            RebaseSustains(CurrentTick);
 
             BaseStats.IsStarPowerActive = false;
 

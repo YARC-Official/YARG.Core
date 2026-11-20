@@ -107,7 +107,6 @@ namespace YARG.Core.Engine
     {
         public TNoteType Note;
         public uint      BaseTick;
-        public double    BaseScore;
 
         public bool HasFinishedScoring;
         public bool IsLeniencyHeld;
@@ -119,7 +118,6 @@ namespace YARG.Core.Engine
         {
             Note = note;
             BaseTick = note.Tick;
-            BaseScore = 0;
 
             HasFinishedScoring = false;
             IsLeniencyHeld = false;
