@@ -486,6 +486,12 @@ namespace YARG.Core.Engine.Guitar.Engines
 
         protected override void HitNote(GuitarNote note)
         {
+            if (note.WasHit || note.WasMissed)
+            {
+                base.HitNote(note);
+                return;
+            }
+
             // Defines whether solo tapping is allowed
             // Only if SoloTaps engine parameter is set, solo is active, and no non-solo buttons are pressed
             bool SoloTapAllowed = EngineParameters.SoloTaps && (IsSoloActive || note.IsSoloStart) && !StandardButtonHeld;
@@ -506,14 +512,29 @@ namespace YARG.Core.Engine.Guitar.Engines
 
             StrumLeniencyTimer.Disable(CurrentTime, early: true);
 
-            for(int i = 0; i < ActiveSustains.Count; i++)
+            for (int i = 0; i < ActiveSustains.Count; i++)
             {
-                var sustainNote = ActiveSustains[i].Note;
+                ref var sustain = ref ActiveSustains[i];
+                var sustainNote = sustain.Note;
 
                 var sustainMask = sustainNote.IsDisjoint ? sustainNote.DisjointMask : sustainNote.NoteMask;
                 if ((sustainMask & note.NoteMask) != 0)
                 {
-                    EndSustain(i, true, CurrentTick >= sustainNote.TickEnd);
+                    bool isBurst = IsSustainBursted(sustainNote);
+                    bool isEndOfSustain = CurrentTick >= sustainNote.TickEnd;
+
+                    if (!sustain.HasFinishedScoring)
+                    {
+                        if (isBurst || isEndOfSustain)
+                        {
+                            sustain.HasFinishedScoring = true;
+                        }
+
+                        CommitSustainPoints(ref sustain, isBurst || isEndOfSustain ? sustainNote.TickEnd : CurrentTick);
+                    }
+
+                    EndSustain(i, true, isEndOfSustain);
+                    i--;
                 }
             }
 
