@@ -805,8 +805,10 @@ namespace YARG.Core.Song.Cache
         }
 
         /// <summary>
-        /// Searches for a ".ini" and any .mid or .chart file to possibly extract as a song entry,
-        /// or, in a folder with no song.ini, for UltraStar .txt charts. If found, even if we can't extract an entry from them, we should perform no further directory traversal.
+        /// Searches for a ".ini" and any .mid, .chart or SingStar .xml file to possibly extract
+        /// as a song entry, or, in a folder with no song.ini, for UltraStar .txt charts. If
+        /// found, even if we can't extract an entry from them, we should perform no further
+        /// directory traversal.
         /// </summary>
         /// <param name="collection">The collection containing the subfiles to search from</param>
         /// <param name="group">The group aligning to one of the base directories provided by the user</param>
@@ -814,19 +816,33 @@ namespace YARG.Core.Song.Cache
         /// <returns>Whether files pertaining to an unpacked ini entry were discovered</returns>
         private bool ScanIniEntry(in FileCollection collection, IniEntryGroup group, string defaultPlaylist)
         {
-            // A song.ini marks an FoF/RB-style folder, which only has fixed-name charts.
-            // UltraStar charts are only looked for in folders without one.
-            if (!collection.FindFile("song.ini", out var ini))
-            {
-                return ScanUltraStarCharts(collection, group, defaultPlaylist);
-            }
+            bool hasIni = collection.FindFile("song.ini", out var ini);
+            bool foundAnyChart = false;
 
             foreach (var (filename, format) in IniSubEntry.CHART_FILE_TYPES)
             {
-                if (format == ChartFormat.UltraStar || !collection.FindFile(filename, out var chart))
+                // UltraStar charts have no fixed name and are handled separately.
+                if (format == ChartFormat.UltraStar)
                 {
                     continue;
                 }
+
+                // A song.ini marks an FoF/RB-style folder. SingStar folders are an
+                // exception: their charts use fixed names but commonly ship without one.
+                if (!hasIni && format != ChartFormat.SingStar)
+                {
+                    continue;
+                }
+
+                if (!collection.FindFile(filename, out var chart))
+                {
+                    continue;
+                }
+
+                // A chart file was discovered, so no further directory traversal. Keep the
+                // flag set even if the chart fails to parse: a malformed parent chart must
+                // not make a child folder look like a separate song.
+                foundAnyChart = true;
 
                 // Can't play a song without any audio can you?
                 //
@@ -835,13 +851,22 @@ namespace YARG.Core.Song.Cache
                 if (!collection.ContainsAudio())
                 {
                     AddToBadSongs(chart.FullName, ScanResult.NoAudio);
-                    return false;
+                    return true;
                 }
 
-                ScanIniChart(collection, chart, format, ini, group, defaultPlaylist);
-                return true;
+                if (ScanIniChart(collection, chart, format, hasIni ? ini : null, group, defaultPlaylist))
+                {
+                    return true;
+                }
             }
-            return false;
+
+            // UltraStar charts are only looked for in folders without a song.ini.
+            if (!hasIni)
+            {
+                foundAnyChart |= ScanUltraStarCharts(collection, group, defaultPlaylist);
+            }
+
+            return foundAnyChart;
         }
 
         /// <summary>
@@ -1051,7 +1076,8 @@ namespace YARG.Core.Song.Cache
             }
         }
 
-        private void ScanIniChart(in FileCollection collection, FileInfo chart, ChartFormat format, FileInfo? ini, IniEntryGroup group, string defaultPlaylist,
+        /// <returns>Whether the chart produced a playable entry.</returns>
+        private bool ScanIniChart(in FileCollection collection, FileInfo chart, ChartFormat format, FileInfo? ini, IniEntryGroup group, string defaultPlaylist,
             UltraStarChartFile? ultraStarChart = null, UltraStarChartFile? duetChart = null)
         {
             try
@@ -1061,11 +1087,10 @@ namespace YARG.Core.Song.Cache
                 {
                     AddEntry(entry.Value);
                     group.AddEntry(entry.Value);
+                    return true;
                 }
-                else
-                {
-                    AddToBadSongs(chart.FullName, entry.Error);
-                }
+
+                AddToBadSongs(chart.FullName, entry.Error);
             }
             catch (PathTooLongException)
             {
@@ -1077,6 +1102,8 @@ namespace YARG.Core.Song.Cache
                 YargLogger.LogException(e, $"Error while scanning chart file {chart}!");
                 AddToBadSongs(collection.Directory, ScanResult.IniEntryCorruption);
             }
+
+            return false;
         }
 
         /// <summary>
