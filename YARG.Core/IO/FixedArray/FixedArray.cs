@@ -3,6 +3,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Numerics;
 using System.Runtime.InteropServices;
+using YARG.Core.Extensions;
 using YARG.Core.Logging;
 
 namespace YARG.Core.IO
@@ -55,7 +56,7 @@ namespace YARG.Core.IO
 
             unsafe
             {
-                if (stream.Read(new Span<byte>(buffer.Ptr, (int) numElements)) != numElements)
+                if (stream.ReadFully(new Span<byte>(buffer.Ptr, (int) numElements)) != numElements)
                 {
                     buffer.Dispose();
                     throw new IOException("Could not read data from file");
