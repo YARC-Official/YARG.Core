@@ -616,7 +616,7 @@ namespace MoonscraperChartEditor.Song.IO
             var noteEvent = noteProcessParams.noteEvent;
             uint tick = noteEvent.tick;
             uint sus = noteEvent.length;
-            if (sus < noteProcessParams.settings.SustainCutoffThreshold) sus = 0;
+            if (sus <= noteProcessParams.settings.SustainCutoffThreshold) sus = 0;
 
             var newMoonNote = new MoonNote(tick, ingameFret, sus, defaultFlags);
             MoonObjectHelper.PushNote(newMoonNote, chart.notes);

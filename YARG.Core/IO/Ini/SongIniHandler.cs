@@ -49,6 +49,7 @@ namespace YARG.Core.IO.Ini
                 { "charter_rhythm_6f",                    new("charter_rhythm_6f", ModifierType.String) },
                 { "charter_venue",                        new ("charter_venue", ModifierType.String) },
                 { "charter_vocals",                       new("charter_vocals", ModifierType.String) },
+                { "chord_snap_threshold",                 new("chord_snap_threshold", ModifierType.Int64) },
                 { "count",                                new("count", ModifierType.UInt32) },
                 { "cover",                                new("cover", ModifierType.String) },
                 { "covered_by",                           new("covered_by", ModifierType.String) },
@@ -111,7 +112,6 @@ namespace YARG.Core.IO.Ini
                 { "guitar_type",                          new("guitar_type", ModifierType.UInt32) },
 
                 { "hopo_frequency",                       new("hopo_frequency", ModifierType.Int64) },
-                { "hopofreq",                             new("hopofreq", ModifierType.Int32) },
 
                 { "icon",                                 new("icon", ModifierType.String) },
 
