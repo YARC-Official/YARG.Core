@@ -28,7 +28,7 @@ namespace YARG.Core.Chart
 
             MoonChart chart;
 
-            if (instrument.ToNativeGameMode() == GameMode.Vocals)
+            if (instrument.ToNativeGameMode() is GameMode.Vocals or GameMode.PartyVocals)
             {
                 chart = _moonSong.GetChart(MoonSong.MoonInstrument.Vocals, MoonSong.Difficulty.Expert);
             }

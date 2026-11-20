@@ -85,7 +85,7 @@ namespace YARG.Core.Game
                     Modifier.NoKicks    |
                     Modifier.NoDynamics,
 
-                GameMode.Vocals =>
+                GameMode.Vocals or GameMode.PartyVocals =>
                     Modifier.UnpitchedOnly |
                     Modifier.NoVocalPercussion,
 
