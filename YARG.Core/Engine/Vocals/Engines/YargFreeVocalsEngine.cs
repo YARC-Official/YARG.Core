@@ -43,8 +43,8 @@ namespace YARG.Core.Engine.Vocals.Engines
         /// <summary>
         /// Chart tick at which the most recent per-part credit accumulation began.
         /// Together with <see cref="LastTickPartDeltas"/> this gives the exact
-        /// covered span of the just-committed credit:
-        /// [LastCreditSpanStartTick, CurrentTick). Only meaningful on a tick where
+        /// covered span of the just-committed credit, ending at the earlier of
+        /// the current tick and the scoring phrase end. Only meaningful on a tick where
         /// a delta was committed (the masks/deltas are zero otherwise). Used by
         /// PartyVocalsCoordinatorEngine to track the temporal union of
         /// broadcast-covered ticks per part.
@@ -54,12 +54,6 @@ namespace YARG.Core.Engine.Vocals.Engines
         // Store reference to all parts for hit testing
         protected readonly IReadOnlyList<VocalsPart> _allParts;
         private readonly int _botPartIndex;
-
-        // Resolved bot part for the current tick after applying the per-phrase fallback:
-        // if the assigned _botPartIndex has no active phrase, fall back to the lowest-numbered
-        // part that does. Updated in UpdateBot, consumed by CheckSingingHit so the bot scores
-        // against whatever line it's actually singing.
-        private int _currentBotEffectivePartIndex;
 
         // Per-part delta for the current tick. Updated in UpdateHitLogic after
         // per-part credit is committed, for external consumption (e.g., coordinator).
@@ -94,7 +88,6 @@ namespace YARG.Core.Engine.Vocals.Engines
 
             _allParts = allParts;
             _botPartIndex = Math.Max(0, Math.Min(botPartIndex, allParts.Count - 1));
-            _currentBotEffectivePartIndex = _botPartIndex;
 
             // Initialize fields for single-mic per-part accumulation
             _lastTickPartDeltas = new double[allParts.Count];
@@ -123,14 +116,22 @@ namespace YARG.Core.Engine.Vocals.Engines
             base.Reset(keepCurrentButtons);
         }
 
-        private VocalNote? FindActivePhraseInPart(int partIndex)
+        private VocalNote? FindBotTargetInPart(int partIndex, out bool hasActivePhrase)
         {
+            hasActivePhrase = false;
             foreach (var partPhrase in _allParts[partIndex].NotePhrases)
             {
-                var pn = partPhrase.PhraseParentNote;
-                if (CurrentTick >= pn.Tick && CurrentTick <= pn.TotalTickEnd)
+                if (partPhrase.Tick > CurrentTick)
+                    break;
+
+                hasActivePhrase |= CurrentTick <= partPhrase.TickEnd;
+                // The note can still be sounding after the phrase that owns it has ended.
+                foreach (var note in partPhrase.PhraseParentNote.ChildNotes)
                 {
-                    return pn;
+                    if (note.Tick > CurrentTick)
+                        break;
+                    if (!note.IsPercussion && CurrentTick <= note.TotalTickEnd)
+                        return note;
                 }
             }
             return null;
@@ -152,41 +153,15 @@ namespace YARG.Core.Engine.Vocals.Engines
             // that does have an active phrase. This keeps a bot audible on sections where
             // its assigned HARM line isn't charted (common when a song collapses dual leads
             // into HARM1/2/3 but leaves gaps on individual parts).
-            VocalNote? botPhrase = FindActivePhraseInPart(_botPartIndex);
-            int effectiveIndex = _botPartIndex;
-            if (botPhrase is null)
+            var singNote = FindBotTargetInPart(_botPartIndex, out bool hasActivePhrase);
+            if (singNote is null && !hasActivePhrase)
             {
                 for (int i = 0; i < _allParts.Count; i++)
                 {
                     if (i == _botPartIndex) continue;
-                    var fallback = FindActivePhraseInPart(i);
-                    if (fallback is not null)
-                    {
-                        botPhrase = fallback;
-                        effectiveIndex = i;
+                    singNote = FindBotTargetInPart(i, out hasActivePhrase);
+                    if (singNote is not null || hasActivePhrase)
                         break;
-                    }
-                }
-            }
-            _currentBotEffectivePartIndex = effectiveIndex;
-
-            // Search botPhrase directly instead of using GetNoteInPhraseAtSongTick, which
-            // short-circuits to the base engine's CarriedVocalNote — that's populated from
-            // the primary chart (HARM1 for all Free bots), so it would return a HARM1 note
-            // even when botPhrase is HARM2/HARM3. Result: the needle would always sit on
-            // HARM1 regardless of the bot's assigned harmony index.
-            VocalNote? singNote = null;
-            if (botPhrase is not null)
-            {
-                foreach (var childNote in botPhrase.ChildNotes)
-                {
-                    if (!childNote.IsPercussion
-                        && CurrentTick >= childNote.Tick
-                        && CurrentTick <= childNote.TotalTickEnd)
-                    {
-                        singNote = childNote;
-                        break;
-                    }
                 }
             }
             if (singNote is not null)
@@ -323,15 +298,16 @@ namespace YARG.Core.Engine.Vocals.Engines
             var lastTick = Math.Max(
                 SyncTrack.TimeToTick(CurrentTime - maxLeniency),
                 savedLastSingTick);
-            var ticksSinceLast = CurrentTick - lastTick;
-
-            if (ticksSinceLast == 0)
+            if (CurrentTick <= lastTick)
                 return false;
 
-            // Chart-tick start of the span credited by this accumulation; with
-            // LastTickPartDeltas this tells the coordinator exactly which ticks
-            // the just-committed credit covers ([start, CurrentTick)).
-            LastCreditSpanStartTick = lastTick;
+            // A note can stay active between phrases, but only its overlap with the current
+            // scoring window contributes to the meter or talkie coverage.
+            var phrase = Notes[NoteIndex];
+            uint scoringStart = Math.Max(lastTick, phrase.Tick);
+            uint scoringEnd = Math.Min(CurrentTick, phrase.TickEnd);
+            uint scoringTicks = scoringEnd > scoringStart ? scoringEnd - scoringStart : 0;
+            LastCreditSpanStartTick = scoringStart;
 
             // Accumulate hits for all parts to feed the HUD's HARM1/2/3 %
             for (int partIndex = 0; partIndex < _allParts.Count; partIndex++)
@@ -345,7 +321,7 @@ namespace YARG.Core.Engine.Vocals.Engines
 
                         if (CanVocalNoteBeHit(note, out float hitPercent))
                         {
-                            _singleMicPartHits[partIndex] += ticksSinceLast * hitPercent;
+                            _singleMicPartHits[partIndex] += scoringTicks * hitPercent;
                             if (hitPercent > 0f)
                             {
                                 anyMicHit = true;
