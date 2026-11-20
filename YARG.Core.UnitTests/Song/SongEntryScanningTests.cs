@@ -115,6 +115,101 @@ public class SongEntryScanningTests
         }
     }
 
+    [Test]
+    public void ParseMidi_ReadsTracksPastTheHeaderTrackCount()
+    {
+        var data = WriteMidi(MakeSyncTrack(), MakeGuitarTrack(), MakeDrumsTrack(MidIOHelper.DRUMS_TRACK));
+        // Count 2 tracks in the header, though the file has 3
+        data[11] = 2;
+
+        var (result, parts) = ParseMidi(data);
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(result.HasValue, Is.True);
+            Assert.That(parts.FiveFretGuitar.Difficulties, Is.EqualTo(DifficultyMask.Expert));
+            Assert.That(parts.FourLaneDrums.Difficulties, Is.EqualTo(DifficultyMask.Expert));
+        }
+    }
+
+    [TestCase(new byte[] { (byte) 't', (byte) 'i', (byte) 'o', (byte) 'n', 0x20, 0x00, 0x00, 0x00, 0x01 })]
+    [TestCase(new byte[] { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 })]
+    [TestCase(new byte[] { 0x00 })]
+    public void ParseMidi_IgnoresLeftoverBytesAfterTheTracks(byte[] leftover)
+    {
+        var data = WriteMidi(MakeSyncTrack(), MakeGuitarTrack());
+
+        var (result, parts) = ParseMidi(data.Concat(leftover).ToArray());
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(result.HasValue, Is.True);
+            Assert.That(parts.FiveFretGuitar.Difficulties, Is.EqualTo(DifficultyMask.Expert));
+        }
+    }
+
+    [Test]
+    public void ParseMidi_ReadsPartDrumAsDrums()
+    {
+        var data = WriteMidi(MakeSyncTrack(), MakeDrumsTrack(MidIOHelper.DRUMS_TRACK_2));
+
+        var (result, parts) = ParseMidi(data);
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(result.HasValue, Is.True);
+            Assert.That(parts.FourLaneDrums.Difficulties, Is.EqualTo(DifficultyMask.Expert));
+        }
+    }
+
+    private static byte[] WriteMidi(params TrackChunk[] tracks)
+    {
+        var midi = new MidiFile(tracks)
+        {
+            TimeDivision = new TicksPerQuarterNoteTimeDivision(Resolution),
+        };
+
+        using var stream = new MemoryStream();
+        midi.Write(stream);
+        return stream.ToArray();
+    }
+
+    private static (ScanExpected<long> result, AvailableParts parts) ParseMidi(byte[] data)
+    {
+        using var stream = new MemoryStream(data);
+        using var file = FixedArray.Read(stream, stream.Length);
+        var parts = AvailableParts.Default;
+        var drumsType = DrumsType.Unknown;
+
+        var result = TestSongEntry.ParseMidiForTest(file, ref parts, ref drumsType);
+        return (result, parts);
+    }
+
+    private static TrackChunk MakeGuitarTrack()
+    {
+        return MakeNoteTrack(MidIOHelper.GUITAR_TRACK, MidIOHelper.GUITAR_DIFF_START_LOOKUP[MoonDifficulty.Expert]);
+    }
+
+    private static TrackChunk MakeDrumsTrack(string trackName)
+    {
+        // Expert red
+        return MakeNoteTrack(trackName, MidIOHelper.DRUMS_DIFF_START_LOOKUP[MoonDifficulty.Expert] + 1);
+    }
+
+    private static TrackChunk MakeNoteTrack(string trackName, int noteNumber)
+    {
+        return new TrackChunk(
+            new SequenceTrackNameEvent(trackName),
+            new NoteOnEvent((SevenBitNumber) (byte) noteNumber, (SevenBitNumber) (byte) MidIOHelper.VELOCITY)
+            {
+                DeltaTime = 10,
+            },
+            new NoteOffEvent((SevenBitNumber) (byte) noteNumber, (SevenBitNumber) 0)
+            {
+                DeltaTime = 90,
+            });
+    }
+
     private static TrackChunk MakeSyncTrack()
     {
         return new TrackChunk(
