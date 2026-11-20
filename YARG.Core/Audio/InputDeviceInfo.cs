@@ -34,6 +34,8 @@ namespace YARG.Core.Audio
         /// </summary>
         public string DisplayName => ChannelCount > 1 ? $"{Name}{CHANNEL_SUFFIX}{Channel + 1}" : Name;
 
+        public MicId Id => new(Name, Channel);
+
         public InputDeviceInfo(int deviceId, string name, int channel, int channelCount)
         {
             DeviceId = deviceId;
