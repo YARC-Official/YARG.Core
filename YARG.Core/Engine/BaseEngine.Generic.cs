@@ -321,8 +321,13 @@ namespace YARG.Core.Engine
                     // Synchronize the point at which SP can be activated
                     if (lastSpTickAmount < TicksPerHalfSpBar && spTickAmount >= TicksPerHalfSpBar)
                     {
-                        var ticksToHalfBar = TicksPerHalfSpBar - BaseStats.StarPowerTickAmount;
-                        var timeOfHalfBar = SyncTrack.TickToTime(previousTick + ticksToHalfBar);
+                        // Predict the crossing from the simulated amount at maxWhammyTick,
+                        // not from the current generation point. The old formula used
+                        // previousTick + (SP-tick deficit), so the predicted crossing moved
+                        // with frame boundaries; SP then activated on a different tick and
+                        // sustains were rebased at different ticks, changing the score.
+                        var timeOfHalfBar = CalculateStarPowerHalfBarTime(
+                            SyncTrack, maxWhammyTick, spTickAmount, TicksPerHalfSpBar);
 
                         if (IsTimeBetween(timeOfHalfBar, previousTime, nextTime))
                         {
@@ -1124,10 +1129,8 @@ namespace YARG.Core.Engine
         protected uint CalculateStarPowerGain(uint quarterTick, uint lastQuarterTick, ref double tickRemainder)
         {
 
-            const int MAX_BEATS = STAR_POWER_MAX_MEASURES * 4;
-            const double GAIN_FACTOR = MAX_BEATS / (double) (MAX_BEATS - 2); // - 2 for leniency
-
-            double gain = (quarterTick - lastQuarterTick) * GAIN_FACTOR + tickRemainder;
+            // - 2 for leniency
+            double gain = (quarterTick - lastQuarterTick) * STAR_POWER_GAIN_FACTOR + tickRemainder;
             double rounded = Math.Round(gain);
             YargLogger.LogTrace($"Calculating whammy gain, quarterTick: {quarterTick}, lastQuarterTick: {lastQuarterTick}, gain: {gain}, rounded: {rounded}, remainderIn: {tickRemainder}");
             tickRemainder = gain - rounded;
