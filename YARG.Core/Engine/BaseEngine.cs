@@ -15,6 +15,8 @@ namespace YARG.Core.Engine
         // Max number of measures that SP will last when draining
         // SP draining is done based on measures
         protected const int STAR_POWER_MAX_MEASURES = 8;
+        protected const int STAR_POWER_MAX_BEATS = STAR_POWER_MAX_MEASURES * 4;
+        protected const double STAR_POWER_GAIN_FACTOR = STAR_POWER_MAX_BEATS / (double) (STAR_POWER_MAX_BEATS - 2);
 
         // Beat fraction to use for the sustain burst threshold
         protected const int SUSTAIN_BURST_FRACTION = 4;
@@ -466,6 +468,25 @@ namespace YARG.Core.Engine
         public double GetStarPowerBarAmount()
         {
             return BaseStats.StarPowerTickAmount / (double) TicksPerFullSpBar;
+        }
+
+        /// <summary>
+        /// Predicts when whammy gain will fill a half Star Power bar. The prediction is made
+        /// from the simulated amount at <paramref name="maxWhammyTick"/>, so it does not move
+        /// with the frame boundary at which queued updates happened to be generated.
+        /// </summary>
+        internal static double CalculateStarPowerHalfBarTime(SyncTrack syncTrack, uint maxWhammyTick,
+            uint simulatedSpTickAmount, uint ticksPerHalfSpBar)
+        {
+            if (simulatedSpTickAmount <= ticksPerHalfSpBar)
+            {
+                return syncTrack.TickToTime(maxWhammyTick);
+            }
+
+            long excess = (long) simulatedSpTickAmount - ticksPerHalfSpBar;
+            long ticksBeforeMax = (long) Math.Floor(excess / STAR_POWER_GAIN_FACTOR);
+            uint crossingTick = (uint) Math.Max(0L, (long) maxWhammyTick - ticksBeforeMax);
+            return syncTrack.TickToTime(crossingTick);
         }
 
         protected void ActivateStarPower()
