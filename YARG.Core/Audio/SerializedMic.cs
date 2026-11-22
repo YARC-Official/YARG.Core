@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Text;
 
@@ -8,6 +8,12 @@ namespace YARG.Core.Audio
     {
         public readonly string BaseName;
         public readonly int Channel;
+
+        public MicId Id => new(BaseName, Channel);
+
+        public SerializedMic(MicId id) : this(id.BaseName, id.Channel)
+        {
+        }
 
         public SerializedMic(string baseName, int channel)
         {
