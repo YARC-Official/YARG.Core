@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Linq;
 
 namespace YARG.Core.Chart
 {
@@ -84,7 +83,27 @@ namespace YARG.Core.Chart
         /// <summary>
         /// Whether or not this note is a vocal phrase that contains only lyric notes.
         /// </summary>
-        public bool IsLyricPhrase => Type == VocalNoteType.VocalPhrase && ChildNotes.All(e => e.Type == VocalNoteType.Lyric);
+        public bool IsLyricPhrase
+        {
+            get
+            {
+                if (Type != VocalNoteType.VocalPhrase)
+                {
+                    return false;
+                }
+
+                // A loop, not LINQ: AddChildNote checks this for every child.
+                foreach (var child in _childNotes)
+                {
+                    if (child.Type != VocalNoteType.Lyric)
+                    {
+                        return false;
+                    }
+                }
+
+                return true;
+            }
+        }
 
         /// <summary>
         /// Whether or not this note is a vocal phrase that contains no notes.
@@ -193,15 +212,7 @@ namespace YARG.Core.Chart
             {
                 if (note.Tick < Tick) return;
 
-                _childNotes.Add(note);
-
-                // Sort child notes by tick
-                _childNotes.Sort((note1, note2) =>
-                {
-                    if (note1.Tick > note2.Tick) return 1;
-                    if (note1.Tick < note2.Tick) return -1;
-                    return 0;
-                });
+                InsertChildByTick(note);
             }
             else
             {
@@ -211,17 +222,62 @@ namespace YARG.Core.Chart
                 // as the phrase itself. The original <= would silently discard such notes.
                 if (note.Tick < Tick || note.ChildNotes.Count > 0) return;
 
-                _childNotes.Add(note);
-
-                // Sort child notes by tick
-                _childNotes.Sort((note1, note2) =>
-                {
-                    return note1.Tick.CompareTo(note2.Tick);
-                });
+                InsertChildByTick(note);
 
                 // Track total length
                 TotalTimeLength = _childNotes[^1].TimeEnd - Time;
                 TotalTickLength = _childNotes[^1].TickEnd - Tick;
+            }
+        }
+
+        /// <summary>
+        /// A deep copy that keeps the children in their existing order. Clone() re-adds each
+        /// child through AddChildNote, which re-sorts -- and with duplicate ticks that sort
+        /// isn't stable, so the copy's order could differ from the original's.
+        /// </summary>
+        internal VocalNote CloneKeepingChildOrder()
+        {
+            var copy = CloneWithoutChildNotes();
+            foreach (var child in _childNotes)
+            {
+                copy._childNotes.Add(child.CloneKeepingChildOrder());
+            }
+            return copy;
+        }
+
+        private static readonly Comparison<VocalNote> CompareByTick = (note1, note2) => note1.Tick.CompareTo(note2.Tick);
+
+        /// <summary>
+        /// Keeps the children sorted by tick. Notes almost always arrive in order, so this
+        /// inserts in place rather than re-sorting the whole list on every add.
+        /// </summary>
+        /// <remarks>
+        /// That's only the same as sorting when every tick differs. List.Sort isn't stable, so
+        /// with a duplicate tick the order it leaves those notes in can't be reproduced by an
+        /// insert -- that case still sorts, so its result is unchanged.
+        /// </remarks>
+        private void InsertChildByTick(VocalNote note)
+        {
+            int index = _childNotes.Count;
+            while (index > 0 && _childNotes[index - 1].Tick > note.Tick)
+            {
+                index--;
+            }
+
+            bool ticksDistinct = index == 0 || _childNotes[index - 1].Tick != note.Tick;
+            for (int i = 1; ticksDistinct && i < _childNotes.Count; i++)
+            {
+                ticksDistinct = _childNotes[i - 1].Tick < _childNotes[i].Tick;
+            }
+
+            if (ticksDistinct)
+            {
+                _childNotes.Insert(index, note);
+            }
+            else
+            {
+                _childNotes.Add(note);
+                _childNotes.Sort(CompareByTick);
             }
         }
 

@@ -2,8 +2,6 @@
 // See LICENSE in project root for license information.
 
 using System;
-using System.Collections;
-using System.Collections.Generic;
 
 namespace MoonscraperChartEditor.Song
 {
@@ -357,35 +355,49 @@ namespace MoonscraperChartEditor.Song
             return MoonNoteType.Strum;
         }
 
-        public class Chord : IEnumerable<MoonNote>
+        /// <summary>
+        /// Every note on this note's tick, first to last. A struct with a struct enumerator, so
+        /// <c>foreach</c> over it doesn't allocate.
+        /// </summary>
+        public readonly struct Chord
         {
             private readonly MoonNote _baseMoonNote;
-            public Chord(MoonNote note) : base()
+
+            public Chord(MoonNote note)
             {
                 _baseMoonNote = note;
             }
 
-            public IEnumerator<MoonNote> GetEnumerator()
-            {
-                var note = _baseMoonNote;
+            public Enumerator GetEnumerator() => new(_baseMoonNote);
 
-                while (note.previous != null && note.previous.tick == note.tick)
+            public struct Enumerator
+            {
+                private MoonNote? _next;
+
+                public Enumerator(MoonNote note)
                 {
-                    note = note.previous;
+                    while (note.previous != null && note.previous.tick == note.tick)
+                    {
+                        note = note.previous;
+                    }
+
+                    _next = note;
+                    Current = null!;
                 }
 
-                yield return note;
+                public MoonNote Current { get; private set; }
 
-                while (note.next != null && note.tick == note.next.tick)
+                public bool MoveNext()
                 {
-                    note = note.next;
-                    yield return note;
-                }
-            }
+                    if (_next == null)
+                    {
+                        return false;
+                    }
 
-            IEnumerator IEnumerable.GetEnumerator()
-            {
-                return GetEnumerator();
+                    Current = _next;
+                    _next = _next.next != null && _next.next.tick == _next.tick ? _next.next : null;
+                    return true;
+                }
             }
         }
 

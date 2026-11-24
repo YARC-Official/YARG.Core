@@ -618,19 +618,6 @@ namespace MoonscraperChartEditor.Song.IO
                 process(ref processParams);
             }
 
-            // If this specific track does not have a difficulty assigned to it, clear all difficulties
-            if (trackDifficulty is null)
-            {
-                foreach (var difficulty in EnumExtensions<MoonSong.Difficulty>.Values)
-                {
-                    song.GetChart(instrument, difficulty).notes.TrimExcess();
-                }
-            }
-            else
-            {
-                song.GetChart(instrument, trackDifficulty.Value).notes.TrimExcess();
-            }
-
             settings = processParams.settings;
         }
 
@@ -804,9 +791,6 @@ namespace MoonscraperChartEditor.Song.IO
             }
 
             var newMoonNote = new MoonNote(tick, ingameFret, sus, defaultFlags);
-            if (chart.notes.Capacity == 0)
-                chart.notes.Capacity = 5000;
-
             MoonObjectHelper.OrderedInsertFromBack(newMoonNote, chart.notes);
         }
 
@@ -830,9 +814,6 @@ namespace MoonscraperChartEditor.Song.IO
             }
 
             var newMoonAnim = new MoonAnimation(eventData.Item1, eventData.Item2, tick, length);
-            if (chart.animations.Capacity == 0)
-                chart.animations.Capacity = 5000;
-
             MoonObjectHelper.OrderedInsertFromBack(newMoonAnim, chart.animations);
         }
 
