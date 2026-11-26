@@ -45,6 +45,9 @@ namespace YARG.Core.Song
             ("notes.txt"  , ChartFormat.UltraStar),
         };
 
+        private const string MOONSCRAPER_DEFAULT_CHARTER = "Unknown Charter";
+        private const string MOONSCRAPER_DEFAULT_GENRE = "rock";
+
         protected static readonly string[] ALBUMART_FILES;
         protected static readonly string[] PREVIEW_FILES;
         protected static readonly string[] CLEAN_PREVIEW_FILES;
@@ -219,6 +222,9 @@ namespace YARG.Core.Song
         protected internal static ScanResult ScanChart(IniSubEntry entry, FixedArray<byte> file, IniModifierCollection modifiers, FileCollection? collection = null,
             UltraStarHeader? header = null, UltraStarChartFile? duetChart = null)
         {
+            // Whether song.ini has a [song] section with a key, or the .sng file has metadata
+            bool hasIniMetadata = !modifiers.IsEmpty();
+
             var drums_type = DrumsType.FourOrFive;
             if (modifiers.Extract("five_lane_drums", out bool fiveLaneDrums))
             {
@@ -235,7 +241,7 @@ namespace YARG.Core.Song
             {
                 if (YARGTextReader.TryUTF8(file, out var byteContainer))
                 {
-                    resolution = ParseDotChart(ref byteContainer, modifiers, ref entry._parts, ref drums_type);
+                    resolution = ParseDotChart(ref byteContainer, modifiers, hasIniMetadata, ref entry._parts, ref drums_type);
                 }
                 else
                 {
@@ -243,13 +249,13 @@ namespace YARG.Core.Song
                     if (chars != null)
                     {
                         var charContainer = YARGTextReader.CreateUTF16Container(chars);
-                        resolution = ParseDotChart(ref charContainer, modifiers, ref entry._parts, ref drums_type);
+                        resolution = ParseDotChart(ref charContainer, modifiers, hasIniMetadata, ref entry._parts, ref drums_type);
                     }
                     else
                     {
                         using var ints = YARGTextReader.CastUTF32(file);
                         var intContainer = YARGTextReader.CreateUTF32Container(ints);
-                        resolution = ParseDotChart(ref intContainer, modifiers, ref entry._parts, ref drums_type);
+                        resolution = ParseDotChart(ref intContainer, modifiers, hasIniMetadata, ref entry._parts, ref drums_type);
                     }
                 }
             }
@@ -433,7 +439,7 @@ namespace YARG.Core.Song
             return DrumsType.Unknown;
         }
 
-        private static ScanExpected<long> ParseDotChart<TChar>(ref YARGTextContainer<TChar> container, IniModifierCollection modifiers, ref AvailableParts parts, ref DrumsType drumsType)
+        private static ScanExpected<long> ParseDotChart<TChar>(ref YARGTextContainer<TChar> container, IniModifierCollection modifiers, bool hasIniMetadata, ref AvailableParts parts, ref DrumsType drumsType)
             where TChar : unmanaged, IEquatable<TChar>, IConvertible
         {
             if (drumsType != DrumsType.FiveLane && modifiers.Extract("pro_drums", out bool proDrums) && proDrums)
@@ -452,6 +458,23 @@ namespace YARG.Core.Song
                     if (resolution < 1)
                     {
                         return new ScanUnexpected(ScanResult.InvalidResolution);
+                    }
+                }
+
+                if (hasIniMetadata)
+                {
+                    // [Song]'s text fills what song.ini leaves out, except the charter "Unknown Charter"
+                    // and the genre "rock" that Moonscraper writes as defaults, and song.ini's frets
+                    // counts as its charter
+                    if ((chartMods.TryGet("charter", out string charter) && charter == MOONSCRAPER_DEFAULT_CHARTER)
+                        || (modifiers.TryGet("frets", out string frets) && frets.Length > 0))
+                    {
+                        chartMods.Extract("charter", out string _);
+                    }
+
+                    if (chartMods.TryGet("genre", out string genre) && genre == MOONSCRAPER_DEFAULT_GENRE)
+                    {
+                        chartMods.Extract("genre", out string _);
                     }
                 }
                 modifiers.Union(chartMods);
