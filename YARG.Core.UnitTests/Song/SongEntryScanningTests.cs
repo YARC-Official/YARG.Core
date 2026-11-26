@@ -142,7 +142,54 @@ public class SongEntryScanningTests
         """;
 
     [Test]
-    public void ScanChart_TakesTextFromSongIniAloneAndTimesFromChart()
+    public void ScanChart_TakesWhatSongIniLeavesOutFromChart()
+    {
+        var entry = ScanChartWithIni(
+            """
+            [song]
+            name = Test
+            song_length = 10000
+            """,
+            CHART_SONG_SECTION
+                .Replace("Charter = \"Unknown Charter\"", "Charter = \"Chart Charter\"\n  Album = \"Chart Album\"\n  Year = \", 1999\"")
+                .Replace("Genre = \"rock\"", "Genre = \"Metal\"")
+        );
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(entry.Name.Original, Is.EqualTo("Test"));
+            Assert.That(entry.Artist.Original, Is.EqualTo("Someone"));
+            Assert.That(entry.Album.Original, Is.EqualTo("Chart Album"));
+            Assert.That(entry.UnmodifiedYear, Is.EqualTo("1999"));
+            Assert.That(entry.RawGenre.Original, Is.EqualTo("Metal"));
+            Assert.That(entry.Charter.Original, Is.EqualTo("Chart Charter"));
+            Assert.That(entry.SongOffsetMilliseconds, Is.EqualTo(700));
+            Assert.That(entry.PreviewStartMilliseconds, Is.EqualTo(30000));
+        }
+    }
+
+    [Test]
+    public void ScanChart_LeavesOutChartDefaultCharterAndGenre()
+    {
+        var entry = ScanChartWithIni(
+            """
+            [song]
+            name = Test
+            song_length = 10000
+            """
+        );
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(entry.Artist.Original, Is.EqualTo("Someone"));
+            Assert.That(entry.Charter.Original, Is.EqualTo(SongMetadata.DEFAULT_CHARTER));
+            Assert.That(entry.RawGenre.Original, Is.Empty);
+        }
+    }
+
+    [TestCase("Unknown Charter")]
+    [TestCase("Chart Charter")]
+    public void ScanChart_TakesSongIniFretsOverChartCharter(string chartCharter)
     {
         var entry = ScanChartWithIni(
             """
@@ -150,18 +197,11 @@ public class SongEntryScanningTests
             name = Test
             frets = Real Charter
             song_length = 10000
-            """
+            """,
+            CHART_SONG_SECTION.Replace("Charter = \"Unknown Charter\"", $"Charter = \"{chartCharter}\"")
         );
 
-        using (Assert.EnterMultipleScope())
-        {
-            Assert.That(entry.Name.Original, Is.EqualTo("Test"));
-            Assert.That(entry.Artist.Original, Is.EqualTo(SongMetadata.DEFAULT_ARTIST));
-            Assert.That(entry.Charter.Original, Is.EqualTo("Real Charter"));
-            Assert.That(entry.RawGenre.Original, Is.Empty);
-            Assert.That(entry.SongOffsetMilliseconds, Is.EqualTo(700));
-            Assert.That(entry.PreviewStartMilliseconds, Is.EqualTo(30000));
-        }
+        Assert.That(entry.Charter.Original, Is.EqualTo("Real Charter"));
     }
 
     [Test]

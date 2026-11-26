@@ -45,7 +45,8 @@ namespace YARG.Core.Song
             ("notes.txt"  , ChartFormat.UltraStar),
         };
 
-        private static readonly string[] CHART_TEXT_MODIFIERS = { "name", "artist", "album", "genre", "year_chart", "charter" };
+        private const string MOONSCRAPER_DEFAULT_CHARTER = "Unknown Charter";
+        private const string MOONSCRAPER_DEFAULT_GENRE = "rock";
 
         protected static readonly string[] ALBUMART_FILES;
         protected static readonly string[] PREVIEW_FILES;
@@ -462,10 +463,18 @@ namespace YARG.Core.Song
 
                 if (hasIniMetadata)
                 {
-                    // song.ini gives the song's text alone, even where it leaves a key out
-                    foreach (string key in CHART_TEXT_MODIFIERS)
+                    // [Song]'s text fills what song.ini leaves out, except the charter "Unknown Charter"
+                    // and the genre "rock" that Moonscraper writes as defaults, and song.ini's frets
+                    // counts as its charter
+                    if ((chartMods.TryGet("charter", out string charter) && charter == MOONSCRAPER_DEFAULT_CHARTER)
+                        || (modifiers.TryGet("frets", out string frets) && frets.Length > 0))
                     {
-                        chartMods.Extract(key, out string _);
+                        chartMods.Extract("charter", out string _);
+                    }
+
+                    if (chartMods.TryGet("genre", out string genre) && genre == MOONSCRAPER_DEFAULT_GENRE)
+                    {
+                        chartMods.Extract("genre", out string _);
                     }
                 }
                 modifiers.Union(chartMods);

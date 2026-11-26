@@ -388,6 +388,16 @@ namespace YARG.Core.IO.Ini
                 && DictEmpty(_int64Arrays);
         }
 
+        /// <summary>Reads a string modifier without removing it.</summary>
+        public bool TryGet(string key, out string value)
+        {
+#if DEBUG
+            ThrowIfMismatch(key, ModifierType.String, "Mismatched modifier types - String requested");
+#endif
+            value = default!;
+            return _strings != null && _strings.TryGetValue(key, out value);
+        }
+
         public bool Extract(string key, out string value)
         {
 #if DEBUG
