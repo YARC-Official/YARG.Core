@@ -1,0 +1,51 @@
+[Song]
+{
+  Resolution = 192
+}
+[SyncTrack]
+{
+  0 = B 120001
+  0 = B 130000
+  0 = B 120001
+  0 = TS 3
+  0 = TS 4
+}
+[Events]
+{
+}
+[EasySingle]
+{
+  0 = N 0 0
+  100 = E "ld_range_shift 0 1"
+}
+[MediumDoubleBass]
+{
+  0 = N 0 0
+  100 = E "ld_range_shift 1 2"
+}
+[HardDoubleRhythm]
+{
+  0 = N 0 0
+  100 = E "ld_range_shift 2 1"
+}
+[ExpertDoubleGuitar]
+{
+  0 = N 0 0
+  100 = E "ld_range_shift 3 1 5"
+}
+[ExpertKeyboard]
+{
+  0 = N 0 0
+  50 = E "ld_range_shift"
+  60 = E "ld_range_shift 9 1 3"
+  70 = E "ld_range_shift 2 1 3"
+  100 = E "ld_range_shift 3 1 5"
+  100 = E "ld_range_shift 3 3 3"
+  200 = E "ld_range_shift 3 3 3"
+  250 = E "ld_range_shift 3 3 0"
+}
+[ExpertDrums]
+{
+  0 = N 1 0
+  100 = E "ld_range_shift 3 1 5"
+}
