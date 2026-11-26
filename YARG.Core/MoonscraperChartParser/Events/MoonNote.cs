@@ -95,6 +95,7 @@ namespace MoonscraperChartEditor.Song
             ProDrums_Cymbal = 1 << 4,
             ProDrums_Accent = 1 << 5,
             ProDrums_Ghost = 1 << 6,
+            ProDrums_Flam = 1 << 25,
 
             // Generic flag that mainly represents mechanics from Guitar Hero's Expert+ filtered drum notes such as Double Kick. This may apply to any difficulty now though.
             InstrumentPlus = 1 << 7,

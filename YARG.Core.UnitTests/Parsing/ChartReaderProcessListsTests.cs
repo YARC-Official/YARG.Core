@@ -566,6 +566,34 @@ namespace YARG.Core.UnitTests.Parsing
         }
 
         [Test]
+        public void DrumsProcessList_FlamMarkerMakesFlamsOfNotesOnItsTickInItsSection()
+        {
+            var chartText = ChartText.Chart(
+                ChartText.SongSection(),
+                ChartText.SyncSection(),
+                ChartText.Section("ExpertDrums",
+                    $"0 = N {ChartIOHelper.NOTE_DRUMS_FLAM} 0",
+                    "0 = N 0 0",
+                    "0 = N 1 0",
+                    "192 = N 1 0"),
+                ChartText.Section("HardDrums",
+                    "0 = N 1 0"));
+
+            var song = ChartReader.ReadFromText(chartText);
+            var expert = song.GetChart(MoonInstrument.Drums, MoonDifficulty.Expert).notes;
+            var hard = song.GetChart(MoonInstrument.Drums, MoonDifficulty.Hard).notes;
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(expert, Has.Count.EqualTo(3));
+                AssertHasFlag(expert.Single(note => note.tick == 0 && note.drumPad == DrumPad.Kick), Flags.ProDrums_Flam);
+                AssertHasFlag(expert.Single(note => note.tick == 0 && note.drumPad == DrumPad.Red), Flags.ProDrums_Flam);
+                AssertDoesNotHaveFlag(expert.Single(note => note.tick == 192), Flags.ProDrums_Flam);
+                AssertDoesNotHaveFlag(hard.Single(), Flags.ProDrums_Flam);
+            }
+        }
+
+        [Test]
         public void DrumsProcessList_DisambiguatesUnknownDrumsTypeFromFiveLaneGreen()
         {
             var settings = ParseSettings.Default_Chart;

@@ -119,6 +119,32 @@ public class BTrackHasherTests
     }
 
     [Test]
+    public void CalculateTrackHash_DrumsFlam_MapsFlamFlagOnKickAndPad()
+    {
+        var chart = new SongChart(480);
+        var difficulty = new InstrumentDifficulty<DrumNote>(Instrument.FourLaneDrums, Difficulty.Expert);
+        var kick = new DrumNote(FourLaneDrumPad.Kick, DrumNoteType.Neutral,
+            DrumNoteFlags.Flam, NoteFlags.None, 0, 0);
+        kick.AddChildNote(new DrumNote(FourLaneDrumPad.RedDrum, DrumNoteType.Neutral,
+            DrumNoteFlags.Flam, NoteFlags.None, 0, 0));
+        difficulty.Notes.Add(kick);
+        difficulty.Notes.Add(new DrumNote(FourLaneDrumPad.RedDrum, DrumNoteType.Neutral,
+            DrumNoteFlags.None, NoteFlags.None, 1, 480));
+
+        chart.FourLaneDrums.AddDifficulty(Difficulty.Expert, difficulty);
+
+        var notes = Parse(Hash(chart, Instrument.FourLaneDrums, Difficulty.Expert).BTrack).Notes;
+
+        // Flam 256, and Tom 16 on the red
+        Assert.That(notes, Is.EqualTo(new List<(long Tick, long Length, uint Type, uint Flags)>
+        {
+            (0, 0, 13, 256),
+            (0, 0, 14, 272),
+            (480, 0, 14, 16),
+        }));
+    }
+
+    [Test]
     public void CalculateTrackHash_OverlappingNotesOfSameType_ResolvesOverlap()
     {
         var chart = new SongChart(480);

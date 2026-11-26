@@ -372,6 +372,11 @@ namespace YARG.Core.Chart.Hashing
                 flags |= BTrackNoteFlags.DoubleKick;
             }
 
+            if (note.IsFlam)
+            {
+                flags |= BTrackNoteFlags.Flam;
+            }
+
             if (note.IsGhost)
             {
                 flags |= BTrackNoteFlags.Ghost;

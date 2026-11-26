@@ -468,9 +468,14 @@ namespace YARG.Core.Chart
 
         private DrumNoteFlags GetDrumNoteFlags(MoonNote moonNote, Dictionary<MoonPhrase.Type, MoonPhrase> currentPhrases)
         {
-            // Can be populated later if additional note flags are added
             // Activation note marking is done within DrumsPlayer
-            return DrumNoteFlags.None;
+            var flags = DrumNoteFlags.None;
+            if ((moonNote.flags & MoonNote.Flags.ProDrums_Flam) != 0)
+            {
+                flags |= DrumNoteFlags.Flam;
+            }
+
+            return flags;
         }
 
         private InstrumentDifficulty<DrumNote> LoadFromEliteDrumsDownchartDifficulty(Instrument instrument,
