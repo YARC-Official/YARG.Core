@@ -600,6 +600,9 @@ namespace YARG.Core.Song.Cache
                     case ScanResult.InvalidResolution_Upgrade:
                         writer.WriteLine("The midi pro guitar upgrade file applicable with this chart has an invalid resolution of zero");
                         break;
+                    case ScanResult.NoSongSection:
+                        writer.WriteLine("This .chart file doesn't start with a [Song] section");
+                        break;
                 }
                 writer.WriteLine();
             }

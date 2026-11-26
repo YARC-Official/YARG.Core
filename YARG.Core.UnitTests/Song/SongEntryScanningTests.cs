@@ -185,6 +185,34 @@ public class SongEntryScanningTests
         }
     }
 
+    [TestCase("")]
+    [TestCase("[Events]\n{\n}\n[Song]\n{\n  Resolution = 192\n}\n")]
+    public void ScanChart_LeavesOutChartThatDoesNotStartWithSongSection(string beforeSyncTrack)
+    {
+        var result = ScanChart(
+            """
+            [song]
+            name = Test
+            song_length = 10000
+            """,
+            beforeSyncTrack +
+            """
+            [SyncTrack]
+            {
+              0 = TS 4
+              0 = B 120000
+            }
+            [ExpertSingle]
+            {
+              0 = N 0 0
+            }
+            """
+        );
+
+        Assert.That(result.HasValue, Is.False);
+        Assert.That(result.Error, Is.EqualTo(ScanResult.NoSongSection));
+    }
+
     private static ScanExpected<UnpackedIniEntry> ScanChart(string iniText, string chartText)
     {
         string directory = Path.Combine(Path.GetTempPath(), $"yarg-scan-{Guid.NewGuid():N}");

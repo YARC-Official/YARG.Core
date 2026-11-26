@@ -442,20 +442,23 @@ namespace YARG.Core.Song
                 drumsType &= ~DrumsType.FourLane;
             }
 
-            long resolution = 192;
-            if (YARGChartFileReader.ValidateTrack(ref container, YARGChartFileReader.HEADERTRACK))
+            // The chart loader refuses a .chart that doesn't start with [Song], so the song list leaves it out too
+            if (!YARGChartFileReader.ValidateTrack(ref container, YARGChartFileReader.HEADERTRACK))
             {
-                var chartMods = YARGChartFileReader.ExtractModifiers(ref container);
-                if (chartMods.Extract("Resolution", out long res))
-                {
-                    resolution = res;
-                    if (resolution < 1)
-                    {
-                        return new ScanUnexpected(ScanResult.InvalidResolution);
-                    }
-                }
-                modifiers.Union(chartMods);
+                return new ScanUnexpected(ScanResult.NoSongSection);
             }
+
+            long resolution = 192;
+            var chartMods = YARGChartFileReader.ExtractModifiers(ref container);
+            if (chartMods.Extract("Resolution", out long res))
+            {
+                resolution = res;
+                if (resolution < 1)
+                {
+                    return new ScanUnexpected(ScanResult.InvalidResolution);
+                }
+            }
+            modifiers.Union(chartMods);
 
             while (YARGChartFileReader.IsStartOfTrack(in container))
             {
