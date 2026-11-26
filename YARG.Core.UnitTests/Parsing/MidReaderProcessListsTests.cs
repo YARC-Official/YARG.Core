@@ -191,6 +191,74 @@ public class MidReaderProcessListsTests
     }
 
     [Test]
+    public void SysExOpenStartBeforeAnEndOnOneTick_TheEndEndsTheLaterStart()
+    {
+        var green = MidIOHelper.GUITAR_DIFF_START_LOOKUP[Difficulty.Expert];
+        var midi = MakeMidi(MakeTrack(MidIOHelper.GUITAR_TRACK,
+            PhaseShiftOpen(0, start: true),
+            PhaseShiftOpen(192, start: true),
+            PhaseShiftOpen(192, start: false),
+            PhaseShiftOpen(384, start: false),
+            Note(0, 10, green),
+            Note(192, 202, green)));
+
+        var notes = MidReader.ReadMidi(midi).GetChart(MoonInstrument.Guitar, Difficulty.Expert).notes;
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(notes, Has.Count.EqualTo(2));
+            Assert.That(notes, Has.All.Matches<MoonNote>(note => note.guitarFret == GuitarFret.Open));
+        }
+    }
+
+    [Test]
+    public void SysExOpenStartWithNoEnd_IsIgnored()
+    {
+        var green = MidIOHelper.GUITAR_DIFF_START_LOOKUP[Difficulty.Expert];
+        var midi = MakeMidi(MakeTrack(MidIOHelper.GUITAR_TRACK,
+            PhaseShiftOpen(0, start: true),
+            PhaseShiftOpen(384, start: true),
+            PhaseShiftOpen(576, start: false),
+            Note(0, 10, green),
+            Note(192, 202, green),
+            Note(384, 394, green)));
+
+        var notes = MidReader.ReadMidi(midi).GetChart(MoonInstrument.Guitar, Difficulty.Expert).notes;
+
+        Assert.That(notes.Select(note => (note.tick, note.guitarFret)), Is.EqualTo(new[]
+        {
+            (0u, GuitarFret.Green),
+            (192u, GuitarFret.Green),
+            (384u, GuitarFret.Open),
+        }));
+    }
+
+    [Test]
+    public void OverlappingSysExTaps_TapEveryNoteUnderEither()
+    {
+        var green = MidIOHelper.GUITAR_DIFF_START_LOOKUP[Difficulty.Expert];
+        var midi = MakeMidi(MakeTrack(MidIOHelper.GUITAR_TRACK,
+            PhaseShiftTap(0, start: true),
+            PhaseShiftTap(192, start: true),
+            PhaseShiftTap(288, start: false),
+            PhaseShiftTap(576, start: false),
+            Note(0, 10, green),
+            Note(192, 202, green + 1),
+            Note(384, 394, green + 2)));
+
+        var notes = MidReader.ReadMidi(midi).GetChart(MoonInstrument.Guitar, Difficulty.Expert).notes;
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(notes, Has.Count.EqualTo(3));
+            foreach (var note in notes)
+            {
+                AssertHasFlag(note, Flags.Tap);
+            }
+        }
+    }
+
+    [Test]
     public void ReadMidi_UsesFirstRecognizedTrackNameWhenMultipleTrackNamesArePresent()
     {
         var green = MidIOHelper.GUITAR_DIFF_START_LOOKUP[Difficulty.Expert];
@@ -373,6 +441,21 @@ public class MidReaderProcessListsTests
             0x00,
             0x03,
             0x04,
+            (byte) (start ? 0x01 : 0x00),
+            0xF7,
+        }));
+    }
+
+    private static TimedMidiEvent PhaseShiftOpen(long tick, bool start)
+    {
+        return new TimedMidiEvent(tick, new NormalSysExEvent(new byte[]
+        {
+            0x50,
+            0x53,
+            0x00,
+            0x00,
+            0x03,
+            0x01,
             (byte) (start ? 0x01 : 0x00),
             0xF7,
         }));
