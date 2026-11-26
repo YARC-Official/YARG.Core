@@ -200,6 +200,7 @@ namespace MoonscraperChartEditor.Song.IO
 
         private static readonly List<EventProcessFn> DrumsPostProcessList = new()
         {
+            ResolveProDrumsGreenNotes,
             DisambiguateDrumsType,
             ReplaceDrumFillDuringCoda,
             SetCodaFlags,
@@ -528,6 +529,20 @@ namespace MoonscraperChartEditor.Song.IO
             }
 
             return codaRanges;
+        }
+
+        // In pro drums, 101 (and each difficulty's N 5) on the tick of a 100 becomes a blue tom, or is dropped when the
+        // tick has a 99. Runs before DisambiguateDrumsType, after the tom markers have set the cymbal flags.
+        private static void ResolveProDrumsGreenNotes(ref EventProcessParams processParams)
+        {
+            // A tom marker that covers a note makes the drums pro, unless they were given as five lane
+            if (processParams.settings.DrumsType is DrumsType.FiveLane || !processParams.tomMarker)
+                return;
+
+            foreach (var difficulty in EnumExtensions<MoonSong.Difficulty>.Values)
+            {
+                processParams.song.GetChart(processParams.instrument, difficulty).ResolveProDrumsGreenNotes();
+            }
         }
 
         private static void DisambiguateDrumsType(ref EventProcessParams processParams)
@@ -1117,7 +1132,7 @@ namespace MoonscraperChartEditor.Song.IO
 
                 processFnDict.Add(midiKey, (ref EventProcessParams eventProcessParams) =>
                 {
-                    ProcessNoteOnEventAsFlagToggle(ref eventProcessParams, MoonNote.Flags.ProDrums_Cymbal, pad);
+                    ProcessNoteOnEventAsTomMarker(ref eventProcessParams, pad);
                 });
             }
 

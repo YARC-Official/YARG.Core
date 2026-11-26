@@ -107,6 +107,225 @@ public class MidReaderProcessListsTests
         }
     }
 
+    // Pro drums by the tom marker over the yellow note at tick 0, and the given events, of which the test looks at
+    // tick 192
+    private static List<MoonNote> ReadProDrumsTick192(DrumsType drumsType, params object[] eventItems)
+    {
+        var settings = ParseSettings.Default_Midi;
+        settings.DrumsType = drumsType;
+        var midi = MakeMidi(MakeTrack(MidIOHelper.DRUMS_TRACK,
+            new object[] { Note(0, 10, 98), Note(0, 10, 110) }.Concat(eventItems).ToArray()));
+
+        var notes = MidReader.ReadMidi(ref settings, midi).GetChart(MoonInstrument.Drums, Difficulty.Expert).notes;
+
+        AssertLinkedInListOrder(notes);
+        return notes.Where(note => note.tick == 192).ToList();
+    }
+
+    [TestCase(DrumsType.FourLane, false)]
+    [TestCase(DrumsType.FourLane, true)]
+    [TestCase(DrumsType.Unknown, false)]
+    public void ReadMidi_Reads101AtTheTickOf100AsABlueTomInProDrums(DrumsType drumsType, bool greenTom)
+    {
+        var events = new List<object> { Note(192, 480, 100), Note(192, 384, 101) };
+        if (greenTom)
+        {
+            events.Add(Note(192, 202, 112));
+        }
+
+        var notes = ReadProDrumsTick192(drumsType, events.ToArray());
+        var green = notes.Single(note => note.drumPad is DrumPad.Orange);
+        var blue = notes.Single(note => note.drumPad is DrumPad.Blue);
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(notes, Has.Count.EqualTo(2));
+            Assert.That((green.flags & Flags.ProDrums_Cymbal) != 0, Is.EqualTo(!greenTom));
+            Assert.That(green.length, Is.EqualTo(288));
+            AssertDoesNotHaveFlag(blue, Flags.ProDrums_Cymbal);
+            Assert.That(blue.length, Is.EqualTo(192));
+        }
+    }
+
+    [TestCase(false, false)]
+    [TestCase(false, true)]
+    [TestCase(true, false)]
+    [TestCase(true, true)]
+    public void ReadMidi_Drops101AtTheTickOf100And99InProDrums(bool greenTom, bool blueTom)
+    {
+        var events = new List<object>
+        {
+            Text(0, $"[{MidIOHelper.CHART_DYNAMICS_TEXT}]"),
+            Note(192, 202, 100),
+            Note(192, 384, 101),
+            Note(192, 480, 99, velocity: MidIOHelper.VELOCITY_ACCENT),
+            Note(576, 586, 97),
+        };
+        if (greenTom)
+        {
+            events.Add(Note(192, 202, 112));
+        }
+        if (blueTom)
+        {
+            events.Add(Note(192, 202, 111));
+        }
+
+        var notes = ReadProDrumsTick192(DrumsType.FourLane, events.ToArray());
+        var blue = notes.Single(note => note.drumPad is DrumPad.Blue);
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(notes.Select(note => note.drumPad), Is.EquivalentTo(new[] { DrumPad.Orange, DrumPad.Blue }));
+            Assert.That((blue.flags & Flags.ProDrums_Cymbal) != 0, Is.EqualTo(!blueTom));
+            AssertHasFlag(blue, Flags.ProDrums_Accent);
+            Assert.That(blue.length, Is.EqualTo(288));
+        }
+    }
+
+    [TestCase(false)]
+    [TestCase(true)]
+    public void ReadMidi_Carries101AccentOrGhostToTheBlueTom(bool ghost)
+    {
+        var notes = ReadProDrumsTick192(DrumsType.FourLane,
+            Text(0, $"[{MidIOHelper.CHART_DYNAMICS_TEXT}]"),
+            Note(192, 202, 100),
+            Note(192, 384, 101, velocity: ghost ? MidIOHelper.VELOCITY_GHOST : MidIOHelper.VELOCITY_ACCENT));
+        var green = notes.Single(note => note.drumPad is DrumPad.Orange);
+        var blue = notes.Single(note => note.drumPad is DrumPad.Blue);
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(notes, Has.Count.EqualTo(2));
+            Assert.That(green.flags & (Flags.ProDrums_Accent | Flags.ProDrums_Ghost), Is.EqualTo(Flags.None));
+            AssertHasFlag(blue, ghost ? Flags.ProDrums_Ghost : Flags.ProDrums_Accent);
+            AssertDoesNotHaveFlag(blue, ghost ? Flags.ProDrums_Accent : Flags.ProDrums_Ghost);
+            Assert.That(blue.length, Is.EqualTo(192));
+        }
+    }
+
+    [TestCase(false)]
+    [TestCase(true)]
+    public void ReadMidi_Reads101AsABlueTomWhateverTheBlueTomMarkerSays(bool blueTomMarker)
+    {
+        // Without 111, a 99 is a cymbal; with it, a tom. The moved note is a tom either way.
+        var events = new List<object> { Note(192, 202, 100), Note(192, 202, 101) };
+        if (blueTomMarker)
+        {
+            events.Add(Note(192, 202, 111));
+        }
+
+        var notes = ReadProDrumsTick192(DrumsType.FourLane, events.ToArray());
+        var blue = notes.Single(note => note.drumPad is DrumPad.Blue);
+
+        AssertDoesNotHaveFlag(blue, Flags.ProDrums_Cymbal);
+    }
+
+    [Test]
+    public void ReadMidi_ResolvesBothGreenNotesWhenATomMarkerCoversOnlyAKick()
+    {
+        var settings = ParseSettings.Default_Midi;
+        settings.DrumsType = DrumsType.FourLane;
+        var midi = MakeMidi(MakeTrack(MidIOHelper.DRUMS_TRACK,
+            Note(0, 10, 60),
+            Note(0, 10, 110),
+            Note(192, 202, 88),
+            Note(192, 202, 89)));
+
+        var song = MidReader.ReadMidi(ref settings, midi);
+        var notes = song.GetChart(MoonInstrument.Drums, Difficulty.Hard).notes;
+
+        Assert.That(notes.Select(note => note.drumPad), Is.EquivalentTo(new[] { DrumPad.Orange, DrumPad.Blue }));
+    }
+
+    [TestCase(DrumsType.FourLane)]
+    [TestCase(DrumsType.Unknown)]
+    public void ReadMidi_ReadsBothGreenNotesAtOneTickWithoutTomMarkers(DrumsType drumsType)
+    {
+        // Five lane drums: an orange and a green. The drum type given may still be four lane.
+        var settings = ParseSettings.Default_Midi;
+        settings.DrumsType = drumsType;
+        var midi = MakeMidi(MakeTrack(MidIOHelper.DRUMS_TRACK,
+            Note(192, 202, 100),
+            Note(192, 202, 101)));
+
+        var song = MidReader.ReadMidi(ref settings, midi);
+        var notes = song.GetChart(MoonInstrument.Drums, Difficulty.Expert).notes;
+
+        Assert.That(notes.Select(note => note.drumPad), Is.EquivalentTo(new[] { DrumPad.Orange, DrumPad.Green }));
+    }
+
+    [Test]
+    public void ReadMidi_ReadsBothGreenNotesAtOneTickWhenTheTomMarkerCoversNoNote()
+    {
+        var settings = ParseSettings.Default_Midi;
+        settings.DrumsType = DrumsType.FourLane;
+        var midi = MakeMidi(MakeTrack(MidIOHelper.DRUMS_TRACK,
+            Note(192, 202, 100),
+            Note(192, 202, 101),
+            Note(960, 970, 112)));
+
+        var song = MidReader.ReadMidi(ref settings, midi);
+        var notes = song.GetChart(MoonInstrument.Drums, Difficulty.Expert).notes;
+
+        Assert.That(notes.Select(note => note.drumPad), Is.EquivalentTo(new[] { DrumPad.Orange, DrumPad.Green }));
+    }
+
+    [Test]
+    public void ReadMidi_ReadsBothGreenNotesAtOneTickWhenGivenFiveLane()
+    {
+        var settings = ParseSettings.Default_Midi;
+        settings.DrumsType = DrumsType.FiveLane;
+        var midi = MakeMidi(MakeTrack(MidIOHelper.DRUMS_TRACK,
+            Note(192, 202, 100),
+            Note(192, 202, 101),
+            Note(192, 202, 112)));
+
+        var song = MidReader.ReadMidi(ref settings, midi);
+        var notes = song.GetChart(MoonInstrument.Drums, Difficulty.Expert).notes;
+
+        Assert.That(notes.Select(note => note.drumPad), Is.EquivalentTo(new[] { DrumPad.Orange, DrumPad.Green }));
+    }
+
+    [Test]
+    public void ReadMidi_Reads101AloneInProDrums()
+    {
+        var notes = ReadProDrumsTick192(DrumsType.FourLane, Note(192, 202, 101), Note(384, 394, 100));
+
+        Assert.That(notes.Select(note => note.drumPad), Is.EqualTo(new[] { DrumPad.Green }));
+    }
+
+    [TestCase(false)]
+    [TestCase(true)]
+    public void LoadDrumsTrack_Loads101AtTheTickOf100AsABlueTom(bool discoFlip)
+    {
+        var settings = ParseSettings.Default_Midi;
+        settings.DrumsType = DrumsType.FourLane;
+        var events = new List<object>
+        {
+            Note(0, 10, 98),
+            Note(0, 10, 110),
+            Note(192, 202, 97),
+            Note(192, 202, 100),
+            Note(192, 202, 101),
+        };
+        if (discoFlip)
+        {
+            events.Add(Text(0, "[mix 3 drums0d]"));
+        }
+
+        var song = MidReader.ReadMidi(ref settings, MakeMidi(MakeTrack(MidIOHelper.DRUMS_TRACK, events.ToArray())));
+        var track = new MoonSongLoader(song, settings).LoadDrumsTrack(Instrument.ProDrums, null);
+        var pads = new List<FourLaneDrumPad>();
+        foreach (var note in track.GetDifficulty(YARG.Core.Difficulty.Expert).Notes.Single(note => note.Tick == 192).AllNotes)
+        {
+            pads.Add((FourLaneDrumPad) note.Pad);
+        }
+
+        // Disco flip turns the red into a yellow cymbal, and leaves the blue tom
+        var red = discoFlip ? FourLaneDrumPad.YellowCymbal : FourLaneDrumPad.RedDrum;
+        Assert.That(pads, Is.EquivalentTo(new[] { red, FourLaneDrumPad.GreenCymbal, FourLaneDrumPad.BlueDrum }));
+    }
+
     [Test]
     public void EliteDrumsStrictHatPedalStateTextEvent_SetsStrictHatPedalFlag()
     {

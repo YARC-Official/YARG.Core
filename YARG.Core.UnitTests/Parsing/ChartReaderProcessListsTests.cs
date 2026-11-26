@@ -579,6 +579,223 @@ namespace YARG.Core.UnitTests.Parsing
             Assert.That(settings.DrumsType, Is.EqualTo(DrumsType.FiveLane));
         }
 
+        // Pro drums by the cymbal marker at tick 0, and the given lines, of which the test looks at tick 192
+        private static List<MoonNote> ReadProDrumsTick192(DrumsType drumsType, params string[] lines)
+        {
+            var settings = ParseSettings.Default_Chart;
+            settings.DrumsType = drumsType;
+            var chartText = ChartText.Chart(
+                ChartText.SongSection(),
+                ChartText.SyncSection(),
+                ChartText.Section("ExpertDrums", new[] { "0 = N 2 0", "0 = N 66 0" }.Concat(lines).ToArray()));
+
+            var song = ChartReader.ReadFromText(ref settings, chartText);
+            var notes = song.GetChart(MoonInstrument.Drums, MoonDifficulty.Expert).notes;
+
+            AssertLinkedInListOrder(notes);
+            return notes.Where(note => note.tick == 192).ToList();
+        }
+
+        [TestCase(DrumsType.FourLane, false)]
+        [TestCase(DrumsType.FourLane, true)]
+        [TestCase(DrumsType.Unknown, false)]
+        public void ReadFromText_ReadsN5AtTheTickOfN4AsABlueTomInProDrums(DrumsType drumsType, bool greenCymbal)
+        {
+            var lines = new List<string> { "192 = N 4 96", "192 = N 5 48" };
+            if (greenCymbal)
+            {
+                lines.Add("192 = N 68 0");
+            }
+
+            var notes = ReadProDrumsTick192(drumsType, lines.ToArray());
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(notes.Select(note => note.drumPad), Is.EqualTo(new[] { DrumPad.Orange, DrumPad.Blue }));
+                Assert.That((notes[0].flags & Flags.ProDrums_Cymbal) != 0, Is.EqualTo(greenCymbal));
+                Assert.That(notes[0].length, Is.EqualTo(96));
+                AssertDoesNotHaveFlag(notes[1], Flags.ProDrums_Cymbal);
+                Assert.That(notes[1].length, Is.EqualTo(48));
+            }
+        }
+
+        [TestCase(false, false)]
+        [TestCase(false, true)]
+        [TestCase(true, false)]
+        [TestCase(true, true)]
+        public void ReadFromText_DropsN5AtTheTickOfN4AndN3InProDrums(bool greenCymbal, bool blueCymbal)
+        {
+            // The N 5 comes before the N 3, and is still dropped
+            var lines = new List<string>
+            {
+                "192 = N 4 0",
+                "192 = N 5 48",
+                "192 = N 3 96",
+                $"192 = N {ChartIOHelper.NOTE_OFFSET_DRUMS_ACCENT + 3} 0",
+                "384 = N 1 0",
+            };
+            if (greenCymbal)
+            {
+                lines.Add("192 = N 68 0");
+            }
+            if (blueCymbal)
+            {
+                lines.Add("192 = N 67 0");
+            }
+
+            var notes = ReadProDrumsTick192(DrumsType.FourLane, lines.ToArray());
+            var blue = notes.Single(note => note.drumPad is DrumPad.Blue);
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(notes.Select(note => note.drumPad), Is.EquivalentTo(new[] { DrumPad.Orange, DrumPad.Blue }));
+                Assert.That((blue.flags & Flags.ProDrums_Cymbal) != 0, Is.EqualTo(blueCymbal));
+                AssertHasFlag(blue, Flags.ProDrums_Accent);
+                Assert.That(blue.length, Is.EqualTo(96));
+            }
+        }
+
+        [TestCase("192 = N 5 48", "192 = N 5 96")]
+        [TestCase("192 = N 5 96", "192 = N 5 48")]
+        public void ReadFromText_ReadsTheLongerOfTwoN5AtTheTickOfN4AsTheBlueTom(string first, string second)
+        {
+            var notes = ReadProDrumsTick192(DrumsType.FourLane, "192 = N 4 0", first, second);
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(notes.Select(note => note.drumPad), Is.EqualTo(new[] { DrumPad.Orange, DrumPad.Blue }));
+                Assert.That(notes[1].length, Is.EqualTo(96));
+            }
+        }
+
+        [Test]
+        public void ReadFromText_DropsTwoN5AtTheTickOfN4AndN3()
+        {
+            var notes = ReadProDrumsTick192(DrumsType.FourLane, "192 = N 4 0", "192 = N 5 96", "192 = N 3 48", "192 = N 5 144");
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(notes.Select(note => note.drumPad), Is.EquivalentTo(new[] { DrumPad.Orange, DrumPad.Blue }));
+                Assert.That(notes.Single(note => note.drumPad is DrumPad.Blue).length, Is.EqualTo(48));
+            }
+        }
+
+        [TestCase(false)]
+        [TestCase(true)]
+        public void ReadFromText_CarriesN5AccentOrGhostToTheBlueTom(bool ghost)
+        {
+            int marker = (ghost ? ChartIOHelper.NOTE_OFFSET_DRUMS_GHOST : ChartIOHelper.NOTE_OFFSET_DRUMS_ACCENT) + 5;
+            var notes = ReadProDrumsTick192(DrumsType.FourLane, "192 = N 4 0", "192 = N 5 48", $"192 = N {marker} 0");
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(notes.Select(note => note.drumPad), Is.EqualTo(new[] { DrumPad.Orange, DrumPad.Blue }));
+                Assert.That(notes[0].flags & (Flags.ProDrums_Accent | Flags.ProDrums_Ghost), Is.EqualTo(Flags.None));
+                AssertHasFlag(notes[1], ghost ? Flags.ProDrums_Ghost : Flags.ProDrums_Accent);
+                AssertDoesNotHaveFlag(notes[1], ghost ? Flags.ProDrums_Accent : Flags.ProDrums_Ghost);
+                Assert.That(notes[1].length, Is.EqualTo(48));
+            }
+        }
+
+        [Test]
+        public void ReadFromText_ReadsN5AsABlueTomWhenItsTickHasABlueCymbalMarker()
+        {
+            var notes = ReadProDrumsTick192(DrumsType.FourLane, "192 = N 4 0", "192 = N 5 0", "192 = N 67 0");
+
+            Assert.That(notes.Select(note => note.drumPad), Is.EqualTo(new[] { DrumPad.Orange, DrumPad.Blue }));
+            AssertDoesNotHaveFlag(notes[1], Flags.ProDrums_Cymbal);
+        }
+
+        [Test]
+        public void ReadFromText_ResolvesN4AndN5WhenAnotherSectionHasACymbalMarker()
+        {
+            // The marker has no note on its tick, and it still makes the drums pro
+            var settings = ParseSettings.Default_Chart;
+            settings.DrumsType = DrumsType.FourLane;
+            var chartText = ChartText.Chart(
+                ChartText.SongSection(),
+                ChartText.SyncSection(),
+                ChartText.Section("ExpertDrums", "0 = N 1 0", "0 = N 66 0"),
+                ChartText.Section("EasyDrums", "192 = N 4 0", "192 = N 5 0"));
+
+            var song = ChartReader.ReadFromText(ref settings, chartText);
+            var notes = song.GetChart(MoonInstrument.Drums, MoonDifficulty.Easy).notes;
+
+            Assert.That(notes.Select(note => note.drumPad), Is.EqualTo(new[] { DrumPad.Orange, DrumPad.Blue }));
+        }
+
+        [TestCase(DrumsType.FourLane)]
+        [TestCase(DrumsType.Unknown)]
+        public void ReadFromText_ReadsN4AndN5AtOneTickWithoutCymbalMarkers(DrumsType drumsType)
+        {
+            // Five lane drums: an orange and a green. The drum type given may still be four lane.
+            var settings = ParseSettings.Default_Chart;
+            settings.DrumsType = drumsType;
+            var chartText = ChartText.Chart(
+                ChartText.SongSection(),
+                ChartText.SyncSection(),
+                ChartText.Section("ExpertDrums", "192 = N 4 0", "192 = N 5 0"));
+
+            var song = ChartReader.ReadFromText(ref settings, chartText);
+            var notes = song.GetChart(MoonInstrument.Drums, MoonDifficulty.Expert).notes;
+
+            Assert.That(notes.Select(note => note.drumPad), Is.EqualTo(new[] { DrumPad.Orange, DrumPad.Green }));
+        }
+
+        [Test]
+        public void ReadFromText_ReadsN4AndN5AtOneTickWhenGivenFiveLane()
+        {
+            var settings = ParseSettings.Default_Chart;
+            settings.DrumsType = DrumsType.FiveLane;
+            var chartText = ChartText.Chart(
+                ChartText.SongSection(),
+                ChartText.SyncSection(),
+                ChartText.Section("ExpertDrums", "0 = N 2 0", "0 = N 66 0", "192 = N 4 0", "192 = N 5 0"));
+
+            var song = ChartReader.ReadFromText(ref settings, chartText);
+            var notes = song.GetChart(MoonInstrument.Drums, MoonDifficulty.Expert).notes;
+
+            Assert.That(notes.Select(note => note.drumPad), Is.EqualTo(new[] { DrumPad.Yellow, DrumPad.Orange, DrumPad.Green }));
+        }
+
+        [Test]
+        public void ReadFromText_ReadsN5AloneInProDrums()
+        {
+            var notes = ReadProDrumsTick192(DrumsType.FourLane, "192 = N 5 0", "384 = N 4 0");
+
+            Assert.That(notes.Select(note => note.drumPad), Is.EqualTo(new[] { DrumPad.Green }));
+        }
+
+        [TestCase(false)]
+        [TestCase(true)]
+        public void LoadDrumsTrack_LoadsN5AtTheTickOfN4AsABlueTom(bool discoFlip)
+        {
+            var settings = ParseSettings.Default_Chart;
+            settings.DrumsType = DrumsType.FourLane;
+            var lines = new List<string> { "0 = N 2 0", "0 = N 66 0", "192 = N 1 0", "192 = N 4 0", "192 = N 5 0", "192 = N 68 0" };
+            if (discoFlip)
+            {
+                lines.Insert(0, "0 = E mix_3_drums0d");
+            }
+
+            var chartText = ChartText.Chart(
+                ChartText.SongSection(),
+                ChartText.SyncSection(),
+                ChartText.Section("ExpertDrums", lines.ToArray()));
+
+            var song = ChartReader.ReadFromText(ref settings, chartText);
+            var track = new MoonSongLoader(song, settings).LoadDrumsTrack(Instrument.ProDrums, null);
+            var pads = new List<FourLaneDrumPad>();
+            foreach (var note in track.GetDifficulty(YargDifficulty.Expert).Notes.Single(note => note.Tick == 192).AllNotes)
+            {
+                pads.Add((FourLaneDrumPad) note.Pad);
+            }
+
+            // Disco flip turns the red into a yellow cymbal, and leaves the blue tom
+            var red = discoFlip ? FourLaneDrumPad.YellowCymbal : FourLaneDrumPad.RedDrum;
+            Assert.That(pads, Is.EquivalentTo(new[] { red, FourLaneDrumPad.GreenCymbal, FourLaneDrumPad.BlueDrum }));
+        }
+
         [Test]
         public void ReadFromText_AppliesSustainCutoffThreshold()
         {
