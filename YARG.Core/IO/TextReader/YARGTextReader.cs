@@ -32,17 +32,23 @@ namespace YARG.Core.IO
         {
             // If it doesn't throw with `At(1)`, then 0 and 1 are valid indices.
             // We can therefore skip bounds checking
-            if ((data.At(1) == 0xFE && data[0] == 0xFF) || (data[0] == 0xFE && data[1] == 0xFF))
+            if ((data.At(1) == 0xFE && data[0] == 0xFF) || (data[0] == 0xFE && data[1] == 0xFF) || IsUTF32(data))
             {
                 container = default;
                 return false;
             }
 
-            container = new YARGTextContainer<byte>(data, UTF8Strict);
             // Same idea as above, but with index `2` instead
             if (data.At(2) == 0xBF && data[0] == 0xEF && data[1] == 0xBB)
             {
+                // After a UTF-8 byte order mark, invalid bytes decode as the replacement character
+                container = new YARGTextContainer<byte>(data, Encoding.UTF8);
                 container.Position += 3;
+            }
+            else
+            {
+                // Without a byte order mark, the whole file is either UTF-8 or, if it isn't valid UTF-8, ISO-8859-1
+                container = new YARGTextContainer<byte>(data, IsValidUTF8(data) ? UTF8Strict : Latin1);
             }
             SkipPureWhitespace(ref container);
             return true;
@@ -51,7 +57,8 @@ namespace YARG.Core.IO
         public static FixedArray<char>? TryUTF16Cast(FixedArray<byte> data)
         {
             var buffer = default(FixedArray<char>);
-            if (data.At(2) != 0)
+            // `FF FE 00 00` is the byte order mark of UTF-32 little-endian, not UTF-16
+            if (!IsUTF32(data))
             {
                 const int UTF16BOM_OFFSET = 2;
                 int length = (data.Length - UTF16BOM_OFFSET) / sizeof(char);
@@ -83,7 +90,7 @@ namespace YARG.Core.IO
 
         public static FixedArray<int> CastUTF32(FixedArray<byte> data)
         {
-            const int UTF32BOM_OFFSET = 3;
+            const int UTF32BOM_OFFSET = 4;
 
             FixedArray<int> buffer;
             int length = (data.Length - UTF32BOM_OFFSET) / sizeof(int);
@@ -98,7 +105,7 @@ namespace YARG.Core.IO
                 {
                     buffer[i] = data[j] << 24 |
                                 data[j + 1] << 16 |
-                                data[j + 2] << 16 |
+                                data[j + 2] << 8 |
                                 data[j + 3];
                 }
             }
@@ -114,6 +121,52 @@ namespace YARG.Core.IO
             var container = new YARGTextContainer<int>(data, Encoding.UTF32);
             SkipPureWhitespace(ref container);
             return container;
+        }
+
+        /// <summary>
+        /// Decodes the whole of a .chart or song.ini file, by its byte order mark or, without one,
+        /// as UTF-8 or ISO-8859-1, as the containers above read it
+        /// </summary>
+        public static string DecodeFile(FixedArray<byte> data)
+        {
+            if (TryUTF8(data, out var byteContainer))
+            {
+                return DecodeRemainder(in byteContainer);
+            }
+
+            using var chars = TryUTF16Cast(data);
+            if (chars != null)
+            {
+                var charContainer = CreateUTF16Container(chars);
+                return DecodeRemainder(in charContainer);
+            }
+
+            using var ints = CastUTF32(data);
+            var intContainer = CreateUTF32Container(ints);
+            return DecodeRemainder(in intContainer);
+        }
+
+        /// <summary>
+        /// Checks for either UTF-32 byte order mark: `00 00 FE FF` (big-endian) or `FF FE 00 00` (little-endian)
+        /// </summary>
+        private static bool IsUTF32(FixedArray<byte> data)
+        {
+            return data.Length >= 4
+                && ((data[0] == 0x00 && data[1] == 0x00 && data[2] == 0xFE && data[3] == 0xFF)
+                ||  (data[0] == 0xFF && data[1] == 0xFE && data[2] == 0x00 && data[3] == 0x00));
+        }
+
+        private static bool IsValidUTF8(FixedArray<byte> data)
+        {
+            try
+            {
+                UTF8Strict.GetCharCount(data.ReadOnlySpan);
+                return true;
+            }
+            catch (DecoderFallbackException)
+            {
+                return false;
+            }
         }
 
         public static void SkipPureWhitespace<TChar>(ref YARGTextContainer<TChar> container)
@@ -200,6 +253,13 @@ namespace YARG.Core.IO
             where TChar : unmanaged, IConvertible, IEquatable<TChar>
         {
             GotoNextLine(ref container);
+            // `GotoNextLine` leaves the position at the start of a line's text,
+            // where the look-back below can't find the newline before it
+            if (!container.IsAtEnd() && container.Get() == stopCharacter.ToInt32(null))
+            {
+                return true;
+            }
+
             while (true)
             {
                 int i = container.GetSpanOfRemainder().IndexOf(stopCharacter);
@@ -243,7 +303,7 @@ namespace YARG.Core.IO
                 ++length;
             }
 
-            string name = Decode(container.PositionPointer, length, ref container);
+            string name = Decode(container.PositionPointer, length, in container);
             container.Position += length;
             SkipWhitespaceAndEquals(ref container);
             return name;
@@ -263,7 +323,7 @@ namespace YARG.Core.IO
             {
                 --length;
             }
-            return Decode(container.PositionPointer, length, ref container).TrimEnd();
+            return Decode(container.PositionPointer, length, in container).TrimEnd();
         }
 
         public static unsafe string ExtractText<TChar>(ref YARGTextContainer<TChar> container, bool isChartFile)
@@ -329,7 +389,8 @@ namespace YARG.Core.IO
                 --stringEnd;
             }
 
-            return Decode(container.GetBuffer() + stringBegin, stringEnd - stringBegin, ref container);
+            // Also removes white space outside of ASCII, such as a no-break space
+            return Decode(container.GetBuffer() + stringBegin, stringEnd - stringBegin, in container).Trim();
         }
 
         public static bool ExtractBoolean<TChar>(in YARGTextContainer<TChar> text)
@@ -597,20 +658,16 @@ namespace YARG.Core.IO
             return true;
         }
 
-        private static unsafe string Decode<TChar>(TChar* data, long count, ref YARGTextContainer<TChar> text)
+        private static unsafe string Decode<TChar>(TChar* data, long count, in YARGTextContainer<TChar> text)
             where TChar : unmanaged, IConvertible
         {
-            while (true)
-            {
-                try
-                {
-                    return text.Encoding.GetString((byte*) data, (int) (count * sizeof(TChar)));
-                }
-                catch when(ReferenceEquals(text.Encoding, UTF8Strict))
-                {
-                    text.Encoding = Latin1;
-                }
-            }
+            return text.Encoding.GetString((byte*) data, (int) (count * sizeof(TChar)));
+        }
+
+        private static unsafe string DecodeRemainder<TChar>(in YARGTextContainer<TChar> text)
+            where TChar : unmanaged, IConvertible
+        {
+            return Decode(text.PositionPointer, text.Length - text.Position, in text);
         }
     }
 }

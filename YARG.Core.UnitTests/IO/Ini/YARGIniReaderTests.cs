@@ -67,6 +67,20 @@ public class YARGIniReaderTests
         }
     }
 
+    [TestCase("; comment\n[first]\nname = Alpha\n")]
+    [TestCase("[ignored]\n[first]\nname = Alpha\n")]
+    public void ReadIniFile_ReadsSectionRightAfterAnotherLine(string iniContents)
+    {
+        var collections = ReadIni(iniContents);
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(collections.ContainsKey("[first]"), Is.True);
+            Assert.That(collections["[first]"].Extract("name", out string name), Is.True);
+            Assert.That(name, Is.EqualTo("Alpha"));
+        }
+    }
+
     [Test]
     public void ReadIniFile_SkipsUnknownModifiersWithinKnownSection()
     {
