@@ -370,6 +370,34 @@ public class MidReaderProcessListsTests
         }
     }
 
+    [Test]
+    public void ReadMidi_ReadsOnlyTheFirstVenueTrack()
+    {
+        var midi = MakeMidi(
+            MakeTrack(MidIOHelper.VENUE_TRACK, Text(10, "[verse]")),
+            MakeTrack(MidIOHelper.VENUE_TRACK, Text(20, "[chorus]")));
+
+        var song = MidReader.ReadMidi(midi);
+
+        Assert.That(song.venue.Select(venue => venue.tick), Is.EqualTo(new uint[] { 10 }));
+    }
+
+    [TestCase(MidIOHelper.PRO_KEYS_EXPERT)]
+    [TestCase(MidIOHelper.PRO_KEYS_EASY)]
+    public void ReadMidi_ReadsOnlyTheFirstProKeysTrackOfEachDifficulty(string trackName)
+    {
+        var difficulty = trackName == MidIOHelper.PRO_KEYS_EXPERT ? Difficulty.Expert : Difficulty.Easy;
+        var key = MidIOHelper.PRO_KEYS_RANGE_START;
+        var midi = MakeMidi(
+            MakeTrack(trackName, Note(10, 100, key)),
+            MakeTrack(trackName, Note(20, 100, key)));
+
+        var song = MidReader.ReadMidi(midi);
+        var notes = song.GetChart(MoonInstrument.ProKeys, difficulty).notes;
+
+        Assert.That(notes.Select(note => note.tick), Is.EqualTo(new uint[] { 10 }));
+    }
+
     [TestCase("part guitar", MidIOHelper.GUITAR_TRACK)]
     [TestCase("Part Guitar GHL", MidIOHelper.GHL_GUITAR_TRACK)]
     [TestCase("Part Drums", MidIOHelper.DRUMS_TRACK)]

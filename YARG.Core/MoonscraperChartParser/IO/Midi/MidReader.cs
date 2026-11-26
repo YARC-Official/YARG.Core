@@ -28,6 +28,16 @@ namespace MoonscraperChartEditor.Song.IO
             MidIOHelper.HARMONY_3_TRACK_2,
         };
 
+        // Read only once each, as an instrument's tracks are
+        private static readonly HashSet<string> SingleTracks = new()
+        {
+            MidIOHelper.VENUE_TRACK,
+            MidIOHelper.PRO_KEYS_EXPERT,
+            MidIOHelper.PRO_KEYS_HARD,
+            MidIOHelper.PRO_KEYS_MEDIUM,
+            MidIOHelper.PRO_KEYS_EASY,
+        };
+
         private static string GetRecognizedTrackName(TrackChunk track)
         {
             string firstTrackName = string.Empty;
@@ -193,6 +203,7 @@ namespace MoonscraperChartEditor.Song.IO
             }
 
             var readInstruments = new HashSet<MoonSong.MoonInstrument>();
+            var readSingleTracks = new HashSet<string>();
             for (int i = 1; i < midi.Chunks.Count; i++)
             {
                 var chunk = midi.Chunks[i];
@@ -209,6 +220,13 @@ namespace MoonscraperChartEditor.Song.IO
                 }
 
                 string trackName = GetRecognizedTrackName(track);
+                // Only the first VENUE track and the first Pro Keys track of each difficulty are read
+                if (SingleTracks.Contains(trackName) && !readSingleTracks.Add(trackName))
+                {
+                    YargLogger.LogFormatTrace("Skipping repeated track {0}", trackName);
+                    continue;
+                }
+
                 switch (trackName)
                 {
                     case MidIOHelper.BEAT_TRACK:
