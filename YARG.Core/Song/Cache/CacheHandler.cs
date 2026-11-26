@@ -36,7 +36,7 @@ namespace YARG.Core.Song.Cache
         /// if multiple cache version changes happen in a single day).
         /// </summary>
         /// <remarks>Change whenever the song cache needs to be cleared and regenerated, e.g. when the new data is added to the cache.</remarks>
-        private const int CACHE_VERSION = 26_10_28_00;
+        private const int CACHE_VERSION = 26_11_03_00;
 
         public static ScanProgressTracker Progress => _progress;
         private static ScanProgressTracker _progress;
@@ -599,6 +599,9 @@ namespace YARG.Core.Song.Cache
                         break;
                     case ScanResult.InvalidResolution_Upgrade:
                         writer.WriteLine("The midi pro guitar upgrade file applicable with this chart has an invalid resolution of zero");
+                        break;
+                    case ScanResult.NoSongSection:
+                        writer.WriteLine("This .chart file doesn't start with a [Song] section");
                         break;
                 }
                 writer.WriteLine();

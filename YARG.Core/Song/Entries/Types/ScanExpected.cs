@@ -23,6 +23,8 @@ namespace YARG.Core.Song
         InvalidResolution_Update,
         InvalidResolution_Upgrade,
 
+        NoSongSection,
+
         NoAudio,
         UnsupportedAudioFormat,
         PathTooLong,
