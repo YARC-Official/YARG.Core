@@ -1033,6 +1033,9 @@ namespace MoonscraperChartEditor.Song.IO
                 { MidIOHelper.DRUMS_KICK_LANE_NOTE, (ref EventProcessParams eventProcessParams) => {
                     ProcessLanePhrase(ref eventProcessParams, MoonPhrase.Type.ProDrums_KickLane);
                 }},
+                { MidIOHelper.FLAM_MARKER, (ref EventProcessParams eventProcessParams) => {
+                    ProcessFlamMarker(ref eventProcessParams);
+                }},
             };
 
             var DrumPadToMidiKey = new Dictionary<MoonNote.DrumPad, int>()
@@ -1444,25 +1447,63 @@ namespace MoonscraperChartEditor.Song.IO
                 return;
             }
 
-            ProcessNoteOnEventAsSpecialPhrase(ref processParams, phraseType, MoonSong.Difficulty.Expert);
-
-            if ((int) noteEvent.Velocity >= 21)
+            foreach (var difficulty in EnumExtensions<MoonSong.Difficulty>.Values)
             {
-                if ((int) noteEvent.Velocity <= 30)
+                if (VelocityIncludesDifficulty((int) noteEvent.Velocity, difficulty))
                 {
-                    ProcessNoteOnEventAsSpecialPhrase(ref processParams, phraseType, MoonSong.Difficulty.Easy);
-                }
-
-                if ((int) noteEvent.Velocity <= 40)
-                {
-                    ProcessNoteOnEventAsSpecialPhrase(ref processParams, phraseType, MoonSong.Difficulty.Medium);
-                }
-
-                if ((int) noteEvent.Velocity <= 50)
-                {
-                    ProcessNoteOnEventAsSpecialPhrase(ref processParams, phraseType, MoonSong.Difficulty.Hard);
+                    ProcessNoteOnEventAsSpecialPhrase(ref processParams, phraseType, difficulty);
                 }
             }
+        }
+
+        private static void ProcessFlamMarker(ref EventProcessParams processParams)
+        {
+            if (processParams.timedEvent.midiEvent is not NoteEvent noteEvent)
+            {
+                YargLogger.FailFormat("Wrong note event type! Expected: {0}, Actual: {1}",
+                    typeof(NoteEvent), processParams.timedEvent.midiEvent.GetType());
+                return;
+            }
+
+            int velocity = (int) noteEvent.Velocity;
+            uint startTick = (uint) processParams.timedEvent.startTick;
+            uint endTick = (uint) processParams.timedEvent.endTick;
+            // Exclude the last tick of the marker
+            if (endTick > startTick)
+                --endTick;
+
+            // Delay the actual processing once all the notes are actually in
+            processParams.forcingProcessList.Add((ref EventProcessParams postParams) =>
+            {
+                foreach (var difficulty in EnumExtensions<MoonSong.Difficulty>.Values)
+                {
+                    if (!VelocityIncludesDifficulty(velocity, difficulty))
+                        continue;
+
+                    // Every note the marker covers is a flam, kicks included
+                    var chart = postParams.song.GetChart(postParams.instrument, difficulty);
+                    MoonObjectHelper.GetRange(chart.notes, startTick, endTick, out int index, out int length);
+                    for (int i = index; i < index + length; ++i)
+                    {
+                        chart.notes[i].flags |= MoonNote.Flags.ProDrums_Flam;
+                    }
+                }
+            });
+        }
+
+        // A lane or flam marker's velocity picks its difficulties:
+        // 21-30 every difficulty, 31-40 Medium and up, 41-50 Hard and up, and any other Expert only
+        private static bool VelocityIncludesDifficulty(int velocity, MoonSong.Difficulty difficulty)
+        {
+            if (velocity < 21 || velocity > 50)
+                return difficulty == MoonSong.Difficulty.Expert;
+
+            return difficulty switch
+            {
+                MoonSong.Difficulty.Easy => velocity <= 30,
+                MoonSong.Difficulty.Medium => velocity <= 40,
+                _ => true,
+            };
         }
 
     }

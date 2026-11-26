@@ -31,6 +31,8 @@ namespace YARG.Core.Chart
 
         public bool IsStarPowerActivator => (DrumFlags & DrumNoteFlags.StarPowerActivator) != 0;
 
+        public bool IsFlam => (DrumFlags & DrumNoteFlags.Flam) != 0;
+
         public override int LaneNote => Pad;
 
         public DrumNote(FourLaneDrumPad pad, DrumNoteType noteType, DrumNoteFlags drumFlags,
@@ -157,6 +159,7 @@ namespace YARG.Core.Chart
         KickLane = 1 << 1,
         KickLaneStart = 1 << 2,
         KickLaneEnd = 1 << 3,
+        Flam = 1 << 6,
     }
 
     public enum DrumStem

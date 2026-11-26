@@ -126,6 +126,103 @@ public class MidReaderProcessListsTests
         }
     }
 
+    private static readonly Difficulty[] HardestFirst =
+    {
+        Difficulty.Expert, Difficulty.Hard, Difficulty.Medium, Difficulty.Easy,
+    };
+
+    // Each velocity, with how many difficulties it applies to, from Expert down
+    private static readonly object[] MarkerVelocities =
+    {
+        new object[] { 21, 4 },
+        new object[] { 30, 4 },
+        new object[] { 31, 3 },
+        new object[] { 40, 3 },
+        new object[] { 41, 2 },
+        new object[] { 50, 2 },
+        new object[] { 1, 1 },
+        new object[] { 20, 1 },
+        new object[] { 51, 1 },
+        new object[] { 100, 1 },
+        new object[] { 127, 1 },
+    };
+
+    [TestCaseSource(nameof(MarkerVelocities))]
+    public void DrumFlamMarker_MakesFlamsOfCoveredNotesOnItsVelocitysDifficulties(int velocity, int difficulties)
+    {
+        var events = new List<object> { Note(0, 480, MidIOHelper.FLAM_MARKER, velocity) };
+        foreach (var difficulty in HardestFirst)
+        {
+            var kick = MidIOHelper.DRUMS_DIFF_START_LOOKUP[difficulty];
+            events.Add(Note(0, 60, kick));
+            events.Add(Note(0, 60, kick + 1));
+            events.Add(Note(240, 300, kick + 1));
+            events.Add(Note(480, 540, kick + 1));
+        }
+
+        var song = MidReader.ReadMidi(MakeMidi(MakeTrack(MidIOHelper.DRUMS_TRACK, events.ToArray())));
+
+        using (Assert.EnterMultipleScope())
+        {
+            foreach (var difficulty in HardestFirst)
+            {
+                var notes = song.GetChart(MoonInstrument.Drums, difficulty).notes;
+                var flams = notes.Where(note => (note.flags & Flags.ProDrums_Flam) != 0)
+                    .Select(note => (note.tick, note.drumPad));
+                // The kick and red at 0 and the red at 240, but not the red on the marker's end tick
+                var expected = HardestFirst.Take(difficulties).Contains(difficulty)
+                    ? new[] { (0u, DrumPad.Kick), (0u, DrumPad.Red), (240u, DrumPad.Red) }
+                    : Array.Empty<(uint, DrumPad)>();
+
+                Assert.That(notes, Has.Count.EqualTo(4), difficulty.ToString());
+                Assert.That(flams, Is.EquivalentTo(expected), difficulty.ToString());
+            }
+        }
+    }
+
+    [TestCaseSource(nameof(MarkerVelocities))]
+    public void DrumLane_AppliesToItsVelocitysDifficulties(int velocity, int difficulties)
+    {
+        var events = new List<object> { Note(0, 480, MidIOHelper.TREMOLO_LANE_NOTE, velocity) };
+        foreach (var difficulty in HardestFirst)
+        {
+            var red = MidIOHelper.DRUMS_DIFF_START_LOOKUP[difficulty] + 1;
+            events.Add(Note(0, 60, red));
+            events.Add(Note(240, 300, red));
+        }
+
+        var song = MidReader.ReadMidi(MakeMidi(MakeTrack(MidIOHelper.DRUMS_TRACK, events.ToArray())));
+
+        var withLane = HardestFirst.Where(difficulty => song.GetChart(MoonInstrument.Drums, difficulty)
+            .specialPhrases.Any(phrase => phrase.type == MoonPhrase.Type.TremoloLane));
+        Assert.That(withLane, Is.EqualTo(HardestFirst.Take(difficulties)));
+    }
+
+    [TestCase(Instrument.FourLaneDrums)]
+    [TestCase(Instrument.ProDrums)]
+    [TestCase(Instrument.FiveLaneDrums)]
+    public void SongChart_DrumFlamMarker_MakesFlamDrumNotes(Instrument instrument)
+    {
+        var kick = MidIOHelper.DRUMS_DIFF_START_LOOKUP[Difficulty.Expert];
+        var settings = ParseSettings.Default_Midi;
+        var midi = MakeMidi(MakeTrack(MidIOHelper.DRUMS_TRACK,
+            Note(0, 60, kick),
+            Note(0, 60, kick + 1),
+            Note(240, 300, kick + 1),
+            Note(0, 10, MidIOHelper.FLAM_MARKER)));
+
+        var songChart = SongChart.FromMidi(in settings, midi);
+        var notes = songChart.GetDrumsTrack(instrument).GetDifficulty(YARG.Core.Difficulty.Expert).Notes;
+
+        using (Assert.EnterMultipleScope())
+        {
+            Assert.That(notes, Has.Count.EqualTo(2));
+            Assert.That(notes[0].IsFlam, Is.True);
+            Assert.That(notes[0].ChildNotes.Select(note => note.IsFlam), Is.EqualTo(new[] { true }));
+            Assert.That(notes[1].IsFlam, Is.False);
+        }
+    }
+
     [Test]
     public void GuitarForcingMarkers_ApplyAfterNotesAreParsed()
     {

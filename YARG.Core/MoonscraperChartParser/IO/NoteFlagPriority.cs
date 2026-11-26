@@ -26,6 +26,7 @@ namespace MoonscraperChartEditor.Song.IO
         public static readonly NoteFlagPriority Cymbal = new(MoonNote.Flags.ProDrums_Cymbal);
         public static readonly NoteFlagPriority Accent = new(MoonNote.Flags.ProDrums_Accent);
         public static readonly NoteFlagPriority Ghost = new(MoonNote.Flags.ProDrums_Ghost);
+        public static readonly NoteFlagPriority Flam = new(MoonNote.Flags.ProDrums_Flam);
 
         private static readonly List<NoteFlagPriority> priorities = new()
         {
@@ -35,6 +36,7 @@ namespace MoonscraperChartEditor.Song.IO
             Cymbal,
             Accent,
             Ghost,
+            Flam,
         };
 
         public MoonNote.Flags flagToAdd { get; } = MoonNote.Flags.None;

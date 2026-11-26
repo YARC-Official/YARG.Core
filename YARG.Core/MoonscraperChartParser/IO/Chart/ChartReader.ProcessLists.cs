@@ -85,6 +85,11 @@ namespace MoonscraperChartEditor.Song.IO
             { ChartIOHelper.NOTE_OFFSET_DRUMS_GHOST + 5, (ref NoteProcessParams noteProcessParams) => {
                 ProcessNoteOnEventAsNoteFlagToggle(ref noteProcessParams, (int)MoonNote.DrumPad.Green, NoteFlagPriority.Ghost);
             } },
+
+            // Makes a flam of every note on its tick, kicks included
+            { ChartIOHelper.NOTE_DRUMS_FLAM, (ref NoteProcessParams noteProcessParams) => {
+                ProcessNoteOnEventAsChordFlag(ref noteProcessParams, NoteFlagPriority.Flam);
+            } },
         };
 
         private static readonly Dictionary<int, NoteEventProcessFn> GhlChartNoteNumberToProcessFnMap = new()
