@@ -210,6 +210,32 @@ public class MidReaderProcessListsTests
     }
 
     [Test]
+    public void ReadMidi_DefaultSustainCutoffIncludesAThirdOfABeatPlusOneTick()
+    {
+        var green = MidIOHelper.GUITAR_DIFF_START_LOOKUP[Difficulty.Expert];
+        var midi = MakeMidi(MakeTrack(MidIOHelper.GUITAR_TRACK,
+            Note(0, 64, green),
+            Note(192, 192 + 65, green),
+            Note(384, 384 + 66, green)));
+
+        var song = MidReader.ReadMidi(midi);
+        var notes = song.GetChart(MoonInstrument.Guitar, Difficulty.Expert).notes;
+
+        Assert.That(notes.Select(note => note.length), Is.EqualTo(new uint[] { 0, 0, 66 }));
+    }
+
+    [Test]
+    public void ReadMidi_UsesHopoThresholdAsGiven()
+    {
+        var settings = ParseSettings.Default_Midi;
+        settings.HopoThreshold = 100;
+
+        var song = MidReader.ReadMidi(ref settings, MakeMidi());
+
+        Assert.That(song.hopoThreshold, Is.EqualTo(100));
+    }
+
+    [Test]
     public void SongChart_MidiChordToSameFretSingle_IsStrumWithoutLoaderCancellation()
     {
         var red = MidIOHelper.GUITAR_DIFF_START_LOOKUP[Difficulty.Expert] + 1;

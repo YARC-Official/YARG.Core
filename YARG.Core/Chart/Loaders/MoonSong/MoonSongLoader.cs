@@ -17,7 +17,11 @@ namespace YARG.Core.Chart
     /// </summary>
     internal partial class MoonSongLoader : ISongLoader
     {
-        private delegate TNote CreateNoteDelegate<TNote>(MoonNote moonNote, CurrentPhrases currentPhrases, List<TNote> notes)
+        // Returns null for a note that's left out
+        private delegate TNote? CreateNoteDelegate<TNote>(MoonNote moonNote, CurrentPhrases currentPhrases, List<TNote> notes)
+            where TNote : Note<TNote>;
+        // Sees a note that the difficulty leaves out, like a double kick below Expert+
+        private delegate void SkippedNoteDelegate<TNote>(MoonNote moonNote, List<TNote> notes)
             where TNote : Note<TNote>;
         private delegate void ProcessTextDelegate(MoonText text);
         private delegate Phrase? ValidatePhraseDelegate(Phrase phrase, List<Phrase> phrases);
@@ -25,6 +29,8 @@ namespace YARG.Core.Chart
 
         private MoonSong _moonSong;
         private ParseSettings _settings;
+        // The most ticks a note can start after a chord and still snap into it
+        private readonly long _maxSnapDistance;
         // .chart format uses inclusive solo phrase boundaries (the note at phrase end tick is inside the solo);
         // .mid format uses exclusive boundaries. Other formats should set this based on their own spec.
         private bool _inclusiveSoloBoundary;
@@ -57,6 +63,7 @@ namespace YARG.Core.Chart
         {
             _moonSong = song;
             _settings = settings;
+            _maxSnapDistance = settings.RockBandNoteSnap ? settings.NoteSnapThreshold : settings.NoteSnapThreshold - 1;
             _codaTime = FindCodaTime();
             _codaTicks = GetCodaTicks();
         }
@@ -149,7 +156,8 @@ namespace YARG.Core.Chart
             CreateNoteDelegate<TNote> createNote,
             ProcessTextDelegate? processText = null,
             ValidatePhraseDelegate? validatePhrase = null,
-            FinalPassDelegate<TNote>? finalPassDelegate = null)
+            FinalPassDelegate<TNote>? finalPassDelegate = null,
+            SkippedNoteDelegate<TNote>? skippedNote = null)
             where TNote : Note<TNote>
         {
             _currentMode = instrument.ToNativeGameMode();
@@ -161,7 +169,7 @@ namespace YARG.Core.Chart
             _currentMoonDifficulty = YargDifficultyToMoonDifficulty(_currentDifficulty);
 
             var moonChart = GetMoonChart(instrument, difficulty);
-            var notes = GetNotes(moonChart, difficulty, createNote, processText);
+            var notes = GetNotes(moonChart, difficulty, createNote, processText, skippedNote);
             var phrases = GetPhrases(moonChart, validatePhrase);
             var textEvents = GetTextEvents(moonChart);
 
@@ -176,7 +184,8 @@ namespace YARG.Core.Chart
         }
 
         private List<TNote> GetNotes<TNote>(MoonChart moonChart, Difficulty difficulty,
-            CreateNoteDelegate<TNote> createNote, ProcessTextDelegate? processText = null)
+            CreateNoteDelegate<TNote> createNote, ProcessTextDelegate? processText = null,
+            SkippedNoteDelegate<TNote>? skippedNote = null)
             where TNote : Note<TNote>
         {
             var notes = new List<TNote>(moonChart.notes.Count);
@@ -218,11 +227,15 @@ namespace YARG.Core.Chart
                 // Skip Expert+ notes if not on Expert+
                 if (difficulty != Difficulty.ExpertPlus && (moonNote.flags & MoonNote.Flags.InstrumentPlus) != 0)
                 {
+                    skippedNote?.Invoke(moonNote, notes);
                     continue;
                 }
 
                 var newNote = createNote(moonNote, currentPhrases, notes);
-                AddNoteToList(notes, newNote);
+                if (newNote is not null)
+                {
+                    AddNoteToList(notes, newNote);
+                }
             }
 
             notes.TrimExcess();
@@ -395,13 +408,19 @@ namespace YARG.Core.Chart
                     currentParent.AddChildNote(note);
                     return;
                 }
-                else if ((note.Tick - currentParent.Tick) <= _settings.NoteSnapThreshold)
+                else if (SnapsIntoChord(note.Tick, currentParent.Tick))
                 {
-                    // Chord needs to be snapped, copy values
-                    note.CopyValuesFrom(currentParent);
-
                     note.PreviousNote = previousParent;
-                    currentParent.AddChildNote(note);
+                    if (_settings.RockBandNoteSnap)
+                    {
+                        // Chord needs to be snapped, copy values
+                        note.CopyValuesFrom(currentParent);
+                        currentParent.AddChildNote(note);
+                    }
+                    else
+                    {
+                        currentParent.SnapNote(note, GetLengthInTime(currentParent.Time, currentParent.Tick, note.TickLength));
+                    }
                     return;
                 }
             }
@@ -421,6 +440,14 @@ namespace YARG.Core.Chart
             }
 
             notes.Add(note);
+        }
+
+        /// <summary>
+        /// Whether a note at the given tick snaps into the chord at an earlier tick.
+        /// </summary>
+        private bool SnapsIntoChord(uint tick, uint chordTick)
+        {
+            return tick != chordTick && tick - chordTick <= _maxSnapDistance;
         }
 
         private double GetLengthInTime(double startTime, uint tick, uint tickLength)

@@ -165,7 +165,8 @@ namespace YARG.Core.Song
                 TuningOffsetCents = _settings.TuningOffsetCents,
                 DrumsType = DrumsType.FourLane,
                 ChordHopoCancellation = true,
-                NoteSnapThreshold = NOTE_SNAP_THRESHOLD
+                NoteSnapThreshold = NOTE_SNAP_THRESHOLD,
+                RockBandNoteSnap = true
             };
             return SongChart.FromMidi(in parseSettings, midi);
         }
@@ -589,11 +590,9 @@ namespace YARG.Core.Song
                 }
 
                 entry._parts.ProDrums.Difficulties = entry._parts.FourLaneDrums.Difficulties;
-                entry._settings.SustainCutoffThreshold = resolution.Value / 3;
-                if (entry._settings.HopoThreshold == -1)
-                {
-                    entry._settings.HopoThreshold = entry._settings.SustainCutoffThreshold;
-                }
+                // Rock Band songs use the same sustain cutoff and HOPO threshold as song folders,
+                // so a CON and its song folder copy play the same
+                entry._settings.SustainCutoffThreshold = resolution.Value / 3 + 1;
 
                 using var buffer = FixedArray<byte>.Alloc(bufLength);
                 unsafe

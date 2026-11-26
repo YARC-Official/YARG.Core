@@ -305,6 +305,47 @@ namespace YARG.Core.Chart
             CopyFlags(other);
         }
 
+        /// <summary>
+        /// Snaps a note that starts after this chord into it. The note takes the chord's tick, flags and note type,
+        /// and keeps its own length. When the chord already has a note in the same lane, the longer one stays.
+        /// </summary>
+        /// <param name="note">The note to snap.</param>
+        /// <param name="timeLength">The note's length in time, starting from this chord.</param>
+        public virtual void SnapNote(TNote note, double timeLength)
+        {
+            note.Time = Time;
+            note.Tick = Tick;
+            note.TimeLength = timeLength;
+
+            note._flags = _flags;
+            note.Flags = Flags;
+
+            foreach (var chordNote in AllNotes)
+            {
+                if (!chordNote.IsSameLane(note))
+                {
+                    continue;
+                }
+
+                if (note.TickLength > chordNote.TickLength)
+                {
+                    chordNote.TickLength = note.TickLength;
+                    chordNote.TimeLength = note.TimeLength;
+                }
+                return;
+            }
+
+            AddChildNote(note);
+        }
+
+        /// <summary>
+        /// Whether another note plays the same lane as this one, such as the same fret.
+        /// </summary>
+        protected virtual bool IsSameLane(TNote other)
+        {
+            return false;
+        }
+
         public void ActivateFlag(NoteFlags noteFlag)
         {
             _flags |= noteFlag;
