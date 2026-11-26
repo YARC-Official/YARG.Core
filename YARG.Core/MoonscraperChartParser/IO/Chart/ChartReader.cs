@@ -175,8 +175,17 @@ namespace MoonscraperChartEditor.Song.IO
             SubmitDataSync(song, sectionBody);
 
             // Parse instrument tracks
+            bool readEvents = false;
             while (GetNextSection(chartText, ref textIndex, out var sectionName, out sectionBody))
             {
+                // Only the first [Events] section counts, as only the first [SyncTrack] does
+                if (sectionName.Equals(ChartIOHelper.SECTION_EVENTS, StringComparison.Ordinal))
+                {
+                    if (readEvents)
+                        continue;
+                    readEvents = true;
+                }
+
                 SubmitChartData(ref settings, song, sectionName, sectionBody);
             }
 

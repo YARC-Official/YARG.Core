@@ -351,6 +351,29 @@ namespace YARG.Core.UnitTests.Parsing
         }
 
         [Test]
+        public void ReadFromText_ReadsOnlyTheFirstEventsSection()
+        {
+            var chartText = ChartText.Chart(
+                ChartText.SongSection(),
+                ChartText.SyncSection(),
+                ChartText.Section(ChartIOHelper.SECTION_EVENTS,
+                    "0 = E \"section Intro\"",
+                    "192 = E \"music_start\""),
+                ChartText.Section("ExpertSingle", "0 = N 0 0"),
+                ChartText.Section(ChartIOHelper.SECTION_EVENTS,
+                    "384 = E \"section Verse\"",
+                    "768 = E \"end\""));
+
+            var song = ChartReader.ReadFromText(chartText);
+
+            using (Assert.EnterMultipleScope())
+            {
+                Assert.That(song.sections.Select(text => text.text), Is.EqualTo(new[] { "Intro" }));
+                Assert.That(song.events.Select(text => text.text), Is.EqualTo(new[] { "music_start" }));
+            }
+        }
+
+        [Test]
         public void GuitarProcessList_AppliesTapOverForcedAfterNotesAreParsed()
         {
             var chartText = ChartText.Chart(
