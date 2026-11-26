@@ -107,6 +107,50 @@ public class MidReaderProcessListsTests
         }
     }
 
+    // A red note at the pair's tick reads as (RedDrum, Snare) after off, (YellowCymbal, Else) after d,
+    // and (RedDrum, Else) after dnoflip
+    [TestCase("", "d", FourLaneDrumPad.RedDrum, DrumStem.Snare)]
+    [TestCase("d", "dnoflip", FourLaneDrumPad.YellowCymbal, DrumStem.Else)]
+    [TestCase("", "dnoflip", FourLaneDrumPad.RedDrum, DrumStem.Snare)]
+    public void SongChart_DrumsMixEventsAtOneTick_UseOffThenDThenDnoflip(string firstFlag, string secondFlag,
+        FourLaneDrumPad pad, DrumStem stem)
+    {
+        var red = MidIOHelper.DRUMS_DIFF_START_LOOKUP[Difficulty.Expert] + 1;
+        var midi = MakeMidi(MakeTrack(MidIOHelper.DRUMS_TRACK,
+            Text(100, $"[mix 3 drums0{firstFlag}]"),
+            Text(100, $"[mix 3 drums0{secondFlag}]"),
+            Note(100, 110, red)));
+
+        var songChart = SongChart.FromMidi(ParseSettings.Default_Midi, midi);
+        var note = songChart.ProDrums.GetDifficulty(YARG.Core.Difficulty.Expert).Notes.Single();
+
+        Assert.That(((FourLaneDrumPad) note.Pad, note.Stem), Is.EqualTo((pad, stem)));
+    }
+
+    [Test]
+    public void SongChart_EliteDrumsDownchart_KeepsDiscoFlipThatStartsWhereAnotherEnds()
+    {
+        var snare = MidIOHelper.ELITE_DRUMS_DIFF_START_LOOKUP[Difficulty.Expert] + 1;
+        var discoFlip = MidIOHelper.ELITE_DRUMS_DIFF_START_LOOKUP[Difficulty.Expert] + 16;
+        var midi = MakeMidi(MakeTrack(MidIOHelper.ELITE_DRUMS_TRACK,
+            Note(100, 200, discoFlip),
+            Note(200, 300, discoFlip),
+            Note(100, 110, snare),
+            Note(200, 210, snare),
+            Note(300, 310, snare)));
+
+        var songChart = SongChart.FromMidi(ParseSettings.Default_Midi, midi);
+        var pads = songChart.ProDrums.GetDifficulty(YARG.Core.Difficulty.Expert).Notes
+            .Select(note => (FourLaneDrumPad) note.Pad);
+
+        Assert.That(pads, Is.EqualTo(new[]
+        {
+            FourLaneDrumPad.RedDrum,
+            FourLaneDrumPad.RedDrum,
+            FourLaneDrumPad.RedDrum,
+        }));
+    }
+
     [Test]
     public void EliteDrumsStrictHatPedalStateTextEvent_SetsStrictHatPedalFlag()
     {
