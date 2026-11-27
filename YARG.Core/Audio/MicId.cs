@@ -7,22 +7,36 @@ namespace YARG.Core.Audio
         public readonly string BaseName;
         public readonly int    Channel;
 
-        public MicId(string baseName, int channel)
+        public readonly string? EndpointId;
+
+        public MicId(string baseName, int channel) : this(baseName, channel, null)
+        {
+        }
+
+        public MicId(string baseName, int channel, string? endpointId)
         {
             BaseName = baseName ?? string.Empty;
             Channel = channel;
+            EndpointId = string.IsNullOrEmpty(endpointId) ? null : endpointId;
         }
 
         public bool Equals(MicId other)
         {
-            return string.Equals(BaseName, other.BaseName, StringComparison.Ordinal)
-                && Channel == other.Channel;
+            return Channel == other.Channel && EndpointId == other.EndpointId &&
+                (EndpointId != null || BaseName == other.BaseName);
         }
+
+        // Old bindings have only a device name and channel. Ownership always uses exact equality.
+        public bool MatchesInput(MicId input) => MatchesInput(input, StringComparison.Ordinal);
+
+        public bool MatchesInput(MicId input, StringComparison nameComparison) => EndpointId == null
+            ? string.Equals(BaseName, input.BaseName, nameComparison) && Channel == input.Channel
+            : Equals(input);
 
         public override bool Equals(object? obj) => obj is MicId other && Equals(other);
 
         public override int GetHashCode() =>
-            HashCode.Combine(StringComparer.Ordinal.GetHashCode(BaseName), Channel);
+            HashCode.Combine(EndpointId, EndpointId ?? BaseName, Channel);
 
         public static bool operator ==(MicId left, MicId right) => left.Equals(right);
         public static bool operator !=(MicId left, MicId right) => !left.Equals(right);

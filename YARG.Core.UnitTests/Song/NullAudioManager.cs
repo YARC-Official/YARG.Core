@@ -9,7 +9,7 @@ namespace YARG.Core.UnitTests.Song;
 /// that call into <see cref="GlobalAudioHandler"/> (e.g. the SongLength-via-audio-duration
 /// fallback in IniSubEntry.FillSongLengthFromAudio) without needing a real audio backend.
 /// </summary>
-internal sealed class NullAudioManager : AudioManager
+internal class NullAudioManager : AudioManager
 {
     protected internal override ReadOnlySpan<string> SupportedFormats => ReadOnlySpan<string>.Empty;
 

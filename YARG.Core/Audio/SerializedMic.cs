@@ -9,16 +9,23 @@ namespace YARG.Core.Audio
         public readonly string BaseName;
         public readonly int Channel;
 
-        public MicId Id => new(BaseName, Channel);
+        public readonly string? EndpointId;
 
-        public SerializedMic(MicId id) : this(id.BaseName, id.Channel)
+        public MicId Id => new(BaseName, Channel, EndpointId);
+
+        public SerializedMic(MicId id) : this(id.BaseName, id.Channel, id.EndpointId)
         {
         }
 
-        public SerializedMic(string baseName, int channel)
+        public SerializedMic(string baseName, int channel) : this(baseName, channel, null)
+        {
+        }
+
+        public SerializedMic(string baseName, int channel, string? endpointId)
         {
             BaseName = baseName;
             Channel = channel;
+            EndpointId = endpointId;
         }
 
         public SerializedMic(string displayName)
