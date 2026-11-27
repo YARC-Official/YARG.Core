@@ -34,14 +34,22 @@ namespace YARG.Core.Audio
         /// </summary>
         public string DisplayName => ChannelCount > 1 ? $"{Name}{CHANNEL_SUFFIX}{Channel + 1}" : Name;
 
-        public MicId Id => new(Name, Channel);
+        private readonly string? _endpointId;
+
+        public MicId Id => new(Name, Channel, _endpointId);
 
         public InputDeviceInfo(int deviceId, string name, int channel, int channelCount)
+            : this(deviceId, name, channel, channelCount, null)
+        {
+        }
+
+        public InputDeviceInfo(int deviceId, string name, int channel, int channelCount, string? endpointId)
         {
             DeviceId = deviceId;
             Name = name;
             Channel = channel;
             ChannelCount = channelCount;
+            _endpointId = endpointId;
         }
 
         public static bool TryParseDisplayName(string displayName, out string baseName, out int channel)
